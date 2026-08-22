@@ -175,6 +175,36 @@
         </div>
 
         <div class="setup-block">
+          <h3>Continue (VS Code &amp; JetBrains)</h3>
+          <p data-t="mcp_continue_step">In <code>~/.continue/config.json</code> under <code>mcpServers</code>:</p>
+          <div class="codewrap"><pre class="code">{
+  "mcpServers": {
+    "swiss-caselaw": {
+      "url": "https://mcp.opencaselaw.ch/mcp"
+    }
+  }
+}</pre></div>
+        </div>
+
+        <div class="setup-block">
+          <h3>Zed</h3>
+          <p data-t="mcp_zed_step">In <code>~/.config/zed/settings.json</code> under <code>context_servers</code>:</p>
+          <div class="codewrap"><pre class="code">{
+  "context_servers": {
+    "swiss-caselaw": {
+      "url": "https://mcp.opencaselaw.ch/mcp"
+    }
+  }
+}</pre></div>
+        </div>
+
+        <div class="setup-block">
+          <h3>Open WebUI</h3>
+          <p data-t="mcp_openwebui_step">Admin Panel → Settings → Tools → Valve / MCP Connections → "+ Add Connection". URL: <code>https://mcp.opencaselaw.ch/mcp</code>, Auth: None.</p>
+          <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch/mcp</pre></div>
+        </div>
+
+        <div class="setup-block">
           <h3 data-t="mcp_other_heading">Other MCP clients</h3>
           <p data-t="mcp_other_step">Works with any MCP-capable client (Continue, Zed, Cody, Windsurf, …) over Streamable HTTP at <code>https://mcp.opencaselaw.ch</code>. SSE is also reachable at <code>/sse</code> but is deprecated by the MCP spec.</p>
         </div>
@@ -335,6 +365,9 @@ OCL.init({
       mcp_cursor_step:'Settings → Features → MCP → „+ Add new MCP server", oder in <code>~/.cursor/mcp.json</code>:',
       mcp_gemini_step:'CLI-Befehl oder <code>~/.gemini/settings.json</code>. Die Web-App gemini.google.com unterstützt aktuell keine eigenen MCP-Server — nur Gemini CLI, Gemini Enterprise, Android Studio und Firebase Studio.',
       mcp_copilot_step:'Agent → Tools → Add a tool → New tool → „Model Context Protocol". Server-Name „Swiss Caselaw" + URL eintragen, Auth: None. Nur Streamable HTTP (SSE seit August 2025 nicht mehr unterstützt).',
+      mcp_continue_step:'In <code>~/.continue/config.json</code> unter <code>mcpServers</code> (oder <code>experimental.modelContextProtocolServers</code>):',
+      mcp_zed_step:'In <code>~/.config/zed/settings.json</code> unter <code>context_servers</code>:',
+      mcp_openwebui_step:'Admin-Bereich → Settings → Tools → Valve / MCP Connections → „+ Add Connection". URL: <code>https://mcp.opencaselaw.ch/mcp</code>, Auth: None.',
       mcp_other_heading:'Andere MCP-Clients',
       mcp_other_step:'Funktioniert mit jedem MCP-fähigen Client (Continue, Zed, Cody, Windsurf, …) über Streamable HTTP an <code>https://mcp.opencaselaw.ch</code>. SSE ist ebenfalls unter <code>/sse</code> erreichbar, aber MCP-spec-seitig veraltet.',
       mcp_tools_heading:'41 öffentliche Tools (+ 2 lokale Admin-Tools)',
@@ -365,6 +398,9 @@ OCL.init({
       mcp_sub:'Le serveur MCP public d\'OpenCaseLaw donne aux modèles de langage un accès direct à plus de 1’050’000 décisions judiciaires suisses, au graphe de citations, aux lois fédérales et aux actes cantonaux. 41 outils spécialisés, aucune inscription, aucune clé API.',
       page_toc:'Sur cette page',
       mcp_remote_desc:'Immédiatement disponible, toujours à jour. Aucun téléchargement requis. Endpoint serveur :',
+      mcp_continue_step:'Dans <code>~/.continue/config.json</code> sous <code>mcpServers</code> (ou <code>experimental.modelContextProtocolServers</code>) :',
+      mcp_zed_step:'Dans <code>~/.config/zed/settings.json</code> sous <code>context_servers</code> :',
+      mcp_openwebui_step:'Panneau d\'administration → Settings → Tools → Valve / MCP Connections → « + Add Connection ». URL : <code>https://mcp.opencaselaw.ch/mcp</code>, Auth : None.',
       mcp_tools_heading:'Aperçu des 41 outils publics (+ 2 outils locaux d\'administration)',
       mcp_tools_desc:'Chaque outil est optimisé pour un cas d\'usage de recherche spécifique. Schémas complets via <code>tools/list</code> du protocole MCP, regroupés ici par fonction.',
       mcp_tech_heading:'Détails techniques',
@@ -381,6 +417,9 @@ OCL.init({
       mcp_sub:'Il server MCP pubblico di OpenCaseLaw dà ai modelli linguistici accesso diretto a oltre 1’050’000 decisioni giudiziarie svizzere, al grafo delle citazioni, alle leggi federali e agli atti cantonali. 41 strumenti specializzati, nessuna registrazione, nessuna chiave API.',
       page_toc:'In questa pagina',
       mcp_remote_desc:'Immediatamente disponibile, sempre aggiornato. Nessun download richiesto. Endpoint server:',
+      mcp_continue_step:'In <code>~/.continue/config.json</code> sotto <code>mcpServers</code> (o <code>experimental.modelContextProtocolServers</code>):',
+      mcp_zed_step:'In <code>~/.config/zed/settings.json</code> sotto <code>context_servers</code>:',
+      mcp_openwebui_step:'Pannello di amministrazione → Settings → Tools → Valve / MCP Connections → "+ Add Connection". URL: <code>https://mcp.opencaselaw.ch/mcp</code>, Auth: None.',
       mcp_tools_heading:'41 strumenti pubblici in sintesi (+ 2 strumenti locali di amministrazione)',
       mcp_tools_desc:'Ogni strumento è ottimizzato per uno specifico caso d\'uso di ricerca. Schemi completi via <code>tools/list</code> del protocollo MCP, qui raggruppati per funzione.',
       mcp_tech_heading:'Dettagli tecnici',
@@ -397,6 +436,9 @@ OCL.init({
       mcp_sub:'Il server MCP public da OpenCaseLaw dà als models linguistics access direct a passa 1’050’000 decisiuns giudizialas svizras, al grafic da citaziuns, a las leschas federalas ed als acts chantunals. 41 utensils specialisàs, nagina registraziun, nagins API keys.',
       page_toc:'Sin questa pagina',
       mcp_remote_desc:'Immediat disponibel, adina actual. Nagin download necessari. Endpoint dal server:',
+      mcp_continue_step:'En <code>~/.continue/config.json</code> sut <code>mcpServers</code> (u <code>experimental.modelContextProtocolServers</code>):',
+      mcp_zed_step:'En <code>~/.config/zed/settings.json</code> sut <code>context_servers</code>:',
+      mcp_openwebui_step:'Part d\'administraziun → Settings → Tools → Valve / MCP Connections → "+ Add Connection". URL: <code>https://mcp.opencaselaw.ch/mcp</code>, Auth: None.',
       mcp_tools_heading:'41 utensils publics (+ 2 utensils locals d\'administraziun)',
       mcp_tools_desc:'Mintga utensil è optimà per in cas spezific da retschertga. Schemas cumplets via <code>tools/list</code> dal protocol MCP, qua gruppads tenor funcziun.',
       mcp_tech_heading:'Detagls tecnics',
@@ -425,6 +467,9 @@ OCL.init({
       mcp_cursor_step:'Settings → Features → MCP → "+ Add new MCP server", or in <code>~/.cursor/mcp.json</code>:',
       mcp_gemini_step:'CLI command or <code>~/.gemini/settings.json</code>. The web app gemini.google.com does not currently support custom MCP servers — only Gemini CLI, Gemini Enterprise, Android Studio and Firebase Studio do.',
       mcp_copilot_step:'Agent → Tools → Add a tool → New tool → "Model Context Protocol". Server name "Swiss Caselaw" and URL, auth: None. Streamable HTTP only (SSE no longer supported since August 2025).',
+      mcp_continue_step:'In <code>~/.continue/config.json</code> under <code>mcpServers</code> (or <code>experimental.modelContextProtocolServers</code>):',
+      mcp_zed_step:'In <code>~/.config/zed/settings.json</code> under <code>context_servers</code>:',
+      mcp_openwebui_step:'Admin Panel → Settings → Tools → Valve / MCP Connections → "+ Add Connection". URL: <code>https://mcp.opencaselaw.ch/mcp</code>, Auth: None.',
       mcp_other_heading:'Other MCP clients',
       mcp_other_step:'Works with any MCP-capable client (Continue, Zed, Cody, Windsurf, …) over Streamable HTTP at <code>https://mcp.opencaselaw.ch</code>. SSE is also reachable at <code>/sse</code> but is deprecated by the MCP spec.',
       mcp_tools_heading:'41 public tools at a glance (+ 2 local admin tools)',

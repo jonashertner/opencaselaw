@@ -129,6 +129,47 @@ response = client.models.generate_content(
 
 The SDK handles tool discovery and execution automatically. See the [Gen AI SDK docs](https://googleapis.github.io/python-genai/) for details.
 
+### Continue (VS Code & JetBrains)
+
+Add to `~/.continue/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "swiss-caselaw": {
+      "url": "https://mcp.opencaselaw.ch/mcp"
+    }
+  }
+}
+```
+
+See the full [Continue setup guide](continue-setup.md) for details on Streamable HTTP and SSE configuration.
+
+### Zed
+
+Add to `~/.config/zed/settings.json` (or `~/Library/Application Support/Zed/settings.json` on macOS):
+
+```json
+{
+  "context_servers": {
+    "swiss-caselaw": {
+      "url": "https://mcp.opencaselaw.ch/mcp"
+    }
+  }
+}
+```
+
+See the full [Zed setup guide](zed-setup.md).
+
+### Open WebUI
+
+Navigate to **Admin Panel** → **Settings** → **Tools** → **Valve / MCP Connections** → **+ Add Connection**:
+- **Type:** Streamable HTTP (or SSE)
+- **URL:** `https://mcp.opencaselaw.ch/mcp`
+- **Auth:** None
+
+See the full [Open WebUI setup guide](open-webui-setup.md).
+
 ### Other MCP clients
 
 The server uses the SSE (Server-Sent Events) transport at `https://mcp.opencaselaw.ch`. Any MCP client that supports remote SSE servers can connect using this URL. No authentication required.
