@@ -282,11 +282,12 @@ def test_runner_registry_is_consistent():
     for key, cls in runner.ALL_SCRAPERS.items():
         assert key == cls.SOURCE_KEY, (key, cls.SOURCE_KEY)
         assert cls.ISSUING_AUTHORITY and cls.DEFAULT_DOC_TYPE
-    for key in ("seco_alv", "bag_kvg", "sem_handbuch_asyl", "bj_schkg"):
+    for key in ("seco_alv", "bag_kvg", "sem_handbuch_asyl", "bj_schkg", "bsv_weisungen"):
         assert key in runner.ENABLED_SCRAPERS
-    # BSV stays experimental until the systemd unit can hold a multi-hour run
-    assert "bsv_weisungen" in runner.EXPERIMENTAL_SCRAPERS
-    assert "bsv_weisungen" not in runner.ENABLED_SCRAPERS
+    # BSV was experimental until its first full run (2026-09-03/04, 6,083
+    # records, 1 h 45 min) proved the unit can hold it; the unit now has no
+    # timeout. A source must be in exactly one registry.
+    assert not set(runner.ENABLED_SCRAPERS) & set(runner.EXPERIMENTAL_SCRAPERS)
 
 
 # ───────────────────────────────────────────── scanned PDFs

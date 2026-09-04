@@ -46,6 +46,8 @@ ENABLED_SCRAPERS = {
     "bag_kvg":           BagKvgScraper,
     "sem_handbuch_asyl": SemHandbuchAsylScraper,
     "bj_schkg":          BjSchkgScraper,
+    # First full run 2026-09-03/04 on the VPS: 6,083 records, 0 failed, 1 h 45 min.
+    "bsv_weisungen":     BsvWeisungenScraper,
 }
 
 # Defensive scaffolds — need first-run validation before enabling
@@ -53,12 +55,6 @@ EXPERIMENTAL_SCRAPERS = {
     "ssk_ks":            SskKreisschreibenScraper,
     "are_vollzug":       AreVollzugshilfenScraper,
     "epa_personalrecht": EpaPersonalrechtScraper,
-    # BSV is complete and tested but its first run takes hours (~2,600
-    # documents × versions × languages). It must not be picked up by
-    # opencaselaw-practice.service (TimeoutStartSec=3600, no lock) until the
-    # unit is adjusted; run it by hand: --only bsv_weisungen. Promote to
-    # ENABLED_SCRAPERS after the first full run has been indexed.
-    "bsv_weisungen":     BsvWeisungenScraper,
 }
 
 ALL_SCRAPERS = {**ENABLED_SCRAPERS, **EXPERIMENTAL_SCRAPERS}

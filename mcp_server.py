@@ -10996,8 +10996,9 @@ server = Server(
         "portal scraping for 19 cantons + LexFind fallback for the rest), "
         "1,100+ scholarly commentaries, a verbatim Federal Council Botschaft "
         "corpus (5,900+ documents, ~410K FTS5-indexed paragraphs), "
-        "federal administrative practice — Verwaltungspraxis, 3,400+ documents: "
-        "(BSV AHV/IV/EL Wegleitungen: ingest in progress, not yet searchable) "
+        "federal administrative practice — Verwaltungspraxis, 9,700+ documents: "
+        "BSV Wegleitungen, Kreisschreiben, Rundschreiben and Mitteilungen for "
+        "AHV/IV/EL/EO/FamZ/BVG (every retained version, DE/FR/IT), "
         "FINMA Rundschreiben in force and superseded, every published version "
         "of each (DE/FR/IT/EN), "
         "SECO commentary on the Arbeitsgesetz and ArGV 1-5 article by "
@@ -24952,7 +24953,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool when the question involves federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben, Handbücher — agency guidance, not court decisions. 3,400+ documents. Covered: SECO (Arbeitsgesetz commentary + AVIG-Praxis unemployment insurance), BAG (KVG Kreisschreiben), SEM (Weisungen AIG/Asyl/BüG + Handbuch Asyl und Rückkehr), BJ (SchKG Weisungen, cantonal Existenzminimum Kreisschreiben), FINMA, ESTV, BAFU; per-source counts in the filter enums. Returns ranked excerpts with authority, number, date, PDF link. Superseded versions collapse to the newest per document; for past conduct pass include_superseded=true and take the version dated before the facts. NOT covered: BSV AHV/IV/EL Wegleitungen (ingest in progress, days), cantonal administrations — Sozialhilfe (SKOS, cantonal Handbücher), Prämienverbilligung (IPV) — say so, do not imply absence of guidance. Pre-2017 federal decisions: search_decisions(court='ch_vb')."
+                "Use this tool when the question involves federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben, Handbücher — agency guidance, not court decisions. 9,700+ documents. Covered: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every retained version), SECO (Arbeitsgesetz commentary + AVIG-Praxis unemployment insurance), BAG (KVG Kreisschreiben), SEM (Weisungen AIG/Asyl/BüG + Handbuch Asyl und Rückkehr), BJ (SchKG Weisungen, cantonal Existenzminimum Kreisschreiben), FINMA, ESTV, BAFU; per-source counts in the filter enums. Returns ranked excerpts with authority, number, date, PDF link. Superseded versions collapse to the newest per document; for past conduct pass include_superseded=true and take the version dated before the facts. NOT covered: cantonal administrations — Sozialhilfe (SKOS, cantonal Handbücher), Prämienverbilligung (IPV) — say so, do not imply absence of guidance. Pre-2017 federal decisions: search_decisions(court='ch_vb')."
             ),
             inputSchema={
                 "type": "object",
@@ -24972,7 +24973,7 @@ def _list_tools() -> list[Tool]:
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
                             "bsv_weisungen (BSV Wegleitungen/Kreisschreiben/Rundschreiben/Mitteilungen, "
-                            "every retained version, DE/FR/IT), seco_alv (AVIG-Praxis ALE/KAE/SWE/RVEI/"
+                            "every retained version, 6,083, DE/FR/IT), seco_alv (AVIG-Praxis ALE/KAE/SWE/RVEI/"
                             "IE/AMM + thematic Weisungen, 54, DE/FR/IT), bag_kvg (KVG Kreisschreiben, "
                             "38, DE/FR), sem_handbuch_asyl (Handbuch Asyl und Rückkehr, 92 articles, "
                             "DE/FR), bj_schkg (SchKG Weisungen + cantonal and historical federal "
@@ -24985,7 +24986,7 @@ def _list_tools() -> list[Tool]:
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
-                            "BSV (social insurance practice), BAG (health insurance), "
+                            "BSV (6,083, social insurance practice), BAG (38), "
                             "BJ (debt enforcement)."
                         ),
                     },
