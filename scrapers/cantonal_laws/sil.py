@@ -19,6 +19,7 @@ from typing import Iterator
 
 import requests
 
+from . import mount_retries
 from .numbering import split_number_and_title
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ class SILScraper:
         self.base_url = f"https://{self.host}"
         self.data_base = f"{self.base_url}{cfg['base_path']}"
         self.session = requests.Session()
+        mount_retries(self.session)
         self.session.headers.update({"User-Agent": USER_AGENT})
         self._last_request: float = 0
         self.portal_count: int | None = None
