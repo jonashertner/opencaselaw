@@ -394,6 +394,17 @@ _LANG_WORDS = {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+DOCUMENT_SERVICE_ERROR = "Document Dienstes ist fehlgeschlagen"
+
+
+def _is_document_service_error(html: str) -> bool:
+    """True for BGer's document-service error page (a normal 200 with the
+    site chrome and no judgment). relevancy.bger.ch returns it for decisions
+    the mirror has not replicated yet; the live search host may return it
+    when the service is really down."""
+    return DOCUMENT_SERVICE_ERROR in (html or "")
+
+
 class BgerScraper(BaseScraper):
     """
     Scraper for the Swiss Federal Supreme Court (Bundesgericht).
@@ -1342,9 +1353,24 @@ class BgerScraper(BaseScraper):
                 if (resp.ok and len(resp.text) > 500
                         and "pow.php" not in resp.url
                         and not self._incapsula.is_incapsula_blocked(resp.text)):
-                    html = resp.text
-                    source_url = jump_url
-                    logger.debug(f"Fetched via relevancy.bger.ch (no PoW): {stub['docket_number']}")
+                    if _is_document_service_error(resp.text):
+                        # relevancy.bger.ch is a mirror that lags the live
+                        # site: on publication day every Neuheiten decision
+                        # came back as its "Document Dienstes ist
+                        # fehlgeschlagen" page (2026-09-07, 22 of 22) while
+                        # search.bger.ch already served the texts. The page
+                        # is a normal 200 with >500 chars, so it used to be
+                        # accepted as the document and the fallback below
+                        # never ran; the decision then waited a day for the
+                        # mirror. Treat it as "no copy yet" and fall through.
+                        logger.info(
+                            f"relevancy.bger.ch has no copy yet of "
+                            f"{stub['docket_number']} — trying the search host"
+                        )
+                    else:
+                        html = resp.text
+                        source_url = jump_url
+                        logger.debug(f"Fetched via relevancy.bger.ch (no PoW): {stub['docket_number']}")
             except Exception as e:
                 logger.debug(f"relevancy.bger.ch failed for {stub['docket_number']}: {e}")
 
@@ -1352,9 +1378,15 @@ class BgerScraper(BaseScraper):
         if not html and stub.get("url"):
             try:
                 resp = self._get_with_pow(stub["url"])
-                if resp.ok and len(resp.text) > 500:
+                if (resp.ok and len(resp.text) > 500
+                        and not _is_document_service_error(resp.text)):
                     html = resp.text
                     source_url = stub["url"]
+                elif resp.ok and _is_document_service_error(resp.text):
+                    logger.warning(
+                        f"BGer document service error for {stub['docket_number']} "
+                        f"on both hosts — skipping"
+                    )
             except Exception as e:
                 logger.debug(f"Eurospider URL failed for {stub['docket_number']}: {e}")
 
@@ -1391,7 +1423,7 @@ class BgerScraper(BaseScraper):
             return None
 
         # BGer returns an error page when the document service is down
-        if "Document Dienstes ist fehlgeschlagen" in full_text:
+        if _is_document_service_error(full_text):
             logger.warning(
                 f"BGer document service error for {stub['docket_number']} — skipping"
             )
