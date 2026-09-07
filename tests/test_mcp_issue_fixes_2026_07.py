@@ -239,7 +239,7 @@ def test_fetch_truncation_notice_carries_the_canonical_url(monkeypatch):
     assert out["url"] in out["text"]
 
 
-# ── original_query / force_natural_language plumbing (BGPartner 2026-07) ──
+# ── original_query / force_natural_language plumbing (integration evaluation 2026-07) ──
 
 def test_strategy_set_is_nl_when_original_is_statute_citation():
     """Sanitized text carries the injected '"OR"'; the ORIGINAL statute

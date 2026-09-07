@@ -321,7 +321,7 @@ def _write_rows(
 # CC0 is a rights WAIVER — we cannot waive rights we do not hold. Until
 # written Registry permission is on file these courts are excluded from the
 # CC0 mirror at the SOURCE of the export, not filtered downstream.
-# See docs/agent-loop/proposals/2026-07-27-ecthr-cc0-redistribution-gate.md
+# The supporting legal review is archived in the private maintenance workspace.
 EXCLUDED_COURTS = frozenset({
     "ecthr_chamber",
     "ecthr_committee",

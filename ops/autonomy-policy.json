@@ -66,7 +66,6 @@
       "reason": "maintenance automation, tests, and documentation with no direct corpus mutation",
       "globs": [
         "tests/test_agent_*.py",
-        "docs/agent-loop/**",
         "docs/**/*.md"
       ]
     }
@@ -74,8 +73,7 @@
   "deploy": {
     "autonomous_allowed_only_if_all_changed_paths_are_safe_candidates": true,
     "allowed_without_restart_globs": [
-      "tests/test_agent_*.py",
-      "docs/agent-loop/**"
+      "tests/test_agent_*.py"
     ],
     "never_autonomous_categories": [
       "secret_rotation",

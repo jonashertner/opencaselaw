@@ -6,7 +6,7 @@
 #   semantic model is live in every worker. Built to run UNATTENDED from a
 #   one-shot transient timer: it aborts (and notifies) instead of restarting
 #   whenever anything looks off: publish or incremental pipeline still running
-#   (build-window rule, docs/ops/vps-handover.md), code on disk not bootable,
+#   (build-window rule), code on disk not bootable,
 #   env lines missing. The pipeline gate is re-evaluated before EVERY worker
 #   restart, not once up front. Stops on the FIRST worker that does not come
 #   back healthy (the repo's rolling_restart_workers.sh deliberately continues;

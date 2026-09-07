@@ -1,7 +1,7 @@
 # Research CLI + shared contracts release (2026-09-05)
 
 Scope: one commit on `codex/research-cli-20260905` (based on origin/main 8fda0c84), reviewed and
-fixed on 2026-09-05 (see `docs/agent-loop/proposals/2026-09-05-research-cli-release.md`).
+fixed on 2026-09-05. The detailed pre-release review is archived in the private maintenance workspace.
 Serving change: `mcp_server.py` + new `research_contracts.py` (deploy together).
 Site change: `docs/index.html`, `docs/api/index.html`, `docs/research-cli.md` (GitHub Pages from `main:/docs`).
 Client: `clients/python` (`opencaselaw-cli`, console script `ocl`, on PyPI since 0.2.0); works against the already-deployed REST API.
@@ -36,7 +36,7 @@ stage explicit paths; never `git add -A` there.
 cd <worktree on codex/research-cli-20260905>
 rm -f .venv .env
 make test && make verify-offline
-git add README.md .github/workflows/ci.yml .github/workflows/release.yml clients docs/agent-loop/REVIEW-RESEARCH-CLI-2026-09-05.md docs/agent-loop/proposals/2026-09-05-research-cli-release.md docs/api/index.html docs/index.html docs/research-cli.md mcp_server.py pyproject.toml research_contracts.py runbooks/research_cli_release.md tests/test_decision_widget.py tests/test_incremental_per_pair_cutover.py tests/test_output_schema_declared.py tests/test_research_contracts.py
+git add README.md .github/workflows/ci.yml .github/workflows/release.yml clients docs/api/index.html docs/index.html docs/research-cli.md mcp_server.py pyproject.toml research_contracts.py runbooks/research_cli_release.md tests/test_decision_widget.py tests/test_incremental_per_pair_cutover.py tests/test_output_schema_declared.py tests/test_research_contracts.py
 git status --short   # exactly the paths above, nothing else
 GIT_AUTHOR_NAME=jonashertner GIT_COMMITTER_NAME=jonashertner \
 GIT_AUTHOR_EMAIL=130315719+jonashertner@users.noreply.github.com \

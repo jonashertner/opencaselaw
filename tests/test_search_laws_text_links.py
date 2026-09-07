@@ -1,4 +1,4 @@
-"""search_laws text output carries per-hit source links (BGPartner 2026-07).
+"""search_laws text output carries per-hit source links (integration evaluation 2026-07).
 
 The text surface had ZERO urls while structuredContent carried
 source_url/source_label — and a spec-conformant client may discard

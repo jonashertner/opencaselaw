@@ -126,8 +126,8 @@ nohup nice -n 19 ionice -c 3 \
 
 Rewritten 2026-09-03 after the flag sat dead in production for eleven
 days (incident note below). Every restart here is subject to the
-build-window rule: no worker restarts (rolling-restart rule, this doc
-and `docs/ops/vps-handover.md` §4) and no full-table scans of
+build-window rule: no worker restarts (rolling-restart rule in this doc)
+and no full-table scans of
 `decisions.db` (CLAUDE.md invariant 9) from 03:30 UTC until the publish
 pipeline exits (weekdays ~19:35–19:45 UTC); the incremental publish
 runs 20:00 to ~22:00–22:47 UTC Mon–Sat. `publish.py`'s own post-swap
@@ -365,7 +365,7 @@ would have passed in a fully broken deployment.
 ## Deactivation (rollback)
 
 Two different rollbacks; pick the one you mean. This is the single
-canonical procedure (`docs/ops/vps-handover.md` §4 points here).
+canonical public procedure; host-specific recovery notes remain private.
 
 ### (a) Turn the feature off (the normal rollback)
 

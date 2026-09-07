@@ -1,4 +1,4 @@
-"""Practice tools are registered regardless of LEXFIND_ENABLED (BGPartner 2026-07).
+"""Practice tools are registered regardless of LEXFIND_ENABLED (integration evaluation 2026-07).
 
 search_practice/get_practice read only the local practice.db yet sat inside
 the LEXFIND_ENABLED conditional in _list_tools — one unrelated env flag

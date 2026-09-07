@@ -6,6 +6,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+
 import scripts.agent_assess as agent_assess
 import scripts.agent_record as agent_record
 import scripts.agent_safe_deploy as agent_safe_deploy
@@ -16,11 +18,11 @@ REPO = Path(__file__).resolve().parents[1]
 
 def test_git_status_parser_preserves_first_path_character():
     changed, untracked = agent_assess.parse_git_status(
-        " M docs/agent-loop/LOG.md\n"
+        " M docs/example.md\n"
         "?? .agents/\n"
     )
 
-    assert changed == [".agents/", "docs/agent-loop/LOG.md"]
+    assert changed == [".agents/", "docs/example.md"]
     assert untracked == 1
 
 
@@ -78,8 +80,6 @@ def test_safe_deploy_allows_only_safe_candidate_paths():
     result = agent_safe_deploy.evaluate(
         [
             "tests/test_agent_automation.py",
-            "docs/agent-loop/LOG.md",
-            "docs/agent-loop/proposals/example.md",
         ],
         policy,
     )
@@ -158,3 +158,34 @@ def test_agent_record_formats_log_entry():
     assert "Action:\n- Added automation policy" in entry
     assert "Evidence:\n- pytest tests/test_agent_automation.py passed" in entry
     assert "Outcome:\n- Ready for review" in entry
+
+
+def test_agent_record_requires_existing_private_workspace(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENCASELAW_PRIVATE_ROOT", str(tmp_path / "missing"))
+
+    with pytest.raises(FileNotFoundError, match="private maintenance workspace"):
+        agent_record.resolve_log_path(None)
+
+
+def test_agent_record_rejects_path_outside_private_workspace(tmp_path, monkeypatch):
+    private_root = tmp_path / "private"
+    private_root.mkdir()
+    monkeypatch.setenv("OPENCASELAW_PRIVATE_ROOT", str(private_root))
+
+    with pytest.raises(ValueError, match="inside the private workspace"):
+        agent_record.resolve_log_path(str(REPO / "docs" / "maintenance-log.md"))
+
+
+def test_private_root_discovery_uses_primary_checkout_for_worktrees(monkeypatch):
+    monkeypatch.delenv("OPENCASELAW_PRIVATE_ROOT", raising=False)
+    common_dir = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    expected = Path(common_dir.stdout.strip()).resolve().parent.parent / "opencaselaw-internal"
+
+    assert agent_record.default_private_root() == expected
+    assert agent_assess.private_root(REPO) == expected

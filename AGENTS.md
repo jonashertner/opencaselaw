@@ -12,7 +12,9 @@ Before non-trivial maintenance work, read:
 2. `~/.claude/projects/-Users-jonashertner-caselaw-repo-1/memory/MEMORY.md`
 3. Relevant memory topic files from that index
 4. `TECHNICAL_OVERVIEW.txt`
-5. `docs/agent-loop/LOG.md`
+5. The private maintenance log under `OPENCASELAW_PRIVATE_ROOT` when set;
+   otherwise maintenance scripts resolve `opencaselaw-internal` beside the
+   primary checkout (including when invoked from a linked worktree)
 
 Verify memory claims against current code, logs, or production probes before
 using them as ground truth.
@@ -56,4 +58,3 @@ For maintenance-loop, production-health, scraper-health, completeness,
 backup, deploy-safety, or Codex automation tasks, use the repo skill:
 
 `$opencaselaw-maintenance`
-

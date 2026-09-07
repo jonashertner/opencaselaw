@@ -1,7 +1,7 @@
-"""BGPartner 2026-07: no length cap existed anywhere on the query argument.
+"""The query argument must have a length cap on every serving surface.
 
-A pasted 1,801-char termination letter hung ~120 s (TOOL_DISPATCH_TIMEOUT_S)
-and timed out client-side with zero bytes. Policy now: auto-condense above
+Document-shaped input once reached TOOL_DISPATCH_TIMEOUT_S. Policy now:
+auto-condense above
 QUERY_CONDENSE_THRESHOLD (separate change), hard refusal above QUERY_MAX_CHARS
 (4,000) with an error that teaches the agent how to retry.
 

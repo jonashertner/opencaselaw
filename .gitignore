@@ -34,6 +34,42 @@ benchmarks/latest_search_benchmark.json
 !docs/
 !docs/**
 docs/**/.DS_Store
+
+# Confidential material belongs in the owner-only OpenCaseLaw workspace,
+# never in this public repository or its GitHub Pages source tree.
+docs/agent-loop/
+docs/ops/
+docs/letters/
+docs/outreach/
+docs/drafts/
+docs/maintenance-loop-prompt.md
+docs/court/dsfa-vorlage.md
+docs/court/go-to-market.md
+docs/court/isds-konzept-geruest.md
+docs/court/pilot-vereinbarung.md
+docs/court/preise-lizenz.md
+docs/court/technik.md
+reply_*.md
+reply_*.txt
+*.eml
+*.msg
+*.pst
+
+# Client-specific nginx rules, live configuration copies, and machine-specific
+# tunnel helpers are private or host-local operational state.
+deploy/nginx-mcp-server.conf
+deploy/nginx/bulk-export-throttle.conf
+deploy/nginx/opencaselaw-client-denies*.conf
+deploy_incapsula_bypass.sh
+tools/ne_tunnel.sh
+tools/*tunnel*.local.sh
+*.bak
+*.bak-*
+*.backup
+*.orig
+*.rej
+*~
+runbooks/zh_arbeitsgericht_yearbooks.md
 # generate_feeds.py writes each feed via a sibling .tmp + os.replace. A
 # watchdog kill mid-write would leave that .tmp under docs/, and step 6
 # `git add docs/feeds` would commit it (docs/** is un-ignored above).

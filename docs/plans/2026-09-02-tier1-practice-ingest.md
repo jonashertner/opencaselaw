@@ -1,6 +1,6 @@
 # Plan: Tier 1 practice sources for the Caritas demo (Approach A)
 
-Date 2026-09-02. Source memo: `docs/agent-loop/CARITAS-DATA-SOURCES-2026-09-02.md` §4.1–4.6, §8.
+Date 2026-09-02. The source memo is archived in the private maintenance workspace.
 Scope approved: federal PDF sources only. SKOS deferred (licence). Cantonal HTML handbooks deferred.
 
 ## Acceptance criteria

@@ -1,4 +1,4 @@
-"""_extract_query_terms — first tests ever for this function (BGPartner 2026-07).
+"""Tests for informative-term selection in _extract_query_terms.
 
 The defect: truncation was strictly positional (first 16 tokens). A pasted
 letter's salutation consumed the budget — 'Sehr geehrte Damen und Herren'
@@ -84,14 +84,11 @@ def test_short_queries_byte_identical_to_old_algorithm():
 
 
 LETTER = (
-    "Sehr geehrte Damen und Herren, wir beziehen uns auf Ihr Schreiben vom "
-    "12. Mai und teilen Ihnen mit, dass unsere Mandantin die Stelle nach dem "
-    "Mutterschaftsurlaub nicht mehr antreten konnte, worauf der Arbeitgeber "
-    "das Arbeitsverhältnis fristlos kündigen wollte. Die Kündigung erfolgte "
-    "wegen angeblicher Kritik gegenüber der Revisionsstelle und wiederholter "
-    "krankheitsbedingter Absenzen. Wir halten die Kündigungsgründe für "
-    "missbräuchlich im Sinne von Art. 336 OR und bitten um Stellungnahme. "
-    "Mit freundlichen Grüssen"
+    "Synthetische Testeingabe. Sehr geehrte Damen und Herren, diese fiktive "
+    "Korrespondenz betrifft ein Arbeitsverhältnis und eine fristlose "
+    "Kündigung. Die Testpartei hält die Kündigungsgründe für missbräuchlich "
+    "im Sinne von Art. 336 OR und bittet um Stellungnahme. Mit freundlichen "
+    "Grüssen"
 )
 
 

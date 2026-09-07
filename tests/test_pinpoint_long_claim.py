@@ -1,4 +1,4 @@
-"""Pinpoint bounds for document-length claims (BGPartner 2026-07).
+"""Pinpoint bounds for synthetic document-length claims.
 
 _compute_pinpoint built its FTS query from the ENTIRE claim: a pasted letter
 became a ~400-term OR chain (decision_id is a post-filter, not in the FTS
@@ -25,17 +25,13 @@ from tests.test_pinpoint_enrichment import _make_structure_db  # noqa: E402
 
 
 LETTER = (
-    "Sehr geehrte Damen und Herren, wir beziehen uns auf Ihr Schreiben vom "
-    "12. Mai 2026 und nehmen Bezug auf das Arbeitsverhältnis unserer "
-    "Mandantin. Nach der Rückkehr aus dem Mutterschaftsurlaub wurde ihr "
-    "gekündigt, wobei der Arbeitgeber die Kündigung mit angeblicher Kritik "
-    "gegenüber der Revisionsstelle sowie mit wiederholten "
-    "krankheitsbedingten Absenzen begründete. Wir halten diese "
-    "Kündigungsgründe für missbräuchlich im Sinne von Art. 336 OR. "
-    "Die Sperrfrist nach Art. 336c OR wurde ebenfalls missachtet. "
-    "Wir bitten um Ihre Stellungnahme bis zum 30. Juni 2026. "
-    "Mit freundlichen Grüssen, die Unterzeichnenden "
-) * 3  # ~1,700 chars — the reported failure size
+    "Synthetische Testeingabe. Sehr geehrte Damen und Herren, Gegenstand ist "
+    "eine fiktive arbeitsrechtliche Kündigung. Die Testpartei hält die "
+    "Kündigung für missbräuchlich im Sinne von Art. 336 OR und macht eine "
+    "Sperrfrist nach Art. 336c OR geltend. Diese erfundene Korrespondenz "
+    "enthält keine Angaben aus einer echten Anfrage. Wir bitten um eine "
+    "rechtliche Stellungnahme. Mit freundlichen Grüssen. "
+) * 5
 
 
 class _RecordingConn:
@@ -57,8 +53,8 @@ class _RecordingConn:
 def _db(tmp_path):
     return _make_structure_db(tmp_path, [
         ("d_1", "1", "Sachverhalt zur Kündigung."),
-        ("d_1", "2.1", "Die Kündigung nach Rückkehr aus dem Mutterschaftsurlaub "
-                       "ist missbräuchlich im Sinne von Art. 336 OR; die "
+        ("d_1", "2.1", "Die Kündigung ist missbräuchlich im Sinne von "
+                       "Art. 336 OR; die "
                        "Sperrfrist war missachtet."),
         ("d_1", "3", "Kosten und Entschädigung."),
     ])
@@ -81,7 +77,7 @@ def test_long_claim_is_condensed_and_phrase_pass_skipped(tmp_path):
 
 def test_long_claim_still_finds_the_relevant_paragraph(tmp_path):
     """Bounding the query must not lose the match — the informative tokens
-    (kündigung, missbräuchlich, mutterschaftsurlaub, 336) drive BM25 to E.2.1."""
+    (kündigung, missbräuchlich, sperrfrist, 336) drive BM25 to E.2.1."""
     conn = _db(tmp_path)
     try:
         pp = mcp_server._compute_pinpoint("d_1", LETTER, conn=conn)

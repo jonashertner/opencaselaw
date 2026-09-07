@@ -2,8 +2,8 @@
 """Mint or revoke an API key for the per-IP quota bypass system.
 
 Usage:
-    # Mint a 10× key for Lalive (a known good adopter)
-    python3 scripts/mint_quota_key.py mint --label "Lalive Copilot Studio" \
+    # Mint a 10× key for a known institutional adopter
+    python3 scripts/mint_quota_key.py mint --label "Institutional adopter" \
         --multiplier 10
 
     # Mint a 100× key for a paying commercial integrator

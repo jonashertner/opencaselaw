@@ -1,4 +1,4 @@
-"""LLM input bounds + bounded caches (BGPartner 2026-07).
+"""LLM input bounds + bounded caches (integration evaluation 2026-07).
 
 Before: _parse_query_structured / _expand_query_with_llm / _apply_llm_rerank
 forwarded the full query text to the Anthropic API verbatim (a pasted letter

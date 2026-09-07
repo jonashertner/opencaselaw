@@ -105,7 +105,7 @@ if [ "$NO_TUNNEL" = "1" ]; then
 elif ! nc -z -w3 "$SOCKS_HOST" "$SOCKS_PORT" 2>/dev/null; then
     echo "SKIPPED: SOCKS tunnel is DOWN (nothing listening on $SOCKS_HOST:$SOCKS_PORT)."
     echo "  jura.ch and ne.ch block Hetzner IPs, so these cannot run without it."
-    echo "  Start it on the MacBook:  tools/ne_tunnel.sh --bg"
+    echo "  Start the configured private scraper tunnel, then retry."
     echo "  Then re-run:              bash scripts/rescan_coverage_gaps.sh"
     echo "  Affected: ${TUNNELED[*]} (111 decisions total — the small half of the backlog)"
 else

@@ -46,8 +46,8 @@ QUOTA_DB_PATH = Path(
 )
 
 # Per-endpoint daily limits (free / unauthenticated tier).
-# Calibrated so honest commercial adopters (Lalive, Etat-VS) hit them
-# easily, but AI-startup inner-loop integrations (~10k calls/day) are
+# Calibrated against ordinary institutional-adopter traffic, while high-volume
+# AI-startup inner-loop integrations (~10k calls/day) are
 # capped at a level that costs ≤$50/day in worst case.
 DEFAULT_QUOTAS: dict[str, int] = {
     # Sonnet-heavy multi-rail audits — ~$0.05-0.30 per call

@@ -1,4 +1,4 @@
-"""cite + find_relevant_erwaegung emit markdown_link (BGPartner 2026-07).
+"""cite + find_relevant_erwaegung emit markdown_link (integration evaluation 2026-07).
 
 cite is the tool the server's own instructions route citation formatting to;
 it returned canonical_url with no rendered-link form, unlike get_regeste /

@@ -6,8 +6,8 @@ THE SYMPTOM
 -----------
 Anyone who imported
   https://mcp.opencaselaw.ch/api/openapi.copilot.json
-into Microsoft Copilot Studio (Lalive flagged it 2026-05-11; the German
-report was "die API antwortet erfolgreich, liefert aber null Treffer")
+into Microsoft Copilot Studio (an integrator reported successful API
+responses with blank bound outputs)
 saw the same thing on EVERY action — BVGer searches, BGE lookups,
 leading-cases, citation graph, statutes, doctrine:
 

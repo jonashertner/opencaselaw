@@ -12,7 +12,10 @@ anything risky.
 ## Workflow
 
 1. Bootstrap by reading `CLAUDE.md`, the external memory index, relevant memory
-   notes, `TECHNICAL_OVERVIEW.txt`, and `docs/agent-loop/LOG.md`.
+   notes, `TECHNICAL_OVERVIEW.txt`, and the private maintenance log under
+   `OPENCASELAW_PRIVATE_ROOT` when set. Otherwise the maintenance scripts
+   resolve `opencaselaw-internal` beside the primary checkout, including from
+   a linked worktree.
 2. Run or inspect a deterministic assessment before deciding:
 
    ```bash
@@ -21,8 +24,8 @@ anything risky.
 
    Use `--no-network` when tests or sandbox policy require an offline run.
 3. Read `ops/autonomy-policy.json` before edits. If the intended path is
-   `proposal_only` or `always_human`, write a proposal under
-   `docs/agent-loop/proposals/` and stop.
+   `proposal_only` or `always_human`, write a proposal under the private
+   maintenance workspace's `docs/agent-loop/proposals/` directory and stop.
 4. Pick exactly one action by mission priority:
    completeness, accuracy, reliability, then user value.
 5. Prefer confirm-health, quantify, and monitor fixes over risky behavior
@@ -55,4 +58,3 @@ When producing an automated decision for a runner, conform to
 `schemas/agent_decision.schema.json`. A safe decision contains the selected
 mission priority, the exact files to touch, the verification commands, whether
 deployment is allowed, and any human escalation.
-

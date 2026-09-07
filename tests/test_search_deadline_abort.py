@@ -1,4 +1,4 @@
-"""Mid-query deadline abort via sqlite3 progress handler (BGPartner 2026-07).
+"""Mid-query deadline abort via sqlite3 progress handler (integration evaluation 2026-07).
 
 SEARCH_DEADLINE_MS was a cooperative soft deadline checked only BETWEEN
 operations; a pathological in-flight FTS5 MATCH ran to the 120 s dispatch

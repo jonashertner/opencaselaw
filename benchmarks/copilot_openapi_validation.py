@@ -3,7 +3,7 @@
 Verifies — across six independent angles — that the Microsoft Copilot
 Studio custom connector spec (``/api/openapi.copilot.json``) is both
 valid OpenAPI 3.0.3 AND honestly describes the live API's wire
-responses. Built after the 2026-05-11 Lalive integration report
+responses. Built after a Copilot Studio integration report
 ("API antwortet erfolgreich, liefert aber null Treffer") which
 traced to the spec declaring permissive ``{type: object,
 additionalProperties: true}`` for every endpoint, leaving Copilot

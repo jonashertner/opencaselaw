@@ -1,4 +1,4 @@
-# Rate limiting: 10 req/s per IP for API, 1 req/s for SSE connects
+# Rate limiting: 30 req/s per IP for API, 10 req/s for SSE connects
 limit_req_zone $binary_remote_addr zone=mcp_api:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=mcp_sse:10m rate=10r/s;
 limit_req_zone $binary_remote_addr zone=mcp_expensive:10m rate=5r/s;
@@ -15,9 +15,8 @@ upstream mcp_workers {
     server 127.0.0.1:8777;
 }
 
-# Stateless REST/SEO traffic — least_conn so one office's egress IP is not
-# pinned to a single worker (ip_hash exists for SSE/MCP session affinity
-# only; a firm's parallel /api requests were serialising behind each other).
+# Stateless REST/SEO traffic uses least_conn. Session transports retain
+# ip_hash affinity in the separate upstream above.
 upstream mcp_workers_api {
     least_conn;
     server 127.0.0.1:8770;
@@ -40,28 +39,15 @@ server {
     # is not a server error (2026-07-14: 503s were inflating the 5xx metric).
     limit_req_status 429;
 
-    # Blocked 2026-07-14: single hosting-VPS IP bursting /api/decisions ~50 over
-    # the 10 r/s limit (22,672 throttle hits in 2 days). Bulk users -> HF mirror.
-    deny 161.97.71.19;
+    # Client-specific deny rules are operational data with a short retention
+    # window. Keep them in a host-local, unversioned snippet; never commit IPs
+    # or behavioural notes to this public disaster-recovery snapshot.
+    include /etc/nginx/snippets/opencaselaw-client-denies*.conf;
 
-    # Blocked 2026-08-23: glossagens-audit/1.0 (Sunrise xDSL) — 4,229
-    # verify_claim attempts in one day against a 200/day quota, retry loop
-    # with no backoff (quota_alerts + per-IP ledger). Lift if outreach lands.
-    deny 31.164.63.221;
-
-    # ocl-privacy-analytics: two-tier log split (see docs/datenschutz/)
+    # ocl-privacy-analytics: three-tier log split (see docs/datenschutz/)
     access_log /var/log/nginx/tier1.log tier1;
     access_log /var/log/nginx/tier2.log tier2;
     access_log /var/log/nginx/tier3.log tier3;
-    access_log syslog:server=127.0.0.1:5141,tag=ocluniq,nohostname uniq;
-
-    location ^~ /ops/ {
-        auth_basic "ops";
-        auth_basic_user_file /etc/nginx/.htpasswd-ops;
-        alias /opt/caselaw/ops-dashboard/;
-        index index.html;
-        add_header Cache-Control "no-store";
-    }
 
 
     ssl_certificate     /etc/letsencrypt/live/mcp.opencaselaw.ch/fullchain.pem;
@@ -214,14 +200,9 @@ server {
             add_header Content-Length 0 always;
             return 204;
         }
-        # Distributed harvesting fleet, 2026-08-24: ten GCP IPs sharing
-        # one forged Chrome/120 UA, ~2.6M req in 4 days. They ran at
-        # ~1.5 r/s per IP, under the 5 r/s limit below, so it never
-        # fired. 429 carries the bulk-access notice (error_page below).
-        # Tell every bulk consumer where the one-download mirror is,
-        # not only the ones who trip the limit. The 2026-08-24 fleet
-        # self-throttled to ~5.5 req/min/IP against a 10 r/m limit, so
-        # a 429-only notice would never have reached them.
+        # Tell every bulk consumer where the one-download mirror is. The
+        # detailed calibration evidence is retained in the private operations
+        # workspace, not in this public configuration snapshot.
         add_header Link '<https://huggingface.co/datasets/voilaj/swiss-caselaw>; rel="alternate"; title="bulk corpus"' always;
         add_header X-OpenCaseLaw-Bulk "Full CC0 corpus in one download at the Link header. High-volume or commercial use: team@jonashertner.com" always;
         limit_req zone=ocl_export burst=30 nodelay;
@@ -408,45 +389,14 @@ server {
     access_log /var/log/nginx/tier1.log tier1;
     access_log /var/log/nginx/tier2.log tier2;
     access_log /var/log/nginx/tier3.log tier3;
-    access_log syslog:server=127.0.0.1:5141,tag=ocluniq,nohostname uniq;
 
     return 301 https://$host$request_uri;
 }
 
-# ── Legacy port 8765 (keep for backward compat, will deprecate) ─
+# ── Legacy port 8765 (retired; returns 410 only) ───────────────
 server {
-    # ── Legacy port 8765 — RETIRED 2026-08-27 ──────────────────────────
-    #
-    # This was the MCP server's own default listening port (mcp_server.py
-    # --port), kept as a compatibility listener from before nginx fronted
-    # everything on 443, and labelled "will deprecate" ever since.
-    #
-    # It proxied the FULL MCP surface — /, /sse, /mcp, /messages/, /api/ —
-    # over plain HTTP, so tool arguments crossed the public internet in
-    # cleartext, and responses had no integrity protection at all: an on-path
-    # attacker could rewrite a returned Erwaegung or citation string, which
-    # defeats cite()/attest_response/the Merkle roots, since all of them
-    # travel over the same channel they are meant to protect.
-    #
-    # It also lacked the 443 block's protections: 0 deny rules vs 2, no bulk
-    # export budget vs 7 directives, 6 limit_req zones vs 9, no scanner
-    # blocklist. The export-harvesting fleet was metered on 443 and unmetered
-    # here.
-    #
-    # Instrumented 2026-08-26 (log_format legacy8765). In the first 12 hours:
-    # 6 real POST /mcp calls from two automated clients (python-requests/2.31,
-    # aiohttp/3.14.1) and 2 hits from ModatScanner — i.e. it was in live use
-    # AND already indexed by an internet-wide scanner.
-    #
-    # Nothing user-facing ever pointed here: opencaselaw.ch #connect, the
-    # /mcp/ guide, llms.txt and README all publish the bare host
-    # mcp.opencaselaw.ch, which every client resolves to https/443. The only
-    # mention anywhere was docs/ops/vps-handover.md.
-    #
-    # Left listening, rather than firewalled, so the two clients get an
-    # actionable 410 instead of a hanging socket, and so we keep seeing who
-    # knocks. Nothing is proxied: no request reaches a worker, no data is
-    # returned. Drop it at the firewall once the log is quiet.
+    # The former cleartext compatibility listener is intentionally inert.
+    # Nothing is proxied; callers receive an actionable TLS migration notice.
     listen 8765;
     listen [::]:8765;
 

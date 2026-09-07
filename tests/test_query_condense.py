@@ -1,10 +1,9 @@
-"""Auto-condense for pasted documents (BGPartner 2026-07, user decision:
-condense and search, never reject, below the 4,000-char hard cap).
+"""Auto-condense for pasted documents.
 
-Their scenario: a termination letter pasted as the query hung ~120 s and
-returned junk. Now: >QUERY_CONDENSE_THRESHOLD chars → citation refs verbatim
-+ top informative terms, searched as forced natural language (vector rescue
-stays on), disclosed via meta/query_condensed.
+An overlong document-shaped query once timed out. Now input above
+QUERY_CONDENSE_THRESHOLD becomes citation refs plus informative terms and is
+disclosed via meta/query_condensed. All sample correspondence below is
+synthetic.
 """
 from __future__ import annotations
 
@@ -19,16 +18,12 @@ import mcp_server as m  # noqa: E402
 
 
 LETTER_DE = (
-    "Sehr geehrte Damen und Herren, wir beziehen uns auf Ihr Schreiben vom "
-    "12. Mai 2026 betreffend das Arbeitsverhältnis unserer Mandantin. Nach "
-    "der Rückkehr aus dem Mutterschaftsurlaub wurde ihr fristlos gekündigt; "
-    "der Arbeitgeber begründete die Kündigung mit angeblicher Kritik "
-    "gegenüber der Revisionsstelle sowie wiederholten krankheitsbedingten "
-    "Absenzen. Wir halten die Kündigungsgründe für missbräuchlich im Sinne "
-    "von Art. 335 OR und verweisen ergänzend auf die Sperrfrist. Bitte "
-    "nehmen Sie bis zum 30. Juni 2026 Stellung. Mit freundlichen Grüssen, "
-    "die Unterzeichnenden. "
-) * 3
+    "Synthetische Testeingabe. Sehr geehrte Damen und Herren, Gegenstand ist "
+    "eine arbeitsrechtliche Kündigung. Die fiktive Partei hält sie für "
+    "missbräuchlich und beruft sich auf Art. 335 OR sowie eine Sperrfrist. "
+    "Diese erfundene Korrespondenz enthält keine Angaben aus einer echten "
+    "Anfrage. Bitte nehmen Sie dazu Stellung. Mit freundlichen Grüssen. "
+) * 6
 
 
 def test_letter_condenses_below_200_chars_with_refs_first():

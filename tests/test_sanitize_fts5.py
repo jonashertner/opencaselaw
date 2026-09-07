@@ -80,7 +80,7 @@ def test_empty_quoted_phrase_collapses():
     assert mcp_server._sanitize_fts5('""').strip() == ""
 
 
-# ── Explicit-syntax detection on the ORIGINAL query (BGPartner 2026-07) ──
+# ── Explicit-syntax detection on the ORIGINAL query (integration evaluation 2026-07) ──
 # _has_explicit_fts_syntax was evaluated on _sanitize_fts5 output. The
 # sanitizer strips the dot from 'Art.' and quotes bare 'OR' as '"OR"', which
 # defeated the statute mask twice AND tripped the quote-count branch — so

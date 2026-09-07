@@ -1,4 +1,4 @@
-"""Every URL a tool emits must be a rendered Markdown link (BGPartner 2026-07).
+"""Every URL a tool emits must be a rendered Markdown link (integration evaluation 2026-07).
 
 Microsoft documents that Copilot's @mention pipeline strips bare URLs from
 answers ("removed, hidden, or downgraded to plain text"); Markdown links and

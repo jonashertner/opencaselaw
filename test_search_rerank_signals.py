@@ -440,7 +440,7 @@ def test_looks_like_docket_query_accepts_spaced_docket():
     assert mcp_server._looks_like_docket_query("7W 15 25") is True
 
 
-# ── Date-sort rerank skip (BGPartner latency audit 2026-07) ──────────────
+# ── Date-sort rerank skip (integration evaluation latency audit 2026-07) ──────────────
 # Under sort=date_desc/date_asc the date re-sort overwrites every relevance
 # boost, so the ~3s LLM rerank (and the cross-encoder pass) ran for nothing.
 

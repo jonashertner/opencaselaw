@@ -636,10 +636,10 @@ LLM_EXPANSION_TIMEOUT = float(os.environ.get("LLM_EXPANSION_TIMEOUT", "2.0"))
 # the no-contention MRR benchmark never trips it, so this is not MRR-affecting.
 SEARCH_DEADLINE_MS = int(os.environ.get("OCL_SEARCH_DEADLINE_MS", "20000"))
 
-# ── Query-size policy (BGPartner 2026-07 findings) ────────────────
+# ── Query-size policy (integration evaluation findings) ────────────────────
 # Copilot-style agents paste whole documents into the query argument. The
-# measured failure: a 1,801-char termination letter = 120 s hang, then a
-# client-side timeout with zero bytes. Two bounds, both env-tunable:
+# measured failure: an overlong pasted document caused a 120 s hang and a
+# client-side timeout. Two bounds, both env-tunable:
 #   * QUERY_CONDENSE_THRESHOLD — above this, the query is auto-condensed to
 #     its citation refs + most informative terms and searched normally
 #     (disclosed via query_condensed; 0 disables condensation).
@@ -711,7 +711,7 @@ class _deadline_abort:
 
     The soft deadline (_past_deadline) is checked BETWEEN operations only —
     once conn.execute enters a pathological FTS5 MATCH, nothing could stop it
-    (BGPartner: whole-letter queries ran to the 120 s dispatch timeout).
+    (integration evaluation: document-length queries reached the dispatch timeout).
     Installs a progress handler that aborts the statement once the deadline
     passes; SQLite surfaces that as OperationalError('interrupted'), which the
     strategy loop already treats as strategy-failed → the cooperative check
@@ -1055,8 +1055,8 @@ NL_STOPWORDS = {
     "i", "search", "for", "the", "and", "or", "in", "of", "with", "without",
     "to", "on", "about", "a", "an",
     # Letter salutations / closings — zero-collision with legal vocabulary
-    # (BGPartner: 'Sehr geehrte Damen und Herren' burned 4 of the 16
-    # NL-token slots before any legal content). Ambiguous letter words
+    # Standard salutations can consume NL-token slots before legal content.
+    # Ambiguous letter words
     # (danke, schreiben, mandant, objet, oggetto…) deliberately NOT here —
     # they live in LETTER_BOILERPLATE_STOPWORDS, used only when a pasted
     # document is condensed, so short hand-written queries keep them.
@@ -3459,8 +3459,8 @@ def _search_fts5_inner(
         "language_filter": language,
         "court_filter": court,
     }
-    # Auto-condense pasted documents (BGPartner: an 1,801-char termination
-    # letter hung 120 s and returned junk). One choke point serves MCP, REST
+    # Auto-condense pasted documents after an integration evaluation found that
+    # document-length input could time out. One choke point serves MCP, REST
     # and every internal search_fts5 caller. Citation refs survive verbatim;
     # the rest is distilled to the most informative terms. Disclosed via
     # meta['query_condensed'] so callers can tell the user what was searched.
@@ -7089,7 +7089,7 @@ def _rerank_rows(
     # Both rerank passes exist to refine RELEVANCE order. Under an explicit
     # date sort their entire output is overwritten by the re-sort below, so a
     # date-sorted search was paying a ~3 s synchronous Haiku round-trip for a
-    # score boost that was provably discarded (BGPartner latency audit).
+    # score boost that was provably discarded (integration evaluation latency audit).
     if sort not in ("date_desc", "date_asc"):
         scored = _apply_cross_encoder_boosts(scored, raw_query, deadline=deadline)
         scored = _apply_llm_rerank(scored, raw_query, is_docket_query=is_docket_query, deadline=deadline)
@@ -7445,7 +7445,7 @@ def _has_explicit_fts_syntax(query: str) -> bool:
     the sanitizer strips the dot from 'Art.' and quotes bare 'OR' as '"OR"',
     which (a) defeats the statute mask below and (b) trips the quote-count
     branch — so every query citing '… OR' was misclassified as operator syntax,
-    which disabled the vector/semantic rescue (BGPartner audit 2026-07).
+    which disabled the vector/semantic rescue (integration evaluation audit 2026-07).
     """
     # Mask statute references so "Art. 41 OR" (Obligationenrecht) doesn't
     # trigger FTS-operator detection for "OR".
@@ -7866,7 +7866,7 @@ def _extract_query_terms(
     Selection is informativeness-ranked when the query carries more base
     tokens than `limit` — previously the cut was strictly positional, so a
     pasted letter's salutation consumed the budget and the legal content at
-    char 200+ was never searched (BGPartner: 'kündigen' at position 17 of 16).
+    later legal terms were never searched during integration evaluation.
     When the base tokens fit the limit, the original loop runs unchanged and
     the output is byte-identical.
     """
@@ -13031,7 +13031,7 @@ def _compute_pinpoint(
     if len(claim) < 3 or not decision_id:
         return None
 
-    # A pasted document as claim (BGPartner: whole termination letters) is
+    # A pasted document used as a claim is
     # useless as a phrase and pathological as an OR chain. Condense long
     # claims to their most informative tokens; the phrase pass is skipped
     # for them below (a 300+-char phrase can never match one paragraph).
@@ -20106,9 +20106,8 @@ def get_law(
         # Source link at the data layer: one field serves the MCP text
         # formatter, the raw-dict REST route (/api/laws/...) and the Copilot
         # wire schema alike. Before this, get_law returned NO URL of any kind
-        # — 'was sagt Art. 41 OR' yielded text with nothing to verify against
-        # (BGPartner: 'sonst müssen die Quellen … selber nachgeschlagen
-        # werden'). Anchored to the article when one was requested.
+        # — responses otherwise left integrators without a verifiable source.
+        # Anchored to the article when one was requested.
         _src = _fedlex_url(law["sr_number"], article, language)
         if _src:
             result["source_url"] = _src
@@ -27825,7 +27824,7 @@ setInterval(load, 30000);
     # Also: emit OpenAPI 3.0.3 rather than FastAPI's default 3.1.0 —
     # Microsoft Copilot Studio's Custom Connector importer rejects 3.1.x
     # with "An error has happened while trying to parse the Open API
-    # contract." (LALIVE integration, 2026-04-24). Downgrading is safe:
+    # contract." (Copilot Studio integration testing). Downgrading is safe:
     # none of our endpoints use 3.1-only schema features. ChatGPT / Claude /
     # Azure Foundry all accept 3.0.3 fine. We also apply a small schema
     # sanitisation pass to strip 3.1-only JSON-Schema fragments that
@@ -27919,7 +27918,7 @@ setInterval(load, 30000);
         #     (Swagger 2.0 disallows anyOf inside items)
         #   - input has no type (Pydantic "any") → input.type:"object"
         # Error message from Power Apps: "Required property 'loc' cannot
-        # have an ambiguous schema" (LALIVE integration, 2026-04-24).
+        # have an ambiguous schema" (Copilot Studio integration testing).
         ve = schema.get("components", {}).get("schemas", {}).get("ValidationError")
         if isinstance(ve, dict):
             props = ve.get("properties", {})
@@ -27961,8 +27960,8 @@ setInterval(load, 30000);
         return _research_openapi(rest_api.openapi())
 
     # ── Microsoft Copilot Studio curated subset ───────────────────────
-    # Lalive (2026-04-24 onwards) is consuming the API via Copilot
-    # Studio custom connectors. The full /api/openapi.json has 24+
+    # Some integrators consume the API through Copilot Studio custom connectors.
+    # The full /api/openapi.json has 24+
     # operations — Microsoft's reliability guidance is 5-15 actions
     # per agent for clean tool selection. This endpoint serves the
     # ~15 highest-leverage operations with x-ms-summary + visibility
@@ -28011,8 +28010,8 @@ setInterval(load, 30000);
     # FastAPI behaviour emits an empty {} response schema for handlers
     # that return raw dicts (no Pydantic response_model); Copilot Studio's
     # PowerFx data layer then sees no named properties and binds nothing —
-    # exactly the "API antwortet erfolgreich, liefert aber null Treffer"
-    # Lalive bug reported 2026-05-11.
+    # exactly the successful-response-but-blank-binding failure found during
+    # integration testing.
     #
     # These describe only the fields a Copilot Studio action typically
     # surfaces (top-level metadata + per-result key fields). We don't
@@ -28531,8 +28530,7 @@ setInterval(load, 30000);
           - x-ms-summary: the action label rendered in Copilot Studio
           - x-ms-visibility: 'important' for primary actions
 
-        Designed for Lalive's Copilot Studio assistant; works for any
-        Copilot Studio custom connector import. The full API stays
+        Designed for Copilot Studio custom connector imports. The full API stays
         available at /api/openapi.json for clients that want every
         operation.
         """
@@ -28635,8 +28633,8 @@ setInterval(load, 30000);
         # `{type: object, additionalProperties: true}` was *technically*
         # valid OpenAPI but invisible to Copilot Studio's PowerFx data
         # binding — it needs NAMED properties to surface output variables,
-        # which is why the Lalive integration reported "API antwortet
-        # erfolgreich, liefert aber null Treffer" (2026-05-11): the
+        # which is why integration testing produced successful responses with
+        # blank bound fields: the
         # /decisions response shape was correct on the wire, but
         # Copilot Studio's binding layer couldn't see results/total.
         # Typed schemas below describe just enough shape to wire the

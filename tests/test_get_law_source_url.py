@@ -1,4 +1,4 @@
-"""get_law carries a source link (BGPartner 2026-07).
+"""get_law carries a source link (integration evaluation 2026-07).
 
 Before: get_law returned NO URL of any kind — the URL was never computed,
 not merely unformatted ('was sagt Art. 41 OR' → text with nothing to verify

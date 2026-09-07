@@ -1,37 +1,44 @@
 # deploy/
 
-Versioned snapshots of infrastructure configuration that lives **only on the VPS**. Committed here purely for disaster-recovery readability — **nothing in this directory is consumed by any build or publish step**. The running configuration on `caselaw-mcp` is the source of truth.
+Public-safe infrastructure templates for review and disaster recovery. Nothing
+in this directory is consumed automatically by a build or publish step, and
+the live host configuration is intentionally not mirrored here.
 
 ## Files
 
-| file | what it is | path on VPS |
-|---|---|---|
-| `nginx-mcp-server.conf` | nginx site config for `mcp.opencaselaw.ch`: TLS termination, rate-limit zones, proxy to the 8 uvicorn workers (`127.0.0.1:8770-8777`), SSE-friendly headers, SEO redirects | `/etc/nginx/sites-enabled/mcp-server` |
-| `certs/build-ca-bundle.sh` | Rebuilds the scraper CA bundle: certifi + the intermediates in `certs/extra/`. Run as `ExecStartPre=-` on every scraper unit, so a certifi upgrade cannot silently revert the fix. Writes atomically; on failure the last good bundle stays. | `/opt/caselaw/certs/build-ca-bundle.sh` |
-| `certs/extra/*.pem` | CA **intermediates** that some Swiss court portals stopped sending. These are public certificates, not trust anchors: the builder admits one only if it already verifies against certifi, so nothing new is trusted. | `/opt/caselaw/certs/extra/` |
+| file | what it is |
+|---|---|
+| `nginx/mcp-server` | Public site template for TLS termination, rate limiting, worker proxying, and redirects |
+| `nginx/ocl-bulk-export.conf` | `http`-context declaration for the `ocl_export` rate-limit zone used by the site template |
+| `../ops/nginx/ocl-logging.conf` | `http`-context definitions for the three public privacy-tier log formats |
+| `nginx/bulk-access.txt` | Static guidance returned to sustained bulk-export clients |
+| `certs/build-ca-bundle.sh` | Atomic builder for certifi plus approved public intermediates |
+| `certs/extra/*.pem` | Public CA intermediates required by portals that omit their chain |
 
 ## Refreshing this snapshot
 
-After an nginx change on the VPS, pull a fresh copy:
+After an nginx change on the VPS, pull a private comparison copy first. Do not
+overwrite the public template with the live file:
 
 ```bash
-scp -i ~/.ssh/caselaw root@46.225.212.40:/etc/nginx/sites-enabled/mcp-server \
-    deploy/nginx-mcp-server.conf
-git add deploy/nginx-mcp-server.conf && git commit -m "deploy: refresh nginx config"
+scp -i <SSH_KEY> <HOST>:/path/to/live/mcp-server \
+    <PRIVATE_LOCAL_PATH>/mcp-server.live
+
+# Port only generic changes by hand, then enforce the confidentiality guard.
+python -m pytest tests/test_public_repo_hygiene.py
+git diff --check -- deploy/nginx/mcp-server
 ```
 
 ## Applying from this snapshot in a DR scenario
 
-```bash
-scp -i ~/.ssh/caselaw deploy/nginx-mcp-server.conf \
-    root@NEW_HOST:/etc/nginx/sites-enabled/mcp-server
-ssh -i ~/.ssh/caselaw root@NEW_HOST 'nginx -t && systemctl reload nginx'
-```
+Install all four nginx inputs listed above in their matching `http`, `server`,
+and static-file contexts. In particular, `mcp-server` is not standalone:
+`ocl_export` comes from `nginx/ocl-bulk-export.conf`, while the `tier1`,
+`tier2`, and `tier3` log formats come from `../ops/nginx/ocl-logging.conf`.
 
-Prerequisites on the target host:
-- nginx installed, Let's Encrypt cert at `/etc/letsencrypt/live/mcp.opencaselaw.ch/`
-- upstream `mcp_workers { server 127.0.0.1:8770; ... 8773; }` block (see `conf.d/` on the current VPS — separate file, not snapshotted here because it rarely changes)
-- rate-limit zones `mcp_sse` and `mcp_api` declared in the `http {}` block (same reason)
+Client-specific deny rules, credentials, certificate locations, and concrete
+host paths must come from the private recovery runbook. Validate the assembled
+configuration with `nginx -t` before any reload.
 
 ## Notable endpoints (as of 2026-04-20)
 
@@ -43,7 +50,8 @@ Prerequisites on the target host:
 
 ## Pitfalls
 
-- `sites-enabled/` must not contain backup files. nginx loads **every** file in that directory as a server config, so a `mcp-server.bak` alongside the live file triggers duplicate `limit_req_zone` binding errors on reload. Keep backups in `/root/` or similar.
+- Do not place backup files in an nginx auto-include directory; duplicate
+  `limit_req_zone` declarations will make validation fail.
 - The security blocklist regex near the top of the file drops requests to known scanner paths (`/wp-admin`, `/phpmyadmin`, etc.) with `return 444` (silent close). Previously included `/mcp/` which blocked legitimate Streamable-HTTP sub-paths — removed 2026-04-20.
 
 ## Scraper CA bundle
@@ -76,16 +84,6 @@ Do **not** reach for `VERIFY_SSL = False` instead. It no longer means what it
 looks like (see `base_scraper._build_session`), and
 `tests/test_scraper_tls_verification.py` fails if it is reintroduced.
 
-### Applying from this snapshot
-
-```bash
-scp -i ~/.ssh/caselaw -r deploy/certs/* root@NEW_HOST:/opt/caselaw/certs/
-scp -i ~/.ssh/caselaw -r systemd/*.service.d systemd/*.timer.d \
-    root@NEW_HOST:/etc/systemd/system/
-ssh -i ~/.ssh/caselaw root@NEW_HOST \
-    'chmod +x /opt/caselaw/certs/build-ca-bundle.sh && systemctl daemon-reload'
-```
-
-The `*.service.d/ntfy.conf` drop-ins carry no secret — they only add
-`EnvironmentFile=-/opt/caselaw/ops.env`. `ops.env` itself is a sibling of the
-repo, mode 600, and is **never** committed; it defines `NTFY_TOPIC`.
+Install the certificate builder and public intermediates using the private
+recovery runbook. Never copy environment files or live service configuration
+back into this public snapshot.

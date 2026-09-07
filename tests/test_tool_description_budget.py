@@ -1,4 +1,4 @@
-"""Tool-description budget + search-family de-overlap (BGPartner 2026-07).
+"""Tool-description budget + search-family de-overlap (integration evaluation 2026-07).
 
 Microsoft 365 Copilot silently ignores tool-description text beyond 1,024
 characters — attest_response (1,711) lost 40% of its description including

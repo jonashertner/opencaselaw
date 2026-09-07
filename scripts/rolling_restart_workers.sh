@@ -4,7 +4,7 @@
 #
 # Why this exists (2026-07): opencaselaw-practice.service restarted workers
 # 8770-8773 SIMULTANEOUSLY every Saturday 06:00 UTC — violating the
-# rolling-restart rule (docs/ops/vps-handover.md) and covering only half the
+# rolling-restart rule and covering only half the
 # pool since the 4->8 expansion (66ad3f6), so workers 8774-8777 served a
 # stale practice.db forever. Discovery via list-units mirrors
 # publish.py:_recycle_mcp_workers — the pool size lives in systemd, not here.

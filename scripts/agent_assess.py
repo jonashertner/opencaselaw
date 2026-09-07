@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import urllib.request
@@ -20,6 +21,29 @@ from typing import Any
 REPO = Path(__file__).resolve().parent.parent
 HEALTH_URL = "https://mcp.opencaselaw.ch/health"
 QUALITY_URL = "https://opencaselaw.ch/quality.json"
+
+
+def default_private_root(repo: Path) -> Path:
+    """Find the private sibling beside the primary checkout, not a worktree."""
+    proc = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode == 0 and proc.stdout.strip():
+        common_dir = Path(proc.stdout.strip()).resolve()
+        if common_dir.name == ".git":
+            return common_dir.parent.parent / "opencaselaw-internal"
+    return repo.resolve().parent / "opencaselaw-internal"
+
+
+def private_root(repo: Path) -> Path:
+    configured = os.environ.get("OPENCASELAW_PRIVATE_ROOT")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return default_private_root(repo)
 
 
 def _now() -> datetime:
@@ -268,11 +292,11 @@ def agent_loop_log_summary(path: Path, now: datetime) -> dict[str, Any]:
     }
 
 
-def open_proposals(repo: Path) -> list[str]:
-    proposal_dir = repo / "docs" / "agent-loop" / "proposals"
+def open_proposals(private_workspace: Path) -> list[str]:
+    proposal_dir = private_workspace / "docs" / "agent-loop" / "proposals"
     if not proposal_dir.exists():
         return []
-    return sorted(str(path.relative_to(repo)) for path in proposal_dir.glob("*.md"))
+    return sorted(str(path.relative_to(private_workspace)) for path in proposal_dir.glob("*.md"))
 
 
 def build_risk(assessment: dict[str, Any]) -> dict[str, list[str]]:
@@ -334,6 +358,7 @@ def recommended_actions(assessment: dict[str, Any]) -> list[str]:
 
 def assess(repo: Path, *, network: bool, timeout: float) -> dict[str, Any]:
     now = _now()
+    private_workspace = private_root(repo)
     health = {"available": False, "ok": False, "skipped": True}
     quality = {"available": False, "ok": False, "skipped": True}
     if network:
@@ -351,8 +376,10 @@ def assess(repo: Path, *, network: bool, timeout: float) -> dict[str, Any]:
         "local": {
             "scraper_health": summarize_scraper_health(read_json(repo / "logs" / "scraper_health.json"), now),
             "last_publish_success": read_json(repo / "state" / "last_publish_success.json"),
-            "agent_loop_log": agent_loop_log_summary(repo / "docs" / "agent-loop" / "LOG.md", now),
-            "open_proposals": open_proposals(repo),
+            "agent_loop_log": agent_loop_log_summary(
+                private_workspace / "docs" / "agent-loop" / "LOG.md", now
+            ),
+            "open_proposals": open_proposals(private_workspace),
         },
         "risk": {"blocking": [], "warnings": []},
         "recommended_next_actions": [],

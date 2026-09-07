@@ -39,8 +39,8 @@ Daten und Code sind offen (CC0 und MIT). Das Gericht kann beides jederzeit selbs
 
 ## Was das Gericht kauft
 
-Nicht den Inhalt, sondern den Betrieb: signierte Installationspakete für Windows und macOS, den wöchentlichen Paketspiegel mit Prüfsummen, Updates, Support, und die Kalibrierung auf die Zitierweise des Gerichts. Preise in `preise-lizenz.md`.
+Nicht den Inhalt, sondern den Betrieb: signierte Installationspakete für Windows und macOS, den wöchentlichen Paketspiegel mit Prüfsummen, Updates, Support, und die Kalibrierung auf die Zitierweise des Gerichts. Preise und Lizenzbedingungen auf Anfrage.
 
 ## Pilot
 
-Drei Monate mit einem Gericht. Das Gericht stellt zweihundert publizierte eigene Entscheide als Testmenge; der Anbieter kalibriert die Erkennung darauf und misst die Trefferquote. Am Ende liegt ein Messbericht vor, und das Gericht entscheidet. Entwurf der Vereinbarung in `pilot-vereinbarung.md`, Datenfluss in `datenfluss.md`, Installationsanleitung für die IT in `../court-it-install.md`.
+Drei Monate mit einem Gericht. Das Gericht stellt zweihundert publizierte eigene Entscheide als Testmenge; der Anbieter kalibriert die Erkennung darauf und misst die Trefferquote. Am Ende liegt ein Messbericht vor, und das Gericht entscheidet. Die Pilotvereinbarung ist auf Anfrage erhältlich; Datenfluss in `datenfluss.md`, Installationsanleitung für die IT in `../court-it-install.md`.

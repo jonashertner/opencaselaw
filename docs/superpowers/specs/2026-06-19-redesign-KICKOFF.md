@@ -68,9 +68,9 @@ richer `Dataset` JSON-LD + BreadcrumbList); self-host fonts.
 - 5 languages de/fr/it/rm/en via `?lang=`. **Romansh is machine-translated** — flag new RM strings
   for native review in `i18n-romansh-review.md`.
 - **DON'T commit the pre-existing non-redesign changes** (publish.py, scrapers/cantonal/be_bvd.py,
-  run_scraper.py, scrapers/cantonal/registry.py, docs/agent-loop/LOG.md, .agents/, .codex/, etc.) —
+  run_scraper.py, scrapers/cantonal/registry.py, the private maintenance log, .agents/, .codex/, etc.) —
   they predate the redesign.
-- VPS: `ssh -i ~/.ssh/caselaw root@46.225.212.40`. Don't run heavy ops during a nightly publish.
+- Production access details are private. Don't run heavy ops during a nightly publish.
 
 ## Starting state
 Working tree reverted to the clean live baseline (the redesign first-draft was reverted; its

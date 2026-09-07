@@ -22,14 +22,14 @@ _spec = importlib.util.spec_from_file_location(
 dir_mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(dir_mod)
 
-# The fixture: 40 lines, 38 well-formed (2 malformed: an empty request line
-# nginx logs as "POST " on a 400, and a garbage line). 4 of the 38 are /health
-# probes, which the report keeps in total_requests but drops from per-IP stats.
+# The fixture is wholly synthetic: 38 well-formed lines plus a provenance
+# comment and two malformed lines. Four valid lines are /health probes, which
+# the report keeps in total_requests but drops from per-IP stats.
 N_VALID = 38
 N_HEALTH = 4
 HTTPX_IP = "203.0.113.7"      # python-httpx MCP client, 12 req over 9.5 h
 SCANNER_IP = "192.0.2.44"     # 11 probes for /.env & co, no MCP
-GOOGLEBOT_IP = "66.249.79.224"
+GOOGLEBOT_IP = "192.0.2.53"
 BROWSER_IP = "198.51.100.23"  # 3 req: below the 10-request candidate floor
 
 # JSON shape of the report before the tier1 change (2026-09-05.json on the VPS).
@@ -68,16 +68,16 @@ def test_parses_tier1_format_and_skips_malformed_lines():
     assert first["method"] == "GET"
     assert first["path"] == "/api/decisions/vd_omni_PE.2018.0215/export.ris"
     assert first["status"] == 200
-    assert first["ua"].startswith("Mozilla/5.0 (Macintosh")
+    assert first["ua"] == "Synthetic Mozilla Chrome/1.0"
     assert first["timestamp"] == datetime(2026, 9, 5, 0, 0, 1, tzinfo=timezone.utc)
     assert first["timestamp"].tzinfo is not None
     assert first["size"] == 0  # tier1 logs no byte count
 
     # a UA of "-" parses (empty-ish UA, not a dropped line)
-    dash = [e for e in entries if e["ip"] == "5.6.7.8"]
+    dash = [e for e in entries if e["ip"] == "203.0.113.9"]
     assert len(dash) == 1 and dash[0]["ua"] == "-"
     # the 400 with an empty request line is not an entry
-    assert not any(e["ip"] == "103.118.29.32" for e in entries)
+    assert not any(e["ip"] == "192.0.2.99" for e in entries)
 
 
 def test_gzip_rotation_reads_like_plain(tmp_path):

@@ -72,6 +72,5 @@ yourself to this file in the same PR or ask us to.
 ## Funding & support
 
 OpenCaseLaw is an independent nonprofit project with no external funding. If
-you'd like to support it — sponsorship, institutional hosting (see
-[docs/ops/](docs/ops/) for our specification requirements), or research
-collaboration — contact **team@jonashertner.com**.
+you'd like to support it through sponsorship, institutional hosting, or
+research collaboration, contact **team@jonashertner.com**.
