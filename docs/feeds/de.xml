@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 06 Sep 2026 11:36:34 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 07 Sep 2026 11:49:15 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -156,6 +156,38 @@ Vizepräsidentin Lenka Ziegler, Oberrichterin R…</description>
       <pubDate>Sun, 30 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ur_gerichte_OG V 23 32</guid>
       <category>ur_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesgericht 5A_829/2026 vom 2026-08-28</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_829_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+5A_829/2026
+
+Urteil vom 28. August 2026
+
+II. zivilrechtliche Abteilung
+
+Besetzung
+
+Bundesrichter Bovey, Präsident,
+
+Gerichtsschreiber Möckli.
+
+Verfahrensbeteiligte
+
+A.________,
+
+B…</description>
+      <pubDate>Fri, 28 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_829.2026</guid>
+      <category>bger</category>
     </item>
     <item>
       <title>fr_gerichte 604 2025 115 vom 2026-08-28</title>
@@ -812,23 +844,6 @@ B…</description>
       <pubDate>Mon, 24 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5357.2026</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>gr_gerichte SV1 2025 58 vom 2026-08-24</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_SV1%202025%2058</link>
-      <description>Obergericht des Kantons Graubünden
-Dretgira superiura dal chantun Grischun
-Tribunale d'appello del Cantone dei Grigioni
-Urteil vom 24. Juni 2026
-mitgeteilt am 30. Juni 2026
-Referenz
-SV1 25 58
-Instanz
-Erste sozialversicherungsrechtliche Kammer
-Besetzu…</description>
-      <pubDate>Mon, 24 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">gr_gerichte_SV1 2025 58</guid>
-      <category>gr_gerichte</category>
     </item>
   </channel>
 </rss>
