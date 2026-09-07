@@ -10996,9 +10996,11 @@ server = Server(
         "portal scraping for 19 cantons + LexFind fallback for the rest), "
         "1,100+ scholarly commentaries, a verbatim Federal Council Botschaft "
         "corpus (5,900+ documents, ~410K FTS5-indexed paragraphs), "
-        "federal administrative practice — Verwaltungspraxis, 9,700+ documents: "
+        "federal administrative practice — Verwaltungspraxis, 9,900+ documents: "
         "BSV Wegleitungen, Kreisschreiben, Rundschreiben and Mitteilungen for "
         "AHV/IV/EL/EO/FamZ/BVG (every retained version, DE/FR/IT), "
+        "OAK BV Weisungen and Mitteilungen for BVG supervision (every version, with Informationsschreiben and Anhörungsentwürfe, DE/FR/IT), "
+        "WEKO Bekanntmachungen and Erläuterungen under the Kartellgesetz (current and superseded, DE/FR/IT), "
         "FINMA Rundschreiben in force and superseded, every published version "
         "of each (DE/FR/IT/EN), "
         "SECO commentary on the Arbeitsgesetz and ArGV 1-5 article by "
@@ -24953,7 +24955,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool when the question involves federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben, Handbücher — agency guidance, not court decisions. 9,700+ documents. Covered: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every retained version), SECO (Arbeitsgesetz commentary + AVIG-Praxis unemployment insurance), BAG (KVG Kreisschreiben), SEM (Weisungen AIG/Asyl/BüG + Handbuch Asyl und Rückkehr), BJ (SchKG Weisungen, cantonal Existenzminimum Kreisschreiben), FINMA, ESTV, BAFU; per-source counts in the filter enums. Returns ranked excerpts with authority, number, date, PDF link. Superseded versions collapse to the newest per document; for past conduct pass include_superseded=true and take the version dated before the facts. NOT covered: cantonal administrations — Sozialhilfe (SKOS, cantonal Handbücher), Prämienverbilligung (IPV) — say so, do not imply absence of guidance. Pre-2017 federal decisions: search_decisions(court='ch_vb')."
+                "Use this tool when the question involves federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents. Covered: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen, drafts), WEKO (Bekanntmachungen, Erläuterungen, all versions), SECO (ArG commentary, AVIG-Praxis), BAG (KVG Kreisschreiben), SEM (Weisungen AIG/Asyl/BüG, Handbuch Asyl), BJ (SchKG Weisungen, Existenzminimum), FINMA, ESTV, BAFU; counts in the filter enums. Returns ranked excerpts with authority, number, date, PDF link. Superseded versions collapse to the newest per document; for past conduct pass include_superseded=true and take the version dated before the facts. NOT covered: cantonal administrations — Sozialhilfe (SKOS, cantonal Handbücher), Prämienverbilligung (IPV) — say so, do not imply absence of guidance. Pre-2017 federal decisions: search_decisions(court='ch_vb')."
             ),
             inputSchema={
                 "type": "object",
@@ -24968,7 +24970,7 @@ def _list_tools() -> list[Tool]:
                         "type": "string",
                         "enum": ["finma_rs", "seco_arg", "bafu_vollzug", "estv_ks", "estv_mwst",
                                  "sem_weisungen", "bsv_weisungen", "seco_alv", "bag_kvg",
-                                 "sem_handbuch_asyl", "bj_schkg"],
+                                 "sem_handbuch_asyl", "bj_schkg", "weko_bekanntmachungen", "oak_bv"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -24977,17 +24979,21 @@ def _list_tools() -> list[Tool]:
                             "IE/AMM + thematic Weisungen, 54, DE/FR/IT), bag_kvg (KVG Kreisschreiben, "
                             "38, DE/FR), sem_handbuch_asyl (Handbuch Asyl und Rückkehr, 92 articles, "
                             "DE/FR), bj_schkg (SchKG Weisungen + cantonal and historical federal "
-                            "Kreisschreiben incl. Existenzminimum-Richtlinien, 174, DE/FR/IT)."
+                            "Kreisschreiben incl. Existenzminimum-Richtlinien, 174, DE/FR/IT), "
+                            "weko_bekanntmachungen (WEKO Bekanntmachungen + Erläuterungen, current and "
+                            "superseded versions, DE/FR/IT), oak_bv (OAK BV Weisungen W and Mitteilungen M, "
+                            "every version, Informationsschreiben/FAQ, Anhörungsentwürfe, DE/FR/IT)."
                         ),
                     },
                     "issuing_authority": {
                         "type": "string",
-                        "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ"],
+                        "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
                             "BSV (6,083, social insurance practice), BAG (38), "
-                            "BJ (debt enforcement)."
+                            "BJ (debt enforcement), WEKO (Bekanntmachungen/Erläuterungen under the KG), "
+                            "OAK BV (BVG supervision: Weisungen, Mitteilungen)."
                         ),
                     },
                     "doc_type": {
@@ -24997,6 +25003,7 @@ def _list_tools() -> list[Tool]:
                             "rundschreiben_anhang", "mwst_branchen_info", "mwst_info", "weisung",
                             "handbuch", "mitteilung", "nachtrag", "rechtsprechung",
                             "richtlinie", "weisung_anhang", "konkordat", "erlass",
+                            "bekanntmachung", "erlaeuterung", "entwurf",
                         ],
                         "description": (
                             "Filter by document type. wegleitung (SECO ArG 1,102 + BSV WEL/RWL…), "
@@ -25005,7 +25012,9 @@ def _list_tools() -> list[Tool]:
                             "circular annexes), mwst_branchen_info (84), weisung (SEM/SECO-ALV/BJ/BSV), "
                             "mwst_info (69), handbuch (SEM Handbuch Asyl), mitteilung (BSV Mitteilungen "
                             "an die Ausgleichskassen), nachtrag (BSV Nachträge), rechtsprechung (BSV "
-                            "AHI-Praxis digests), richtlinie / weisung_anhang / konkordat / erlass (BJ SchKG page)."
+                            "AHI-Praxis digests), richtlinie (BJ, WEKO Richtlinien), weisung_anhang (BJ; "
+                            "OAK BV Informationsschreiben/FAQ), konkordat / erlass (BJ SchKG page), "
+                            "bekanntmachung / erlaeuterung (WEKO), entwurf (OAK BV Anhörungen: drafts, not in force)."
                         ),
                     },
                     "include_superseded": {

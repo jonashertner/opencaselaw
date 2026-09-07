@@ -29,6 +29,8 @@ from .bag_kvg import BagKvgScraper
 from .sem_handbuch_asyl import SemHandbuchAsylScraper
 from .bj_schkg import BjSchkgScraper
 from .bsv_weisungen import BsvWeisungenScraper
+from .weko_bekanntmachungen import WekoBekanntmachungenScraper
+from .oak_bv import OakBvScraper
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,10 @@ ENABLED_SCRAPERS = {
     "bj_schkg":          BjSchkgScraper,
     # First full run 2026-09-03/04 on the VPS: 6,083 records, 0 failed, 1 h 45 min.
     "bsv_weisungen":     BsvWeisungenScraper,
+    # Requested by a user 2026-09-07 (with the BSV BV Mitteilungen, which the
+    # BSV crawl already holds). Small: ~60 + ~360 rows, minutes per run.
+    "weko_bekanntmachungen": WekoBekanntmachungenScraper,
+    "oak_bv":            OakBvScraper,
 }
 
 # Defensive scaffolds — need first-run validation before enabling

@@ -13,6 +13,19 @@ Architecture:
 
 Coverage: ~230 decisions
 Rate limiting: 2.0 seconds (large PDFs)
+
+Praxis Binnenmarktgesetz (added 2026-09-07 on a user's request): the hub
+/de/praxis-binnenmarktgesetz links three WEKO pages — /de/weko (Marktzugang),
+/de/weko-2 (Konzessionen), /de/weko-3 (Beschaffungen) — holding ~44
+Empfehlungen, Gutachten and Stellungnahmen under Art. 8 and 10 BGBM that the
+Entscheide listing never shows (1997 to 2023, many only in the RPW). Same
+markup, different title grammar ("Empfehlung vom 27. Mai 2019 betreffend …"
+instead of "Name: Verfügung vom …"). The hub's other pages list Bundesgericht
+and cantonal rulings that the corpus already holds under their own courts and
+cantonal authority decisions that are not the WEKO's; both are left alone.
+These pages are a static archive, so the `since_date` filter is not applied
+to them — the state's is_known() check keeps the nightly run to one fetch per
+page once they are in.
 """
 from __future__ import annotations
 
@@ -38,9 +51,34 @@ logger = logging.getLogger(__name__)
 LISTING_URL = "https://www.weko.admin.ch/de/entscheide"
 BASE_URL = "https://www.weko.admin.ch"
 
+# (url, legal_area, is_archive). An archive page gets neither the since_date
+# filter nor the file-date fallback: its files carry the 2014/2021 migration
+# stamp, which is not a decision date, and a title without "vom …" stays undated.
+BGBM_LISTING_URLS = (
+    (BASE_URL + "/de/weko", "Binnenmarktrecht", True),
+    (BASE_URL + "/de/weko-2", "Binnenmarktrecht", True),
+    (BASE_URL + "/de/weko-3", "Binnenmarktrecht", True),
+)
+LISTINGS = ((LISTING_URL, "Wettbewerbsrecht", False),) + BGBM_LISTING_URLS
+
+# BGBM titles lead with the document type: "Empfehlung vom …", "Gutachten der
+# Wettbewerbskommission vom …", "Expertise du …", "Recommandation du …".
+LEAD_TYPE_PATTERN = re.compile(
+    r"^(Empfehlung(?:en)?|Gutachten|Stellungnahme|Vernehmlassung|Expertise|"
+    r"Recommandations?|Raccomandazione|Prise\s+de\s+position|Avis)\b",
+    re.IGNORECASE,
+)
+LEAD_TYPE_NORMAL = {
+    "empfehlungen": "Empfehlung", "expertise": "Gutachten", "recommandation": "Empfehlung",
+    "recommandations": "Empfehlung", "raccomandazione": "Empfehlung",
+    "prise de position": "Stellungnahme", "avis": "Gutachten",
+}
+# "(Französisch)", "(französisch)", "(nur auf Französich)", "(italienische Version)"
+LANG_TAG_PATTERN = re.compile(r"\s*\((?:nur\s+auf\s+)?(?:franz|ital|frances|italian)[^)]*\)\s*$", re.IGNORECASE)
+
 # Parse title: "Name: Type vom DD. Monat YYYY (PDF, size, DD.MM.YYYY)"
 TITLE_PATTERN = re.compile(
-    r"^(.+?):\s*(Verfügung|Schlussbericht|Stellungnahme|Beratung|Gutachten|Empfehlung|Sanktionsverfügung|Einstellungsverfügung|Genehmigung|Prüfung|Abklärung|Untersuchung|Vorsorgliche Massnahme|Zwischenverfügung)\s+vom\s+(.+?)\s*\(",
+    r"^(.+?):\s*(Verfügung|Schlussbericht|Stellungnahme|Beratung|Gutachten|Empfehlung|Sanktionsverfügung|Einstellungsverfügung|Genehmigung|Prüfung|Abklärung|Untersuchung|Vorsorgliche Massnahme|Zwischenverfügung)(?:\s+der\s+WEKO|\s+des\s+Sekretariats)?\s+vom\s+(.+?)(?:\s*\(|\s*$)",
     re.IGNORECASE,
 )
 
@@ -97,6 +135,88 @@ def _extract_pdf_text(data: bytes) -> str:
     return ""
 
 
+def parse_listing(html: str, *, legal_area: str = "Wettbewerbsrecht",
+                  file_date_fallback: bool = True) -> list[dict]:
+    """Parse one sd-web download list into decision stubs (no network, no
+    state). Shared by the Entscheide listing and the BGBM pages. With
+    file_date_fallback a title without "vom …" is dated by the file's
+    publication date (right on the Entscheide page, wrong on the archives)."""
+    soup = BeautifulSoup(html, "html.parser")
+    stubs: list[dict] = []
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        # PDF links under /dam/ path
+        if "/dam/" not in href or not href.lower().endswith(".pdf"):
+            continue
+
+        pdf_url = urljoin(BASE_URL, href)
+
+        # New Nuxt layout: title in <h4>, metadata in <p> inside the <a>
+        h4 = a.find("h4")
+        title = h4.get_text(strip=True) if h4 else a.get_text(strip=True)
+        if not title:
+            continue
+
+        # Clean title: strip "(PDF, size, DD.MM.YYYY)" suffix (old AEM format)
+        title = re.sub(r"\s*\(PDF,\s*[\d.,]+\s*[kKmMgG][bB],?\s*\d{2}\.\d{2}\.\d{4}\)\s*$", "", title).strip()
+        # Strip language tags
+        title_clean = LANG_TAG_PATTERN.sub("", title).strip()
+
+        decision_date_str = None
+        doc_type = None
+
+        m = TITLE_PATTERN.match(title)
+        if m:
+            case_name = m.group(1).strip()
+            doc_type = m.group(2).strip()
+        else:
+            case_name = title_clean.split(":")[0].strip() if ":" in title_clean else title_clean
+            lead = LEAD_TYPE_PATTERN.match(title_clean)
+            if lead:
+                word = " ".join(lead.group(1).lower().split())
+                doc_type = LEAD_TYPE_NORMAL.get(word, lead.group(1).capitalize())
+
+        # Try to extract decision date from "vom DD. Monat YYYY" or "du DD mois YYYY"
+        vom_m = VOM_DATE_PATTERN.search(title)
+        if vom_m:
+            decision_date_str = f"{vom_m.group(1)}. {vom_m.group(2)} {vom_m.group(3)}"
+        else:
+            du_m = DU_DATE_PATTERN.search(title)
+            if du_m:
+                decision_date_str = f"{du_m.group(1)} {du_m.group(2)} {du_m.group(3)}"
+
+        # Fallback: publication date from <p> metadata (Nuxt) or old format
+        pub_date_str = None
+        p_tags = a.find_all("p")
+        meta_text = " ".join(p.get_text(strip=True) for p in p_tags)
+        meta_m = META_DATE_PATTERN.search(meta_text)
+        if meta_m:
+            pub_date_str = f"{meta_m.group(1)}. {meta_m.group(2)} {meta_m.group(3)}"
+        else:
+            pub_m = PUB_DATE_PATTERN.search(a.get_text(strip=True))
+            pub_date_str = pub_m.group(1) if pub_m else None
+
+        # Build docket from case name + date
+        date_suffix = ""
+        if decision_date_str:
+            parsed = parse_date(decision_date_str)
+            if parsed:
+                date_suffix = f"-{parsed.isoformat()}"
+        docket = _slugify(case_name) + date_suffix
+
+        stubs.append({
+            "docket_number": docket,
+            "decision_date": decision_date_str or (pub_date_str if file_date_fallback else None) or "",
+            "pdf_url": pdf_url,
+            "title": title_clean,
+            "case_name": case_name,
+            "doc_type": doc_type,
+            "pub_date": pub_date_str,
+            "legal_area": legal_area,
+        })
+    return stubs
+
+
 class WEKOScraper(BaseScraper):
     """Scraper for WEKO (Swiss Competition Commission) published decisions."""
 
@@ -108,92 +228,28 @@ class WEKOScraper(BaseScraper):
         return "weko"
 
     def discover_new(self, since_date=None) -> Iterator[dict]:
-        """Discover WEKO decisions from the listing page."""
-        response = self.get(LISTING_URL)
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        links = soup.find_all("a", href=True)
-        found = 0
-
-        for a in links:
-            href = a["href"]
-            # PDF links under /dam/ path
-            if "/dam/" not in href or not href.endswith(".pdf"):
+        """Discover WEKO decisions from the Entscheide listing and the three
+        Praxis-Binnenmarktgesetz pages."""
+        seen: set[str] = set()
+        for url, legal_area, is_archive in LISTINGS:
+            try:
+                response = self.get(url)
+            except Exception as e:
+                logger.warning(f"[weko] listing fetch failed {url}: {e}")
                 continue
-
-            pdf_url = urljoin(BASE_URL, href)
-
-            # New Nuxt layout: title in <h4>, metadata in <p> inside the <a>
-            h4 = a.find("h4")
-            title = h4.get_text(strip=True) if h4 else a.get_text(strip=True)
-            if not title:
-                continue
-
-            # Clean title: strip "(PDF, size, DD.MM.YYYY)" suffix (old AEM format)
-            title = re.sub(r"\s*\(PDF,\s*[\d.,]+\s*[kKmMgG][bB],?\s*\d{2}\.\d{2}\.\d{4}\)\s*$", "", title).strip()
-            # Strip language tags
-            title_clean = re.sub(r"\s*\((Französisch|Italienisch|Francese|Italiano)\)\s*$", "", title).strip()
-
-            decision_date_str = None
-            doc_type = None
-
-            m = TITLE_PATTERN.match(title)
-            if m:
-                case_name = m.group(1).strip()
-                doc_type = m.group(2).strip()
-            else:
-                case_name = title_clean.split(":")[0].strip() if ":" in title_clean else title_clean
-
-            # Try to extract decision date from "vom DD. Monat YYYY" or "du DD mois YYYY"
-            vom_m = VOM_DATE_PATTERN.search(title)
-            if vom_m:
-                decision_date_str = f"{vom_m.group(1)}. {vom_m.group(2)} {vom_m.group(3)}"
-            else:
-                du_m = DU_DATE_PATTERN.search(title)
-                if du_m:
-                    decision_date_str = f"{du_m.group(1)} {du_m.group(2)} {du_m.group(3)}"
-
-            # Fallback: publication date from <p> metadata (Nuxt) or old format
-            pub_date_str = None
-            p_tags = a.find_all("p")
-            meta_text = " ".join(p.get_text(strip=True) for p in p_tags)
-            meta_m = META_DATE_PATTERN.search(meta_text)
-            if meta_m:
-                pub_date_str = f"{meta_m.group(1)}. {meta_m.group(2)} {meta_m.group(3)}"
-            else:
-                pub_m = PUB_DATE_PATTERN.search(a.get_text(strip=True))
-                pub_date_str = pub_m.group(1) if pub_m else None
-
-            # Build docket from case name + date
-            date_suffix = ""
-            if decision_date_str:
-                parsed = parse_date(decision_date_str)
-                if parsed:
-                    date_suffix = f"-{parsed.isoformat()}"
-            docket = _slugify(case_name) + date_suffix
-
-            decision_id = make_decision_id("weko", docket)
-            if self.state.is_known(decision_id):
-                continue
-
-            # Filter by since_date
-            if since_date and decision_date_str:
-                parsed = parse_date(decision_date_str)
-                if parsed and parsed < since_date:
+            found = 0
+            for stub in parse_listing(response.text, legal_area=legal_area, file_date_fallback=not is_archive):
+                decision_id = make_decision_id("weko", stub["docket_number"])
+                if decision_id in seen or self.state.is_known(decision_id):
                     continue
-
-            found += 1
-            yield {
-                "docket_number": docket,
-                "decision_date": decision_date_str or pub_date_str or "",
-                "pdf_url": pdf_url,
-                "title": title_clean,
-                "case_name": case_name,
-                "doc_type": doc_type,
-                "pub_date": pub_date_str,
-            }
-
-        logger.info(f"[weko] Found {found} new decisions on listing page")
+                if not is_archive and since_date and stub.get("decision_date"):
+                    parsed = parse_date(stub["decision_date"])
+                    if parsed and parsed < since_date:
+                        continue
+                seen.add(decision_id)
+                found += 1
+                yield stub
+            logger.info(f"[weko] Found {found} new decisions on {url}")
 
     def fetch_decision(self, stub: dict) -> Decision | None:
         """Download PDF and extract decision text."""
@@ -226,7 +282,7 @@ class WEKOScraper(BaseScraper):
             decision_date=decision_date,
             language=lang,
             title=stub.get("title"),
-            legal_area="Wettbewerbsrecht",
+            legal_area=stub.get("legal_area") or "Wettbewerbsrecht",
             decision_type=stub.get("doc_type"),
             full_text=full_text,
             source_url=pdf_url,
