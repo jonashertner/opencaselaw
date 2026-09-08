@@ -359,7 +359,7 @@ OCL.init({
       var url=new URL(API_SEARCH);
       url.searchParams.set('query',q);
       url.searchParams.set('limit',String(PAGE_SIZE));
-      if(level)url.searchParams.set('level',level);
+      if(level)url.searchParams.set('jurisdiction',level);
       var t0=performance.now();
       return fetch(url,{headers:{Accept:'application/json'}}).then(function(r){
         if(!r.ok)throw new Error('API '+r.status); return r.json();

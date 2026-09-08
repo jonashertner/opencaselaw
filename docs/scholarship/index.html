@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Open-access legal scholarship — OpenCaseLaw</title>
-<meta name="description" content="Search 25,000+ open-access Swiss legal publications from 23 sources (BORIS, e-periodica, ZHAW, ZORA and more). Full-text where licensing allows. Free, no account.">
+<meta name="description" content="Search more than 44,000 open-access Swiss legal publications from 24 sources (BORIS, e-periodica, ZHAW, ZORA and more). Full-text where licensing allows. Free, no account.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/scholarship/">
@@ -59,7 +59,7 @@
     <div class="wrap" style="max-width:760px;margin:0 auto">
       <p class="page-kicker"><b data-t="sc_kick">Open access</b></p>
       <h1 class="page-h1" data-t="sc_h1">Legal scholarship</h1>
-      <p class="page-lead" data-t="sc_lede">Full-text search over 25,000+ open-access Swiss legal publications from 23 sources — BORIS, e-periodica, ZHAW, ZORA and more. Full text where licensing allows.</p>
+      <p class="page-lead" data-t="sc_lede">Full-text search over <span id="sc-count">more than 44,000</span> open-access Swiss legal publications from <span id="sc-sources">24</span> sources — BORIS, e-periodica, ZHAW, ZORA and more. Full text where licensing allows.</p>
     </div>
   </section>
 
@@ -87,27 +87,27 @@
 OCL.init({
   active:'',
   i18n:{
-    de:{sc_kick:'Open Access',sc_h1:'Rechtswissenschaftliche Literatur',sc_lede:'Volltextsuche über 25 000+ frei zugängliche Schweizer rechtswissenschaftliche Publikationen aus 23 Quellen — BORIS, e-periodica, ZHAW, ZORA u. a. Volltext, soweit es die Lizenz erlaubt.',
+    de:{sc_kick:'Open Access',sc_h1:'Rechtswissenschaftliche Literatur',sc_lede:'Volltextsuche über <span id="sc-count">mehr als 44 000</span> frei zugängliche Schweizer rechtswissenschaftliche Publikationen aus <span id="sc-sources">24</span> Quellen — BORIS, e-periodica, ZHAW, ZORA u. a. Volltext, soweit es die Lizenz erlaubt.',
       sc_submit:'Suchen',sc_try:'Versuchen Sie:',sc_ph:'z. B. Datenschutz · Mietrecht · responsabilité',
       m_searching:'Suche nach "{q}" …',m_count:'{n} Publikationen · {ms} ms',m_more:'{n} Publikationen (erste {shown}) · {ms} ms',
       r_no:'Keine Publikationen für "{q}"',r_noHint:'Versuchen Sie allgemeinere Begriffe oder eine andere Sprache.',r_untitled:'(ohne Titel)',
       e_failed:'Suche fehlgeschlagen: {msg}.',srcnote:'Quellen + Lizenzen: jede Publikation verweist auf ihre Originalquelle; Wiedergabe gemäss der jeweiligen Open-Access-Lizenz.'},
-    fr:{sc_kick:'Libre accès',sc_h1:'Littérature juridique',sc_lede:'Recherche plein texte sur 25 000+ publications juridiques suisses en libre accès, issues de 23 sources — BORIS, e-periodica, ZHAW, ZORA, etc. Texte intégral selon la licence.',
+    fr:{sc_kick:'Libre accès',sc_h1:'Littérature juridique',sc_lede:'Recherche plein texte sur <span id="sc-count">plus de 44 000</span> publications juridiques suisses en libre accès, issues de <span id="sc-sources">24</span> sources — BORIS, e-periodica, ZHAW, ZORA, etc. Texte intégral selon la licence.',
       sc_submit:'Rechercher',sc_try:'Essayez :',sc_ph:'p. ex. protection des données · bail · Datenschutz',
       m_searching:'Recherche de "{q}" …',m_count:'{n} publications · {ms} ms',m_more:'{n} publications (premières {shown}) · {ms} ms',
       r_no:'Aucune publication pour "{q}"',r_noHint:'Essayez des termes plus généraux ou une autre langue.',r_untitled:'(sans titre)',
       e_failed:'Échec de la recherche : {msg}.',srcnote:'Sources + licences : chaque publication renvoie à sa source d\'origine ; reproduction selon la licence libre concernée.'},
-    it:{sc_kick:'Accesso aperto',sc_h1:'Letteratura giuridica',sc_lede:'Ricerca a testo pieno su 25 000+ pubblicazioni giuridiche svizzere ad accesso aperto da 23 fonti — BORIS, e-periodica, ZHAW, ZORA e altre. Testo integrale secondo la licenza.',
+    it:{sc_kick:'Accesso aperto',sc_h1:'Letteratura giuridica',sc_lede:'Ricerca a testo pieno su <span id="sc-count">oltre 44 000</span> pubblicazioni giuridiche svizzere ad accesso aperto da <span id="sc-sources">24</span> fonti — BORIS, e-periodica, ZHAW, ZORA e altre. Testo integrale secondo la licenza.',
       sc_submit:'Cerca',sc_try:'Provate:',sc_ph:'p. es. protezione dei dati · locazione · Datenschutz',
       m_searching:'Ricerca di "{q}" …',m_count:'{n} pubblicazioni · {ms} ms',m_more:'{n} pubblicazioni (prime {shown}) · {ms} ms',
       r_no:'Nessuna pubblicazione per "{q}"',r_noHint:'Provate termini più generici o un\'altra lingua.',r_untitled:'(senza titolo)',
       e_failed:'Ricerca non riuscita: {msg}.',srcnote:'Fonti + licenze: ogni pubblicazione rimanda alla fonte originale; riproduzione secondo la rispettiva licenza ad accesso aperto.'},
-    rm:{sc_kick:'Access avert',sc_h1:'Litteratura giuridica',sc_lede:'Tschertga da text cumplet sur 25 000+ publicaziuns giuridicas svizras cun access avert da 23 funtaunas — BORIS, e-periodica, ZHAW, ZORA e dapli. Text cumplet uschè ditg che la licenza permetta.',
+    rm:{sc_kick:'Access avert',sc_h1:'Litteratura giuridica',sc_lede:'Tschertga da text cumplet sur <span id="sc-count">passa 44 000</span> publicaziuns giuridicas svizras cun access avert da <span id="sc-sources">24</span> funtaunas — BORIS, e-periodica, ZHAW, ZORA e dapli. Text cumplet uschè ditg che la licenza permetta.',
       sc_submit:'Tschertgar',sc_try:'Empruvai:',sc_ph:'p. ex. protecziun da datas · fittanza · Datenschutz',
       m_searching:'Tschertga da "{q}" …',m_count:'{n} publicaziuns · {ms} ms',m_more:'{n} publicaziuns (las emprimas {shown}) · {ms} ms',
       r_no:'Naginas publicaziuns per "{q}"',r_noHint:'Empruvai noziuns pli generalas u in\'autra lingua.',r_untitled:'(senza titel)',
       e_failed:'La tschertga è fallida: {msg}.',srcnote:'Funtaunas + licenzas: mintga publicaziun renviescha a sia funtauna originala; reproducziun tenor la respectiva licenza d\'access avert.'},
-    en:{sc_kick:'Open access',sc_h1:'Legal scholarship',sc_lede:'Full-text search over 25,000+ open-access Swiss legal publications from 23 sources — BORIS, e-periodica, ZHAW, ZORA and more. Full text where licensing allows.',
+    en:{sc_kick:'Open access',sc_h1:'Legal scholarship',sc_lede:'Full-text search over <span id="sc-count">more than 44,000</span> open-access Swiss legal publications from <span id="sc-sources">24</span> sources — BORIS, e-periodica, ZHAW, ZORA and more. Full text where licensing allows.',
       sc_submit:'Search',sc_try:'Try:',sc_ph:'e.g. Datenschutz · data protection · responsabilité',
       m_searching:'Searching for "{q}"…',m_count:'{n} publications · {ms} ms',m_more:'{n} publications (first {shown}) · {ms} ms',
       r_no:'No publications for "{q}"',r_noHint:'Try broader terms or another language.',r_untitled:'(untitled)',
@@ -120,15 +120,26 @@ OCL.init({
     var $=function(s){return document.querySelector(s);};
     document.getElementById('q').placeholder=O.t('sc_ph');
     document.getElementById('sources-note').textContent=O.t('srcnote');
+    // Refine the hero copy's rounded static fallback with the live count once stats.json
+    // loads (same convention as the homepage). Leaves the fallback in place on failure.
+    fetch('/stats.json?v='+Math.floor(Date.now()/60000)).then(function(r){return r.ok?r.json():null;}).then(function(s){
+      if(!s||!s.corpus||!s.corpus.scholarship_publications)return;
+      var cEl=$('#sc-count'),sEl=$('#sc-sources');
+      if(cEl)cEl.textContent=O.fmt(s.corpus.scholarship_publications);
+      if(sEl&&s.corpus.scholarship_by_source)sEl.textContent=String(Object.keys(s.corpus.scholarship_by_source).length);
+    }).catch(function(){});
     function el(tag,props,kids){var n=document.createElement(tag);if(props)for(var k in props){if(k==='class')n.className=props[k];else if(k==='text')n.textContent=props[k];else if(k==='href')n.setAttribute('href',props[k]);else if(k.indexOf('aria-')===0||k==='rel'||k==='target')n.setAttribute(k,props[k]);else n[k]=props[k];}if(kids)kids.forEach(function(c){if(c==null)return;n.appendChild(typeof c==='string'?document.createTextNode(c):c);});return n;}
     function clear(n){while(n.firstChild)n.removeChild(n.firstChild);}
     function safeUrl(u){try{var p=new URL(u,location.href);return (p.protocol==='http:'||p.protocol==='https:')?p.href:'#';}catch(e){return '#';}}
     function snippet(text){var box=el('p',{class:'pub-snippet'});var parts=String(text).split(/>>>|<<</);
       parts.forEach(function(p,i){if(i%2===1){box.appendChild(el('mark',{text:p}));}else if(p){box.appendChild(document.createTextNode(p));}});return box;}
     function buildPub(r){
-      var url=safeUrl(r.url||r.pdf_url||'');
-      var titleA=el('a',{href:url,target:'_blank',rel:'noopener',text:r.title||T('r_untitled')});
-      var title=el('h2',{class:'pub-title'},[titleA]);
+      var rawUrl=r.url||r.pdf_url||'';
+      // Closed-access records carry no URL. safeUrl('') resolves against location.href and
+      // "succeeds" with the current page itself, so an anchor here would silently loop back —
+      // render the title as plain text instead.
+      var titleEl=rawUrl?el('a',{href:safeUrl(rawUrl),target:'_blank',rel:'noopener',text:r.title||T('r_untitled')}):el('span',{text:r.title||T('r_untitled')});
+      var title=el('h2',{class:'pub-title'},[titleEl]);
       var bits=[];
       if(r.authors)bits.push(r.authors);
       if(r.journal)bits.push(r.journal);
