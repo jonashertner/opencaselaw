@@ -1,7 +1,8 @@
 """Server-side mirror of tools/word-addin/js/redact.js.
 
-Used as a HARD GUARD on the two Pro endpoints (/attest, /billing/verify,
-/billing/strengthen). The contract is:
+Used as a HARD GUARD on the five Pro endpoints (/attest, /billing/verify,
+/billing/strengthen, /billing/find-support, /billing/reflect). The
+contract is:
 
     The client (Word add-in) MUST run js/redact.js before sending Pro
     requests. The server independently re-runs the same patterns; if
@@ -127,20 +128,30 @@ def redact(text: str) -> RedactionResult:
             keep.append((start, end, label, original))
             last_end = end
 
+    # Same original → same placeholder within one call (mirrors the JS
+    # redactor): a party that appears five times is one entity to the
+    # model. ``summary`` still counts occurrences.
     counters: dict[str, int] = {}
+    by_original: dict[tuple[str, str], str] = {}
     out_parts: list[str] = []
     replacements: list[Replacement] = []
     cursor = 0
-    for start, end, label, _original in keep:
-        counters[label] = counters.get(label, 0) + 1
-        placeholder = f"[{label}_{counters[label]}]"
+    for start, end, label, original in keep:
+        placeholder = by_original.get((label, original))
+        if placeholder is None:
+            counters[label] = counters.get(label, 0) + 1
+            placeholder = f"[{label}_{counters[label]}]"
+            by_original[(label, original)] = placeholder
         out_parts.append(text[cursor:start])
         out_parts.append(placeholder)
         replacements.append(Replacement(type=label, placeholder=placeholder, start=start, end=end))
         cursor = end
     out_parts.append(text[cursor:])
 
-    return RedactionResult(redacted="".join(out_parts), replacements=replacements, summary=counters)
+    summary: dict[str, int] = {}
+    for rep in replacements:
+        summary[rep.type] = summary.get(rep.type, 0) + 1
+    return RedactionResult(redacted="".join(out_parts), replacements=replacements, summary=summary)
 
 
 def patterns() -> Iterable[str]:

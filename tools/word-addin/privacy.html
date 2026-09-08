@@ -74,7 +74,7 @@
     <a href="https://word.opencaselaw.ch/install.html" class="back-link">&larr; Word Add-in</a>
 
     <h1>Privacy Policy</h1>
-    <p class="subtitle">OpenCaseLaw Word Add-in &mdash; Effective March 28, 2026</p>
+    <p class="subtitle">OpenCaseLaw Word Add-in &mdash; Effective September 2, 2026</p>
 
     <h2>1. Provider</h2>
     <p>
@@ -87,40 +87,165 @@
     <p>
       The OpenCaseLaw Word Add-in lets you look up Swiss court decisions and statute
       articles and insert citations directly into your Word document. Optional Pro
-      features use AI to verify references, find similar decisions, and find
-      supporting decisions.
+      features verify references (Verify), enrich a paragraph with leading cases
+      (Strengthen), find decisions supporting a statement (Ground), check every
+      citation in a document (Audit) and offer a literary reflection on a draft
+      (Mirror). Three of these use AI; see section 4.
     </p>
 
     <h2>3. Data we process</h2>
-    <p>We process data only when you explicitly trigger an action:</p>
+    <p>
+      We process data only when you explicitly trigger an action. What leaves your
+      machine depends on the feature:
+    </p>
     <ul>
       <li>
-        <strong>Search queries.</strong> When you type a search and press Enter (or click Search),
-        your query text is sent to our API server at <code>mcp.opencaselaw.ch</code>.
+        <strong>Search and statute lookup.</strong> When you type a search and press Enter
+        (or click Search), your query text is sent to our API server at
+        <code>mcp.opencaselaw.ch</code>. Nothing is read from your document.
       </li>
       <li>
-        <strong>Document selection (Find Related / Verify Reference).</strong> When you click
-        "Find related" or "Verify reference," the currently selected text in your document
-        is read and sent to our API server. No other part of your document is accessed.
+        <strong>Find related (Pro).</strong> The add-in reads the currently selected text, extracts
+        the decision reference from it locally (for example "BGE 133 III 121") and sends only
+        that reference to our server. The selected text itself does not leave Word. No AI is
+        involved.
+      </li>
+      <li>
+        <strong>Verify and Strengthen (Pro).</strong> The add-in reads the selected text or, if
+        nothing is selected, the paragraph containing the cursor. The text is redacted as
+        described in section 5 and then sent to our server.
+      </li>
+      <li>
+        <strong>Ground (Pro).</strong> The add-in reads the selected text only, redacts it as
+        described in section 5 and sends it to our server.
+      </li>
+      <li>
+        <strong>Audit and Mirror (Pro).</strong> These read the full text of the open document,
+        redact it as described in section 5 and send it to our server.
       </li>
       <li>
         <strong>Pro license key.</strong> If you subscribe to Pro, your license key is stored
-        in your browser's localStorage and sent to our server for validation. It is never
-        shared with third parties.
+        in your browser's localStorage and sent with each Pro request for validation. It is
+        never shared with third parties.
       </li>
     </ul>
 
-    <h2>4. Pro features (AI-assisted)</h2>
+    <h2>4. Pro features and AI processing</h2>
+    <p>Three of the Pro features forward text to Anthropic's Claude for analysis. Two do not:</p>
+    <ul>
+      <li>
+        <strong>Verify.</strong> The redacted passage is sent, together with the full text of
+        the cited decision from our public database, to Anthropic (Claude Sonnet), which
+        assesses whether the decision supports the passage.
+      </li>
+      <li>
+        <strong>Ground.</strong> The redacted statement is sent to Anthropic to extract the
+        legal claim and generate search queries; the candidate decisions are then scored.
+      </li>
+      <li>
+        <strong>Mirror.</strong> The redacted full document text is sent to Anthropic
+        (Claude Sonnet) to identify the central legal issue and draw a literary parallel.
+      </li>
+      <li>
+        <strong>Strengthen</strong> and <strong>Audit</strong> run entirely on our own server
+        against the citation graph and the decision database. No text is forwarded to
+        Anthropic.
+      </li>
+    </ul>
     <p>
-      When you use the Pro features (Verify reference, Find similar, Find supporting decision,
-      Scan &amp; verify), your selected text is sent to our server, which forwards it to
-      Anthropic's Claude (Sonnet) for analysis. The text is processed in real time and is not
-      stored by us or by Anthropic beyond the duration of the API request. The Scan feature
-      reads the full document text to extract citations. Anthropic's data usage policy applies:
+      Text sent to Anthropic is processed at the time of the request. We do not store it
+      (see section 10) and we send no IP address, license key or other identifier with it.
+      Anthropic processes the request under its
+      <a href="https://www.anthropic.com/legal/commercial-terms">commercial API terms</a>;
+      retention on Anthropic's side is outside our control. Anthropic's privacy policy:
       <a href="https://www.anthropic.com/privacy">anthropic.com/privacy</a>.
     </p>
 
-    <h2>5. No tracking</h2>
+    <h2>5. Redaction of personal data before Pro requests</h2>
+    <p>
+      Law-firm documents routinely contain client names, social-security numbers, bank
+      details and addresses. Before any Pro request leaves Word, the add-in runs a
+      redaction step in your browser. It is always on: there is no setting to disable it,
+      and if the redaction module fails to load the request is refused rather than sent
+      unredacted.
+    </p>
+    <p>
+      <strong>What it does.</strong> The redactor is pattern-based (regular expressions),
+      not an AI model. It replaces matches in nine categories with numbered placeholders
+      such as <code>[NAME_1]</code> or <code>[AHV_1]</code>:
+    </p>
+    <ul>
+      <li>e-mail addresses;</li>
+      <li>Swiss social-security numbers (AHV/AVS, 756.xxxx.xxxx.xx);</li>
+      <li>Swiss IBANs (CH&hellip;);</li>
+      <li>Swiss company identification numbers (CHE-xxx.xxx.xxx);</li>
+      <li>Swiss phone numbers (+41&nbsp;&hellip; or 0xx&nbsp;&hellip;);</li>
+      <li>
+        dates of birth in the form 1.1.1980, but only when introduced by "geboren am",
+        "geb. am", "né le", "née le", "nato il" or an asterisk;
+      </li>
+      <li>
+        street addresses: a German compound ending in -strasse (or -str.), -gasse, -weg,
+        -platz or -allee, or a street word written with a capital (Rue, Avenue, Boulevard, Chemin,
+        Place, Route, Via, Piazza, Viale, Vicolo), each followed by a house number;
+      </li>
+      <li>Swiss postal codes followed by a place name;</li>
+      <li>
+        personal names, but only when preceded by one of these titles: Herr, Frau, Hr.,
+        Fr., Dr., Prof., M., Mme, Mlle, Me, Maître, Sig., Sig.ra, Avv. or Avvocato. Each
+        part of the name must be written with a capital first letter and the rest in
+        lower case.
+      </li>
+    </ul>
+    <p>
+      The mapping from placeholder to original stays in your browser and is never
+      transmitted; only the placeholders are. Every occurrence is numbered separately, so
+      the same person appearing three times becomes three different placeholders. When the
+      server's answer quotes your text, the add-in restores the original wording locally
+      before displaying it. When anything was redacted, the Verify, Strengthen, Ground and
+      Audit result views show how many items were redacted and of which kind, so you can
+      check what was caught; the Mirror view does not currently show this.
+    </p>
+    <p>
+      <strong>What it does not do.</strong> The redactor does not recognise every piece of
+      personal data. In particular it does not catch:
+    </p>
+    <ul>
+      <li>names without a preceding title: a bare "Max Müller" is sent as written;</li>
+      <li>
+        names after a title form that is not in the list above, such as the dative "Herrn
+        Max Müller" or the spelled-out "Monsieur Jean Dupont";
+      </li>
+      <li>
+        a surname written entirely in capitals: in "M. Jean DUPONT" the redactor removes
+        "M. Jean" and transmits "DUPONT";
+      </li>
+      <li>dates that are not introduced by one of the birth formulas above, and dates written with slashes;</li>
+      <li>street names written in lower case, such as "rue de la Gare 12";</li>
+      <li>foreign phone numbers, IBANs and identifiers;</li>
+      <li>facts that identify a person by description rather than by name;</li>
+      <li>anything else not matching the patterns above.</li>
+    </ul>
+    <p>
+      Legal citations (BGE, BGer, docket numbers, statute references) are not targeted by
+      the patterns and normally remain intact, so that verification works.
+    </p>
+    <p>
+      <strong>Server-side check.</strong> Our server re-runs the five structural patterns
+      (e-mail, AHV, IBAN, CHE, phone) on every incoming Pro request. If any of them
+      matches, the request is rejected with an error and not processed; the rejection names
+      only the pattern type, never the matched text. Whatever passes is scrubbed once more
+      with the same five patterns before any AI call. The server does not re-check names,
+      addresses or dates of birth.
+    </p>
+    <p>
+      Redaction reduces the personal data that leaves your machine. It does not eliminate
+      it and is not a guarantee of anonymity. You remain responsible for deciding whether a
+      given document may be processed with the Pro features, and for anonymising it
+      beforehand where your professional-secrecy or data-protection obligations require it.
+    </p>
+
+    <h2>6. No tracking</h2>
     <p>
       The add-in does not use cookies, analytics, tracking pixels, or any form of
       behavioral monitoring. It sends one optional, anonymous usage signal: a
@@ -132,7 +257,7 @@
       <a href="https://opencaselaw.ch/datenschutz/">OpenCaseLaw privacy notice</a>.
     </p>
 
-    <h2>6. Personal data</h2>
+    <h2>7. Personal data</h2>
     <p>
       We do not collect personal data from free-tier users. For Pro subscribers, we store
       only the email address provided during checkout. All payment processing is handled
@@ -140,27 +265,30 @@
       credit card numbers or bank details.
     </p>
 
-    <h2>7. Third parties</h2>
+    <h2>8. Third parties</h2>
     <p>
       Your data is sent only to our own API server (<code>mcp.opencaselaw.ch</code>).
-      The only third-party sub-processor is:
+      The only third-party sub-processors are:
     </p>
     <ul>
-      <li><strong>Anthropic</strong> (Claude Sonnet) &mdash; for Pro features (verify, find similar, find supporting, scan).</li>
+      <li><strong>Anthropic</strong> (Claude) &mdash; for the Verify, Ground and Mirror features only, and only with text that has passed the redaction step in section 5.</li>
       <li><strong>Stripe</strong> &mdash; for Pro payment processing only.</li>
     </ul>
     <p>No data is sold, shared with advertisers, or used for any purpose beyond providing the service.</p>
 
-    <h2>8. Data location</h2>
+    <h2>9. Data location</h2>
     <p>
       Our API server is hosted by Hetzner in Germany. Data transmitted to Anthropic is
       processed according to Anthropic's infrastructure policies.
     </p>
 
-    <h2>9. Data retention</h2>
+    <h2>10. Data retention</h2>
     <p>
       Search queries and document text are processed in real time. Document text is
-      never stored on our server. When semantic re-ranking runs, the query text
+      never stored on our server, whether redacted or not. Pro usage is recorded as the
+      feature used and the time of use against your license key; further technical
+      logging (cost ledger, daily quotas) is described in the OpenCaseLaw privacy notice
+      linked below. When semantic re-ranking runs, the query text
       (200 characters at most) is recorded in an internal quality log &mdash; with no
       IP address, no user ID and no session reference, so entries cannot be
       attributed to you or to one another &mdash; and is automatically deleted per the
@@ -170,13 +298,13 @@
       and deleted upon cancellation.
     </p>
 
-    <h2>10. Your rights</h2>
+    <h2>11. Your rights</h2>
     <p>
       You may request access to, correction of, or deletion of any personal data we hold
       by writing to <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>.
     </p>
 
-    <h2>11. Changes to this policy</h2>
+    <h2>12. Changes to this policy</h2>
     <p>
       We may update this policy from time to time. The effective date at the top of this page
       will be revised accordingly. Continued use of the add-in after changes constitutes

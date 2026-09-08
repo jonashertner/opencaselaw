@@ -1645,6 +1645,10 @@ function renderSettings() {
     escHtml(t('priv_signal_note', lang)) + ' ' +
     '<a href="https://opencaselaw.ch/datenschutz/" target="_blank" style="color:var(--blue);">' + escHtml(t('priv_signal_more', lang)) + '</a>' +
     '</div>' +
+    '<div style="font-size:11px; color:var(--text-secondary); margin-top:8px; line-height:1.5;">' +
+    '\uD83D\uDD12 ' + escHtml(t('priv_redact_note', lang)) + ' ' +
+    '<a href="https://word.opencaselaw.ch/privacy.html" target="_blank" style="color:var(--blue);">' + escHtml(t('priv_redact_more', lang)) + '</a>' +
+    '</div>' +
     '</div>';
 
   html += '<div class="settings-footer">' +
@@ -2447,13 +2451,10 @@ async function startVerify() {
     } else if (e.type === 'redact_unavailable') {
       /* Structural-redaction guard fired client-side. Show a clean
          message; don't silently fall back to sending un-redacted. */
-      state.error = e;
+      state.error = { type: 'redact_unavailable', message: t('redact_unavailable', lang) };
     } else if (e.type === 'http_error' && e.status === 400 &&
                (e.message || '').indexOf('client_redaction_incomplete') >= 0) {
-      state.error = { type: 'redact_server_reject',
-                      message: 'Datenleck-Schutz: Server hat Anfrage abgelehnt, '
-                             + 'da nicht alle persönlichen Daten redigiert wurden. '
-                             + 'Add-in bitte neu laden.' };
+      state.error = { type: 'redact_server_reject', message: t('redact_server_reject', lang) };
     } else {
       state.error = e;
     }
@@ -2495,13 +2496,10 @@ async function startStrengthen() {
       _clearProKey();
       state.error = { type: 'no_selection', message: t('pro_key_invalid', lang) };
     } else if (e.type === 'redact_unavailable') {
-      state.error = e;
+      state.error = { type: 'redact_unavailable', message: t('redact_unavailable', lang) };
     } else if (e.type === 'http_error' && e.status === 400 &&
                (e.message || '').indexOf('client_redaction_incomplete') >= 0) {
-      state.error = { type: 'redact_server_reject',
-                      message: 'Datenleck-Schutz: Server hat Anfrage abgelehnt, '
-                             + 'da nicht alle persönlichen Daten redigiert wurden. '
-                             + 'Add-in bitte neu laden.' };
+      state.error = { type: 'redact_server_reject', message: t('redact_server_reject', lang) };
     } else {
       state.error = e;
     }
@@ -3027,6 +3025,10 @@ function renderReflect() {
       escHtml(t('reflect_start', lang)) + '</button>';
     return html;
   }
+
+  // PII trust banner — same element the other four Pro views show, so
+  // the lawyer sees what was redacted before the whole document left Word.
+  html += _renderPIIBanner(r._pii_summary, lang);
 
   // Result card.
   if (r.legal_issue) {

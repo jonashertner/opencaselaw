@@ -57,6 +57,7 @@ VERIFY_SYSTEM_PROMPT_TEMPLATE = (
     "If uncertain, say 'partial' and explain what to check. "
     "NEVER claim the text is truncated or broken — you have the complete decision text (marked with [Ende des Entscheids]). "
     "If a claimed principle is not found, say it was not found in this decision, not that the text is incomplete.\n\n"
+    "The passage may contain placeholders such as [NAME_1], [EMAIL_1] or [AHV_1]. They replace personal data that was removed before transmission. Treat each placeholder as an opaque proper noun: do not guess what it stands for, do not comment on it, and do not reproduce it except when quoting the passage.\n\n"
     "Respond ONLY in valid JSON. Write the explanation and quote in {lang_name}:\n"
     "{{\n"
     '  "verdict": "supports" or "partial" or "contradicts",\n'
@@ -505,6 +506,9 @@ PARSE_STATEMENT_PROMPT = (
     "Erbrecht = ZGB Art. 457-640. Strafrecht = StGB. Verfassungsrecht = BV.\n\n"
     "Given a legal statement, extract the claim and generate search queries "
     "to find Swiss BGE (Leitentscheide) and BGer decisions that establish this principle.\n\n"
+    "The statement may contain placeholders such as [NAME_1] or [ADDRESS_1]. They replace personal data "
+    "removed before transmission. Treat them as opaque proper nouns, never guess what they stand for, "
+    "and leave them out of the queries — search for the legal principle, not the parties.\n\n"
     "Respond ONLY in valid JSON:\n"
     "{\n"
     '  "claim": "The core legal claim in 1-2 sentences",\n'
@@ -524,6 +528,8 @@ PARSE_STATEMENT_PROMPT = (
 SCORE_SUPPORT_PROMPT = (
     "You are a Swiss legal research assistant. Given a legal statement and a court decision summary, "
     "determine how well this decision supports the statement.\n\n"
+    "Placeholders such as [NAME_1] in the statement replace personal data removed before transmission. "
+    "Treat them as opaque proper nouns and do not mention them in the explanation.\n\n"
     "Respond ONLY in valid JSON:\n"
     "{\n"
     '  "relevance": 0-100 (how relevant this decision is to the statement),\n'

@@ -329,10 +329,10 @@ var UI_STRINGS = {
     de: 'Pr\u00FCfen', fr: 'V\u00E9rifier', it: 'Verificare', en: 'Verify',
   },
   guide_step3_desc: {
-    de: 'Markieren Sie eine Passage mit Entscheidreferenz in Ihrem Dokument. Die drei Pro-Werkzeuge finden \u00E4hnliche Entscheide, pr\u00FCfen ob Ihre Referenz die Aussage tr\u00E4gt, oder suchen einen st\u00FCtzenden Entscheid.',
-    fr: 'S\u00E9lectionnez un passage avec une r\u00E9f\u00E9rence dans votre document. Les trois outils Pro trouvent des d\u00E9cisions similaires, v\u00E9rifient si votre r\u00E9f\u00E9rence soutient l\'affirmation, ou cherchent une d\u00E9cision \u00E0 l\'appui.',
-    it: 'Seleziona un passaggio con un riferimento nel documento. I tre strumenti Pro trovano decisioni simili, verificano se il riferimento sostiene l\'affermazione, o cercano una decisione a supporto.',
-    en: 'Select a passage with a decision reference in your document. The three Pro tools find similar decisions, verify whether your reference supports the claim, or search for a supporting decision.',
+    de: 'Markieren Sie eine Passage in Ihrem Dokument. Die Pro-Werkzeuge pr\u00FCfen, ob Ihre Referenz die Aussage tr\u00E4gt (Pr\u00FCfen), st\u00E4rken den Absatz mit Leitentscheiden (St\u00E4rken), suchen st\u00FCtzende Entscheide, auditieren alle Zitate im Dokument und spiegeln den Entwurf literarisch (Spiegeln). Pers\u00F6nliche Daten werden vor jedem Pro-Aufruf im Add-in gesch\u00E4rzt.',
+    fr: 'S\u00E9lectionnez un passage dans votre document. Les outils Pro v\u00E9rifient si votre r\u00E9f\u00E9rence soutient l\'affirmation (V\u00E9rifier), renforcent le paragraphe avec des arr\u00EAts de principe (Renforcer), cherchent des d\u00E9cisions \u00E0 l\'appui, auditent toutes les citations du document et refl\u00E8tent le projet par la litt\u00E9rature (Miroir). Les donn\u00E9es personnelles sont caviard\u00E9es dans le compl\u00E9ment avant chaque appel Pro.',
+    it: 'Seleziona un passaggio nel documento. Gli strumenti Pro verificano se il riferimento sostiene l\'affermazione (Verificare), rafforzano il paragrafo con sentenze di principio (Rafforzare), cercano decisioni a supporto, controllano tutte le citazioni del documento e rispecchiano la bozza attraverso la letteratura (Specchio). I dati personali vengono oscurati nel componente aggiuntivo prima di ogni chiamata Pro.',
+    en: 'Select a passage in your document. The Pro tools verify whether your reference supports the claim (Verify), strengthen the paragraph with leading cases (Strengthen), find supporting decisions, audit every citation in the document and mirror the draft through literature (Reflect). Personal data is redacted inside the add-in before every Pro call.',
   },
   guide_coverage_title: {
     de: 'Abdeckung', fr: 'Couverture', it: 'Copertura', en: 'Coverage',
@@ -559,6 +559,27 @@ var UI_STRINGS = {
   },
 
   // Privacy / anonymous usage signal (see docs/datenschutz/)
+  priv_redact_note: {
+    de: 'PII-Schwärzung: Vor jedem Pro-Aufruf ersetzt das Add-in E-Mail-Adressen, AHV-Nummern, IBANs, UID, Telefonnummern, Geburtsdaten, Adressen, PLZ/Ort und Namen mit Anrede durch Platzhalter. Immer aktiv, nicht abschaltbar; musterbasiert, ohne Gewähr auf Vollständigkeit.',
+    fr: 'Caviardage des PII : avant chaque appel Pro, le complément remplace les e-mails, numéros AVS, IBAN, IDE, téléphones, dates de naissance, adresses, NPA/lieu et noms précédés d\u2019un titre par des marqueurs. Toujours actif, non désactivable ; par motifs, sans garantie d\u2019exhaustivité.',
+    it: 'Oscuramento dei PII: prima di ogni chiamata Pro il componente aggiuntivo sostituisce e-mail, numeri AVS, IBAN, IDI, telefoni, date di nascita, indirizzi, NAP/località e nomi preceduti da un titolo con segnaposto. Sempre attivo, non disattivabile; basato su pattern, senza garanzia di completezza.',
+    en: 'PII redaction: before every Pro call the add-in replaces e-mail addresses, AHV numbers, IBANs, UID, phone numbers, dates of birth, addresses, postal code/city and titled names with placeholders. Always on, cannot be disabled; pattern-based, no guarantee of completeness.',
+  },
+  priv_redact_more: {
+    de: 'Umfang und Grenzen', fr: 'Portée et limites', it: 'Portata e limiti', en: 'Scope and limits',
+  },
+  redact_unavailable: {
+    de: 'PII-Schwärzung nicht geladen. Der Pro-Aufruf wurde abgebrochen, damit keine persönlichen Daten unredigiert übermittelt werden. Bitte das Add-in neu laden.',
+    fr: 'Caviardage des PII non chargé. L\u2019appel Pro a été interrompu pour qu\u2019aucune donnée personnelle ne soit transmise en clair. Veuillez recharger le complément.',
+    it: 'Oscuramento dei PII non caricato. La chiamata Pro è stata interrotta per non trasmettere dati personali in chiaro. Ricaricare il componente aggiuntivo.',
+    en: 'PII redaction did not load. The Pro call was cancelled so that no personal data is sent unredacted. Please reload the add-in.',
+  },
+  redact_server_reject: {
+    de: 'Datenleck-Schutz: Der Server hat die Anfrage abgelehnt, weil sie noch strukturierte persönliche Daten enthielt. Bitte das Add-in neu laden und erneut versuchen.',
+    fr: 'Protection contre les fuites : le serveur a refusé la requête parce qu\u2019elle contenait encore des données personnelles structurées. Veuillez recharger le complément et réessayer.',
+    it: 'Protezione contro le fughe di dati: il server ha rifiutato la richiesta perché conteneva ancora dati personali strutturati. Ricaricare il componente aggiuntivo e riprovare.',
+    en: 'Leak protection: the server rejected the request because it still contained structured personal data. Please reload the add-in and try again.',
+  },
   priv_signal_title: {
     de: 'Anonyme Nutzungsstatistik',
     fr: 'Statistiques d\u2019utilisation anonymes',

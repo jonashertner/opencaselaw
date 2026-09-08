@@ -55,7 +55,7 @@ Full interface in German, French, Italian, and English. Court names, button labe
 
 **Privacy**
 
-No cookies. No user accounts for free features. No logging of search queries. The court decision data is CC0 1.0 (public domain). The add-in code is MIT licensed. Privacy policy: https://opencaselaw.ch/datenschutz/
+No cookies. No user accounts for free features. No logging of search queries. The court decision data is CC0 1.0 (public domain). The add-in code is MIT licensed. Before any Pro request leaves Word, the add-in replaces e-mail addresses, AHV numbers, IBANs, UID, phone numbers, dates of birth, addresses, postal codes and titled names with placeholders; this is always on, pattern-based and not a guarantee of completeness (scope and limits: https://word.opencaselaw.ch/privacy.html). Privacy policy: https://word.opencaselaw.ch/privacy.html
 
 Built by Jonas Hertner — opencaselaw.ch
 

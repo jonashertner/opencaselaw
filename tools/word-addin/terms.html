@@ -74,7 +74,7 @@
     <a href="https://word.opencaselaw.ch/install.html" class="back-link">&larr; Word Add-in</a>
 
     <h1>Terms of Use</h1>
-    <p class="subtitle">OpenCaseLaw Word Add-in &mdash; Effective March 28, 2026</p>
+    <p class="subtitle">OpenCaseLaw Word Add-in &mdash; Effective September 2, 2026</p>
 
     <h2>1. Provider</h2>
     <p>
@@ -86,9 +86,12 @@
 
     <h2>2. Service description</h2>
     <p>
-      The Add-in provides access to a database of Swiss court decisions directly within
-      Microsoft Word. Users can search decisions, insert formatted citations, and (with a
-      Pro subscription) verify legal references using AI-assisted analysis.
+      The Add-in provides access to a database of Swiss court decisions and statutes
+      directly within Microsoft Word. Users can search decisions and statute articles and
+      insert formatted citations. With a Pro subscription, users can additionally look up
+      related decisions in the citation graph, verify references and find supporting
+      decisions using AI-assisted analysis, enrich a paragraph with leading cases, check
+      every citation in a document, and obtain a literary reflection on a draft.
     </p>
 
     <h2>3. Tiers and pricing</h2>
@@ -98,9 +101,10 @@
         document. No account required.
       </li>
       <li>
-        <strong>Pro tier.</strong> CHF 5 per month. Includes three AI-assisted tools:
-        reference verification, find similar decisions, and find supporting decisions.
-        Up to 25 queries per day. Payment is processed by Stripe.
+        <strong>Pro tier.</strong> CHF 5 per month. Includes the Pro tools Verify,
+        Strengthen, Ground (find supporting decisions), Audit and Mirror. Verify, Ground
+        and Mirror use AI-assisted analysis; Strengthen and Audit run against our database
+        without AI. Up to 25 queries per day. Payment is processed by Stripe.
       </li>
     </ul>
 
@@ -118,14 +122,29 @@
       </li>
     </ul>
 
-    <h2>5. AI-assisted verification</h2>
+    <h2>5. AI-assisted features and redaction of personal data</h2>
     <p>
-      The reference verification feature uses artificial intelligence (Anthropic Claude)
-      to analyze legal citations. AI output may contain errors, omissions, or inaccuracies.
-      Verification results are provided for informational purposes only and are
+      The Verify, Ground and Mirror features use artificial intelligence (Anthropic Claude)
+      to analyze text you submit. AI output may contain errors, omissions, or inaccuracies.
+      Results of all Pro features are provided for informational purposes only and are
       <strong>not a substitute for professional legal judgment</strong>. You are solely
       responsible for verifying the accuracy of any information before relying on it in
       legal proceedings or advice.
+    </p>
+    <p>
+      <strong>Redaction of personal data.</strong> Before any Pro request is sent, the
+      Add-in replaces certain categories of personal data in the submitted text with
+      placeholders: e-mail addresses, Swiss AHV/AVS numbers, Swiss IBANs, Swiss company
+      identification numbers (CHE), Swiss phone numbers, dates of birth introduced by a
+      birth formula, street addresses, postal codes with place names, and personal names
+      preceded by a title. This step is pattern-based and best-effort. It does not detect
+      all personal data; in particular, names without a preceding title, dates without a
+      birth formula and non-Swiss identifiers are transmitted as written. Its scope and
+      limits are described in the <a href="privacy.html">Privacy Policy</a>. We give no
+      warranty that any particular personal data will be removed. You are responsible for
+      assessing whether a document may be processed with the Pro features under your
+      professional-secrecy and data-protection obligations, and for anonymising it
+      beforehand where those obligations require it.
     </p>
 
     <h2>6. Acceptable use</h2>
@@ -154,7 +173,8 @@
       To the maximum extent permitted by law, OpenCaseLaw and its operator shall not be
       liable for any indirect, incidental, special, consequential, or punitive damages
       arising from or related to your use of the Add-in, including but not limited to
-      reliance on AI-generated verification results.
+      reliance on AI-generated results or the transmission of personal data that the
+      redaction step did not detect.
     </p>
 
     <h2>9. Subscription and cancellation</h2>

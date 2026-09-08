@@ -138,6 +138,16 @@ def test_redact_counters_increment_per_type():
     assert "[AHV_1]" in result.redacted and "[AHV_2]" in result.redacted
 
 
+def test_redact_same_original_shares_placeholder():
+    """Mirror of the JS behaviour: one placeholder per distinct original,
+    counts per occurrence — so the model sees one entity, and the banner
+    still reports every occurrence."""
+    result = redact("a@x.ch, a@x.ch, b@x.ch")
+    assert result.redacted == "[EMAIL_1], [EMAIL_1], [EMAIL_2]"
+    assert result.summary == {"EMAIL": 3}
+    assert [r.placeholder for r in result.replacements] == ["[EMAIL_1]", "[EMAIL_1]", "[EMAIL_2]"]
+
+
 def test_redact_empty_returns_empty():
     result = redact("")
     assert result.redacted == ""

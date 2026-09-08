@@ -201,6 +201,11 @@ ReadWriteDocument
 - No cookies set
 - No tracking pixels or analytics scripts
 - No document content transmitted without explicit user action
+- Pro requests are redacted client-side before transmission (js/redact.js, always on):
+  e-mail, AHV, IBAN, UID, phone, date of birth, address, postal code/city, titled
+  names -> placeholders; server re-checks the five structured patterns and rejects
+  with 400 client_redaction_incomplete otherwise. Pattern-based; limits disclosed
+  in the privacy policy.
 - Search queries are not logged or associated with users
 - Optional anonymous install-cohort signal (opt-out in settings)
 - Privacy policy: https://word.opencaselaw.ch/privacy.html

@@ -1,29 +1,93 @@
 /**
  * Client-side PII redaction for the Pro check-cites flow.
  *
- * The two Pro endpoints — POST /billing/verify and POST /attest —
- * forward selected text or the full document to the server-side LLM
- * for citation verification. Law-firm documents routinely contain
- * client names, AHV/AVS numbers, IBANs, addresses, etc. that must
- * never leave the lawyer's machine in the clear.
+ * The Pro endpoints — POST /attest, /billing/verify, /billing/strengthen,
+ * /billing/find-support and /billing/reflect — receive selected text,
+ * a paragraph or the full document. Law-firm documents routinely
+ * contain client names, AHV/AVS numbers, IBANs, addresses, etc. that
+ * must never leave the lawyer's machine in the clear.
  *
  * `redactPII(text)` runs Swiss-aware regex matching, replaces every
  * detected PII span with a typed placeholder ([NAME_1], [AHV_1], …)
  * and returns the redacted text + a per-call replacement map. The
- * LLM only ever sees the placeholders; legal citations (BGE, BGer,
- * statute refs, dockets) are NOT touched, so citation-checking is
- * unaffected. `unredact(text, replacements)` reverses the mapping —
- * useful when displaying server-returned annotated text back to the
- * user with original PII restored.
+ * same original string always maps to the same placeholder within
+ * one call, so a party that appears five times is one entity to the
+ * model, not five. The server only ever sees the placeholders; legal
+ * citations (BGE, BGer, statute refs, dockets) are NOT touched, so
+ * citation-checking is unaffected. `unredact(text, replacements)`
+ * reverses the mapping — used when displaying server-returned text
+ * back to the user with the original wording restored.
+ *
+ * Scope is deliberately pattern-based and bounded. Nine categories,
+ * documented (with their limits) at
+ * https://word.opencaselaw.ch/privacy.html — keep that page in sync
+ * with PATTERNS below. Personal names are caught only after a title
+ * (Herr, Frau, Dr., M., Mme, Me, Sig., Avv., …); dates of birth only
+ * after a birth formula. A bare "Max Müller" is not detected.
  *
  * Privacy invariant: this module is the ONLY place that defines what
  * counts as PII. If you add a new field to a Pro-bound payload,
  * pipe it through redactPII first.
  *
- * Tests: tests/redact.test.js (run with `node tests/redact.test.js`).
+ * Portability: no lookbehind, no named groups, no /u flag. Older
+ * Office webviews reject those at parse time, which would take the
+ * whole module down — and api.js then refuses every Pro call.
+ *
+ * Tests: tests/redact.test.js, tests/redact_extended.test.js,
+ * tests/redact_polish.test.js (run each with `node tests/<file>`).
  */
 
 'use strict';
+
+/* Letter classes shared by the name and address patterns. Upper-case
+   letters are allowed inside a token so that "M. Jean DUPONT" — the
+   usual form in French and Italian pleadings — is caught whole. */
+var L_UPPER = 'A-ZÄÖÜÉÀÈÇÔÎÛÊÑ';
+var L_ANY = 'A-Za-zäöüéàèçôîûêñÄÖÜÉÀÈÇÔÎÛÊÑ';
+var NAME_TOKEN = '[' + L_UPPER + '][' + L_ANY + '\\-\'\u2019]+';
+
+/* Tokens that can directly follow a name and must never be swallowed
+   into it: the citation vocabulary the Pro tools exist to verify.
+   "Herr Müller Art. 41 OR" must redact "Müller" and leave the article
+   reference intact. Trailing tokens in this list are trimmed off a
+   NAME match; if nothing is left, the match is dropped. */
+var NAME_STOP = {};
+['Art', 'Abs', 'Ziff', 'Ziffer', 'Rz', 'Bst', 'Lit', 'Anm', 'Vgl', 'BGE', 'BGer',
+ 'BVGer', 'BStGer', 'BPatGer', 'ATF', 'TF', 'TAF', 'TPF', 'TFB', 'DTF', 'Urteil',
+ 'Entscheid', 'Arrêt', 'Sentenza', 'Verfügung', 'Erw', 'SR', 'RS', 'OR', 'ZGB',
+ 'StGB', 'BV', 'ZPO', 'StPO', 'SchKG', 'BGG', 'VwVG', 'CO', 'CC', 'CP', 'CPC',
+ 'CPP', 'LP', 'LTF', 'Cst', 'Und', 'Oder', 'Sowie', 'Et', 'Ou', 'Ed', 'Con'
+].forEach(function (t) { NAME_STOP[t] = true; });
+
+/* Titles that anchor a personal name. Longer forms precede their
+   prefixes (Herrn before Herr, Signora before Signor) so the
+   alternation takes the whole word. Lower-case avv./dott. follow the
+   Italian convention of writing the title in lower case mid-sentence. */
+var NAME_TITLES = '(?:Herrn|Herr|Frau|Hr\\.|Fr\\.|Mademoiselle|Madame|Monsieur|' +
+  'Maître|Me\\.?|Mme|Mlle|M\\.|Signora|Signor|Sig\\.(?:ra)?|Avvocato|Avv\\.|avv\\.|' +
+  'Dott\\.(?:ssa)?|dott\\.(?:ssa)?|Dr\\.|Prof\\.)';
+
+/* Trim trailing citation vocabulary off a title-anchored name match.
+   The first whitespace-separated token is always the title; academic
+   prefixes (Dr., med., …) and the name follow. Returns the shortened
+   match, or null when no name token survives. */
+function trimNameMatch(match) {
+  var tokens = match.split(/\s+/);
+  var keep = tokens.length;
+  while (keep > 1 && NAME_STOP[tokens[keep - 1].replace(/[.\-'\u2019]+$/, '')]) keep--;
+  if (keep <= 1) return null;
+  /* Rebuild from the original string so inner whitespace is preserved. */
+  var out = match;
+  for (var i = tokens.length; i > keep; i--) {
+    var idx = out.lastIndexOf(tokens[i - 1]);
+    out = out.slice(0, idx).replace(/\s+$/, '');
+  }
+  /* A title alone, or a title plus academic prefix only, is not a name. */
+  var rest = out.split(/\s+/).slice(1).filter(function (t) {
+    return !/^(?:Dr\.|Prof\.|med\.|iur\.)$/.test(t);
+  });
+  return rest.length ? out : null;
+}
 
 /* Patterns ordered by specificity. Earlier patterns "win" overlapping
    regions because we de-overlap left-to-right after sorting. Keep
@@ -62,20 +126,30 @@ var PATTERNS = [
     regex: /(?:\+41[\s\-]?\(?0?\)?[\s\-]?\d{2}|\b0\d{2})[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}\b/g,
   },
   {
-    /* DOB only when explicitly anchored to a birth verb / asterisk —
-       avoids redacting random dates that might be filing dates etc. */
+    /* DOB only when anchored to a birth formula or asterisk — avoids
+       redacting random dates that might be filing dates etc. Anchors:
+       "geboren am", "geb. am", "geb." + date, "Geburtsdatum:",
+       "né(e) le", "date de naissance:", "nato/nata il",
+       "data di nascita:", "*". Date as d.m.yyyy or d/m/yyyy. */
     type: 'DOB',
-    regex: /(?:\bgeb(?:oren)?\.?\s+am\s+|\bnée?\s+le\s+|\bnato\s+il\s+|\*\s*)\d{1,2}\.\d{1,2}\.(?:19|20)\d{2}/gi,
+    regex: /(?:\bgeb(?:oren)?\.?\s+am\s+|\bgeb\.\s*|\bGeburtsdatum\s*:?\s*|\bnée?\s+le\s+|\bdate\s+de\s+naissance\s*:?\s*|\bnat[oa]\s+il\s+|\bdata\s+di\s+nascita\s*:?\s*|\*\s*)\d{1,2}[./]\d{1,2}[./](?:19|20)\d{2}/gi,
   },
   {
     /* Street + number, all four official languages.
-       Matches "Bahnhofstrasse 12", "Rue du Rhône 65", "Via Pretorio 7",
-       "Place de la Gare 4". The charset has to cover every Swiss-French
-       and Swiss-Italian accented letter (ô, î, û, ê, ñ in addition to
-       ä/ö/ü/é/à/è/ç) — otherwise streets like "Rue du Rhône" silently
-       leak. */
+       Matches "Bahnhofstrasse 12", "Rue du Rhône 65", "rue de la Gare 12",
+       "Via Pretorio 7", "Place de la Gare 4". Swiss-French addresses
+       are commonly written with a lower-case street word, so rue /
+       avenue / chemin / boulevard are accepted in either case — but
+       then the first word after the particle must be capitalised, so
+       "en place depuis 3" or "via e-mail" never match. The charset
+       covers every Swiss-French and Swiss-Italian accented letter. */
     type: 'ADDRESS',
-    regex: /\b(?:[A-ZÄÖÜ][A-Za-zäöüéàèçôîûêñÄÖÜÉÀÈÇÔÎÛÊÑ\-]{2,}(?:strasse|gasse|weg|platz|allee|str\.)|(?:Rue|Avenue|Boulevard|Chemin|Place|Route|Via|Piazza|Viale|Vicolo)(?:\s+(?:de|du|des|de\s+la|del|della|delle|dei)?)?\s+[A-Za-zäöüéàèçôîûêñÄÖÜÉÀÈÇÔÎÛÊÑ\-]{2,}(?:\s+[A-Za-zäöüéàèçôîûêñÄÖÜÉÀÈÇÔÎÛÊÑ\-]+){0,3})\s+\d+[a-z]?\b/g,
+    regex: new RegExp(
+      '\\b(?:[' + L_UPPER + '][' + L_ANY + '\\-]{2,}(?:strasse|gasse|weg|platz|allee|str\\.)' +
+      '|(?:[Rr]ue|[Aa]venue|[Bb]oulevard|[Cc]hemin|Place|Route|Via|Piazza|Viale|Vicolo)' +
+      '(?:\\s+(?:de\\s+la|de\\s+l[\'\u2019]|de|du|des|del|della|delle|dei|d[\'\u2019]))?' +
+      '\\s*' + NAME_TOKEN + '(?:\\s+[' + L_ANY + '\\-]+){0,3})' +
+      '\\s+\\d+[a-z]?\\b', 'g'),
   },
   {
     /* PLZ + city: CH-8001 Zürich  /  8001 Zürich  /  1003 Lausanne. */
@@ -87,13 +161,17 @@ var PATTERNS = [
        requiring a leading honorific or professional title.
 
        Title list covers all four official languages:
-         DE: Herr, Frau, Hr., Fr., Dr., Prof.
-         FR: M., Mme, Mlle, Me, Maître
-         IT: Sig., Sig.ra, Avv., Avvocato
-       Counter `{0,3}` (was `{1,3}`) lets a single surname after the
-       title match — common form in pleadings ("Hr. Müller"). */
+         DE: Herr, Herrn, Frau, Hr., Fr., Dr., Prof.
+         FR: M., Monsieur, Mme, Madame, Mlle, Mademoiselle, Me, Maître
+         IT: Sig., Signor, Sig.ra, Signora, Avv./avv., Avvocato, Dott./dott.
+       Counter `{0,3}` lets a single surname after the title match —
+       common form in pleadings ("Hr. Müller"). Trailing citation
+       tokens are trimmed by trimNameMatch(). */
     type: 'NAME',
-    regex: /(?:Herr|Frau|Hr\.|Fr\.|Me\.?|Maître|Mme|Mlle|M\.|Sig\.(?:ra)?|Avv\.|Avvocato|Dr\.|Prof\.)\s+(?:Dr\.\s+|Prof\.\s+|med\.\s+|iur\.\s+)?[A-ZÄÖÜ][a-zäöüéàèçôîûêñ\-]+(?:\s+[A-ZÄÖÜ][a-zäöüéàèçôîûêñ\-]+){0,3}\b/g,
+    regex: new RegExp(
+      NAME_TITLES + '\\s+(?:Dr\\.\\s+|Prof\\.\\s+|med\\.\\s+|iur\\.\\s+)?' +
+      NAME_TOKEN + '(?:\\s+' + NAME_TOKEN + '){0,3}\\b', 'g'),
+    trim: trimNameMatch,
   },
 ];
 
@@ -116,11 +194,13 @@ function collectMatches(text, spec, sink) {
        capture-bearing one is DOB, where offset is still computable
        via arguments[arguments.length - 2]. */
     var off = (typeof offset === 'number') ? offset : arguments[arguments.length - 2];
+    var kept = spec.trim ? spec.trim(match) : match;
+    if (kept === null) return match;
     sink.push({
       type: spec.type,
       start: off,
-      end: off + match.length,
-      original: match,
+      end: off + kept.length,
+      original: kept,
       priority: spec.__priority,
     });
     return match;
@@ -128,7 +208,8 @@ function collectMatches(text, spec, sink) {
 }
 
 /* Shape: { redacted, replacements, summary }. Empty input returns the
-   empty result. */
+   empty result. `replacements` carries one entry per occurrence;
+   occurrences of the same original share a placeholder. */
 function redactPII(text /*, options */) {
   if (text == null || text === '') {
     return { redacted: '', replacements: [], summary: { byType: {}, total: 0 } };
@@ -160,12 +241,18 @@ function redactPII(text /*, options */) {
 
   var replacements = [];
   var counters = {};
+  var byOriginal = {};
   var out = '';
   var pos = 0;
   for (var k = 0; k < keep.length; k++) {
     var hit = keep[k];
-    counters[hit.type] = (counters[hit.type] || 0) + 1;
-    var placeholder = '[' + hit.type + '_' + counters[hit.type] + ']';
+    var key = hit.type + '\u0000' + hit.original;
+    var placeholder = byOriginal[key];
+    if (!placeholder) {
+      counters[hit.type] = (counters[hit.type] || 0) + 1;
+      placeholder = '[' + hit.type + '_' + counters[hit.type] + ']';
+      byOriginal[key] = placeholder;
+    }
     out += text.slice(pos, hit.start) + placeholder;
     replacements.push({
       type: hit.type,
@@ -178,10 +265,18 @@ function redactPII(text /*, options */) {
   }
   out += text.slice(pos);
 
+  /* byType counts occurrences (what the banner reports), so the
+     lawyer sees "5× Name" when a party appears five times, even
+     though those five share one placeholder. */
+  var byType = {};
+  for (var r = 0; r < replacements.length; r++) {
+    byType[replacements[r].type] = (byType[replacements[r].type] || 0) + 1;
+  }
+
   return {
     redacted: out,
     replacements: replacements,
-    summary: { byType: counters, total: replacements.length },
+    summary: { byType: byType, total: replacements.length },
   };
 }
 

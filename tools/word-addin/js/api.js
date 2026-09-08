@@ -396,7 +396,7 @@ async function findSupportingDecisions(licenseKey, statementText, lang) {
    isn't loaded so a Pro request can never silently leak un-redacted
    PII. The thrown error is shaped like other api errors so the existing
    try/catch in app.js handles it cleanly with a user-facing message. */
-var REDACTOR_VERSION = 'redact.js@v3';
+var REDACTOR_VERSION = 'redact.js@v4';
 
 function _requireRedact(text) {
   if (typeof window === 'undefined' || typeof window.redactPII !== 'function') {

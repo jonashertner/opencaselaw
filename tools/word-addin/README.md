@@ -67,11 +67,19 @@ cap with Verify.
 The Pro endpoints **never receive un-redacted PII**. This is a class
 invariant of the API client, not a configurable option:
 
-- **Client side** (`js/redact.js`): every Pro request runs through
-  `_requireRedact()` which replaces names, AHV/AVS numbers, IBANs, UID,
-  emails, phones, addresses, DOBs, postal codes with typed placeholders
-  (`[NAME_1]`, `[AHV_1]`, …). Legal citations (BGE, BGer, dockets,
-  Art. X) are explicitly **preserved** so verification still works.
+- **Client side** (`js/redact.js`): every Pro request (Verify, Strengthen,
+  Ground, Audit, Mirror) runs through `_requireRedact()` which replaces
+  nine categories with typed placeholders (`[NAME_1]`, `[AHV_1]`, …):
+  e-mail, AHV/AVS, CH IBAN, CHE/UID, Swiss phone, date of birth, street
+  address, PLZ + place, and personal names. Pattern-based and bounded by
+  design: names are caught only after a title (Herr/Herrn/Frau/Dr./M./
+  Monsieur/Mme/Madame/Me/Sig./Signor(a)/Avv./avv./Dott., upper-case
+  surnames included), dates of birth only after a birth formula. A bare
+  "Max Müller" is **not** detected — the privacy page says so. The same
+  original always gets the same placeholder within one request. Trailing
+  citation vocabulary is never swallowed into a name ("Herr Müller Art.
+  41 OR" keeps the article). Legal citations (BGE, BGer, dockets, Art. X)
+  are explicitly **preserved** so verification still works.
 - **No opt-out**: there is no setting to disable redaction. Even setting
   a legacy localStorage flag is ignored. If `redact.js` somehow fails
   to load, the function throws `redact_unavailable` and the request is
@@ -86,6 +94,22 @@ invariant of the API client, not a configurable option:
   annotated text or issue messages containing placeholders, the client
   un-redacts them locally before display, so the lawyer sees their
   own document text in the UI — the original PII never crossed the network.
+  Every Pro result view shows a banner with the count per category.
+- **Prompts know about placeholders**: the Verify / Ground prompts in
+  `stripe_billing.py` tell the model that `[NAME_1]`-style tokens are
+  redacted personal data to be treated as opaque proper nouns.
+- **Deploy skew to watch**: the code above is v4 (working tree). The live
+  add-in serves v3, and `privacy.html` §5 deliberately describes **v3**, so
+  the legal pages can ship on their own without over-promising. After a v4
+  deploy, update §5 to add: upper-case surnames, the Herrn / Monsieur /
+  Madame / Signor(a) / avv. / dott. titles, the `geb.` / `Geburtsdatum` /
+  `nata il` / slash-date anchors, lower-case `rue`, one placeholder per
+  distinct original, the Mirror banner, and the sentence that the Verify
+  and Ground prompts describe placeholders to the model.
+- **Disclosed on every platform**: `privacy.html` §5 and `terms.html` §5,
+  the opencaselaw.ch/word landing page, opencaselaw.ch/datenschutz, the
+  AppSource listing text and the in-app settings note. Keep them in sync
+  with `PATTERNS` when the redactor changes.
 
 The earlier "Tier B" flow that called `https://api.anthropic.com/v1/messages`
 directly from the add-in with a user-supplied Anthropic key was removed
@@ -112,7 +136,9 @@ for the regression guard).
    │ js/api.js               │ HTTPS POST  │ mcp_server.py           │
    │  _requireRedact()       │ ──────────→ │  /api/billing/verify    │
    │  redacted_text only     │             │  /api/billing/strengthen│
-   │  ↓                      │             │  /api/attest            │
+   │  ↓                      │             │  /api/billing/find-support
+   │                         │             │  /api/billing/reflect   │
+   │                         │             │  /api/attest            │
    │ js/app.js               │ ←────────── │  ↓                      │
    │  un-redact response     │  JSON       │  Anthropic Sonnet/Haiku │
    │  for user-visible UI    │             │  (caching disabled)     │
@@ -122,13 +148,18 @@ for the regression guard).
 Test suites:
 - `tests/redact.test.js` — base PII patterns (37 tests)
 - `tests/redact_extended.test.js` — adversarial + structural (49 tests)
+- `tests/redact_polish.test.js` — title forms, trailing-token guard,
+  lower-case rue, DOB anchors, consistent placeholders, portability (30 tests)
 - `tests/citation.test.js` — citation formatter (87 tests)
 - `tests/i18n.test.js` — language coverage (60 tests)
-- `tests/test_redact_mirror.py` — Python ↔ JS parity (18 tests)
+- `tests/test_redact_mirror.py` — Python guard + scrub (19 tests)
+- `tests/test_redact_js_py_parity.py` — runs one fixture through node and
+  Python, requires identical output (skipped without node)
 - `tests/test_pro_redaction_guard.py` — FastAPI integration (14 tests)
 - `tests/test_strengthen.py` — Strengthen handler (9 tests)
 
-Total: **273 tests** across 7 suites, all green as of 2026-05-03.
+Run `make test-addin` for the JS suites and `pytest tests/test_redact_*.py
+tests/test_pro_redaction_guard.py` for the server side.
 
 ## License
 
