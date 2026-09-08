@@ -69,7 +69,7 @@ def test_builders_carry_a_source_derived_version():
     a bare integer version means the regression has been reintroduced."""
     import search_stack.build_reference_graph_incremental as g
     import search_stack.extract_decision_structure_incremental as st
-    for mod, manual in ((g, "1"), (st, "2")):
+    for mod, manual in ((g, "1"), (st, "3")):     # structure v3: regeste joined the hash (2026-09-08)
         v = mod.EFFECTIVE_EXTRACTOR_VERSION
         assert v.startswith(f"{manual}+src.") and len(v.split("src.")[1]) == 12
 

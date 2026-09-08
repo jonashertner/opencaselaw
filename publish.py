@@ -32,6 +32,7 @@ import argparse
 import fcntl
 import json
 import os
+import shutil
 import signal
 import urllib.request
 import logging
@@ -709,27 +710,60 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
     script = REPO_DIR / "search_stack" / "extract_decision_structure_incremental.py"
     decisions_db = OUTPUT_DIR / "decisions.db"
     live = OUTPUT_DIR / "decision_structure.db"
-    tmp = OUTPUT_DIR / "decision_structure.db.tmp"
     if not script.exists() or not decisions_db.exists():
         logger.warning("  incremental extractor or decisions.db not found; building from shards")
         return _step_2g_from_shards(dry_run)
+    # The live sidecar is a symlink to the data volume in production, while
+    # OUTPUT_DIR itself is on the 150 GB root disk. The extractor writes its
+    # working copy next to --output and this step swaps onto it, so both must
+    # be derived from the RESOLVED path: a tmp beside the symlink would fill
+    # the root disk (~55 GB sidecar vs ~32 GB free) and the swap would replace
+    # the symlink with a file on /. Review finding 2026-09-08.
+    live_real = live.resolve() if live.exists() else live
+    tmp = live_real.with_name(live_real.name + ".tmp")
     for stale in (tmp, Path(str(tmp) + "-journal")):
         if stale.exists():
             stale.unlink()
+    if live_real.exists():
+        free = shutil.disk_usage(live_real.parent).free
+        need = int(live_real.stat().st_size * 1.2)
+        if free < need:
+            logger.error(f"  {live_real.parent} has {free / 1e9:.1f} GB free, the sidecar rebuild "
+                         f"needs ~{need / 1e9:.1f} GB; keeping the current sidecar")
+            return False
+    if os.environ.get("OCL_STRUCTURE_FORCE_FULL") == "1":
+        logger.warning("  OCL_STRUCTURE_FORCE_FULL=1 is set: full re-extraction of every decision "
+                       "(~3 h). Unset it after the one-off, or every night pays this.")
     cmd = [sys.executable, str(script), "--decisions-db", str(decisions_db),
-           "--structure-db", str(live), "--output", str(tmp)]
-    if full_rebuild:
+           "--structure-db", str(live_real), "--output", str(tmp)]
+    # A full re-extraction is the extractor's own decision: it bootstraps
+    # when the sidecar carries no state or a different extractor version.
+    # Forcing it on every full build (and on every `--step 2g`, which counts
+    # as one) re-extracted all ~1.07M decisions daily; the 2026-09-07 run
+    # did that into memory and was killed by the stall watchdog. A normal
+    # night now diffs and writes only new or changed decisions (minutes).
+    # OCL_STRUCTURE_FORCE_FULL=1 keeps a manual override for a one-off.
+    if os.environ.get("OCL_STRUCTURE_FORCE_FULL") == "1":
         cmd.append("--force-full")
     ok = run_cmd(cmd, "Build decision_structure sidecar (served text, incremental)", dry_run,
                  timeout=14400, stall_timeout=9000)
     if dry_run:
         return True
     if not ok or not tmp.exists():
-        logger.error("  served-text sidecar build failed; falling back to the shard-based build")
         if tmp.exists():
             tmp.unlink()
+        # A first bootstrap can outlast the wall clock; the extractor keeps
+        # its partial working copy and resumes next run. The shard build is
+        # only the safety net for a MISSING sidecar: rebuilding an existing,
+        # readable one costs ~4.5 h and gains nothing.
+        if live_real.exists() and _structure_coverage(live_real, decisions_db):
+            logger.error("  served-text sidecar build failed; keeping the current sidecar "
+                         "(a bootstrap resumes on the next run)")
+            return False
+        logger.error("  served-text sidecar build failed and no sidecar is served; "
+                     "falling back to the shard-based build")
         return _step_2g_from_shards(dry_run)
-    old = _structure_coverage(live, decisions_db) if live.exists() else None
+    old = _structure_coverage(live_real, decisions_db) if live_real.exists() else None
     new = _structure_coverage(tmp, decisions_db)
     if new is None:
         logger.error("  new sidecar unreadable; keeping the current one")
@@ -741,7 +775,7 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
         tmp.unlink()
         return False
     logger.info(f"  structure coverage: {old if old is not None else '?'} -> {new:,} current decisions; swapping")
-    os.replace(tmp, live)
+    os.replace(tmp, live_real)
     return True
 
 

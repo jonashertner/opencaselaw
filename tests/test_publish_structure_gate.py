@@ -64,12 +64,81 @@ def test_coverage_gate_keeps_the_old_sidecar(tmp_path, monkeypatch):
     assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 5
 
 
-def test_failed_extractor_falls_back_to_the_shard_build(tmp_path, monkeypatch):
+def test_failed_extractor_falls_back_to_the_shard_build_only_without_a_sidecar(tmp_path, monkeypatch):
+    """Covered in detail below (2026-09-08): a readable sidecar is kept, a
+    missing one triggers the shard build."""
     out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"], ok=False)
+    (out / "decision_structure.db").unlink()
     assert publish.step_2g_build_decision_structure() is True and fallback == [False]
-    assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 1
 
 
-def test_full_rebuild_forces_a_full_extraction(tmp_path, monkeypatch):
+def test_full_rebuild_no_longer_forces_a_full_extraction(tmp_path, monkeypatch):
+    """2026-09-07: forcing a full re-extraction on every full build (and on
+    every `--step 2g`, which counts as one) loaded 1.07M decisions into memory
+    and was killed by the stall watchdog. The extractor bootstraps by itself
+    when it has no state or a new version; a full build only diffs."""
+    monkeypatch.delenv("OCL_STRUCTURE_FORCE_FULL", raising=False)
     out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"])
-    assert publish.step_2g_build_decision_structure(full_rebuild=True) is True and "--force-full" in calls[0][0]
+    assert publish.step_2g_build_decision_structure(full_rebuild=True) is True
+    assert "--force-full" not in calls[0][0]
+
+
+def test_env_override_still_forces_a_full_extraction(tmp_path, monkeypatch):
+    monkeypatch.setenv("OCL_STRUCTURE_FORCE_FULL", "1")
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"])
+    assert publish.step_2g_build_decision_structure() is True and "--force-full" in calls[0][0]
+
+
+# ── 2026-09-08 review fixes: resolved paths, disk space, failure policy ──
+
+def test_failed_extractor_keeps_a_readable_sidecar_instead_of_rebuilding(tmp_path, monkeypatch):
+    """The shard build is the safety net for a MISSING sidecar only; rebuilding
+    an existing one costs ~4.5 h. A killed bootstrap resumes next run."""
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"], ok=False)
+    assert publish.step_2g_build_decision_structure() is False
+    assert fallback == []
+    assert (out / "decision_structure.db").exists()
+
+
+def test_failed_extractor_without_any_sidecar_falls_back_to_shards(tmp_path, monkeypatch):
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"], ok=False)
+    (out / "decision_structure.db").unlink()
+    assert publish.step_2g_build_decision_structure() is True and fallback == [False]
+
+
+def test_symlinked_sidecar_builds_and_swaps_on_the_data_volume(tmp_path, monkeypatch):
+    """Production: output/decision_structure.db -> /mnt/.../decision_structure.db.
+    The tmp must live beside the REAL file and the swap must replace the real
+    file, never the symlink (2026-09-08 review: the old code would have filled
+    the root disk and turned the symlink into a file)."""
+    out = tmp_path / "output"; out.mkdir()
+    volume = tmp_path / "volume"; volume.mkdir()
+    _decisions(out / "decisions.db", ["a", "b", "c"])
+    _sidecar(volume / "decision_structure.db", ["a"])
+    (out / "decision_structure.db").symlink_to(volume / "decision_structure.db")
+    new = tmp_path / "new.db"; _sidecar(new, ["a", "b", "c"])
+    monkeypatch.setattr(publish, "OUTPUT_DIR", out)
+    monkeypatch.setattr(publish, "REPO_DIR", Path(publish.__file__).parent)
+    calls = []
+    def fake_run_cmd(cmd, description, dry_run=False, **kwargs):
+        calls.append(cmd)
+        shutil.copy(new, cmd[cmd.index("--output") + 1])
+        return True
+    monkeypatch.setattr(publish, "run_cmd", fake_run_cmd)
+    assert publish.step_2g_build_decision_structure() is True
+    cmd = calls[0]
+    assert cmd[cmd.index("--output") + 1] == str(volume / "decision_structure.db.tmp")
+    assert cmd[cmd.index("--structure-db") + 1] == str(volume / "decision_structure.db")
+    assert (out / "decision_structure.db").is_symlink()                       # symlink untouched
+    assert publish._structure_coverage(volume / "decision_structure.db", out / "decisions.db") == 3
+    assert not (volume / "decision_structure.db.tmp").exists()
+    assert not (out / "decision_structure.db.tmp").exists()
+
+
+def test_not_enough_free_space_keeps_the_current_sidecar(tmp_path, monkeypatch):
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"])
+    import collections
+    usage = collections.namedtuple("usage", "total used free")
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: usage(100, 100, 0))
+    assert publish.step_2g_build_decision_structure() is False
+    assert calls == [] and fallback == []

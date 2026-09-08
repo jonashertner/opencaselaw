@@ -56,7 +56,11 @@ from search_stack.extract_decision_structure import (  # noqa: E402
 # the 6,029 already-seen decisions and the fix never reaches the sidecar
 # (proven: 2026-07-03 shadow drift stayed at 0.797%). Bumping forces one
 # full re-extract on the next run, healing the frozen backlog.
-EXTRACTOR_VERSION = 2  # the source hash of extract_decision_structure.py already forces a full re-extraction on change
+# v3 (2026-09-08): "regeste" joined _HASHED_FIELDS (it flows into structure.regeste
+# but was invisible to the diff, so a regeste set by build_fts5 after extraction
+# stayed stale for ever once the nightly --force-full went away). The bump
+# bootstraps once instead of pushing 1.07M rows through the changed-row cascade.
+EXTRACTOR_VERSION = 3  # the source hash of extract_decision_structure.py already forces a full re-extraction on change
 
 # Derived version — the state tables carry this, so a change to the
 # structure extractor bootstraps the sidecar without a remembered bump.
@@ -107,12 +111,29 @@ _HASHED_FIELDS = (
     "language",
     "decision_date",
     "full_text",
+    "regeste",
 )
 
 
 def _extractor_hash(row: dict) -> str:
     parts = [(row.get(f) or "") for f in _HASHED_FIELDS]
     return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
+
+
+# Streaming parameters (2026-09-08). The first production run of the
+# served-text step 2g (2026-09-07) loaded every decision's full_text into
+# one dict before writing a row, reached 34 GB against the unit's 32 GiB
+# MemoryHigh, printed nothing for 9,000 s and was killed by publish.py's
+# stall watchdog; the build fell back to the shard builder. The production
+# path now extracts and upserts row by row, commits every COMMIT_EVERY
+# writes and prints a progress line every PROGRESS_EVERY scanned rows so
+# the watchdog sees a live process. Memory is O(number of ids), not O(text).
+COMMIT_EVERY = 2_000
+PROGRESS_EVERY = 10_000
+
+
+def _progress(message: str) -> None:
+    print(f"[extract_structure] {message}", flush=True)
 
 
 def _ensure_state_tables(conn: sqlite3.Connection) -> None:
@@ -144,8 +165,49 @@ def _peek_extractor_version(db_path: Path) -> str | None:
     try:
         try:
             return _get_meta(peek, "extractor_version")
-        except sqlite3.OperationalError:
+        except sqlite3.DatabaseError:      # no meta table, or not a database at all
             return None
+    finally:
+        peek.close()
+
+
+def _peek_meta(db_path: Path, key: str) -> str | None:
+    """Read one meta value from a candidate DB read-only, or None."""
+    if not db_path.exists():
+        return None
+    try:
+        peek = sqlite3.connect(f"file:{db_path}?mode=ro&immutable=1", uri=True)
+    except sqlite3.Error:
+        return None
+    try:
+        try:
+            return _get_meta(peek, key)
+        except sqlite3.DatabaseError:
+            return None
+    finally:
+        peek.close()
+
+
+def _state_consistent(db_path: Path) -> bool:
+    """A base whose processed_decisions is out of step with structure (a
+    killed run, a partial manual DELETE) would make every later diff write
+    nothing while the coverage gate, measured on the same content, passes.
+    Cheap count check; a mismatch forces a bootstrap."""
+    try:
+        peek = sqlite3.connect(f"file:{db_path}?mode=ro&immutable=1", uri=True)
+    except sqlite3.Error:
+        return False
+    try:
+        try:
+            processed = peek.execute("SELECT COUNT(*) FROM processed_decisions").fetchone()[0]
+            structure = peek.execute("SELECT COUNT(*) FROM structure").fetchone()[0]
+        except sqlite3.DatabaseError:
+            # One of the tables is missing: nothing to compare. The version
+            # check already vouched for the base; _ensure_state_tables adds
+            # what is absent. (A file that is not a database never gets
+            # here — _peek_extractor_version returns None for it.)
+            return True
+        return processed == structure
     finally:
         peek.close()
 
@@ -170,7 +232,9 @@ def _select_diff_base(live_db: Path, output_path: Path,
     for cand in candidates:
         stored = _peek_extractor_version(cand)
         if stored == EFFECTIVE_EXTRACTOR_VERSION:
-            return cand, None
+            if _state_consistent(cand):
+                return cand, None
+            return None, f"state_inconsistent:{cand.name}"
         if stored is not None:
             mismatches.append(f"{cand.name}:{stored}")
     if mismatches:
@@ -219,7 +283,11 @@ def _diff_state(
     decisions_db: Path,
     sc_conn: sqlite3.Connection,
 ) -> tuple[set[str], set[str], set[str], dict[str, str], dict[str, dict]]:
-    """Return (new, changed, deleted, hashes_by_id, rows_for_writes)."""
+    """Return (new, changed, deleted, hashes_by_id, rows_for_writes).
+
+    Diagnostic/test helper: it keeps the full row (with full_text) of every
+    new or changed decision in memory. The production path is
+    ``_stream_extract``, which never holds more than one row."""
     processed: dict[str, str] = {
         r[0]: r[1]
         for r in sc_conn.execute(
@@ -270,102 +338,192 @@ def _delete_for_decisions(conn: sqlite3.Connection, ids: set[str]) -> None:
         )
 
 
+def _apply_one(
+    conn: sqlite3.Connection,
+    did: str,
+    row: dict,
+    extractor_hash: str,
+    now: str,
+) -> int | None:
+    """Extract one decision and upsert ``structure``, its paragraphs and its
+    ``processed_decisions`` hash. Returns the number of paragraphs written,
+    or None when the text is too short to extract."""
+    written = 0
+    ft = row.get("full_text") or ""
+    if len(ft) < 500:
+        return None
+    s = extract(ft, row.get("language", "de"), did)
+
+    # Upsert into structure
+    conn.execute(
+        """
+        INSERT INTO structure
+        (decision_id, court, canton, language, decision_date, regeste,
+         sachverhalt, sachverhalt_method,
+         erwaegungen, erwaegungen_method, erwaegungen_paragraph_count,
+         dispositiv, dispositiv_method, dispositiv_orders, extracted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(decision_id) DO UPDATE SET
+            court = excluded.court,
+            canton = excluded.canton,
+            language = excluded.language,
+            decision_date = excluded.decision_date,
+            regeste = excluded.regeste,
+            sachverhalt = excluded.sachverhalt,
+            sachverhalt_method = excluded.sachverhalt_method,
+            erwaegungen = excluded.erwaegungen,
+            erwaegungen_method = excluded.erwaegungen_method,
+            erwaegungen_paragraph_count = excluded.erwaegungen_paragraph_count,
+            dispositiv = excluded.dispositiv,
+            dispositiv_method = excluded.dispositiv_method,
+            dispositiv_orders = excluded.dispositiv_orders,
+            extracted_at = excluded.extracted_at
+        """,
+        (
+            did, row.get("court"), row.get("canton"),
+            s.language, row.get("decision_date"),
+            row.get("regeste") or None,
+            s.sachverhalt, s.sachverhalt_method,
+            s.erwaegungen, s.erwaegungen_method,
+            len(s.erwaegungen_paragraphs),
+            s.dispositiv, s.dispositiv_method,
+            json.dumps(s.dispositiv_orders, ensure_ascii=False)
+            if s.dispositiv_orders else None,
+            now,
+        ),
+    )
+
+    # Replace this decision's paragraphs (delete then insert; trigger
+    # keeps FTS5 in sync). Skip the synthetic depth=0 fallback.
+    # Use INSERT OR REPLACE to match extract_decision_structure.py's
+    # full-builder semantics — the extractor can emit two paragraphs
+    # with the same e_number for a single decision when the regex
+    # backtracks across nested numbering (e.g., "2." inside an
+    # "Erwägung 2"). The full builder silently last-wins on those;
+    # the incremental builder was crashing with UNIQUE constraint
+    # violations on the first-real-run today 2026-05-18 16:51 UTC
+    # (decision_structure_incremental.py:273).
+    conn.execute(
+        "DELETE FROM erwaegungen_paragraph WHERE decision_id = ?", (did,),
+    )
+    for p in s.erwaegungen_paragraphs:
+        if p.get("depth", 0) == 0:
+            continue
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO erwaegungen_paragraph
+            (decision_id, e_number, depth, parent, text)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (did, p["e_number"], p["depth"], p.get("parent"), p["text"]),
+        )
+        written += 1
+
+    conn.execute(
+        "INSERT INTO processed_decisions(decision_id, extractor_hash) "
+        "VALUES (?, ?) "
+        "ON CONFLICT(decision_id) DO UPDATE SET extractor_hash = excluded.extractor_hash",
+        (did, extractor_hash),
+    )
+    return written
+
+
 def _apply_extraction(
     conn: sqlite3.Connection,
     rows: dict[str, dict],
     hashes_by_id: dict[str, str],
 ) -> tuple[int, int]:
-    """Run extract() over the given rows; upsert ``structure`` +
-    ``erwaegungen_paragraph``. Returns (decisions_written, paragraphs_written).
-    """
+    """Run extract() over already-materialised rows (tests, small batches);
+    the production path streams (see ``_stream_extract``).
+    Returns (decisions_written, paragraphs_written)."""
     decisions_n = 0
     paragraphs_n = 0
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-
     for did, row in rows.items():
-        ft = row.get("full_text") or ""
-        if len(ft) < 500:
+        n = _apply_one(conn, did, row, hashes_by_id[did], now)
+        if n is None:
             continue
-        s = extract(ft, row.get("language", "de"), did)
-
-        # Upsert into structure
-        conn.execute(
-            """
-            INSERT INTO structure
-            (decision_id, court, canton, language, decision_date, regeste,
-             sachverhalt, sachverhalt_method,
-             erwaegungen, erwaegungen_method, erwaegungen_paragraph_count,
-             dispositiv, dispositiv_method, dispositiv_orders, extracted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(decision_id) DO UPDATE SET
-                court = excluded.court,
-                canton = excluded.canton,
-                language = excluded.language,
-                decision_date = excluded.decision_date,
-                regeste = excluded.regeste,
-                sachverhalt = excluded.sachverhalt,
-                sachverhalt_method = excluded.sachverhalt_method,
-                erwaegungen = excluded.erwaegungen,
-                erwaegungen_method = excluded.erwaegungen_method,
-                erwaegungen_paragraph_count = excluded.erwaegungen_paragraph_count,
-                dispositiv = excluded.dispositiv,
-                dispositiv_method = excluded.dispositiv_method,
-                dispositiv_orders = excluded.dispositiv_orders,
-                extracted_at = excluded.extracted_at
-            """,
-            (
-                did, row.get("court"), row.get("canton"),
-                s.language, row.get("decision_date"),
-                row.get("regeste") or None,
-                s.sachverhalt, s.sachverhalt_method,
-                s.erwaegungen, s.erwaegungen_method,
-                len(s.erwaegungen_paragraphs),
-                s.dispositiv, s.dispositiv_method,
-                json.dumps(s.dispositiv_orders, ensure_ascii=False)
-                if s.dispositiv_orders else None,
-                now,
-            ),
-        )
-
-        # Replace this decision's paragraphs (delete then insert; trigger
-        # keeps FTS5 in sync). Skip the synthetic depth=0 fallback.
-        # Use INSERT OR REPLACE to match extract_decision_structure.py's
-        # full-builder semantics — the extractor can emit two paragraphs
-        # with the same e_number for a single decision when the regex
-        # backtracks across nested numbering (e.g., "2." inside an
-        # "Erwägung 2"). The full builder silently last-wins on those;
-        # the incremental builder was crashing with UNIQUE constraint
-        # violations on the first-real-run today 2026-05-18 16:51 UTC
-        # (decision_structure_incremental.py:273).
-        conn.execute(
-            "DELETE FROM erwaegungen_paragraph WHERE decision_id = ?", (did,),
-        )
-        for p in s.erwaegungen_paragraphs:
-            if p.get("depth", 0) == 0:
-                continue
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO erwaegungen_paragraph
-                (decision_id, e_number, depth, parent, text)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (did, p["e_number"], p["depth"], p.get("parent"), p["text"]),
-            )
-            paragraphs_n += 1
-
-        conn.execute(
-            "INSERT INTO processed_decisions(decision_id, extractor_hash) "
-            "VALUES (?, ?) "
-            "ON CONFLICT(decision_id) DO UPDATE SET extractor_hash = excluded.extractor_hash",
-            (did, hashes_by_id[did]),
-        )
         decisions_n += 1
-
+        paragraphs_n += n
     return decisions_n, paragraphs_n
 
 
+def _stream_extract(
+    conn: sqlite3.Connection,
+    decisions_db: Path,
+    processed: dict[str, str] | None,
+) -> dict:
+    """One pass over decisions.db, writing as it goes.
+
+    ``processed`` is the id -> extractor_hash map of the base sidecar, or
+    None for a bootstrap (every row is written). A row whose hash is new or
+    changed is (re)extracted immediately; ids present in ``processed`` but
+    absent from decisions.db are cascade-deleted at the end. Commits every
+    COMMIT_EVERY writes and prints progress every PROGRESS_EVERY scanned
+    rows. Returns counts and totals for the run summary.
+    """
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    t0 = time.time()
+    seen: set[str] = set()
+    counts = {"new": 0, "changed": 0, "deleted": 0}
+    decisions_n = 0
+    paragraphs_n = 0
+    scanned = 0
+    for row in _iter_decision_rows(decisions_db):
+        did = row.get("decision_id") or ""
+        if not did:
+            continue
+        seen.add(did)
+        scanned += 1
+        h = _extractor_hash(row)
+        if processed is None:
+            kind = "new"
+        else:
+            prior = processed.get(did)
+            if prior is None:
+                kind = "new"
+            elif prior != h:
+                kind = "changed"
+                _delete_for_decisions(conn, {did})
+            else:
+                kind = None
+        if kind is not None:
+            n = _apply_one(conn, did, row, h, now)
+            if n is not None:
+                counts[kind] += 1
+                decisions_n += 1
+                paragraphs_n += n
+                if decisions_n % COMMIT_EVERY == 0:
+                    conn.commit()
+        if scanned % PROGRESS_EVERY == 0:
+            _progress(f"scanned {scanned:,} decisions, written {decisions_n:,} "
+                      f"({paragraphs_n:,} paragraphs) in {time.time() - t0:.0f}s")
+    if processed is not None:
+        deleted = sorted(set(processed.keys()) - seen)
+        for i in range(0, len(deleted), COMMIT_EVERY):
+            _delete_for_decisions(conn, set(deleted[i:i + COMMIT_EVERY]))
+            conn.commit()
+            if len(deleted) > COMMIT_EVERY:
+                _progress(f"deleted {min(i + COMMIT_EVERY, len(deleted)):,} of {len(deleted):,} retired decisions")
+        counts["deleted"] = len(deleted)
+    conn.commit()
+    _progress(f"done: scanned {scanned:,}, written {decisions_n:,} decisions / "
+              f"{paragraphs_n:,} paragraphs, deleted {counts['deleted']:,} "
+              f"in {time.time() - t0:.0f}s")
+    return {
+        "counts": counts,
+        "decisions_written": decisions_n,
+        "paragraphs_written": paragraphs_n,
+    }
+
+
 def _cleanup_sidecars(target: Path) -> None:
-    for ext in ("-wal", "-shm"):
+    """Remove -wal/-shm and a stale rollback -journal. A -journal left by a
+    killed run is "hot": SQLite would replay its page images into whatever
+    file is at the path next time (a fresh copy of the base, in the diff
+    path) and silently corrupt it. It must only survive when the same file
+    is reopened, which is the resume case in _bootstrap_via_full."""
+    for ext in ("-wal", "-shm", "-journal"):
         p = Path(str(target) + ext)
         if p.exists():
             p.unlink()
@@ -380,29 +538,58 @@ def _bootstrap_via_full(
     every decision in decisions.db (mirrors what extract_decision_structure
     does over JSONL, but keyed on the decisions.db row set so we stay
     consistent with downstream tools).
+
+    Resumable (2026-09-08): a production bootstrap takes ~3 h, longer than
+    the step's wall clock on a busy weekday. The tmp file therefore carries
+    meta.extractor_version and meta.bootstrap_in_progress from the first
+    commit; if a previous attempt left such a file, this run reopens it and
+    only extracts the decisions its processed_decisions does not hold yet.
+    A tmp of another version, or one without the marker, is discarded.
     """
     output_path = output_path.resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
     tmp = output_path.with_name(f".{output_path.name}.tmp")
-    if tmp.exists():
+
+    resume = (
+        tmp.exists()
+        and _peek_extractor_version(tmp) == EFFECTIVE_EXTRACTOR_VERSION
+        and _peek_meta(tmp, "bootstrap_in_progress") == "1"
+    )
+    if tmp.exists() and not resume:
         tmp.unlink()
+        _cleanup_sidecars(tmp)
 
     conn = sqlite3.connect(str(tmp))
-    conn.executescript(SCHEMA)
-    conn.executescript(INCREMENTAL_SCHEMA)
+    processed: dict[str, str] | None = None
+    if resume:
+        processed = {
+            r[0]: r[1]
+            for r in conn.execute(
+                "SELECT decision_id, extractor_hash FROM processed_decisions"
+            )
+        }
+        _progress(f"bootstrap: resuming {tmp.name} with {len(processed):,} decisions already extracted")
+    else:
+        conn.executescript(SCHEMA)
+        conn.executescript(INCREMENTAL_SCHEMA)
+        _set_meta(conn, "extractor_version", EFFECTIVE_EXTRACTOR_VERSION)
+        _set_meta(conn, "bootstrap_in_progress", "1")
+        conn.commit()
+        _progress(f"bootstrap: extracting every decision of {decisions_db.name} into {tmp.name}")
 
-    # Read every decision once; treat all as "new" relative to an empty state.
-    rows_for_writes: dict[str, dict] = {}
-    hashes_by_id: dict[str, str] = {}
-    for row in _iter_decision_rows(decisions_db):
-        did = row["decision_id"]
-        rows_for_writes[did] = row
-        hashes_by_id[did] = _extractor_hash(row)
+    # Read every decision once, streaming: extract and write row by row.
+    streamed = _stream_extract(conn, decisions_db, processed)
+    del processed
+    decisions_n = streamed["decisions_written"]
+    paragraphs_n = streamed["paragraphs_written"]
 
-    decisions_n, paragraphs_n = _apply_extraction(
-        conn, rows_for_writes, hashes_by_id,
+    # The shard builder finished with an FTS5 rebuild + optimize; trigger
+    # inserts leave many segments per level, so merge them once here.
+    _progress("bootstrap: optimizing erwaegungen_paragraph_fts")
+    conn.execute(
+        "INSERT INTO erwaegungen_paragraph_fts(erwaegungen_paragraph_fts) VALUES('optimize')"
     )
+    _progress("bootstrap: optimize done")
 
     _set_meta(conn, "extractor_version", EFFECTIVE_EXTRACTOR_VERSION)
     _set_meta(
@@ -410,6 +597,7 @@ def _bootstrap_via_full(
         "last_full_rebuild_at",
         datetime.now(timezone.utc).isoformat(),
     )
+    conn.execute("DELETE FROM meta WHERE key = 'bootstrap_in_progress'")
 
     conn.commit()
     conn.execute("PRAGMA journal_mode=DELETE")
@@ -421,9 +609,29 @@ def _bootstrap_via_full(
 
     return {
         "mode": "full_bootstrap",
+        "resumed": bool(resume),
         "decisions_written": decisions_n,
         "paragraphs_written": paragraphs_n,
     }
+
+
+def _refuse_without_space(output_path: Path, structure_db: Path) -> None:
+    """Both paths write a sidecar-sized file next to ``output_path`` (the
+    bootstrap streams one, the diff copies the base). In production the live
+    sidecar is ~55 GB on the data volume while output/ itself is on a 150 GB
+    root disk with ~30 GB free; a caller that hands us a tmp beside the
+    symlink instead of beside the real file would fill the root disk. Refuse
+    loudly instead: the caller keeps its current sidecar."""
+    if not structure_db.exists():
+        return
+    need = int(structure_db.stat().st_size * 1.2)
+    free = shutil.disk_usage(output_path.parent).free
+    if free < need:
+        raise SystemExit(
+            f"[extract_structure] {output_path.parent} has {free / 1e9:.1f} GB free, "
+            f"a sidecar rebuild needs ~{need / 1e9:.1f} GB (1.2 x {structure_db.name}); "
+            "refusing to write there"
+        )
 
 
 def build_structure_incremental(
@@ -444,6 +652,7 @@ def build_structure_incremental(
             structure_db.stem + "_incremental" + structure_db.suffix
         )
     )
+    _refuse_without_space(output_path, structure_db)
 
     t0 = time.time()
     stats: dict = {
@@ -471,6 +680,7 @@ def build_structure_incremental(
     tmp_path = output_path.with_name(f".{output_path.name}.tmp")
     if tmp_path.exists():
         tmp_path.unlink()
+    _cleanup_sidecars(tmp_path)      # a hot -journal from a killed run must not replay into the copy
     output_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(base, tmp_path)
     _cleanup_sidecars(tmp_path)
@@ -481,21 +691,19 @@ def build_structure_incremental(
     _ensure_state_tables(conn)
 
     try:
-        new_ids, changed_ids, deleted_ids, hashes_by_id, rows_for_writes = (
-            _diff_state(decisions_db, conn)
-        )
-        stats["counts"] = {
-            "new": len(new_ids),
-            "changed": len(changed_ids),
-            "deleted": len(deleted_ids),
+        processed: dict[str, str] = {
+            r[0]: r[1]
+            for r in conn.execute(
+                "SELECT decision_id, extractor_hash FROM processed_decisions"
+            )
         }
-
-        _delete_for_decisions(conn, changed_ids | deleted_ids)
-        decisions_n, paragraphs_n = _apply_extraction(
-            conn, rows_for_writes, hashes_by_id,
-        )
-        stats["decisions_written"] = decisions_n
-        stats["paragraphs_written"] = paragraphs_n
+        _progress(f"incremental: diffing {decisions_db.name} against "
+                  f"{len(processed):,} processed decisions in {base.name}")
+        streamed = _stream_extract(conn, decisions_db, processed)
+        del processed
+        stats["counts"] = streamed["counts"]
+        stats["decisions_written"] = streamed["decisions_written"]
+        stats["paragraphs_written"] = streamed["paragraphs_written"]
 
         _set_meta(conn, "extractor_version", EFFECTIVE_EXTRACTOR_VERSION)
         _set_meta(
