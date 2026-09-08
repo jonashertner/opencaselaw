@@ -178,7 +178,7 @@ def check_systemd(rep: Report):
     r2 = ssh_run("systemctl list-units --failed --no-pager --no-legend")
     failed = r2.stdout.strip()
 
-    r3 = ssh_run("systemctl is-active mcp-server@{8770..8773}")
+    r3 = ssh_run("systemctl is-active mcp-server@{8770..8777}")
     workers = r3.stdout.strip().split("\n")
 
     rep.section("Systemd",

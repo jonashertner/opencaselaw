@@ -102,7 +102,7 @@ cat /var/log/opencaselaw-smoke/latest.json 2>/dev/null | head -30 || true
 section "Phase 6: disk + workers + timers"
 df -h / /mnt/HC_Volume_104655575 | head -3
 echo
-for p in 8770 8771 8772 8773; do
+for p in {8770..8777}; do
   printf 'mcp@%s: %s  ' "$p" "$(systemctl is-active mcp-server@${p}.service)"
 done
 echo

@@ -14,7 +14,7 @@
 
 ```bash
 # Per-worker generation
-for p in 8770 8771 8772 8773; do
+for p in {8770..8777}; do
   printf "  %s " $p
   curl -s http://127.0.0.1:$p/health | python3 -c \
     'import sys,json; d=json.load(sys.stdin); print(d.get("db_generation"), d.get("decisions"))'
@@ -58,7 +58,7 @@ curl -s http://127.0.0.1:<port>/health
 ### MCP workers serving stale data after a known good swap
 1. Fire a no-op tool call to each worker (the generation check happens in `get_db()`):
    ```bash
-   for p in 8770 8771 8772 8773; do
+   for p in {8770..8777}; do
      curl -s http://127.0.0.1:$p/health > /dev/null
    done
    ```
