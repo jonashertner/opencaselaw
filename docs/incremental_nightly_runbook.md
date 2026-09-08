@@ -167,6 +167,30 @@ gate well under 3,600 s. Two green nights, then Step B: `opencaselaw-publish.tim
 `Sun *-*-* 03:30:00 UTC` and, optionally, the incremental timer to weekdays 03:30 so the
 night's scrape is live by morning.
 
+### Step 2g from served text (2026-09-08 fix, d804e901)
+
+The first production run (2026-09-07) died: `--force-full` on every full build materialised
+1.07M decisions in memory, hit the 32 GiB MemoryHigh, printed nothing and was killed by the
+stall watchdog; the shard fallback then hid it ("Step 2g: OK"). Since d804e901:
+
+- the extractor streams (progress line every 10,000 rows), commits every 2,000 writes and
+  **resumes** a bootstrap that a wall clock killed (the working copy keeps
+  `meta.bootstrap_in_progress`); a bootstrap is ~3 h, a normal night ~30-45 min (55 GB base copy
+  + one text scan), only new/changed decisions are re-extracted;
+- publish.py no longer passes `--force-full`; the extractor bootstraps by itself without state
+  or on a version change. One-off full re-extraction: `OCL_STRUCTURE_FORCE_FULL=1` in the
+  environment of ONE run (never in `.env.publish` — it would bootstrap every night);
+- tmp and swap use the resolved path on the data volume; a free-space check (1.2 x sidecar) in
+  publish.py and in the extractor refuses the root disk;
+- on an extractor failure a readable current sidecar is KEPT (return False, 2g is non-fatal);
+  the shard build only runs when no sidecar is served. Watch `publish_runs.jsonl` for 2g:
+  a run of `status: failed` nights means the bootstrap is not converging (check the
+  `[extract_structure] scanned …` lines in the publish log for progress per night).
+
+Morning check for the sidecar: `ls -la --time-style=+%H:%M output/decision_structure.db` (night
+timestamp) and `python3 -c "import sqlite3;c=sqlite3.connect('file:/mnt/HC_Volume_104655575/output/decision_structure.db?mode=ro&immutable=1',uri=True);print(c.execute('select key,value from meta').fetchall())"`
+(extractor_version present, no bootstrap_in_progress).
+
 ### Rollback
 
 `rm /etc/systemd/system/opencaselaw-publish-incremental.service.d/stage-a.conf && systemctl daemon-reload`.
