@@ -69,15 +69,50 @@ DECISION_STRUCTURE_DB = DATA_DIR / "decision_structure.db"
 logger = logging.getLogger("incremental_nightly")
 
 
+# Per-step wall-clock cap. 2026-09-08: the served-text structure extractor
+# (Step 3) held every decision's full_text in RAM (35 GB), pinned the cgroup at
+# MemoryHigh, evicted the serving page cache and ran for 7.4 h in D state with
+# nothing to stop it — subprocess.run() had no timeout, so the wedge lasted
+# until a human killed it. publish.py's run_cmd has had a wall-clock cap and
+# a stall watchdog since May; this is the same backstop for the orchestrator.
+STEP_TIMEOUT_S = int(os.environ.get("OCL_INCREMENTAL_STEP_TIMEOUT_S", "14400"))
+
+
+def _served_text_structure_disabled() -> bool:
+    """OCL_SERVED_TEXT_STRUCTURE=0 (in .env.publish, read by both publish
+    units) disables the served-text extractor everywhere: publish.py step 2g
+    falls back to the shard build, and Step 3 here is skipped. Temporary
+    switch while the extractor learns to stream (2026-09-08)."""
+    return os.environ.get("OCL_SERVED_TEXT_STRUCTURE", "1").strip().lower() in {
+        "0", "false", "off", "no"}
+
+
+def _kill_process_group(proc: "subprocess.Popen") -> None:
+    """SIGTERM the step's process group, escalate to SIGKILL after 30 s."""
+    import signal
+    for sig, grace in ((signal.SIGTERM, 30), (signal.SIGKILL, 10)):
+        try:
+            os.killpg(proc.pid, sig)
+        except ProcessLookupError:
+            return
+        try:
+            proc.wait(timeout=grace)
+            return
+        except subprocess.TimeoutExpired:
+            continue
+
+
 def _run_step(name: str, argv: list[str], dry_run: bool,
-              env: dict | None = None) -> dict:
+              env: dict | None = None, timeout_s: float | None = None) -> dict:
     """Run one builder step, capture timing + exit code, stream output to
     the orchestrator log so journalctl shows real-time progress.
 
     Returns a step record. On non-zero exit code, the orchestrator
     short-circuits in main() — but we still write the partial record so
     the drift check can see which step blew up. ``env`` replaces the
-    child's environment (default: inherit).
+    child's environment (default: inherit). ``timeout_s`` (default
+    STEP_TIMEOUT_S) kills the step's whole process group when exceeded;
+    the record then carries exit_code 124 and timed_out=True.
     """
     record = {
         "step": name,
@@ -94,16 +129,28 @@ def _run_step(name: str, argv: list[str], dry_run: bool,
 
     logger.info("[%s] starting: %s", name, " ".join(argv))
     t0 = time.monotonic()
+    cap = STEP_TIMEOUT_S if timeout_s is None else timeout_s
     try:
-        proc = subprocess.run(
+        # Own session/process group so a timeout can kill grandchildren too
+        # (the builders spawn helpers); stdout/stderr stay inherited so the
+        # orchestrator log keeps the real-time progress lines.
+        proc = subprocess.Popen(
             argv,
             cwd=str(REPO_ROOT),
-            check=False,
             text=True,
-            capture_output=False,  # stream to orchestrator stdout/stderr
             env=env,
+            start_new_session=True,
         )
-        record["exit_code"] = proc.returncode
+        try:
+            proc.wait(timeout=cap)
+            record["exit_code"] = proc.returncode
+        except subprocess.TimeoutExpired:
+            logger.error("[%s] timed out after %ss — killing process group",
+                         name, cap)
+            _kill_process_group(proc)
+            record["exit_code"] = 124
+            record["timed_out"] = True
+            record["error"] = f"timeout after {cap}s"
     except FileNotFoundError as e:
         logger.error("[%s] binary not found: %s", name, e)
         record["exit_code"] = 127
@@ -358,6 +405,10 @@ def main() -> int:
     # ── Step 3: decision_structure_incremental
     if args.skip_structure:
         logger.info("[decision_structure] SKIPPED (--skip-structure)")
+    elif _served_text_structure_disabled() and not args.structure_from_shards:
+        logger.warning("[decision_structure] SKIPPED (OCL_SERVED_TEXT_STRUCTURE=0 — "
+                       "served-text extractor disabled; the full build keeps the "
+                       "shard-built sidecar)")
     elif args.structure_from_shards and late_start:
         logger.warning("[decision_structure] SKIPPED (late start — the full "
                        "build rebuilds it from the same shards)")

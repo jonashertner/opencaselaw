@@ -707,6 +707,15 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
     missing.
     """
     logger.info("Step 2g: Build decision_structure sidecar (from served text)")
+    # Kill switch (2026-09-08): the served-text extractor loaded every
+    # decision's full_text into RAM (35 GB), pinned the publish cgroup at
+    # MemoryHigh and starved serving for hours, twice. OCL_SERVED_TEXT_STRUCTURE=0
+    # in .env.publish keeps the shard-built sidecar until the extractor streams.
+    if os.environ.get("OCL_SERVED_TEXT_STRUCTURE", "1").strip().lower() in {
+            "0", "false", "off", "no"}:
+        logger.warning("  OCL_SERVED_TEXT_STRUCTURE=0: served-text extractor disabled; "
+                       "building the sidecar from shards")
+        return _step_2g_from_shards(dry_run)
     script = REPO_DIR / "search_stack" / "extract_decision_structure_incremental.py"
     decisions_db = OUTPUT_DIR / "decisions.db"
     live = OUTPUT_DIR / "decision_structure.db"
