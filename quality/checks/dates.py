@@ -31,6 +31,11 @@ KNOWN_NULL_DATE_FLOORS = {
     # build_fts5._null_implausible_gr_dates since 2026-07-02 (backlog L2);
     # the guarded recovery may refill some from deeper true-date anchors.
     "gr_gerichte": 270,
+    # Arbeitsgericht Zürich yearbooks 2003–2023 (scrapers/cantonal/
+    # zh_arbeitsgericht_sammlung.py): the judgment date comes from each
+    # excerpt's closing trailer; ~25 of 530 excerpts have none and are left
+    # NULL by design (the volume year is in the docket "AGer-Z 2011 Nr. 8").
+    "zh_arbeitsgericht": 40,
 }
 
 

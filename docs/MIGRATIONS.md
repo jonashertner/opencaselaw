@@ -6,6 +6,37 @@ apply remedial migrations without re-deriving them.
 
 ---
 
+## 2026-09-04 — Arbeitsgericht Zürich: court-code repair + yearbooks 2003–2023
+
+**Affected courts:** `zh_arbeitsgericht`, `zh_bezirksgericht_zuerich`, `zh_mietgericht`.
+
+- Rulings of the Arbeitsgericht and Mietgericht Zürich that the gerichte-zh.ch
+  portal files under Gericht="Bezirksgericht Zürich" with the specialised court
+  in the Kammer field were served under `zh_bezirksgericht_zuerich` (67 rows,
+  2006–2026). They move to `zh_arbeitsgericht` / `zh_mietgericht`; their
+  `decision_id` changes from `zh_bezirksgericht_zuerich_<docket>` to
+  `zh_arbeitsgericht_<docket>`. The chamber field no longer repeats the court
+  name. Consumers keyed on `decision_id` should re-key by `external_id`
+  (`zh_gerichte_<TYPO3 doc id>`), which is stable.
+- 11 rulings existed twice (`AH230041` and `AH230041-L`, the portal re-edited
+  the Geschäftsnummer); the older docket-shape row is dropped, the `-L` form
+  survives. `scripts/migrate_zh_arbeitsgericht_rows.py`.
+- `zh_bezirksgericht_zuerich_AN230029-L` (AGer-Z 2024 Nr. 6) carried
+  `decision_date` 1937-12-03 — the date of a treaty quoted in its headnote,
+  written by a one-off text-date repair. Restored to the portal's 2024-11-25.
+- New: the court's annual yearbooks "Entscheide des Arbeitsgerichtes Zürich"
+  2003–2023 (21 PDFs, 530 edited excerpts) under `court=zh_arbeitsgericht`,
+  `docket_number` = the court's citation form `AGer-Z 2023 Nr. 7`,
+  `docket_number_2` = the Geschäftsnummer from the excerpt's trailer (511 of
+  530), `decision_date` from the trailer (507 of 530; the rest NULL, floor 40
+  in `quality/checks/dates.py`), `collection` = `AGer-Z 2023`,
+  `external_id` = `ager_z_2023_7`. Excerpts are the court's redaction: facts
+  summarised, Erwägungen quoted «verbatim», editorial omissions in brackets.
+  Source: `scrapers/cantonal/zh_arbeitsgericht_sammlung.py`; the operator
+  runbook is kept in the private maintenance workspace.
+
+---
+
 ## 2026-05-01 — QC system + 5 codified auto-correction passes
 
 A 4-layer quality-control system was deployed end-to-end. Going forward, every

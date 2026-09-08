@@ -153,6 +153,9 @@ SCRAPERS = {
     "bs_gerichte": ("scrapers.cantonal.bs_gerichte", "BSGerichteScraper"),
     "bs_rekurskommissionen": ("scrapers.cantonal.bs_rekurskommissionen", "BSRekurskommissionenScraper"),
     "zh_gerichte": ("scrapers.cantonal.zh_gerichte", "ZHGerichteScraper"),
+    # Arbeitsgericht Zürich yearbooks 2003–2023 (AGer-Z <Jahr> Nr. <n>); rows land
+    # under court=zh_arbeitsgericht next to the TYPO3 rows from zh_gerichte.
+    "zh_arbeitsgericht_sammlung": ("scrapers.cantonal.zh_arbeitsgericht_sammlung", "ZHArbeitsgerichtSammlungScraper"),
 "zh_verwaltungsgericht": ("scrapers.cantonal.zh_verwaltungsgericht", "ZHVerwaltungsgerichtScraper"),
     "zh_sozialversicherungsgericht": ("scrapers.cantonal.zh_sozialversicherungsgericht", "ZHSozialversicherungsgerichtScraper"),
     "zh_baurekursgericht": ("scrapers.cantonal.zh_baurekursgericht", "ZHBaurekursgerichtScraper"),

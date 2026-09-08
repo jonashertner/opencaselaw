@@ -1450,6 +1450,9 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "zh_sozialversicherungsgericht": "ZH Sozialversicherungsgericht",
     "zh_steuerrekursgericht": "ZH Steuerrekursgericht",
     "zh_baurekursgericht": "ZH Baurekursgericht",
+    "zh_arbeitsgericht": "ZH Arbeitsgericht", "zh_mietgericht": "ZH Mietgericht",
+    "zh_bezirksgericht_zuerich": "ZH Bezirksgericht Zürich",
+    "zh_handelsgericht": "ZH Handelsgericht", "zh_kassationsgericht": "ZH Kassationsgericht",
     # Attorney law (Anwaltsrecht)
     "be_anwaltsaufsicht": "BE Anwaltsaufsicht",
     "sav_kantone": "SAV Kantonale Aufsichtsentscheide",
@@ -11930,6 +11933,21 @@ _CANTONAL_COURT_TYPE = {
     "steuerrekurs": "Steuerrekursgericht", "steuerrekurskommission": "Steuerrekurskommission",
     "steuerrekursgericht": "Steuerrekursgericht", "personalrekurs": "Personalrekurskommission",
     "baurekursgericht": "Baurekursgericht", "regierungsrat": "Regierungsrat",
+    "arbeitsgericht": "Arbeitsgericht", "mietgericht": "Mietgericht",
+    "kassationsgericht": "Kassationsgericht",
+    "bezirksgericht_zuerich": "Bezirksgericht Zürich",
+    "bezirksgericht_winterthur": "Bezirksgericht Winterthur",
+    "bezirksgericht_uster": "Bezirksgericht Uster",
+    "bezirksgericht_pfaeffikon": "Bezirksgericht Pfäffikon",
+    "bezirksgericht_meilen": "Bezirksgericht Meilen",
+    "bezirksgericht_horgen": "Bezirksgericht Horgen",
+    "bezirksgericht_hinwil": "Bezirksgericht Hinwil",
+    "bezirksgericht_dietikon": "Bezirksgericht Dietikon",
+    "bezirksgericht_dielsdorf": "Bezirksgericht Dielsdorf",
+    "bezirksgericht_buelach": "Bezirksgericht Bülach",
+    "bezirksgericht_andelfingen": "Bezirksgericht Andelfingen",
+    "bezirksgericht_affoltern": "Bezirksgericht Affoltern",
+    "bezirksgericht": "Bezirksgericht",
 }
 _GENERIC_COURT = {"de": "Gericht", "fr": "Tribunal", "it": "Tribunale"}
 
@@ -12054,6 +12072,23 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
             "citation_string_de": f"{code_de} {docket}{vom_de}{pde}",
             "citation_string_fr": f"{code_fr} {docket}{vom_fr}{pfr}",
             "citation_string_it": f"{code_it} {docket}{vom_it}{pit}",
+            "canonical_url": url,
+        }
+
+    # Arbeitsgericht Zürich yearbook: the docket IS the court's Zitiervorschlag
+    # ("AGer-Z 2023 Nr. 7"); prefixing a court label would double the court
+    # and the volume year already dates it. The judgment date, where the
+    # trailer supplied one, follows as usual.
+    if docket.startswith("AGer-Z "):
+        reliable = _citation_date_reliable(decision_date)
+        date_de = _format_date_localized(decision_date, "de") if reliable else ""
+        date_fr = _format_date_localized(decision_date, "fr") if reliable else ""
+        date_it = _format_date_localized(decision_date, "it") if reliable else ""
+        pde, pfr, pit = _pin_suffix("E.", "consid.", "consid.")
+        return {
+            "citation_string_de": f"{docket}{' vom ' + date_de if date_de else ''}{pde}",
+            "citation_string_fr": f"{docket}{' du ' + date_fr if date_fr else ''}{pfr}",
+            "citation_string_it": f"{docket}{' del ' + date_it if date_it else ''}{pit}",
             "canonical_url": url,
         }
 

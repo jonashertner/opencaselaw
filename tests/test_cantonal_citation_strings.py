@@ -63,3 +63,32 @@ def test_real_dated_cantonal_keeps_date():
     cs = m._build_citation_strings(dec)
     assert cs["citation_string_de"].startswith("Obergericht ZH LB230012")
     assert "vom" in cs["citation_string_de"]  # reliable date kept
+
+
+def test_ager_z_yearbook_docket_is_the_citation():
+    """Arbeitsgericht Zürich yearbook rows (scrapers/cantonal/zh_arbeitsgericht_sammlung.py):
+    the docket is the court's own Zitiervorschlag, so no court label is prefixed."""
+    dec = {
+        "court": "zh_arbeitsgericht", "canton": "ZH",
+        "docket_number": "AGer-Z 2023 Nr. 7", "decision_date": "2023-06-05",
+        "decision_id": "zh_arbeitsgericht_AGer-Z 2023 Nr. 7",
+    }
+    cs = m._build_citation_strings(dec)
+    assert cs["citation_string_de"] == "AGer-Z 2023 Nr. 7 vom 5. Juni 2023"
+    assert cs["citation_string_fr"].startswith("AGer-Z 2023 Nr. 7 du ")
+    assert cs["citation_string_it"].startswith("AGer-Z 2023 Nr. 7 del ")
+    assert cs["canonical_url"].endswith("/entscheid/" + m._decision_path(dec["decision_id"]))
+    # undated excerpt: the docket alone, no dangling "vom"
+    dec["decision_date"] = None
+    cs = m._build_citation_strings(dec, pinpoint="E. 3.2")
+    assert cs["citation_string_de"] == "AGer-Z 2023 Nr. 7, E. 3.2"
+
+
+def test_zh_arbeitsgericht_typo3_rows_get_a_court_label():
+    dec = {
+        "court": "zh_arbeitsgericht", "canton": "ZH",
+        "docket_number": "AH230041-L", "decision_date": "2025-01-13",
+        "decision_id": "zh_arbeitsgericht_AH230041-L",
+    }
+    assert m._build_citation_strings(dec)["citation_string_de"] == "Arbeitsgericht ZH AH230041-L vom 13. Januar 2025"
+    assert m._cantonal_court_label("zh_bezirksgericht_zuerich", "ZH") == "Bezirksgericht Zürich ZH"

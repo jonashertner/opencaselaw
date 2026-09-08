@@ -133,6 +133,9 @@ _COURT_MAP = {
     "arbeitsgericht": "zh_arbeitsgericht",
 }
 
+# Keywords that take precedence over the Bezirksgericht they sit in.
+_SPECIALISED_COURTS = ("arbeitsgericht", "mietgericht")
+
 
 def _map_court(gericht: str, kammer: str) -> tuple[str, str | None]:
     """
@@ -142,13 +145,28 @@ def _map_court(gericht: str, kammer: str) -> tuple[str, str | None]:
     The kammer field becomes the chamber string.
     """
     combined = f"{gericht} {kammer}".lower().strip()
+    kammer_clean = kammer.strip() if kammer and kammer.strip() else None
+
+    # Specialised first-instance courts win over their host Bezirksgericht.
+    # Since 2024 the portal files Arbeitsgericht / Mietgericht rulings as
+    # Gericht="Bezirksgericht Zürich", Abteilung/Kammer="Arbeitsgericht";
+    # before that as Gericht="Arbeitsgericht Zürich", Kammer="4. Abteilung".
+    # The longest-keyword rule below picked "bezirksgericht zürich" over
+    # "arbeitsgericht", so 67 Arbeitsgericht rulings (2006–2026) sat under
+    # zh_bezirksgericht_zuerich while zh_arbeitsgericht held 34 (2026-09-04).
+    for keyword in _SPECIALISED_COURTS:
+        if keyword in combined:
+            code = _COURT_MAP[keyword]
+            # A Kammer that only repeats the court name carries no information.
+            if kammer_clean and kammer_clean.lower() == keyword:
+                return code, None
+            return code, kammer_clean
 
     # Check longest keywords first to avoid substring collisions
     for keyword, code in sorted(_COURT_MAP.items(), key=lambda x: len(x[0]), reverse=True):
         if keyword in combined:
             # Chamber is the kammer field if it adds info beyond the court name
-            chamber = kammer.strip() if kammer and kammer.strip() else None
-            return code, chamber
+            return code, kammer_clean
 
     # Fallback
     logger.debug(f"ZH unmapped court: gericht={gericht!r}, kammer={kammer!r}")
