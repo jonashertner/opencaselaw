@@ -1,19 +1,19 @@
 {
-  "total": 1076960,
-  "source_representations": 1076960,
+  "total": 1077024,
+  "source_representations": 1077024,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 936157,
-  "unique_decisions_lower_bound": 936107,
+  "unique_decisions": 936221,
+  "unique_decisions_lower_bound": 936171,
   "duplicate_representations": 140803,
   "unique_decisions_status": "current",
   "by_court": [
     {
       "court": "bger",
       "canton": "CH",
-      "count": 192984,
+      "count": 193048,
       "earliest": "1986-10-06",
-      "latest": "2026-08-26",
-      "last_scraped": "2026-09-05T20:11:45.902230+00:00",
+      "latest": "2026-08-28",
+      "last_scraped": "2026-09-07T10:50:03.287640+00:00",
       "languages": [
         "de",
         "fr",
@@ -1829,9 +1829,9 @@
     }
   ],
   "by_language": {
-    "de": 502955,
-    "fr": 479095,
-    "it": 90956,
+    "de": 502979,
+    "fr": 479119,
+    "it": 90972,
     "en": 3954
   },
   "by_year": {
@@ -1984,33 +1984,34 @@
     "2021": 53099,
     "2022": 52843,
     "2023": 52652,
-    "2024": 52733,
-    "2025": 50087,
-    "2026": 22075
+    "2024": 52741,
+    "2025": 50113,
+    "2026": 22105
   },
   "recent_daily": {
     "2026-08-09": 1,
-    "2026-08-10": 76,
-    "2026-08-11": 79,
+    "2026-08-10": 80,
+    "2026-08-11": 81,
     "2026-08-12": 68,
     "2026-08-13": 52,
-    "2026-08-14": 34,
-    "2026-08-17": 62,
-    "2026-08-18": 51,
-    "2026-08-19": 40,
+    "2026-08-14": 36,
+    "2026-08-17": 64,
+    "2026-08-18": 53,
+    "2026-08-19": 43,
     "2026-08-20": 38,
-    "2026-08-21": 22,
-    "2026-08-24": 35,
-    "2026-08-25": 31,
-    "2026-08-26": 11,
+    "2026-08-21": 23,
+    "2026-08-24": 36,
+    "2026-08-25": 32,
+    "2026-08-26": 12,
     "2026-08-27": 13,
-    "2026-08-28": 2,
+    "2026-08-28": 3,
     "2026-08-30": 1,
     "2026-08-31": 3,
     "2026-09-01": 5,
     "2026-09-02": 1,
     "2026-09-03": 7,
-    "2026-09-06": 1
+    "2026-09-06": 1,
+    "2026-09-08": 1
   },
   "date_range": {
     "earliest": "1875-01-01",
@@ -2021,7 +2022,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 192984
+      "count": 193048
     },
     {
       "court": "ge_gerichte",
@@ -2223,7 +2224,7 @@
     "2026": -55.9
   },
   "federal_vs_cantonal": {
-    "federal": 397351,
+    "federal": 397415,
     "cantonal": 679609
   },
   "language_by_year": {
@@ -2342,26 +2343,26 @@
       "it": 2422
     },
     "2024": {
-      "de": 23545,
+      "de": 23547,
       "en": 152,
-      "fr": 26813,
-      "it": 2223
+      "fr": 26816,
+      "it": 2226
     },
     "2025": {
-      "de": 23465,
+      "de": 23475,
       "en": 180,
-      "fr": 24894,
-      "it": 1548
+      "fr": 24900,
+      "it": 1558
     },
     "2026": {
-      "de": 11555,
+      "de": 11567,
       "en": 110,
-      "fr": 9623,
-      "it": 787
+      "fr": 9638,
+      "it": 790
     }
   },
   "by_month": {
-    "2023-09": 3553,
+    "2023-09": 3382,
     "2023-10": 4404,
     "2023-11": 4790,
     "2023-12": 4311,
@@ -2373,33 +2374,33 @@
     "2024-06": 4864,
     "2024-07": 4055,
     "2024-08": 4007,
-    "2024-09": 4298,
-    "2024-10": 4543,
+    "2024-09": 4299,
+    "2024-10": 4548,
     "2024-11": 4620,
-    "2024-12": 4394,
-    "2025-01": 4336,
+    "2024-12": 4396,
+    "2025-01": 4340,
     "2025-02": 4208,
-    "2025-03": 4396,
-    "2025-04": 4072,
-    "2025-05": 4327,
-    "2025-06": 4718,
+    "2025-03": 4398,
+    "2025-04": 4077,
+    "2025-05": 4330,
+    "2025-06": 4719,
     "2025-07": 3896,
     "2025-08": 3797,
-    "2025-09": 4364,
-    "2025-10": 4308,
-    "2025-11": 4043,
-    "2025-12": 3622,
-    "2026-01": 3029,
-    "2026-02": 3661,
+    "2025-09": 4365,
+    "2025-10": 4311,
+    "2025-11": 4044,
+    "2025-12": 3628,
+    "2026-01": 3036,
+    "2026-02": 3662,
     "2026-03": 3584,
     "2026-04": 2880,
     "2026-05": 2666,
-    "2026-06": 2957,
-    "2026-07": 2233,
-    "2026-08": 1041,
-    "2026-09": 14
+    "2026-06": 2958,
+    "2026-07": 2234,
+    "2026-08": 1061,
+    "2026-09": 15
   },
-  "generated_at": "2026-09-07T11:43:27.554660+00:00",
+  "generated_at": "2026-09-08T00:03:08.691691+00:00",
   "scraper_health": {
     "run_at": "2026-09-07T01:58:41.548412+00:00",
     "run_duration_s": 3460.4,
@@ -3618,19 +3619,19 @@
       "reference_article": 40,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10014722,
-    "statute_edges": 12760553
+    "citation_edges": 10016077,
+    "statute_edges": 12761322
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "BGE 125 V 351",
-      "citation_count": 77819,
+      "citation_count": 77822,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 198179
+      "ref_count": 198185
     },
     "oldest_decision": {
       "docket": "1_I_26",
@@ -3640,19 +3641,19 @@
     },
     "language_split": {
       "de_pct": 46.9,
-      "fr_pct": 44.7,
+      "fr_pct": 44.6,
       "it_pct": 8.5,
-      "total": 1072999
+      "total": 1073070
     },
     "regeste_coverage": {
       "pct": 38.3,
       "with_regeste": 412409,
-      "total": 1076953
+      "total": 1077024
     },
     "graph_size": {
-      "decision_edges": 11751554,
-      "statute_edges": 12760553,
-      "total": 24512107
+      "decision_edges": 11753334,
+      "statute_edges": 12761322,
+      "total": 24514656
     },
     "echr_switzerland": {
       "total": 1526,
@@ -3669,13 +3670,13 @@
     "top_5_decisions": [
       {
         "docket": "BGE 125 V 351",
-        "citation_count": 77819,
+        "citation_count": 77822,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
       },
       {
         "docket": "125 V 351",
-        "citation_count": 76314,
+        "citation_count": 76321,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
@@ -3687,13 +3688,13 @@
       },
       {
         "docket": "BGE 134 V 231",
-        "citation_count": 39587,
+        "citation_count": 39591,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_134_V_231"
       },
       {
         "docket": "BGE 115 V 133",
-        "citation_count": 34635,
+        "citation_count": 34637,
         "regeste_excerpt": "Regeste\n Art. 67 und 76 KUVG, Art. 6 und 18 UVG. Präzisierung der in BGE 113 V 307 veröffentlichten Rechtsprechung zum adäquaten Kausalzusammenhang.\nRegeste\n Ar",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_115_V_133"
       }
@@ -3702,27 +3703,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 198179
+        "ref_count": 198185
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 122988
+        "ref_count": 122989
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 108698
+        "ref_count": 108717
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 96737
+        "ref_count": 96756
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 60548
+        "ref_count": 60566
       }
     ],
     "materialien_coverage": {
@@ -4256,14 +4257,6 @@
   },
   "upcoming_amendments": [
     {
-      "sr_number": "916.443.106",
-      "in_force_date": "2026-09-08",
-      "title_de": "Verordnung des EDI vom 18. November 2015 über die Ein-, Durch- und Ausfuhr von Tieren und Tierprodukten im Verkehr mit Drittstaaten (EDAV-DS-EDI)",
-      "title_fr": "Ordonnance du DFI du 18 novembre 2015 réglant les échanges d'importation, de transit et d'exportation d'animaux et de produits animaux avec les pays tiers (OITE-PT-DFI)",
-      "title_it": "Ordinanza del DFI del 18 novembre 2015 concernente l'importazione, il transito e l'esportazione di animali e prodotti animali nel traffico con Paesi terzi (OITE-PT-DFI)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2015/845"
-    },
-    {
       "sr_number": "281.112.1",
       "in_force_date": "2026-09-15",
       "title_de": "Verordnung des EJPD vom 9. Februar 2011 über die elektronische Übermittlung im Betreibungswesen",
@@ -4374,19 +4367,26 @@
       "title_fr": "Ordonnance du 13 novembre 1962 sur les règles de la circulation routière (OCR)",
       "title_it": "Ordinanza del 13 novembre 1962 sulle norme della circolazione stradale (ONC)",
       "url": "https://www.fedlex.admin.ch/eli/cc/1962/1364_1409_1420"
+    },
+    {
+      "sr_number": "741.41",
+      "in_force_date": "2026-10-01",
+      "title_de": "Verordnung vom 19. Juni 1995 über die technischen Anforderungen an Strassenfahrzeuge (VTS)",
+      "title_fr": "Ordonnance du 19 juin 1995 concernant les exigences techniques requises pour les véhicules routiers (OETV)",
+      "title_it": "Ordinanza del 19 giugno 1995 concernente le esigenze tecniche per i veicoli stradali (OETV)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1995/4425_4425_4425"
     }
   ],
   "delta": {
-    "total": 7,
+    "total": 64,
     "by_court": {
-      "zh_sozialversicherungsgericht": 6,
-      "gr_gerichte": 1
+      "bger": 64
     },
-    "by_canton": {
-      "ZH": 6,
-      "GR": 1
+    "by_canton": {},
+    "corpus": {
+      "citation_edges": 1355,
+      "statute_edges": 769
     },
-    "corpus": {},
-    "previous_generated_at": "2026-09-06T21:04:00.688676+00:00"
+    "previous_generated_at": "2026-09-07T11:43:27.554660+00:00"
   }
 }
