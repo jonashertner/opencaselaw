@@ -1,0 +1,145 @@
+harvesting live ids from https://mcp.opencaselaw.ch ...
+  decision_id            bge_BGE_125_III_70
+  federal_decision_id    bge_BGE_125_III_70
+  pub_id                 zhaw_digitalcollection:11475-28600
+  doc_id                 seco_arg_gesamtdokumente_argv_1_2_aenderlungsliste_de
+  commentary_article     ['166', 'BV']
+
+probing 44 tool calls across 42 distinct tools
+
+  OK     24.5s get_doctrine                       6211ch  {
+  "query": "Vertrauensprinzip",
+  "statute": {},
+  "doctrine_summary": {
+    "
+  OK     21.9s draft_mock_decision                8461ch  # Mock Decision Outline
+**Disclaimer:** Research-only mock outline, not legal ad
+  OK     16.8s generate_exam_question             1257ch  {
+  "fact_pattern": "Urteilskopf\n130 III 699\n94. Extrait de l'arrêt de la Ire 
+  OK     16.6s get_case_brief                     9546ch  {
+  "decision_id": "bge_BGE_125_III_70",
+  "preparatory_materials": [],
+  "bge_r
+  OK     15.6s list_scholarship_sources          10219ch  # OA Swiss legal scholarship — corpus overview
+
+**Total publications: 44,495**
+
+
+  OK     14.4s search_decisions                    709ch  Found 620+ decisions (lower bound; the exact count is capped — narrow with court
+  OK     10.5s find_leading_cases                 2162ch  # Leading Cases ("Kündigung", top 3 most-cited)
+
+**1.** [132 V 393](https://mcp.
+  OK      8.7s find_relevant_erwaegung           20523ch  {
+  "decision_id": "bge_BGE_125_III_70",
+  "claim": "Die Kündigung ist missbräuc
+  OK      7.5s analyze_legal_trend                1819ch  # Legal Trend Analysis
+**Filter:** "Datenschutz"
+**Total:** 4,849 decisions
+
+Yea
+  OK      4.6s get_statistics                     4190ch  Total: 1,061,885 decisions across 118 courts in 4 languages.
+
+{
+  "total": 10618
+  OK      4.1s check_claim_support                1145ch  {
+  "claim": "Die Kündigung war missbräuchlich",
+  "decision_id": "bge_BGE_125_I
+  OK      3.5s find_citations                     4321ch  # Citations for [bge_BGE_125_III_70](https://mcp.opencaselaw.ch/entscheid/bge_BG
+  OK      2.0s get_law                            2814ch  # OR — SR 220
+**Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schw
+  OK      1.0s cite                               1686ch  {
+  "exists": true,
+  "decision_id": "bge_BGE_132_III_115",
+  "court": "bge",
+  
+  OK      0.9s find_appeal_chain                   626ch  # Appeal chain for [BGE 125 III 70](https://mcp.opencaselaw.ch/entscheid/bge_BGE
+  OK      0.6s get_regeste                        1861ch  {
+  "decision_id": "bge_BGE_125_III_70",
+  "court": "bge",
+  "decision_date": "1
+  OK      0.6s get_decision_structure             3108ch  {
+  "decision_id": "bge_BGE_125_III_70",
+  "preparatory_materials": [],
+  "canon
+  OK      0.6s get_scholarship                    1079ch  # Kündigung kurz vor Pensionierung
+**Authors:** Stohwasser, Stephanie
+**Source:*
+  OK      0.5s get_erwaegung                       386ch  {
+  "error": "E. '1' not found in 'bge_BGE_125_III_70'.",
+  "available_e_numbers
+  OK      0.4s get_law                             741ch  # CC — SR 210
+**Code civil suisse du 10 décembre 1907**
+Jurisdiction: Bund (fede
+  OK      0.4s attest_response                    2542ch  {
+  "ok": true,
+  "citations_found": 1,
+  "citations_ok": 1,
+  "statutes_checked
+  OK      0.4s get_scholarship_full_text           514ch  Full-text serving not authorized: license 'Licence according to publishing contr
+  OK      0.4s get_practice                      24543ch  # Wegleitung zum Arbeitsgesetz und zu den Verordnungen 1 und 2: Liste der Änderu
+  OK      0.3s get_article_history                5555ch  {
+  "sr_number": "220",
+  "article": "336",
+  "language": "de",
+  "statute": {
+ 
+  OK      0.3s get_article_purpose                2259ch  {
+  "sr_number": "220",
+  "article": "336",
+  "language": "de",
+  "sources": [
+ 
+  OK      0.3s get_commentary                    56411ch  # Art. 166 BV
+**Authors:** Jelena Protic
+**Language:** de | **Date:** 2023-04-10
+  OK      0.2s search_laws                        2337ch  # Statute Search: "(kündigung OR disdetta OR licenciement OR resiliation OR term
+  OK      0.1s search_decisions                   3415ch  Found 461+ decisions (lower bound; the exact count is capped — narrow with court
+  OK      0.1s search                              840ch  {"results": [{"id": "bge_BGE_131_III_115", "title": "BGE 131 III 115", "url": "h
+  OK      0.1s fetch                             19814ch  {"id": "bge_BGE_125_III_70", "title": "BGE 125 III 70", "text": "Bundesgericht (
+  OK      0.1s search_legislation                  955ch  # Legislation Search: "Datenschutz"
+Found 3 legislative texts (3 shown).
+
+**1. G
+  OK      0.1s search_commentaries                1613ch  # Commentary Search: "Willensmängel"
+Found 3 results. Source: OnlineKommentar.ch
+  OK      0.1s search_scholarship                 1654ch  # Scholarship Search: "Mietrecht"
+Found 3 results.
+
+**1.** [zora_law/2023] Entwi
+  OK      0.1s search_materialien                  800ch  {
+  "query": "Revision Aktienrecht",
+  "count": 0,
+  "results": [],
+  "debate_re
+  OK      0.1s search_botschaft                   1548ch  {
+  "query": "Datenschutzgesetz",
+  "language_filter": null,
+  "year_filter": nu
+  OK      0.1s search_practice                    1436ch  Found 105 practice document(s) for 'Arbeitszeit' — showing the 3 best-ranked
+
+1.
+  OK      0.1s get_decision                      22965ch  # [BGE 125 III 70](https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_III_70)
+**Co
+  OK      0.1s get_decisions                      1987ch  Retrieved 1 of 1 requested decision(s).
+
+Regeste + metadata only. Re-call with f
+  OK      0.1s get_legislation                     604ch  # Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, D
+  OK      0.1s browse_legislation_changes        15314ch  NOTE: ignored unrecognised parameter(s) limit — they did NOT affect this result.
+  OK      0.1s get_materialien                    8244ch  {
+  "law_code": "DSG",
+  "sr_number": "235.1",
+  "article": null,
+  "sources": [
+  OK      0.1s find_scholarship_citing_statute    4842ch  # Scholarship citing SR 220 Art. 336
+Found 20 result(s).
+
+- [boris_law/2026] **D
+  OK      0.1s find_scholarship_citing_decision   6338ch  # Scholarship citing bge_BGE_125_III_70
+Found 20 OA publication(s) citing this d
+  OK      0.1s list_courts                       12426ch  Available courts:
+
+Court                     Canton    Decisions  Languages     
+
+  44 OK / 0 EMPTY / 0 FAIL
+  slower than 20s: get_doctrine, draft_mock_decision
+exit=0
