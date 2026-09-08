@@ -107,7 +107,7 @@
               </ul>
 <pre><code>cli:ch:bge:140-III-86
 cli:ch:bge:140-III-86?lang=fr             (französische Fassung desselben BGE)
-cli:ch:bge:140-III-86#e-2.3               (Pinpoint auf Erwägung 2.3)
+cli:ch:bge:140-III-86#e-4.1               (Pinpoint auf Erwägung 4.1)
 cli:ch:bger:6B_1234/2025
 cli:ch:bvger:A-1234/2024
 cli:ch:zh:obergericht:LB230012            (Kanton Zürich, Obergericht)
@@ -186,9 +186,9 @@ cli:ch:zh:obergericht:LB230012    →  ECLI:CH:ZHO:2023:LB230012</code></pre>
 ...
 
 ## Erwägungen
-### E. 2.1 {#e-2-1}
+### E. 2 {#e-2}
 ...
-### E. 2.3 {#e-2-3}
+### E. 4.1 {#e-4-1}
 Die zentrale Aussage steht hier...
 
 ## Dispositiv {#dispositiv}
@@ -288,7 +288,7 @@ OCL.init({
       s1_p2:'cli:ch macht fünf Eigenschaften der Schweizer Rechtsprechung erstklassig, die ECLI flachklopft:',
       s1_li1:'<strong>Dreisprachigkeit</strong> — DE/FR/IT-Versionen eines BGE sind rechtlich gleichwertige authentische Texte (Art. 14 PublG). cli:ch behandelt Sprache als erste Achse via <code>?lang=</code>.',
       s1_li2:'<strong>Kantonale Souveränität</strong> — 26 eigenständige Justizsysteme bleiben sichtbar (<code>cli:ch:zh:…</code>, <code>cli:ch:ti:…</code>), nicht in einen opaken Court-Code kollabiert.',
-      s1_li3:'<strong>Pinpoint-Adressierung</strong> — Erwägungs-Ebene erstklassig via <code>#e-2.3</code> (Schweizer-Zitations-Konvention).',
+      s1_li3:'<strong>Pinpoint-Adressierung</strong> — Erwägungs-Ebene erstklassig via <code>#e-4.1</code> (Schweizer-Zitations-Konvention).',
       s1_li4:'<strong>Kammer-Granularität</strong> — Obergericht, Verwaltungsgericht, Sozialversicherungsgericht etc. bleiben explizit benannt statt in einem 3-Buchstaben-Code zu verschwinden.',
       s1_li5:'<strong>Versionierung</strong> — <code>@YYYY-MM-DD</code> adressiert eine spezifische Anonymisierungs-Version; selten, aber rechtlich relevant wenn nötig.',
       s1_p3:'<strong>Form</strong>: <code>cli:ch:&lt;court&gt;[:&lt;chamber&gt;]:&lt;docket&gt;[@&lt;version&gt;][?lang=&lt;l&gt;][#&lt;pinpoint&gt;]</code>. Bundesgerichte ohne Kanton-Prefix, kantonale Gerichte mit ISO-3166-2-Kantonscode plus kantonseigener Gerichts-Bezeichnung. Identifier-Modell parallelisiert die FRBR-Schichten von <em>Akoma Ntoso</em> (Work / Expression / Manifestation) — wir erfinden nicht, wir wenden ein etabliertes Modell mit Schweizer Beschriftung an.',
@@ -308,9 +308,9 @@ OCL.init({
       s3_p3:'<em>Status</em>: in OpenCaseLaw teilweise produktiv (Materialien v0.2 nutzt Akoma Ntoso für Botschaften). Vollständige XML-Ausgabe für Gerichtsentscheide ist Roadmap-Item 2026 Q3.',
       s4_h3:'Volltext',
       s4_label:'Markdown mit Erwägungs-Ankern (Schweizer Citation)',
-      s4_p1:'Für die maschinenlesbare Volltext-Darstellung: <strong>Markdown</strong> mit <strong>HTML-Ankern auf jeder Erwägung</strong>, benannt nach Schweizer Citation (<code>E. 2.3</code> → <code>#e-2-3</code>).',
+      s4_p1:'Für die maschinenlesbare Volltext-Darstellung: <strong>Markdown</strong> mit <strong>HTML-Ankern auf jeder Erwägung</strong>, benannt nach Schweizer Citation (<code>E. 4.1</code> → <code>#e-4-1</code>).',
       s4_p2:'So lässt sich auf jede Erwägung pinpoint-genau verlinken — der Lebensnerv juristischer Zitierpraxis. Tools können Erwägungen einzeln zitieren und prüfen, ohne den Gesamt-Entscheid neu zu parsen.',
-      s4_p3:'<em>Referenz</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-2-3</code> springt direkt zur Erwägung 2.3.',
+      s4_p3:'<em>Referenz</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-4-1</code> springt direkt zur Erwägung 4.1.',
       s5_h3:'Zitationen',
       s5_label:'Aufgelöst, maschinenlesbar, bidirektional',
       s5_p1:'Jede Zitation eines anderen Entscheids oder Gesetzesartikels wird <strong>aufgelöst</strong>: nicht nur als Klartext-String, sondern verknüpft mit einer konkreten cli:ch (Fall, primär — ECLI als Projektion verfügbar) oder ELI-URI (Gesetz). Bidirektional — sowohl ausgehend (was zitiert dieser Entscheid) als auch eingehend (wer zitiert diesen Entscheid).',
@@ -330,7 +330,7 @@ OCL.init({
       ref_li1:'<strong>01 Identifikation</strong>: cli:ch (Schweizer Form, primär) plus ECLI (europäische Projektion) für alle 972\'000+ Entscheide; beide deterministisch gemintet beim Aufruf, sichtbar in jeder API-Antwort und jeder <code>/entscheid/&lt;id&gt;</code>-Seite. HTTP-Resolver unter <code>/cli/ch/…</code>.',
       ref_li2:'<strong>02 Metadaten</strong>: Schema.org/LegalCase-JSON-LD auf jeder Entscheid-Seite, mit cli:ch + ECLI im <code>identifier</code>-Array, Zitations- und Gesetzesgraph.',
       ref_li3:'<strong>03 Struktur</strong>: Akoma Ntoso für Materialien (Botschaften) bereits produktiv. Für Gerichtsentscheide: Roadmap Q3 2026.',
-      ref_li4:'<strong>04 Volltext</strong>: Markdown mit Erwägungs-Ankern, Schweizer-Citation-konform. Pinpoint-Links wie <code>/entscheid/bge_BGE_140_III_86#e-2-3</code> funktionieren.',
+      ref_li4:'<strong>04 Volltext</strong>: Markdown mit Erwägungs-Ankern, Schweizer-Citation-konform. Pinpoint-Links wie <code>/entscheid/bge_BGE_140_III_86#e-4-1</code> funktionieren.',
       ref_li5:'<strong>05 Zitationen</strong>: 6,46 Mio. aufgelöste Fall-Kanten + 11,3 Mio. Gesetzeszitate, täglich neu generiert, bidirektional verfügbar.',
       ref_li6:'<strong>06 Provenienz</strong>: produktiv ab 2026-05-21 — tägliche RFC-6962-Merkle-Wurzel über alle Entscheide unter <code>docs/integrity/&lt;datum&gt;.root</code>, dokumentiert auf <a href="/integrity/">opencaselaw.ch/integrity/</a>. OpenTimestamps-Anker und API-Endpoint für Inklusions-Beweispfade als nächste Schritte.',
       ref_p2:'Alles offen, alles CC0 für die Daten und MIT für den Code. Andere Anbieter können einzelne Bestimmungen adoptieren oder die ganze Konvention übernehmen — die Spezifikation gehört keinem einzelnen Anbieter.',
@@ -370,7 +370,7 @@ OCL.init({
       s1_p2:'cli:ch rend de premier ordre cinq propriétés de la jurisprudence suisse qu\'ECLI aplatit :',
       s1_li1:'<strong>Trilinguisme</strong> — les versions DE/FR/IT d\'un ATF sont des textes authentiques juridiquement équivalents (art. 14 LPubl). cli:ch traite la langue comme premier axe via <code>?lang=</code>.',
       s1_li2:'<strong>Souveraineté cantonale</strong> — 26 systèmes judiciaires autonomes restent visibles (<code>cli:ch:zh:…</code>, <code>cli:ch:ti:…</code>), non réduits à un code de tribunal opaque.',
-      s1_li3:'<strong>Adressage pinpoint</strong> — niveau du considérant de premier ordre via <code>#e-2.3</code> (convention de citation suisse).',
+      s1_li3:'<strong>Adressage pinpoint</strong> — niveau du considérant de premier ordre via <code>#e-4.1</code> (convention de citation suisse).',
       s1_li4:'<strong>Granularité des chambres</strong> — Cour suprême, tribunal administratif, tribunal des assurances sociales etc. restent explicitement nommés au lieu de disparaître dans un code à 3 lettres.',
       s1_li5:'<strong>Versionnement</strong> — <code>@YYYY-MM-DD</code> adresse une version d\'anonymisation spécifique ; rare, mais juridiquement pertinent si nécessaire.',
       s1_p3:'<strong>Forme</strong> : <code>cli:ch:&lt;court&gt;[:&lt;chamber&gt;]:&lt;docket&gt;[@&lt;version&gt;][?lang=&lt;l&gt;][#&lt;pinpoint&gt;]</code>. Tribunaux fédéraux sans préfixe cantonal, tribunaux cantonaux avec code cantonal ISO-3166-2 plus désignation propre du tribunal. Le modèle d\'identifiant met en parallèle les couches FRBR d\'<em>Akoma Ntoso</em> (Work / Expression / Manifestation) — nous n\'inventons pas, nous appliquons un modèle établi avec un étiquetage suisse.',
@@ -390,9 +390,9 @@ OCL.init({
       s3_p3:'<em>Statut</em> : partiellement en production dans OpenCaseLaw (les Materialien v0.2 utilisent Akoma Ntoso pour les messages). La sortie XML complète pour les décisions judiciaires est un point de feuille de route Q3 2026.',
       s4_h3:'Texte intégral',
       s4_label:'Markdown avec ancres de considérants (citation suisse)',
-      s4_p1:'Pour la représentation en texte intégral lisible par machine : <strong>Markdown</strong> avec des <strong>ancres HTML sur chaque considérant</strong>, nommées selon la citation suisse (<code>E. 2.3</code> → <code>#e-2-3</code>).',
+      s4_p1:'Pour la représentation en texte intégral lisible par machine : <strong>Markdown</strong> avec des <strong>ancres HTML sur chaque considérant</strong>, nommées selon la citation suisse (<code>E. 4.1</code> → <code>#e-4-1</code>).',
       s4_p2:'On peut ainsi lier de manière pinpoint à chaque considérant — le nerf vital de la pratique de citation juridique. Les outils peuvent citer et vérifier les considérants individuellement, sans reparser la décision entière.',
-      s4_p3:'<em>Référence</em> : <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-2-3</code> saute directement au considérant 2.3.',
+      s4_p3:'<em>Référence</em> : <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-4-1</code> saute directement au considérant 4.1.',
       s5_h3:'Citations',
       s5_label:'Résolues, lisibles par machine, bidirectionnelles',
       s5_p1:'Chaque citation d\'une autre décision ou d\'un article de loi est <strong>résolue</strong> : non seulement comme chaîne de texte brut, mais liée à un cli:ch concret (jurisprudence, primaire — ECLI disponible comme projection) ou à un URI ELI (loi). Bidirectionnel — aussi bien sortant (ce que cite cette décision) qu\'entrant (qui cite cette décision).',
@@ -412,7 +412,7 @@ OCL.init({
       ref_li1:'<strong>01 Identification</strong> : cli:ch (forme suisse, primaire) plus ECLI (projection européenne) pour toutes les 972\'000+ décisions ; les deux frappés de manière déterministe à l\'appel, visibles dans chaque réponse d\'API et chaque page <code>/entscheid/&lt;id&gt;</code>. Résolveur HTTP sous <code>/cli/ch/…</code>.',
       ref_li2:'<strong>02 Métadonnées</strong> : JSON-LD Schema.org/LegalCase sur chaque page de décision, avec cli:ch + ECLI dans le tableau <code>identifier</code>, graphe de citations et de législation.',
       ref_li3:'<strong>03 Structure</strong> : Akoma Ntoso pour les Materialien (messages) déjà en production. Pour les décisions judiciaires : feuille de route Q3 2026.',
-      ref_li4:'<strong>04 Texte intégral</strong> : Markdown avec ancres de considérants, conforme à la citation suisse. Les liens pinpoint comme <code>/entscheid/bge_BGE_140_III_86#e-2-3</code> fonctionnent.',
+      ref_li4:'<strong>04 Texte intégral</strong> : Markdown avec ancres de considérants, conforme à la citation suisse. Les liens pinpoint comme <code>/entscheid/bge_BGE_140_III_86#e-4-1</code> fonctionnent.',
       ref_li5:'<strong>05 Citations</strong> : 6,46 mio de liens de jurisprudence résolus + 11,3 mio de citations de législation, régénérés quotidiennement, disponibles bidirectionnellement.',
       ref_li6:'<strong>06 Provenance</strong> : en production dès le 2026-05-21 — racine de Merkle RFC-6962 quotidienne sur toutes les décisions sous <code>docs/integrity/&lt;datum&gt;.root</code>, documentée sur <a href="/integrity/">opencaselaw.ch/integrity/</a>. Ancre OpenTimestamps et endpoint d\'API pour les chemins de preuve d\'inclusion comme prochaines étapes.',
       ref_p2:'Tout est ouvert, tout en CC0 pour les données et MIT pour le code. D\'autres fournisseurs peuvent adopter des dispositions individuelles ou reprendre toute la convention — la spécification n\'appartient à aucun fournisseur unique.',
@@ -452,7 +452,7 @@ OCL.init({
       s1_p2:'cli:ch rende di prima classe cinque proprietà della giurisprudenza svizzera che ECLI appiattisce:',
       s1_li1:'<strong>Trilinguismo</strong> — le versioni DE/FR/IT di una DTF sono testi autentici giuridicamente equivalenti (art. 14 LPubb). cli:ch tratta la lingua come primo asse tramite <code>?lang=</code>.',
       s1_li2:'<strong>Sovranità cantonale</strong> — 26 sistemi giudiziari autonomi restano visibili (<code>cli:ch:zh:…</code>, <code>cli:ch:ti:…</code>), non collassati in un codice di tribunale opaco.',
-      s1_li3:'<strong>Indirizzamento pinpoint</strong> — livello del considerando di prima classe tramite <code>#e-2.3</code> (convenzione di citazione svizzera).',
+      s1_li3:'<strong>Indirizzamento pinpoint</strong> — livello del considerando di prima classe tramite <code>#e-4.1</code> (convenzione di citazione svizzera).',
       s1_li4:'<strong>Granularità delle camere</strong> — Corte suprema, tribunale amministrativo, tribunale delle assicurazioni sociali ecc. restano esplicitamente nominati invece di scomparire in un codice a 3 lettere.',
       s1_li5:'<strong>Versionamento</strong> — <code>@YYYY-MM-DD</code> indirizza una versione di anonimizzazione specifica; raro, ma giuridicamente rilevante quando necessario.',
       s1_p3:'<strong>Forma</strong>: <code>cli:ch:&lt;court&gt;[:&lt;chamber&gt;]:&lt;docket&gt;[@&lt;version&gt;][?lang=&lt;l&gt;][#&lt;pinpoint&gt;]</code>. Tribunali federali senza prefisso cantonale, tribunali cantonali con codice cantonale ISO-3166-2 più denominazione propria del tribunale. Il modello di identificatore parallelizza i livelli FRBR di <em>Akoma Ntoso</em> (Work / Expression / Manifestation) — non inventiamo, applichiamo un modello consolidato con etichettatura svizzera.',
@@ -472,9 +472,9 @@ OCL.init({
       s3_p3:'<em>Stato</em>: parzialmente in produzione in OpenCaseLaw (i Materialien v0.2 usano Akoma Ntoso per i messaggi). L\'output XML completo per le decisioni giudiziarie è un punto della roadmap Q3 2026.',
       s4_h3:'Testo integrale',
       s4_label:'Markdown con ancore di considerandi (citazione svizzera)',
-      s4_p1:'Per la rappresentazione in testo integrale leggibile dalla macchina: <strong>Markdown</strong> con <strong>ancore HTML su ogni considerando</strong>, denominate secondo la citazione svizzera (<code>E. 2.3</code> → <code>#e-2-3</code>).',
+      s4_p1:'Per la rappresentazione in testo integrale leggibile dalla macchina: <strong>Markdown</strong> con <strong>ancore HTML su ogni considerando</strong>, denominate secondo la citazione svizzera (<code>E. 4.1</code> → <code>#e-4-1</code>).',
       s4_p2:'Così è possibile collegarsi in modo pinpoint a ogni considerando — il nervo vitale della prassi di citazione giuridica. Gli strumenti possono citare e verificare i considerandi singolarmente, senza riparsare l\'intera decisione.',
-      s4_p3:'<em>Riferimento</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-2-3</code> salta direttamente al considerando 2.3.',
+      s4_p3:'<em>Riferimento</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-4-1</code> salta direttamente al considerando 4.1.',
       s5_h3:'Citazioni',
       s5_label:'Risolte, leggibili dalla macchina, bidirezionali',
       s5_p1:'Ogni citazione di un\'altra decisione o di un articolo di legge viene <strong>risolta</strong>: non solo come stringa di testo semplice, ma collegata a un cli:ch concreto (giurisprudenza, primario — ECLI disponibile come proiezione) o a un URI ELI (legge). Bidirezionale — sia uscente (cosa cita questa decisione) sia entrante (chi cita questa decisione).',
@@ -494,7 +494,7 @@ OCL.init({
       ref_li1:'<strong>01 Identificazione</strong>: cli:ch (forma svizzera, primaria) più ECLI (proiezione europea) per tutte le 972\'000+ decisioni; entrambi coniati in modo deterministico alla chiamata, visibili in ogni risposta API e in ogni pagina <code>/entscheid/&lt;id&gt;</code>. Resolver HTTP sotto <code>/cli/ch/…</code>.',
       ref_li2:'<strong>02 Metadati</strong>: JSON-LD Schema.org/LegalCase su ogni pagina di decisione, con cli:ch + ECLI nell\'array <code>identifier</code>, grafo di citazioni e di legislazione.',
       ref_li3:'<strong>03 Struttura</strong>: Akoma Ntoso per i Materialien (messaggi) già in produzione. Per le decisioni giudiziarie: roadmap Q3 2026.',
-      ref_li4:'<strong>04 Testo integrale</strong>: Markdown con ancore di considerandi, conforme alla citazione svizzera. I link pinpoint come <code>/entscheid/bge_BGE_140_III_86#e-2-3</code> funzionano.',
+      ref_li4:'<strong>04 Testo integrale</strong>: Markdown con ancore di considerandi, conforme alla citazione svizzera. I link pinpoint come <code>/entscheid/bge_BGE_140_III_86#e-4-1</code> funzionano.',
       ref_li5:'<strong>05 Citazioni</strong>: 6,46 mio di collegamenti di giurisprudenza risolti + 11,3 mio di citazioni di legislazione, rigenerati quotidianamente, disponibili in modo bidirezionale.',
       ref_li6:'<strong>06 Provenienza</strong>: in produzione dal 2026-05-21 — radice di Merkle RFC-6962 quotidiana su tutte le decisioni sotto <code>docs/integrity/&lt;datum&gt;.root</code>, documentata su <a href="/integrity/">opencaselaw.ch/integrity/</a>. Ancora OpenTimestamps ed endpoint API per i percorsi di prova di inclusione come prossimi passi.',
       ref_p2:'Tutto aperto, tutto CC0 per i dati e MIT per il codice. Altri fornitori possono adottare singole disposizioni o riprendere l\'intera convenzione — la specifica non appartiene a nessun singolo fornitore.',
@@ -534,7 +534,7 @@ OCL.init({
       s1_p2:'cli:ch renda da primnigna classa tschintg caracteristicas da la giurisprudenza svizra ch\'ECLI applatta:',
       s1_li1:'<strong>Trilinguitad</strong> — las versiuns DE/FR/IT d\'in BGE èn texts autentics giuridicamain equivalents (art. 14 LPubl). cli:ch tracta la lingua sco emprima axa via <code>?lang=</code>.',
       s1_li2:'<strong>Suveranitad chantunala</strong> — 26 sistems giudizials autonoms restan visibels (<code>cli:ch:zh:…</code>, <code>cli:ch:ti:…</code>), betg collassads en in code da tribunal opac.',
-      s1_li3:'<strong>Adressaziun pinpoint</strong> — nivel da la consideraziun da primnigna classa via <code>#e-2.3</code> (convenziun da citaziun svizra).',
+      s1_li3:'<strong>Adressaziun pinpoint</strong> — nivel da la consideraziun da primnigna classa via <code>#e-4.1</code> (convenziun da citaziun svizra).',
       s1_li4:'<strong>Granularitad da las chombras</strong> — Dretgira suprema, tribunal administrativ, tribunal da las assicuranzas socialas etc. restan numnads explicitamain enstagl da svanir en in code da 3 letras.',
       s1_li5:'<strong>Versiunaziun</strong> — <code>@YYYY-MM-DD</code> adressescha ina versiun specifica d\'anonimisaziun; raramain, ma giuridicamain relevant sche necessari.',
       s1_p3:'<strong>Furma</strong>: <code>cli:ch:&lt;court&gt;[:&lt;chamber&gt;]:&lt;docket&gt;[@&lt;version&gt;][?lang=&lt;l&gt;][#&lt;pinpoint&gt;]</code>. Tribunals federals senza prefix chantunal, tribunals chantunals cun code chantunal ISO-3166-2 plus la designaziun atgna dal tribunal. Il model d\'identificatur parallelisescha ils nivels FRBR d\'<em>Akoma Ntoso</em> (Work / Expression / Manifestation) — nus n\'inventain betg, nus applitgain in model stabilì cun etichettaziun svizra.',
@@ -554,9 +554,9 @@ OCL.init({
       s3_p3:'<em>Status</em>: parzialmain en producziun en OpenCaseLaw (ils Materialien v0.2 dovran Akoma Ntoso per ils messadis). L\'output XML cumplet per las decisiuns giudicialas è in punct da la roadmap Q3 2026.',
       s4_h3:'Text cumplet',
       s4_label:'Markdown cun ancuras da consideraziuns (citaziun svizra)',
-      s4_p1:'Per la represchentaziun en text cumplet legibel per maschinas: <strong>Markdown</strong> cun <strong>ancuras HTML sin mintga consideraziun</strong>, numnadas tenor la citaziun svizra (<code>E. 2.3</code> → <code>#e-2-3</code>).',
+      s4_p1:'Per la represchentaziun en text cumplet legibel per maschinas: <strong>Markdown</strong> cun <strong>ancuras HTML sin mintga consideraziun</strong>, numnadas tenor la citaziun svizra (<code>E. 4.1</code> → <code>#e-4-1</code>).',
       s4_p2:'Uschia sa lascha colliar pinpoint exact a mintga consideraziun — il nerv vital da la pratica da citaziun giuridica. Ils utensils pon citar e verifitgar las consideraziuns singulas, senza reparsar l\'entira decisiun.',
-      s4_p3:'<em>Referenza</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-2-3</code> siglia directamain a la consideraziun 2.3.',
+      s4_p3:'<em>Referenza</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-4-1</code> siglia directamain a la consideraziun 4.1.',
       s5_h3:'Citaziuns',
       s5_label:'Resolvidas, legiblas per maschinas, bidirecziunalas',
       s5_p1:'Mintga citaziun d\'ina autra decisiun u d\'in artitgel da lescha vegn <strong>resolvida</strong>: betg mo sco stringa da text simpel, mabain colliada cun in cli:ch concret (chaussa, primar — ECLI disponibel sco prochecziun) u cun ina URI ELI (lescha). Bidirecziunal — sco bain sortent (tge che citescha questa decisiun) sco er entrant (tgi che citescha questa decisiun).',
@@ -576,7 +576,7 @@ OCL.init({
       ref_li1:'<strong>01 Identificaziun</strong>: cli:ch (furma svizra, primara) plus ECLI (prochecziun europeica) per tut las 972\'000+ decisiuns; tuts dus coinads en moda deterministica al clom, visibels en mintga resposta API ed en mintga pagina <code>/entscheid/&lt;id&gt;</code>. Resolver HTTP sut <code>/cli/ch/…</code>.',
       ref_li2:'<strong>02 Metadatas</strong>: JSON-LD Schema.org/LegalCase sin mintga pagina d\'ina decisiun, cun cli:ch + ECLI en l\'array <code>identifier</code>, graf da citaziuns e da leschas.',
       ref_li3:'<strong>03 Structura</strong>: Akoma Ntoso per ils Materialien (messadis) gia en producziun. Per las decisiuns giudicialas: roadmap Q3 2026.',
-      ref_li4:'<strong>04 Text cumplet</strong>: Markdown cun ancuras da consideraziuns, conform a la citaziun svizra. Ils links pinpoint sco <code>/entscheid/bge_BGE_140_III_86#e-2-3</code> funcziuneschan.',
+      ref_li4:'<strong>04 Text cumplet</strong>: Markdown cun ancuras da consideraziuns, conform a la citaziun svizra. Ils links pinpoint sco <code>/entscheid/bge_BGE_140_III_86#e-4-1</code> funcziuneschan.',
       ref_li5:'<strong>05 Citaziuns</strong>: 6,46 mio colliaziuns da chaussas resolvidas + 11,3 mio citaziuns da leschas, regeneradas mintga di, disponiblas bidirecziunalmain.',
       ref_li6:'<strong>06 Provegnientscha</strong>: en producziun a partir dals 2026-05-21 — ragisch da Merkle RFC-6962 mintga di sur tut las decisiuns sut <code>docs/integrity/&lt;datum&gt;.root</code>, documentada sin <a href="/integrity/">opencaselaw.ch/integrity/</a>. Ancura OpenTimestamps ed endpoint API per ils percurs da cumprova d\'inclusiun sco proxims pass.',
       ref_p2:'Tut avert, tut CC0 per las datas e MIT per il code. Auters purschiders pon adoptar disposiziuns singulas u surprender l\'entira convenziun — la specificaziun n\'appartegna a nagin singul purschider.',
@@ -616,7 +616,7 @@ OCL.init({
       s1_p2:'cli:ch makes five properties of Swiss case law first-class that ECLI flattens:',
       s1_li1:'<strong>Trilingualism</strong> — DE/FR/IT versions of a BGE are legally equivalent authentic texts (Art. 14 PublA). cli:ch treats language as a first axis via <code>?lang=</code>.',
       s1_li2:'<strong>Cantonal sovereignty</strong> — 26 independent judicial systems remain visible (<code>cli:ch:zh:…</code>, <code>cli:ch:ti:…</code>), not collapsed into an opaque court code.',
-      s1_li3:'<strong>Pinpoint addressing</strong> — consideration level first-class via <code>#e-2.3</code> (Swiss citation convention).',
+      s1_li3:'<strong>Pinpoint addressing</strong> — consideration level first-class via <code>#e-4.1</code> (Swiss citation convention).',
       s1_li4:'<strong>Chamber granularity</strong> — Cantonal High Court, Administrative Court, Social Insurance Court etc. remain explicitly named instead of vanishing into a 3-letter code.',
       s1_li5:'<strong>Versioning</strong> — <code>@YYYY-MM-DD</code> addresses a specific anonymisation version; rare, but legally relevant when needed.',
       s1_p3:'<strong>Form</strong>: <code>cli:ch:&lt;court&gt;[:&lt;chamber&gt;]:&lt;docket&gt;[@&lt;version&gt;][?lang=&lt;l&gt;][#&lt;pinpoint&gt;]</code>. Federal courts without a canton prefix, cantonal courts with an ISO-3166-2 canton code plus the court\'s own designation. The identifier model parallels the FRBR layers of <em>Akoma Ntoso</em> (Work / Expression / Manifestation) — we do not invent, we apply an established model with Swiss labelling.',
@@ -636,9 +636,9 @@ OCL.init({
       s3_p3:'<em>Status</em>: partly in production in OpenCaseLaw (Materialien v0.2 uses Akoma Ntoso for federal messages). Full XML output for court decisions is a roadmap item for 2026 Q3.',
       s4_h3:'Full text',
       s4_label:'Markdown with consideration anchors (Swiss citation)',
-      s4_p1:'For the machine-readable full-text representation: <strong>Markdown</strong> with <strong>HTML anchors on every consideration</strong>, named after the Swiss citation (<code>E. 2.3</code> → <code>#e-2-3</code>).',
+      s4_p1:'For the machine-readable full-text representation: <strong>Markdown</strong> with <strong>HTML anchors on every consideration</strong>, named after the Swiss citation (<code>E. 4.1</code> → <code>#e-4-1</code>).',
       s4_p2:'This allows pinpoint-precise linking to every consideration — the lifeblood of legal citation practice. Tools can cite and verify considerations individually, without reparsing the entire decision.',
-      s4_p3:'<em>Reference</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-2-3</code> jumps directly to consideration 2.3.',
+      s4_p3:'<em>Reference</em>: <code>opencaselaw.ch/entscheid/bge_BGE_140_III_86#e-4-1</code> jumps directly to consideration 4.1.',
       s5_h3:'Citations',
       s5_label:'Resolved, machine-readable, bidirectional',
       s5_p1:'Every citation of another decision or statute article is <strong>resolved</strong>: not only as a plain-text string, but linked to a concrete cli:ch (case, primary — ECLI available as a projection) or ELI URI (statute). Bidirectional — both outgoing (what this decision cites) and incoming (who cites this decision).',
@@ -658,7 +658,7 @@ OCL.init({
       ref_li1:'<strong>01 Identification</strong>: cli:ch (Swiss form, primary) plus ECLI (European projection) for all 1,050,000+ decisions; both deterministically minted on call, visible in every API response and every <code>/entscheid/&lt;id&gt;</code> page. HTTP resolver under <code>/cli/ch/…</code>.',
       ref_li2:'<strong>02 Metadata</strong>: Schema.org/LegalCase JSON-LD on every decision page, with cli:ch + ECLI in the <code>identifier</code> array, citation and legislation graph.',
       ref_li3:'<strong>03 Structure</strong>: Akoma Ntoso for Materialien (federal messages) already in production. For court decisions: roadmap Q3 2026.',
-      ref_li4:'<strong>04 Full text</strong>: Markdown with consideration anchors, Swiss-citation-compliant. Pinpoint links like <code>/entscheid/bge_BGE_140_III_86#e-2-3</code> work.',
+      ref_li4:'<strong>04 Full text</strong>: Markdown with consideration anchors, Swiss-citation-compliant. Pinpoint links like <code>/entscheid/bge_BGE_140_III_86#e-4-1</code> work.',
       ref_li5:'<strong>05 Citations</strong>: 6.46 M resolved case edges + 11.3 M legislation citations, regenerated daily, available bidirectionally.',
       ref_li6:'<strong>06 Provenance</strong>: live from 2026-05-21 — daily RFC-6962 Merkle root over all decisions under <code>docs/integrity/&lt;date&gt;.root</code>, documented at <a href="/integrity/">opencaselaw.ch/integrity/</a>. OpenTimestamps anchor and API endpoint for inclusion proof paths as next steps.',
       ref_p2:'Everything open, everything CC0 for the data and MIT for the code. Other providers can adopt individual provisions or take over the whole convention — the specification belongs to no single provider.',

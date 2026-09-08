@@ -56,8 +56,9 @@ def fixture_decision(monkeypatch):
 
 
 def test_og_card_meta_tags_present(fixture_decision):
-    html, status = seo_pages.render_decision_page("bge_BGE_140_III_86")
+    html, status, redirect_location = seo_pages.render_decision_page("bge_BGE_140_III_86")
     assert status == 200
+    assert redirect_location is None
 
     # Open Graph essentials — image is the key add for v0.1
     assert '<meta property="og:image" content="https://opencaselaw.ch/og-image.png">' in html
@@ -79,7 +80,7 @@ def test_existing_og_tags_preserved(fixture_decision):
     """The existing og:type, og:title, og:description, og:url,
     og:site_name, og:locale must NOT regress when adding the new
     image + Twitter tags."""
-    html, _ = seo_pages.render_decision_page("bge_BGE_140_III_86")
+    html, _, _ = seo_pages.render_decision_page("bge_BGE_140_III_86")
     for tag in [
         '<meta property="og:type" content="article">',
         '<meta property="og:title" content="BGE 140 III 86',
@@ -94,7 +95,7 @@ def test_existing_og_tags_preserved(fixture_decision):
 def test_meta_description_in_og_description(fixture_decision):
     """og:description should reuse the truncated regeste-derived
     meta_desc — same value as <meta name="description">."""
-    html, _ = seo_pages.render_decision_page("bge_BGE_140_III_86")
+    html, _, _ = seo_pages.render_decision_page("bge_BGE_140_III_86")
     # The regeste contains "Schutzwürdiges Interesse" so og:description
     # should mention it (after truncation).
     assert "Schutzwürdiges Interesse" in html

@@ -16,6 +16,7 @@ import logging
 import os
 import re
 import sqlite3
+import urllib.parse
 from pathlib import Path
 
 import ecthr_docket
@@ -507,8 +508,12 @@ def render_decision_page(
     *,
     highlight: str | None = None,
     e_focus: str | None = None,
-) -> tuple[str, int]:
-    """Render an HTML page for a single decision. Returns (html, status_code).
+) -> tuple[str, int, str | None]:
+    """Render an HTML page for a single decision.
+
+    Returns ``(html, status_code, redirect_location)``. ``redirect_location``
+    is non-None only for the 301 docket-redirect case below; the caller must
+    send it as the ``Location`` header instead of ``html`` when present.
 
     Optional ``highlight``: a verbatim substring that, if found in the
     Erwägung whose ``e_number`` matches ``e_focus``, is wrapped in
@@ -523,17 +528,26 @@ def render_decision_page(
             "SELECT * FROM decisions WHERE decision_id = ?", (decision_id,)
         ).fetchone()
 
-        if not row:
-            # Try fuzzy match on docket
-            row = conn.execute(
-                "SELECT * FROM decisions WHERE docket_number LIKE ? LIMIT 1",
-                (f"%{decision_id}%",),
-            ).fetchone()
+        if row:
+            return _render_decision(row, highlight=highlight, e_focus=e_focus), 200, None
 
-        if not row:
-            return _render_404(decision_id), 404
+        # P1.4: no LIKE %...% substring fallback here any more — that let
+        # /entscheid/1 resolve to an unrelated decision with HTTP 200 via
+        # nondeterministic substring matching. An EXACT docket_number match
+        # is safe to redirect on ONLY if it is unique; zero or multiple
+        # matches both 404 (the caller decoded the path segment already, so
+        # docket_number values containing '/' or spaces compare correctly
+        # here).
+        docket_matches = conn.execute(
+            "SELECT decision_id FROM decisions WHERE docket_number = ? LIMIT 2",
+            (decision_id,),
+        ).fetchall()
+        if len(docket_matches) == 1:
+            canonical_id = docket_matches[0]["decision_id"]
+            location = "/entscheid/" + urllib.parse.quote(str(canonical_id), safe="")
+            return "", 301, location
 
-        return _render_decision(row, highlight=highlight, e_focus=e_focus), 200
+        return _render_404(decision_id), 404, None
     finally:
         conn.close()
 

@@ -11083,7 +11083,7 @@ server = Server(
         "   Example — DO:\n"
         "     Das Bundesgericht hielt in "
         "[BGE 140 III 86](https://mcp.opencaselaw.ch/entscheid/bge_BGE_140_III_86) "
-        "E. 2.3 fest, dass ...\n"
+        "E. 4.1 fest, dass ...\n"
         "   Example — DON'T:\n"
         "     Das Bundesgericht hielt in BGE 136 III 513 E. 2.3 fest, dass ...\n"
         "     (plain text — user can't click through to verify)\n\n"
@@ -11414,9 +11414,9 @@ server = Server(
         "      claim.\n\n"
 
         "U7. PINPOINT FORMAT BY LANGUAGE.\n"
-        "    • DE response: '[BGE 140 III 86](url) E. 2.3'\n"
-        "    • FR response: '[ATF 140 III 86](url) consid. 2.3'\n"
-        "    • IT response: '[DTF 140 III 86](url) consid. 2.3'\n"
+        "    • DE response: '[BGE 140 III 86](url) E. 4.1'\n"
+        "    • FR response: '[ATF 140 III 86](url) consid. 4.1'\n"
+        "    • IT response: '[DTF 140 III 86](url) consid. 4.1'\n"
         "    Don't translate 'E.' to 'consid.' or vice versa within\n"
         "    a single response — match the response language.\n\n"
 
@@ -12509,22 +12509,53 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
             "text": block[:60000]}
 
 
+# HTTP status per `error_code` returned by _handle_get_erwaegung. An unknown
+# decision or a nonexistent Erwägung used to come back as HTTP 200 carrying an
+# error body, so any REST caller that trusted the status code read a fabricated
+# pinpoint as a resolved one. The body shape is unchanged (MCP clients read
+# `error` / `available_e_numbers`); only the status code moves.
+ERWAEGUNG_ERROR_STATUS = {
+    "invalid_request": 400,
+    "decision_not_found": 404,
+    "no_structure": 404,
+    "pinpoint_not_found": 404,
+}
+
+
 def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
     """Return verbatim text of a specific Erwägung paragraph."""
     if not decision_id or not e_number:
-        return {"error": "Provide both decision_id and e_number (e.g. '2.3')."}
+        return {"error": "Provide both decision_id and e_number (e.g. '4.1').",
+                "error_code": "invalid_request"}
     resolved = _resolve_decision_id(decision_id.strip())
     e_clean = _strip_erw_prefix(e_number)
     paragraphs = _fetch_structure_paragraphs(resolved)
     text_fallback = False
     if not paragraphs:
-        # No structure row at all: try the heading in the served full text.
+        # No structure row at all: try the heading in the served full text
+        # (passage fallback). When the text has no such heading either, this
+        # is state 3 of the pinpoint contract (see _verify_pinpoint): no
+        # structure rows means unverifiable, not absent. Say what we don't
+        # have rather than implying the Erwägung is fabricated.
         main_for_text = get_decision_by_id(resolved)
-        fallback = _erwaegung_from_text((main_for_text or {}).get("full_text"), e_clean)
+        if not main_for_text:
+            return {"error": f"Decision {decision_id!r} is not in the corpus.",
+                    "error_code": "decision_not_found", "text_source": "none"}
+        fallback = _erwaegung_from_text(main_for_text.get("full_text"), e_clean)
         if not fallback:
-            return {"error": f"No structured Erwägungen found for {decision_id!r}, and the decision text "
-                             f"has no heading numbered {e_clean!r}. Fetch the decision and locate the passage.",
-                    "text_source": "none"}
+            return {
+                "error": f"No structured Erwägungen stored for {decision_id!r}, and the decision text "
+                         f"has no heading numbered {e_clean!r}.",
+                "error_code": "no_structure",
+                "pinpoint_status": PINPOINT_UNVERIFIED,
+                "text_source": "none",
+                "_note": (
+                    "This is NOT a finding that the Erwägung does not exist — "
+                    "structured extraction covers most but not all of the "
+                    "corpus. Read the decision with get_decision and quote from "
+                    "its full text."
+                ),
+            }
         paragraphs, text_fallback = [], True
     para_map = {p["e_number"]: p for p in paragraphs}
     target = para_map.get(e_clean) if not text_fallback else fallback
@@ -12568,11 +12599,16 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         if fallback:
             target, text_fallback = fallback, True
     if not target:
-        # Sort siblings by numeric key for a useful error message
-        all_nums = sorted(para_map.keys(), key=_e_number_sort_key)
+        # State 2: structure rows exist, the pinpoint is neither one of them
+        # nor a parent prefix of one, and the served text has no such heading
+        # either, so this IS an absence finding. Same verdict the cite /
+        # attest surfaces read.
+        verdict = _verify_pinpoint(e_clean, paragraphs=paragraphs)
         return {
             "error": f"E. {e_clean!r} not found in {decision_id!r}.",
-            "available_e_numbers": all_nums,
+            "error_code": "pinpoint_not_found",
+            "pinpoint_status": verdict["status"],
+            "available_e_numbers": verdict["valid_pinpoints"],
             "text_source": "none",
             "hint": (f"Neither the structure index nor a heading in the decision text names E. {e_clean}. "
                      "The passage may sit inside a larger numbered block; fetch the decision and read it."),
@@ -14602,14 +14638,28 @@ def _handle_cite(
 
     # Rule statement: prefer Regeste; for pinpoint, prefer the targeted Erwägung.
     pinpoint_text: str | None = None
-    if pinpoint:
-        # Best-effort: fetch the referenced Erwägung if available.
+    pin_clean = _strip_erw_prefix(pinpoint) if pinpoint else ""
+    pin_verdict: dict | None = None
+    if pin_clean:
         paras = _fetch_structure_paragraphs(decision.get("decision_id") or resolved_id)
-        pin_clean = _strip_erw_prefix(pinpoint)
-        for p in paras:
-            if p["e_number"] == pin_clean:
-                pinpoint_text = p["text"]
-                break
+        pin_verdict = _verify_pinpoint(
+            pin_clean, paragraphs=paras,
+            full_text=decision.get("full_text") or "",
+        )
+        if pin_verdict["status"] == PINPOINT_INVALID:
+            # Audit P1.1: R1 tells the caller to copy citation_string verbatim,
+            # so emitting "BGE X, E. 7.1" plus a #e-7-1 anchor for an Erwägung
+            # this decision does not have would launder a fabrication through
+            # the very channel that exists to prevent one. Fall back to the
+            # base citation and say so.
+            citation = _build_citation_strings(decision)
+            primary = citation[f"citation_string_{language}"]
+        else:
+            # Best-effort: fetch the referenced Erwägung if available.
+            for p in paras:
+                if p["e_number"] == pin_clean:
+                    pinpoint_text = p["text"]
+                    break
     rule = _rule_statement(decision, pinpoint_text=pinpoint_text)
     _date_warning = _bge_volume_year_mismatch(
         citation["citation_string_de"], decision.get("decision_date"),
@@ -14641,6 +14691,33 @@ def _handle_cite(
             "excerpt — do not paraphrase inside quotation marks)."
         ),
     }
+    if pin_verdict is not None:
+        # Three-state (see _verify_pinpoint). `pinpoint_valid` is the boolean
+        # projection and is null — NOT false — when we simply cannot check:
+        # ~14 % of the corpus has no structured Erwägungen, and reporting
+        # those as invalid would accuse the caller of inventing a real
+        # pinpoint.
+        result["pinpoint"] = pin_clean
+        result["pinpoint_status"] = pin_verdict["status"]
+        result["pinpoint_valid"] = {
+            PINPOINT_VERIFIED: True, PINPOINT_INVALID: False,
+        }.get(pin_verdict["status"])
+        if pin_verdict["status"] == PINPOINT_INVALID:
+            result["valid_pinpoints"] = pin_verdict["valid_pinpoints"][:20]
+            result["pinpoint_note"] = (
+                f"E. {pin_clean} does not exist in this decision. The "
+                "citation_string_* fields above are the UNPINPOINTED "
+                "citation — do not append this pinpoint to them. Pick one "
+                "of valid_pinpoints, or call find_relevant_erwaegung with "
+                "the claim to locate the right Erwägung."
+            )
+        elif pin_verdict["status"] == PINPOINT_UNVERIFIED:
+            result["pinpoint_note"] = (
+                f"E. {pin_clean} could not be verified: this decision has "
+                "no structured Erwägungen and its full text carries no "
+                "matching heading. This is not a finding that the pinpoint "
+                "is wrong. Confirm it against get_decision before quoting."
+            )
     if _date_warning:
         result["decision_date_warning"] = _date_warning
     if identity:
@@ -15108,28 +15185,126 @@ def _get_decision_strict(decision_id: str) -> dict | None:
         conn.close()
 
 
+# A decision's body quotes other decisions constantly, and those quotes
+# carry pinpoints of their own ("vgl. BGE 133 III 393 E. 7.1"). Reading
+# such a marker as proof that THIS decision has an E. 7.1 is what let
+# /attest certify considerations that do not exist. Before accepting a
+# marker we therefore require that the text immediately preceding it does
+# NOT end in a reference to another case. Divisions are pinned to the five
+# BGE ones (I/Ia/Ib/II/III/IV/V) so an ordinary "Art. 8 I 2" cannot be
+# mistaken for a volume-page reference.
+_CROSS_CITATION_TAIL_RE = re.compile(
+    r"(?:"
+    r"(?:BGE|ATF|DTF)\s+\d{1,3}\s+(?:I[ab]?|II|III|IV|V)\s+\d{1,4}"
+    r"|\b\d{1,3}\s+(?:I[ab]?|II|III|IV|V)\s+\d{1,4}"
+    r"|\b\d{1,2}[A-Za-z]{1,3}[._\s]\d+/\d{2,4}"
+    r"|\b[A-Z]{1,2}-\d+/\d{4}"
+    r"|ECLI:[A-Z]{2}:[A-Za-z0-9_.:-]+"
+    r"|\b(?:vom|du|del|dal)\s+\d{1,2}[.\s][^,;()\[\]]{0,24}?\d{4}"
+    r")"
+    r"[\s,;:(\[]*$",
+    re.I,
+)
+
+
 # Pinpoint patterns we accept inside a decision's full_text as proof
 # that an Erwägung exists. Boundary-anchored to avoid matching numbers
 # that happen to follow the word "consid." inside a sentence.
 def _pinpoint_in_text(full_text: str, pinpoint: str) -> bool:
-    """Authoritative cross-check: does the decision's body literally
-    contain the cited pinpoint at an Erwägung anchor?
+    """Best-effort cross-check: does the decision's body carry the cited
+    pinpoint as one of ITS OWN Erwägung anchors?
 
-    We accept any of: "E. X.Y", "Erw. X.Y", "consid. X.Y",
-    "consid X.Y", "cons. X.Y", a leading bullet "X.Y " at line start,
-    or a parenthetical "(E. X.Y)".
+    Two accepted shapes:
+      • a heading at line start — "7.1 Das Bundesgericht …", "7.1. Le …";
+      • an Erwägung marker — "E. X.Y", "Erw. X.Y", "consid. X.Y",
+        "consid X.Y", "cons. X.Y", "(E. X.Y)" — that is NOT preceded by a
+        reference to another decision (see _CROSS_CITATION_TAIL_RE).
+
+    Only authoritative in the negative-to-positive direction: a hit means
+    the pinpoint is real, a miss means unverifiable, never fabricated.
+    Callers must reach this only when the decision has no structure rows;
+    where structure exists, structure decides (see _verify_pinpoint).
     """
     if not full_text or not pinpoint:
         return False
     pin = re.escape(pinpoint)
-    # Anchored after Erwägung markers OR at a paragraph start
-    pattern = re.compile(
-        r"(?:(?:^|[\s(])(?:E\.|Erw\.?|consid\.?|cons\.?)\s*"
-        + pin + r"(?=[\s.,;:)\]]|$))"
-        + r"|(?:^\s*" + pin + r"\s+[A-ZÄÖÜ])",
+    # A numbered heading at line start is self-evidently this decision's own.
+    # The optional dot covers the printed "7.1." form.
+    heading = re.compile(
+        r"^[ \t]*" + pin + r"\.?[ \t]+[A-ZÄÖÜÉÈÀ]", flags=re.MULTILINE)
+    if heading.search(full_text):
+        return True
+    marker = re.compile(
+        r"(?:^|[\s(\[])((?:E\.|Erw\.?|consid\.?|cons\.?)\s*"
+        + pin + r")(?=[\s.,;:)\]]|$)",
         flags=re.MULTILINE,
     )
-    return bool(pattern.search(full_text))
+    for mt in marker.finditer(full_text):
+        start = mt.start(1)
+        if _CROSS_CITATION_TAIL_RE.search(full_text[max(0, start - 80):start]):
+            continue
+        return True
+    return False
+
+
+# ── The pinpoint contract (external audit P1.1) ────────────────────
+#
+# Structured considerations cover ~86 % of the corpus. A structure-only
+# resolver would therefore report "this Erwägung does not exist" on ~14 %
+# of perfectly valid pinpoints — a fabrication accusation is far more
+# damaging to a practitioner's trust than a missing verification. So the
+# verdict is three-state, and every endpoint that touches a pinpoint
+# (cite / get_erwaegung / attest_response) reads it from here:
+#
+#   verified    — the pinpoint is a structured consideration heading, or
+#                 the parent prefix of one (E. 7 when 7.1/7.2 are stored:
+#                 the official Regeste cites at parent level and
+#                 get_erwaegung composes those parents, so a parent MUST
+#                 count as valid); or, with no structure at all, the
+#                 tightened text check found the decision's own heading.
+#   invalid     — the decision HAS structure rows and the pinpoint is
+#                 neither among them nor a parent prefix of one. This is
+#                 the only state that may be reported as an error.
+#   unverified  — no structure rows and no heading in the body. A warning:
+#                 we cannot confirm it, and we must not deny it.
+PINPOINT_VERIFIED = "verified"
+PINPOINT_INVALID = "invalid"
+PINPOINT_UNVERIFIED = "unverified"
+
+
+def _verify_pinpoint(pinpoint: str | None, *, paragraphs: list[dict],
+                     full_text: str = "") -> dict:
+    """Single strict resolver for pinpoint validity.
+
+    ``paragraphs`` are the rows _fetch_structure_paragraphs returns for the
+    decision — the same source get_erwaegung quotes from, so a "verified"
+    verdict here always has a retrievable Erwägung behind it.
+
+    Returns {status, method, valid_pinpoints}: `method` is
+    "structure" | "structure_parent" | "text" | "none", `valid_pinpoints`
+    the stored e_numbers (empty when the decision has no structure).
+    """
+    pin = _strip_erw_prefix(pinpoint)
+    valid = sorted({p["e_number"] for p in (paragraphs or [])},
+                   key=_e_number_sort_key)
+    if not pin:
+        return {"status": PINPOINT_VERIFIED, "method": "none",
+                "valid_pinpoints": valid}
+    if valid:
+        if pin in valid:
+            return {"status": PINPOINT_VERIFIED, "method": "structure",
+                    "valid_pinpoints": valid}
+        # Parent prefix: the trailing dot is what keeps E. 2 from matching 21.1.
+        if any(vp.startswith(pin + ".") for vp in valid):
+            return {"status": PINPOINT_VERIFIED, "method": "structure_parent",
+                    "valid_pinpoints": valid}
+        return {"status": PINPOINT_INVALID, "method": "structure",
+                "valid_pinpoints": valid}
+    if _pinpoint_in_text(full_text or "", pin):
+        return {"status": PINPOINT_VERIFIED, "method": "text",
+                "valid_pinpoints": valid}
+    return {"status": PINPOINT_UNVERIFIED, "method": "none",
+            "valid_pinpoints": valid}
 
 
 # ── Statute / quote / date sub-audits (state-of-the-art layer) ─────
@@ -16549,6 +16724,8 @@ def _handle_attest_response(*, draft_text: str,
             "annotated_text": draft_text,
             "linked_text": draft_text,
             "issues": empty_issues,
+            "warnings": [],
+            "warnings_count": 0,
             "_note": (
                 "No Swiss-case citation patterns detected. Statute and "
                 "quote audits still ran. If your response makes legal "
@@ -16559,6 +16736,10 @@ def _handle_attest_response(*, draft_text: str,
         }
 
     issues: list[dict] = []
+    # Warnings are deliberately NOT issues: they carry no accusation and do
+    # not flip `ok`. Today the only member is an unverifiable pinpoint on a
+    # decision with no structured Erwägungen (~14 % of the corpus).
+    pinpoint_warnings: list[dict] = []
     ok_count = 0
     # Build annotated text (with ✓/⚠ markers, for LLM to see status) AND
     # linked text (same content, every validated citation wrapped in a
@@ -16591,6 +16772,7 @@ def _handle_attest_response(*, draft_text: str,
         decision = _get_decision_strict(resolved) if resolved else None
 
         status = "OK"
+        pinpoint_state: str | None = None
         detail: dict = {
             "category": "case",
             "citation": full,
@@ -16607,31 +16789,45 @@ def _handle_attest_response(*, draft_text: str,
             )
             issues.append(detail)
         elif pinpoint:
-            # Two-step pinpoint check, in order of authority:
-            #   1. structured-extraction sidecar (fast, exact)
-            #   2. full-text pattern match (slower, but authoritative
-            #      when the sidecar is sparse — many BGEs only have a
-            #      handful of structured paragraphs even though the
-            #      actual decision has more Erwägungen).
-            paras = _fetch_structure_paragraphs(resolved)
-            valid_pinpoints = {p["e_number"] for p in paras}
-            exact = pinpoint in valid_pinpoints
-            has_children = any(vp.startswith(pinpoint + ".") for vp in valid_pinpoints)
-            if exact or has_children:
-                ok_count += 1
-            elif _pinpoint_in_text(decision.get("full_text") or "", pinpoint):
-                # Sidecar missed it, but the body contains "E. X.Y" verbatim
-                ok_count += 1
-            else:
+            # Three-state contract — see _verify_pinpoint. The body-text
+            # fallback is reached only when the decision has NO structure
+            # rows; inside a structured decision, structure decides, because
+            # the body quotes other cases' pinpoints all day long.
+            verdict = _verify_pinpoint(
+                pinpoint,
+                paragraphs=_fetch_structure_paragraphs(resolved),
+                full_text=decision.get("full_text") or "",
+            )
+            pinpoint_state = verdict["status"]
+            if pinpoint_state == PINPOINT_INVALID:
                 status = "PINPOINT_INVALID"
                 detail["problem"] = "pinpoint_not_in_decision"
-                detail["valid_pinpoints"] = sorted(valid_pinpoints,
-                                                   key=_e_number_sort_key)[:10]
+                detail["valid_pinpoints"] = verdict["valid_pinpoints"][:10]
                 detail["suggestion"] = (
                     f"E. {pinpoint} does not exist in this decision. "
                     "See valid_pinpoints above or drop the pinpoint."
                 )
                 issues.append(detail)
+            else:
+                # The citation itself is sound either way; an unverifiable
+                # pinpoint is a warning, never an accusation, so it neither
+                # flips `ok` nor loses the Markdown link.
+                ok_count += 1
+                if pinpoint_state == PINPOINT_UNVERIFIED:
+                    pinpoint_warnings.append({
+                        "category": "case",
+                        "citation": full,
+                        "position": start,
+                        "guessed_decision_id": guess,
+                        "problem": "pinpoint_unverified",
+                        "suggestion": (
+                            f"E. {pinpoint} could not be verified: this "
+                            "decision has no structured Erwägungen and its "
+                            "body carries no matching heading. The citation "
+                            "is real; check the pinpoint against the full "
+                            "text (get_decision) before relying on it."
+                        ),
+                    })
         else:
             ok_count += 1
 
@@ -16651,9 +16847,14 @@ def _handle_attest_response(*, draft_text: str,
                     "paragraphs": _fetch_structure_paragraphs(resolved) or [],
                 })
 
-        # Annotated text — gets the ✓/⚠ markers (for LLM to understand)
+        # Annotated text — gets the ✓/⚠ markers (for LLM to understand).
+        # "✓?" is the third state: citation verified, pinpoint unverifiable.
+        # It keeps the ✓ so downstream ✓-scanners still count the citation
+        # as passed, and adds the query mark the LLM can act on.
         if status == "OK":
-            annotated_parts.append(f"{full} ✓")
+            annotated_parts.append(
+                f"{full} ✓?" if pinpoint_state == PINPOINT_UNVERIFIED
+                else f"{full} ✓")
         else:
             annotated_parts.append(f"{full} ⚠️[{status}]")
 
@@ -16742,6 +16943,7 @@ def _handle_attest_response(*, draft_text: str,
 
     # Stable order: by position
     issues.sort(key=lambda i: i.get("position", 0))
+    pinpoint_warnings.sort(key=lambda w: w.get("position", 0))
 
     return {
         "ok": len(issues) == 0,
@@ -16765,6 +16967,8 @@ def _handle_attest_response(*, draft_text: str,
         "annotated_text": annotated_text,
         "linked_text": linked_text,
         "issues": issues,
+        "warnings": pinpoint_warnings,
+        "warnings_count": len(pinpoint_warnings),
         "_note": (
             "Closing audit covers up to FIVE hallucination classes:\n"
             "  • case      — citation exists in corpus, pinpoint resolves\n"
@@ -16780,7 +16984,11 @@ def _handle_attest_response(*, draft_text: str,
             "               unsupported. Costs one Sonnet call (~3 s, ≈$0.005)\n"
             "               regardless of citation count.\n\n"
             "Citations marked ✓ passed case-existence + pinpoint checks. "
-            "Citations marked ⚠️ did NOT. Statute/quote/date/grounding issues "
+            "Citations marked ✓? exist, but the decision has no structured "
+            "Erwägungen, so the pinpoint could not be confirmed either way — "
+            "see `warnings`; it is not an error, and you may keep the "
+            "citation. Citations marked ⚠️ did NOT pass. "
+            "Statute/quote/date/grounding issues "
             "are in the `issues` list (no inline markers). Fix every issue "
             "before sending. Possible fixes: (a) re-call cite() / get_law for "
             "the right reference, (b) pick a different decision whose text "
@@ -23193,8 +23401,9 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="search",
+            title="Search decisions (basic)",
             description=(
-                "ChatGPT Deep Research compatibility tool. Returns a ranked "
+                "Minimal search tool following the deep-research search/fetch convention. Returns a ranked "
                 "list of Swiss court decisions matching a query, each as "
                 "{id, title, url, snippet}. Pair with `fetch` to retrieve a "
                 "decision's full text by id. General (non-deep-research) "
@@ -23244,8 +23453,9 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="fetch",
+            title="Fetch decision (basic)",
             description=(
-                "ChatGPT Deep Research compatibility tool. Fetches one Swiss "
+                "Minimal fetch tool following the deep-research search/fetch convention. Fetches one Swiss "
                 "decision's full text by id, returning {id, title, text, url, "
                 "metadata}. The id comes from a `search` result (a "
                 "decision_id like bger_6B_1234_2025; a docket number or BGE "
@@ -23281,6 +23491,7 @@ def _list_tools() -> list[Tool]:
             annotations=_READ_ONLY,
             _meta=_DECISION_TOOL_META,
             name="search_decisions",
+            title="Search decisions",
             outputSchema=_research_output_schema("search_decisions"),
             description=(
                 "Use this tool to find COURT DECISIONS (Rechtsprechung): "
@@ -23422,6 +23633,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_decision",
+            title="Get decision",
             outputSchema=_research_output_schema("get_decision"),
             description=(
                 "Fetch a single court decision with full text. "
@@ -23449,6 +23661,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_decisions",
+            title="Get decisions (batch)",
             description=(
                 "Use this tool to fetch SEVERAL decisions at once (1-10 ids) "
                 "instead of calling get_decision repeatedly. Same data per "
@@ -23500,6 +23713,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="list_courts",
+            title="List courts",
             description=(
                 "List all available courts with decision counts, date ranges, "
                 "and language coverage. Use this to discover what data is available."
@@ -23512,6 +23726,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_statistics",
+            title="Corpus statistics",
             description=(
                 "Get aggregate statistics about the dataset. "
                 "Optionally filter by court, canton, or year."
@@ -23528,6 +23743,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="find_citations",
+            title="Find citations",
             outputSchema=_research_output_schema("find_citations"),
             description=(
                 "Given a decision_id, show what it cites and what cites it. "
@@ -23574,6 +23790,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="find_appeal_chain",
+            title="Find appeal chain",
             description=(
                 "Trace the appeal chain (Instanzenzug) for a decision. "
                 "Shows prior instances (lower courts) and subsequent instances (appeals to higher courts). "
@@ -23599,14 +23816,15 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="find_leading_cases",
+            title="Find leading cases",
             description=(
                 "Find the most-cited decisions for a topic or statute. "
                 "Authority ranking based on citation graph. "
                 "Filter by statute (law_code + article), topic query, court, and date range. "
                 "Top-3 results auto-attach a `pinpoint` field "
                 "{e_number, matched_sentence, confidence, url, score, source} "
-                "anchoring the most-relevant Erwägung — see system "
-                "instructions U3 for how to surface it. Each result also "
+                "anchoring the most-relevant Erwägung (surface it as "
+                "'E. <e_number>' when confidence is high or medium). Each result also "
                 "carries citation_string_{de,fr,it} + canonical_url + "
                 "is_leading_case + citation_count for ready-to-quote "
                 "Swiss-format citations."
@@ -23658,6 +23876,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="analyze_legal_trend",
+            title="Analyze legal trend",
             description=(
                 "Year-by-year decision counts showing jurisprudence evolution. "
                 "Use with a statute reference (law_code + article), a text query, or both. "
@@ -23696,6 +23915,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="draft_mock_decision",
+            title="Draft mock decision",
             description=(
                 "Build a research-only mock decision outline from user facts. "
                 "Combines relevant Swiss case law retrieval with statute references. "
@@ -23777,6 +23997,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_case_brief",
+            title="Case brief",
             description=(
                 "Structured case brief: regeste, Sachverhalt, key Erwägungen (first 12 only — "
                 "for orientation, NOT a pinpoint ranking), Dispositiv, statutes, citation "
@@ -23801,6 +24022,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_decision_structure",
+            title="Decision structure",
             description=(
                 "Structured decision fields: Sachverhalt (facts), Erwägungen as numbered paragraphs "
                 "('1', '1.1', '2.3'), Dispositiv (ruling), Regeste (BGE only). Federal decisions "
@@ -23827,12 +24049,13 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_erwaegung",
+            title="Get Erwägung (verbatim)",
             outputSchema=_research_output_schema("get_erwaegung"),
             description=(
                 "Verbatim text of ONE numbered Erwägung — the citable unit in Swiss practice "
                 "(e.g. 'BGE 136 III 513 E. 2.3'). Use when the user already gave an e_number. "
                 "If only a claim was given (no e_number): use find_relevant_erwaegung — never guess. "
-                "Returns text + sibling Erwägung numbers. e_number: '1', '2.3', '5.2.1', …"
+                "Returns text + sibling Erwägung numbers. e_number: '1', '4.1', '5.2.1', …"
             ),
             inputSchema={
                 "type": "object",
@@ -23855,6 +24078,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="find_relevant_erwaegung",
+            title="Find relevant Erwägung",
             description=(
                 "Find which Erwägung paragraph(s) match a legal claim. Server-side FTS5+BM25 over "
                 "per-paragraph text; returns top-k with confidence labels (high/medium/low) and a "
@@ -23892,6 +24116,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_article_purpose",
+            title="Article purpose (ratio legis)",
             description=(
                 "Return verbatim text from the Federal Council Botschaft "
                 "(or Erläuterungsbericht) explaining the legislative purpose "
@@ -23945,6 +24170,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="search_botschaft",
+            title="Search Botschaft",
             description=(
                 "Use this tool to retrieve and quote the VERBATIM text of "
                 "Federal Council Botschaften (legislative messages). Where "
@@ -23997,6 +24223,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_article_history",
+            title="Article history",
             description=(
                 "Chronological story of a single statute article: current "
                 "text + every linked Botschaft (enacted + amendments) + "
@@ -24037,6 +24264,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_regeste",
+            title="Get Regeste",
             description=(
                 "Get the official Regeste (head-note) of a Swiss court decision. The Regeste is "
                 "the court's own formulation of the legal rule established — for BGEs especially, "
@@ -24059,6 +24287,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="check_claim_support",
+            title="Check claim support",
             description=(
                 "Verify whether a Swiss court decision actually supports a "
                 "legal claim. Uses an independent Sonnet judge to compare "
@@ -24101,6 +24330,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="attest_response",
+            title="Attest response",
             description=(
                 "MANDATORY FINAL-STEP AUDIT of your draft answer. Checks "
                 "five hallucination classes: (1) every case citation "
@@ -24167,6 +24397,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="cite",
+            title="Canonical citation",
             outputSchema=_research_output_schema("cite"),
             description=(
                 "Get the canonical Swiss citation string for a decision reference. "
@@ -24178,7 +24409,10 @@ def _list_tools() -> list[Tool]:
                 "with a close match or skip the citation entirely. "
                 "Accepts any Swiss reference form: decision_id (bger_4A_747_2012), BGE "
                 "reference (BGE 140 III 86), or docket number (4A_747/2012). Optional "
-                "pinpoint ('2.3') generates the Erwägung-anchored citation and URL."
+                "pinpoint ('2.3') generates the Erwägung-anchored citation and URL. "
+                "A pinpoint the decision does not contain returns "
+                "pinpoint_valid=false plus the UNPINPOINTED citation_string — "
+                "never re-append the rejected pinpoint to it."
             ),
             inputSchema={
                 "type": "object",
@@ -24213,6 +24447,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_doctrine",
+            title="Get doctrine",
             description=(
                 "Get statute text + leading cases + doctrinal timeline + Federal Council Botschaft "
                 "(legislative intent) + scholarly commentary for a Swiss law article or legal concept. "
@@ -24241,6 +24476,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="generate_exam_question",
+            title="Generate exam question",
             description=(
                 "Generate a Swiss law exam practice question (Fallbearbeitung) based on a real BGE. "
                 "Returns a fact pattern (Sachverhalt) from a real court decision and a hidden analysis "
@@ -24272,6 +24508,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_law",
+            title="Get law",
             outputSchema=_research_output_schema("get_law"),
             description=(
                 "AUTHORITATIVE LOOKUP for the text of any Swiss law article — federal "
@@ -24370,6 +24607,7 @@ def _list_tools() -> list[Tool]:
             annotations=_READ_ONLY,
             _meta=_LAW_TOOL_META,
             name="search_laws",
+            title="Search laws",
             description=(
                 "Use this tool to find STATUTE ARTICLES by topic — "
                 "full-text over every locally indexed article, federal "
@@ -24486,6 +24724,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_commentary",
+            title="Get commentary",
             description=(
                 "Look up a scholarly legal commentary from OnlineKommentar.ch (CC-BY-4.0) "
                 "for a Swiss federal law article. Without article: lists available commentaries "
@@ -24518,6 +24757,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="search_commentaries",
+            title="Search commentaries",
             description=(
                 "Use this tool ONLY for article-anchored commentary from "
                 "OnlineKommentar.ch — doctrinal discussion tied to a specific "
@@ -24560,6 +24800,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="search_scholarship",
+            title="Search scholarship",
             description=(
                 "Use this tool for open-access SCHOLARSHIP (Lehre): "
                 "OA journal articles (sui generis et al.), OA legal commentaries "
@@ -24603,6 +24844,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_scholarship",
+            title="Get scholarship record",
             description=(
                 "Fetch a single OA legal publication (article, dissertation, "
                 "commentary, etc.) by its pub_id. Returns full metadata + "
@@ -24623,6 +24865,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="find_scholarship_citing_statute",
+            title="Scholarship citing statute",
             description=(
                 "Find OA legal scholarship that cites a given Swiss statute article. "
                 "Sourced from article-anchored commentaries (OnlineKommentar / "
@@ -24649,6 +24892,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="find_scholarship_citing_decision",
+            title="Scholarship citing decision",
             description=(
                 "Find OA legal scholarship that cites a specific Swiss court decision. "
                 "Reverse direction of the scholarship↔caselaw bridge: given a decision_id "
@@ -24672,6 +24916,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="list_scholarship_sources",
+            title="List scholarship sources",
             description=(
                 "List the open-access legal scholarship sources currently "
                 "indexed, with publication counts by source, type, and language. "
@@ -24682,6 +24927,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_scholarship_full_text",
+            title="Scholarship full text",
             description=(
                 "Fetch the full text of an OA legal publication by pub_id, "
                 "on demand. Cached after first fetch so subsequent calls "
@@ -24706,6 +24952,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="get_materialien",
+            title="Get Materialien",
             description=(
                 "Look up Materialien for a Swiss federal law article. Returns up to three "
                 "things: `sources` = per-article digests of legislative intent (BV and BGFA "
@@ -24735,6 +24982,7 @@ def _list_tools() -> list[Tool]:
         Tool(
             annotations=_READ_ONLY,
             name="search_materialien",
+            title="Search Materialien",
             description=(
                 "Use this tool for DIGESTED legislative history — per-article "
                 "intent summaries and key arguments, not verbatim text. "
@@ -24769,6 +25017,7 @@ def _list_tools() -> list[Tool]:
                 annotations=_READ_ONLY,
                 _meta=_LAW_TOOL_META,
                 name="search_legislation",
+                title="Search legislation",
                 description=(
                     "Use this tool to find WHOLE LAWS by name or subject — "
                     "33,000+ federal and cantonal enactments from LexFind.ch; the "
@@ -24868,6 +25117,7 @@ def _list_tools() -> list[Tool]:
             Tool(
                 annotations=_READ_ONLY,
                 name="get_legislation",
+                title="Get legislation",
                 description=(
                     "Retrieve the FULL TEXT and article list of a specific Swiss law, "
                     "federal or cantonal, by LexFind ID or SR/systematic number. "
@@ -24913,6 +25163,7 @@ def _list_tools() -> list[Tool]:
             Tool(
                 annotations=_READ_ONLY,
                 name="browse_legislation_changes",
+                title="Browse legislation changes",
                 description=(
                     "Browse recent legislation changes for a canton or federal level. "
                     "Shows new laws, amendments, and abrogations with dates."
@@ -25068,6 +25319,7 @@ def _list_tools() -> list[Tool]:
             Tool(
                 annotations=_READ_ONLY,
                 name="update_database",
+                title="Update database (local admin)",
                 description=(
                     "Download the latest Swiss caselaw data from HuggingFace "
                     "and rebuild the local search database. Run this on first use "
@@ -25082,6 +25334,7 @@ def _list_tools() -> list[Tool]:
             Tool(
                 annotations=_READ_ONLY,
                 name="check_update_status",
+                title="Check update status (local admin)",
                 description=(
                     "Check progress of a running database update. "
                     "Returns current phase, file being processed, and elapsed time. "
@@ -27739,7 +27992,7 @@ setInterval(load, 30000);
         description=(
             "Swiss court decisions, statutes, commentaries, scholarship, and citation graph. "
             "1,050,000+ published decisions from Swiss federal, cantonal, and regulatory bodies, "
-            "5,525 federal laws, 15,600 cantonal acts, 1,100+ commentaries, 25,000+ OA scholarship records."
+            "5,525 federal laws, 15,600 cantonal acts, 1,100+ commentaries, 44,000+ OA scholarship records."
         ),
         version="1.0.0",
         docs_url="/docs",
@@ -30058,17 +30311,25 @@ setInterval(load, 30000);
     @rest_api.get("/erwaegung/{decision_id}/{e_number}", tags=["Decision Structure"],
                   summary="Get the verbatim text of one Erwägung",
                   description="Returns the exact wording of a specific numbered paragraph (e.g. "
-                              "Erwägung 2.3). Use this before quoting from a decision — the `text` "
+                              "Erwägung 4.1). Use this before quoting from a decision — the `text` "
                               "field is safe to embed verbatim in quotation marks. Available for "
                               "~90% of federal decisions (BGer / BVGer / BStGer / BGE / BPatGer / "
-                              "EGMR-CH / MKG).")
+                              "EGMR-CH / MKG). Returns 404 when the decision is unknown, has no "
+                              "structured Erwägungen, or does not contain the requested one.")
     async def api_get_erwaegung(
         decision_id: str = PathParam(description="Decision ID"),
-        e_number: str = PathParam(description="Hierarchical Erwägung number, e.g. '1', '2.3', '4.1.2'"),
+        e_number: str = PathParam(description="Hierarchical Erwägung number, e.g. '1', '4.1', '4.1.2'"),
     ):
-        return await asyncio.to_thread(
+        result = await asyncio.to_thread(
             _handle_get_erwaegung, decision_id=decision_id, e_number=e_number,
         )
+        if isinstance(result, dict) and result.get("error"):
+            return JSONResponse(
+                result,
+                status_code=ERWAEGUNG_ERROR_STATUS.get(
+                    result.get("error_code"), 404),
+            )
+        return result
 
     @rest_api.get("/relevant-erwaegung/{decision_id}", tags=["Decision Structure"],
                   summary="Find the Erwägung paragraph(s) that match a legal claim",
@@ -30670,9 +30931,14 @@ setInterval(load, 30000);
         # the one that actually matched the claim).
         highlight = request.query_params.get("highlight") or None
         e_focus = request.query_params.get("e") or None
-        html_content, status = await asyncio.to_thread(
+        html_content, status, redirect_location = await asyncio.to_thread(
             render_decision_page, decision_id, highlight=highlight, e_focus=e_focus,
         )
+        if redirect_location:
+            # Unique exact-docket match (P1.4) — 301 to the canonical
+            # /entscheid/<decision_id> URL instead of serving content at a
+            # non-canonical one.
+            return Response(status_code=status, headers={"Location": redirect_location})
         return Response(html_content, status_code=status, media_type="text/html")
 
     async def handle_sitemap_index(request):
