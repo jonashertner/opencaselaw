@@ -78,9 +78,14 @@ fetch anyway as a recognised non-profit effort. The fetcher therefore:
 `run_historical_backfill` takes `flock(LOCK_EX | LOCK_NB)` on
 `/opt/caselaw/repo/logs/bar_fetch.lock` (`--lock-file` to change it) for the whole run,
 before the first request. A second run on the host — another language, another day's unit,
-a forgotten `nohup` — exits **3** at once without a request. A dry run takes no lock. The
-command below wraps the process in `flock -n` on the same file as well, so the guard holds
-even for a shell that never reaches Python.
+a forgotten `nohup` — exits **3** at once without a request. A dry run takes no lock.
+
+This in-process lock is the only mechanism. Do **not** wrap the command in an outer
+`flock -n` on the same file: `flock(2)` locks belong to the open file description, so the
+lock the shell wrapper holds is foreign to the Python process, whose own `LOCK_NB` attempt
+on the same path then fails — the run refuses itself and exits 3 before its first request.
+(If a wrapper is ever wanted for a shell that never reaches Python, it must use a
+*different* file and the `--lock-file` must stay on `bar_fetch.lock`.)
 
 ### Courtesy notice
 
@@ -166,8 +171,8 @@ cd /opt/caselaw/repo && PYTHONPATH=. python3 -m search_stack.build_botschaft_cor
   --db /opt/caselaw/repo/output/materialien.db --dry-run
 ```
 
-One weeknight (DE, 3,000 requests; log to its own file; the `flock -n` and the in-process
-lock both refuse a second run):
+One weeknight (DE, 3,000 requests; log to its own file; the in-process lock on
+`--lock-file` refuses a second run — no outer `flock -n`, see "Host lock"):
 
 ```bash
 cd /opt/caselaw/repo && systemctl is-active opencaselaw-publish.service opencaselaw-materialien.service
@@ -175,8 +180,7 @@ cd /opt/caselaw/repo && systemctl is-active opencaselaw-publish.service opencase
 systemd-run --unit=ocl-mat-hist-de-$(date +%m%d) \
   --property=WorkingDirectory=/opt/caselaw/repo --property=CPUWeight=20 --property=IOWeight=20 \
   --setenv=PYTHONPATH=/opt/caselaw/repo \
-  /bin/bash -c 'flock -n /opt/caselaw/repo/logs/bar_fetch.lock \
-     python3 -m search_stack.build_botschaft_corpus --ingest-all \
+  /bin/bash -c 'python3 -m search_stack.build_botschaft_corpus --ingest-all \
      --discover-untyped-by-title --host-allow bar --language de --max-per-run 3000 \
      --lock-file /opt/caselaw/repo/logs/bar_fetch.lock \
      --db /opt/caselaw/repo/output/materialien.db \
@@ -186,7 +190,7 @@ systemd-run --unit=ocl-mat-hist-de-$(date +%m%d) \
 Saturday night: the same with `--max-per-run 8000`. Exit codes: 0 finished (see the JSON
 stats block: discovered, eligible, done, exists, collision, not_found, no_text,
 no_citation, error, requests_made, bytes_received, stopped), 2 bad flags, 3 another run
-holds the lock (`flock -n` itself exits 1 in that case).
+holds `bar_fetch.lock` (logged as "another historical backfill is running").
 
 State at any time (no network, no lock):
 

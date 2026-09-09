@@ -521,7 +521,8 @@ def test_sparql_pass_heals_existing_rows_without_refetching(heal_db, monkeypatch
     assert fetched == []
     stats = json.loads(capsys.readouterr().out)
     assert stats["total"] == 0
-    assert stats["healed_existing"] == {"candidates": 3, "healed": 2, "no_discovery_meta": 1}
+    assert stats["healed_existing"] == {"candidates": 3, "healed": 2, "no_discovery_meta": 1,
+                                        "ambiguous_page": 0}
     rows, n_paras = _rows(heal_db)
     assert n_paras == 0
     healed = rows[(2013, 3729, "de")]
@@ -559,7 +560,8 @@ def test_sparql_pass_is_idempotent_and_dry_run_writes_nothing(heal_db, monkeypat
     assert _rows(heal_db) == after
     stats = json.loads(capsys.readouterr().out)
     # Only the row discovery never answers is still a candidate.
-    assert stats["healed_existing"] == {"candidates": 1, "healed": 0, "no_discovery_meta": 1}
+    assert stats["healed_existing"] == {"candidates": 1, "healed": 0, "no_discovery_meta": 1,
+                                        "ambiguous_page": 0}
 
 
 def test_heal_never_downgrades_a_fedlex_date(heal_db):
@@ -569,11 +571,62 @@ def test_heal_never_downgrades_a_fedlex_date(heal_db):
     stats = bbc.heal_existing_metadata(
         conn, [_meta(2018, 9, "eli/keep", "Botschaft ohne Datum")], language="de")
     # The other three incomplete DE rows are candidates too; discovery did not name them.
-    assert stats == {"candidates": 4, "healed": 1, "no_discovery_meta": 3}
+    assert stats == {"candidates": 4, "healed": 1, "no_discovery_meta": 3, "ambiguous_page": 0}
     r = conn.execute("SELECT title, publication_date, date_source FROM botschaft_documents "
                      "WHERE bbl_year = 2018").fetchone()
     assert r == ("Botschaft ohne Datum", "2018-02-02", "fedlex:publicationDate")
     conn.close()
+
+
+def test_heal_joins_by_eli_not_by_page_when_two_works_share_a_page(tmp_path):
+    """Two Fedlex works on one citation page (BBl 2015 100): the heal must
+    give the row ITS OWN work's title and date (R1), never the other's — a
+    page-keyed lookup returned whichever work discovery listed last. A row
+    without an ELI takes the page's metadata only when the page maps to
+    exactly one work; on a shared page it is left alone. A row whose own
+    ELI discovery did not return is never healed from a page neighbour."""
+    eli_a = "https://fedlex.data.admin.ch/eli/fga/2015/100"
+    eli_b = "https://fedlex.data.admin.ch/eli/fga/2015/101"
+    eli_c = "https://fedlex.data.admin.ch/eli/fga/2015/200"
+    eli_d = "https://fedlex.data.admin.ch/eli/fga/2015/201"
+    eli_e = "https://fedlex.data.admin.ch/eli/fga/2015/300"
+    eli_solo = "https://fedlex.data.admin.ch/eli/fga/2016/7"
+    # B (the row's work) is listed BEFORE A, so a (year, page)-keyed dict
+    # would have ended on A and stamped A's metadata on B's row.
+    discovered = [
+        _meta(2015, 100, eli_b, "Bericht B", "2015-03-01", "2015-03-11"),
+        _meta(2015, 100, eli_a, "Botschaft A", "2015-01-10", "2015-01-20"),
+        _meta(2015, 200, eli_c, "Botschaft C", "2015-05-01", None),
+        _meta(2015, 200, eli_d, "Bericht D", "2015-05-02", None),
+        _meta(2015, 300, eli_e, "Botschaft E", "2015-07-01", None),
+        _meta(2016, 7, eli_solo, "Botschaft Solo", "2016-06-01", None),
+    ]
+    p = tmp_path / "materialien.db"
+    conn = sqlite3.connect(p)
+    bbc.ensure_schema(conn)
+    conn.executemany(
+        "INSERT INTO botschaft_documents (bbl_year, bbl_page, bbl_citation, eli_uri, source_url, "
+        "format, language, ingested_at, title, publication_date, date_source) "
+        "VALUES (?,?,?,?,'https://x','pdf','de','t',NULL,NULL,NULL)",
+        [(2015, 100, "BBl 2015 100", eli_b),        # work B; A shares the page
+         (2015, 200, "BBl 2015 200", None),         # no ELI, page shared by C and D
+         (2015, 300, "BBl 2015 300", "eli/other"),  # own ELI not in discovery; E on the page
+         (2016, 7, "BBl 2016 7", None)])            # no ELI, page with exactly one work
+    conn.commit()
+    stats = bbc.heal_existing_metadata(conn, discovered, language="de")
+    assert stats == {"candidates": 4, "healed": 2, "no_discovery_meta": 1, "ambiguous_page": 1}
+    rows = conn.execute(
+        "SELECT eli_uri, title, publication_date, date_document, date_source "
+        "FROM botschaft_documents ORDER BY botschaft_id").fetchall()
+    conn.close()
+    # The row for work B carries B's metadata, not A's.
+    assert rows[0] == (eli_b, "Bericht B", "2015-03-11", "2015-03-01", "fedlex:publicationDate")
+    # Nothing was guessed for the ELI-less row on the shared page ...
+    assert rows[1] == (None, None, None, None, None)
+    # ... nor for the row whose own ELI discovery did not return.
+    assert rows[2] == ("eli/other", None, None, None, None)
+    # An ELI-less row on a page with exactly one work is healed from it.
+    assert rows[3] == (None, "Botschaft Solo", "2016-06-01", "2016-06-01", "fedlex:dateDocument")
 
 
 # ── publication_date provenance ───────────────────────────────────────

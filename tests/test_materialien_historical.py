@@ -805,3 +805,48 @@ def test_cli_exits_3_when_another_run_holds_the_lock(tmp_path, monkeypatch) -> N
                                       "--lock-file", str(lock)])
     with bh._RunLock(lock):
         assert bbc.main() == 3
+
+
+def test_lock_is_taken_in_process_only_and_runbook_agrees(tmp_path, monkeypatch) -> None:
+    """The --lock-file flock is the ONLY lock mechanism. An outer
+    ``flock -n`` on the same file (a shell wrapper) holds the lock on
+    another open file description, so the process's own LOCK_NB attempt
+    fails and the run refuses itself — exactly the mistake the runbook once
+    made. Pin the behaviour, the runbook's night command and the CLI help."""
+    import fcntl
+    import os
+    import re
+    from search_stack import build_botschaft_corpus as bbc
+    dbp = tmp_path / "m.db"
+    sqlite3.connect(dbp).close()
+    lock = tmp_path / "bar_fetch.lock"
+    monkeypatch.setattr(bh, "PoliteFetcher", lambda **kw: (_ for _ in ()).throw(AssertionError("no fetcher")))
+    monkeypatch.setattr(sys, "argv", ["x", "--db", str(dbp), "--ingest-all",
+                                      "--discover-untyped-by-title", "--host-allow", "bar",
+                                      "--lock-file", str(lock)])
+    # What `flock -n <lock> python3 ...` does: a separate open file
+    # description holding LOCK_EX, inherited by the child.
+    fd = os.open(lock, os.O_RDWR | os.O_CREAT, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    try:
+        assert bbc.main() == 3, "an outer flock on the same file makes the run refuse itself"
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+    # The runbook's night command passes --lock-file and is not wrapped in flock.
+    runbook = (REPO / "runbooks" / "materialien_historical_backfill.md").read_text()
+    commands = re.findall(r"/bin/bash -c '(.*?)'", runbook, flags=re.S)
+    assert commands, "runbook night command not found"
+    for cmd in commands:
+        assert "--lock-file /opt/caselaw/repo/logs/bar_fetch.lock" in cmd
+        assert "flock" not in cmd
+    assert "Do **not** wrap the command in an outer\n`flock -n`" in runbook
+    # The CLI help says the same (argparse re-wraps, so compare on one line).
+    import contextlib
+    import io
+    monkeypatch.setattr(sys, "argv", ["x", "--help"])
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), pytest.raises(SystemExit):
+        bbc.main()
+    parser_help = re.sub(r"\s+", " ", buf.getvalue())
+    assert "do NOT wrap the command in an outer 'flock -n' on the same file" in parser_help

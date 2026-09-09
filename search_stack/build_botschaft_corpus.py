@@ -791,23 +791,44 @@ def heal_existing_metadata(
     nightly run self-healing: one indexed SELECT of the rows in ``language``
     still lacking a title or a Fedlex date (or carrying only the ``bbl_year``
     fallback), then ``_fill_metadata`` per row with the SPARQL title/dates
-    for its (year, page) — no fetch, no text change, one commit. Rows whose
-    (year, page) discovery did not return are left alone.
-    ``scripts/backfill_botschaft_metadata.py`` remains the bulk path (it
-    asks Fedlex for ELIs discovery no longer lists).
+    for its work — no fetch, no text change, one commit.
+
+    The join is by ``eli_uri`` (the work), never by citation page: two works
+    can share a (year, page) — one Botschaft's Bundesblatt page is another
+    Bericht's first page, or Fedlex's memorialPage disagrees with the printed
+    one — and a page-keyed lookup would stamp the OTHER work's Fedlex title
+    and date on a row (an R1 violation: the metadata must be the row's own).
+    A row whose ``eli_uri`` discovery did not return is left alone
+    (``no_discovery_meta``). Only a row with no ``eli_uri`` at all falls back
+    to its (year, page), and only when exactly one discovered work maps to
+    that page; with two or more it is counted as ``ambiguous_page`` and left
+    alone. ``scripts/backfill_botschaft_metadata.py`` remains the bulk path
+    (it asks Fedlex for ELIs discovery no longer lists, by ELI as well).
     """
-    stats = {"candidates": 0, "healed": 0, "no_discovery_meta": 0}
-    by_key = {(m["year"], m["page"]): m for m in sparql_rows}
+    stats = {"candidates": 0, "healed": 0, "no_discovery_meta": 0, "ambiguous_page": 0}
+    by_eli: dict[str, dict] = {}
+    by_page: dict[tuple[int, int], list[dict]] = {}
+    for m in sparql_rows:
+        if m.get("eli_uri"):
+            by_eli[m["eli_uri"]] = m
+        by_page.setdefault((m["year"], m["page"]), []).append(m)
     rows = conn.execute(
-        "SELECT botschaft_id, bbl_year, bbl_page FROM botschaft_documents "
+        "SELECT botschaft_id, bbl_year, bbl_page, eli_uri FROM botschaft_documents "
         "WHERE language = ? AND bbl_year >= ? AND ("
         "title IS NULL OR title = '' OR publication_date IS NULL OR "
         "publication_date = '' OR date_source = ?)",
         (language, min_year, DATE_SOURCE_BBL_YEAR),
     ).fetchall()
     stats["candidates"] = len(rows)
-    for botschaft_id, year, page in rows:
-        m = by_key.get((year, page))
+    for botschaft_id, year, page, eli_uri in rows:
+        if eli_uri:
+            m = by_eli.get(eli_uri)
+        else:
+            works = by_page.get((year, page), [])
+            if len(works) > 1:
+                stats["ambiguous_page"] += 1
+                continue
+            m = works[0] if works else None
         if m is None:
             stats["no_discovery_meta"] += 1
             continue
@@ -1391,8 +1412,12 @@ def main() -> int:
     parser.add_argument(
         "--lock-file", default=None,
         help=(
-            "Historical path: host-level lock held for the whole run (flock); a "
-            "second run exits 3 at once. Default <repo>/logs/bar_fetch.lock."
+            "Historical path: host-level lock the process takes itself "
+            "(flock(LOCK_EX|LOCK_NB) on this file) for the whole run; a second "
+            "run exits 3 at once. Default <repo>/logs/bar_fetch.lock. This is "
+            "the only lock mechanism: do NOT wrap the command in an outer "
+            "'flock -n' on the same file — that lock lives on another open "
+            "file description, so the run would refuse itself with exit 3."
         ),
     )
     parser.add_argument(
@@ -1594,7 +1619,9 @@ def main() -> int:
             log.info(
                 f"  healed metadata on {heal['healed']}/{heal['candidates']} "
                 f"existing rows lacking title/date "
-                f"({heal['no_discovery_meta']} without discovery metadata)"
+                f"({heal['no_discovery_meta']} without discovery metadata, "
+                f"{heal['ambiguous_page']} without an ELI on a page shared by "
+                f"several works)"
             )
         stats = ingest_candidates(
             conn, candidates,
