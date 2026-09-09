@@ -40,11 +40,13 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, NamedTuple
+from urllib.parse import urlparse
 
 import requests
 
@@ -665,6 +667,195 @@ def discover_fga_botschaften(
     log.info(
         "discover_fga_botschaften(%s): %d Botschaften in Fedlex SPARQL",
         language, len(out),
+    )
+    return out
+
+
+# ── Untyped historical Botschaften (1850-1999, BAR PDF scans) ───────
+
+# Fedlex holds ~20,000 further FGA works whose title starts with
+# "Botschaft" / "Message" / "Messaggio" but which carry NO typeDocument
+# (the type vocabulary was applied from ~1999 on). Their only file is a
+# PDF with an OCR text layer served by the Bundesarchiv's
+# Amtsdruckschriften portal (``www.amtsdruckschriften.bar.admin.ch``),
+# reached through the manifestation's jolux:isExemplifiedBy URL.
+#
+# The ELI of these works is ``eli/fga/<year>/<vol>_<pDE>_<pFR>_<pIT>``:
+# the first segment is the Bundesblatt volume (BBl 1975 I 609 →
+# ``1975/1_609__``), the following segments are the first page of the
+# document in the German, French and Italian editions (empty when that
+# edition has no expression). Verified 2026-09-09 on samples from 1850,
+# 1935, 1955, 1975 and 1998 against ``jolux:memorialPage`` on the
+# language expression, which is the authoritative page and is used first.
+_FGA_HISTORICAL_ELI_RE = re.compile(
+    r"/eli/fga/(?P<year>\d{4})/(?P<vol>\d+)_(?P<de>\d*)_(?P<fr>\d*)_?(?P<it>\d*)/?$"
+)
+_BAR_HOST = "www.amtsdruckschriften.bar.admin.ch"
+_FEDLEX_FILE_HOST = "fedlex.data.admin.ch"
+_BOTSCHAFT_TITLE_PREFIX = {"de": "botschaft", "fr": "message", "it": "messaggio"}
+
+
+class UntypedBotschaft(NamedTuple):
+    """One historical (untyped) Botschaft candidate.
+
+    The first six fields are the contract named in the sprint brief
+    ``(year, page, title, eli_uri, file_url, file_host)``; the rest carry
+    the Fedlex metadata the ingest stores verbatim (citation string from
+    ``dct:identifier``, publication date, volume).
+    """
+    year: int
+    page: int
+    title: str
+    eli_uri: str
+    file_url: str
+    file_host: str          # 'bar' | 'fedlex' | other netloc
+    citation: str | None    # "BBl 1975 I 609" / "FF 1998 I 205" (Fedlex dct:identifier)
+    publication_date: str | None
+    volume: int | None
+    language: str
+
+
+def parse_historical_fga_eli(eli_uri: str) -> dict | None:
+    """Split ``eli/fga/1975/1_609__`` into year, volume and per-language pages.
+
+    Returns ``{"year": 1975, "volume": 1, "pages": {"de": 609, "fr": None,
+    "it": None}}`` or ``None`` when the URI does not follow the historical
+    pattern (modern ELIs such as ``eli/fga/2011/1325`` have no volume).
+    """
+    m = _FGA_HISTORICAL_ELI_RE.search(eli_uri or "")
+    if not m:
+        return None
+    pages = {}
+    for lang in ("de", "fr", "it"):
+        seg = m.group(lang)
+        pages[lang] = int(seg) if seg else None
+    return {"year": int(m.group("year")), "volume": int(m.group("vol")), "pages": pages}
+
+
+def classify_file_host(file_url: str | None) -> str:
+    """'bar' for the Bundesarchiv portal, 'fedlex' for the Fedlex file
+    store, otherwise the bare netloc (or '' when there is no URL)."""
+    if not file_url:
+        return ""
+    netloc = urlparse(file_url).netloc.lower()
+    if netloc == _BAR_HOST:
+        return "bar"
+    if netloc == _FEDLEX_FILE_HOST or netloc.endswith(".fedlex.admin.ch"):
+        return "fedlex"
+    return netloc
+
+
+def _roman(n: int) -> str:
+    out, val = "", n
+    for num, sym in ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"),
+                     (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"),
+                     (5, "V"), (4, "IV"), (1, "I")):
+        while val >= num:
+            out += sym
+            val -= num
+    return out
+
+
+def _untyped_candidate(row: dict, language: str) -> UntypedBotschaft | None:
+    """Map one SPARQL row of the untyped query to a candidate, or None."""
+    act = _val(row, "act")
+    title = (_val(row, "title") or "").strip()
+    if not act or not title:
+        return None
+    if not title.lower().startswith(_BOTSCHAFT_TITLE_PREFIX[language]):
+        return None
+    parsed = parse_historical_fga_eli(act)
+    year: int | None = parsed["year"] if parsed else None
+    page: int | None = None
+    mem_page = _val(row, "memPage")
+    if mem_page is not None:
+        try:
+            page = int(mem_page)
+        except (TypeError, ValueError):
+            page = None
+    if page is None and parsed:
+        page = parsed["pages"].get(language)
+    if year is None:
+        # No volume pattern: fall back to the plain ``eli/fga/<year>/<seg>`` shape.
+        parts = act.rstrip("/").rsplit("/", 2)
+        if len(parts) == 3 and parts[-2].isdigit():
+            year = int(parts[-2])
+            if page is None and parts[-1].isdigit():
+                page = int(parts[-1])
+    if year is None or page is None:
+        return None
+    file_url = _val(row, "file")
+    if not file_url:
+        return None
+    volume = parsed["volume"] if parsed else None
+    citation = _val(row, "ident")
+    if not citation:
+        label = "BBl" if language == "de" else "FF"
+        vol = f" {_roman(volume)}" if volume else ""
+        citation = f"{label} {year}{vol} {page}"
+    return UntypedBotschaft(
+        year=year, page=page, title=title, eli_uri=act, file_url=file_url,
+        file_host=classify_file_host(file_url), citation=citation,
+        publication_date=_val(row, "pubDate"), volume=volume, language=language,
+    )
+
+
+def discover_fga_botschaften_untyped(
+    language: str = "de",
+    timeout: int = 600,
+) -> list[UntypedBotschaft]:
+    """Enumerate the historical Botschaften that carry no typeDocument.
+
+    FGA works with an expression in ``language`` whose title starts with
+    'Botschaft' / 'Message' / 'Messaggio' (case-insensitive) and which do
+    NOT have typeDocument=23 — the complement of
+    :func:`discover_fga_botschaften`. Measured 2026-09-09: 8,767 (DE) /
+    8,921 (FR) / 2,362 (IT) works, 1850-1999, every one of them a single
+    ``pdf-a`` manifestation on the Bundesarchiv host (one FR file on
+    Fedlex's own store).
+
+    One candidate per work: when Fedlex returns several rows for a work
+    (several titles or files) the first row carrying a file wins. Rows
+    without a file URL are dropped (nothing to fetch).
+    """
+    if language not in LANG_URIS:
+        raise ValueError(f"Unsupported language: {language!r}")
+    prefix = _BOTSCHAFT_TITLE_PREFIX[language]
+    query = f"""
+    PREFIX jolux: <{JOLUX}>
+    PREFIX dct: <{DCT}>
+    SELECT DISTINCT ?act ?title ?memPage ?ident ?pubDate ?file WHERE {{
+      ?act jolux:isRealizedBy ?expr .
+      ?expr jolux:language <{LANG_URIS[language]}> .
+      ?expr jolux:title ?title .
+      FILTER(STRSTARTS(LCASE(STR(?title)), "{prefix}"))
+      FILTER(strstarts(STR(?act), "https://fedlex.data.admin.ch/eli/fga/"))
+      FILTER NOT EXISTS {{ ?act jolux:typeDocument <{BOTSCHAFT_TYPE_DOC_URI}> }}
+      OPTIONAL {{ ?expr jolux:memorialPage ?memPage }}
+      OPTIONAL {{ ?expr dct:identifier ?ident }}
+      OPTIONAL {{ ?act jolux:publicationDate ?pubDate }}
+      OPTIONAL {{ ?expr jolux:isEmbodiedBy ?manif . ?manif jolux:isExemplifiedBy ?file }}
+    }}
+    ORDER BY ?act
+    """
+    rows = sparql_query(query, timeout=timeout)
+    by_act: dict[str, UntypedBotschaft] = {}
+    dropped = 0
+    for r in rows:
+        cand = _untyped_candidate(r, language)
+        if cand is None:
+            dropped += 1
+            continue
+        if cand.eli_uri in by_act:
+            continue
+        by_act[cand.eli_uri] = cand
+    out = list(by_act.values())
+    hosts: dict[str, int] = {}
+    for c in out:
+        hosts[c.file_host] = hosts.get(c.file_host, 0) + 1
+    log.info(
+        "discover_fga_botschaften_untyped(%s): %d works (%d rows, %d dropped) hosts=%s",
+        language, len(out), len(rows), dropped, hosts,
     )
     return out
 
