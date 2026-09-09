@@ -15509,18 +15509,33 @@ def _normalise_for_quote_match(text: str) -> str:
     return out.strip().lower()
 
 
-def _audit_statutes(draft_text: str) -> list[dict]:
+def _statute_ledger_defaults() -> dict:
+    return {"found_unique": 0, "verified": 0, "unknown_law": 0,
+            "missing_article": 0, "not_checked": 0}
+
+
+def _audit_statutes(draft_text: str, ledger: dict | None = None) -> list[dict]:
     """Detect every Art. X LAW reference in the draft and verify each
     against statutes.db. Returns a list of issue dicts; an empty list
     means every detected statute reference checks out (or no references
     were detected).
 
     No-op when statutes.db is not deployed (dev environments without a
-    statute mirror): silently returns [] rather than producing false
-    positives for every Art. X reference in the draft.
+    statute mirror): returns [] rather than producing false positives
+    for every Art. X reference in the draft. The silence is no longer
+    total: when the caller passes a ``ledger`` dict, every unique
+    reference is counted under ``not_checked`` so the response can say
+    "N references, 0 verified" instead of implying they passed.
+
+    ``ledger`` (optional) is filled in place with the statute
+    denominator: found_unique / verified / unknown_law /
+    missing_article / not_checked.
     """
-    if not STATUTES_DB_PATH.exists():
-        return []
+    if ledger is None:
+        ledger = _statute_ledger_defaults()
+    else:
+        ledger.update({k: ledger.get(k, v) for k, v in _statute_ledger_defaults().items()})
+    db_present = STATUTES_DB_PATH.exists()
 
     issues: list[dict] = []
     seen: set[tuple[str, str]] = set()  # (law, article) — dedup repeats
@@ -15541,6 +15556,11 @@ def _audit_statutes(draft_text: str) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
+        ledger["found_unique"] += 1
+
+        if not db_present:
+            ledger["not_checked"] += 1
+            continue
 
         result = _fetch_statute_text(law_code=law_up, article=article)
 
@@ -15549,6 +15569,7 @@ def _audit_statutes(draft_text: str) -> list[dict]:
         #   {..., sr_number} but no text_de     → law OK, article missing
         #   {..., sr_number, text_de}           → both OK
         if not result.get("sr_number"):
+            ledger["unknown_law"] += 1
             issues.append({
                 "category": "statute",
                 "citation": m.group(0),
@@ -15565,6 +15586,7 @@ def _audit_statutes(draft_text: str) -> list[dict]:
                 ),
             })
         elif not (result.get("text") or result.get("text_de")):
+            ledger["missing_article"] += 1
             issues.append({
                 "category": "statute",
                 "citation": m.group(0),
@@ -15580,13 +15602,24 @@ def _audit_statutes(draft_text: str) -> list[dict]:
                     "get_law to confirm."
                 ),
             })
+        else:
+            ledger["verified"] += 1
 
     return issues
+
+
+_QUOTE_NORMALISATION_LABEL = "fold-v1"
+
+
+def _quote_ledger_defaults() -> dict:
+    return {"found": 0, "examined": 0, "verbatim": 0, "not_found": 0,
+            "skipped_short": 0, "skipped_unanchored": 0, "matches": []}
 
 
 def _audit_quotes(
     draft_text: str,
     cited_decisions: list[dict],
+    ledger: dict | None = None,
 ) -> list[dict]:
     """Audit quoted spans that PURPORT to come from a Swiss legal
     source — verify each appears verbatim in the cited decision /
@@ -15611,23 +15644,54 @@ def _audit_quotes(
     `cited_decisions` is a list of {decision_id, regeste, full_text,
     paragraphs} dicts collected by `_handle_attest_response` while it
     is verifying case citations — passed in to avoid duplicate fetches.
+
+    SOURCES (2026-09-09): each cited source is normalised ONCE, in full,
+    into its own haystack. Until then the pool held only the first 8,000
+    characters of each decision's full text, so a correct quotation from
+    E. 5 of a long judgment was reported as a fabrication — the audit's
+    worst false alarm. A match now records which source carried the
+    quote (`matched_source`) and the character offset into that source's
+    normalised text (`normalisation` names the fold so the offset is
+    reproducible).
+
+    ``ledger`` (optional) is filled in place with the quotation
+    denominator: found (every 30-400 char quoted span), skipped_short
+    (< 60 chars), skipped_unanchored (no citation / statute reference
+    within 250 chars), examined, verbatim, not_found, and the `matches`
+    list of {quote, position, matched_source, offset, normalisation}.
     """
+    if ledger is None:
+        ledger = _quote_ledger_defaults()
+    else:
+        ledger.update({k: ledger.get(k, v) for k, v in _quote_ledger_defaults().items()})
     if not draft_text:
         return []
 
-    # Build the verification source pool (cited decisions + statutes).
-    source_pool_parts: list[str] = []
-    for cd in cited_decisions:
+    # Build the verification sources (cited decisions + statutes): one
+    # normalised haystack per source, untruncated. One normalisation per
+    # cited source per call keeps the cost linear in the cited text.
+    sources: list[tuple[str, str]] = []
+    for idx, cd in enumerate(cited_decisions):
+        parts: list[str] = []
         if cd.get("regeste"):
-            source_pool_parts.append(cd["regeste"])
+            parts.append(cd["regeste"])
         for p in cd.get("paragraphs") or []:
             if p.get("text"):
-                source_pool_parts.append(p["text"])
+                parts.append(p["text"])
         if cd.get("full_text"):
-            # Bound to first 8k chars per decision to keep the pool small;
-            # quotes longer than 400 chars are rare in legal writing.
-            source_pool_parts.append(cd["full_text"][:8000])
-    source_pool = _normalise_for_quote_match(" ".join(source_pool_parts))
+            parts.append(cd["full_text"])
+        if not parts:
+            continue
+        source_id = str(cd.get("decision_id") or f"source_{idx}")
+        sources.append((source_id, _normalise_for_quote_match(" ".join(parts))))
+    source_ids = [sid for sid, _ in sources]
+
+    def _locate(inner_norm: str) -> tuple[str, int] | None:
+        for sid, hay in sources:
+            off = hay.find(inner_norm)
+            if off >= 0:
+                return sid, off
+        return None
 
     # Build authority-context anchors: positions in the draft where a
     # case citation or statute reference sits. A quote within
@@ -15664,28 +15728,51 @@ def _audit_quotes(
         return False
 
     issues: list[dict] = []
-    seen_inner: set[str] = set()
+    # A repeated quotation is examined once; later copies inherit the
+    # verdict in the ledger without a second search or a second issue.
+    verdict_by_inner: dict[str, tuple[str, int] | None] = {}
     for pat in _QUOTE_AUDIT_PATTERNS:
         for m in pat.finditer(draft_text):
+            ledger["found"] += 1
             inner = m.group("inner")
             if not inner or len(inner.strip()) < MIN_QUOTE_CHARS:
+                ledger["skipped_short"] += 1
                 continue
             # Standalone quote (no nearby legal-source authority) →
             # the writer isn't claiming a source, skip.
             if not _has_nearby_authority(m.start()):
+                ledger["skipped_unanchored"] += 1
                 continue
+            ledger["examined"] += 1
             inner_norm = _normalise_for_quote_match(inner)
-            if inner_norm in seen_inner:
+            if inner_norm in verdict_by_inner:
+                if verdict_by_inner[inner_norm] is not None:
+                    ledger["verbatim"] += 1
+                else:
+                    ledger["not_found"] += 1
                 continue
-            seen_inner.add(inner_norm)
-            if source_pool and inner_norm in source_pool:
+            hit = _locate(inner_norm)
+            verdict_by_inner[inner_norm] = hit
+            if hit is not None:
+                ledger["verbatim"] += 1
+                if len(ledger["matches"]) < 50:  # bound the response size
+                    ledger["matches"].append({
+                        "quote": inner[:80] + ("…" if len(inner) > 80 else ""),
+                        "position": m.start(),
+                        "matched_source": hit[0],
+                        "offset": hit[1],
+                        "normalisation": _QUOTE_NORMALISATION_LABEL,
+                    })
                 continue
+            ledger["not_found"] += 1
             issues.append({
                 "category": "quote",
                 "citation": m.group(0)[:160] + ("…" if len(m.group(0)) > 160 else ""),
                 "position": m.start(),
                 "problem": "quote_not_in_cited_sources",
                 "quote_length": len(inner),
+                "searched_sources": source_ids,
+                "normalisation": _QUOTE_NORMALISATION_LABEL,
                 "suggestion": (
                     "This quoted text was not found verbatim in any of the "
                     "decisions cited in the draft. Either (a) re-fetch the "
@@ -15742,9 +15829,14 @@ def _statute_source_pool(draft_text: str) -> list[dict]:
     return pool
 
 
+def _date_ledger_defaults() -> dict:
+    return {"found": 0, "plausible": 0, "issues": 0, "not_checked": 0}
+
+
 def _audit_dates(
     draft_text: str,
     case_citations: list[dict],
+    ledger: dict | None = None,
 ) -> list[dict]:
     """For each verified case citation, check whether an adjacent date
     (within 60 chars after) matches the decision's stored date.
@@ -15752,7 +15844,16 @@ def _audit_dates(
     `case_citations` is the same structure produced by
     `_parse_citations_in_text`, augmented (by the caller) with a
     `_decision_date` field for OK citations.
+
+    ``ledger`` (optional) is filled in place with the date denominator:
+    found (a date adjacent to any citation), plausible (matches the
+    stored date), issues (contradicts it), not_checked (adjacent to a
+    citation that did not resolve, or not parseable as a date).
     """
+    if ledger is None:
+        ledger = _date_ledger_defaults()
+    else:
+        ledger.update({k: ledger.get(k, v) for k, v in _date_ledger_defaults().items()})
     if not draft_text:
         return []
 
@@ -15794,9 +15895,8 @@ def _audit_dates(
     # so a "vom <date>" tail can only bind to the citation it actually follows.
     _cit_starts = sorted(c["span"][0] for c in case_citations if c.get("span"))
     for cit in case_citations:
-        if not cit.get("_decision_date"):
-            continue  # only verified citations
-        actual_iso = cit["_decision_date"][:10]  # 'YYYY-MM-DD' or 'YYYY-MM-DDTHH'
+        if not cit.get("span"):
+            continue
         # Search BOTH inside the citation's own match (older or future
         # citation regexes may consume "vom DD.MM.YYYY" greedily) AND
         # in the 60-char trailing window. This is the most robust way
@@ -15811,12 +15911,22 @@ def _audit_dates(
         m = _DATE_ADJACENT_PATTERN.search(haystack)
         if not m:
             continue
+        ledger["found"] += 1
+        if not cit.get("_decision_date"):
+            # Only verified citations can be date-checked: without a
+            # resolved decision there is no stored date to compare.
+            ledger["not_checked"] += 1
+            continue
+        actual_iso = cit["_decision_date"][:10]  # 'YYYY-MM-DD' or 'YYYY-MM-DDTHH'
         claimed_iso = _normalise_date(m.group("date"))
         if claimed_iso == actual_iso:
+            ledger["plausible"] += 1
             continue
         # If we couldn't parse, only flag when both look ISO
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", claimed_iso):
+            ledger["not_checked"] += 1
             continue
+        ledger["issues"] += 1
         # #48 / GitHub #84: some BGE records carry a decision_date that
         # contradicts their own volume year. Blaming the draft for that is
         # backwards — a correct date gets reported as a hallucination. Where
@@ -16703,6 +16813,141 @@ def _handle_reflect(*, redacted_text: str, lang: str = "de") -> dict:
     }
 
 
+# ── Out-of-scope references (the citation ledger's honesty term) ────
+#
+# _CITATION_PATTERNS recognise the federal forms only. A draft that cites
+# "Urteil des Obergerichts ZH LB190012" or "EGMR 12345/12" used to come back
+# with citations_found=0 and ok=true, which reads as "nothing to verify"
+# when it means "we did not look". This permissive scanner counts such
+# references so the ledger can report them as out_of_scope. It never
+# raises an issue: a match here is a reference we did not audit, not a
+# reference we found wanting.
+_OUT_OF_SCOPE_REFERENCE_PATTERN = re.compile(
+    r"""
+    (?:
+      # Named cantonal / regional court, DE / FR / IT, with an optional
+      # "Urteil des ..." lead-in and an optional canton, docket or date tail.
+      (?:\b(?:Urteil|Entscheid|Beschluss|Verfügung|Arr[êe]t|Jugement|D[ée]cision|
+             Sentenza|Decisione)\s+(?:des|der|du|de\s+la|de\s+l'|del|della)\s+)?
+      \b(?:
+        Ober|Kantons|Verwaltungs|Handels|Bezirks|Sozialversicherungs|Appellations|
+        Steuerrekurs|Baurekurs|Zivil|Straf|Jugend|Arbeits|Miet|Versicherungs|Kassations
+      )gerichts?(?:hofs?)?\b
+      (?:\s+(?:des\s+Kantons\s+)?[A-ZÄÖÜ][\wäöü-]*){0,3}
+      (?:\s+[A-Z][A-Za-z]{0,4}[.\s]?\d[\w./-]{2,20})?
+      (?:\s+(?:vom)\s+\d{1,2}\.\s?(?:\d{1,2}\.|\w+)\s?\d{4})?
+      |
+      (?:\b(?:Arr[êe]t|Jugement|D[ée]cision|Sentenza|Decisione)\s+
+          (?:du|de\s+la|de\s+l'|del|della)\s+)?
+      \b(?:Tribunal\s+cantonal|Cour\s+de\s+justice|Tribunal\s+administratif|
+           Cour\s+d'appel|Tribunal\s+de\s+premi[èe]re\s+instance|Chambre\s+des\s+recours|
+           Cour\s+civile|Cour\s+p[ée]nale|Tribunale\s+d'appello|Tribunale\s+cantonale|
+           Tribunale\s+amministrativo|Camera\s+civile|Camera\s+penale)\b
+      (?:\s+(?:du\s+canton\s+de\s+|del\s+Cantone\s+)?[A-ZÄÖÜ][\wäöü-]*){0,3}
+      (?:\s+[A-Z][A-Za-z]{0,5}[./\s]?\d[\w./-]{2,20})?
+      (?:\s+(?:du|del)\s+\d{1,2}(?:\.|\s)\s?(?:\d{1,2}\.?|\w+)\s?\d{4})?
+      |
+      # Abbreviated cantonal court + canton code or docket.
+      \b(?:OGer|KGer|VGer|VwGer|HGer|BezGer|SVGer|AppGer|RKGer|StRK|SRK|BRK|
+           TC|CJ|CdJ|TAPI|TPI|TApp|TCA|CACJ|ACJC|ATA|AARP|CAPH)\b
+      (?:\s+[A-Z]{2}\b)?
+      (?:\s*[A-Z]{0,5}[./]?\d[\w./-]{2,20})?
+      |
+      # Bare cantonal docket shapes: LB190012 (ZH OGer), VB.2019.00123
+      # (ZH VGer), ATA/123/2020 (GE), ZK1 2020 12 (BE/SG style).
+      (?<![\w/])(?:
+        [A-Z]{2}\d{6}(?:-[A-Z])?
+        |[A-Z]{1,4}\.\d{4}\.\d{2,6}
+        |[A-Z]{2,5}/\d{1,5}/\d{4}
+        |[A-Z]{2}\d\s\d{4}\s\d{1,4}
+      )(?![\w/])
+      |
+      # European courts: ECtHR application numbers, CJEU case numbers.
+      \b(?:EGMR|CourEDH|Cour\s+EDH|ECtHR|ECHR|CEDU|Corte\s+EDU|EuGH|CJEU|CJUE|EuG|
+           EFTA-Gerichtshof)\b[^\n;]{0,60}?
+      (?:\d{1,6}/\d{2,4}|[CT]-\d{1,4}/\d{2,4})
+      |
+      (?<![\w/-])[CT]-\d{1,4}/\d{2}(?![\w/])
+    )
+    """,
+    flags=re.VERBOSE,
+)
+
+
+def _scan_out_of_scope_references(draft_text: str,
+                                  recognised: list[dict]) -> tuple[int, list[str]]:
+    """Count references the citation parser does not recognise (cantonal,
+    European, bare cantonal dockets). Returns (count, samples); samples are
+    deduplicated and capped so the ledger stays small."""
+    if not draft_text:
+        return 0, []
+    taken = [tuple(c["span"]) for c in recognised if c.get("span")]
+    count = 0
+    samples: list[str] = []
+    seen: set[str] = set()
+    for m in _OUT_OF_SCOPE_REFERENCE_PATTERN.finditer(draft_text):
+        s, e = m.span()
+        if any(s < te and e > ts for ts, te in taken):
+            continue  # inside a recognised federal citation
+        count += 1
+        text = re.sub(r"\s+", " ", m.group(0)).strip(" .,;:")
+        if text and text not in seen and len(samples) < 20:
+            seen.add(text)
+            samples.append(text[:120])
+    return count, samples
+
+
+_CERTIFICATION_BOUNDARY = (
+    "This audit certifies the draft's own citations, quotations and "
+    "statute references; it does not certify that no relevant authority "
+    "is missing. Completeness of the research is outside its scope."
+)
+
+
+def _attest_ledger(*, citations_found: int = 0, resolved: int = 0,
+                   unresolved: int = 0, unknown_pattern: int = 0,
+                   out_of_scope: list[str] | None = None,
+                   pinpoints: dict | None = None,
+                   quotations: dict | None = None,
+                   statutes: dict | None = None,
+                   dates: dict | None = None,
+                   quotes_audited: bool = True) -> dict:
+    """Assemble the per-audit denominator block of an attest response.
+    Every counter is present in every response, so a client can tell
+    "0 issues over 0 examined" from "0 issues over 12 examined"."""
+    q = dict(_quote_ledger_defaults())
+    q.update(quotations or {})
+    q["audited"] = bool(quotes_audited)
+    s = _statute_ledger_defaults()
+    s.update(statutes or {})
+    s["checked"] = bool(STATUTES_DB_PATH.exists())
+    d = _date_ledger_defaults()
+    d.update(dates or {})
+    p = {"found": 0, "verified_structure": 0, "verified_text": 0,
+         "unverified": 0, "invalid": 0}
+    p.update(pinpoints or {})
+    return {
+        "citations": {
+            "found": citations_found,
+            "resolved": resolved,
+            "unresolved": unresolved,
+            "unknown_pattern": unknown_pattern,
+            "out_of_scope": list(out_of_scope or []),
+        },
+        "pinpoints": p,
+        "quotations": q,
+        "statutes": s,
+        "dates": d,
+        "certifies": (
+            "the draft's own citations, quotations and statute references"
+        ),
+        "does_not_certify": (
+            "that no relevant authority is missing; out_of_scope lists "
+            "references the parser did not recognise and did not audit"
+        ),
+    }
+
+
 def _handle_attest_response(*, draft_text: str,
                              audit_grounding: bool = False,
                              audit_quotes: bool = True) -> dict:
@@ -16735,18 +16980,30 @@ def _handle_attest_response(*, draft_text: str,
         # may still be present. Build a statute-only source pool so a
         # verbatim Art. X quote (with no accompanying case citation)
         # is not falsely flagged as unsourced.
-        statute_issues = _audit_statutes(draft_text)
+        statute_ledger = _statute_ledger_defaults()
+        statute_issues = _audit_statutes(draft_text, ledger=statute_ledger)
         # Quote audit on by default for the MCP tool since 2026-09-05
         # (see the docstring); audit_quotes=False leaves user-supplied
         # quotes alone (party narrative, witness statements, defined terms).
-        quote_issues = (_audit_quotes(draft_text, _statute_source_pool(draft_text))
+        quote_ledger = _quote_ledger_defaults()
+        quote_issues = (_audit_quotes(draft_text, _statute_source_pool(draft_text),
+                                      ledger=quote_ledger)
                         if audit_quotes else [])
         empty_issues = statute_issues + quote_issues
         empty_issues.sort(key=lambda i: i.get("position", 0))
+        unknown_n, out_of_scope = _scan_out_of_scope_references(draft_text, [])
+        ledger = _attest_ledger(
+            unknown_pattern=unknown_n, out_of_scope=out_of_scope,
+            quotations=quote_ledger, statutes=statute_ledger,
+            quotes_audited=audit_quotes,
+        )
         return {
             "ok": len(empty_issues) == 0,
             "citations_found": 0,
             "citations_ok": 0,
+            "statutes_checked": (
+                statute_ledger["found_unique"] - statute_ledger["not_checked"]),
+            "quotes_checked": quote_ledger["examined"],
             "issues_count": len(empty_issues),
             "issues_by_category": {
                 "case": 0,
@@ -16755,6 +17012,7 @@ def _handle_attest_response(*, draft_text: str,
                 "date": 0,
                 "grounding": 0,
             },
+            "ledger": ledger,
             "grounding_meta": {
                 "requested": audit_grounding,
                 "checked": 0,
@@ -16767,7 +17025,14 @@ def _handle_attest_response(*, draft_text: str,
             "warnings_count": 0,
             "_note": (
                 "No Swiss-case citation patterns detected. Statute and "
-                "quote audits still ran. If your response makes legal "
+                "quote audits still ran; `ledger` carries the denominator "
+                "of each (statutes.not_checked > 0 means the statute mirror "
+                "was unavailable, not that the references passed). "
+                "ledger.citations.out_of_scope lists references the parser "
+                "did not recognise (cantonal, European); they were NOT "
+                "audited. "
+                + _CERTIFICATION_BOUNDARY + " "
+                "If your response makes legal "
                 "claims without citing authority, consider whether that's "
                 "appropriate — Swiss legal writing expects citations for "
                 "normative propositions."
@@ -16780,6 +17045,10 @@ def _handle_attest_response(*, draft_text: str,
     # decision with no structured Erwägungen (~14 % of the corpus).
     pinpoint_warnings: list[dict] = []
     ok_count = 0
+    resolved_count = 0
+    # Pinpoint denominator, keyed by the method _verify_pinpoint reports.
+    pinpoint_ledger = {"found": 0, "verified_structure": 0,
+                       "verified_text": 0, "unverified": 0, "invalid": 0}
     # Build annotated text (with ✓/⚠ markers, for LLM to see status) AND
     # linked text (same content, every validated citation wrapped in a
     # Markdown link — ready-to-ship to the user verbatim).
@@ -16838,6 +17107,15 @@ def _handle_attest_response(*, draft_text: str,
                 full_text=decision.get("full_text") or "",
             )
             pinpoint_state = verdict["status"]
+            pinpoint_ledger["found"] += 1
+            if pinpoint_state == PINPOINT_INVALID:
+                pinpoint_ledger["invalid"] += 1
+            elif pinpoint_state == PINPOINT_UNVERIFIED:
+                pinpoint_ledger["unverified"] += 1
+            elif verdict.get("method") == "text":
+                pinpoint_ledger["verified_text"] += 1
+            else:
+                pinpoint_ledger["verified_structure"] += 1
             if pinpoint_state == PINPOINT_INVALID:
                 status = "PINPOINT_INVALID"
                 detail["problem"] = "pinpoint_not_in_decision"
@@ -16875,6 +17153,7 @@ def _handle_attest_response(*, draft_text: str,
         cit["_status"] = status
         cit["_resolved_id"] = resolved if decision else None
         if decision:
+            resolved_count += 1
             cit["_decision_date"] = decision.get("decision_date") or ""
             # Build the source pool entry once per decision
             if resolved and resolved not in seen_resolved:
@@ -16953,16 +17232,19 @@ def _handle_attest_response(*, draft_text: str,
     # Each returns issue dicts in the same shape; we extend the master
     # list without rebuilding annotated_text (markers attach only to
     # case citations because their spans are unambiguous).
-    statute_issues = _audit_statutes(draft_text)
+    statute_ledger = _statute_ledger_defaults()
+    statute_issues = _audit_statutes(draft_text, ledger=statute_ledger)
     # Quote audit on by default for the MCP tool since 2026-09-05, opt-in
     # over REST (see the docstring). When enabled, the source pool is
     # augmented with statute texts so verbatim Art. X quotes don't trip it.
+    quote_ledger = _quote_ledger_defaults()
     if audit_quotes:
         cited_sources.extend(_statute_source_pool(draft_text))
-        quote_issues = _audit_quotes(draft_text, cited_sources)
+        quote_issues = _audit_quotes(draft_text, cited_sources, ledger=quote_ledger)
     else:
         quote_issues = []
-    date_issues = _audit_dates(draft_text, citations)
+    date_ledger = _date_ledger_defaults()
+    date_issues = _audit_dates(draft_text, citations, ledger=date_ledger)
     issues.extend(statute_issues)
     issues.extend(quote_issues)
     issues.extend(date_issues)
@@ -16984,16 +17266,34 @@ def _handle_attest_response(*, draft_text: str,
     issues.sort(key=lambda i: i.get("position", 0))
     pinpoint_warnings.sort(key=lambda w: w.get("position", 0))
 
+    unknown_n, out_of_scope = _scan_out_of_scope_references(draft_text, citations)
+    ledger = _attest_ledger(
+        citations_found=len(citations),
+        resolved=resolved_count,
+        unresolved=len(citations) - resolved_count,
+        unknown_pattern=unknown_n,
+        out_of_scope=out_of_scope,
+        pinpoints=pinpoint_ledger,
+        quotations=quote_ledger,
+        statutes=statute_ledger,
+        dates=date_ledger,
+        quotes_audited=audit_quotes,
+    )
+
     return {
         "ok": len(issues) == 0,
         "citations_found": len(citations),
         "citations_ok": ok_count,
-        "statutes_checked": len(statute_issues) + sum(
-            1 for _ in _STATUTE_AUDIT_PATTERN.finditer(draft_text)
-        ),
-        "quotes_checked": sum(
-            len(list(p.finditer(draft_text))) for p in _QUOTE_AUDIT_PATTERNS
-        ),
+        # Denominators, not pattern counts: statutes_checked is the number
+        # of unique Art. X LAW references actually looked up (0 when the
+        # statute mirror is absent — see ledger.statutes.not_checked), and
+        # quotes_checked the number of quoted spans the rail examined
+        # (>= 60 chars, anchored to a citation or statute reference). Until
+        # 2026-09-09 quotes_checked counted every 30-400 char span, most of
+        # which the rail skipped by design.
+        "statutes_checked": (
+            statute_ledger["found_unique"] - statute_ledger["not_checked"]),
+        "quotes_checked": quote_ledger["examined"],
         "issues_count": len(issues),
         "issues_by_category": {
             "case": sum(1 for i in issues if i.get("category") == "case"),
@@ -17002,6 +17302,7 @@ def _handle_attest_response(*, draft_text: str,
             "date": len(date_issues),
             "grounding": len(grounding_issues),
         },
+        "ledger": ledger,
         "grounding_meta": grounding_meta,
         "annotated_text": annotated_text,
         "linked_text": linked_text,
@@ -17034,6 +17335,17 @@ def _handle_attest_response(*, draft_text: str,
             "actually supports the claim, (c) replace a fabricated quote with "
             "a verbatim get_erwaegung extract, (d) qualify or drop the "
             "proposition.\n\n"
+            "`ledger` is the denominator of every rail: citations "
+            "(found / resolved / unresolved / unknown_pattern, with "
+            "out_of_scope listing cantonal or European references the parser "
+            "did not recognise and did NOT audit), pinpoints (verified by "
+            "structure or by text / unverified / invalid), quotations "
+            "(found / examined / verbatim / not_found / skipped), statutes "
+            "(found_unique / verified / unknown_law / missing_article / "
+            "not_checked when the statute mirror is unavailable) and dates. "
+            "Read ok=true together with the ledger: 0 issues over 0 examined "
+            "is not a pass. "
+            + _CERTIFICATION_BOUNDARY + "\n\n"
             "WHEN to set audit_grounding=True: any answer with ≥2 citations, "
             "or where a wrong proposition would mislead a Swiss lawyer.\n\n"
             "WHEN ok=true: send the `linked_text` field VERBATIM to the user "
@@ -24373,24 +24685,24 @@ def _list_tools() -> list[Tool]:
             description=(
                 "MANDATORY FINAL-STEP AUDIT of your draft answer. Checks "
                 "five hallucination classes: (1) every case citation "
-                "(BGE/BGer/BVGer/BStGer/BPatGer/MKGE and FR/IT forms) exists "
-                "in the corpus and any pinpoint (E. X.Y / consid. X.Y) "
-                "resolves to a real Erwägung; (2) every 'Art. X LAW' statute "
-                "reference resolves (known abbreviation, existing article); "
-                "(3) quoted passages (60-400 chars) near a citation or 'Art. X LAW' "
-                "reference are verbatim in the cited decision or statute "
+                "(BGE/BGer/BVGer/BStGer/BPatGer/MKGE, FR/IT forms) exists "
+                "and any pinpoint (E. X.Y) resolves to a real Erwägung; "
+                "(2) every 'Art. X LAW' statute reference resolves; "
+                "(3) quoted passages (60-400 chars) near a citation or "
+                "statute reference are verbatim in that source "
                 "(DE/FR/IT; audit_quotes, on by default); "
                 "(4) decision dates adjacent to citations "
                 "match the stored dates; (5) with audit_grounding=true, an "
-                "independent LLM judge checks that each cited source "
-                "actually supports the claim sentence preceding it (one "
-                "call, ~3 s). Returns the "
-                "draft annotated per citation plus a structured issues "
-                "list. CALL THIS BEFORE emitting any answer containing a "
-                "case citation, statute reference or direct quotation; set "
-                "audit_grounding=true for answers with 2+ citations. If "
-                "ok=false, fix each issue; if ok=true, send linked_text "
-                "verbatim."
+                "LLM judge checks that each cited source supports the "
+                "preceding claim (one call, ~3 s). "
+                "Returns the annotated draft, an issues list and a `ledger` "
+                "(denominator per check). It certifies the draft's own "
+                "citations, quotations and statute references; it does not "
+                "certify that no relevant authority is missing. "
+                "CALL THIS BEFORE emitting any answer with a case citation, "
+                "statute reference or quotation; set audit_grounding=true "
+                "for 2+ citations. If ok=false, fix each issue; if ok=true, "
+                "send linked_text verbatim."
             ),
             inputSchema={
                 "type": "object",

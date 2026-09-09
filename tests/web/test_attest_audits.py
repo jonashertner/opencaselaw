@@ -545,3 +545,252 @@ def test_strict_resolver_returns_none_on_miss(m, monkeypatch):
     # Every SQL should be exact-match — none must contain LIKE
     for sql, _ in calls:
         assert "LIKE" not in sql.upper(), f"strict resolver leaked LIKE: {sql}"
+
+
+# ── 2026-09-09: the audit gets a denominator, and its worst false alarm goes ─
+#
+# Before: _audit_quotes pooled the first 8,000 characters of each cited
+# decision's full text, so a correct quotation from E. 5 of a long judgment
+# was reported as a fabrication; quotes_checked counted every 30-400 char
+# span although only anchored spans of 60+ chars are examined; and with no
+# statutes.db the statute audit returned [] while statutes_checked reported
+# N, which read as "N passed". The `ledger` block makes every rail report
+# found / examined / verified, so ok=true over nothing examined is visible.
+
+LONG_HEAD = ("Sachverhalt. Die Beschwerdeführerin verlangt Schadenersatz. " * 160)
+DEEP_SENTENCE = ("Der Vermieter haftet für Mängel an der Mietsache nur, soweit "
+                 "er diese bei Vertragsschluss kannte oder hätte kennen müssen.")
+LONG_TAIL = (" Weitere Erwägungen folgen hier ohne Bedeutung für den Fall. " * 40)
+LONG_FULL_TEXT = LONG_HEAD + "E. 5.2 " + DEEP_SENTENCE + LONG_TAIL
+assert LONG_FULL_TEXT.index(DEEP_SENTENCE) > 9_000, "fixture must sit beyond the old 8k bound"
+
+
+@pytest.fixture
+def long_decision(m, monkeypatch, tmp_path):
+    """One resolvable BGE whose only copy of the quoted sentence sits ~9.5k
+    characters into full_text; no structure rows, no statutes.db."""
+    did = "bge_BGE_140_III_86"
+    row = {"decision_id": did, "court": "bge", "decision_date": "2014-01-14",
+           "language": "de", "regeste": "", "full_text": LONG_FULL_TEXT}
+    monkeypatch.setattr(m, "_resolve_decision_id_strict",
+                        lambda ref: did if "140_III_86" in (ref or "") else None)
+    monkeypatch.setattr(m, "_get_decision_strict", lambda d: row if d == did else None)
+    monkeypatch.setattr(m, "_fetch_structure_paragraphs", lambda d: [])
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
+    return did
+
+
+def test_quote_beyond_8k_chars_is_found_and_attributed(m, long_decision):
+    draft = f"BGE 140 III 86 hält fest: „{DEEP_SENTENCE}“"
+    res = m._handle_attest_response(draft_text=draft)
+    assert res["issues_by_category"]["quote"] == 0
+    assert res["ok"] is True
+    q = res["ledger"]["quotations"]
+    assert (q["found"], q["examined"], q["verbatim"], q["not_found"]) == (1, 1, 1, 0)
+    [hit] = q["matches"]
+    assert hit["matched_source"] == long_decision
+    assert hit["normalisation"] == "fold-v1"
+    # The offset is into the normalised source text and points at the quote.
+    norm_src = m._normalise_for_quote_match(LONG_FULL_TEXT)
+    assert hit["offset"] > 8_000
+    assert norm_src[hit["offset"]:].startswith(m._normalise_for_quote_match(DEEP_SENTENCE))
+    # Negative control: a changed word at the same depth is still caught, and
+    # the issue names the sources that were searched.
+    bad = draft.replace("kannte oder hätte kennen müssen", "kannte oder kennen konnte")
+    res = m._handle_attest_response(draft_text=bad)
+    assert res["issues_by_category"]["quote"] == 1
+    [issue] = [i for i in res["issues"] if i["category"] == "quote"]
+    assert issue["searched_sources"] == [long_decision]
+    assert issue["normalisation"] == "fold-v1"
+    assert res["ledger"]["quotations"]["not_found"] == 1
+
+
+def test_quote_ledger_counts_examined_short_and_unanchored(m):
+    src = [{"decision_id": "bge_BGE_140_III_86",
+            "regeste": "Der Vermieter haftet für Mängel an der Sache, soweit dies vereinbart wurde.",
+            "full_text": "", "paragraphs": []}]
+    draft = (
+        # examined + verbatim
+        'BGE 140 III 86 E. 2.3: „Der Vermieter haftet für Mängel an der Sache, '
+        'soweit dies vereinbart wurde.“ '
+        # examined + not found
+        'BGE 140 III 86 E. 2.4: „Dieser Satz steht so nicht im Entscheid und ist '
+        'tatsächlich frei erfunden worden.“ '
+        # short (30-59 chars): found, skipped
+        '„Ein kurzer Begriff von unter sechzig Zeichen.“ '
+        + "Zwischentext ohne jede Autorität. " * 12 +
+        # long, but no citation or statute reference within 250 chars
+        '„Ich war an jenem Abend nicht zu Hause, sondern unterwegs im Tessin bei '
+        'meiner Schwester und ihrer Familie.“'
+    )
+    ledger: dict = {}
+    issues = m._audit_quotes(draft, src, ledger=ledger)
+    assert len(issues) == 1
+    assert ledger["found"] == 4
+    assert ledger["examined"] == 2
+    assert ledger["verbatim"] == 1 and ledger["not_found"] == 1
+    assert ledger["skipped_short"] == 1
+    assert ledger["skipped_unanchored"] == 1
+    assert ledger["matches"][0]["matched_source"] == "bge_BGE_140_III_86"
+    # Repeated quotations inherit the first verdict without a second issue.
+    # The copies are separated by more than the 250-char anchor radius so the
+    # second copy's citations do not anchor the first copy's standalone quote.
+    ledger2: dict = {}
+    issues2 = m._audit_quotes(draft + " Fliesstext. " * 30 + draft, src, ledger=ledger2)
+    assert len(issues2) == 1
+    assert ledger2["examined"] == 4 and ledger2["verbatim"] == 2 and ledger2["not_found"] == 2
+    assert ledger2["skipped_short"] == 2 and ledger2["skipped_unanchored"] == 2
+
+
+def test_quotes_checked_is_the_examined_count(m, monkeypatch, tmp_path):
+    """quotes_checked used to count every 30-400 char span; it is now the
+    number of spans the rail examined (anchored, 60+ chars)."""
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
+    draft = ('„Ein kurzer Begriff von unter sechzig Zeichen.“ steht hier allein. '
+             'Art. 41 OR lautet: „Wer einem andern widerrechtlich Schaden zufügt, '
+             'sei es mit Absicht, sei es aus Fahrlässigkeit, wird ihm zum Ersatze '
+             'verpflichtet.“')
+    res = m._handle_attest_response(draft_text=draft)
+    assert res["citations_found"] == 0
+    assert res["quotes_checked"] == 1
+    assert res["ledger"]["quotations"]["found"] == 2
+    assert res["ledger"]["quotations"]["skipped_short"] == 1
+    res = m._handle_attest_response(draft_text=draft, audit_quotes=False)
+    assert res["quotes_checked"] == 0
+    assert res["ledger"]["quotations"]["audited"] is False
+
+
+def test_statutes_not_checked_without_db_is_visible(m, monkeypatch, tmp_path):
+    """No statutes.db: the audit still returns no issues, but the ledger says
+    the references were not checked and statutes_checked no longer claims N."""
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
+    draft = "Siehe Art. 41 OR und Art. 256 OR sowie nochmals Art. 41 OR und Art. 999 ZZZ."
+    ledger: dict = {}
+    assert m._audit_statutes(draft, ledger=ledger) == []
+    assert ledger == {"found_unique": 3, "verified": 0, "unknown_law": 0,
+                      "missing_article": 0, "not_checked": 3}
+    res = m._handle_attest_response(draft_text=draft, audit_quotes=False)
+    assert res["ok"] is True
+    assert res["statutes_checked"] == 0
+    s = res["ledger"]["statutes"]
+    assert s["found_unique"] == 3 and s["not_checked"] == 3 and s["checked"] is False
+    assert "not_checked" in res["_note"]
+
+
+def test_statute_ledger_counts_verified_and_failures(m, monkeypatch, tmp_path):
+    fake_db = tmp_path / "statutes.db"
+    fake_db.touch()
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", fake_db)
+
+    def fake_fetch(**kw):
+        if kw["law_code"] == "ZZZ":
+            return {}
+        if kw["article"] == "999":
+            return {"sr_number": "220"}
+        return {"sr_number": "220", "text_de": "x", "text": "x"}
+
+    monkeypatch.setattr(m, "_fetch_statute_text", fake_fetch)
+    draft = "Art. 41 OR, Art. 999 OR, Art. 1 ZZZ und nochmals Art. 41 OR."
+    ledger: dict = {}
+    issues = m._audit_statutes(draft, ledger=ledger)
+    assert sorted(i["problem"] for i in issues) == ["article_not_in_law", "law_abbreviation_unknown"]
+    assert ledger == {"found_unique": 3, "verified": 1, "unknown_law": 1,
+                      "missing_article": 1, "not_checked": 0}
+    res = m._handle_attest_response(draft_text=draft, audit_quotes=False)
+    assert res["statutes_checked"] == 3
+    assert res["ledger"]["statutes"]["verified"] == 1
+
+
+def test_date_ledger_has_a_denominator(m):
+    cits = [
+        {"span": (0, 14), "full_match": "BGer 4A_1/2024", "_decision_date": "2024-03-12"},
+        {"span": (30, 44), "full_match": "BGer 4A_2/2024", "_decision_date": "2024-03-12"},
+        {"span": (60, 74), "full_match": "BGer 4A_3/2024", "_decision_date": ""},
+    ]
+    draft = ("BGer 4A_1/2024 vom 12.03.2024; " "BGer 4A_2/2024 vom 15.03.2024; "
+             "BGer 4A_3/2024 vom 01.01.2024")
+    ledger: dict = {}
+    issues = m._audit_dates(draft, cits, ledger=ledger)
+    assert len(issues) == 1
+    assert ledger == {"found": 3, "plausible": 1, "issues": 1, "not_checked": 1}
+
+
+def test_out_of_scope_references_are_counted_not_flagged(m, monkeypatch, tmp_path):
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
+    draft = ("Vgl. Urteil des Obergerichts des Kantons Zürich LB190012 vom 3. Mai 2020, "
+             "OGer ZH PP200015, arrêt du Tribunal cantonal VD HC/2020/123, "
+             "EGMR 12345/12 sowie EuGH C-131/12.")
+    n, samples = m._scan_out_of_scope_references(draft, [])
+    assert n == 5, samples
+    assert samples[0].startswith("Urteil des Obergerichts des Kantons Zürich LB190012")
+    assert "EGMR 12345/12" in samples and "EuGH C-131/12" in samples
+    res = m._handle_attest_response(draft_text=draft)
+    assert res["ok"] is True and res["issues_count"] == 0
+    assert res["citations_found"] == 0
+    c = res["ledger"]["citations"]
+    assert c["unknown_pattern"] == 5 and c["out_of_scope"] == samples
+    assert "out_of_scope" in res["_note"]
+    # A recognised federal citation is never counted as out of scope, and
+    # prose without references yields nothing.
+    assert m._scan_out_of_scope_references("BGE 140 III 86 E. 2.3", m._parse_citations_in_text("BGE 140 III 86 E. 2.3")) == (0, [])
+    assert m._scan_out_of_scope_references("Reiner Fliesstext ohne Verweise.", []) == (0, [])
+
+
+def test_ledger_present_in_both_branches_with_stable_keys(m, monkeypatch, tmp_path):
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
+    monkeypatch.setattr(m, "_resolve_decision_id_strict", lambda ref: None)
+    keys = {"citations", "pinpoints", "quotations", "statutes", "dates",
+            "certifies", "does_not_certify"}
+    for draft in ("Pure prose, no claims.", "Siehe BGE 999 IV 999 E. 1."):
+        res = m._handle_attest_response(draft_text=draft)
+        assert set(res["ledger"]) == keys
+        assert set(res["ledger"]["citations"]) == {"found", "resolved", "unresolved",
+                                                   "unknown_pattern", "out_of_scope"}
+        assert set(res["ledger"]["pinpoints"]) == {"found", "verified_structure",
+                                                   "verified_text", "unverified", "invalid"}
+        for key in ("statutes_checked", "quotes_checked", "issues_by_category",
+                    "warnings_count", "citations_ok"):
+            assert key in res
+    res = m._handle_attest_response(draft_text="Siehe BGE 999 IV 999 E. 1.")
+    assert res["ledger"]["citations"] == {"found": 1, "resolved": 0, "unresolved": 1,
+                                          "unknown_pattern": 0, "out_of_scope": []}
+    assert res["ok"] is False and res["citations_found"] == 1
+
+
+def test_pinpoint_ledger_uses_verify_pinpoint_method(m, long_decision, monkeypatch):
+    # No structure rows + heading in the body → verified by text.
+    res = m._handle_attest_response(draft_text="BGE 140 III 86 E. 5.2 ist einschlägig.")
+    p = res["ledger"]["pinpoints"]
+    assert p == {"found": 1, "verified_structure": 0, "verified_text": 1,
+                 "unverified": 0, "invalid": 0}
+    # No structure rows + no heading → unverified: a warning, not an issue.
+    res = m._handle_attest_response(draft_text="BGE 140 III 86 E. 9.9 ist einschlägig.")
+    assert res["ok"] is True and res["warnings_count"] == 1
+    assert res["ledger"]["pinpoints"]["unverified"] == 1
+    # Structure rows decide: E. 4.1 verified by structure, E. 7.1 invalid.
+    monkeypatch.setattr(m, "_fetch_structure_paragraphs",
+                        lambda d: [{"e_number": "4", "text": "x"}, {"e_number": "4.1", "text": "y"}])
+    res = m._handle_attest_response(draft_text="BGE 140 III 86 E. 4.1 und BGE 140 III 86 E. 7.1.")
+    p = res["ledger"]["pinpoints"]
+    assert p == {"found": 2, "verified_structure": 1, "verified_text": 0,
+                 "unverified": 0, "invalid": 1}
+    assert res["issues_by_category"]["case"] == 1 and res["citations_ok"] == 1
+
+
+def test_certification_boundary_is_stated_everywhere(m, monkeypatch, tmp_path):
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
+    monkeypatch.setattr(m, "_resolve_decision_id_strict", lambda ref: None)
+    [t] = [t for t in m._list_tools() if t.name == "attest_response"]
+    assert "does not certify that no relevant authority is missing" in t.description
+    assert len(t.description) <= 1024
+    for draft in ("Pure prose.", "Siehe BGE 999 IV 999."):
+        res = m._handle_attest_response(draft_text=draft)
+        assert "does not certify that no relevant authority is missing" in res["_note"]
+    from pathlib import Path
+    html = (Path(__file__).resolve().parents[2] / "docs" / "api" / "index.html").read_text(encoding="utf-8")
+    assert html.count("does not certify that no relevant authority is missing") == 2  # HTML + en
+    for needle in ("bescheinigt nicht, dass keine einschlägige Autorität fehlt",
+                   "ne certifie pas qu\\'aucune autorité pertinente ne manque",
+                   "non certifica che non manchi alcuna autorità rilevante",
+                   "na certifitgescha betg che nagina autoritad relevanta manca"):
+        assert needle in html, needle

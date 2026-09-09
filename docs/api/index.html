@@ -209,7 +209,7 @@ ocl bundle create 'missbräuchliche Kündigung Rachekündigung' \
 
       <div class="group-head" data-t="grp_verify">Verification &amp; introspection</div>
       <ul class="endpoint-list">
-        <li class="endpoint"><span class="method">POST</span><span class="path">/api/attest</span><span class="desc" data-t="e_attest">Audit a draft response — verifies every BGE / Art. / quoted string against the corpus before it leaves the server.</span></li>
+        <li class="endpoint"><span class="method">POST</span><span class="path">/api/attest</span><span class="desc" data-t="e_attest">Audit a draft response — verifies every BGE / Art. / quoted string against the corpus before it leaves the server. Certifies the draft's own citations, quotations and statute references; it does not certify that no relevant authority is missing.</span></li>
         <li class="endpoint"><span class="method">GET</span><span class="path">/api/courts</span><span class="desc" data-t="e_courts">List all 121 courts (federal, regulatory, international, cantonal).</span></li>
         <li class="endpoint"><span class="method">GET</span><span class="path">/api/statistics</span><span class="desc" data-t="e_stats">Aggregate stats — corpus, citation graph, statutes, languages.</span></li>
         <li class="endpoint"><span class="method">GET</span><span class="path">/api/scraper-health</span><span class="desc" data-t="e_health">Per-source last-run status (drives <a href="/coverage/">/coverage</a>).</span></li>
@@ -283,7 +283,7 @@ OCL.init({
       e_comm_one:'Kommentarindex zu einem Gesetz (OR, ZGB, …).',
       e_exam:'Echtes BGE-Sachverhaltsmuster als Fallbearbeitung mit verborgener Analyse.',
       e_mock:'Forschungs-Musterentscheid aus Sachverhalt + Rechtsprechung + Gesetzen.',
-      e_attest:'Einen Antwortentwurf prüfen — verifiziert jeden BGE / Art. / zitierten String gegen den Korpus, bevor er den Server verlässt.',
+      e_attest:'Einen Antwortentwurf prüfen — verifiziert jeden BGE / Art. / zitierten String gegen den Korpus, bevor er den Server verlässt. Bescheinigt die eigenen Zitate, Zitatstellen und Gesetzesverweise des Entwurfs; bescheinigt nicht, dass keine einschlägige Autorität fehlt.',
       e_courts:'Alle 121 Gerichte auflisten (Bund, Regulierung, international, kantonal).',
       e_stats:'Aggregierte Statistiken — Korpus, Zitationsgraph, Gesetze, Sprachen.',
       e_health:'Letzter Laufstatus pro Quelle (treibt <a href="/coverage/">/coverage</a>).',
@@ -344,7 +344,7 @@ OCL.init({
       e_comm_one:'Index du commentaire pour une loi (OR, ZGB, …).',
       e_exam:'Vrai schéma de faits BGE comme cas pratique avec analyse masquée.',
       e_mock:'Décision fictive (recherche uniquement) à partir de faits + jurisprudence + lois.',
-      e_attest:'Auditer un projet de réponse — vérifie chaque BGE / art. / chaîne citée par rapport au corpus avant qu\'elle ne quitte le serveur.',
+      e_attest:'Auditer un projet de réponse — vérifie chaque BGE / art. / chaîne citée par rapport au corpus avant qu\'elle ne quitte le serveur. Certifie les citations, passages cités et références légales du projet lui-même ; ne certifie pas qu\'aucune autorité pertinente ne manque.',
       e_courts:'Lister les 121 tribunaux (fédéraux, régulatoires, internationaux, cantonaux).',
       e_stats:'Statistiques agrégées — corpus, graphe de citations, lois, langues.',
       e_health:'Statut du dernier passage par source (alimente <a href="/coverage/">/coverage</a>).',
@@ -405,7 +405,7 @@ OCL.init({
       e_comm_one:'Indice del commentario per una legge (OR, ZGB, …).',
       e_exam:'Vero schema di fatti BGE come caso pratico con analisi nascosta.',
       e_mock:'Decisione fittizia (solo ricerca) da fatti + giurisprudenza + leggi.',
-      e_attest:'Verificare una bozza di risposta — controlla ogni BGE / art. / stringa citata rispetto al corpus prima che lasci il server.',
+      e_attest:'Verificare una bozza di risposta — controlla ogni BGE / art. / stringa citata rispetto al corpus prima che lasci il server. Certifica le citazioni, i passaggi citati e i riferimenti di legge della bozza stessa; non certifica che non manchi alcuna autorità rilevante.',
       e_courts:'Elencare tutti i 121 tribunali (federali, di regolazione, internazionali, cantonali).',
       e_stats:'Statistiche aggregate — corpus, grafo delle citazioni, leggi, lingue.',
       e_health:'Stato dell\'ultima esecuzione per fonte (alimenta <a href="/coverage/">/coverage</a>).',
@@ -466,7 +466,7 @@ OCL.init({
       e_comm_one:'Index dal commentari per ina lescha (OR, ZGB, …).',
       e_exam:'Ver model da fatgs BGE sco cas pratic cun analisa zuppada.',
       e_mock:'Decisiun fittiva (mo per perscrutaziun) da fatgs + giurisprudenza + leschas.',
-      e_attest:'Controllar ina sbozza da resposta — verifitgescha mintga BGE / art. / citaziun cunter il corpus avant ch\'ella bandunescha il server.',
+      e_attest:'Controllar ina sbozza da resposta — verifitgescha mintga BGE / art. / citaziun cunter il corpus avant ch\'ella bandunescha il server. Certifitgescha las citaziuns, ils passadis citads e las referenzas da lescha da la sbozza sezza; na certifitgescha betg che nagina autoritad relevanta manca.',
       e_courts:'Far ina glista da tut las 121 dretgiras (federalas, da regulaziun, internaziunalas, chantunalas).',
       e_stats:'Statisticas aggregadas — corpus, graf da citaziuns, leschas, linguas.',
       e_health:'Status da l\'ultima execuziun per funtauna (maina <a href="/coverage/">/coverage</a>).',
@@ -527,7 +527,7 @@ OCL.init({
       e_comm_one:'Commentary index for a law (OR, ZGB, …).',
       e_exam:'Real BGE fact pattern as Fallbearbeitung with hidden analysis.',
       e_mock:'Research-only mock decision from facts + caselaw + statutes.',
-      e_attest:'Audit a draft response — verifies every BGE / Art. / quoted string against the corpus before it leaves the server.',
+      e_attest:'Audit a draft response — verifies every BGE / Art. / quoted string against the corpus before it leaves the server. Certifies the draft\'s own citations, quotations and statute references; it does not certify that no relevant authority is missing.',
       e_courts:'List all 121 courts (federal, regulatory, international, cantonal).',
       e_stats:'Aggregate stats — corpus, citation graph, statutes, languages.',
       e_health:'Per-source last-run status (drives <a href="/coverage/">/coverage</a>).',
