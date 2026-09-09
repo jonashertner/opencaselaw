@@ -1,0 +1,28 @@
+{
+  "schema": "intake-policy/v1",
+  "_doc": "Read by scripts/check_intake_rates.py. expected_stale: courts whose zero intake is BY DESIGN (abolished court, frozen archive, no new volumes); they are reported EXPECTED and never fail the run. A coverage note is NOT an exemption: ow_gerichte and be_steuerrekurs are noted outages that are re-probed weekly and must keep surfacing until the probe yields rows. lag_days: series whose decision dates trail publication by months; the pro-rating window is shifted by that many days and the court is WAIT (not judged) while the remaining window is under 30 days. NOT exempted on purpose: vd_findinfo (its note calls it a frozen pre-2015 archive, but it received 2,444 rows dated 2025 and 0 dated 2026 — a feed death to look at, not a design).",
+  "expected_stale": {
+    "ch_vb": {
+      "reason": "frozen archive; VPB/JAAC ceased publishing in 2016, preserved via the entscheidsuche archive",
+      "since": "2016"
+    },
+    "mkg": {
+      "reason": "Militaerkassationsgericht archival corpus, volumes 1-16 (1915-2025); the court publishes no new volumes",
+      "since": "2025"
+    },
+    "zh_kassationsgericht": {
+      "reason": "court abolished with the federal ZPO; last decisions 2012",
+      "since": "2012"
+    },
+    "emark": {
+      "reason": "EMARK series ended when the Asylrekurskommission was replaced by the BVGer in 2007",
+      "since": "2006"
+    }
+  },
+  "lag_days": {
+    "bge": {
+      "days": 270,
+      "evidence": "2026-09-09: volume 152 (2026) holds 104 decisions in the corpus, only 28 of them DATED 2026; the official collection publishes 6-12 months after the judgment, so the decision-year count is not judgeable before Q4. bge stays covered by the our_count stall detector in check_scraper_freshness.py."
+    }
+  }
+}
