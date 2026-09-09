@@ -233,6 +233,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from db_schema import SCHEMA_SQL, INSERT_OR_IGNORE_SQL, INSERT_COLUMNS  # noqa: E402
 import docket_aliases  # noqa: E402  (joined-docket resolution, issue #41)
 import reference_parser
+import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; honest not-found reasons)
 import ecthr_docket  # noqa: E402  (shared ECtHR docket display form)
 
 # Set to True when running with --remote (SSE transport).
@@ -6304,6 +6305,55 @@ def _lookup_ecthr_appno(conn: sqlite3.Connection, reference: str | None) -> list
     return [r[0] for r in rows]
 
 
+def _lookup_ref_candidates(conn: sqlite3.Connection, reference: str | None) -> str | None:
+    """Resolve a typed identifier through decision_ref.resolve_decision_ref:
+    the docket grammar names the court(s) and the id each scraper would have
+    minted, and every candidate is tried as a PRIMARY-KEY lookup, in order.
+    Bare cantonal dockets ('UH220412', 'ACPR/635/2024', 'VB.2025.0683'),
+    dotted pre-2007 and EVG federal forms ('1A.235/2000', 'I 123/04'), BVGer /
+    BStGer / BPatGer files, percent-encoded ids, the ZH Verwaltungsgericht
+    double underscore and the space form of our own BGer citation strings
+    (#76) all land here instead of in the ~2 s LIKE scan. Returns the first
+    stored id, or None. Never raises (a fixture without the table yields None).
+    """
+    for cid in decision_ref.resolve_decision_ref(reference):
+        try:
+            row = conn.execute(
+                "SELECT decision_id FROM decisions WHERE decision_id = ?", (cid,)
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        if row:
+            return row[0]
+    return None
+
+
+def _lookup_appno_in_prose(conn: sqlite3.Connection, reference: str | None) -> str | None:
+    """An ECtHR application number written inside a reference ('CourEDH X c.
+    Suisse, n° 22060/20') -> the unique judgment carrying it, via the indexed
+    range lookup; None when the reference names no number or it is ambiguous."""
+    appno = decision_ref.application_number(reference)
+    if not appno or appno == (reference or "").strip():
+        return None
+    ids = _lookup_ecthr_appno(conn, appno)
+    return ids[0] if len(ids) == 1 else None
+
+
+def _decision_exists(decision_id: str | None) -> bool:
+    """Indexed PK check — no full-text fetch, no LIKE."""
+    if not decision_id:
+        return False
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT 1 FROM decisions WHERE decision_id = ?", (decision_id,)
+        ).fetchone() is not None
+    except sqlite3.OperationalError:
+        return False
+    finally:
+        conn.close()
+
+
 def _resolve_decision_id(decision_id: str) -> str:
     """Resolve a user-supplied decision_id to the actual stored decision_id.
 
@@ -6365,6 +6415,12 @@ def _resolve_decision_id(decision_id: str) -> str:
         alias_ids = _lookup_docket_alias(conn, decision_id)
         if len(alias_ids) == 1:
             return alias_ids[0]
+        # Typed identifiers: docket grammar -> candidate ids, PK lookups only
+        # (decision_ref). Before the LIKE scan so a bare cantonal docket or a
+        # dotted federal one never pays for the table scan it used to miss on.
+        _ref_hit = _lookup_ref_candidates(conn, decision_id) or _lookup_appno_in_prose(conn, decision_id)
+        if _ref_hit:
+            return _ref_hit
         # Last resort: LIKE %x% — full table scan ~2 s on 1M rows.
         # Skip when input clearly looks like a canonical decision_id
         # (it would have hit step 1 if it existed) or isn't docket-like at all
@@ -8701,6 +8757,15 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             ).fetchone()
             _via_alias = bool(row)
 
+    if not row:
+        # Typed identifiers (decision_ref): the docket grammar names the court
+        # and the minted id; PK lookups only, before the LIKE scan.
+        _ref_hit = _lookup_ref_candidates(conn, decision_id) or _lookup_appno_in_prose(conn, decision_id)
+        if _ref_hit:
+            row = conn.execute(
+                "SELECT * FROM decisions WHERE decision_id = ?", (_ref_hit,)
+            ).fetchone()
+
     if (not row and not _CANONICAL_ID_PREFIX_RE.match(decision_id or "")
             and _input_is_docket_like(decision_id)):
         # Partial match — only for hand-typed dockets, and NEVER a longer docket
@@ -8726,6 +8791,11 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     result = dict(row)
     # Remove json_data blob from response (redundant)
     result.pop("json_data", None)
+    # The caller typed something other than the stored id (a docket, a
+    # citation string, a percent-encoded or differently-separated id): say
+    # what was resolved so a client can tell normalisation from a mismatch.
+    if result.get("decision_id") != decision_id:
+        result["resolved_from"] = decision_id
 
     # Joined dockets (#41): every secondary docket of a consolidated proceeding
     # filed under this lead decision, so a caller holding one of them can
@@ -8838,12 +8908,24 @@ def find_citations(
     min_confidence = max(0.0, min(min_confidence, 1.0))
 
     # Resolve user-supplied ID to actual stored ID (handles format differences)
+    _typed = (decision_id or "").strip()
     decision_id = _resolve_decision_id(decision_id)
 
     result: dict = {
         "decision_id": decision_id, "direction": direction,
         "limit": limit, "offset": offset,
     }
+    if decision_id != _typed:
+        result["resolved_from"] = _typed
+    elif _typed and not _decision_exists(decision_id):
+        # Nothing resolved and the id is not stored: when the coverage notes
+        # explain the absence (pre-2000 BGer, pre-2007 EVG), say so instead of
+        # returning an empty graph for a decision the caller believes exists.
+        _reason = decision_ref.unavailable_reason(_typed)
+        if _reason:
+            result.update(_reason)
+            result["error"] = f"Decision not found: {_typed} — {_reason['reason']}"
+            return result
 
     check_conn = _get_graph_conn()
     if check_conn is None:
@@ -14562,6 +14644,15 @@ def _cite_identity(reference: str, decision: dict) -> dict | None:
                 method = "exact_docket" if docket == decision.get("docket_number") else "exact_joined_docket"
                 return {"method": method, "label": docket}
         return None
+    # ECtHR: the reference names an application number ('17153/11', 'n°
+    # 22060/20'); the stored docket is 'appno[_appno]_YYYYMMDD' (hudoc_ch:
+    # the bare number). Carried when the number is one of the docket's.
+    appno = decision_ref.application_number(core)
+    if appno and str(decision.get("court") or "").startswith(("ecthr", "hudoc")):
+        for docket in carried:
+            parts = _ECTHR_DOCKET_DATE_SUFFIX.sub("", docket).split("_")
+            if appno in parts:
+                return {"method": "exact_application_number", "label": appno}
     for docket in carried:
         if reference_parser.docket_in_reference(core, docket):
             return {"method": "exact_docket", "label": docket}
@@ -14589,7 +14680,7 @@ def _handle_cite(
     if not reference or not reference.strip():
         return {"error": "Provide a case reference (BGE ref, docket, or decision_id)."}
 
-    ref = reference.strip()
+    ref = decision_ref.percent_decode(reference.strip())  # 'bge_127%20I%2038' as pasted from a URL
     language = (language or "de").lower()
     if language not in ("de", "fr", "it"):
         language = "de"
@@ -14659,7 +14750,7 @@ def _handle_cite(
                 close_matches.append(item)
         except Exception:
             pass
-        return {
+        _missing = {
             "exists": False,
             "queried": ref,
             "resolved_id": resolved_id,
@@ -14671,6 +14762,19 @@ def _handle_cite(
                 "If empty, search with search_decisions instead of guessing."
             ),
         }
+        _reason = None if proposal is not None else decision_ref.unavailable_reason(ref)
+        if _reason:
+            # Honest, structured absence (pre-2000 BGer judgments were never put
+            # online; the pre-2007 EVG backlog is queued) — the reference may be
+            # perfectly real, it just cannot be verified here.
+            _missing["not_found_reason"] = _reason["error_code"]
+            _missing["reason"] = _reason["reason"]
+            _missing["coverage_note"] = _reason["coverage_note"]
+            _missing["_note"] = (
+                f"Reference not found in the corpus: {_reason['reason']} "
+                f"{_reason['hint']} Do not present its text or holding as verified."
+            )
+        return _missing
 
     citation = _build_citation_strings(decision, pinpoint=pinpoint)
     primary = citation[f"citation_string_{language}"]
@@ -14730,6 +14834,8 @@ def _handle_cite(
             "excerpt — do not paraphrase inside quotation marks)."
         ),
     }
+    if decision.get("decision_id") and decision.get("decision_id") != ref:
+        result["resolved_from"] = ref
     if pin_verdict is not None:
         # Three-state (see _verify_pinpoint). `pinpoint_valid` is the boolean
         # projection and is null — NOT false — when we simply cannot check:
@@ -14815,6 +14921,9 @@ def _handle_check_claim_support(
     resolved_id = _resolve_decision_id(decision_id.strip())
     decision = get_decision_by_id(resolved_id)
     if not decision:
+        _reason = decision_ref.unavailable_reason(decision_id)
+        if _reason:
+            return {"error": f"Decision not found: {decision_id!r}", **_reason}
         return {"error": f"Decision not found: {decision_id!r}"}
 
     # Pick the text to verify against. Priority:
@@ -14924,7 +15033,7 @@ def _handle_check_claim_support(
     except Exception as e:
         return {"error": f"Verification failed: {type(e).__name__}: {e}"}
 
-    return {
+    out = {
         "claim": claim.strip(),
         "decision_id": resolved_id,
         "citation_string_de": citation["citation_string_de"],
@@ -14944,6 +15053,9 @@ def _handle_check_claim_support(
             "qualify your statement."
         ),
     }
+    if resolved_id != decision_id.strip():
+        out["resolved_from"] = decision_id.strip()
+    return out
 
 
 # ── attest_response — mandatory closing audit ─────────────────────
@@ -15197,6 +15309,11 @@ def _resolve_decision_id_strict(decision_id: str) -> str | None:
         alias_ids = _lookup_docket_alias(conn, decision_id)
         if len(alias_ids) == 1:
             return alias_ids[0]
+        # Typed identifiers (decision_ref): PK candidates only, so the audit
+        # accepts '1A.235/2000' or 'UH220412' without a LIKE scan.
+        _ref_hit = _lookup_ref_candidates(conn, decision_id)
+        if _ref_hit:
+            return _ref_hit
     finally:
         conn.close()
     return None
@@ -26855,6 +26972,15 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                     result = _overlay_row
                     _fresh_publication = True
             if not result:
+                # A federal docket the coverage notes explain (pre-2000 BGer
+                # judgments were never put online; the pre-2007 EVG backlog is
+                # queued): say so, structured, instead of a bare not-found.
+                _reason = decision_ref.unavailable_reason(_did_arg)
+                if _reason:
+                    return _research_tool_result(
+                        f"Decision not found: {_did_arg}\n\n{_reason['reason']}\n\n{_reason['hint']}",
+                        {"error": f"Decision not found: {_did_arg}", **_reason},
+                    )
                 return _research_tool_result(
                     f"Decision not found: {_did_arg}",
                     {"error": f"Decision not found: {_did_arg}"},
