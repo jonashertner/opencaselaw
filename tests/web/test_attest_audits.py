@@ -246,9 +246,11 @@ def test_attest_empty_draft_clean(m):
     assert "linked_text" in res
 
 
-def test_attest_no_case_but_unsourced_quote_flagged(m):
+def test_attest_no_case_but_unsourced_quote_flagged(m, monkeypatch, tmp_path):
     """Quote near a citation anchor + not in any cited source: flagged
-    by default; audit_quotes=False leaves it alone.
+    by default; audit_quotes=False leaves it alone. The citation itself
+    is stubbed unresolved so the test needs no decisions.db (CLAUDE.md,
+    invariant 8: tests stay offline).
 
     2026-05-11: the document-wide scan was switched to opt-in because
     quotes that aren't legal-source claims (party narrative, contract
@@ -256,6 +258,8 @@ def test_attest_no_case_but_unsourced_quote_flagged(m):
     footnotes into bodies. 2026-09-05: back on by default for the handler
     (the MCP tool) after the footnote fix measured 0.0 % false positives
     on statute quotes; the REST body keeps opt-in (_AttestBody)."""
+    monkeypatch.setattr(m, "_resolve_decision_id_strict", lambda ref: None)
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
     draft = ('BGE 140 III 86 E. 2: '
              '\u201eDies ist ein erfundenes Zitat von mehr als sechzig '
              'Zeichen, das so im Urteil gar nicht vorkommt.\u201c')
@@ -282,9 +286,12 @@ def test_attest_standalone_unsourced_quote_NOT_flagged(m):
     assert res["issues_by_category"]["quote"] == 0
 
 
-def test_attest_quotes_on_by_default_and_opt_out(m):
+def test_attest_quotes_on_by_default_and_opt_out(m, monkeypatch, tmp_path):
     """The handler audits quotes by default (2026-09-05); audit_quotes=False
-    skips them while citation + statute + date audits still run."""
+    skips them while citation + statute + date audits still run. Offline:
+    the citation is stubbed unresolved, no decisions.db is opened."""
+    monkeypatch.setattr(m, "_resolve_decision_id_strict", lambda ref: None)
+    monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
     draft = ('BGE 140 III 86 E. 2.3 hielt fest: '
              '\u201eDas ist ein langer Satz von mehr als sechzig Zeichen '
              'und steht so im Urteil gar nicht.\u201c')
@@ -601,8 +608,10 @@ def test_quote_beyond_8k_chars_is_found_and_attributed(m, long_decision):
     assert res["issues_by_category"]["quote"] == 1
     [issue] = [i for i in res["issues"] if i["category"] == "quote"]
     assert issue["searched_sources"] == [long_decision]
+    assert issue["searched_sources_count"] == 1
     assert issue["normalisation"] == "fold-v1"
     assert res["ledger"]["quotations"]["not_found"] == 1
+    assert res["ledger"]["quotations"]["searched_sources"] == [long_decision]
 
 
 def test_quote_ledger_counts_examined_short_and_unanchored(m):
@@ -718,12 +727,19 @@ def test_date_ledger_has_a_denominator(m):
 def test_out_of_scope_references_are_counted_not_flagged(m, monkeypatch, tmp_path):
     monkeypatch.setattr(m, "STATUTES_DB_PATH", tmp_path / "absent.db")
     draft = ("Vgl. Urteil des Obergerichts des Kantons Zürich LB190012 vom 3. Mai 2020, "
-             "OGer ZH PP200015, arrêt du Tribunal cantonal VD HC/2020/123, "
+             "OGer ZH LB200015, arrêt du Tribunal cantonal VD HC/2020/123, "
              "EGMR 12345/12 sowie EuGH C-131/12.")
     n, samples = m._scan_out_of_scope_references(draft, [])
     assert n == 5, samples
-    assert samples[0].startswith("Urteil des Obergerichts des Kantons Zürich LB190012")
-    assert "EGMR 12345/12" in samples and "EuGH C-131/12" in samples
+    # Samples carry the whole reference (court, docket, date), not a
+    # court name cut off where the docket begins.
+    assert samples == [
+        "Urteil des Obergerichts des Kantons Zürich LB190012 vom 3. Mai 2020",
+        "OGer ZH LB200015",
+        "arrêt du Tribunal cantonal VD HC/2020/123",
+        "EGMR 12345/12",
+        "EuGH C-131/12",
+    ]
     res = m._handle_attest_response(draft_text=draft)
     assert res["ok"] is True and res["issues_count"] == 0
     assert res["citations_found"] == 0
@@ -734,6 +750,73 @@ def test_out_of_scope_references_are_counted_not_flagged(m, monkeypatch, tmp_pat
     # prose without references yields nothing.
     assert m._scan_out_of_scope_references("BGE 140 III 86 E. 2.3", m._parse_citations_in_text("BGE 140 III 86 E. 2.3")) == (0, [])
     assert m._scan_out_of_scope_references("Reiner Fliesstext ohne Verweise.", []) == (0, [])
+
+
+@pytest.mark.parametrize("ref", [
+    # BVGer in its French and Italian names, with and without a docket
+    "arrêt du Tribunal administratif fédéral A-1234/2020 du 5 mai 2020",
+    "sentenza del Tribunale amministrativo federale C-5678/2019",
+    "Urteil des Bundesverwaltungsgerichts A-1234/2020",
+    "Urteil des BVGer A-1234/2020 vom 5. Mai 2020",
+    "arrêt du TAF A-1234/2020",
+    # EVG / TFA, in every spelling the drafts use
+    "Urteil des Eidgenössischen Versicherungsgerichts I 123/04 vom 3. März 2005",
+    "Eidgenössisches Versicherungsgericht",
+    "Eidg. Versicherungsgericht",
+    "Urteil des EVG I 123/04",
+    "arrêt du TFA du 2 mai 2004",
+    # BGer / TF and the BStGer, whose dotted docket shape is shared with
+    # cantonal courts
+    "arrêt du Tribunal fédéral 4A_123/2020",
+    "sentenza del Tribunale federale 4A_123/2020",
+    "arrêt du TF 4A_123/2020 du 3 mars 2021",
+    "Urteil des Bundesstrafgerichts BB.2020.12",
+    "Urteil des BStGer, Beschwerdekammer, BB.2020.12 vom 1. Mai 2020",
+    "arrêt du TPF BB.2020.12",
+])
+def test_out_of_scope_scanner_does_not_count_federal_courts(m, ref):
+    recognised = m._parse_citations_in_text(ref) or []
+    assert m._scan_out_of_scope_references(ref, recognised) == (0, []), ref
+
+
+@pytest.mark.parametrize("ref", [
+    # Corroborated docket shapes: ZH OGer (LB), ZH VGer (VB.), GR
+    # Kantonsgericht (ZK1 2020 12), BE Obergericht (ZK 20 99), SG (BZ.),
+    # VD (HC/…), GE (ATA/…); canton names with a dot ("St. Gallen"), a
+    # hyphen ("Basel-Stadt") or a lowercase adjective ("vaudois") sit
+    # between court and docket.
+    "Urteil des Obergerichts des Kantons Zürich LB190012 vom 3. März 2020",
+    "Urteil des Verwaltungsgerichts des Kantons Zürich VB.2019.00123 vom 3. März 2020",
+    "Urteil des Kantonsgerichts Graubünden ZK1 2020 12 vom 3. März 2020",
+    "Urteil des Obergerichts des Kantons Bern ZK 20 99 vom 1. Juli 2020",
+    "Urteil des Kantonsgerichts St. Gallen BZ.2020.12",
+    "Urteil des Appellationsgerichts Basel-Stadt BEZ.2020.12",
+    "arrêt du Tribunal cantonal vaudois HC/2018/391 du 12 mars 2019",
+    "arrêt du Tribunal cantonal du canton de Vaud HC/2018/391 du 12 mars 2019",
+    "arrêt de la Cour de justice ATA/655/2017 du 30 mai 2017",
+])
+def test_out_of_scope_sample_is_the_whole_reference(m, ref):
+    # One reference, one count, and the sample is the citation itself —
+    # never the court name truncated where the docket begins.
+    assert m._scan_out_of_scope_references(ref, []) == (1, [ref]), ref
+
+
+def test_cjeu_full_name_is_one_european_reference(m):
+    # "Cour de justice" alone is a Geneva court; followed by "de l'Union
+    # européenne" it is the CJEU, counted once, with its case number.
+    ref = "arrêt de la Cour de justice de l'Union européenne du 13 mai 2014, C-131/12"
+    assert m._scan_out_of_scope_references(ref, []) == (
+        1, ["Cour de justice de l'Union européenne du 13 mai 2014, C-131/12"])
+
+
+def test_out_of_scope_samples_list_citation_shaped_references_first(m):
+    draft = ("Das Bezirksgericht Zürich wies die Klage ab; das Obergericht "
+             "bestätigte (Urteil des Obergerichts des Kantons Zürich LB190012 "
+             "vom 3. Mai 2020).")
+    n, samples = m._scan_out_of_scope_references(draft, [])
+    assert n == 3
+    assert samples[0] == "Urteil des Obergerichts des Kantons Zürich LB190012 vom 3. Mai 2020"
+    assert samples[1:] == ["Bezirksgericht Zürich", "Obergericht"]
 
 
 def test_ledger_present_in_both_branches_with_stable_keys(m, monkeypatch, tmp_path):

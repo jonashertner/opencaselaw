@@ -15613,7 +15613,8 @@ _QUOTE_NORMALISATION_LABEL = "fold-v1"
 
 def _quote_ledger_defaults() -> dict:
     return {"found": 0, "examined": 0, "verbatim": 0, "not_found": 0,
-            "skipped_short": 0, "skipped_unanchored": 0, "matches": []}
+            "skipped_short": 0, "skipped_unanchored": 0, "matches": [],
+            "searched_sources": []}
 
 
 def _audit_quotes(
@@ -15657,8 +15658,11 @@ def _audit_quotes(
     ``ledger`` (optional) is filled in place with the quotation
     denominator: found (every 30-400 char quoted span), skipped_short
     (< 60 chars), skipped_unanchored (no citation / statute reference
-    within 250 chars), examined, verbatim, not_found, and the `matches`
-    list of {quote, position, matched_source, offset, normalisation}.
+    within 250 chars), examined, verbatim, not_found, the `matches`
+    list of {quote, position, matched_source, offset, normalisation} and
+    `searched_sources`, the ids of every cited source that was
+    normalised into a haystack (listed once here; a not-found issue
+    carries the first ten plus `searched_sources_count`).
     """
     if ledger is None:
         ledger = _quote_ledger_defaults()
@@ -15685,6 +15689,7 @@ def _audit_quotes(
         source_id = str(cd.get("decision_id") or f"source_{idx}")
         sources.append((source_id, _normalise_for_quote_match(" ".join(parts))))
     source_ids = [sid for sid, _ in sources]
+    ledger["searched_sources"] = list(source_ids)
 
     def _locate(inner_norm: str) -> tuple[str, int] | None:
         for sid, hay in sources:
@@ -15771,7 +15776,11 @@ def _audit_quotes(
                 "position": m.start(),
                 "problem": "quote_not_in_cited_sources",
                 "quote_length": len(inner),
-                "searched_sources": source_ids,
+                # The full list sits once on ledger.quotations.searched_sources;
+                # per issue only a bounded sample, so a draft with many bad
+                # quotes and many cited sources does not repeat it N times.
+                "searched_sources": source_ids[:10],
+                "searched_sources_count": len(source_ids),
                 "normalisation": _QUOTE_NORMALISATION_LABEL,
                 "suggestion": (
                     "This quoted text was not found verbatim in any of the "
@@ -16822,29 +16831,52 @@ def _handle_reflect(*, redacted_text: str, lang: str = "de") -> dict:
 # references so the ledger can report them as out_of_scope. It never
 # raises an issue: a match here is a reference we did not audit, not a
 # reference we found wanting.
+#
+# Federal courts are in scope (the parser and the corpus cover them), so
+# the scanner must not count them: "Eidgenössisches Versicherungsgericht"
+# (EVG), "Tribunal administratif fédéral" / "Tribunale amministrativo
+# federale" (BVGer) and the "Cour de justice de l'Union européenne" are
+# guarded out of the cantonal branches. "Bundesverwaltungsgericht" and
+# "Bundesstrafgericht" never matched (no word boundary before the
+# compound), nor do the abbreviations TF / TFA / TAF / TPF / EVG / BVGer /
+# BStGer, which are absent from the abbreviation list on purpose.
+#
+# A court name may be followed by up to three proper-noun words (canton,
+# seat, "St." Gallen) that are not themselves a docket — a word that runs
+# into digits, dots or slashes ("LB190012", "VB.2019.00123", "HC/2020/123",
+# "ZK 20 99") is left to the docket tail so the sample carries the
+# citation, not a truncated court name.
+_OOS_NAME_WORD = (r"(?:[A-ZÄÖÜ][a-zäöü]{0,2}\.|[A-ZÄÖÜ][A-Za-zäöüÄÖÜß'-]*\b)"
+                  r"(?![\w./-]*\d)(?!\s\d{1,4}\s\d)")
+# Docket tail: LB190012, VB.2019.00123, HC/2018/391, ATA/655/2017,
+# ZK1 2020 12, ZK 20 99.
+_OOS_DOCKET = r"[A-Z][A-Za-z]{0,5}\d?[./\s]?\d[\w./-]{1,20}(?:\s\d{1,4}){0,2}"
 _OUT_OF_SCOPE_REFERENCE_PATTERN = re.compile(
     r"""
     (?:
       # Named cantonal / regional court, DE / FR / IT, with an optional
       # "Urteil des ..." lead-in and an optional canton, docket or date tail.
-      (?:\b(?:Urteil|Entscheid|Beschluss|Verfügung|Arr[êe]t|Jugement|D[ée]cision|
-             Sentenza|Decisione)\s+(?:des|der|du|de\s+la|de\s+l'|del|della)\s+)?
+      (?:\b(?:Urteil|Entscheid|Beschluss|Verfügung|[Aa]rr[êe]t|[Jj]ugement|
+             [Dd][ée]cision|[Ss]entenza|[Dd]ecisione)\s+
+          (?:des|der|du|de\s+la|de\s+l'|del|della)\s+)?
+      (?<![Ee]idgenössischen\s)(?<![Ee]idgenössisches\s)(?<![Ee]idg\.\s)
       \b(?:
         Ober|Kantons|Verwaltungs|Handels|Bezirks|Sozialversicherungs|Appellations|
         Steuerrekurs|Baurekurs|Zivil|Straf|Jugend|Arbeits|Miet|Versicherungs|Kassations
       )gerichts?(?:hofs?)?\b
-      (?:\s+(?:des\s+Kantons\s+)?[A-ZÄÖÜ][\wäöü-]*){0,3}
-      (?:\s+[A-Z][A-Za-z]{0,4}[.\s]?\d[\w./-]{2,20})?
+      (?:\s+(?:des\s+Kantons\s+)?%(word)s){0,3}
+      (?:\s+%(docket)s)?
       (?:\s+(?:vom)\s+\d{1,2}\.\s?(?:\d{1,2}\.|\w+)\s?\d{4})?
       |
-      (?:\b(?:Arr[êe]t|Jugement|D[ée]cision|Sentenza|Decisione)\s+
+      (?:\b(?:[Aa]rr[êe]t|[Jj]ugement|[Dd][ée]cision|[Ss]entenza|[Dd]ecisione)\s+
           (?:du|de\s+la|de\s+l'|del|della)\s+)?
       \b(?:Tribunal\s+cantonal|Cour\s+de\s+justice|Tribunal\s+administratif|
            Cour\s+d'appel|Tribunal\s+de\s+premi[èe]re\s+instance|Chambre\s+des\s+recours|
            Cour\s+civile|Cour\s+p[ée]nale|Tribunale\s+d'appello|Tribunale\s+cantonale|
            Tribunale\s+amministrativo|Camera\s+civile|Camera\s+penale)\b
-      (?:\s+(?:du\s+canton\s+de\s+|del\s+Cantone\s+)?[A-ZÄÖÜ][\wäöü-]*){0,3}
-      (?:\s+[A-Z][A-Za-z]{0,5}[./\s]?\d[\w./-]{2,20})?
+      (?!\s+(?:f[ée]d[ée]rale?\b|de\s+l'Union\b|dell'Unione\b))
+      (?:\s+(?:du\s+canton\s+de\s+|del\s+Cantone\s+)?%(word)s){0,3}
+      (?:(?:\s+[a-zäöüéèàç'-]+){0,3}\s+%(docket)s)?
       (?:\s+(?:du|del)\s+\d{1,2}(?:\.|\s)\s?(?:\d{1,2}\.?|\w+)\s?\d{4})?
       |
       # Abbreviated cantonal court + canton code or docket.
@@ -16854,8 +16886,11 @@ _OUT_OF_SCOPE_REFERENCE_PATTERN = re.compile(
       (?:\s*[A-Z]{0,5}[./]?\d[\w./-]{2,20})?
       |
       # Bare cantonal docket shapes: LB190012 (ZH OGer), VB.2019.00123
-      # (ZH VGer), ATA/123/2020 (GE), ZK1 2020 12 (BE/SG style).
-      (?<![\w/])(?:
+      # (ZH VGer), ATA/123/2020 (GE), ZK1 2020 12 (GR Kantonsgericht).
+      # The BStGer shares the dotted shape (BB.2020.12); a federal court
+      # named just before the docket drops the match — see
+      # _OOS_FEDERAL_CONTEXT.
+      (?<![\w/])(?P<bare>
         [A-Z]{2}\d{6}(?:-[A-Z])?
         |[A-Z]{1,4}\.\d{4}\.\d{2,6}
         |[A-Z]{2,5}/\d{1,5}/\d{4}
@@ -16864,12 +16899,27 @@ _OUT_OF_SCOPE_REFERENCE_PATTERN = re.compile(
       |
       # European courts: ECtHR application numbers, CJEU case numbers.
       \b(?:EGMR|CourEDH|Cour\s+EDH|ECtHR|ECHR|CEDU|Corte\s+EDU|EuGH|CJEU|CJUE|EuG|
-           EFTA-Gerichtshof)\b[^\n;]{0,60}?
+           EFTA-Gerichtshof|Cour\s+de\s+justice\s+de\s+l'Union\s+europ[ée]enne|
+           Corte\s+di\s+giustizia\s+dell'Unione\s+europea)\b[^\n;]{0,60}?
       (?:\d{1,6}/\d{2,4}|[CT]-\d{1,4}/\d{2,4})
       |
       (?<![\w/-])[CT]-\d{1,4}/\d{2}(?![\w/])
     )
-    """,
+    """ % {"word": _OOS_NAME_WORD, "docket": _OOS_DOCKET},
+    flags=re.VERBOSE,
+)
+
+# A federal court named in the 80 characters before a bare docket: the
+# docket belongs to that court and is in scope, whether or not the parser
+# recognised it.
+_OOS_FEDERAL_CONTEXT = re.compile(
+    r"""(?:
+        \bBundes(?:straf|verwaltungs|patent)?gerichts?\b
+        |\b(?:BGer|BVGer|BStGer|BPatGer|EVG|TF|TFA|TAF|TPF|TFB)\b
+        |\bTribunal\s+(?:p[ée]nal\s+|administratif\s+)?f[ée]d[ée]ral\b
+        |\bTribunale\s+(?:penale\s+|amministrativo\s+)?federale\b
+        |\b[Ee]idg(?:\.|enössische[ns]?)\s+Versicherungsgerichts?\b
+    )""",
     flags=re.VERBOSE,
 )
 
@@ -16878,23 +16928,27 @@ def _scan_out_of_scope_references(draft_text: str,
                                   recognised: list[dict]) -> tuple[int, list[str]]:
     """Count references the citation parser does not recognise (cantonal,
     European, bare cantonal dockets). Returns (count, samples); samples are
-    deduplicated and capped so the ledger stays small."""
+    deduplicated, citation-shaped ones (carrying a docket or case number)
+    listed before bare court names, and capped so the ledger stays small."""
     if not draft_text:
         return 0, []
     taken = [tuple(c["span"]) for c in recognised if c.get("span")]
     count = 0
-    samples: list[str] = []
+    cited: list[str] = []
+    bare: list[str] = []
     seen: set[str] = set()
     for m in _OUT_OF_SCOPE_REFERENCE_PATTERN.finditer(draft_text):
         s, e = m.span()
         if any(s < te and e > ts for ts, te in taken):
             continue  # inside a recognised federal citation
+        if m.group("bare") and _OOS_FEDERAL_CONTEXT.search(draft_text[max(0, s - 80):s]):
+            continue  # a federal court's docket (BStGer BB.2020.12)
         count += 1
         text = re.sub(r"\s+", " ", m.group(0)).strip(" .,;:")
-        if text and text not in seen and len(samples) < 20:
+        if text and text not in seen:
             seen.add(text)
-            samples.append(text[:120])
-    return count, samples
+            (cited if any(ch.isdigit() for ch in text) else bare).append(text[:120])
+    return count, (cited + bare)[:20]
 
 
 _CERTIFICATION_BOUNDARY = (
@@ -16914,7 +16968,13 @@ def _attest_ledger(*, citations_found: int = 0, resolved: int = 0,
                    quotes_audited: bool = True) -> dict:
     """Assemble the per-audit denominator block of an attest response.
     Every counter is present in every response, so a client can tell
-    "0 issues over 0 examined" from "0 issues over 12 examined"."""
+    "0 issues over 0 examined" from "0 issues over 12 examined".
+
+    pinpoints.found counts pinpoints on citations that resolved (an
+    unresolved citation has nothing to verify a pinpoint against);
+    verified_structure covers _verify_pinpoint's "structure" and
+    "structure_parent" methods, verified_text the body-text fallback
+    used only when a decision has no structure rows."""
     q = dict(_quote_ledger_defaults())
     q.update(quotations or {})
     q["audited"] = bool(quotes_audited)
@@ -17115,6 +17175,10 @@ def _handle_attest_response(*, draft_text: str,
             elif verdict.get("method") == "text":
                 pinpoint_ledger["verified_text"] += 1
             else:
+                # method "structure" (exact E. number) and
+                # "structure_parent" (the pinpoint is a sub-number of an
+                # indexed Erwägung, e.g. E. 2.3.1 under E. 2.3) both
+                # count as verified against the structure index.
                 pinpoint_ledger["verified_structure"] += 1
             if pinpoint_state == PINPOINT_INVALID:
                 status = "PINPOINT_INVALID"
