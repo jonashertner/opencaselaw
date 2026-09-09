@@ -41,7 +41,10 @@ def test_empty_filter_does_not_match_orphan_row(tmp_path, monkeypatch):
     # A non-existent sr_number must NOT return the empty-abbr orphan row.
     res = mcp_server.get_commentary(sr_number="999.99", article="13")
     assert res.get("content_text") != "ORPHAN_CONTENT"
-    assert "error" in res
+    # The miss is now the never-empty fallback payload (no commentary, plus
+    # whatever the corpus holds on the provision) — never a commentary body.
+    assert "content_text" not in res
+    assert res.get("no_commentary") is True
 
 
 def test_get_commentary_by_abbreviation_still_resolves(tmp_path, monkeypatch):

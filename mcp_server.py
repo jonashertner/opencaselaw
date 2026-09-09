@@ -2142,7 +2142,13 @@ _EMPTY_TEXT_MARKERS = (
 _EMPTY_MAX_CHARS = 4000
 # A payload carrying nothing but a note/hint is a no-answer dressed politely.
 _NON_ANSWER_KEYS = {"note", "_note", "hint", "_hint", "query", "queried",
-                    "tool", "message"}
+                    "tool", "message",
+                    # A never-empty fallback that found nothing to fall back
+                    # on is still an empty answer: the flag, the identifiers
+                    # it echoes and the corpus label carry no law.
+                    "no_commentary", "no_materialien", "filters_relaxed",
+                    "law", "law_code", "article", "sr_number", "source",
+                    "corpus", "language_filter", "year_filter"}
 
 
 def _response_text(result) -> str:
@@ -3135,6 +3141,37 @@ _PURE_PHRASE_RE = re.compile(r'^"[^"]+"$')
 def _is_pure_phrase_query(fts_query: str) -> bool:
     """True if the sanitized query is a single quoted phrase and nothing else."""
     return bool(_PURE_PHRASE_RE.match((fts_query or "").strip()))
+
+
+_FTS5_OR_MAX_TERMS = 12
+
+
+def _fts5_or_query(query: str) -> str:
+    """The ranked-OR relaxation of a free-text query, or "" when there is
+    nothing to relax.
+
+    FTS5 ANDs bare terms, so a query of four terms answers nothing as soon
+    as one of them is absent from every candidate — measured over 30 days:
+    find_leading_cases empty on 31% of MCP calls, search_botschaft on 57%.
+    The relaxed form ORs the distinct word tokens and lets BM25 rank the
+    rows that carry most of them. It is only ever run AFTER the strict form
+    answered nothing, and the caller flags the result (`filters_relaxed`),
+    so a relaxed page is never mistaken for a strict one. A single-term
+    query cannot be relaxed (OR of one term is the term) and returns "".
+    """
+    toks: list[str] = []
+    seen: set[str] = set()
+    for t in re.findall(r"\w+", query or ""):
+        tl = t.lower()
+        if len(tl) < 2 or tl in seen or tl in ("and", "or", "not", "near"):
+            continue
+        seen.add(tl)
+        toks.append(t)
+        if len(toks) >= _FTS5_OR_MAX_TERMS:
+            break
+    if len(toks) < 2:
+        return ""
+    return " OR ".join(f'"{t}"' for t in toks)
 
 
 # Exact match-count for the `total` field on text searches. The reranked path
@@ -5254,12 +5291,43 @@ def get_materialien(law_code: str, article: str | None = None) -> dict:
             pass
 
         if not sources and not amendment_refs and not botschaft_docs:
+            # Nothing keyed to the provision in either Materialien corpus
+            # (~4,100 misses a month, 30 days to 2026-09-08). Keep the
+            # success shape, flag the miss, and hand over what the corpus
+            # does hold on the provision — all of it from existing handlers.
+            where = f"{law}" + (f" Art. {article}" if article else "")
+            ctx = _statute_fallback_context(
+                law_code=law, sr_number=sr or None, article=article)
+            held = [name for name, key in (
+                ("the statute text and doctrine excerpt (get_doctrine)", "doctrine"),
+                ("the leading cases (find_leading_cases)", "leading_cases"),
+                ("the scholarship citing it (find_scholarship_citing_statute)",
+                 "scholarship_citing_statute"),
+            ) if ctx.get(key)]
             return {
-                "error": f"No Materialien found for {law}"
-                         + (f" Art. {article}" if article else "")
-                         + ". Try a different law, or search_botschaft for "
-                           "full-text search across all 6,154 Federal Council "
-                           "messages."
+                "law_code": law,
+                "sr_number": sr or None,
+                "article": article,
+                "no_materialien": True,
+                "sources": [],
+                "botschaft_documents": [],
+                "amendment_refs": [],
+                "parliamentary_modifications": modifications,
+                "doctrine": ctx["doctrine"],
+                "leading_cases": ctx["leading_cases"],
+                "scholarship_citing_statute": ctx["scholarship_citing_statute"],
+                "note": (
+                    f"No Materialien are keyed to {where}: no digest entry, no "
+                    "linked Federal Council message and no AS/BBl amendment "
+                    "reference. search_botschaft runs full-text over all "
+                    "Federal Council messages and is the tool for a provision "
+                    "without a link. "
+                    + (("Listed instead is what the corpus holds on the "
+                        "provision: " + ", ".join(held) + ". None of it is "
+                        "legislative history; quote only verbatim from "
+                        "get_article_purpose / search_botschaft.")
+                       if held else "")
+                ).strip(),
             }
 
         out = {
@@ -5311,6 +5379,7 @@ def search_materialien(
         return {"error": "Materialien database not available."}
 
     try:
+        raw_query = query
         query = _sanitize_fts5(query)
         if not query:
             return {"error": "Provide a search query."}
@@ -5324,16 +5393,22 @@ def search_materialien(
         where_sql = " AND ".join(where)
         params.append(limit)
 
-        rows = conn.execute(
-            f"""SELECT m.law_code, m.article, m.bbl_ref, m.legislative_intent,
+        _sql = f"""SELECT m.law_code, m.article, m.bbl_ref, m.legislative_intent,
                        snippet(materialien_fts, 3, '>>>', '<<<', '...', 40) AS snippet
                 FROM materialien_fts f
                 JOIN materialien m ON m.id = f.rowid
                 WHERE {where_sql}
                 ORDER BY f.rank
-                LIMIT ?""",
-            params,
-        ).fetchall()
+                LIMIT ?"""
+        rows = conn.execute(_sql, params).fetchall()
+        relaxed = False
+        _or_q = _fts5_or_query(raw_query)
+        if not rows and _or_q and _or_q != query:
+            # Strict AND over a 167-entry digest is empty for nearly every
+            # multi-term question; rank the digests carrying any term.
+            rows = conn.execute(_sql, [_or_q, *params[1:]]).fetchall()
+            relaxed = bool(rows)
+        debate_query = _or_q if relaxed else query
 
         results = [
             {
@@ -5357,8 +5432,21 @@ def search_materialien(
                    WHERE debate_fts MATCH ?
                    ORDER BY f.rank
                    LIMIT 5""",
-                (query,),
+                (debate_query,),
             ).fetchall()
+            if not debate_rows and not relaxed and _or_q and _or_q != query:
+                debate_rows = conn.execute(
+                    """SELECT d.law_code, d.council, d.page_num,
+                              snippet(debate_fts, 2, '>>>', '<<<', '...', 40) AS snippet
+                       FROM debate_fts f
+                       JOIN debate_pages d ON d.id = f.rowid
+                       WHERE debate_fts MATCH ?
+                       ORDER BY f.rank
+                       LIMIT 5""",
+                    (_or_q,),
+                ).fetchall()
+                if debate_rows and not results:
+                    relaxed = True
             for r in debate_rows:
                 debate_results.append({
                     "law_code": r["law_code"],
@@ -5383,7 +5471,16 @@ def search_materialien(
             "corpus": ("curated digest of legislative intent: BV and BGFA only "
                        "(167 article digests, 748 debate pages)"),
         }
-        if not results and not debate_results:
+        if relaxed:
+            out["filters_relaxed"] = True
+            out["note"] = (
+                f"No digest entry contains every term of \"{raw_query}\"; listed "
+                "instead are the entries matching any of the terms, best matches "
+                "first (filters_relaxed, ranked OR). The digest covers BV and BGFA "
+                "only; search_botschaft runs full-text over all Federal Council "
+                "messages."
+            )
+        elif not results and not debate_results:
             out["note"] = (
                 "No hit in the curated digest, which covers only BV and BGFA. "
                 "This is a coverage limit, not an absence of materials: use "
@@ -8966,6 +9063,73 @@ def find_citations(
     return result
 
 
+def _statute_ref_from_free_text(query: str) -> tuple[str, str, str | None] | None:
+    """(law_code, article, residual_query) when the free text names exactly
+    one statute article — "Art. 29 BV rechtliches Gehör" -> ("BV", "29",
+    "rechtliches Gehör"), "art. 8 CEDH" -> ("CEDH", "8", None).
+
+    Callers of find_leading_cases write the provision into `query` far
+    more often than into law_code/article, and the FTS filter then ANDs
+    "29" and "BV" onto the citation ranking. Two different provisions in
+    one query ("Art. 41 OR vs Art. 55 OR") are left alone: there is no
+    single statute path for them.
+    """
+    pairs: list[tuple[str, str]] = []
+    for m in QUERY_STATUTE_PATTERN.finditer(query or ""):
+        law = (m.group("law") or "").upper()
+        art = re.sub(r"\s+", "", (m.group("article") or "").lower())
+        if not law or not art or law in QUERY_STATUTE_INVALID_LAWS:
+            continue
+        if (law, art) not in pairs:
+            pairs.append((law, art))
+    if len(pairs) != 1:
+        return None
+    law, art = pairs[0]
+    residual = QUERY_STATUTE_PATTERN.sub(" ", query)
+    residual = re.sub(r"\s+", " ", residual).strip(" ,;:.-–—/()")
+    return law, art, (residual or None)
+
+
+def _rerank_candidates_by_query_or(
+    candidates: list[tuple[str, int]], query: str,
+) -> list[tuple[str, int]]:
+    """Order statute-ranked candidates by BM25 of the ranked-OR form of
+    `query`; candidates matching none of the terms keep their statute
+    order behind the matches. On any FTS failure the statute order stands.
+    """
+    or_q = _fts5_or_query(query)
+    if not or_q or not candidates:
+        return candidates
+    ids = [c[0] for c in candidates]
+    by_id = dict(candidates)
+    fts_conn = None
+    try:
+        fts_conn = get_db()
+        placeholders = ",".join("?" for _ in ids)
+        rows = fts_conn.execute(
+            f"""
+            SELECT decision_id FROM decisions_fts
+            WHERE decisions_fts MATCH ? AND decision_id IN ({placeholders})
+            ORDER BY rank
+            """,
+            (or_q, *ids),
+        ).fetchall()
+    except sqlite3.Error as e:
+        logger.debug("OR re-rank of leading-case candidates failed: %s", e)
+        return candidates
+    finally:
+        if fts_conn is not None:
+            fts_conn.close()
+    matched: list[tuple[str, int]] = []
+    seen: set[str] = set()
+    for r in rows:
+        did = r["decision_id"]
+        if did in by_id and did not in seen:
+            seen.add(did)
+            matched.append((did, by_id[did]))
+    return matched + [c for c in candidates if c[0] not in seen]
+
+
 def _find_leading_cases(
     *,
     query: str | None = None,
@@ -8985,6 +9149,20 @@ def _find_leading_cases(
     date_from = _parse_date_param(date_from)
     date_to = _parse_date_param(date_to)
     original_query = query  # preserve for response metadata
+    # A statute reference written into the free text ("Art. 29 BV", "art. 8
+    # CEDH") is the statute filter the caller meant, not two topic words
+    # ("29" AND "BV") to AND onto the citation ranking. Lift it into
+    # law_code/article when the caller did not pass them; the rest of the
+    # text stays the topic query.
+    statute_from_query = False
+    if query and not (law_code and article):
+        _parsed = _statute_ref_from_free_text(query)
+        if _parsed:
+            law_code, article, query = _parsed
+            statute_from_query = True
+    # Set when the strict (AND) form answered nothing and the page shown is
+    # the relaxed one — always flagged, never silent.
+    filters_relaxed = False
 
     # Determine path: statute (graph DB) or global/court-filtered
     conn = _get_graph_conn()
@@ -9067,10 +9245,23 @@ def _find_leading_cases(
                 if date_to:
                     fts_sql += " AND d.decision_date <= ?"
                     fts_params.append(date_to)
-                fts_sql += " LIMIT 5000"
-                fts_rows = fts_conn.execute(fts_sql, tuple(fts_params)).fetchall()
-                fts_conn.close()
+                fts_rows = fts_conn.execute(fts_sql + " LIMIT 5000",
+                                            tuple(fts_params)).fetchall()
                 fts_ids = [r["decision_id"] for r in fts_rows]
+                if not fts_ids:
+                    # Strict AND matched nothing: the ranked-OR form, BM25
+                    # ordered and bounded, gives the nearest neighbours.
+                    # Explicit court/date filters stay — they are the
+                    # caller's constraints, not the relaxation's.
+                    _or_q = _fts5_or_query(query)
+                    if _or_q and _or_q != safe_q:
+                        fts_rows = fts_conn.execute(
+                            fts_sql + " ORDER BY rank LIMIT 2000",
+                            (_or_q, *fts_params[1:]),
+                        ).fetchall()
+                        fts_ids = [r["decision_id"] for r in fts_rows]
+                        filters_relaxed = bool(fts_ids)
+                fts_conn.close()
             except sqlite3.Error as e:
                 logger.debug("FTS lookup for leading cases failed: %s", e)
                 return {"error": f"FTS query failed: {e}"}
@@ -9140,6 +9331,7 @@ def _find_leading_cases(
     # to UNFILTERED statute-ranked candidates — that would present the most-cited
     # cases as topical matches (silently-wrong in a citation-authority tool).
     query_filter_applied = None
+    statute_ranked = list(candidates)
     if query:
         candidate_ids = [c[0] for c in candidates]
         safe_q = _sanitize_fts5(query)  # invariant #3 — was raw query
@@ -9168,6 +9360,15 @@ def _find_leading_cases(
             finally:
                 if fts_conn is not None:
                     fts_conn.close()
+        if query_filter_applied and not candidates and statute_ranked:
+            # The topic filter excluded every decision applying the
+            # provision (31% of MCP calls, 30 days to 2026-09-08). Fall
+            # back to the statute-ranked set, ordered by how well each
+            # candidate matches ANY of the query terms, and say so: the
+            # page is nearest neighbours on the provision, not on-point
+            # matches for the whole query.
+            candidates = _rerank_candidates_by_query_or(statute_ranked, query)
+            filters_relaxed = True
 
     # Truncate to limit
     candidates = candidates[:limit]
@@ -9224,6 +9425,26 @@ def _find_leading_cases(
             "Topical query could not be applied to the statute candidates; "
             "results are ranked by citation authority only, not filtered by the query."
         )
+    if statute_from_query:
+        out["statute_parsed_from_query"] = True
+    if filters_relaxed:
+        out["filters_relaxed"] = True
+        _shown = (original_query or "").strip()
+        if law_code and article:
+            out["note"] = (
+                f"No decision applying Art. {article} {law_code} matched every "
+                f"term of \"{_shown}\"; listed instead are the leading cases on "
+                "the provision, ordered by how many of the query terms each "
+                "contains (filters_relaxed). Treat them as nearest neighbours, "
+                "not as authority on the whole query."
+            )
+        else:
+            out["note"] = (
+                f"No decision matched every term of \"{_shown}\"; listed instead "
+                "are the most-cited decisions matching any of the terms "
+                "(filters_relaxed, ranked OR). Treat them as nearest neighbours, "
+                "not as authority on the whole query."
+            )
     return out
 
 
@@ -10401,6 +10622,8 @@ def _format_leading_cases_response(result: dict) -> str:
                 f"(top {total}, ranked by citations from decisions applying this provision)\n\n")
     else:
         text = f"# Leading Cases ({header}, top {total} most-cited)\n\n"
+    if result.get("filters_relaxed") and result.get("note"):
+        text += f"_Note: {result['note']}_\n\n"
     if not items:
         text += "No results found.\n"
         return text
@@ -14194,6 +14417,19 @@ def _handle_search_botschaft(
             # degrade to a structured no-results response.
             return {"query": q, "language_filter": language, "total": 0,
                     "results": [], "_hint": "Query could not be parsed as FTS5; try simpler terms."}
+        relaxed = False
+        if not rows:
+            # Strict AND answered nothing on 57% of calls (30 days to
+            # 2026-09-08): a Botschaft paragraph rarely carries all four
+            # terms of a research question. Rank the paragraphs that carry
+            # any of them and say so. Language and year filters stay.
+            _or_q = _fts5_or_query(q)
+            if _or_q and _or_q != fts_q:
+                try:
+                    rows = conn.execute(sql, [_or_q, *params[1:]]).fetchall()
+                except sqlite3.OperationalError:
+                    rows = []
+                relaxed = bool(rows)
     finally:
         conn.close()
 
@@ -14222,7 +14458,7 @@ def _handle_search_botschaft(
         }
         for r in rows
     ]
-    return {
+    out = {
         "query": q,
         "language_filter": language,
         "year_filter": ({"min": year_min, "max": year_max}
@@ -14230,6 +14466,16 @@ def _handle_search_botschaft(
         "total": len(results),
         "results": results,
     }
+    if relaxed:
+        out["filters_relaxed"] = True
+        out["note"] = (
+            f"No Botschaft paragraph contains every term of \"{q}\"; listed "
+            "instead are the paragraphs matching any of the terms, best "
+            "matches first (filters_relaxed, ranked OR). Each snippet is "
+            "verbatim, but check that it speaks to the whole question before "
+            "relying on it."
+        )
+    return out
 
 
 def _handle_get_article_history(
@@ -18414,6 +18660,136 @@ _OK_ABBR_TO_SR = {
 }
 
 
+def _sr_for_law_abbr(abbr: str | None) -> str | None:
+    """'OR' -> '220' via the two static abbreviation maps (case-insensitive)."""
+    key = (abbr or "").strip().upper()
+    if not key:
+        return None
+    for table in (_OK_ABBR_TO_SR, _SR_NUMBER_MAP):
+        for k, v in table.items():
+            if k.upper() == key:
+                return v
+    return None
+
+
+def _abbr_for_sr(sr_number: str | None) -> str | None:
+    """'220' -> 'OR' — the graph keys statutes by abbreviation, not SR."""
+    sr = (sr_number or "").strip()
+    if not sr:
+        return None
+    for table in (_SR_NUMBER_MAP, _OK_ABBR_TO_SR):
+        for k, v in table.items():
+            if v == sr:
+                return k.upper()
+    return None
+
+
+def _statute_fallback_context(
+    *, law_code: str | None, sr_number: str | None, article: str | None,
+    cases: int = 3, scholarship: int = 5,
+) -> dict:
+    """What the corpus does hold on a provision when the tool asked for
+    (a commentary, a Materialien digest) holds nothing: the get_doctrine
+    excerpt, the top leading cases and the scholarship citing the article.
+
+    Every field is the output of an existing handler — _handle_get_doctrine,
+    _find_leading_cases (+ _enrich_with_citation for the citation strings),
+    find_scholarship_citing_statute — so nothing here is composed from
+    scratch and R1–R3 hold: citation strings come from the helper, statute
+    text from statutes.db, and none of it is commentary or Materialien.
+    Each source is optional; a missing database leaves its field empty.
+    """
+    law = (law_code or "").strip().upper() or None
+    sr = (sr_number or "").strip() or (_sr_for_law_abbr(law) if law else None)
+    if not law and sr:
+        law = _abbr_for_sr(sr)
+    out: dict = {
+        "law_code": law, "sr_number": sr or None, "article": article,
+        "doctrine": None, "leading_cases": [], "scholarship_citing_statute": [],
+    }
+    if law and article:
+        try:
+            lc = _find_leading_cases(law_code=law, article=article, limit=cases)
+            for item in (lc.get("results") or [])[:cases]:
+                out["leading_cases"].append(_enrich_with_citation(dict(item)))
+        except Exception as e:  # noqa: BLE001 — a fallback must not raise
+            logger.debug("fallback leading cases failed: %s", e)
+        try:
+            d = _handle_get_doctrine(query=f"Art. {article} {law}")
+            excerpt: dict = {}
+            if isinstance(d, dict) and not d.get("error"):
+                st = d.get("statute") or {}
+                if st.get("text"):
+                    excerpt["statute"] = st
+                summ = d.get("doctrine_summary") or {}
+                if summ.get("principal_rule") or summ.get("established_by"):
+                    excerpt["doctrine_summary"] = summ
+                if d.get("doctrine_timeline"):
+                    excerpt["doctrine_timeline"] = d["doctrine_timeline"]
+                for k in ("commentary", "materialien"):
+                    if d.get(k):
+                        excerpt[k] = d[k]
+            if excerpt:
+                excerpt["source"] = "get_doctrine"
+                out["doctrine"] = excerpt
+        except Exception as e:  # noqa: BLE001
+            logger.debug("fallback doctrine excerpt failed: %s", e)
+    if sr:
+        try:
+            sch = find_scholarship_citing_statute(
+                sr_number=sr, article=article, limit=scholarship)
+            out["scholarship_citing_statute"] = list(
+                (sch.get("results") or [])[:scholarship])
+        except Exception as e:  # noqa: BLE001
+            logger.debug("fallback scholarship lookup failed: %s", e)
+    return out
+
+
+def _commentary_fallback(
+    *, abbreviation: str | None, sr_number: str | None, article: str | None,
+) -> dict:
+    """The answer to get_commentary when no open-access commentary covers
+    the provision: the flag, then what the corpus does hold on it.
+
+    Measured 30 days to 2026-09-08: ~6,700 misses a month against a
+    corpus of ~1,170 commentaries — most provisions have none, and a bare
+    error sent the caller away with nothing.
+    """
+    law_label = abbreviation or sr_number
+    ctx = _statute_fallback_context(
+        law_code=abbreviation, sr_number=sr_number, article=article)
+    where = (f"Art. {article} {law_label}" if article else f"{law_label}")
+    out = {
+        "law": law_label,
+        "sr_number": ctx.get("sr_number"),
+        "article": article,
+        "no_commentary": True,
+        "doctrine": ctx["doctrine"],
+        "leading_cases": ctx["leading_cases"],
+        "scholarship_citing_statute": ctx["scholarship_citing_statute"],
+        "source": ("OnlineKommentar.ch (CC-BY-4.0), "
+                   "OpenLegalCommentary.ch (CC BY-SA 4.0)"),
+    }
+    held = [name for name, key in (
+        ("the statute text and doctrine excerpt (get_doctrine)", "doctrine"),
+        ("the leading cases (find_leading_cases)", "leading_cases"),
+        ("the scholarship citing it (find_scholarship_citing_statute)",
+         "scholarship_citing_statute"),
+    ) if out.get(key)]
+    out["note"] = (
+        f"No open-access commentary covers {where}: the corpus holds the "
+        "~1,170 OnlineKommentar.ch / OpenLegalCommentary.ch commentaries, "
+        "not every provision. "
+        + (("Listed instead is what the corpus holds on the provision: "
+            + ", ".join(held) + ". Quote statute text only via get_law and "
+            "decisions only via get_erwaegung; none of this is commentary.")
+           if held else
+           "Nothing else in the corpus is keyed to this provision; try "
+           "search_commentaries or search_scholarship by topic.")
+    )
+    return out
+
+
 def get_commentary(
     abbreviation: str | None = None,
     sr_number: str | None = None,
@@ -18438,7 +18814,8 @@ def get_commentary(
                 if row:
                     sr_number = row["sr_number"]
                 else:
-                    return {"error": f"No commentaries found for '{abbreviation}'."}
+                    return _commentary_fallback(
+                        abbreviation=abbreviation, sr_number=None, article=article)
 
         if not sr_number and not abbreviation:
             return {"error": "Provide abbreviation or sr_number."}
@@ -18461,11 +18838,8 @@ def get_commentary(
             ).fetchall()
 
             if not rows:
-                return {
-                    "law": abbreviation or sr_number,
-                    "article": article,
-                    "error": f"No commentary found for Art. {article}.",
-                }
+                return _commentary_fallback(
+                    abbreviation=abbreviation, sr_number=sr_number, article=article)
 
             row = rows[0]
             ok_uuid = row["ok_uuid"] or ""
@@ -18500,10 +18874,8 @@ def get_commentary(
             ).fetchall()
 
             if not rows:
-                return {
-                    "law": abbreviation or sr_number,
-                    "error": "No commentaries found for this law.",
-                }
+                return _commentary_fallback(
+                    abbreviation=abbreviation, sr_number=sr_number, article=None)
 
             articles = []
             for r in rows:
@@ -18540,6 +18912,7 @@ def search_commentaries(
         return {"error": "OnlineKommentar commentaries database not available."}
 
     limit = min(max(1, limit), 50)
+    raw_query = query
 
     try:
         # Sanitize and build FTS5 query with optional filters
@@ -18563,17 +18936,25 @@ def search_commentaries(
         params.append(limit * 6)
         where = " AND ".join(conditions)
 
-        rows = conn.execute(
-            f"""SELECT c.sr_number, c.abbr, c.article_num, c.title,
+        _sql = f"""SELECT c.sr_number, c.abbr, c.article_num, c.title,
                        c.authors, c.language, c.html_link,
                        snippet(commentaries_fts, 4, '>>>', '<<<', '...', 40) AS snippet
                 FROM commentaries_fts f
                 JOIN commentaries c ON c.id = f.rowid
                 WHERE {where}
                 ORDER BY f.rank
-                LIMIT ?""",
-            params,
-        ).fetchall()
+                LIMIT ?"""
+        rows = conn.execute(_sql, params).fetchall()
+        relaxed = False
+        if not rows:
+            # ~1,170 commentaries: a strict AND over that many texts is
+            # empty for most multi-term questions. Rank the sections that
+            # carry any of the terms and say so; the abbreviation and
+            # language filters stay.
+            _or_q = _fts5_or_query(raw_query)
+            if _or_q and _or_q != query:
+                rows = conn.execute(_sql, [_or_q, *params[1:]]).fetchall()
+                relaxed = bool(rows)
 
         # One commentary is indexed as several sections, so an article that
         # matches well fills the whole result page with itself: a limit-5
@@ -18601,12 +18982,20 @@ def search_commentaries(
             if len(results) >= limit:
                 break
 
-        return {
+        out = {
             "query": query,
             "count": len(results),
             "results": results,
             "source": "OnlineKommentar.ch (CC-BY-4.0)",
         }
+        if relaxed:
+            out["filters_relaxed"] = True
+            out["note"] = (
+                f"No commentary section contains every term of \"{raw_query}\"; "
+                "listed instead are the sections matching any of the terms, "
+                "best matches first (filters_relaxed, ranked OR)."
+            )
+        return out
     except sqlite3.Error as e:
         logger.error("OK commentary search error: %s", e)
         return {"error": f"Database error: {e}"}
@@ -19413,6 +19802,50 @@ def _format_get_commentary_response(result: dict) -> str:
     """Format get_commentary result as markdown."""
     if result.get("error"):
         return result["error"]
+
+    if result.get("no_commentary"):
+        where = (f"Art. {result['article']} {result.get('law')}"
+                 if result.get("article") else str(result.get("law")))
+        text = f"# No open-access commentary on {where}\n\n"
+        text += f"{result.get('note', '')}\n\n"
+        doc = result.get("doctrine") or {}
+        st = doc.get("statute") or {}
+        if st.get("text"):
+            text += (f"## Gesetzestext (SR {st.get('sr_number', '?')}, "
+                     f"{st.get('lang_served', '?')})\n\n{st['text']}\n\n")
+        summ = doc.get("doctrine_summary") or {}
+        if summ.get("principal_rule"):
+            text += (f"**Principal rule** ({summ.get('established_by', '?')}): "
+                     f"{summ['principal_rule']}\n\n")
+        cases = result.get("leading_cases") or []
+        if cases:
+            text += "## Leading cases\n\n"
+            for i, r in enumerate(cases, 1):
+                cite = r.get("citation_string_de") or r.get("docket_number", "")
+                link = _md_link(cite, r.get("canonical_url")
+                                or _canonical_decision_url(r.get("decision_id", "")))
+                text += (f"**{i}.** {link} ({r.get('decision_date', '')}) "
+                         f"[{r.get('court', '')}] — {r.get('citation_count', 0)} citations\n")
+                if r.get("regeste"):
+                    text += f"   Regeste: {_auto_link_citations(r['regeste'])}\n"
+            text += "\n"
+        sch = result.get("scholarship_citing_statute") or []
+        if sch:
+            text += "## Scholarship citing the provision\n\n"
+            for r in sch:
+                authors = r.get("authors") or ""
+                if isinstance(authors, list):
+                    authors = ", ".join(authors)
+                head = f"{r.get('title', '')}"
+                if authors:
+                    head = f"{authors}, {head}"
+                if r.get("year"):
+                    head += f" ({r['year']})"
+                if r.get("url"):
+                    head = _md_link(head, r["url"])
+                text += f"- {head} [{r.get('source', '')}]\n"
+            text += "\n"
+        return text
 
     # List mode
     if "articles" in result and "content_text" not in result:
@@ -24366,7 +24799,11 @@ def _list_tools() -> list[Tool]:
                 "'E. <e_number>' when confidence is high or medium). Each result also "
                 "carries citation_string_{de,fr,it} + canonical_url + "
                 "is_leading_case + citation_count for ready-to-quote "
-                "Swiss-format citations."
+                "Swiss-format citations. A statute reference inside `query` "
+                "(\"Art. 29 BV\") is used as the statute filter. When the query "
+                "excludes every candidate, the page is relaxed to ranked OR and "
+                "flagged `filters_relaxed: true` with a `note` — nearest "
+                "neighbours, not on-point authority."
             ),
             inputSchema={
                 "type": "object",
@@ -24721,7 +25158,9 @@ def _list_tools() -> list[Tool]:
                 "'Klimaschutz'. Returns ranked passages (FTS5 BM25) with "
                 "bbl_citation, page, section path, and an article anchor "
                 "where the parser could identify one. Quote verbatim; "
-                "every snippet has a stable Fedlex ELI URI."
+                "every snippet has a stable Fedlex ELI URI. When no paragraph "
+                "carries every term, the page is relaxed to ranked OR and "
+                "flagged `filters_relaxed: true` with a `note`."
             ),
             inputSchema={
                 "type": "object",
@@ -25268,7 +25707,11 @@ def _list_tools() -> list[Tool]:
                 "Look up a scholarly legal commentary from OnlineKommentar.ch (CC-BY-4.0) "
                 "for a Swiss federal law article. Without article: lists available commentaries "
                 "for that law. With article: returns the full commentary text, authors, and citation. "
-                "Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more."
+                "Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more. "
+                "Where no commentary exists (most provisions: ~1,170 commentaries in total) the "
+                "answer is flagged `no_commentary: true` and lists what the corpus holds on the "
+                "provision instead — `leading_cases`, a `doctrine` excerpt, "
+                "`scholarship_citing_statute` — none of which is commentary."
             ),
             inputSchema={
                 "type": "object",
@@ -25501,7 +25944,10 @@ def _list_tools() -> list[Tool]:
                 "locators from the statute's own footnotes. "
                 "Empty `sources` means no digest exists for that law, NOT that the law has no "
                 "legislative history — read `botschaft_documents` and cite the BBl reference. "
-                "For full text of a message use search_botschaft."
+                "For full text of a message use search_botschaft. A provision with nothing "
+                "keyed to it is flagged `no_materialien: true` and lists `leading_cases`, a "
+                "`doctrine` excerpt and `scholarship_citing_statute` instead — none of it is "
+                "legislative history."
             ),
             inputSchema={
                 "type": "object",

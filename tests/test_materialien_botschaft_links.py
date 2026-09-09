@@ -152,7 +152,11 @@ def test_article_filter_narrows_to_that_article(mat_db):
 
 def test_unknown_law_still_reports_honestly(mat_db):
     r = mcp_server.get_materialien("ZZZ")
-    assert "error" in r and "search_botschaft" in r["error"]
+    # The miss keeps the success shape, flags itself and still names the
+    # better tool; nothing in it pretends to be Materialien.
+    assert r.get("no_materialien") is True
+    assert "search_botschaft" in r["note"]
+    assert r["sources"] == [] and r["botschaft_documents"] == []
 
 
 def test_article_with_no_link_routes_to_search_botschaft(mat_db):
