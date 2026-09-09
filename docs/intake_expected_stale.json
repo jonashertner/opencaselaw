@@ -17,6 +17,26 @@
     "emark": {
       "reason": "EMARK series ended when the Asylrekurskommission was replaced by the BVGer in 2007",
       "since": "2006"
+    },
+    "zh_gerichte": {
+      "reason": "umbrella code holding only the frozen March-2026 entscheidsuche mirror rows; the direct zh_gerichte scraper files rows under the sub-court codes",
+      "since": "2026"
+    },
+    "ag_gerichte": {
+      "reason": "umbrella code holding only the frozen entscheidsuche mirror rows; the direct ag_gerichte scraper files rows under the sub-court codes",
+      "since": "2026"
+    },
+    "vd_omni": {
+      "reason": "entscheidsuche mirror shard superseded by the direct vd_gerichte scraper (at parity since 2026-09)",
+      "since": "2026"
+    },
+    "sh_obergericht": {
+      "reason": "redundant entscheidsuche feed; the direct sh_gerichte scraper is at parity (retirement per the 2026-04-29 procedure pending)",
+      "since": "2026"
+    },
+    "tg_obergericht": {
+      "reason": "redundant entscheidsuche feed; the direct tg_gerichte scraper is at parity (retirement pending)",
+      "since": "2026"
     }
   },
   "lag_days": {
