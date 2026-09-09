@@ -1056,7 +1056,11 @@ def step_2f_build_materialien(dry_run: bool = False, full_rebuild: bool = False)
          "--input-dir", str(materialien_dir)],
         "Build materialien.db",
         dry_run,
-        timeout=600,
+        # 600 → 1800 s (2026-09-09): the step re-indexes botschaft_paragraphs_fts
+        # every night (38 s at 424k paragraphs, measured on the VPS); the
+        # historical Botschaft backfill takes it to ~4M paragraphs, 3-4 min on a
+        # quiet night and no margin under 600 s on a loaded weekday afternoon.
+        timeout=1800,
     )
 
 
