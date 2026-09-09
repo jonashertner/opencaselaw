@@ -76,6 +76,30 @@ EVG_MERGER_YEAR = 2007
 FEDERAL_COURTS = ("bger", "bge", "bvger", "bstger", "bpatger")
 CANTON_CODES = ("ag", "ai", "ar", "be", "bl", "bs", "fr", "ge", "gl", "gr", "ju", "lu",
                 "ne", "nw", "ow", "sg", "sh", "so", "sz", "tg", "ti", "ur", "vd", "vs", "zg", "zh")
+# First segment of every court code that is not a canton or a federal court
+# (regulators, the ECtHR collections, the VPB/Bundesrat collections).
+OTHER_ID_HEADS = ("ch", "hudoc", "ecthr", "bazg", "comcom", "edoeb", "elcom", "emark", "esbk",
+                  "eschk", "estv", "finma", "mkg", "postcom", "preisueberwacher", "rab", "sav",
+                  "ta", "ubi", "weko")
+
+
+def _load_id_heads() -> frozenset[str]:
+    """Every first segment a court code in the corpus can start with. The
+    static vocabulary is unioned with docs/coverage.json so a new court code
+    is picked up without an edit here; a missing docs/ tree changes nothing."""
+    heads = set(FEDERAL_COURTS) | set(CANTON_CODES) | set(OTHER_ID_HEADS)
+    try:
+        path = Path(__file__).resolve().parent / "docs" / "coverage.json"
+        for entry in json.loads(path.read_text(encoding="utf-8")).get("courts", []):
+            code = str(entry.get("court") or "")
+            if re.fullmatch(r"[a-z]{2,}(?:_[a-z0-9]+)*", code):
+                heads.add(code.split("_", 1)[0])
+    except Exception:  # noqa: BLE001 — a missing docs/ tree must not break serving
+        return frozenset(heads)
+    return frozenset(heads)
+
+
+ID_HEADS = _load_id_heads()
 
 # EVG-era single-letter chambers (I = IV, U = UV, H = AHV, K = KV, C = ALV,
 # B = BV, P = EL, M = MV). Stored as 'bger_I_538_99' with the two-digit year.
@@ -138,11 +162,37 @@ VD_SLASH_COURTS = ("vd_findinfo", "vd_gerichte", "vd_omni")
 
 # ── Shapes ────────────────────────────────────────────────────────────────
 
-# A canonical id: court code (lowercase words joined by '_'), then '_' or '__'
-# or a space, then the docket part (starting with a digit, an upper-case
-# letter, or a BGE label). 'zh_verwaltungsgericht__VB.2022.00753',
-# 'bge_151 I 3', 'bger 4A_123/2024', 'ch_vb_JAAC_60.2'.
+# A canonical id: court code (lowercase words joined by '_', starting with a
+# head in ID_HEADS — a lowercase prose word such as 'urteil 4A_123/2024' is
+# not a court prefix), then '_' or '__' or a space, then the docket part
+# (starting with a digit, an upper-case letter, or a BGE label).
+# 'zh_verwaltungsgericht__VB.2022.00753', 'bge_151 I 3', 'bger 4A_123/2024',
+# 'ch_vb_JAAC_60.2'.
 _PREFIXED_RE = re.compile(r"^([a-z]{2,}(?:_[a-z]+)*)(?:_{1,2}| +)(?=[0-9A-Z])(.+)$")
+
+
+def _split_prefixed(text: str) -> tuple[str, str] | None:
+    """(court, docket part) when ``text`` is a court-prefixed id, else None."""
+    m = _PREFIXED_RE.match(text)
+    if not m or m.group(1).split("_", 1)[0] not in ID_HEADS:
+        return None
+    return m.group(1), m.group(2).strip()
+
+
+# Court names in a reference head ('EVG P 123/99', 'BGer 4A_1/2020', 'Cour de
+# justice GE P/123/1999') restrict the courts tried, exactly like the parser's
+# court / canton detection; the parser does not know 'EVG' or a bare canton
+# code after a court name.
+_HEAD_FEDERAL_COURTS = (
+    (re.compile(r"\b(?:EVG|BGer|TF|Bundesgericht\w*|Tribunal\s+f[ée]d[ée]ral|Tribunale\s+federale)\b"),
+     frozenset(("bger", "bge"))),
+    (re.compile(r"\b(?:BVGer|TAF|Bundesverwaltungsgericht\w*|Tribunal\s+administratif\s+f[ée]d[ée]ral)\b"),
+     frozenset(("bvger",))),
+    (re.compile(r"\b(?:BStGer|TPF|Bundesstrafgericht\w*|Tribunal\s+p[ée]nal\s+f[ée]d[ée]ral)\b"),
+     frozenset(("bstger",))),
+    (re.compile(r"\b(?:BPatGer|TFB|Bundespatentgericht\w*)\b"), frozenset(("bpatger",))),
+)
+_HEAD_CANTON_RE = re.compile(r"\b(AG|AI|AR|BE|BL|BS|FR|GE|GL|GR|JU|LU|NE|NW|OW|SG|SH|SO|SZ|TG|TI|UR|VD|VS|ZG|ZH)\b")
 _URL_ENCODED_RE = re.compile(r"%[0-9A-Fa-f]{2}")
 _PINPOINT_TAIL_RE = re.compile(
     r"\s*,?\s+(?:E|Erw|Erwägung|consid|cons|c)\.?\s+\d+(?:\.\d+)*[a-z]?(?:/[a-z]+)?\s*$",
@@ -338,8 +388,25 @@ def _grammar_candidates(core: str, courts: set[str] | None = None, canton: str |
 
 
 def _court_of(decision_id: str) -> str:
-    m = _PREFIXED_RE.match(decision_id)
-    return m.group(1) if m else ""
+    split = _split_prefixed(decision_id)
+    return split[0] if split else ""
+
+
+def _strip_court_head(core: str) -> tuple[str, set[str], str | None]:
+    """The reference without its leading court words, plus the restriction
+    those words impose: the federal court(s) named, or the canton named."""
+    m = _COURT_HEAD_RE.match(core)
+    head = m.group(0) if m else ""
+    bare = core[len(head):].strip(" ,;:") or core
+    courts: set[str] = set()
+    for pattern, named in _HEAD_FEDERAL_COURTS:
+        if pattern.search(head):
+            courts |= named
+    canton = None
+    if not courts:
+        cm = _HEAD_CANTON_RE.search(head)
+        canton = cm.group(1) if cm else None
+    return bare, courts, canton
 
 
 # ── Canonical-id spelling variants ───────────────────────────────────────
@@ -405,17 +472,16 @@ def resolve_decision_ref(text: str | None) -> list[str]:
         return []
     out: list[str] = []
 
-    m = _PREFIXED_RE.match(core)
-    if m:
-        out += _prefixed_candidates(m.group(1), m.group(2).strip())
+    split = _split_prefixed(core)
+    if split:
+        out += _prefixed_candidates(*split)
     else:
-        bare = _COURT_HEAD_RE.sub("", core).strip(" ,;:") or core
-        courts: set[str] = set()
-        canton = None
+        bare, courts, canton = _strip_court_head(core)
         try:
             parsed = reference_parser.parse_reference(core)
-            courts = {c for c in parsed.courts if c in FEDERAL_COURTS}
-            canton = parsed.canton
+            # The parser's finding wins over the head words when it has one.
+            courts = {c for c in parsed.courts if c in FEDERAL_COURTS} or courts
+            canton = parsed.canton or canton
             primary = parsed.primary_docket
         except Exception:  # noqa: BLE001 — the parser must never break resolution
             primary = None
@@ -439,73 +505,142 @@ def application_number(text: str | None) -> str | None:
     return m.group(1) if m else None
 
 
+# Labels for the honest not-found prose (only courts a federal docket shape
+# can be confused with; the code itself is the fallback).
+_COURT_LABELS = {
+    "bger": "the Federal Supreme Court / EVG",
+    "bge": "the BGE collection",
+    "ge_gerichte": "the Geneva courts (ge_gerichte)",
+    "vd_gerichte": "the Vaud courts (vd_gerichte)",
+    "vd_findinfo": "the Vaud courts, FindInfo (vd_findinfo)",
+    "vd_omni": "the Vaud courts, Omni (vd_omni)",
+}
+
+
+def _federal_shape(docket: str) -> tuple[str, int] | None:
+    """(error_code, year) when ``docket`` has the shape of a federal docket the
+    coverage notes explain — a pre-2000 ordinary BGer docket or a pre-2007
+    EVG docket — else None."""
+    fed = _FEDERAL_RE.match(docket)
+    if fed:
+        year = int(fed.group(3))
+        return ("never_published_online", year) if year < FIRST_ONLINE_YEAR_BGER else None
+    evg = _EVG_RE.match(docket)
+    if evg and evg.group(1) in EVG_CHAMBERS:
+        year = int(_expand_year(evg.group(3)))
+        return ("not_yet_ingested", year) if year < EVG_MERGER_YEAR else None
+    return None
+
+
 def unavailable_reason(text: str | None) -> dict | None:
-    """Why a federal docket that resolves to nothing is absent, when the corpus
-    coverage notes say so — a structured, honest outcome instead of a bare
-    not-found. Two cases, both from docs/coverage_notes.json (bger):
+    """Why a federal-looking docket that resolves to nothing is absent, when
+    the corpus coverage notes say so — a structured, honest outcome instead of
+    a bare not-found. It never asserts that the decision exists or which court
+    it belongs to: the server has only the shape of the text, so every reason
+    is conditional ('looks like ... ; no decision with this number is in the
+    corpus'). Three cases:
 
-      never_published_online  an ordinary BGer judgment (chamber '1A', '4C',
-                              ...) dated before 2000: the court never put them
-                              online, so no source can hold it.
-      not_yet_ingested        an EVG social-insurance decision (single-letter
-                              chamber I/U/H/K/C/B/P/M) before the 2007 merger:
-                              recoverable, queued, not yet in the corpus.
+      never_published_online  the shape of an ordinary BGer docket (chamber
+                              '1A', '4C', ...) dated before 2000: the court did
+                              not publish those judgments online, so no open
+                              source can hold one — whether or not it exists.
+      not_yet_ingested        the shape of an EVG social-insurance docket
+                              (single-letter chamber I/U/H/K/C/B/P/M) before
+                              the 2007 merger: the backlog is only partly
+                              ingested, so the miss says nothing either way.
+      ambiguous_reference     the text also has the shape of another court's
+                              case number ('P 123 1999' is an EVG docket AND a
+                              Geneva / Vaud number): every candidate is listed,
+                              none is chosen. Naming the court ('EVG P 123/99',
+                              'Cour de justice GE P/123/1999') resolves it.
 
-    Returns None when the reference is not a federal docket of those shapes
-    or is within the covered years (then the not-found stands on its own).
+    Returns None when the reference is not a federal docket of those shapes,
+    names a canton, or is within the covered years (then the not-found stands
+    on its own).
     """
     core = normalise_ref(text)
     if not core:
         return None
-    m = _PREFIXED_RE.match(core)
-    if m:
-        if m.group(1) not in ("bger", "bge"):
+    split = _split_prefixed(core)
+    if split:
+        court, rest = split
+        if court not in ("bger", "bge"):
             return None
-        core = _rest_as_docket(m.group(2).strip())
+        docket = _rest_as_docket(rest)
+        named_federal = True
     else:
-        core = _COURT_HEAD_RE.sub("", core).strip(" ,;:") or core
-    docket = core
-    fed = _FEDERAL_RE.match(docket)
-    if fed:
-        year = int(fed.group(3))
-        if year < FIRST_ONLINE_YEAR_BGER:
-            return {
-                "error_code": "never_published_online",
-                "court": "bger",
-                "docket": docket,
-                "year": year,
-                "reason": (
-                    f"{docket} is a Federal Supreme Court judgment from {year}. The court "
-                    f"put its ordinary judgments online only from {FIRST_ONLINE_YEAR_BGER}; "
-                    "earlier ones exist solely on paper (or in BGE if they were published "
-                    "there), so no open source — including this corpus — can serve the text."
-                ),
-                "coverage_note": BGER_COVERAGE_NOTE,
-                "hint": (
-                    "If the judgment was published in the official collection, search "
-                    "BGE by subject with search_decisions (court='bge') and cite the BGE "
-                    "reference instead. Do not cite the docket as if its text were verified."
-                ),
-            }
+        docket, courts, canton = _strip_court_head(core)
+        if canton or (courts and not courts & {"bger", "bge"}):
+            return None  # a named canton or another federal court: not a BGer/EVG docket
+        named_federal = bool(courts & {"bger", "bge"})
+    shape = _federal_shape(docket)
+    if not shape:
         return None
-    evg = _EVG_RE.match(docket)
-    if evg and evg.group(1) in EVG_CHAMBERS:
-        year = int(_expand_year(evg.group(3)))
-        if year < EVG_MERGER_YEAR:
+    code, year = shape
+
+    if not named_federal:
+        candidates = resolve_decision_ref(text)
+        courts_tried = _dedupe(_court_of(c) for c in candidates)
+        other = [c for c in courts_tried if c not in ("bger", "bge")]
+        if other:
+            others = ", ".join(_COURT_LABELS.get(c, c) for c in other)
+            federal_kind = ("an ordinary Federal Supreme Court docket" if code == "never_published_online"
+                            else "an EVG (Eidgenössisches Versicherungsgericht) docket")
             return {
-                "error_code": "not_yet_ingested",
-                "court": "bger",
+                "error_code": "ambiguous_reference",
                 "docket": docket,
                 "year": year,
+                "courts": courts_tried,
+                "candidates": candidates,
                 "reason": (
-                    f"{docket} is an EVG (Eidgenössisches Versicherungsgericht) decision from "
-                    f"{year}. The pre-{EVG_MERGER_YEAR} EVG backlog is only partly in the corpus; "
-                    "this one is not indexed yet."
+                    f"{docket} has more than one docket shape: {federal_kind} from {year}, "
+                    f"and a case number of {others}. No decision with this number is in the "
+                    "corpus under any of these courts, and the shape alone does not say which "
+                    "court — if any — it belongs to."
                 ),
-                "coverage_note": BGER_COVERAGE_NOTE,
                 "hint": (
-                    "The decision may exist on the court's site; do not treat this miss as "
-                    "evidence that it does not exist, and do not quote it as verified."
+                    "Name the court to disambiguate (for example 'EVG P 123/99' or 'BGer "
+                    "P 123/99' for the social-insurance court, 'Cour de justice GE P/123/1999' "
+                    "for Geneva, 'TC VD P/123/1999' for Vaud), or search with search_decisions. "
+                    "Do not cite this reference as if its existence or text were verified."
                 ),
             }
-    return None
+
+    if code == "never_published_online":
+        return {
+            "error_code": "never_published_online",
+            "court": "bger",
+            "docket": docket,
+            "year": year,
+            "reason": (
+                f"{docket} looks like a Federal Supreme Court docket from {year}; no decision "
+                f"with this number is in the corpus. The court did not publish its ordinary "
+                f"judgments online before {FIRST_ONLINE_YEAR_BGER}, so a judgment with this "
+                "number, if it exists, is available only on paper (or in the BGE collection if "
+                "it was published there) — no open source, including this corpus, can serve "
+                "its text, and this miss says nothing about whether it exists."
+            ),
+            "coverage_note": BGER_COVERAGE_NOTE,
+            "hint": (
+                "If the judgment was published in the official collection, search BGE by "
+                "subject with search_decisions (court='bge') and cite the BGE reference "
+                "instead. Do not cite the docket as if its existence or text were verified."
+            ),
+        }
+    return {
+        "error_code": "not_yet_ingested",
+        "court": "bger",
+        "docket": docket,
+        "year": year,
+        "reason": (
+            f"{docket} looks like an EVG (Eidgenössisches Versicherungsgericht) docket from "
+            f"{year}; no decision with this number is in the corpus. The pre-{EVG_MERGER_YEAR} "
+            "EVG backlog is only partly ingested, so this miss says nothing about whether the "
+            "decision exists."
+        ),
+        "coverage_note": BGER_COVERAGE_NOTE,
+        "hint": (
+            "A decision with this number may or may not exist on the court's site; do not "
+            "treat this miss as evidence either way, and do not quote it as verified."
+        ),
+    }

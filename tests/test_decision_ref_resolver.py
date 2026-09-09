@@ -2,7 +2,9 @@
 
 Every typed shape below is one measured on the production capture journal
 (2026-09-06..09) as a miss of get_decision / cite / check_claim_support /
-find_citations, and every stored id is a shape observed in the corpus:
+find_citations, and every stored id is a shape observed in the corpus or, for
+the AGer-Z yearbook, the id the scraper in the tree mints (pinned below
+against models.make_decision_id and the scraper's COURT):
 
   bare cantonal dockets      UH220412, ACPR/635/2024, VB.2025.0683, IV.2006.00678
   dotted pre-2007 BGer       1A.235/2000 -> bger_1A.235_2000
@@ -15,13 +17,18 @@ find_citations, and every stored id is a shape observed in the corpus:
   GitHub #76                 the citation string '4A_123/2024' for a row whose
                              docket is stored '4A 123/2024' round-trips
 
-Plus the honest not-found outcomes: a pre-2000 BGer docket is reported as
-never_published_online (docs/coverage_notes.json), not as a bare miss.
+Plus the honest not-found outcomes: a pre-2000 BGer docket shape is reported
+as never_published_online (docs/coverage_notes.json), not as a bare miss —
+conditionally ('looks like ...; no decision with this number is in the
+corpus'), never asserting that the decision exists — and a shape that is also
+a cantonal number ('P 123 1999': EVG, Geneva, Vaud) is reported as ambiguous
+with every candidate, never resolved to one court.
 """
 from __future__ import annotations
 
 import asyncio
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -138,6 +145,18 @@ def test_court_inferred_from_docket_grammar(typed, first):
     assert cands and cands[0] == first, cands[:5]
 
 
+def test_ager_z_id_is_the_one_the_yearbook_scraper_mints():
+    """The space-containing id is not a guess: scrapers/cantonal/
+    zh_arbeitsgericht_sammlung.py mints make_decision_id(COURT, 'AGer-Z <year>
+    Nr. <n>') for every yearbook ruling (c58bc85a)."""
+    from models import make_decision_id
+    from scrapers.cantonal import zh_arbeitsgericht_sammlung as yearbook
+
+    assert yearbook.COURT == "zh_arbeitsgericht"
+    assert d.resolve_decision_ref("AGer-Z 2023 Nr. 7")[0] == make_decision_id(yearbook.COURT, "AGer-Z 2023 Nr. 7")
+    assert d.resolve_decision_ref("AGer-Z 2023 Nr. 07")[0] == make_decision_id(yearbook.COURT, "AGer-Z 2023 Nr. 7")
+
+
 def test_dotted_bger_docket_yields_both_stored_spellings():
     assert d.resolve_decision_ref("1A.235/2000") == ["bger_1A_235_2000", "bger_1A.235_2000"]
     # and the canonical id typed with the modern underscore reaches the dotted row
@@ -169,6 +188,17 @@ def test_a_named_court_or_canton_restricts_the_candidates():
     assert all(c.startswith("zh_") for c in d.resolve_decision_ref("Obergericht ZH LA210005 vom 15. Juni 2021"))
     assert d.resolve_decision_ref("Cour de justice de Genève, arrêt ACPR/635/2024") == ["ge_gerichte_ACPR_635_2024"]
     assert all(c.startswith("bger_") for c in d.resolve_decision_ref("BGer 4A_123/2024"))
+
+
+def test_a_lowercase_prose_word_is_not_read_as_a_court_prefix():
+    """'urteil 4A_123/2024' must reach the docket grammar, not probe
+    'urteil_4A_123_2024'; only heads that are real court codes are prefixes."""
+    assert d.resolve_decision_ref("urteil 4A_123/2024")[0] == "bger_4A_123_2024"
+    assert not any(c.startswith("urteil") for c in d.resolve_decision_ref("urteil 4A_123/2024"))
+    assert d.resolve_decision_ref("art 5 EMRK") == []
+    assert d._court_of("urteil_4A_123_2024") == ""
+    for head in ("bger", "zh", "ch", "hudoc", "ecthr", "weko", "finma"):
+        assert head in d.ID_HEADS
 
 
 def test_nothing_is_guessed_for_text_that_is_not_a_reference():
@@ -225,18 +255,24 @@ def test_resolve_decision_id_finds_the_typed_identifier(db, typed, expected):
 
 
 def test_no_like_scan_is_needed_for_the_typed_shapes(db, monkeypatch):
-    """The LIKE fallback is what cost ~2 s per miss; the resolver must hit before it."""
-    calls = []
-    real = m._input_is_docket_like
+    """The LIKE fallback is what cost ~2 s per miss; the resolver must hit
+    before it. Traced at the SQL level (every statement the lookup runs), so
+    the check holds for canonical-prefixed inputs too, which the LIKE gate
+    short-circuits before _input_is_docket_like is ever consulted."""
+    statements: list[str] = []
+    real_get_db = m.get_db
 
-    def spy(s):
-        calls.append(s)
-        return real(s)
+    def traced_get_db():
+        conn = real_get_db()
+        conn.set_trace_callback(statements.append)
+        return conn
 
-    monkeypatch.setattr(m, "_input_is_docket_like", spy)
+    monkeypatch.setattr(m, "get_db", traced_get_db)
     for typed in ("UH220412", "VB.2025.0683", "1A_235/2000", "bge_127%20I%2038", "I_123/2004"):
-        m._resolve_decision_id(typed)
-    assert calls == []
+        statements.clear()
+        assert m._resolve_decision_id(typed) != typed, typed
+        assert statements, typed
+        assert not any(" like " in sql.lower() for sql in statements), (typed, statements)
 
 
 def test_get_decision_reports_what_it_resolved_from(db):
@@ -321,7 +357,75 @@ def test_unavailable_reason_from_the_coverage_notes(typed, code, year):
     reason = d.unavailable_reason(typed)
     assert reason["error_code"] == code and reason["year"] == year and reason["court"] == "bger"
     assert reason["coverage_note"] == d.BGER_COVERAGE_NOTE
-    assert "never put online" in d.BGER_COVERAGE_NOTE or "never put them online" in reason["reason"]
+    if code == "never_published_online":
+        assert "did not publish its ordinary judgments online before 2000" in reason["reason"]
+    else:
+        assert "EVG backlog is only partly ingested" in reason["reason"]
+    assert "no decision with this number is in the corpus" in reason["reason"]
+
+
+_EXISTENCE_CLAIMS = re.compile(
+    r"\bis an? (?:Federal Supreme Court|EVG|Eidgen)|\bexists? solely\b|\bthis one is not indexed\b",
+    re.IGNORECASE,
+)
+
+
+@pytest.mark.parametrize("typed", ["4C.9999/1995", "5P.218/1997", "bger_2A_4_1998", "H_302/03", "P 33/96",
+                                   "P 123 1999", "H 302 2003"])
+def test_not_found_prose_never_asserts_that_the_decision_exists(typed):
+    """A hallucinated '4C.9999/1995' must not come back confirmed as a real
+    1995 judgment: every reason is conditional on the SHAPE of the text."""
+    reason = d.unavailable_reason(typed)
+    assert reason is not None
+    for field in ("reason", "hint"):
+        assert not _EXISTENCE_CLAIMS.search(reason[field]), (typed, field, reason[field])
+    assert "no decision with this number is in the corpus" in reason["reason"].lower()
+    assert reason["error_code"] == "ambiguous_reference" or "looks like" in reason["reason"]
+    assert "verified" in reason["hint"]
+
+
+# ── ambiguous shapes: every candidate, never one court ───────────────────
+
+@pytest.mark.parametrize("typed", ["P 123 1999", "P_123_1999", "H 302 2003"])
+def test_an_ambiguous_shape_is_reported_with_all_candidates_never_one_court(typed):
+    """'P 123 1999' is an EVG docket (P = EL chamber, 1999) AND a Geneva /
+    Vaud case number; the resolver tries all of them, so the miss must say so
+    instead of declaring it an EVG decision (reviewer finding)."""
+    reason = d.unavailable_reason(typed)
+    assert reason["error_code"] == "ambiguous_reference"
+    assert "court" not in reason  # no single court is chosen
+    assert reason["candidates"] == d.resolve_decision_ref(typed)
+    assert {"bger", "ge_gerichte", "vd_findinfo", "vd_gerichte"} <= set(reason["courts"])
+    assert reason["courts"] == list(dict.fromkeys(d._court_of(c) for c in reason["candidates"]))
+    assert "more than one docket shape" in reason["reason"] and "Geneva" in reason["reason"]
+    assert "Name the court" in reason["hint"]
+
+
+def test_naming_the_court_disambiguates():
+    for typed in ("EVG P 123 1999", "BGer P 123 1999", "bger_P_123_1999", "P 123/1999", "P 33/96"):
+        reason = d.unavailable_reason(typed)
+        assert reason["error_code"] == "not_yet_ingested" and reason["court"] == "bger", typed
+        assert all(c.startswith("bger_") for c in d.resolve_decision_ref(typed)), typed
+    # a named canton is a restriction: the miss is then a plain cantonal miss
+    assert d.resolve_decision_ref("Cour de justice GE P 123 1999") == ["ge_gerichte_P_123_1999"]
+    assert d.unavailable_reason("Cour de justice GE P 123 1999") is None
+    assert d.unavailable_reason("BVGer P 123 1999") is None
+
+
+def test_ambiguous_shape_reaches_every_tool_with_the_candidates(db, monkeypatch):
+    out = m._handle_cite(reference="P 123 1999")
+    assert out["exists"] is False and out["not_found_reason"] == "ambiguous_reference"
+    assert "coverage_note" not in out and out["candidates"] == d.resolve_decision_ref("P 123 1999")
+    assert "ge_gerichte" in out["courts"] and "bger" in out["courts"]
+    content, payload = asyncio.run(m._handle_call_tool_inner("get_decision", {"decision_id": "P 123 1999"}))
+    assert payload["error_code"] == "ambiguous_reference" and "court" not in payload
+    assert "more than one docket shape" in content[0].text
+    monkeypatch.setattr(m, "ANTHROPIC_API_KEY", "test-key")
+    out = m._handle_check_claim_support(claim="x", decision_id="P 123 1999")
+    assert out["error_code"] == "ambiguous_reference" and len(out["candidates"]) >= 3
+    monkeypatch.setattr(m, "_get_graph_conn", lambda: None)
+    out = m.find_citations(decision_id="P 123 1999")
+    assert out["error_code"] == "ambiguous_reference" and "outgoing" not in out
 
 
 def test_no_reason_is_invented_for_covered_years_or_other_courts():
@@ -344,7 +448,8 @@ def test_get_decision_tool_returns_the_structured_reason(db):
     content, payload = asyncio.run(m._handle_call_tool_inner("get_decision", {"decision_id": "4C.24/1992"}))
     assert payload["error"].startswith("Decision not found")
     assert payload["error_code"] == "never_published_online" and payload["year"] == 1992
-    assert "put its ordinary judgments online only from 2000" in content[0].text
+    assert "did not publish its ordinary judgments online before 2000" in content[0].text
+    assert "looks like a Federal Supreme Court docket from 1992" in content[0].text
     content, payload = asyncio.run(m._handle_call_tool_inner("get_decision", {"decision_id": "UH999999"}))
     assert payload == {"error": "Decision not found: UH999999"}
 
@@ -357,6 +462,18 @@ def test_cite_check_claim_and_find_citations_return_the_reason(db, monkeypatch):
     out = m._handle_check_claim_support(claim="x", decision_id="4C.24/1992")
     assert out["error_code"] == "never_published_online" and out["docket"] == "4C.24/1992"
     monkeypatch.setattr(m, "_get_graph_conn", lambda: None)
+    probes: list[str] = []
+    real_exists = m._decision_exists
+    monkeypatch.setattr(m, "_decision_exists", lambda did: probes.append(did) or real_exists(did))
     out = m.find_citations(decision_id="P 33/96")
     assert out["error_code"] == "not_yet_ingested" and out["error"].startswith("Decision not found")
-    assert "outgoing" not in out
+    assert "outgoing" not in out and probes == ["P 33/96"]
+    # the common path — a stored canonical id — pays for no extra PK probe
+    probes.clear()
+    out = m.find_citations(decision_id="bger_4A_123_2024")
+    assert probes == [] and "error_code" not in out
+    # a stored pre-2000 row is served, not explained away
+    m.get_db().execute("INSERT INTO decisions(decision_id, docket_number, court, canton, decision_date, language, full_text)"
+                       " VALUES ('bger_4C.24_1992','4C.24/1992','bger','CH','1992-05-05','de','t')").connection.commit()
+    out = m.find_citations(decision_id="bger_4C.24_1992")
+    assert "error_code" not in out and out["decision_id"] == "bger_4C.24_1992"

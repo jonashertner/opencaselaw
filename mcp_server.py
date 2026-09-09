@@ -8917,12 +8917,14 @@ def find_citations(
     }
     if decision_id != _typed:
         result["resolved_from"] = _typed
-    elif _typed and not _decision_exists(decision_id):
-        # Nothing resolved and the id is not stored: when the coverage notes
-        # explain the absence (pre-2000 BGer, pre-2007 EVG), say so instead of
-        # returning an empty graph for a decision the caller believes exists.
+    elif _typed:
+        # Nothing resolved. When the typed text has a shape the coverage notes
+        # explain (pre-2000 BGer, pre-2007 EVG, or one that is ambiguous with a
+        # cantonal number) AND the id is not stored, say so instead of returning
+        # an empty graph. The shape check is pure and runs first, so the common
+        # path (a stored canonical id) never pays for the extra PK probe.
         _reason = decision_ref.unavailable_reason(_typed)
-        if _reason:
+        if _reason and not _decision_exists(decision_id):
             result.update(_reason)
             result["error"] = f"Decision not found: {_typed} — {_reason['reason']}"
             return result
@@ -14764,12 +14766,17 @@ def _handle_cite(
         }
         _reason = None if proposal is not None else decision_ref.unavailable_reason(ref)
         if _reason:
-            # Honest, structured absence (pre-2000 BGer judgments were never put
-            # online; the pre-2007 EVG backlog is queued) — the reference may be
-            # perfectly real, it just cannot be verified here.
+            # Honest, structured absence: the text has the shape of a pre-2000
+            # BGer docket (never published online), a pre-2007 EVG docket (backlog
+            # only partly ingested), or is ambiguous with a cantonal number. The
+            # reason is conditional on the shape — it never says the decision
+            # exists, only that it cannot be verified here. For an ambiguous
+            # shape every candidate court is listed and none is chosen.
             _missing["not_found_reason"] = _reason["error_code"]
             _missing["reason"] = _reason["reason"]
-            _missing["coverage_note"] = _reason["coverage_note"]
+            for _key in ("coverage_note", "courts", "candidates"):
+                if _key in _reason:
+                    _missing[_key] = _reason[_key]
             _missing["_note"] = (
                 f"Reference not found in the corpus: {_reason['reason']} "
                 f"{_reason['hint']} Do not present its text or holding as verified."
@@ -26972,9 +26979,11 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                     result = _overlay_row
                     _fresh_publication = True
             if not result:
-                # A federal docket the coverage notes explain (pre-2000 BGer
-                # judgments were never put online; the pre-2007 EVG backlog is
-                # queued): say so, structured, instead of a bare not-found.
+                # A federal-looking docket the coverage notes explain (pre-2000
+                # BGer shape: never published online; pre-2007 EVG shape: backlog
+                # only partly ingested; or a shape ambiguous with a cantonal
+                # number): say so, structured and conditional, instead of a bare
+                # not-found — without asserting that the decision exists.
                 _reason = decision_ref.unavailable_reason(_did_arg)
                 if _reason:
                     return _research_tool_result(
