@@ -170,6 +170,11 @@ SCRAPERS = {
     "gr_gerichte": ("scrapers.cantonal.gr_gerichte", "GRGerichteScraper"),
     "zg_verwaltungsgericht": ("scrapers.cantonal.zg_gerichte", "ZGVerwaltungsgerichtScraper"),
     "zg_obergericht": ("scrapers.cantonal.zg_obergericht", "ZGObergerichtScraper"),
+    # Zug GVP 1995+ (DecWork API behind bgs.zg.ch, same backend as ag_gerichte);
+    # rows land under zg_verwaltungsgericht / zg_obergericht (merging with the
+    # Tribuna rows above by docket) and the new zg_kantonsgericht, zg_strafgericht,
+    # zg_regierungsrat, zg_datenschutzstelle, zg_anwaltsaufsicht codes.
+    "zg_gvp": ("scrapers.cantonal.zg_gvp", "ZGGVPScraper"),
     "sz_gerichte": ("scrapers.cantonal.sz_gerichte", "SZGerichteScraper"),
     "sz_verwaltungsgericht": ("scrapers.cantonal.sz_verwaltungsgericht", "SZVerwaltungsgerichtScraper"),
     # Cantonal — Weblaw LEv4

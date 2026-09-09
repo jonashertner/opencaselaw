@@ -35,6 +35,7 @@ COURT_BRANCH = {
     "bstger": STRAF,
     "mkg": STRAF,
     "ag_strafgericht": STRAF,
+    "zg_strafgericht": STRAF,
     # zivil
     "bpatger": ZIVIL,
     "zh_handelsgericht": ZIVIL,
@@ -51,6 +52,8 @@ COURT_BRANCH = {
     "ag_verwaltungsgericht": OEFF,
     "sz_verwaltungsgericht": OEFF,
     "zg_verwaltungsgericht": OEFF,
+    "zg_regierungsrat": OEFF,          # GVP: Regierungsrat + Landammann as Beschwerdeinstanz
+    "zg_datenschutzstelle": OEFF,
     "ne_jurisprudence_adm": OEFF,
     "ch_vb": OEFF,                      # Verwaltungsbehörden des Bundes
     "ch_bundesrat": OEFF,
@@ -74,6 +77,7 @@ COURT_BRANCH = {
     # attorney-supervision (disciplinary/administrative)
     "ag_anwaltskommission": OEFF,
     "ag_aufsichtskommission": OEFF,
+    "zg_anwaltsaufsicht": OEFF,
     "be_anwaltsaufsicht": OEFF,
     "tg_anwaltskommission": OEFF,
     "sav_kantone": OEFF,
