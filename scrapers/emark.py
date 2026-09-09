@@ -108,8 +108,11 @@ DATE_PATTERNS = (DATE_PATTERN_DE, DATE_PATTERN_FR, DATE_PATTERN_IT)
 DECISION_DATE_LOOKBACK_YEARS = 2
 
 # Lines that are footnote pointers rather than summary text on a pre-1999
-# first page ("Grundsatzentscheid: [1]", "Décision de principe : [2]").
+# first page ("Grundsatzentscheid: [1]", "Décision de principe : [2]"), and
+# the footnote bodies at the foot of the page ("[1] Entscheid der
+# Präsidentenkonferenz ..."), which end the summary block.
 _FOOTNOTE_POINTER_RE = re.compile(r"\[\d+\]\s*$")
+_FOOTNOTE_BODY_RE = re.compile(r"^\[\d+\]")
 
 
 def extract_decision_date(text: str, volume_year: int) -> date | None:
@@ -123,7 +126,8 @@ def extract_decision_date(text: str, volume_year: int) -> date | None:
     The old implementation tried the German pattern first over the whole
     window: a French decision whose Regeste mentioned a German-dated
     instrument got that instrument's date (EMARK 2001 Nr. 12 was served as
-    1949-08-12, the Geneva Conventions; 9 of 237 rows were affected).
+    1949-08-12, the Geneva Conventions; 17 of the 237 served rows carried an
+    instrument date instead of the header date).
     """
     head = text[:2000]
     candidates: list[tuple[int, date]] = []
@@ -366,6 +370,12 @@ class EMARKScraper(BaseScraper):
         the archive must not truncate the decision); past the last listed page
         the first 404 ends the decision (the next decision lives under its own
         NN, so its pages are never reached).
+
+        Only a 404 is a boundary. Any other failure (5xx, timeout, connection
+        reset) aborts the decision by raising: the run loop records a fetch
+        error and does NOT mark the id scraped, so the next nightly retries it.
+        Returning the pages fetched so far would persist a truncated full_text
+        that _already_scraped() then hides forever.
         """
         docket = stub["docket_number"]
         year, nr = stub["year"], stub["nr"]
@@ -397,10 +407,11 @@ class EMARKScraper(BaseScraper):
                 pages[p] = html
                 p += 1
         except Exception as e:
-            logger.warning(f"[emark] Failed to fetch {docket} (page {p}): {e}")
-            if not pages:
-                return None
-            logger.warning(f"[emark] {docket}: keeping {len(pages)} pages fetched before the error")
+            logger.warning(
+                f"[emark] {docket}: aborting after {len(pages)} page(s), "
+                f"page {p} failed with a non-404 error, will retry next run: {e}"
+            )
+            raise
 
         if not pages:
             logger.warning(f"[emark] {docket}: no pages retrievable")
@@ -435,8 +446,10 @@ class EMARKScraper(BaseScraper):
     @staticmethod
     def _pre1999_regeste(lines: list[str]) -> str | None:
         """Summary block of a pre-1999 first page: from the first "Art. …"
-        head-note onwards, skipping footnote pointers. Falls back to the
-        generic "first numbered paragraph" rule."""
+        head-note onwards, skipping footnote pointers and stopping at the
+        first footnote body ("[1] Entscheid der Präsidentenkonferenz …"),
+        which on a short first page would otherwise fill the fifth line.
+        Falls back to the generic "first numbered paragraph" rule."""
         start = None
         for i, line in enumerate(lines[:20]):
             if re.match(r"^Art\.", line):
@@ -451,6 +464,8 @@ class EMARKScraper(BaseScraper):
             return None
         out: list[str] = []
         for line in lines[start:]:
+            if _FOOTNOTE_BODY_RE.match(line):
+                break
             if _FOOTNOTE_POINTER_RE.search(line) and len(line) < 60:
                 continue
             out.append(line)

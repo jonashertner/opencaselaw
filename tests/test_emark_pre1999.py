@@ -63,11 +63,15 @@ class _Resp:
         self.text = text
 
 
-def _http_404(url: str) -> requests.HTTPError:
+def _http_error(url: str, status: int) -> requests.HTTPError:
     r = requests.Response()
-    r.status_code = 404
+    r.status_code = status
     r.url = url
-    return requests.HTTPError("404", response=r)
+    return requests.HTTPError(str(status), response=r)
+
+
+def _http_404(url: str) -> requests.HTTPError:
+    return _http_error(url, 404)
 
 
 def _scraper(monkeypatch, tmp_path, pages: dict[str, str]):
@@ -80,15 +84,20 @@ def _scraper(monkeypatch, tmp_path, pages: dict[str, str]):
             for nr in range(1, max_nr + 1):
                 s.state.mark_scraped(make_decision_id("emark", f"EMARK-{year}-{nr}"))
     calls: list[str] = []
+    failing: dict[str, int] = {}   # url -> HTTP status of a non-404 failure
 
     def fake_get(url, **k):
         calls.append(url)
+        if url in failing:
+            raise _http_error(url, failing[url])
         if url in pages:
             return _Resp(pages[url])
         raise _http_404(url)
 
     monkeypatch.setattr(s, "get", fake_get)
     s._calls = calls  # type: ignore[attr-defined]
+    s._pages = pages  # type: ignore[attr-defined]
+    s._failing = failing  # type: ignore[attr-defined]
     return s
 
 
@@ -208,6 +217,7 @@ def test_fetch_1993_walks_pages_forward_until_404(monkeypatch, tmp_path):
     assert d.title.startswith("Art. 16, 17a AsylG und 13 EMRK")
     assert d.regeste.startswith("Art. 16, 17a AsylG und 13 EMRK: Ausreisefrist")
     assert "Grundsatzentscheid: [1]" not in d.regeste
+    assert "[1] Entscheid der Präsidentenkonferenz" not in d.regeste   # footnote body, not regeste
     # pages in order, each introduced by its own printed page header
     t = d.full_text
     assert t.index("1993 / 1 - 1") < t.index("Zweite Seite") < t.index("Dritte Seite") < t.index("letzte Seite")
@@ -276,6 +286,83 @@ def test_fetch_start_page_404_returns_none(monkeypatch, tmp_path):
     stub = {"docket_number": "EMARK-1996-3", "year": 1996, "nr": 3,
             "index_pages": [19], "start_page": 19, "url": pre1999_page_url(1996, 3, 19)}
     assert s.fetch_decision(stub) is None
+
+
+def test_fetch_500_mid_walk_aborts_and_the_next_run_retries(monkeypatch, tmp_path):
+    """A non-404 failure on page 2 must not persist a truncated decision:
+    fetch_decision raises, the run loop counts an error, the id is neither
+    scraped nor gap-cached, and the next run (archive healthy again) gets the
+    whole decision. (Before the fix the pages fetched before the error were
+    returned as the decision and mark_scraped hid the truncation for good.)"""
+    pages = {
+        pre1999_page_url(1993, 1, 1): PAGE_1993,
+        pre1999_page_url(1993, 1, 2): _page(1993, 1, 2, "<p>Zweite Seite Text.</p>"),
+        pre1999_page_url(1993, 1, 3): _page(1993, 1, 3, "<p>Dritte und letzte Seite.</p>"),
+    }
+    only = '<a href="../1993/9301001PUB.htm"><i>1993</i> Nr. 1</a>'
+    pages.update(_both_indices(only))
+    s = _scraper(monkeypatch, tmp_path, pages)
+    s._failing[pre1999_page_url(1993, 1, 2)] = 500
+    stub = {"docket_number": "EMARK-1993-1", "year": 1993, "nr": 1,
+            "index_pages": [1], "start_page": 1, "url": pre1999_page_url(1993, 1, 1)}
+
+    with pytest.raises(requests.HTTPError) as exc:
+        s.fetch_decision(stub)
+    assert exc.value.response.status_code == 500
+    # the walk stopped at the failure: page 3 was never asked for
+    assert pre1999_page_url(1993, 1, 3) not in s._calls
+
+    # through the run loop: an error, no decision, nothing marked
+    s._calls.clear()
+    got = s.run()
+    assert got == []
+    assert s.last_run_errors == 1 and s.last_run_skips == 0
+    s.mark_run_complete(got)
+    assert not s.state.is_known("emark_EMARK-1993-1")
+
+    # next night, archive healthy: the decision is re-discovered and complete
+    s._failing.clear()
+    got = s.run()
+    assert [d.docket_number for d in got] == ["EMARK-1993-1"]
+    t = got[0].full_text
+    assert t.index("1993 / 1 - 1") < t.index("Zweite Seite Text") < t.index("letzte Seite")
+    assert s.last_run_errors == 0
+
+
+def test_fetch_500_in_backward_walk_aborts_too(monkeypatch, tmp_path):
+    # index cites S. 56; walking back, S. 55 answers 500 (not 404): abort
+    pages = {pre1999_page_url(1997, 8, p): _page(1997, 8, p, f"<p>Pagina {p}.</p>") for p in (53, 54, 55, 56, 57)}
+    s = _scraper(monkeypatch, tmp_path, pages)
+    s._failing[pre1999_page_url(1997, 8, 55)] = 503
+    stub = {"docket_number": "EMARK-1997-8", "year": 1997, "nr": 8,
+            "index_pages": [56], "start_page": 56, "url": pre1999_page_url(1997, 8, 56)}
+    with pytest.raises(requests.HTTPError):
+        s.fetch_decision(stub)
+    assert pre1999_page_url(1997, 8, 54) not in s._calls
+    assert pre1999_page_url(1997, 8, 57) not in s._calls
+    # the 404 boundary is unchanged: without the failure the walk is complete
+    s._failing.clear()
+    d = s.fetch_decision(stub)
+    assert d is not None and d.source_url == pre1999_page_url(1997, 8, 53)
+    assert "Pagina 57" in d.full_text
+
+
+def test_pre1999_regeste_stops_before_the_footnote_bodies():
+    # EMARK 1993 Nr. 1: the summary block is four lines (DE head-note + text,
+    # FR head-note + text); the fifth line of the page is the footnote body
+    # "[1] Entscheid der Präsidentenkonferenz ..." and is not regeste.
+    lines = [l for l in html_to_text(PAGE_1993).split("\n") if l.strip()]
+    regeste = EMARKScraper._pre1999_regeste(lines)
+    got = regeste.split("\n")
+    assert got[0].startswith("Art. 16, 17a AsylG und 13 EMRK")
+    assert got[1].startswith("Bei Nichteintretensentscheiden")
+    assert got[2].startswith("Art. 16, 17a LA et 13 CEDH")
+    assert got[3].startswith("En cas de décision de non-entrée en matière")
+    assert len(got) == 4
+    assert not any(l.startswith("[") for l in got)
+    assert "Décision de principe : [2]" not in regeste
+    # every regeste line is a verbatim line of the page (sliced, never composed)
+    assert all(l in lines for l in got)
 
 
 def test_run_end_to_end_reports_no_none_returns(monkeypatch, tmp_path):
