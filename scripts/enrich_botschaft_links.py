@@ -42,6 +42,11 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scrapers.fedlex_materialien import (  # noqa: E402
+    FGA_DOC_TYPES, fga_type_uri, parse_doc_types,
+)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
@@ -65,13 +70,16 @@ def _sparql(q: str, timeout: int = 180) -> list[dict]:
     return data.get("results", {}).get("bindings", [])
 
 
-def fetch_all_botschaft_cc_pairs() -> list[tuple[str, str]]:
-    """Return [(botschaft_uri, cc_uri), …] for every Botschaft that
-    Fedlex's parliamentary graph maps to at least one consolidated
-    compilation work URI."""
-    q = """PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
-    SELECT DISTINCT ?bot ?cc WHERE {
-      ?bot jolux:typeDocument <https://fedlex.data.admin.ch/vocabulary/resource-type/23> .
+def build_chain_query(type_ids: tuple[int, ...] = (23,)) -> str:
+    """The parliamentary-chain SPARQL for the given Fedlex resource types.
+    Berichte, Stellungnahmen, Kommissionsberichte and Erlassentwürfe hang
+    off the same ``proj`` nodes as the Botschaft (verified 2026-09-09), so
+    one query links every ingested doc_type."""
+    values = " ".join(f"<{fga_type_uri(t)}>" for t in type_ids)
+    return f"""PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
+    SELECT DISTINCT ?bot ?cc WHERE {{
+      VALUES ?td {{ {values} }}
+      ?bot jolux:typeDocument ?td .
       FILTER(strstarts(STR(?bot), "https://fedlex.data.admin.ch/eli/fga/"))
       ?proj jolux:hasResultingLegalResource ?bot .
       ?proj jolux:parliamentDraftId ?pdid .
@@ -79,7 +87,16 @@ def fetch_all_botschaft_cc_pairs() -> list[tuple[str, str]]:
       ?proj2 jolux:hasResultingLegalResource ?other .
       ?cc jolux:basicAct ?other .
       FILTER(strstarts(STR(?cc), "https://fedlex.data.admin.ch/eli/cc/"))
-    }"""
+    }}"""
+
+
+def fetch_all_botschaft_cc_pairs(
+    type_ids: tuple[int, ...] = (23,),
+) -> list[tuple[str, str]]:
+    """Return [(document_uri, cc_uri), …] for every Bundesblatt document of
+    the given types that Fedlex's parliamentary graph maps to at least one
+    consolidated compilation work URI."""
+    q = build_chain_query(type_ids)
     rows = _sparql(q)
     return [(r["bot"]["value"], r["cc"]["value"]) for r in rows]
 
@@ -111,7 +128,20 @@ def main() -> int:
         action="store_true",
         help="Compute the link delta without inserting",
     )
+    ap.add_argument(
+        "--types",
+        default=",".join(str(t) for t in sorted(FGA_DOC_TYPES)),
+        help=(
+            "Comma-separated Fedlex resource-type ids to traverse "
+            "(default: every type build_botschaft_corpus can ingest)."
+        ),
+    )
     args = ap.parse_args()
+    try:
+        type_ids = parse_doc_types(args.types)
+    except ValueError as e:
+        log.error(str(e))
+        return 2
 
     db_path = Path(args.db).resolve()
     statutes_path = Path(args.statutes).resolve()
@@ -123,9 +153,9 @@ def main() -> int:
         return 1
 
     # 1. Pull all Botschaft → cc pairs from Fedlex SPARQL.
-    log.info("Querying Fedlex SPARQL for Botschaft → cc pairs…")
+    log.info(f"Querying Fedlex SPARQL for document → cc pairs (types {list(type_ids)})…")
     t0 = time.time()
-    pairs = fetch_all_botschaft_cc_pairs()
+    pairs = fetch_all_botschaft_cc_pairs(type_ids)
     log.info(
         f"  → {len(pairs)} pairs (parsed in {time.time() - t0:.1f}s)"
     )

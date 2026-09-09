@@ -5121,6 +5121,74 @@ def _get_materialien_conn() -> sqlite3.Connection | None:
         return None
 
 
+# botschaft_documents.doc_type (additive column, 2026-09-09): the Fedlex
+# resource-type of each Bundesblatt document. Labels are Fedlex's own
+# skos:prefLabel per language (R3: never synthesised); the slugs mirror
+# scrapers/fedlex_materialien.FGA_DOC_TYPES and a test pins the two in sync.
+_MATERIALIEN_DOC_TYPE_LABELS: dict[str, dict[str, str]] = {
+    "botschaft": {"de": "Botschaft des Bundesrates",
+                  "fr": "Message du Conseil fédéral",
+                  "it": "Messaggio del Consiglio federale"},
+    "bericht_bundesrat": {"de": "Bericht des Bundesrates",
+                          "fr": "Rapport du Conseil fédéral",
+                          "it": "Rapporto del Consiglio federale"},
+    "stellungnahme_bundesrat": {"de": "Stellungnahme des Bundesrates",
+                                "fr": "Avis du Conseil fédéral",
+                                "it": "Parere del Consiglio federale"},
+    "bericht_kommission": {"de": "Bericht parlamentarische Kommission",
+                           "fr": "Rapport d'une Commission parlementaire",
+                           "it": "Rapporto di una Commissione parlamentare"},
+    "erlassentwurf": {"de": "Erlassentwurf",
+                      "fr": "Projet d'acte",
+                      "it": "Progetto di atto"},
+    "vorentwurf_erlass": {"de": "Vorentwurf Erlass",
+                          "fr": "Avant-projet d'acte",
+                          "it": "Avamprogetto di atto"},
+    "vernehmlassung_eroeffnung": {"de": "Eröffnung des Vernehmlassungsverfahrens",
+                                  "fr": "Ouverture de la procédure de consultation",
+                                  "it": "Avvio della procedura di consultazione"},
+}
+_MATERIALIEN_DOC_TYPES: tuple[str, ...] = tuple(_MATERIALIEN_DOC_TYPE_LABELS)
+
+
+def _materialien_doc_type_label(doc_type: str | None, language: str | None) -> str:
+    """Fedlex's label for a doc_type slug in the document's language (DE
+    when the language is unknown). Unknown slugs echo back unchanged."""
+    slug = (doc_type or "botschaft").lower()
+    labels = _MATERIALIEN_DOC_TYPE_LABELS.get(slug)
+    if not labels:
+        return slug
+    return labels.get((language or "de").lower(), labels["de"])
+
+
+def _normalise_materialien_doc_type(doc_type: str | None) -> str | None:
+    """Validate a caller's doc_type filter: None/'' → None (all types); a known
+    slug (case-insensitive) → the slug; anything else raises ValueError."""
+    if doc_type is None:
+        return None
+    slug = str(doc_type).strip().lower()
+    if not slug or slug == "all":
+        return None
+    if slug not in _MATERIALIEN_DOC_TYPE_LABELS:
+        raise ValueError(
+            f"Unknown doc_type {doc_type!r}; one of: "
+            + ", ".join(_MATERIALIEN_DOC_TYPES)
+        )
+    return slug
+
+
+def _botschaft_doc_type_expr(conn: sqlite3.Connection, alias: str = "bd") -> str:
+    """SQL expression for a document's type: the column where the DB has it,
+    the literal 'botschaft' on a materialien.db from before the column
+    existed (every row then IS a Botschaft)."""
+    try:
+        cols = {r[1] for r in conn.execute(
+            "PRAGMA table_info(botschaft_documents)").fetchall()}
+    except sqlite3.Error:
+        cols = set()
+    return f"{alias}.doc_type" if "doc_type" in cols else "'botschaft'"
+
+
 # Major laws by abbreviation. Only a resolution shortcut — statutes.db is the
 # authority and is consulted for anything not listed here.
 _MATERIALIEN_SR_MAP = {
@@ -5191,7 +5259,8 @@ def _botschaft_header(text: str) -> tuple[str | None, str | None]:
 
 
 def _linked_botschaft_documents(conn, sr: str, article: str | None,
-                                limit: int = 20) -> list[dict]:
+                                limit: int = 20,
+                                doc_type: str | None = None) -> list[dict]:
     """The Federal Council messages linked to an article.
 
     The curated `materialien` digest covers two laws (BV, BGFA — 167 rows),
@@ -5207,8 +5276,10 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
     """
     if not sr:
         return []
-    sql = """SELECT d.bbl_citation, d.source_url, d.eli_uri, d.language,
+    dt = _botschaft_doc_type_expr(conn, "d")
+    sql = f"""SELECT d.bbl_citation, d.source_url, d.eli_uri, d.language,
                     d.bbl_year, d.bbl_page, l.article, l.relation,
+                    {dt} AS doc_type,
                     p.text AS head_text
                FROM article_botschaft_links l
                JOIN botschaft_documents d ON d.botschaft_id = l.botschaft_id
@@ -5219,6 +5290,9 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
     if article:
         sql += " AND l.article = ?"
         params.append(article)
+    if doc_type:
+        sql += f" AND {dt} = ?"
+        params.append(doc_type)
     # publication_date is empty for every row; bbl_year is the real ordering.
     # Fetch extra: one message exists once per language (BBl 2022 2743 and
     # FF 2022 2743 are the same document), and those are grouped below, so a
@@ -5242,6 +5316,9 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
             title, date = _botschaft_header(r["head_text"] or "")
             item = {
                 "bbl_citation": r["bbl_citation"],
+                "doc_type": r["doc_type"] or "botschaft",
+                "doc_type_label": _materialien_doc_type_label(
+                    r["doc_type"], r["language"]),
                 "title": title,
                 "date": date,
                 "year": r["bbl_year"],
@@ -5279,8 +5356,13 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
     return list(grouped.values())
 
 
-def get_materialien(law_code: str, article: str | None = None) -> dict:
+def get_materialien(law_code: str, article: str | None = None,
+                    doc_type: str | None = None) -> dict:
     """Fetch preparatory materials (Botschaften, parliamentary data) for a law article.
+
+    ``doc_type`` narrows ``botschaft_documents`` to one Fedlex resource type
+    (see _MATERIALIEN_DOC_TYPE_LABELS); default None lists every type, each
+    entry tagged ``doc_type`` / ``doc_type_label``.
 
     Returns legislative intent, key arguments, design choices, rejected
     alternatives, and parliamentary modifications from the Federal Council's
@@ -5294,6 +5376,10 @@ def get_materialien(law_code: str, article: str | None = None) -> dict:
         law = (law_code or "").upper()
         if not law:
             return {"error": "Provide law_code (e.g., BV, OR, StGB, BGFA)."}
+        try:
+            doc_type = _normalise_materialien_doc_type(doc_type)
+        except ValueError as e:
+            return {"error": str(e)}
 
         if article:
             rows = conn.execute(
@@ -5341,7 +5427,8 @@ def get_materialien(law_code: str, article: str | None = None) -> dict:
         # The Botschaft documents linked to this article. For every law
         # outside the two-law curated digest this is the substance of the
         # answer, so it is fetched whether or not a digest exists.
-        botschaft_docs = _linked_botschaft_documents(conn, sr, article)
+        botschaft_docs = _linked_botschaft_documents(
+            conn, sr, article, doc_type=doc_type)
 
         amendment_refs = []
         try:
@@ -5413,6 +5500,7 @@ def get_materialien(law_code: str, article: str | None = None) -> dict:
             "law_code": law,
             "sr_number": sr or None,
             "article": article,
+            "doc_type_filter": doc_type,
             "sources": sources,
             "botschaft_documents": botschaft_docs,
             "amendment_refs": amendment_refs,
@@ -14366,14 +14454,20 @@ def _handle_get_article_purpose(
                 ),
             }
 
+        # doc_type is additive (2026-09-09). The Botschaft explains the
+        # provision; Berichte, Stellungnahmen and Erlassentwürfe linked to
+        # the same article come after it, never instead of it.
+        _dt = _botschaft_doc_type_expr(conn)
         rows = conn.execute(
-            """
+            f"""
             SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri, bd.format,
-                   bd.publication_date, abl.relation
+                   bd.publication_date, abl.relation, bd.language,
+                   {_dt} AS doc_type
             FROM article_botschaft_links abl
             JOIN botschaft_documents bd ON bd.botschaft_id = abl.botschaft_id
             WHERE abl.sr_number = ? AND abl.article = ? AND bd.language = ?
             ORDER BY
+              CASE WHEN {_dt} = 'botschaft' THEN 0 ELSE 1 END,
               CASE WHEN abl.relation = 'enacted' THEN 0
                    WHEN abl.relation = 'amended' THEN 1
                    ELSE 2 END,
@@ -14406,9 +14500,10 @@ def _handle_get_article_purpose(
             try:
                 fts_q = f'"{sr_token} {sr_number}" "{art_token} {article}"'
                 fb_rows = conn.execute(
-                    """
+                    f"""
                     SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
-                           bd.format, bd.publication_date,
+                           bd.format, bd.publication_date, bd.language,
+                           {_dt} AS doc_type,
                            bp.page_number, bp.section_path, bp.text
                     FROM botschaft_paragraphs_fts
                     JOIN botschaft_paragraphs bp
@@ -14435,6 +14530,9 @@ def _handle_get_article_purpose(
                         by_doc[bid] = {
                             "bbl_citation": r["bbl_citation"],
                             "eli_uri": r["eli_uri"],
+                            "doc_type": r["doc_type"] or "botschaft",
+                            "doc_type_label": _materialien_doc_type_label(
+                                r["doc_type"], r["language"]),
                             "publication_date": r["publication_date"],
                             "format": r["format"],
                             "relation": "fts5_match",
@@ -14506,6 +14604,9 @@ def _handle_get_article_purpose(
             sources.append({
                 "bbl_citation": r["bbl_citation"],
                 "eli_uri": r["eli_uri"],
+                "doc_type": r["doc_type"] or "botschaft",
+                "doc_type_label": _materialien_doc_type_label(
+                    r["doc_type"], r["language"]),
                 "publication_date": r["publication_date"],
                 "format": r["format"],
                 "relation": r["relation"],
@@ -14542,8 +14643,15 @@ def _handle_search_botschaft(
     year_min: int | None = None,
     year_max: int | None = None,
     limit: int = 20,
+    doc_type: str | None = None,
 ) -> dict:
-    """Topical FTS5 search across the verbatim Botschaft corpus.
+    """Topical FTS5 search across the verbatim Bundesblatt Materialien corpus.
+
+    ``doc_type`` (additive, 2026-09-09) narrows to one Fedlex resource type
+    — 'botschaft', 'bericht_bundesrat', 'stellungnahme_bundesrat',
+    'bericht_kommission', 'erlassentwurf', 'vorentwurf_erlass',
+    'vernehmlassung_eroeffnung'. Default None searches every type; each hit
+    carries ``doc_type`` and Fedlex's ``doc_type_label`` in its language.
 
     Where ``get_article_purpose`` answers "why does Art. X exist?",
     this handler answers "show me every Botschaft passage that talks
@@ -14565,6 +14673,10 @@ def _handle_search_botschaft(
         return {"error": "Provide a search query."}
     language = (language or "").lower().strip() or None
     limit = max(1, min(int(limit or 20), 50))
+    try:
+        doc_type = _normalise_materialien_doc_type(doc_type)
+    except ValueError as e:
+        return {"error": str(e)}
     # Critical invariant #3: all FTS5 input must pass _sanitize_fts5. Without it,
     # ordinary legislative-history queries ("Art. 64 StGB", hyphenated German
     # compounds, French apostrophes) raise fts5 syntax errors / 500s.
@@ -14605,9 +14717,11 @@ def _handle_search_botschaft(
                 ),
             }
 
-        sql = """
+        _dt = _botschaft_doc_type_expr(conn)
+        sql = f"""
             SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
                    bd.language, bd.publication_date, bd.bbl_year,
+                   {_dt} AS doc_type,
                    bp.paragraph_id, bp.page_number, bp.section_path,
                    bp.article_anchor,
                    snippet(botschaft_paragraphs_fts, 0,
@@ -14623,6 +14737,9 @@ def _handle_search_botschaft(
         if language:
             sql += " AND bd.language = ? "
             params.append(language)
+        if doc_type:
+            sql += f" AND {_dt} = ? "
+            params.append(doc_type)
         # Temporal scoping for legislative-history research ("on X from the 1990s").
         # bbl_year is the authoritative BBl-publication year (populated for the whole
         # corpus); publication_date is sparse and often NULL, so filtering on it
@@ -14661,12 +14778,15 @@ def _handle_search_botschaft(
 
     if not rows:
         return {
-            "query": q, "language": language, "total": 0, "results": [],
+            "query": q, "language": language, "doc_type_filter": doc_type,
+            "total": 0, "results": [],
             "_hint": (
                 "No matches in the verbatim Botschaft corpus. Try simpler "
                 "phrases or quoted exact strings (FTS5 syntax). Coverage "
                 "currently focuses on recent Botschaften; older years are "
                 "being back-filled."
+                + (" The doc_type filter was applied; drop it to search every "
+                   "document type." if doc_type else "")
             ),
         }
 
@@ -14674,6 +14794,8 @@ def _handle_search_botschaft(
         {
             "bbl_citation":     r["bbl_citation"],
             "eli_uri":          r["eli_uri"],
+            "doc_type":         r["doc_type"] or "botschaft",
+            "doc_type_label":   _materialien_doc_type_label(r["doc_type"], r["language"]),
             "language":         r["language"],
             "publication_date": r["publication_date"],
             "bbl_year":         r["bbl_year"],
@@ -14687,6 +14809,7 @@ def _handle_search_botschaft(
     out = {
         "query": q,
         "language_filter": language,
+        "doc_type_filter": doc_type,
         "year_filter": ({"min": year_min, "max": year_max}
                         if (year_min is not None or year_max is not None) else None),
         "total": len(results),
@@ -14772,10 +14895,12 @@ def _handle_get_article_history(
                 mc.execute(
                     "SELECT 1 FROM article_botschaft_links LIMIT 1"
                 ).fetchone()
+                _dt = _botschaft_doc_type_expr(mc)
                 rows = mc.execute(
-                    """
+                    f"""
                     SELECT bd.bbl_citation, bd.eli_uri, bd.publication_date,
-                           bd.format, abl.relation
+                           bd.format, abl.relation, bd.language,
+                           {_dt} AS doc_type
                     FROM article_botschaft_links abl
                     JOIN botschaft_documents bd
                       ON bd.botschaft_id = abl.botschaft_id
@@ -14786,8 +14911,13 @@ def _handle_get_article_history(
                     (sr_number, article, language),
                 ).fetchall()
                 for r in rows:
+                    # kind stays 'botschaft' for every Bundesblatt document
+                    # (documented enum); doc_type says which kind of one.
                     entry = {
                         "kind":             "botschaft",
+                        "doc_type":         r["doc_type"] or "botschaft",
+                        "doc_type_label":   _materialien_doc_type_label(
+                            r["doc_type"], r["language"]),
                         "relation":         r["relation"],
                         "date":             r["publication_date"],
                         "bbl_citation":     r["bbl_citation"],
@@ -25875,18 +26005,20 @@ def _list_tools() -> list[Tool]:
             title="Search Botschaft",
             description=(
                 "Use this tool to retrieve and quote the VERBATIM text of "
-                "Federal Council Botschaften (legislative messages). Where "
-                "get_article_purpose answers "
-                "'why does Art. X exist?', this tool answers 'show me "
-                "every Botschaft passage about TOPIC X'. Useful when the "
-                "caller doesn't know which SR/article to ask for — e.g. "
-                "starting from a concept like 'Vaterschaftsurlaub' or "
-                "'Klimaschutz'. Returns ranked passages (FTS5 BM25) with "
-                "bbl_citation, page, section path, and an article anchor "
-                "where the parser could identify one. Quote verbatim; "
-                "every snippet has a stable Fedlex ELI URI. When no paragraph "
-                "carries every term, the page is relaxed to ranked OR and "
-                "flagged `filters_relaxed: true` with a `note`."
+                "Bundesblatt Materialien: Federal Council Botschaften plus "
+                "Berichte and Stellungnahmen des Bundesrates, parliamentary "
+                "committee reports, Erlassentwürfe and consultation openings "
+                "(each hit is tagged `doc_type`; filter with doc_type, default "
+                "all). Where get_article_purpose answers 'why does Art. X "
+                "exist?', this tool answers 'show me every passage about "
+                "TOPIC X'. Useful when the caller doesn't know which "
+                "SR/article to ask for — e.g. starting from a concept like "
+                "'Vaterschaftsurlaub' or 'Klimaschutz'. Returns ranked "
+                "passages (FTS5 BM25) with bbl_citation, page, section path, "
+                "and an article anchor where the parser could identify one. "
+                "Quote verbatim; every snippet has a stable Fedlex ELI URI. "
+                "When no paragraph carries every term, the page is relaxed to "
+                "ranked OR and flagged `filters_relaxed: true` with a `note`."
             ),
             inputSchema={
                 "type": "object",
@@ -25915,6 +26047,22 @@ def _list_tools() -> list[Tool]:
                     },
                     "year_min": {"type": "integer", "description": "Earliest publication year of the source Botschaft (inclusive) — scope legislative history to an era."},
                     "year_max": {"type": "integer", "description": "Latest publication year of the source Botschaft (inclusive)."},
+                    "doc_type": {
+                        "type": "string",
+                        "enum": list(_MATERIALIEN_DOC_TYPES),
+                        "description": (
+                            "OPTIONAL Fedlex document type. botschaft = Botschaft des "
+                            "Bundesrates (Message / Messaggio); bericht_bundesrat = "
+                            "Bericht des Bundesrates; stellungnahme_bundesrat = "
+                            "Stellungnahme des Bundesrates (Avis / Parere); "
+                            "bericht_kommission = Bericht parlamentarische Kommission; "
+                            "erlassentwurf = Erlassentwurf (draft act, 2021+); "
+                            "vorentwurf_erlass = Vorentwurf; vernehmlassung_eroeffnung = "
+                            "Eröffnung des Vernehmlassungsverfahrens. Leave unset to "
+                            "search every type; each hit carries doc_type and Fedlex's "
+                            "doc_type_label in its own language."
+                        ),
+                    },
                     "limit": {
                         "type": "integer",
                         "default": 20,
@@ -26669,14 +26817,15 @@ def _list_tools() -> list[Tool]:
             description=(
                 "Look up Materialien for a Swiss federal law article. Returns up to three "
                 "things: `sources` = per-article digests of legislative intent (BV and BGFA "
-                "only — 167 articles); `botschaft_documents` = the Federal Council messages "
-                "that concern this article, with BBl citation, title and Fedlex link (620 SR "
-                "numbers, 19,809 article links); `amendment_refs` = the AS/BBl publication "
-                "locators from the statute's own footnotes. "
+                "only — 167 articles); `botschaft_documents` = the Bundesblatt documents "
+                "that concern this article — Federal Council messages, Berichte, "
+                "Stellungnahmen, committee reports, Erlassentwürfe — each tagged `doc_type` "
+                "with BBl citation, title and Fedlex link (620+ SR numbers); "
+                "`amendment_refs` = the AS/BBl locators from the statute's own footnotes. "
                 "Empty `sources` means no digest exists for that law, NOT that the law has no "
                 "legislative history — read `botschaft_documents` and cite the BBl reference. "
-                "For full text of a message use search_botschaft. A provision with nothing "
-                "keyed to it is flagged `found: false` / `no_materialien: true` and lists `leading_cases`, a "
+                "For full text use search_botschaft. A provision with nothing keyed to it is "
+                "flagged `found: false` / `no_materialien: true` and lists `leading_cases`, a "
                 "`doctrine` excerpt and `scholarship_citing_statute` instead — none of it is "
                 "legislative history."
             ),
@@ -26690,6 +26839,16 @@ def _list_tools() -> list[Tool]:
                     "article": {
                         "type": "string",
                         "description": "Article number (e.g., '1', '8', '10a'). Omit to get all articles.",
+                    },
+                    "doc_type": {
+                        "type": "string",
+                        "enum": list(_MATERIALIEN_DOC_TYPES),
+                        "description": (
+                            "OPTIONAL: restrict `botschaft_documents` to one Fedlex "
+                            "document type (botschaft, bericht_bundesrat, "
+                            "stellungnahme_bundesrat, bericht_kommission, erlassentwurf, "
+                            "vorentwurf_erlass, vernehmlassung_eroeffnung). Default: all."
+                        ),
                     },
                 },
                 "required": ["law_code"],
@@ -26706,7 +26865,9 @@ def _list_tools() -> list[Tool]:
                 "transcripts, and nothing else. For any other law this returns 0 hits, which "
                 "means 'outside this index', not 'no materials exist'. "
                 "Prefer search_botschaft, which covers all 6,154 Federal Council messages "
-                "verbatim, or get_materialien(law_code) for the messages linked to one statute."
+                "plus Berichte, Stellungnahmen, committee reports and Erlassentwürfe "
+                "verbatim (filter by doc_type), or get_materialien(law_code) for the "
+                "documents linked to one statute."
             ),
             inputSchema={
                 "type": "object",
@@ -28520,6 +28681,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 year_min=arguments.get("year_min"),
                 year_max=arguments.get("year_max"),
                 limit=int(arguments.get("limit", 20) or 20),
+                doc_type=arguments.get("doc_type") or None,
             )
             return _text_and_payload(result, json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -28672,6 +28834,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 get_materialien,
                 law_code=arguments.get("law_code", ""),
                 article=arguments.get("article"),
+                doc_type=arguments.get("doc_type") or None,
             )
             return _text_and_payload(result, json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -31677,11 +31840,21 @@ setInterval(load, 30000);
         response: Response,
         law_code: str = PathParam(description="Law abbreviation (e.g., BGFA, BV)"),
         article: str = Query(None, description="Article number (e.g., '1', '8')"),
+        doc_type: str = Query(
+            None, regex="^(" + "|".join(_MATERIALIEN_DOC_TYPES) + ")$",
+            description=(
+                "Optional Fedlex document type for `botschaft_documents` "
+                "(botschaft, bericht_bundesrat, stellungnahme_bundesrat, "
+                "bericht_kommission, erlassentwurf, vorentwurf_erlass, "
+                "vernehmlassung_eroeffnung). Default: all types."
+            ),
+        ),
     ):
         return _declare_outcome(
             response,
             await asyncio.to_thread(
                 get_materialien, law_code=law_code, article=article,
+                doc_type=doc_type,
             ),
             "article_not_found" if article else "id_not_found")
 
@@ -32150,6 +32323,15 @@ setInterval(load, 30000);
         ),
         year_min: int = Query(None, description="Earliest source-Botschaft publication year (inclusive)"),
         year_max: int = Query(None, description="Latest source-Botschaft publication year (inclusive)"),
+        doc_type: str = Query(
+            None, regex="^(" + "|".join(_MATERIALIEN_DOC_TYPES) + ")$",
+            description=(
+                "Optional Fedlex document type: botschaft, bericht_bundesrat, "
+                "stellungnahme_bundesrat, bericht_kommission, erlassentwurf, "
+                "vorentwurf_erlass, vernehmlassung_eroeffnung. Leave unset for all; "
+                "every hit carries doc_type + doc_type_label (Fedlex's DE/FR/IT name)."
+            ),
+        ),
         limit: int = Query(20, ge=1, le=50),
     ):
         query = query or q
@@ -32157,7 +32339,8 @@ setInterval(load, 30000);
             raise HTTPException(status_code=422, detail="A search query is required; pass it as `query` or `q`.")
         return await asyncio.to_thread(
             _handle_search_botschaft,
-            query=query, language=language, year_min=year_min, year_max=year_max, limit=limit,
+            query=query, language=language, year_min=year_min, year_max=year_max,
+            limit=limit, doc_type=doc_type,
         )
 
     @rest_api.get("/article-history/{sr_number}/{article}", tags=["Materialien"],

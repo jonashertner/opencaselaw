@@ -583,6 +583,96 @@ BOTSCHAFT_TYPE_DOC_URI = (
     "https://fedlex.data.admin.ch/vocabulary/resource-type/23"
 )
 
+# The Bundesblatt Materialien types we ingest, keyed by Fedlex's numeric
+# resource-type id. The slug is what ``botschaft_documents.doc_type`` stores
+# (stable, ASCII, never shown raw to users — the labels below are). Counts
+# are DE works with a file on fedlex.data.admin.ch, probed 2026-09-09:
+#   23 Botschaft des Bundesrates               2,055
+#   24 Bericht des Bundesrates                   196
+#   25 Stellungnahme des Bundesrates             531
+#   30 Bericht parlamentarische Kommission       754
+#   38 Erlassentwurf (2021+ only)                623
+#   39 Vorentwurf Erlass                           0  (no FGA work carries it)
+#   40 Eröffnung des Vernehmlassungsverfahrens 1,420
+# NOT ingested: 33 Beschlüsse der Behörde (44,615 notices), ordinances,
+# decrees — noise for legislative-history research.
+FGA_DOC_TYPES: dict[int, str] = {
+    23: "botschaft",
+    24: "bericht_bundesrat",
+    25: "stellungnahme_bundesrat",
+    30: "bericht_kommission",
+    38: "erlassentwurf",
+    39: "vorentwurf_erlass",
+    40: "vernehmlassung_eroeffnung",
+}
+DEFAULT_DOC_TYPE = "botschaft"
+
+# skos:prefLabel of each resource-type in Fedlex's own vocabulary (queried
+# 2026-09-09). These are the only type labels ever shown to a user (R3:
+# names come from Fedlex, never synthesised).
+FGA_DOC_TYPE_LABELS: dict[str, dict[str, str]] = {
+    "botschaft": {
+        "de": "Botschaft des Bundesrates",
+        "fr": "Message du Conseil fédéral",
+        "it": "Messaggio del Consiglio federale",
+    },
+    "bericht_bundesrat": {
+        "de": "Bericht des Bundesrates",
+        "fr": "Rapport du Conseil fédéral",
+        "it": "Rapporto del Consiglio federale",
+    },
+    "stellungnahme_bundesrat": {
+        "de": "Stellungnahme des Bundesrates",
+        "fr": "Avis du Conseil fédéral",
+        "it": "Parere del Consiglio federale",
+    },
+    "bericht_kommission": {
+        "de": "Bericht parlamentarische Kommission",
+        "fr": "Rapport d'une Commission parlementaire",
+        "it": "Rapporto di una Commissione parlamentare",
+    },
+    "erlassentwurf": {
+        "de": "Erlassentwurf",
+        "fr": "Projet d'acte",
+        "it": "Progetto di atto",
+    },
+    "vorentwurf_erlass": {
+        "de": "Vorentwurf Erlass",
+        "fr": "Avant-projet d'acte",
+        "it": "Avamprogetto di atto",
+    },
+    "vernehmlassung_eroeffnung": {
+        "de": "Eröffnung des Vernehmlassungsverfahrens",
+        "fr": "Ouverture de la procédure de consultation",
+        "it": "Avvio della procedura di consultazione",
+    },
+}
+
+
+def fga_type_uri(type_id: int) -> str:
+    return f"https://fedlex.data.admin.ch/vocabulary/resource-type/{int(type_id)}"
+
+
+def parse_doc_types(spec: str | None) -> tuple[int, ...]:
+    """``"23,24, 30"`` → ``(23, 24, 30)``. Unknown ids raise ValueError so a
+    typo in the systemd unit fails loudly instead of ingesting nothing."""
+    if not spec or not spec.strip():
+        return (23,)
+    out: list[int] = []
+    for tok in spec.split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        tid = int(tok)
+        if tid not in FGA_DOC_TYPES:
+            raise ValueError(
+                f"Unknown Fedlex document type {tid}; known: "
+                f"{sorted(FGA_DOC_TYPES)}"
+            )
+        if tid not in out:
+            out.append(tid)
+    return tuple(out) or (23,)
+
 
 def _fga_candidate(
     act_uri: str | None, mem_page: str | None, title: str
@@ -621,31 +711,39 @@ def _fga_candidate(
     return (year, page, act_uri, title)
 
 
-def discover_fga_botschaften(
+def discover_fga_documents(
     language: str = "de",
+    doc_types: tuple[int, ...] | list[int] = (23,),
     timeout: int = 120,
-) -> list[tuple[int, int, str, str]]:
-    """Enumerate every Bundesblatt-published Botschaft via Fedlex SPARQL.
+) -> list[dict]:
+    """Enumerate Bundesblatt publications of the given Fedlex resource types.
 
-    Returns ``[(year, page, title), ...]`` for every FGA URI of
-    typeDocument=23 (Botschaft) that has an Expression in the requested
-    ``language``. The full SR vocabulary is post-2003; coverage gaps
-    pre-2003 need the v0.5 amtsdruckschriften adapter.
+    One SPARQL round-trip for all requested types (a ``VALUES`` clause), so
+    the nightly unit pays the same latency for seven types as for one.
+    Returns one dict per FGA work that has an Expression in ``language``::
 
-    Why this beats amendment_refs as a candidate source:
-    amendment_refs reflects what statute footnotes cite — predominantly
-    Bundesbeschlüsse (the enacting decree), not the Botschaften that
-    explain them. Querying typeDocument directly returns ~2,000 real
-    Botschaften (DE) — an 18× expansion vs the 119 we got via
-    amendment_refs.
+        {"year": 2011, "page": 7705,
+         "eli_uri": "https://fedlex.data.admin.ch/eli/fga/2011/1325",
+         "title": "Botschaft …", "doc_type": "botschaft", "type_id": 23}
+
+    ``page`` is the citable memorialPage (issue #30, see ``_fga_candidate``),
+    ``title`` is Fedlex's own expression title (may be empty). A work tagged
+    with several requested types is reported once, under the lowest id
+    (Botschaft wins).
     """
     if language not in LANG_URIS:
         raise ValueError(f"Unsupported language: {language!r}")
+    type_ids = tuple(dict.fromkeys(int(t) for t in doc_types)) or (23,)
+    unknown = [t for t in type_ids if t not in FGA_DOC_TYPES]
+    if unknown:
+        raise ValueError(f"Unknown Fedlex document type(s): {unknown}")
 
+    values = " ".join(f"<{fga_type_uri(t)}>" for t in type_ids)
     query = f"""
     PREFIX jolux: <{JOLUX}>
-    SELECT DISTINCT ?act ?title ?memPage WHERE {{
-      ?act jolux:typeDocument <{BOTSCHAFT_TYPE_DOC_URI}> .
+    SELECT DISTINCT ?act ?typeDoc ?title ?memPage WHERE {{
+      VALUES ?typeDoc {{ {values} }}
+      ?act jolux:typeDocument ?typeDoc .
       ?act jolux:isRealizedBy ?expr .
       ?expr jolux:language <{LANG_URIS[language]}> .
       OPTIONAL {{ ?expr jolux:title ?title }}
@@ -655,13 +753,68 @@ def discover_fga_botschaften(
     ORDER BY DESC(?act)
     """
     rows = sparql_query(query, timeout=timeout)
-    out: list[tuple[int, int, str, str]] = []
+    by_uri: dict[str, dict] = {}
     for r in rows:
+        type_uri = _val(r, "typeDoc")
+        if type_uri is None and len(type_ids) == 1:
+            # Single-type query: the binding is implied (and older fixtures
+            # / callers never selected it).
+            type_id = type_ids[0]
+        else:
+            try:
+                type_id = int((type_uri or "").rsplit("/", 1)[-1])
+            except ValueError:
+                continue
+        slug = FGA_DOC_TYPES.get(type_id)
+        if slug is None:
+            continue
         # bbl page = memorialPage (print/PDF edition); ELI segment is Fedlex's
         # internal fga index, not the page (issue #30).
         cand = _fga_candidate(_val(r, "act"), _val(r, "memPage"), _val(r, "title") or "")
-        if cand is not None:
-            out.append(cand)
+        if cand is None:
+            continue
+        year, page, uri, title = cand
+        prev = by_uri.get(uri)
+        if prev is not None and prev["type_id"] <= type_id:
+            continue
+        by_uri[uri] = {
+            "year": year, "page": page, "eli_uri": uri, "title": title,
+            "doc_type": slug, "type_id": type_id,
+        }
+    out = list(by_uri.values())
+    per_type: dict[str, int] = {}
+    for d in out:
+        per_type[d["doc_type"]] = per_type.get(d["doc_type"], 0) + 1
+    log.info(
+        "discover_fga_documents(%s, types=%s): %d works in Fedlex SPARQL (%s)",
+        language, ",".join(str(t) for t in type_ids), len(out),
+        ", ".join(f"{k}={v}" for k, v in sorted(per_type.items())) or "none",
+    )
+    return out
+
+
+def discover_fga_botschaften(
+    language: str = "de",
+    timeout: int = 120,
+) -> list[tuple[int, int, str, str]]:
+    """Enumerate every Bundesblatt-published Botschaft via Fedlex SPARQL.
+
+    Returns ``[(year, page, eli_uri, title), ...]`` for every FGA URI of
+    typeDocument=23 (Botschaft) that has an Expression in the requested
+    ``language``. Kept as the type-23 wrapper around
+    :func:`discover_fga_documents` so existing callers keep their tuple
+    shape. The full SR vocabulary is post-2003; coverage gaps pre-2003 need
+    the amtsdruckschriften adapter.
+
+    Why this beats amendment_refs as a candidate source:
+    amendment_refs reflects what statute footnotes cite — predominantly
+    Bundesbeschlüsse (the enacting decree), not the Botschaften that
+    explain them. Querying typeDocument directly returns ~2,000 real
+    Botschaften (DE) — an 18× expansion vs the 119 we got via
+    amendment_refs.
+    """
+    docs = discover_fga_documents(language=language, doc_types=(23,), timeout=timeout)
+    out = [(d["year"], d["page"], d["eli_uri"], d["title"]) for d in docs]
     log.info(
         "discover_fga_botschaften(%s): %d Botschaften in Fedlex SPARQL",
         language, len(out),

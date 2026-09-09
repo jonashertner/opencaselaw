@@ -6,24 +6,37 @@ After=network.target
 Type=oneshot
 WorkingDirectory=/opt/caselaw/repo
 # --discover-via-sparql is the canonical candidate source as of v0.5:
-# query Fedlex for every typeDocument=23 (Botschaft) FGA URI in each
+# query Fedlex for every FGA URI of the --types resource types in each
 # language, dedup against botschaft_documents, ingest the delta. We
 # loop DE → FR → IT so all three multilingual versions stay in sync;
 # materialien.db is single-writer (journal_mode=delete) so they must
 # run sequentially. Steady-state delta is a handful per language.
 # amendment_refs (v0.2/v0.3 source) is dropped because it indexes
 # Bundesbeschlüsse + Mitteilungen rather than the Botschaften.
+# --types (2026-09-09): besides 23 Botschaft, the Bundesblatt Materialien
+# on Fedlex's own file store — 24 Bericht des Bundesrates, 25 Stellungnahme
+# des Bundesrates, 30 Bericht parlamentarische Kommission, 38 Erlassentwurf,
+# 39 Vorentwurf Erlass (currently 0 works), 40 Eröffnung des Vernehmlassungs-
+# verfahrens — ~3,500 documents per language on the first run (~3-10 h at
+# the measured 0.3-0.9 docs/s), a handful per night afterwards. Each row is
+# tagged botschaft_documents.doc_type. A run cut by TimeoutStartSec resumes
+# where it stopped (every document commits on its own). Files hosted on
+# amtsdruckschriften.bar.admin.ch are skipped here by design.
 ExecStart=/bin/bash -c '\
     /usr/bin/python3 -m search_stack.build_botschaft_corpus \
         --ingest-all --discover-via-sparql --language de --min-year 1900 \
+        --types 23,24,25,30,38,39,40 \
         --rate-limit 0.5 --db /opt/caselaw/repo/output/materialien.db && \
     /usr/bin/python3 -m search_stack.build_botschaft_corpus \
         --ingest-all --discover-via-sparql --language fr --min-year 1900 \
+        --types 23,24,25,30,38,39,40 \
         --rate-limit 0.5 --db /opt/caselaw/repo/output/materialien.db && \
     /usr/bin/python3 -m search_stack.build_botschaft_corpus \
         --ingest-all --discover-via-sparql --language it --min-year 1900 \
+        --types 23,24,25,30,38,39,40 \
         --rate-limit 0.5 --db /opt/caselaw/repo/output/materialien.db && \
     /usr/bin/python3 /opt/caselaw/repo/scripts/enrich_botschaft_links.py \
+        --types 23,24,25,30,38,39,40 \
         --db /opt/caselaw/repo/output/materialien.db \
         --statutes /opt/caselaw/repo/output/statutes.db'
 # 12 hours: 3-language bulk catch-up may take a few hours on first
