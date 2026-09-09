@@ -510,8 +510,8 @@ def _rows(p):
 
 
 def test_sparql_pass_heals_existing_rows_without_refetching(heal_db, monkeypatch, capsys):
-    monkeypatch.setattr(fedlex_materialien, "discover_fga_botschaften_meta",
-                        lambda language="de": _DISCOVERED)
+    monkeypatch.setattr(fedlex_materialien, "discover_fga_documents",
+                        lambda language="de", doc_types=(23,): _DISCOVERED)
     fetched: list = []
     monkeypatch.setattr(bbc, "ingest_one", lambda *a, **kw: fetched.append(kw) or 1)
     monkeypatch.setattr(sys, "argv", ["build_botschaft_corpus", "--db", str(heal_db), "--ingest-all",
@@ -542,8 +542,8 @@ def test_sparql_pass_heals_existing_rows_without_refetching(heal_db, monkeypatch
 
 
 def test_sparql_pass_is_idempotent_and_dry_run_writes_nothing(heal_db, monkeypatch, capsys):
-    monkeypatch.setattr(fedlex_materialien, "discover_fga_botschaften_meta",
-                        lambda language="de": _DISCOVERED)
+    monkeypatch.setattr(fedlex_materialien, "discover_fga_documents",
+                        lambda language="de", doc_types=(23,): _DISCOVERED)
     monkeypatch.setattr(bbc, "ingest_one", lambda *a, **kw: 1)
     before = _rows(heal_db)
     monkeypatch.setattr(sys, "argv", ["b", "--db", str(heal_db), "--ingest-all",
@@ -682,10 +682,10 @@ def test_pre_1999_digest_ref_resolves_only_with_its_volume(server_db):
     assert meta(conn, "BBl 2020 55")["title"] == "Botschaft ohne Datum"
     assert meta(conn, "BBl 2020 55")["publication_date_source"] == "bbl_year"
     conn.close()
-    # Once the historical corpus records the volume, the row must carry it.
+    # Once the historical corpus records the volume (an INTEGER, see
+    # botschaft_historical.py), the row must carry this one.
     w = sqlite3.connect(server_db)
-    w.execute("ALTER TABLE botschaft_documents ADD COLUMN bbl_volume TEXT")
-    w.execute("UPDATE botschaft_documents SET bbl_volume = 'I' WHERE botschaft_id = 4")
+    w.execute("UPDATE botschaft_documents SET bbl_volume = 1 WHERE botschaft_id = 4")
     w.commit(); w.close()
     conn = sqlite3.connect(server_db)
     conn.row_factory = sqlite3.Row
@@ -700,8 +700,7 @@ def test_pre_1999_digest_ref_skips_rows_from_another_collection(tmp_path):
     p = tmp_path / "m.db"
     c = sqlite3.connect(p)
     c.executescript(bbc.SCHEMA_SQL)
-    bbc.ensure_schema(c)
-    c.execute("ALTER TABLE botschaft_documents ADD COLUMN source_collection TEXT")
+    bbc.ensure_schema(c)      # adds source_collection / bbl_volume
     c.execute("INSERT INTO botschaft_documents (botschaft_id, bbl_year, bbl_page, bbl_citation, "
               "eli_uri, title, source_url, format, language, ingested_at, source_collection) "
               "VALUES (1, 1997, 1, 'BBl 1997 1', 'e', 'Historisch', 'u', 'pdf', 'de', 't', 'bar')")

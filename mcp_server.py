@@ -5426,6 +5426,22 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
 
 _BBL_REF_RE = re.compile(
     r"^\s*(BBl|FF)\s+(\d{4})\s+(?:([IVX]+)\s+)?(\d+)", re.IGNORECASE)
+_ROMAN = {"I": 1, "V": 5, "X": 10}
+
+
+def _roman_to_int(s: str | None) -> int | None:
+    """'I' → 1, 'IV' → 4 (Bundesblatt volumes never exceed X); None when
+    the string is not a roman numeral."""
+    if not s:
+        return None
+    total, prev = 0, 0
+    for ch in reversed(s.upper()):
+        v = _ROMAN.get(ch)
+        if v is None:
+            return None
+        total += -v if v < prev else v
+        prev = max(prev, v)
+    return total or None
 
 
 def _botschaft_meta_for_bbl_ref(conn, bbl_ref: str | None) -> dict:
@@ -5461,11 +5477,17 @@ def _botschaft_meta_for_bbl_ref(conn, bbl_ref: str | None) -> dict:
     if year < 1999:
         if not volume:
             return out
-        if "bbl_volume" in cols:
-            sql += " AND upper(bbl_volume) = ?"
-            params.append(volume)
-        elif "source_collection" in cols:
-            sql += " AND source_collection IS NULL"
+        # A row that records its volume must record this one (the historical
+        # corpus stores it as an INTEGER, BBl 1975 I 609 → 1; a roman numeral
+        # is accepted too). A Fedlex-store row without a volume still
+        # resolves; a row from another collection without one is ambiguous
+        # and skipped. Both columns arrive by guarded ALTER, so a fixture DB
+        # from an older schema reads them as NULL.
+        vol_col = "bbl_volume" if "bbl_volume" in cols else "NULL"
+        coll_col = "source_collection" if "source_collection" in cols else "NULL"
+        sql += (f" AND (upper({vol_col}) = ? OR {vol_col} = ? OR "
+                f"({vol_col} IS NULL AND {coll_col} IS NULL))")
+        params.extend([volume, _roman_to_int(volume)])
     try:
         rows = conn.execute(sql, params).fetchall()
     except sqlite3.Error:

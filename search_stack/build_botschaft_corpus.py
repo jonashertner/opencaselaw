@@ -195,8 +195,29 @@ CREATE TABLE IF NOT EXISTS article_botschaft_links (
 
 CREATE INDEX IF NOT EXISTS ix_abl_lookup ON article_botschaft_links(sr_number, article);
 CREATE INDEX IF NOT EXISTS ix_abl_botschaft ON article_botschaft_links(botschaft_id);
-"""
 
+-- Resume state of the historical (1850-1999) backfill from the Bundesarchiv
+-- scans (search_stack/botschaft_historical.py). One row per (work, language);
+-- 'done' rows point at their botschaft_documents row, 'error'/'not_found'
+-- rows are retried on a later run, 'collision' rows lost the
+-- UNIQUE(bbl_year, bbl_page, language) slot to another volume of the same
+-- year. Lives in materialien.db so build_materialien_db's table copy
+-- carries it through the nightly swap like the corpus tables.
+CREATE TABLE IF NOT EXISTS botschaft_fetch_state (
+    eli_uri         TEXT NOT NULL,
+    language        TEXT NOT NULL,
+    status          TEXT NOT NULL,
+    http_status     INTEGER,
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    first_attempt_at TEXT,
+    last_attempt_at TEXT,
+    error           TEXT,
+    botschaft_id    INTEGER,
+    source_url      TEXT,
+    PRIMARY KEY (eli_uri, language)
+);
+CREATE INDEX IF NOT EXISTS ix_bfs_status ON botschaft_fetch_state(language, status);
+"""
 
 # Columns added after the table first shipped. Each is applied with
 # ``ALTER TABLE … ADD COLUMN`` only when ``PRAGMA table_info`` lacks it, so
@@ -219,6 +240,13 @@ _ADDITIVE_COLUMNS: tuple[tuple[str, str, str], ...] = (
     # Fedlex resource-type slug (FGA_DOC_TYPES); every row from before the
     # column existed IS a Botschaft.
     ("botschaft_documents", "doc_type", "TEXT NOT NULL DEFAULT 'botschaft'"),
+    # 'bar-amtsdruckschriften' for the 1850-1999 scans
+    # (search_stack/botschaft_historical.py); NULL for rows ingested from
+    # Fedlex's file store.
+    ("botschaft_documents", "source_collection", "TEXT"),
+    # Bundesblatt volume (BBl 1975 I 609 → 1); NULL for the volume-less
+    # post-1998 gazette.
+    ("botschaft_documents", "bbl_volume", "INTEGER"),
 )
 _ADDITIVE_INDEXES: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_bd_doctype ON botschaft_documents(doc_type)",
@@ -1280,9 +1308,10 @@ def main() -> int:
     parser.add_argument(
         "--max-per-run", type=int, default=None,
         help=(
-            "Cap on documents processed per --ingest-all run (newest first; "
-            "the rest wait for the next run). Unlike --limit this is a "
-            "production setting: it bounds a catch-up night."
+            "Cap per --ingest-all run: documents processed (Fedlex path, "
+            "newest first) or HTTP requests made (historical path, one "
+            "night's budget); the rest wait for the next run. Unlike --limit "
+            "this is a production setting: it bounds a catch-up night."
         ),
     )
     parser.add_argument(
@@ -1295,8 +1324,15 @@ def main() -> int:
         ),
     )
     parser.add_argument(
-        "--min-year", type=int, default=2003,
-        help="Lowest BBl year to consider in --ingest-all (Fedlex coverage starts ~2003).",
+        "--min-year", type=int, default=None,
+        help=(
+            "Lowest BBl year to consider in --ingest-all (default 2003, where "
+            "Fedlex's own file store starts; 1850 with --discover-untyped-by-title)."
+        ),
+    )
+    parser.add_argument(
+        "--max-year", type=int, default=None,
+        help="Highest BBl year to consider (historical path only; default 1999).",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
@@ -1318,6 +1354,45 @@ def main() -> int:
             "--discover-via-sparql (default 23 = Botschaft). Known: "
             + ", ".join(f"{k}={v}" for k, v in sorted(FGA_DOC_TYPES.items()))
             + ". Rows are tagged botschaft_documents.doc_type."
+        ),
+    )
+    parser.add_argument(
+        "--discover-untyped-by-title", action="store_true",
+        help=(
+            "Historical backfill (1850-1999): candidates are the FGA works whose "
+            "title starts with Botschaft/Message/Messaggio and which carry NO "
+            "typeDocument (search_stack/botschaft_historical.py). Their files "
+            "live on the Bundesarchiv portal, which is only fetched when "
+            "--host-allow includes 'bar'. Requires --ingest-all."
+        ),
+    )
+    parser.add_argument(
+        "--host-allow", default="fedlex",
+        help=(
+            "Comma-separated file hosts the historical path may download from: "
+            "'fedlex' (Fedlex file store, default) and/or 'bar' "
+            "(www.amtsdruckschriften.bar.admin.ch — explicit opt-in; its "
+            "robots.txt disallows the document URLs, fetched by decision of "
+            "2026-09-09 with the polite fetcher only)."
+        ),
+    )
+    parser.add_argument(
+        "--max-attempts", type=int, default=3,
+        help="Historical path: give up on a document after this many failed runs.",
+    )
+    parser.add_argument(
+        "--bar-min-interval", type=float, default=2.5,
+        help="Historical path: seconds between requests to the Bundesarchiv (>= 2.0; default 2.5).",
+    )
+    parser.add_argument(
+        "--state-summary", action="store_true",
+        help="Print the historical backfill state counts per language and exit.",
+    )
+    parser.add_argument(
+        "--lock-file", default=None,
+        help=(
+            "Historical path: host-level lock held for the whole run (flock); a "
+            "second run exits 3 at once. Default <repo>/logs/bar_fetch.lock."
         ),
     )
     parser.add_argument(
@@ -1374,6 +1449,42 @@ def main() -> int:
         import json as _json
         print(_json.dumps(stats, indent=2, ensure_ascii=False))
         return 0
+
+    if args.state_summary:
+        from search_stack.botschaft_historical import state_summary
+        print(json.dumps(state_summary(conn), indent=2, ensure_ascii=False))
+        return 0
+
+    if args.discover_untyped_by_title:
+        if not args.ingest_all:
+            log.error("--discover-untyped-by-title requires --ingest-all")
+            return 2
+        from search_stack.botschaft_historical import (
+            DEFAULT_LOCK_PATH, BackfillLocked, run_historical_backfill,
+        )
+        host_allow = {h.strip().lower() for h in args.host_allow.split(",") if h.strip()}
+        unknown = host_allow - {"fedlex", "bar"}
+        if unknown:
+            log.error(f"--host-allow: unknown host(s) {sorted(unknown)}; use fedlex,bar")
+            return 2
+        try:
+            stats = run_historical_backfill(
+                conn, language=args.language, host_allow=host_allow,
+                min_year=args.min_year if args.min_year is not None else 1850,
+                max_year=args.max_year if args.max_year is not None else 1999,
+                max_per_run=args.max_per_run, max_attempts=args.max_attempts,
+                min_interval=args.bar_min_interval, dry_run=args.dry_run,
+                limit=args.limit,
+                lock_path=Path(args.lock_file) if args.lock_file else DEFAULT_LOCK_PATH,
+            )
+        except BackfillLocked as e:
+            log.error(f"another historical backfill is running: {e}")
+            return 3
+        print(json.dumps(stats, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.min_year is None:
+        args.min_year = 2003
 
     if args.ingest_all:
         if args.discover_via_sparql:
