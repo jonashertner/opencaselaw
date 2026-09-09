@@ -140,6 +140,15 @@ def test_parse_institution(institution, expected):
     assert parse_institution(institution) == expected
 
 
+def test_institution_parts_dedupes_repeated_umbrella():
+    assert zg_gvp.institution_parts("Obergericht, Obergericht, Justizkommission") == [
+        "Obergericht", "Justizkommission",
+    ]
+    assert zg_gvp.institution_parts("Verwaltungsgericht") == ["Verwaltungsgericht"]
+    assert zg_gvp.institution_parts(None) == []
+    assert zg_gvp.institution_parts(" , ") == []
+
+
 def test_every_institution_in_the_fixture_maps_to_a_specific_court():
     for e in _entries():
         court, _ = parse_institution(e["institution_name"])
@@ -333,7 +342,8 @@ def test_fetch_decision_chamber_and_landammann(monkeypatch, tmp_path):
 
     d = s.fetch_decision(ZGGVPScraper.stub_from_entry(_entry("JA 2000 7")))
     assert (d.court, d.chamber) == ("zg_obergericht", "Justizkommission")
-    assert d.title == "Obergericht, Obergericht, Justizkommission — JA 2000 7"
+    # the API repeats the umbrella; the title uses the de-duplicated parts
+    assert d.title == "Obergericht, Justizkommission — JA 2000 7"
 
     d = s.fetch_decision(ZGGVPScraper.stub_from_entry(_entry("N/A LA 2003 011")))
     assert (d.court, d.chamber, d.docket_number) == ("zg_regierungsrat", "Landammann", "LA 2003 011")

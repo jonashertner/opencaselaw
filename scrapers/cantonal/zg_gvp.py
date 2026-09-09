@@ -40,13 +40,18 @@ Chronology entry fields (same shape as AG):
   not slash-separated as in AG, and sometimes repeats the umbrella
   ("Obergericht, Obergericht, Justizkommission").
 
-Court codes: the 2019+ ZG scrapers (zg_obergericht.py, zg_gerichte.py) mint
-ids as make_decision_id("zg_obergericht", "<docket>") with dockets shaped
-"Z2 2020 47" / "V 2024 109" — the same shape the GVP uses since 1999. We reuse
-those two codes so a decision published both on the Tribuna portal and in the
-GVP gets the SAME decision_id and canonical_key, which build_fts5 collapses
-(INSERT OR IGNORE + same canonical_key ⇒ skip / text upgrade). No new
-_COURT_OVERLAP_GROUPS entry is needed for that.
+Court codes: the 2019+ ZG scrapers (zg_obergericht.py, zg_gerichte.py) use
+dockets shaped "Z2 2020 47" / "V 2024 109" — the same shape the GVP uses
+since 1999. We reuse those two codes so a decision published both on the
+Tribuna portal and in the GVP gets the SAME canonical_key
+(court|docket-digits|date, e.g. "zg_verwaltungsgericht|V2024109|20241216").
+The decision_ids need NOT collide — the production Tribuna id can be
+underscored and carry build_fts5's "_d<date>" docket-collision suffix
+(zg_verwaltungsgericht_V_2024_109_d20241216) — because the merge happens in
+build_fts5._dedup_decisions on the canonical_key: the row with the most
+full_text + regeste survives (the GVP PDF text beats a 50-char Tribuna stub)
+and the loser's regeste is backfilled into the survivor. Same court code on
+both sides, so no _COURT_OVERLAP_GROUPS entry is needed.
 
 Regeste: guidance_summary is the court-authored headnote as published in the
 GVP; stored verbatim (R1–R3: never synthesised).
@@ -139,6 +144,21 @@ def clean_docket(number: str | None) -> str:
     return re.sub(r"\s+", " ", docket).strip()
 
 
+def institution_parts(institution_name: str | None) -> list[str]:
+    """Split the comma-separated institution_name into its distinct parts.
+
+    "Obergericht, Obergericht, Justizkommission" → ["Obergericht", "Justizkommission"]
+    (the API sometimes repeats the umbrella; 44 live rows in 2026-09).
+    """
+    if not institution_name:
+        return []
+    parts: list[str] = []
+    for part in (p.strip() for p in re.split(r"[,/]", institution_name)):
+        if part and part not in parts:  # drop repeats ("Obergericht, Obergericht, …")
+            parts.append(part)
+    return parts
+
+
 def parse_institution(institution_name: str | None) -> tuple[str, str | None]:
     """Parse the comma-separated institution_name into (court_code, chamber).
 
@@ -148,14 +168,7 @@ def parse_institution(institution_name: str | None) -> tuple[str, str | None]:
     "Landammann"                                  → ("zg_regierungsrat", "Landammann")
     "Verwaltungsgericht"                          → ("zg_verwaltungsgericht", None)
     """
-    if not institution_name:
-        return FALLBACK_COURT, None
-
-    raw_parts = [p.strip() for p in re.split(r"[,/]", institution_name)]
-    parts: list[str] = []
-    for part in raw_parts:
-        if part and part not in parts:  # drop repeats ("Obergericht, Obergericht, …")
-            parts.append(part)
+    parts = institution_parts(institution_name)
     if not parts:
         return FALLBACK_COURT, None
 
@@ -396,7 +409,10 @@ class ZGGVPScraper(BaseScraper):
         # Court-authored headnote, verbatim (chronology; detail as fallback)
         regeste = stub.get("guidance_summary") or (detail.get("guidance_summary") or "").strip() or None
 
-        title = f"{institution} — {docket}" if institution else docket
+        # Title from the de-duplicated parts: "Obergericht, Justizkommission — JA 2000 7",
+        # not the API's "Obergericht, Obergericht, Justizkommission — …".
+        institution_label = ", ".join(institution_parts(institution))
+        title = f"{institution_label} — {docket}" if institution_label else docket
 
         return Decision(
             decision_id=stub["decision_id"],

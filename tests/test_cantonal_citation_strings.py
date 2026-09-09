@@ -92,3 +92,31 @@ def test_zh_arbeitsgericht_typo3_rows_get_a_court_label():
     }
     assert m._build_citation_strings(dec)["citation_string_de"] == "Arbeitsgericht ZH AH230041-L vom 13. Januar 2025"
     assert m._cantonal_court_label("zh_bezirksgericht_zuerich", "ZH") == "Bezirksgericht Zürich ZH"
+
+
+def test_zg_gvp_bodies_get_a_court_label_not_the_generic_gericht():
+    """scrapers/cantonal/zg_gvp.py (GVP 1995+) lands rows under five ZG codes that
+    are not courts in the Tribuna sense. Each must render with its own label; the
+    generic 'Gericht ZG' fallback is reserved for platform-named codes."""
+    assert m._cantonal_court_label("zg_datenschutzstelle", "ZG") == "Datenschutzstelle ZG"
+    assert m._cantonal_court_label("zg_regierungsrat", "ZG") == "Regierungsrat ZG"
+    assert m._cantonal_court_label("zg_kantonsgericht", "ZG") == "Kantonsgericht ZG"
+    assert m._cantonal_court_label("zg_strafgericht", "ZG") == "Strafgericht ZG"
+    assert m._cantonal_court_label("zg_anwaltsaufsicht", "ZG") == "Anwaltsaufsichtsbehörde ZG"
+    for code in ("zg_datenschutzstelle", "zg_regierungsrat", "zg_kantonsgericht",
+                 "zg_strafgericht", "zg_anwaltsaufsicht"):
+        assert m._cantonal_court_label(code, "ZG") != "Gericht ZG"
+
+
+def test_zg_datenschutzstelle_citation_string():
+    # decree 81 of the GVP fixture: Datenschutzstelle, docket '64', 2010-12-31
+    dec = {
+        "court": "zg_datenschutzstelle", "canton": "ZG",
+        "docket_number": "64", "decision_date": "2010-12-31",
+        "decision_id": "zg_datenschutzstelle_64",
+    }
+    cs = m._build_citation_strings(dec)
+    assert cs["citation_string_de"] == "Datenschutzstelle ZG 64 vom 31. Dezember 2010"
+    assert "Gericht ZG" not in cs["citation_string_de"]
+    assert cs["citation_string_fr"].startswith("Datenschutzstelle ZG 64 du ")
+    assert cs["citation_string_it"].startswith("Datenschutzstelle ZG 64 del ")

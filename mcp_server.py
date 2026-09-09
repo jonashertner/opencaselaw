@@ -11936,6 +11936,7 @@ _CANTONAL_COURT_TYPE = {
     "steuerrekurs": "Steuerrekursgericht", "steuerrekurskommission": "Steuerrekurskommission",
     "steuerrekursgericht": "Steuerrekursgericht", "personalrekurs": "Personalrekurskommission",
     "baurekursgericht": "Baurekursgericht", "regierungsrat": "Regierungsrat",
+    "datenschutzstelle": "Datenschutzstelle",   # zg_datenschutzstelle (GVP 1995+)
     "arbeitsgericht": "Arbeitsgericht", "mietgericht": "Mietgericht",
     "kassationsgericht": "Kassationsgericht",
     "bezirksgericht_zuerich": "Bezirksgericht Zürich",
