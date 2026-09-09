@@ -24,7 +24,7 @@ def _make_db(path: str):
         """
         CREATE TABLE botschaft_documents (
             botschaft_id TEXT PRIMARY KEY, bbl_citation TEXT, eli_uri TEXT,
-            language TEXT, publication_date TEXT, bbl_year INTEGER
+            language TEXT, title TEXT, publication_date TEXT, bbl_year INTEGER
         );
         CREATE TABLE botschaft_paragraphs (
             paragraph_id INTEGER PRIMARY KEY, botschaft_id TEXT, page_number INTEGER,
@@ -34,8 +34,8 @@ def _make_db(path: str):
         """
     )
     # publication_date deliberately NULL: filtering must key off bbl_year.
-    c.execute("INSERT INTO botschaft_documents VALUES ('d1990','BBl 1990 I 1','eli1','de',NULL,1990)")
-    c.execute("INSERT INTO botschaft_documents VALUES ('d2020','BBl 2020 II 2','eli2','de',NULL,2020)")
+    c.execute("INSERT INTO botschaft_documents VALUES ('d1990','BBl 1990 I 1','eli1','de',NULL,NULL,1990)")
+    c.execute("INSERT INTO botschaft_documents VALUES ('d2020','BBl 2020 II 2','eli2','de',NULL,NULL,2020)")
     for pid, bid, txt in [
         (1, "d1990", "Text ueber Vaterschaftsurlaub aus 1990"),
         (2, "d2020", "Text ueber Vaterschaftsurlaub aus 2020"),
