@@ -376,12 +376,89 @@ def ingest_law(conn: sqlite3.Connection, path: Path) -> int:
     return count
 
 
+_FTS5_VIRTUAL_RE = re.compile(
+    r"CREATE\s+VIRTUAL\s+TABLE\b.*?\bUSING\s+fts5\s*\(", re.I | re.S,
+)
+_FTS5_CONTENT_RE = re.compile(
+    r"\bcontent\s*=\s*(?:'([^']*)'|\"([^\"]*)\"|([A-Za-z0-9_]+))", re.I,
+)
+
+
+def _is_fts5_virtual_table(create_sql: str) -> bool:
+    return bool(_FTS5_VIRTUAL_RE.search(create_sql or ""))
+
+
+def _fts5_content_option(create_sql: str) -> str | None:
+    """The ``content=`` option of an FTS5 CREATE statement.
+
+    ``None`` when the option is absent (the FTS table stores its own rows
+    in a ``_content`` shadow table), ``""`` for a contentless table, else
+    the name of the external content table.
+    """
+    m = _FTS5_CONTENT_RE.search(create_sql or "")
+    if not m:
+        return None
+    return next(g for g in m.groups() if g is not None)
+
+
+def _fts5_shadow_tables(name: str) -> set[str]:
+    return {f"{name}_{s}" for s in ("data", "idx", "docsize", "config", "content")}
+
+
+def _copy_fts5_table(
+    conn: sqlite3.Connection,
+    name: str,
+    create_sql: str,
+    pending_rebuild: list[tuple[str, str]],
+) -> int:
+    """Copy an FTS5 table from the attached ``live`` DB, rowids intact.
+
+    ``INSERT INTO fts SELECT * FROM live.fts`` — the copy used until
+    2026-09-09 — drops the rowid: the rebuilt index numbers its rows
+    1..N in scan order. With ``content_rowid='paragraph_id'`` that is
+    only right while paragraph_id has no gap; the first re-ingest of a
+    changed Botschaft (``DELETE FROM botschaft_paragraphs``) leaves one
+    and every MATCH after the gap then returns the text of a different
+    paragraph — an R1-R3 breach that no error surfaces. Reproduced with
+    one gap, ``MATCH 'epsilon'`` returning another paragraph.
+
+    External-content tables are queued for ``'rebuild'`` from the copied
+    content table (the caller runs it once the live DB is detached);
+    self-contained tables get an explicit rowid-preserving INSERT here.
+    Contentless tables cannot be read back and are left empty.
+    """
+    content = _fts5_content_option(create_sql)
+    if content:
+        pending_rebuild.append((name, content))
+        return 0
+    if content == "":
+        logger.warning(
+            "FTS5 table %s is contentless; it cannot be copied and is left empty",
+            name,
+        )
+        return 0
+    cols = [
+        row[1] for row in conn.execute(f"PRAGMA live.table_info(\"{name}\")")
+    ]
+    col_list = ", ".join(f"\"{c}\"" for c in cols)
+    conn.execute(
+        f"INSERT INTO \"{name}\"(rowid, {col_list}) "
+        f"SELECT rowid, {col_list} FROM live.\"{name}\""
+    )
+    return conn.execute(f"SELECT COUNT(*) FROM \"{name}\"").fetchone()[0]
+
+
 def build_db(
     input_dir: Path, output_path: Path, *, skip_fedlex: bool = False,
 ) -> None:
     """Build materialien.db from Fedlex footnotes + openlegalcommentary digests."""
-    # Build to a .tmp file, then atomic swap
-    tmp_path = output_path.with_suffix(".db.tmp")
+    # Build to a .tmp file, then atomic swap. The .tmp lives next to the
+    # REAL file, not next to the path we were given: on the VPS the DBs
+    # over 500 MB are symlinks from output/ to the data volume, and a
+    # cross-device rename at the swap below raises EXDEV (materialien.db
+    # is due to move there; ops critic 2026-09-09). Same filesystem, or
+    # the swap is not atomic either.
+    tmp_path = Path(os.path.realpath(str(output_path))).with_suffix(".db.tmp")
     if tmp_path.exists():
         tmp_path.unlink()
 
@@ -432,27 +509,43 @@ def build_db(
             "sqlite_sequence",
         }
         preserved: list[tuple[str, int]] = []
-        for (live_name,) in conn.execute(
-            "SELECT name FROM live.sqlite_master WHERE type='table'"
-        ).fetchall():
-            if live_name in _OWN_TABLES:
+        # External-content FTS5 tables (botschaft_paragraphs_fts) are
+        # re-indexed from their content table AFTER the live DB is
+        # detached — see _fts5_content_option and the rebuild below.
+        pending_rebuild: list[tuple[str, str]] = []
+        live_tables = conn.execute(
+            "SELECT name, sql FROM live.sqlite_master "
+            "WHERE type='table' AND sql IS NOT NULL ORDER BY rowid"
+        ).fetchall()
+        # FTS5 shadow tables (_data/_idx/_docsize/_config/_content) are
+        # created by the virtual table itself; never copy them as plain
+        # tables (before this list the CREATE failed and they were
+        # skipped by accident, with a warning per table).
+        shadow_tables: set[str] = set()
+        for live_name, live_sql in live_tables:
+            if _is_fts5_virtual_table(live_sql):
+                shadow_tables.update(_fts5_shadow_tables(live_name))
+        for live_name, live_sql in live_tables:
+            if live_name in _OWN_TABLES or live_name in shadow_tables:
                 continue
             # Recreate the table schema in the .tmp from the live
-            # sqlite_master.sql definition, then INSERT … SELECT *.
-            schema_row = conn.execute(
-                "SELECT sql FROM live.sqlite_master WHERE name=?",
-                (live_name,),
-            ).fetchone()
-            if not schema_row or not schema_row[0]:
-                continue
+            # sqlite_master.sql definition, then copy the rows.
             try:
-                conn.execute(schema_row[0])
-                cur = conn.execute(
-                    f"INSERT INTO \"{live_name}\" SELECT * FROM live.\"{live_name}\""
-                )
-                n = conn.execute(
-                    f"SELECT COUNT(*) FROM \"{live_name}\""
-                ).fetchone()[0]
+                conn.execute(live_sql)
+                if _is_fts5_virtual_table(live_sql):
+                    n = _copy_fts5_table(
+                        conn, live_name, live_sql, pending_rebuild,
+                    )
+                else:
+                    # Plain table: SELECT * carries every declared
+                    # column, INTEGER PRIMARY KEY included, so rowids
+                    # (paragraph_id, botschaft_id) survive the copy.
+                    conn.execute(
+                        f"INSERT INTO \"{live_name}\" SELECT * FROM live.\"{live_name}\""
+                    )
+                    n = conn.execute(
+                        f"SELECT COUNT(*) FROM \"{live_name}\""
+                    ).fetchone()[0]
                 preserved.append((live_name, n))
             except sqlite3.Error as e:
                 logger.warning(
@@ -476,6 +569,35 @@ def build_db(
         # feature; long misdiagnosed as cross-process contention — cf2adb2/flock).
         conn.commit()
         conn.execute("DETACH DATABASE live")
+        # Re-index external-content FTS5 tables from the content table
+        # now living in the .tmp. Doing it after DETACH keeps the SHARED
+        # lock on the live file to the raw copy only; the 04:30
+        # botschaft writer's busy_timeout is 60 s and the tokenising is
+        # the slow part (30 s today, minutes at 4-5M paragraphs).
+        for fts_name, content_name in pending_rebuild:
+            if not conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                (content_name,),
+            ).fetchone():
+                logger.warning(
+                    "FTS5 table %s: content table %s was not preserved, "
+                    "index left empty", fts_name, content_name,
+                )
+                continue
+            conn.execute(
+                f"INSERT INTO \"{fts_name}\"(\"{fts_name}\") VALUES ('rebuild')"
+            )
+            n = conn.execute(
+                f"SELECT COUNT(*) FROM \"{content_name}\""
+            ).fetchone()[0]
+            preserved = [
+                (t, n if t == fts_name else c) for t, c in preserved
+            ]
+            logger.info(
+                "Rebuilt FTS5 index %s from %s (%d rows)",
+                fts_name, content_name, n,
+            )
+        conn.commit()
         if preserved:
             logger.info(
                 "Preserved %d table(s) from live materialien.db: %s",
@@ -568,12 +690,12 @@ def build_db(
     conn.execute("PRAGMA journal_mode=DELETE")
     conn.close()
 
-    # Atomic swap
+    # Atomic swap. tmp_path was created next to the real file (see the
+    # top of this function), so this is a same-filesystem rename: a
+    # symlinked output/materialien.db keeps pointing at the volume and
+    # the workers' immutable readers see the new inode on their next open.
     real_path = Path(os.path.realpath(str(output_path)))
-    real_tmp = real_path.with_suffix(".db.tmp")
-    if tmp_path != real_tmp:
-        tmp_path.rename(real_tmp)
-    os.replace(str(real_tmp), str(real_path))
+    os.replace(str(tmp_path), str(real_path))
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
