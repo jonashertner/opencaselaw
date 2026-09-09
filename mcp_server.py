@@ -20292,23 +20292,38 @@ def _get_curriculum_cases_for_topic(topic: str) -> list[dict]:
 # as well, BauG is the building act in BE and AG. Everything below therefore
 # stays scoped to one canton and reports the canton with every candidate.
 _QUALIFIED_NAME = re.compile(r"^\s*([A-Za-z]{2})\s*/\s*(\S.*)$")
+# 'StG/ZH': the canton written after the act, as /api/laws/{abbr}/{canton}
+# callers do (GOG/GL, TFIP/VD, LCP/GE were 8 days of 404s).
+_QUALIFIED_NAME_TAIL = re.compile(r"^\s*(\S.*?)\s*/\s*([A-Za-z]{2})\s*$")
+
+# The 26 cantons. A two-letter head that is not one of these (LT/TI,
+# EG/SchKG) is part of the name, not a jurisdiction.
+_CANTON_CODES = frozenset({
+    "ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO", "BS",
+    "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD", "VS", "NE",
+    "GE", "JU",
+})
 
 
 def split_qualified_law_name(name: str) -> tuple[str | None, str]:
-    """'ZH/StG' -> ('ZH', 'StG'); 'StG' -> (None, 'StG').
+    """'ZH/StG' -> ('ZH', 'StG'); 'StG/ZH' -> ('ZH', 'StG'); 'StG' -> (None, 'StG').
 
     Cantonal statutes are named with their canton because the
     abbreviation alone is ambiguous — StG is the tax act in ZH, BE and AG.
     Federal law is the unprefixed default, which is how practitioners
     write it, so an unprefixed name means the federal collection.
 
-    'EG SchKG' is not split: only a two-letter head before a slash is a
-    canton.
+    Either order is accepted, but only a real canton code (or CH) splits:
+    'EG SchKG' has no slash, 'LTF/BGG' names no canton, and 'LT/TI' is
+    Ticino's LT rather than a canton 'LT'.
     """
     m = _QUALIFIED_NAME.match(name or "")
-    if not m:
-        return None, (name or "").strip()
-    return m.group(1).upper(), m.group(2).strip()
+    if m and m.group(1).upper() in _CANTON_CODES | {"CH"}:
+        return m.group(1).upper(), m.group(2).strip()
+    m = _QUALIFIED_NAME_TAIL.match(name or "")
+    if m and m.group(2).upper() in _CANTON_CODES | {"CH"}:
+        return m.group(2).upper(), m.group(1).strip()
+    return None, (name or "").strip()
 
 
 def _cantonal_sr_from_name(conn, canton: str, name: str,
@@ -21423,6 +21438,264 @@ _TRUNCATED_ORDINAL_ALIASES = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Law-name resolution beyond the stored abbreviation.
+#
+# Eight days of capture logs (2026-09-01..09): 9.5 % of the federal-shaped
+# /api/laws/{abbreviation} calls named an act in a form the exact
+# abbr_de/abbr_fr/abbr_it match cannot see — 'Cst' for the stored 'Cst.',
+# 'OPP2' for 'OPP 2', the repealed 'OG', treaties without a Fedlex
+# titleShort (IPBPR, KRK, CISG), an English or long-form name — and were
+# answered "No law found". Resolution runs in this order, first hit wins:
+#   1. the exact abbreviation (the historical behaviour);
+#   2. the same abbreviation with dots, spaces and hyphens ignored, matched
+#      against the mirror itself — data-driven, so it follows the mirror;
+#   3. docs/api/law_aliases.json — treaties, former names, other-language
+#      names; every SR number in it was verified against Fedlex or the
+#      mirror before it went in (see the file's _verification note);
+#   4. an edition prefix ('aStGB' = the former StGB, 'nDSG' = the current
+#      DSG) in front of anything 1-3 resolves.
+# Nothing here guesses: an unknown name is still a miss, now with the
+# cantonal acts that carry that name as candidates, so the caller can
+# re-ask with a canton instead of getting an apology.
+_LAW_ALIASES_PATH = Path(__file__).resolve().parent / "docs" / "api" / "law_aliases.json"
+_LAW_ALIAS_NORM_RE = re.compile(r"[.\s\-_/]+")
+# 'SR 220', 'RS 220', '220' — a number in place of a name.
+_SR_LIKE_RE = re.compile(r"^\s*(?:SR|RS)?\s*(\d[\d.]*)\s*$", re.IGNORECASE)
+_SQL_NORM_ABBR = ("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER({col}),'.',''),' ',''),"
+                  "'-',''),'_',''),'/','')")
+_law_alias_cache: dict | None = None
+
+
+def _norm_law_alias(name: str | None) -> str:
+    """'Pacte II', 'pacte-ii', 'PACTEII' -> 'PACTEII'; 'O.P.P. 2' -> 'OPP2'."""
+    return _LAW_ALIAS_NORM_RE.sub("", name or "").upper()
+
+
+def _law_alias_data() -> dict:
+    """docs/api/law_aliases.json, read once. {} when absent or unreadable —
+    the lookup then simply stops at the mirror, as it did before."""
+    global _law_alias_cache
+    if _law_alias_cache is None:
+        table: dict = {}
+        try:
+            raw = json.loads(_LAW_ALIASES_PATH.read_text(encoding="utf-8"))
+            for key, entry in (raw.get("aliases") or {}).items():
+                sr = entry.get("sr_number") if isinstance(entry, dict) else None
+                if isinstance(sr, str) and _SR_NUMBER_RE.match(sr):
+                    table[_norm_law_alias(key)] = {**entry, "alias": key}
+            colls = {_norm_law_alias(k): str(v).upper()
+                     for k, v in (raw.get("cantonal_collections") or {}).items()
+                     if str(v).upper() in _CANTON_CODES}
+        except (OSError, ValueError, AttributeError) as e:
+            logger.warning("law alias table unreadable at %s: %s", _LAW_ALIASES_PATH, e)
+            colls = {}
+        _law_alias_cache = {"aliases": table, "collections": colls}
+    return _law_alias_cache
+
+
+def _resolve_federal_abbreviation(
+    conn: sqlite3.Connection, abbreviation: str | None, _depth: int = 0,
+) -> tuple[str | None, dict | None]:
+    """(sr_number, how) for a federal act named any way a caller names it.
+
+    `how` is None for an exact abbreviation hit and otherwise says what was
+    read into the name: kind 'sr_number' / 'form' / the alias table's kind
+    ('treaty', 'former', 'current', 'act', 'name') / 'former_edition' /
+    'current_edition', with `requested`, `resolved` and, where the served
+    text is not what the name literally denotes, a `note` and `as_of_hint`.
+    """
+    raw = (abbreviation or "").strip()
+    if not raw:
+        return None, None
+    m = _SR_LIKE_RE.match(raw)
+    if m:
+        return m.group(1), {"kind": "sr_number", "requested": raw, "resolved": m.group(1)}
+    up = raw.upper()
+    # Positional access: callers hand in connections with and without
+    # sqlite3.Row.
+    row = conn.execute(
+        """SELECT sr_number FROM laws
+           WHERE UPPER(abbr_de) = ? OR UPPER(abbr_fr) = ? OR UPPER(abbr_it) = ?
+           LIMIT 1""",
+        (up, up, up),
+    ).fetchone()
+    if row:
+        return row[0], None
+    norm = _norm_law_alias(raw)
+    if not norm:
+        return None, None
+    # 2. Same abbreviation, different punctuation. Fedlex stores 'Cst.' and
+    #    'OPP 2'; callers write Cst, OPP2, O.P.P. 2. Compared with the mirror's
+    #    own columns so every act is covered without a table.
+    sql = " OR ".join(f"{_SQL_NORM_ABBR.format(col=c)} = ?"
+                      for c in ("abbr_de", "abbr_fr", "abbr_it"))
+    row = conn.execute(
+        f"SELECT sr_number, abbr_de, abbr_fr, abbr_it FROM laws WHERE {sql} LIMIT 1",
+        (norm, norm, norm),
+    ).fetchone()
+    if row:
+        stored = next((a for a in (row[1], row[2], row[3])
+                       if a and _norm_law_alias(a) == norm), row[1])
+        return row[0], {"kind": "form", "requested": raw, "resolved": stored}
+    # 3. The alias table: treaties, former names, other-language names.
+    entry = _law_alias_data()["aliases"].get(norm)
+    if entry:
+        how = {"kind": entry.get("kind") or "name", "requested": raw,
+               "resolved": entry.get("alias"), "title_de": entry.get("title_de")}
+        for k in ("note", "as_of_hint", "successor"):
+            if entry.get(k):
+                how[k] = entry[k]
+        return entry["sr_number"], how
+    # 4. Edition prefix: aStGB / ASTGB is the former StGB, nStPO the current
+    #    StPO. Only in front of a name that resolves on its own, and only one
+    #    letter deep, so an unknown name never turns into a different act.
+    if _depth == 0 and len(norm) >= 3 and norm[0] in ("A", "N"):
+        sr, inner = _resolve_federal_abbreviation(conn, raw[1:], _depth=1)
+        if sr and (inner is None or inner.get("kind") in ("form", "name", "treaty", "act", "former")):
+            base = (inner or {}).get("resolved")
+            if not base:
+                # An exact hit: name the act as the mirror spells it
+                # ('StGB', not the caller's 'STGB').
+                rest = _norm_law_alias(raw[1:])
+                stored = conn.execute(
+                    "SELECT abbr_de, abbr_fr, abbr_it FROM laws WHERE sr_number = ?",
+                    (sr,),
+                ).fetchone()
+                base = next((a for a in (stored or ()) if a and _norm_law_alias(a) == rest),
+                            raw[1:].strip())
+            if norm[0] == "A":
+                return sr, {
+                    "kind": "former_edition", "requested": raw, "resolved": base,
+                    "note": (f"'{raw}' was read as the former edition of {base} (SR {sr}). "
+                             f"The text served is the edition currently in force; pass as_of "
+                             f"with the date the former text applied to get that edition."),
+                }
+            return sr, {
+                "kind": "current_edition", "requested": raw, "resolved": base,
+                "note": f"'{raw}' was read as the current edition of {base} (SR {sr}).",
+            }
+    return None, None
+
+
+def _cantonal_acts_named(name: str | None, number: str | None,
+                         limit: int = 8) -> list[dict]:
+    """Cantonal acts published under `name` (abbreviation or title) or
+    `number` (systematic number), across all cantons — what the corpus does
+    have when the federal collection has nothing by that name. Read from
+    the cantonal mirror's name index; [] without a mirror."""
+    conn = _get_cantonal_conn()
+    if conn is None:
+        return []
+    out: list[dict] = []
+    try:
+        if number:
+            rows = conn.execute(
+                """SELECT canton, sr_number, language, title FROM laws
+                   WHERE sr_number = ? ORDER BY canton, language LIMIT ?""",
+                (number, limit * 3),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT n.canton, n.sr_number, n.language, l.title
+                   FROM law_names n LEFT JOIN laws l
+                     ON l.canton = n.canton AND l.sr_number = n.sr_number
+                    AND l.language = n.language
+                   WHERE n.name_folded = ?
+                   ORDER BY CASE n.name_type WHEN 'abbreviation' THEN 0
+                                             WHEN 'short_title' THEN 1 ELSE 2 END,
+                            n.canton
+                   LIMIT ?""",
+                ((name or "").strip().casefold(), limit * 3),
+            ).fetchall()
+        seen: set[tuple[str, str]] = set()
+        for r in rows:
+            key = (r["canton"], r["sr_number"])
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({
+                "canton": r["canton"], "sr_number": r["sr_number"],
+                "title": r["title"], "language": r["language"],
+                "key": f"{r['canton']}/{r['sr_number']}",
+            })
+            if len(out) >= limit:
+                break
+    except sqlite3.Error:
+        return []
+    finally:
+        try:
+            conn.close()
+        except Exception:                               # pragma: no cover
+            pass
+    return out
+
+
+def _federal_law_miss(abbreviation: str | None, sr_number: str | None) -> dict:
+    """A miss that still says what the corpus has under that name."""
+    if sr_number:
+        out = {"error": f"No law found with SR number '{sr_number}'."}
+    else:
+        out = {"error": f"No law found with abbreviation '{abbreviation}'."}
+    cands = _cantonal_acts_named(None if sr_number else abbreviation, sr_number)
+    if cands:
+        cantons = sorted({c["canton"] for c in cands})
+        out["candidates"] = cands
+        out["note"] = (
+            f"No federal act is named '{sr_number or abbreviation}', but "
+            f"{', '.join(cantons)} publish{'es' if len(cantons) == 1 else ''} an act "
+            f"under that {'number' if sr_number else 'name'} (listed under `candidates`). "
+            f"Re-request it with its canton, e.g. get_law(canton='{cands[0]['canton']}', "
+            f"sr_number='{cands[0]['sr_number']}') or /api/laws/"
+            f"{cands[0]['sr_number'] if sr_number else abbreviation}/{cands[0]['canton']}. "
+            f"Cantonal names repeat across cantons, so the canton is part of the identifier."
+        )
+    else:
+        out["note"] = (
+            "Federal names are matched in DE/FR/IT, case-insensitively, with or without "
+            "dots and spaces (Cst, OPP2, o.p.p. 2); treaties and former names are listed "
+            "in https://opencaselaw.ch/api/law_aliases.json. A cantonal act needs its canton "
+            "('ZH/StG' or canton='ZH'). Use search_laws to discover the act."
+        )
+    return out
+
+
+def _normalise_article_ref(article: str | None) -> str | None:
+    """'Art. 41' -> '41', '314a<sup>bis</sup>' -> '314abis', '151 d' -> '151d'.
+
+    Federal article numbers in the mirror carry no prefix, tag or space;
+    callers write all three."""
+    if not article:
+        return article
+    a = re.sub(r"</?sup>", "", str(article))
+    a = re.sub(r"^\s*(?:art\.?|§)\s*", "", a, flags=re.IGNORECASE)
+    a = re.sub(r"\s+", "", a)
+    return a or article
+
+
+def _annotate_alias(result: dict, how: dict | None, as_of: str | None) -> dict:
+    """Record on the result what was read into the name the caller used, and
+    when the served text is not what the name literally denotes, say so."""
+    if not how or not isinstance(result, dict) or result.get("error"):
+        return result
+    info = {k: v for k, v in how.items() if k != "title_de"}
+    kind = how.get("kind")
+    if kind == "former" and not as_of:
+        served = f" The text served is the {how.get('successor') or 'current act'} " \
+                 f"(SR {result.get('sr_number')}), the act in force today"
+        hint = how.get("as_of_hint")
+        served += f"; pass as_of='{hint}' for the former text." if hint else "."
+        info["note"] = (how.get("note") or "") + served
+    elif kind == "former" and as_of:
+        info["note"] = how.get("note")
+    elif kind in ("former_edition", "current_edition", "current"):
+        info["note"] = how.get("note")
+    elif kind == "form":
+        info.pop("note", None)
+    result["abbreviation_alias"] = info
+    return result
+
+
 def get_law(
     sr_number: str | None = None,
     abbreviation: str | None = None,
@@ -21443,14 +21716,40 @@ def get_law(
     Fedlex. Federal laws only; the result names the edition (snapshot_date).
     """
     canton_u = (canton or "CH").upper()
+    # The mirror has de/fr/it columns and nothing else; language='en' (or
+    # 'DE') used to raise IndexError on the title lookup — a 500 on
+    # /api/laws/EMRK?language=en on 2026-09-05. Fall back to German and say so.
+    _language_requested = language
+    language = (str(language or "de")).strip().lower()[:2]
+    _language_fallback = None
+    if language not in ("de", "fr", "it"):
+        _language_fallback = {"requested": _language_requested, "served": "de"}
+        language = "de"
     # A canton-prefixed name carries its own jurisdiction: ZH/StG is
     # Zurich's tax act whatever `canton` says, while bare StG is the
     # federal stamp-duty act. Naming them this way is what stops the two
     # being confused, so the prefix decides and an explicit canton only
-    # applies to unprefixed names.
+    # applies to unprefixed names. 'StG/ZH' is the same name.
     _prefix, _bare = split_qualified_law_name(abbreviation or "")
     if _prefix:
         abbreviation, canton_u = _bare, _prefix
+    # Fields swapped: abbreviation='ZH' (or 'LS', Zurich's collection) with
+    # article='211.1' is a canton and a systematic number, not an act called
+    # ZH with an article 211.1. Ten such calls in eight days, all misses.
+    _argument_note = None
+    if (abbreviation and article and not sr_number
+            and re.match(r"^\s*\d[\d.]*\s*$", str(article))):
+        _code = _norm_law_alias(abbreviation)
+        if _code not in _CANTON_CODES:
+            _code = _law_alias_data()["collections"].get(_code)
+        if _code:
+            _argument_note = (
+                f"abbreviation='{abbreviation}', article='{article}' was read as "
+                f"canton='{_code}', sr_number='{str(article).strip()}' (the whole act; "
+                f"pass the article separately)."
+            )
+            canton_u, sr_number = _code, str(article).strip()
+            abbreviation, article = None, None
     if as_of and canton_u != "CH":
         # Checked before the cantonal branch: LexFind serves current text
         # only, and silently returning it for a dated request would be the
@@ -21461,7 +21760,15 @@ def get_law(
             f"text of the {canton_u} act."
         )}
     if canton_u != "CH":
-        return _get_law_cantonal(sr_number, abbreviation, article, language, canton_u)
+        res = _get_law_cantonal(sr_number, abbreviation, article, language, canton_u)
+        if _argument_note and isinstance(res, dict) and not res.get("error"):
+            res["argument_note"] = _argument_note
+        return res
+
+    # Federal article numbers carry no 'Art.' prefix, <sup> tag or inner
+    # space in the mirror; callers send all three ('Art. 41',
+    # '314a<sup>bis</sup>', '151 d' — all misses before).
+    article = _normalise_article_ref(article)
 
     # Historical version: on-demand fetch from Fedlex SPARQL
     if as_of:
@@ -21484,18 +21791,15 @@ def get_law(
                 f"pending_changes."
             )}
         as_of = as_of_iso
-        # Resolve SR number from abbreviation
+        # Resolve SR number from abbreviation — the same resolution as the
+        # current-law path, so 'OG' with as_of='2005-01-01' reaches SR
+        # 173.110 and Fedlex's OG edition rather than a miss.
+        _how = None
         if not sr_number and abbreviation:
             conn = _get_statutes_conn()
             if conn:
                 try:
-                    row = conn.execute(
-                        "SELECT sr_number FROM laws WHERE UPPER(abbr_de) = ? OR UPPER(abbr_fr) = ? "
-                        "OR UPPER(abbr_it) = ? LIMIT 1",
-                        (abbreviation.upper(), abbreviation.upper(), abbreviation.upper()),
-                    ).fetchone()
-                    if row:
-                        sr_number = row["sr_number"]
+                    sr_number, _how = _resolve_federal_abbreviation(conn, abbreviation)
                 finally:
                     conn.close()
         if not sr_number:
@@ -21508,7 +21812,7 @@ def get_law(
             )}
         result = _fetch_historical_law_version(sr_number, article, language, as_of)
         if result:
-            return result
+            return _annotate_alias(result, _how, as_of)
         return {"error": f"Historical version not available for SR {sr_number} as of {as_of}."}
 
     conn = _get_statutes_conn()
@@ -21516,29 +21820,25 @@ def get_law(
         return {"error": "Statutes database not available. Deploy statutes.db to enable statute lookup."}
 
     try:
-        # Resolve SR number from abbreviation if needed
+        # Resolve SR number from abbreviation if needed: exact, then the
+        # punctuation-free form, the alias table and an edition prefix
+        # (see _resolve_federal_abbreviation).
+        _how = None
         if not sr_number and abbreviation:
-            abbr_upper = abbreviation.upper()
-            row = conn.execute(
-                """SELECT sr_number FROM laws
-                   WHERE UPPER(abbr_de) = ? OR UPPER(abbr_fr) = ? OR UPPER(abbr_it) = ?
-                   LIMIT 1""",
-                (abbr_upper, abbr_upper, abbr_upper),
-            ).fetchone()
-            if row:
-                sr_number = row["sr_number"]
-            else:
-                return {"error": f"No law found with abbreviation '{abbreviation}'."}
+            sr_number, _how = _resolve_federal_abbreviation(conn, abbreviation)
+            if not sr_number:
+                return _federal_law_miss(abbreviation, None)
 
         if not sr_number:
             return {"error": "Provide sr_number or abbreviation."}
+        sr_number = str(sr_number).strip()
 
         # Get law metadata
         law = conn.execute(
             "SELECT * FROM laws WHERE sr_number = ?", (sr_number,)
         ).fetchone()
         if not law:
-            return {"error": f"No law found with SR number '{sr_number}'."}
+            return _federal_law_miss(abbreviation, sr_number)
 
         result = {
             "sr_number": law["sr_number"],
@@ -21549,6 +21849,9 @@ def get_law(
             "level": "federal",
             "language": language,
         }
+        if _language_fallback:
+            result["language_fallback"] = _language_fallback
+        _annotate_alias(result, _how, None)
         # Source link at the data layer: one field serves the MCP text
         # formatter, the raw-dict REST route (/api/laws/...) and the Copilot
         # wire schema alike. Before this, get_law returned NO URL of any kind
@@ -21927,11 +22230,13 @@ def _abbreviation_lookup_federal(
     q_clean = raw_query.strip().strip('"').lower()
     if q_clean.endswith("*"):
         q_clean = q_clean[:-1]
-    # Single token, ≤ 12 chars, alpha-prefix — typical abbreviation shape.
+    # Up to three tokens, ≤ 24 chars, alpha-prefix — an abbreviation
+    # ('OR'), a spaced one ('OPP 2', 'ArGV 1') or a treaty's common name
+    # ('Pacte II', 'Convention de Lugano'). Anything longer is a query.
     if (
         not q_clean
-        or " " in q_clean
-        or len(q_clean) > 12
+        or len(q_clean) > 24
+        or len(q_clean.split()) > 3
         or not q_clean[0].isalpha()
     ):
         return []
@@ -21950,6 +22255,18 @@ def _abbreviation_lookup_federal(
                LIMIT ?""",
             (q_clean, q_clean, q_clean, limit),
         ).fetchall()
+        if not abbr_rows:
+            # The same resolution get_law uses: 'Cst' for 'Cst.', 'OPP2',
+            # 'IPBPR', 'OG' — a name for an act is a name for an act on
+            # both tools.
+            _sr, _how = _resolve_federal_abbreviation(conn, raw_query.strip().strip('"'))
+            if _sr and (_how or {}).get("kind") != "sr_number":
+                abbr_rows = conn.execute(
+                    """SELECT sr_number, abbr_de, abbr_fr, abbr_it,
+                              title_de, title_fr, title_it
+                       FROM laws WHERE sr_number = ? LIMIT 1""",
+                    (_sr,),
+                ).fetchall()
         # When language is omitted (None), fall back to "de" for the display
         # columns AND fetch article 1 in any available language (no lang
         # filter on the article fetch). Without this, `abbr_None` raises
@@ -22914,7 +23231,17 @@ def _legislation_hits_structured(result: dict, lang: str = "de") -> dict:
 
 def _format_get_law_response(result: dict) -> str:
     if result.get("error"):
-        return result["error"]
+        # A miss that names what the corpus does have (cantonal acts under
+        # that name) must show it: the dict carried `candidates` and `note`
+        # to REST callers only, and the MCP reader saw the apology alone.
+        text = result["error"]
+        if result.get("note"):
+            text += f"\n\n{result['note']}"
+        for c in result.get("candidates") or []:
+            key = c.get("key") or f"{c.get('canton')}/{c.get('sr_number')}"
+            title = c.get("title") or ""
+            text += f"\n- {key}" + (f" — {title}" if title else "")
+        return text
 
     level = result.get("level", "federal")
     canton = result.get("canton", "CH")
@@ -22978,6 +23305,16 @@ def _format_get_law_response(result: dict) -> str:
                  f"Verify the affected articles on Fedlex.\n")
     if result.get("article_number_alias"):
         text += f"Note: {result['article_number_alias']['note']}\n"
+    if (result.get("abbreviation_alias") or {}).get("note"):
+        # A former name (OG, AuG, aStGB): the reader must not take the
+        # current text for the act the name literally denotes.
+        text += f"Note: {result['abbreviation_alias']['note']}\n"
+    if result.get("argument_note"):
+        text += f"Note: {result['argument_note']}\n"
+    if result.get("language_fallback"):
+        lf = result["language_fallback"]
+        text += (f"Note: language '{lf.get('requested')}' is not served (de/fr/it only); "
+                 f"showing {lf.get('served')}.\n")
     if result.get("article_language_fallback"):
         text += f"Note: {result['article_language_fallback']['note']}\n"
     if result.get("article_match"):
@@ -25757,19 +26094,19 @@ def _list_tools() -> list[Tool]:
             description=(
                 "AUTHORITATIVE LOOKUP for the text of any Swiss law article — federal "
                 "OR cantonal — from two local mirrors. Federal (canton='CH', default): "
-                "Fedlex mirror, all federal acts (OR, ZGB, StGB, StPO, ZPO, BV, SchKG, "
-                "BGG/LTF, DBG, IPRG, AIG, BVG, KVG, AsylG, BGFA …) in DE/FR/IT. "
-                "Cantonal: LexFind mirror, every statute and ordinance of all 26 "
-                "cantons in the canton's language. Same shape for both (title, "
-                "articles with heading + text, article_count, canton, level). Use "
-                "this BEFORE relying on training-data recall — statute text changes "
+                "Fedlex mirror, all federal acts (OR, ZGB, StGB, ZPO, StPO, BV, SchKG, "
+                "BGG, DBG, AIG, BVG, KVG …) in DE/FR/IT; names match in any language, "
+                "case, dots or spaces (Cst, OPP2), treaties by common name (IPBPR, KRK, "
+                "CISG) and former names (OG → BGG, noted; as_of gives the old edition). "
+                "Cantonal: LexFind mirror, every act of all 26 cantons in the canton's "
+                "language; name it 'ZH/StG' or pass canton. Use this BEFORE relying "
+                "on training-data recall — statute text changes "
                 "often and LLMs hallucinate article content. With as_of: the dated "
-                "Fedlex edition in force on that date (snapshot_date, title, in-force "
-                "window, link); always tell the user the edition date. PDF-only "
-                "editions carry `text_status`: 'heading_only' / 'empty' = no article "
-                "text recovered; say so and give the Fedlex link. Examples: "
-                "get_law(abbreviation='BV', article='8'); get_law(sr_number='220', "
-                "article='41'); get_law(canton='ZH', sr_number='554.5', article='1')."
+                "Fedlex edition in force on that date (snapshot_date, in-force window, "
+                "link); always tell the user the edition date. PDF-only editions carry "
+                "`text_status` 'heading_only' / 'empty' = no article text recovered; "
+                "say so and give the Fedlex link. Examples: get_law(abbreviation='BV', "
+                "article='8'); get_law(canton='ZH', sr_number='554.5', article='1')."
             ),
             inputSchema={
                 "type": "object",
@@ -25796,10 +26133,14 @@ def _list_tools() -> list[Tool]:
                     "abbreviation": {
                         "type": "string",
                         "description": (
-                            "Law abbreviation (federal only for now: 'BV', 'OR', "
-                            "'ZGB', 'StGB', 'BGG', etc.). Cantonal laws rarely "
-                            "have canonical abbreviations — use sr_number or "
-                            "discover via search_laws first."
+                            "Law abbreviation in DE, FR or IT ('BV'/'Cst'/'Cost', "
+                            "'OR'/'CO', 'ZGB'/'CC', 'StGB'/'CP', 'BGG'/'LTF', 'OPP 2'), "
+                            "a treaty's common name ('EMRK', 'IPBPR', 'KRK', 'LugÜ', "
+                            "'CISG') or a former name ('OG', 'AuG', 'aStGB' — served "
+                            "as the current act with a note). Case, dots and spaces do "
+                            "not matter. Cantonal: 'ZH/StG' or 'StG/ZH' (the canton is "
+                            "part of the name; many cantonal acts have no "
+                            "abbreviation — use sr_number or search_laws)."
                         ),
                     },
                     "article": {
@@ -30784,6 +31125,39 @@ setInterval(load, 30000);
                 and result.get("text_status") in ("heading_only", "empty")):
             _mark_outcome(response, "empty", "article_text_unresolved")
             return result
+        return _declare_outcome(
+            response, result,
+            "article_not_found" if article else "id_not_found")
+
+    @rest_api.get("/laws/{abbreviation}/{canton}", tags=["Statutes"],
+                  summary="Look up a cantonal law by name and canton",
+                  description="Cantonal law by abbreviation + canton in either order: "
+                              "/api/laws/GOG/GL or /api/laws/GL/GOG. Same response as "
+                              "/api/laws/{abbreviation}?canton=GL.")
+    async def api_get_law_cantonal_path(
+        response: Response,
+        abbreviation: str = PathParam(description="Law abbreviation or canton code"),
+        canton: str = PathParam(description="Canton code or law abbreviation — either order"),
+        article: str = Query(None, description="Article / § number to retrieve"),
+        language: str = Query("de", description="Language: de, fr, it (the canton's publication language)"),
+    ):
+        # Callers wrote /api/laws/GOG/GL, /api/laws/ZH/StG and /api/laws/LT/TI
+        # for eight days and got FastAPI's 404 — the route did not exist. Both
+        # segment orders name the same act; a pair with no canton in it is
+        # not a cantonal name and still 404s, with the shape spelled out.
+        prefix, bare = split_qualified_law_name(f"{abbreviation}/{canton}")
+        if not prefix or prefix == "CH" or not bare:
+            raise HTTPException(
+                status_code=404,
+                detail=(f"'{abbreviation}/{canton}' names no canton. Cantonal: "
+                        f"/api/laws/{{abbreviation}}/{{canton}} in either order "
+                        f"(e.g. /api/laws/StG/ZH). Federal: /api/laws/{{abbreviation}} "
+                        f"(e.g. /api/laws/OR?article=41)."),
+            )
+        result = await asyncio.to_thread(
+            get_law, abbreviation=bare, article=article, language=language,
+            canton=prefix,
+        )
         return _declare_outcome(
             response, result,
             "article_not_found" if article else "id_not_found")

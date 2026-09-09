@@ -144,6 +144,8 @@ ocl bundle create 'missbräuchliche Kündigung Rachekündigung' \
   ]
 }</pre>
 
+      <p data-t="qs_law_alias">Names are matched in DE/FR/IT, case-insensitively and with or without dots and spaces (<code>Cst</code>, <code>OPP2</code>, <code>o.p.p. 2</code>); treaties by common name (<code>IPBPR</code>, <code>KRK</code>, <code>CISG</code>) and former names (<code>OG</code> → BGG, with a note) resolve through the CC0 table <a href="law_aliases.json">law_aliases.json</a>; cantonal acts take their canton in either order: <code>/api/laws/StG/ZH</code>.</p>
+
       <h2 data-t="params_h">Common parameters</h2>
       <table class="params">
         <thead>
@@ -242,6 +244,7 @@ OCL.init({
       qs_search_h:'Schnellstart — den Korpus durchsuchen',returns:'Antwort:',
       qs_search_note:"Prüfen Sie <code>total_is_lower_bound</code>, bevor Sie <code>total</code> als exakt behandeln. Folgen Sie <code>next_offset</code>, solange <code>has_more</code> wahr ist. Eine Relevanzsuche kann ihren begrenzten Kandidatenbestand ausschöpfen, bevor alle Treffer zurückgegeben werden: <code>has_more: false</code> belegt keine vollständige Recherche. Filter grenzen die Auswahl ein; für Analysen des gesamten Korpus nutzen Sie den <a href=\"https://huggingface.co/datasets/voilaj/swiss-caselaw\">Parquet-Download</a>.",
       qs_law_h:'Schnellstart — einen Artikel nachschlagen',
+      qs_law_alias:"Bezeichnungen werden in DE/FR/IT erkannt, unabhängig von Gross-/Kleinschreibung, Punkten und Leerzeichen (<code>Cst</code>, <code>OPP2</code>, <code>o.p.p. 2</code>); Staatsverträge unter ihrem gebräuchlichen Namen (<code>IPBPR</code>, <code>KRK</code>, <code>CISG</code>) und frühere Bezeichnungen (<code>OG</code> → BGG, mit Hinweis) werden über die CC0-Tabelle <a href=\"law_aliases.json\">law_aliases.json</a> aufgelöst; kantonale Erlasse tragen ihren Kanton in beliebiger Reihenfolge: <code>/api/laws/StG/ZH</code>.",
       params_h:'Gängige Parameter',
       th_param:'Parameter',th_usedby:'Verwendet von',th_notes:'Hinweise',
       p_q_used:'alle Suchendpunkte',
@@ -303,6 +306,7 @@ OCL.init({
       qs_search_h:'Démarrage — rechercher dans le corpus',returns:'Renvoie :',
       qs_search_note:"Vérifiez <code>total_is_lower_bound</code> avant de considérer <code>total</code> comme exact. Suivez <code>next_offset</code> tant que <code>has_more</code> est vrai. Une recherche par pertinence peut épuiser son ensemble limité de candidats avant de renvoyer tous les résultats : <code>has_more: false</code> ne prouve pas une recherche exhaustive. Les filtres restreignent la sélection ; pour analyser le corpus entier, utilisez le <a href=\"https://huggingface.co/datasets/voilaj/swiss-caselaw\">téléchargement Parquet</a>.",
       qs_law_h:'Démarrage — consulter un article',
+      qs_law_alias:"Les noms sont reconnus en DE/FR/IT, sans égard à la casse, aux points et aux espaces (<code>Cst</code>, <code>OPP2</code>, <code>o.p.p. 2</code>) ; les traités sous leur nom usuel (<code>Pacte II</code>, <code>CDE</code>, <code>CVIM</code>) et les anciennes dénominations (<code>OJ</code> → LTF, avec une note) sont résolus par la table CC0 <a href=\"law_aliases.json\">law_aliases.json</a> ; les actes cantonaux portent leur canton dans l'un ou l'autre ordre : <code>/api/laws/LCP/GE</code>.",
       params_h:'Paramètres courants',
       th_param:'Paramètre',th_usedby:'Utilisé par',th_notes:'Notes',
       p_q_used:'tous les points de recherche',
@@ -364,6 +368,7 @@ OCL.init({
       qs_search_h:'Avvio rapido — cercare nel corpus',returns:'Restituisce:',
       qs_search_note:"Controllate <code>total_is_lower_bound</code> prima di considerare <code>total</code> esatto. Seguite <code>next_offset</code> finché <code>has_more</code> è vero. Una ricerca per rilevanza può esaurire il proprio insieme limitato di candidati prima di restituire tutti i risultati: <code>has_more: false</code> non prova una ricerca esaustiva. I filtri restringono la selezione; per analizzare tutto il corpus usate il <a href=\"https://huggingface.co/datasets/voilaj/swiss-caselaw\">download Parquet</a>.",
       qs_law_h:'Avvio rapido — consultare un articolo',
+      qs_law_alias:"I nomi sono riconosciuti in DE/FR/IT, indipendentemente da maiuscole, punti e spazi (<code>Cost</code>, <code>OPP2</code>, <code>o.p.p. 2</code>); i trattati con il nome corrente (<code>Patto ONU II</code>, <code>CEDU</code>, <code>CISG</code>) e le denominazioni precedenti (<code>OG</code> → LTF, con una nota) sono risolti tramite la tabella CC0 <a href=\"law_aliases.json\">law_aliases.json</a>; gli atti cantonali portano il cantone in entrambi gli ordini: <code>/api/laws/LT/TI</code>.",
       params_h:'Parametri comuni',
       th_param:'Parametro',th_usedby:'Usato da',th_notes:'Note',
       p_q_used:'tutti gli endpoint di ricerca',
@@ -425,6 +430,7 @@ OCL.init({
       qs_search_h:'Cumenzament svelt — tschertgar en il corpus',returns:'Returna:',
       qs_search_note:"Controllai <code>total_is_lower_bound</code> avant da considerar <code>total</code> sco exact. Suandai <code>next_offset</code> uschè ditg che <code>has_more</code> è vair. Ina tschertga tenor relevanza po exaurir ses dumber limità da candidats avant da returnar tut ils resultats: <code>has_more: false</code> na cumprova betg ina retschertga cumpletta. Filtres restrenschan la selecziun; per analisar l’entir corpus duvrai il <a href=\"https://huggingface.co/datasets/voilaj/swiss-caselaw\">download Parquet</a>.",
       qs_law_h:'Cumenzament svelt — consultar in artitgel',
+      qs_law_alias:"Ils nums vegnan renconuschids en DE/FR/IT, independentamain da maiusclas, puncts e spazis (<code>Cst</code>, <code>OPP2</code>, <code>o.p.p. 2</code>); contracts internaziunals cun lur num usità (<code>IPBPR</code>, <code>KRK</code>, <code>CISG</code>) e denominaziuns anteriuras (<code>OG</code> → BGG, cun ina remartga) vegnan resolvids tras la tabella CC0 <a href=\"law_aliases.json\">law_aliases.json</a>; acts chantunals portan lur chantun en omadus urdens: <code>/api/laws/StG/ZH</code>.",
       params_h:'Parameters frequents',
       th_param:'Parameter',th_usedby:'Duvrà da',th_notes:'Notas',
       p_q_used:'tut ils puncts da tschertga',
@@ -486,6 +492,7 @@ OCL.init({
       qs_search_h:'Quickstart — search the corpus',returns:'Returns:',
       qs_search_note:"Read <code>total_is_lower_bound</code> before treating <code>total</code> as exact. Follow <code>next_offset</code> while <code>has_more</code> is true. A relevance query can exhaust its bounded candidate pool before all matches are returned: <code>has_more: false</code> is not proof of exhaustive research. Filters narrow the selection; for corpus-scale analysis, use the <a href=\"https://huggingface.co/datasets/voilaj/swiss-caselaw\">Parquet download</a>.",
       qs_law_h:'Quickstart — look up an article',
+      qs_law_alias:"Names are matched in DE/FR/IT, case-insensitively and with or without dots and spaces (<code>Cst</code>, <code>OPP2</code>, <code>o.p.p. 2</code>); treaties by common name (<code>IPBPR</code>, <code>KRK</code>, <code>CISG</code>) and former names (<code>OG</code> → BGG, with a note) resolve through the CC0 table <a href=\"law_aliases.json\">law_aliases.json</a>; cantonal acts take their canton in either order: <code>/api/laws/StG/ZH</code>.",
       params_h:'Common parameters',
       th_param:'Param',th_usedby:'Used by',th_notes:'Notes',
       p_q_used:'all search endpoints',
