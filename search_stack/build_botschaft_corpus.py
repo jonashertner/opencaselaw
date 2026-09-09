@@ -958,6 +958,13 @@ def main() -> int:
         help="Print the historical backfill state counts per language and exit.",
     )
     parser.add_argument(
+        "--lock-file", default=None,
+        help=(
+            "Historical path: host-level lock held for the whole run (flock); a "
+            "second run exits 3 at once. Default <repo>/logs/bar_fetch.lock."
+        ),
+    )
+    parser.add_argument(
         "--link-amendment-refs", action="store_true",
         help=(
             "Auto-populate article_botschaft_links from the existing "
@@ -1020,20 +1027,27 @@ def main() -> int:
         if not args.ingest_all:
             log.error("--discover-untyped-by-title requires --ingest-all")
             return 2
-        from search_stack.botschaft_historical import run_historical_backfill
+        from search_stack.botschaft_historical import (
+            DEFAULT_LOCK_PATH, BackfillLocked, run_historical_backfill,
+        )
         host_allow = {h.strip().lower() for h in args.host_allow.split(",") if h.strip()}
         unknown = host_allow - {"fedlex", "bar"}
         if unknown:
             log.error(f"--host-allow: unknown host(s) {sorted(unknown)}; use fedlex,bar")
             return 2
-        stats = run_historical_backfill(
-            conn, language=args.language, host_allow=host_allow,
-            min_year=args.min_year if args.min_year is not None else 1850,
-            max_year=args.max_year if args.max_year is not None else 1999,
-            max_per_run=args.max_per_run, max_attempts=args.max_attempts,
-            min_interval=args.bar_min_interval, dry_run=args.dry_run,
-            limit=args.limit,
-        )
+        try:
+            stats = run_historical_backfill(
+                conn, language=args.language, host_allow=host_allow,
+                min_year=args.min_year if args.min_year is not None else 1850,
+                max_year=args.max_year if args.max_year is not None else 1999,
+                max_per_run=args.max_per_run, max_attempts=args.max_attempts,
+                min_interval=args.bar_min_interval, dry_run=args.dry_run,
+                limit=args.limit,
+                lock_path=Path(args.lock_file) if args.lock_file else DEFAULT_LOCK_PATH,
+            )
+        except BackfillLocked as e:
+            log.error(f"another historical backfill is running: {e}")
+            return 3
         print(json.dumps(stats, indent=2, ensure_ascii=False))
         return 0
 

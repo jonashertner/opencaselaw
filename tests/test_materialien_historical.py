@@ -32,6 +32,8 @@ from search_stack.build_botschaft_corpus import (  # noqa: E402
 )
 
 BAR = "https://www.amtsdruckschriften.bar.admin.ch/viewOrigDoc.do?id=%d&action=open"
+# A 200 body the fetcher accepts: PDF magic bytes and at least 1 KB.
+PDF = b"%PDF-1.4 stub\n" + b"%" * 1100
 
 
 # ── Discovery ─────────────────────────────────────────────────────────
@@ -55,12 +57,14 @@ def test_classify_file_host() -> None:
     assert fm.classify_file_host(None) == ""
 
 
-def _row(act, title, mem=None, ident=None, pub=None, file=None):
+def _row(act, title, mem=None, ident=None, pub=None, file=None, hid=None):
     r = {"act": {"value": act}, "title": {"value": title}}
     if mem is not None:
         r["memPage"] = {"value": mem}
     if ident:
         r["ident"] = {"value": ident}
+    if hid:
+        r["hid"] = {"value": hid}
     if pub:
         r["pubDate"] = {"value": pub}
     if file:
@@ -76,9 +80,9 @@ def test_discover_untyped_parses_sparql_rows(monkeypatch) -> None:
         # memorialPage wins over the ELI segment when they disagree.
         _row("https://fedlex.data.admin.ch/eli/fga/1998/1_269_205_179",
              "Botschaft zur Volksinitiative", mem="270", file=BAR % 10054544),
-        # No identifier: the citation is built with the volume in roman.
+        # No dct:identifier but a historicalLegalId: that string is the citation.
         _row("https://fedlex.data.admin.ch/eli/fga/1866/2_223__",
-             "Botschaft betreffend X", file=BAR % 5),
+             "Botschaft betreffend X", hid="BBl 1866 II 223", file=BAR % 5),
         # Duplicate row for the same work (second title) — dropped.
         _row("https://fedlex.data.admin.ch/eli/fga/1975/1_609__",
              "Botschaft (Zweittitel)", mem="609", file=BAR % 10046299),
@@ -103,16 +107,26 @@ def test_discover_untyped_parses_sparql_rows(monkeypatch) -> None:
     assert c0.citation == "BBl 1975 I 609" and c0.publication_date == "1975-02-24"
     assert c0.volume == 1 and c0.language == "de"
     assert out[1].page == 270 and out[1].volume == 1
-    assert out[2].citation == "BBl 1866 II 223" and out[2].volume == 2
+    assert out[2].citation == "BBl 1866 II 223" and out[2].volume == 2   # from historicalLegalId
     assert out[3].file_host == "fedlex"
 
 
 def test_discover_untyped_french_page_from_eli_when_no_mempage(monkeypatch) -> None:
+    """No identifier of either kind: the parts stay separate and the
+    citation is None — never 'FF 1998 I 205' assembled from them."""
     rows = [_row("https://fedlex.data.admin.ch/eli/fga/1998/1_269_205_179",
                  "Message concernant l'initiative", file=BAR % 1)]
     monkeypatch.setattr(fm, "sparql_query", lambda q, timeout=600: rows)
     out = fm.discover_fga_botschaften_untyped("fr")
-    assert out[0].page == 205 and out[0].citation == "FF 1998 I 205"
+    assert out[0].page == 205 and out[0].volume == 1 and out[0].year == 1998
+    assert out[0].citation is None
+
+
+def test_discover_untyped_query_asks_for_both_citation_predicates(monkeypatch) -> None:
+    seen = {}
+    monkeypatch.setattr(fm, "sparql_query", lambda q, timeout=600: seen.setdefault("q", q) and [])
+    fm.discover_fga_botschaften_untyped("de")
+    assert "dct:identifier ?ident" in seen["q"] and "jolux:historicalLegalId ?hid" in seen["q"]
 
 
 def test_discover_untyped_query_excludes_type_23_and_rejects_language(monkeypatch) -> None:
@@ -265,6 +279,102 @@ def test_cleaner_never_rewrites_words() -> None:
     assert "Begierungsrat" in out and "Eeihe" in out
 
 
+def test_cleaner_keeps_bare_numbers_and_gazette_citations_in_the_body() -> None:
+    """Body text is never deleted: a line is only dropped by position (the
+    first / last lines of a page) and pattern together."""
+    table = ("612\n"
+             "Die Beiträge des Bundes betrugen in den letzten Jahren:\n"
+             "1930\n450 000\n1931\n380 000\n"
+             "Die Summe ist beträchtlich.\n")
+    out = bh.clean_historical_page(table)
+    assert "612" not in out.split()                       # the page number went
+    for tok in ("1930", "450 000", "1931", "380 000"):
+        assert tok in out                                  # the table stayed
+    cite = ("614\n"
+            "Siehe dazu die Ausführungen in der Botschaft vom 12. März 1934, abgedruckt im\n"
+            "Bundesblatt 1934, Bd. I, S. 350 und die dortigen Ausführungen.\n")
+    out = bh.clean_historical_page(cite)
+    assert "Bundesblatt 1934, Bd. I, S. 350 und die dortigen Ausführungen." in out
+    # A foot line at the very end of the page is still recognised.
+    foot = cite + "Bundesblatt. 87. Jahrg. Bd. I. 25\n"
+    out = bh.clean_historical_page(foot)
+    assert "Jahrg." not in out and "S. 350 und die dortigen" in out
+
+
+def test_cleaner_masthead_words_survive_on_ordinary_pages() -> None:
+    """The masthead patterns only apply below the gazette's title line."""
+    for first in ("Die Nachnahme wird von der Post nur gegen Gebühr besorgt, was die",
+                  "Im ersten Halbjahr 1934 stiegen die Einnahmen der Bundesbahnen,",
+                  "Der Preis von 12 Franken je Tonne war für die Bauern zu hoch, weshalb",
+                  "Band II der Gesetzessammlung enthält die einschlägigen Bestimmungen,",
+                  "Der 87. Jahrgang des Bundesblattes bringt eine Reihe von Botschaften,"):
+        page = f"613\n{first}\nEinnahmen der Verwaltung schmälert.\n"
+        out = bh.clean_historical_page(page)
+        assert first in out, first
+    # An issue-first page: the masthead block above the title is dropped,
+    # the Geschäftsnummer too, the title block stays.
+    issue = ("Bundesblatt\n"
+             "87. Jahrgang. Bern, den 13. März 1935. Band I.\n"
+             "Erscheint wöchentlich. Preis 20 Franken im Jahr, 10 Franken im Halbjahr.\n"
+             "Einrückungsgebühr: 50 Rappen die Petitzeile. Inserate an Stämpfli & Cie. in Bern.\n"
+             "#ST#\n3228\nBotschaft\ndes\nBundesrates an die Bundesversammlung.\n"
+             "(Vom 8. März 1935.)\nWir beehren uns, Ihnen zu berichten.\n"
+             "Bundesblatt. 87. Jahrg. Bd. I. 25")
+    out = bh.clean_historical_page(issue)
+    assert out.startswith("Botschaft des Bundesrates an die Bundesversammlung. (Vom 8. März 1935.)")
+    assert "Stämpfli" not in out and "3228" not in out and "Jahrg." not in out
+    assert "Wir beehren uns, Ihnen zu berichten." in out
+
+
+def test_cleaner_second_line_number_is_body_unless_a_title_follows() -> None:
+    page = "351\n1930\nwar ein schwieriges Jahr für die Hôtellerie, wie die Zahlen zeigen.\n"
+    out = bh.clean_historical_page(page)
+    assert "1930" in out and "351" not in out.split()
+
+
+@pytest.mark.parametrize("prev, nxt, lang, want", [
+    ("Schweize-", "rischen", "de", "Schweizerischen"),
+    ("Basel-", "Stadt", "de", "Basel-Stadt"),
+    ("Conseil fé-", "déral", "fr", "Conseil fédéral"),
+    ("est peut-", "être nécessaire", "fr", "est peut-être nécessaire"),
+    ("c'est-à-", "dire indispensable", "fr", "c'est-à-dire indispensable"),
+    ("au-", "dessus", "fr", "au-dessus"),
+    ("vis-à-", "vis", "fr", "vis-à-vis"),
+    ("le porte-", "parole", "fr", "le porte-parole"),
+    ("Saint-", "Gall", "fr", "Saint-Gall"),
+    ("a-t-", "il", "fr", "a-t-il"),
+    ("nous-", "mêmes", "fr", "nous-mêmes"),
+    ("ci-", "joint", "fr", "ci-joint"),
+    ("un contre-", "projet", "fr", "un contre-projet"),
+    ("l'avant-", "projet", "fr", "l'avant-projet"),
+    ("la pré-", "sidence", "fr", "la présidence"),         # a syllable, not a prefix
+    ("l'entre-", "prise", "fr", "l'entreprise"),
+    ("l'au-", "torité", "fr", "l'autorité"),
+    ("le commer-", "ce qui", "fr", "le commerce qui"),
+    ("il vice-", "presidente", "it", "il vice-presidente"),
+    ("il Consi-", "glio federale", "it", "il Consiglio federale"),
+    ("gli anni 1934-", "1935", "it", "gli anni 1934-1935"),
+    ("Kriegs-", "und Nachkriegszeit", "de", "Kriegs- und Nachkriegszeit"),
+    ("Absatz 2-", "), der", "de", "Absatz 2- ), der"),      # in doubt: hyphen and a space
+])
+def test_join_hyphen_is_conservative(prev, nxt, lang, want) -> None:
+    assert bh._join_hyphen(prev, nxt, lang) == want
+
+
+def test_cleaner_french_page_keeps_real_hyphens() -> None:
+    page = ("205\n"
+            "Le Conseil fédéral estime qu'il est peut-\n"
+            "être nécessaire, c'est-à-\n"
+            "dire indispensable, de placer le porte-\n"
+            "parole du canton de Saint-\n"
+            "Gall au-\n"
+            "dessus de tout soupçon.\n")
+    out = bh.clean_historical_page(page, "fr")
+    assert "peut-être" in out and "c'est-à-dire" in out and "porte-parole" in out
+    assert "Saint-Gall" in out and "au-dessus" in out
+    assert "peutêtre" not in out and "audessus" not in out
+
+
 # ── Fetcher ───────────────────────────────────────────────────────────
 
 
@@ -305,9 +415,9 @@ def _fetcher(entries, **kw):
 
 
 def test_fetcher_identifies_itself_and_spaces_requests() -> None:
-    f, script, clock = _fetcher([(200, {}, b"%PDF-1"), (200, {}, b"%PDF-2")])
+    f, script, clock = _fetcher([(200, {}, PDF + b"1"), (200, {}, PDF + b"2")])
     r1 = f.fetch("u1")
-    assert r1.ok and r1.content == b"%PDF-1"
+    assert r1.ok and r1.content == PDF + b"1"
     ua = script.calls[0][1]["User-Agent"]
     assert ua.startswith("OpenCaseLaw/1.0") and "jonashertner@protonmail.ch" in ua
     assert "opencaselaw.ch" in ua
@@ -338,12 +448,34 @@ def test_fetcher_backs_off_then_stops_after_three_failures() -> None:
 
 
 def test_fetcher_transport_error_counts_as_failure_and_success_resets() -> None:
-    f, script, clock = _fetcher([ConnectionError("boom"), (200, {}, b"%PDF"), (403, {}, b"")])
+    f, script, clock = _fetcher([ConnectionError("boom"), (200, {}, PDF), (403, {}, b"")])
     r = f.fetch("u1")
     assert r.status is None and "ConnectionError" in r.error and f.consecutive_failures == 1
     assert f.fetch("u2").ok and f.consecutive_failures == 0
     f.fetch("u3")
     assert f.consecutive_failures == 1               # counter restarted after the success
+
+
+def test_fetcher_soft_block_with_200_counts_toward_the_stop() -> None:
+    """A login / captcha / 'too many requests' page served with 200, a
+    body without PDF magic bytes, or one under 1 KB is a failure."""
+    html = b"<html><body>Too many requests - please solve the CAPTCHA</body></html>"
+    f, script, clock = _fetcher([(200, {"content-type": "text/html"}, html),
+                                 (200, {}, b"%PDF-1.4 short"),
+                                 (200, {}, b"<html>Login</html>")])
+    r = f.fetch("u1")
+    assert not r.ok and r.status == 200 and r.content is None
+    assert "not a PDF" in r.error and "captcha" in r.error and f.consecutive_failures == 1
+    assert clock.sleeps[-1] == 15.0                       # backed off like a 503
+    r = f.fetch("u2")
+    assert not r.ok and "short body" in r.error and f.consecutive_failures == 2
+    with pytest.raises(bf.FetchStopped):
+        f.fetch("u3")
+    assert f.stopped and "3 consecutive failures" in f.stop_reason
+    # A real PDF resets the counter.
+    f2, _, _ = _fetcher([(200, {}, b"<html>captcha</html>"), (200, {}, PDF)])
+    f2.fetch("a")
+    assert f2.fetch("b").ok and f2.consecutive_failures == 0
 
 
 def test_fetcher_404_is_per_document_not_a_burst() -> None:
@@ -386,7 +518,7 @@ def fake_pdf(monkeypatch):
 def _run(conn, cands, fetcher, **kw):
     opts = dict(language="de", host_allow={"bar"}, min_year=1850, max_year=1999,
                 max_per_run=None, max_attempts=3, min_interval=2.5,
-                discover=lambda lang: cands, fetcher=fetcher)
+                discover=lambda lang: cands, fetcher=fetcher, lock_path=None)
     opts.update(kw)
     return bh.run_historical_backfill(conn, **opts)
 
@@ -418,7 +550,7 @@ def test_ensure_schema_adds_columns_to_an_older_db(tmp_path) -> None:
 
 
 def test_backfill_stores_document_with_fedlex_metadata(db, fake_pdf) -> None:
-    f, script, clock = _fetcher([(200, {}, b"%PDF-1.4 stub")])
+    f, script, clock = _fetcher([(200, {}, PDF)])
     cands = [_cand(1935, 350, "1_350__", title="Botschaft über das Hotelgewerbe", n=10032582)]
     stats = _run(db, cands, f)
     assert stats["done"] == 1 and stats["requests_made"] == 1
@@ -441,11 +573,11 @@ def test_backfill_stores_document_with_fedlex_metadata(db, fake_pdf) -> None:
 def test_backfill_respects_max_per_run_and_resumes(db, fake_pdf) -> None:
     cands = [_cand(1975, 609, "1_609__", n=1), _cand(1955, 1077, "1_1077__", n=2),
              _cand(1935, 350, "1_350__", n=3)]
-    f1, s1, _ = _fetcher([(200, {}, b"%PDF")] * 3)
+    f1, s1, _ = _fetcher([(200, {}, PDF)] * 3)
     st1 = _run(db, cands, f1, max_per_run=1)
     assert st1["done"] == 1 and st1["stopped"] == "max_per_run" and len(s1.calls) == 1
     assert s1.calls[0][0] == BAR % 1                  # newest first
-    f2, s2, _ = _fetcher([(200, {}, b"%PDF")] * 3)
+    f2, s2, _ = _fetcher([(200, {}, PDF)] * 3)
     st2 = _run(db, cands, f2)
     assert st2["done"] == 2 and st2["skipped"]["terminal"] == 1
     assert [c[0] for c in s2.calls] == [BAR % 2, BAR % 3]   # the done one is not re-fetched
@@ -459,7 +591,7 @@ def test_backfill_collision_and_host_opt_in(db, fake_pdf) -> None:
     cands = [_cand(1866, 223, "1_223__", n=1),
              _cand(1866, 223, "2_223__", vol=2, n=2),          # same (year, page): collision
              _cand(1999, 9000, "1_9000__", host="fedlex", n=3)]  # not allowed by --host-allow bar
-    f, script, _ = _fetcher([(200, {}, b"%PDF")] * 3)
+    f, script, _ = _fetcher([(200, {}, PDF)] * 3)
     st = _run(db, cands, f)
     assert st["skipped"]["host"] == 1
     assert st["done"] == 1 and st["collision"] == 1 and len(script.calls) == 1
@@ -469,7 +601,7 @@ def test_backfill_collision_and_host_opt_in(db, fake_pdf) -> None:
     err = db.execute("SELECT error FROM botschaft_fetch_state WHERE status='collision'").fetchone()[0]
     assert cands[0].eli_uri in err
     # With both hosts allowed the Fedlex file is fetched too.
-    f2, s2, _ = _fetcher([(200, {}, b"%PDF")])
+    f2, s2, _ = _fetcher([(200, {}, PDF)])
     st2 = _run(db, cands, f2, host_allow={"bar", "fedlex"})
     assert st2["done"] == 1 and s2.calls[0][0].startswith("https://fedlex.data.admin.ch/")
 
@@ -489,7 +621,7 @@ def test_backfill_hard_stop_records_state_and_retries_next_run(db, fake_pdf) -> 
     assert cands[3].eli_uri not in state                # never attempted this run
     assert db.execute("SELECT COUNT(*) FROM botschaft_documents").fetchone()[0] == 0
     # Next run: the three are retried (attempts < max) and the fourth is new.
-    f2, s2, _ = _fetcher([(200, {}, b"%PDF")] * 4)
+    f2, s2, _ = _fetcher([(200, {}, PDF)] * 4)
     st2 = _run(db, cands, f2)
     assert st2["done"] == 4
     assert sorted(r[0] for r in db.execute("SELECT attempts FROM botschaft_fetch_state")) == [1, 2, 2, 2]
@@ -505,12 +637,118 @@ def test_backfill_hard_stop_records_state_and_retries_next_run(db, fake_pdf) -> 
 def test_backfill_not_a_pdf_and_no_text(db, monkeypatch) -> None:
     cands = [_cand(1975, 609, "1_609__", n=1), _cand(1955, 1077, "1_1077__", n=2)]
     monkeypatch.setattr(bh, "_extract_pages", lambda b: ["", "  "])
-    f, script, _ = _fetcher([(200, {}, b"<html>login</html>"), (200, {}, b"%PDF")])
+    f, script, clock = _fetcher([(200, {}, b"<html>login</html>"), (200, {}, PDF)])
     st = _run(db, cands, f)
     assert st["error"] == 1 and st["no_text"] == 1
     rows = dict(db.execute("SELECT eli_uri, status FROM botschaft_fetch_state").fetchall())
     assert rows[cands[0].eli_uri] == "error" and rows[cands[1].eli_uri] == "no_text"
     assert db.execute("SELECT COUNT(*) FROM botschaft_documents").fetchone()[0] == 0
+    err = db.execute("SELECT error FROM botschaft_fetch_state WHERE status='error'").fetchone()[0]
+    assert "login" in err and 15.0 in clock.sleeps          # the soft block was backed off
+
+
+def test_backfill_soft_block_three_times_stops_the_run(db, fake_pdf) -> None:
+    """A portal answering every request with a login page is a block."""
+    cands = [_cand(1975, 609, "1_609__", n=1), _cand(1955, 1077, "1_1077__", n=2),
+             _cand(1935, 350, "1_350__", n=3), _cand(1900, 1, "1_1__", n=4)]
+    page = (200, {"content-type": "text/html"}, b"<html>Too many requests</html>")
+    f, script, _ = _fetcher([page, page, page, page])
+    st = _run(db, cands, f)
+    assert st["stopped"] and "3 consecutive failures" in st["stopped"]
+    assert len(script.calls) == 3 and st["done"] == 0
+    assert db.execute("SELECT COUNT(*) FROM botschaft_documents").fetchone()[0] == 0
+
+
+class _FailingParagraphs(sqlite3.Connection):
+    """A connection whose paragraph insert fails while ``fail`` is set."""
+    fail = False
+
+    def executemany(self, sql, rows):
+        if self.fail and "INSERT INTO botschaft_paragraphs" in sql:
+            raise sqlite3.OperationalError("disk I/O error")
+        return super().executemany(sql, rows)
+
+
+def test_backfill_never_commits_a_document_without_its_paragraphs(tmp_path, fake_pdf) -> None:
+    db = sqlite3.connect(tmp_path / "m.db", factory=_FailingParagraphs)
+    db.execute("PRAGMA foreign_keys = ON")
+    ensure_schema(db)
+    cands = [_cand(1975, 609, "1_609__", n=1)]
+    db.fail = True
+    f, script, _ = _fetcher([(200, {}, PDF)])
+    st = _run(db, cands, f)
+    assert st["error"] == 1 and not db.in_transaction
+    assert db.execute("SELECT COUNT(*) FROM botschaft_documents").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM botschaft_paragraphs").fetchone()[0] == 0
+    row = db.execute("SELECT status, attempts, error FROM botschaft_fetch_state").fetchone()
+    assert row[0] == "error" and row[1] == 1 and "disk I/O error" in row[2]
+    # Next run: the document is fetched again and lands whole.
+    db.fail = False
+    f2, s2, _ = _fetcher([(200, {}, PDF)])
+    st2 = _run(db, cands, f2)
+    assert st2["done"] == 1 and len(s2.calls) == 1
+    assert db.execute("SELECT COUNT(*) FROM botschaft_paragraphs").fetchone()[0] >= 10
+    db.close()
+
+
+def test_backfill_run_loop_catch_all_rolls_back_and_stops(db, fake_pdf, monkeypatch) -> None:
+    """An exception outside the document transaction (a state write that
+    fails) must not commit anything and must end the run."""
+    cands = [_cand(1975, 609, "1_609__", n=1), _cand(1955, 1077, "1_1077__", n=2)]
+    monkeypatch.setattr(bh, "record_state",
+                        lambda *a, **k: (_ for _ in ()).throw(sqlite3.OperationalError("database is locked")))
+    f, script, _ = _fetcher([(200, {}, PDF)] * 2)
+    st = _run(db, cands, f)
+    assert st["stopped"].startswith("persistence failure") and len(script.calls) == 1
+    assert not db.in_transaction
+    assert db.execute("SELECT COUNT(*) FROM botschaft_documents").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM botschaft_fetch_state").fetchone()[0] == 0
+
+
+def test_backfill_refetches_a_bar_row_without_paragraphs(db, fake_pdf) -> None:
+    c = _cand(1975, 609, "1_609__", n=1)
+    db.execute("INSERT INTO botschaft_documents (bbl_year, bbl_page, bbl_citation, eli_uri, "
+               "source_url, format, language, ingested_at, source_collection) VALUES "
+               "(1975, 609, 'BBl 1975 I 609', ?, 'u', 'pdf', 'de', 't', 'bar-amtsdruckschriften')",
+               (c.eli_uri,))
+    db.commit()
+    f, script, _ = _fetcher([(200, {}, PDF)])
+    st = _run(db, [c], f)
+    assert st["done"] == 1 and len(script.calls) == 1
+    assert db.execute("SELECT COUNT(*) FROM botschaft_documents").fetchone()[0] == 1
+    assert db.execute("SELECT COUNT(*) FROM botschaft_paragraphs").fetchone()[0] >= 10
+
+
+def test_backfill_without_a_fedlex_citation_is_recorded_not_fetched(db, fake_pdf) -> None:
+    c = _cand(1866, 223, "2_223__", vol=2, n=1)._replace(citation=None)
+    f, script, _ = _fetcher([(200, {}, PDF)])
+    st = _run(db, [c], f)
+    assert st["no_citation"] == 1 and script.calls == []
+    row = db.execute("SELECT status, attempts, error FROM botschaft_fetch_state").fetchone()
+    assert row[0] == "no_citation" and row[1] == 0 and "vol 2, page 223" in row[2]
+    assert db.execute("SELECT COUNT(*) FROM botschaft_documents").fetchone()[0] == 0
+    # Terminal: the next run does not touch it either.
+    f2, s2, _ = _fetcher([])
+    st2 = _run(db, [c], f2)
+    assert st2["skipped"]["terminal"] == 1 and s2.calls == []
+
+
+def test_backfill_host_lock_refuses_a_second_run(db, fake_pdf, tmp_path) -> None:
+    lock = tmp_path / "bar_fetch.lock"
+    c = _cand(1975, 609, "1_609__", n=1)
+    with bh._RunLock(lock):                       # a run in progress on this host
+        f, script, _ = _fetcher([(200, {}, PDF)])
+        with pytest.raises(bh.BackfillLocked):
+            _run(db, [c], f, lock_path=lock)
+        assert script.calls == []
+        # A dry run needs no lock (no request).
+        st = _run(db, [c], f, lock_path=lock, dry_run=True)
+        assert st["eligible"] == 1
+    # Released: the run goes through and releases the lock at the end.
+    st = _run(db, [c], f, lock_path=lock)
+    assert st["done"] == 1
+    with bh._RunLock(lock):
+        pass
 
 
 def test_backfill_dry_run_makes_no_request(db) -> None:
@@ -554,3 +792,16 @@ def test_cli_untyped_requires_ingest_all_and_known_hosts(tmp_path, monkeypatch, 
     out = capsys.readouterr().out
     assert '"host_allow": [\n    "fedlex"\n  ]' in out and '"min_year": 1850' in out
     assert '"max_year": 1999' in out
+
+
+def test_cli_exits_3_when_another_run_holds_the_lock(tmp_path, monkeypatch) -> None:
+    from search_stack import build_botschaft_corpus as bbc
+    dbp = tmp_path / "m.db"
+    sqlite3.connect(dbp).close()
+    lock = tmp_path / "bar_fetch.lock"
+    monkeypatch.setattr(bh, "PoliteFetcher", lambda **kw: (_ for _ in ()).throw(AssertionError("no fetcher")))
+    monkeypatch.setattr(sys, "argv", ["x", "--db", str(dbp), "--ingest-all",
+                                      "--discover-untyped-by-title", "--host-allow", "bar",
+                                      "--lock-file", str(lock)])
+    with bh._RunLock(lock):
+        assert bbc.main() == 3

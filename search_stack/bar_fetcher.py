@@ -16,6 +16,11 @@ condition:
   (``Retry-After`` honoured when larger) and stops hard after
   ``max_consecutive_failures`` such answers in a row (default 3) — the
   run ends, nothing is retried until the next run;
+* a soft block counts the same: a 200 whose body is not a PDF (magic
+  bytes), is shorter than 1 KB, or carries a captcha / "too many
+  requests" / login marker is a failure, backed off and counted toward
+  the stop — a portal that answers every request with a login page must
+  not be asked 4,500 times;
 * a per-run cap (``--max-per-run`` in the CLI) keeps a run inside one night.
 
 The fetcher does not know about the corpus; the caller decides what to do
@@ -46,6 +51,16 @@ DEFAULT_MAX_CONSECUTIVE_FAILURES = 3
 DEFAULT_BACKOFF_BASE = 15.0     # seconds after the first failure
 DEFAULT_BACKOFF_MAX = 600.0
 DEFAULT_TIMEOUT = 120.0
+# A 200 with a body below this is not a document (the smallest real scan
+# is tens of KB; a block page or an empty answer is a few hundred bytes).
+MIN_PDF_BYTES = 1024
+# Markers of a soft block served with 200. Searched (lower-cased) in the
+# head of a body that already failed the magic-byte or size check, so the
+# error names the cause; a real PDF is never scanned for them.
+SOFT_BLOCK_MARKERS = (
+    b"captcha", b"too many requests", b"rate limit", b"access denied",
+    b"login", b"anmelden", b"connexion", b"sign in", b"password", b"passwort",
+)
 
 # A transport answers (status_code, headers, body). It raises on transport
 # errors (DNS, connect, read timeout); the fetcher turns those into failures.
@@ -161,9 +176,15 @@ class PoliteFetcher:
         self.log.append((url, status))
         elapsed = self._last_end - t0
         if status == 200:
-            self.consecutive_failures = 0
-            self.bytes_received += len(body or b"")
-            return FetchResult(url=url, status=status, content=body, elapsed=elapsed)
+            soft = self._soft_block_reason(body or b"", headers)
+            if soft is None:
+                self.consecutive_failures = 0
+                self.bytes_received += len(body or b"")
+                return FetchResult(url=url, status=status, content=body, elapsed=elapsed)
+            result = FetchResult(url=url, status=status, content=None,
+                                 error=f"HTTP 200 {soft}", elapsed=elapsed)
+            self._on_failure(result, retry_after=_retry_after_seconds(headers))
+            return result
         result = FetchResult(url=url, status=status, content=None,
                              error=f"HTTP {status}", elapsed=elapsed)
         if status in (429, 403) or status >= 500:
@@ -173,6 +194,21 @@ class PoliteFetcher:
             # sign the host wants us gone. Does not count toward the burst.
             self.consecutive_failures = 0
         return result
+
+    @staticmethod
+    def _soft_block_reason(body: bytes, headers: dict | None) -> str | None:
+        """None for a PDF of plausible size; otherwise why the 200 is not
+        a document ("not a PDF: captcha page", "short body (312 bytes)")."""
+        if body.startswith(b"%PDF") and len(body) >= MIN_PDF_BYTES:
+            return None
+        head = body[:65536].lower()
+        marker = next((m.decode() for m in SOFT_BLOCK_MARKERS if m in head), None)
+        ctype = (headers or {}).get("content-type", "")
+        if not body.startswith(b"%PDF"):
+            what = f"not a PDF ({ctype or 'no content-type'})"
+        else:
+            what = f"short body ({len(body)} bytes)"
+        return f"{what}: {marker} page" if marker else what
 
     def _on_failure(self, result: FetchResult, retry_after: float | None) -> None:
         self.consecutive_failures += 1

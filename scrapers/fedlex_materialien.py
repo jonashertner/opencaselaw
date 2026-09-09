@@ -709,7 +709,11 @@ class UntypedBotschaft(NamedTuple):
     eli_uri: str
     file_url: str
     file_host: str          # 'bar' | 'fedlex' | other netloc
-    citation: str | None    # "BBl 1975 I 609" / "FF 1998 I 205" (Fedlex dct:identifier)
+    # "BBl 1975 I 609" / "FF 1998 I 205": Fedlex's dct:identifier, else its
+    # jolux:historicalLegalId (both carry the same string on the language
+    # expression; probed 2026-09-09). None when Fedlex has neither — never
+    # assembled from year / volume / page (R1-R3); the parts stay separate.
+    citation: str | None
     publication_date: str | None
     volume: int | None
     language: str
@@ -745,17 +749,6 @@ def classify_file_host(file_url: str | None) -> str:
     return netloc
 
 
-def _roman(n: int) -> str:
-    out, val = "", n
-    for num, sym in ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"),
-                     (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"),
-                     (5, "V"), (4, "IV"), (1, "I")):
-        while val >= num:
-            out += sym
-            val -= num
-    return out
-
-
 def _untyped_candidate(row: dict, language: str) -> UntypedBotschaft | None:
     """Map one SPARQL row of the untyped query to a candidate, or None."""
     act = _val(row, "act")
@@ -788,11 +781,7 @@ def _untyped_candidate(row: dict, language: str) -> UntypedBotschaft | None:
     if not file_url:
         return None
     volume = parsed["volume"] if parsed else None
-    citation = _val(row, "ident")
-    if not citation:
-        label = "BBl" if language == "de" else "FF"
-        vol = f" {_roman(volume)}" if volume else ""
-        citation = f"{label} {year}{vol} {page}"
+    citation = (_val(row, "ident") or _val(row, "hid") or "").strip() or None
     return UntypedBotschaft(
         year=year, page=page, title=title, eli_uri=act, file_url=file_url,
         file_host=classify_file_host(file_url), citation=citation,
@@ -816,7 +805,10 @@ def discover_fga_botschaften_untyped(
 
     One candidate per work: when Fedlex returns several rows for a work
     (several titles or files) the first row carrying a file wins. Rows
-    without a file URL are dropped (nothing to fetch).
+    without a file URL are dropped (nothing to fetch). The citation string
+    is ``dct:identifier`` or ``jolux:historicalLegalId`` on the expression;
+    a work with neither is returned with ``citation=None`` (the ingest
+    records it, never builds one) and counted in the log line.
     """
     if language not in LANG_URIS:
         raise ValueError(f"Unsupported language: {language!r}")
@@ -824,7 +816,7 @@ def discover_fga_botschaften_untyped(
     query = f"""
     PREFIX jolux: <{JOLUX}>
     PREFIX dct: <{DCT}>
-    SELECT DISTINCT ?act ?title ?memPage ?ident ?pubDate ?file WHERE {{
+    SELECT DISTINCT ?act ?title ?memPage ?ident ?hid ?pubDate ?file WHERE {{
       ?act jolux:isRealizedBy ?expr .
       ?expr jolux:language <{LANG_URIS[language]}> .
       ?expr jolux:title ?title .
@@ -833,6 +825,7 @@ def discover_fga_botschaften_untyped(
       FILTER NOT EXISTS {{ ?act jolux:typeDocument <{BOTSCHAFT_TYPE_DOC_URI}> }}
       OPTIONAL {{ ?expr jolux:memorialPage ?memPage }}
       OPTIONAL {{ ?expr dct:identifier ?ident }}
+      OPTIONAL {{ ?expr jolux:historicalLegalId ?hid }}
       OPTIONAL {{ ?act jolux:publicationDate ?pubDate }}
       OPTIONAL {{ ?expr jolux:isEmbodiedBy ?manif . ?manif jolux:isExemplifiedBy ?file }}
     }}
@@ -853,9 +846,11 @@ def discover_fga_botschaften_untyped(
     hosts: dict[str, int] = {}
     for c in out:
         hosts[c.file_host] = hosts.get(c.file_host, 0) + 1
+    no_citation = sum(1 for c in out if not c.citation)
     log.info(
-        "discover_fga_botschaften_untyped(%s): %d works (%d rows, %d dropped) hosts=%s",
-        language, len(out), len(rows), dropped, hosts,
+        "discover_fga_botschaften_untyped(%s): %d works (%d rows, %d dropped, "
+        "%d without a Fedlex citation) hosts=%s",
+        language, len(out), len(rows), dropped, no_citation, hosts,
     )
     return out
 

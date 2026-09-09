@@ -18,15 +18,35 @@ What is stored (all additive to the existing schema):
   retained — only text.
 * ``botschaft_paragraphs`` (+ FTS5 via the existing triggers).
 * ``botschaft_fetch_state`` keyed by (eli_uri, language): done / exists /
-  collision / not_found / no_text / error, with attempt counts, so a run
-  can stop at any point and the next one continues where it left off.
+  collision / not_found / no_text / no_citation / error, with attempt
+  counts, so a run can stop at any point and the next one continues where
+  it left off.
+
+Every document is one transaction: the ``botschaft_documents`` row, its
+paragraphs and the state row commit together or not at all; a failure
+inside the insert rolls back and records ``error``. One run at a time per
+host: ``run_historical_backfill`` holds an ``flock`` on a lock file for the
+whole run and a second run refuses to start (CLI exit 3).
+
+The citation string is Fedlex's (``dct:identifier``, else
+``jolux:historicalLegalId``, both "BBl 1975 I 609" — verified by SPARQL
+2026-09-09). It is never assembled from year / volume / page. When Fedlex
+has neither, the work is recorded as ``no_citation`` and not fetched:
+``botschaft_documents.bbl_citation`` is NOT NULL, and making it nullable
+is a table rebuild (see the runbook).
 
 Text handling (R1-R3: the corpus is verbatim). The cleaner removes what is
 not the document — the Bundesblatt masthead of an issue's first page, the
 running page number, the ``#ST#`` scan markers — rejoins words the
 typesetter hyphenated at line ends, and groups lines into paragraphs. It
 never rewrites a word; OCR errors in the source ("Eeihe" for "Reihe")
-stay as they are.
+stay as they are. Two rules keep it from deleting body text: a line is
+only ever dropped by POSITION (the first or last one or two lines of a
+page, or the masthead block at the top of an issue-first page) AND by
+pattern, never anywhere else on the page; and a line-end hyphen is only
+joined when the result is plausibly one word (lower-case continuation,
+no known hyphenated prefix or compound such as "peut-|être",
+"c'est-à-|dire", "porte-|parole"). When in doubt the hyphen stays.
 
 The collision rule: ``botschaft_documents`` is UNIQUE on (bbl_year,
 bbl_page, language), a constraint from the volume-less post-1998
@@ -41,11 +61,12 @@ from __future__ import annotations
 import hashlib
 import io
 import logging
+import os
 import re
 import sqlite3
-import statistics
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterable
 
 from search_stack.bar_fetcher import FetchStopped, PoliteFetcher
@@ -56,7 +77,7 @@ SOURCE_COLLECTION_BAR = "bar-amtsdruckschriften"
 SOURCE_COLLECTION_FEDLEX = "fedlex-filestore"
 
 # Terminal states: the candidate is never fetched again by a later run.
-TERMINAL_STATES = {"done", "exists", "collision", "no_text"}
+TERMINAL_STATES = {"done", "exists", "collision", "no_text", "no_citation"}
 # Retried on a later run, up to --max-attempts.
 RETRY_STATES = {"error", "not_found"}
 
@@ -65,9 +86,17 @@ RETRY_STATES = {"error", "not_found"}
 
 _ST_MARK = "#ST#"
 _PAGE_NO_RE = re.compile(r"^\s*\d{1,5}\s*$")
+# The gazette's title alone on a line: the masthead of an issue-first page
+# opens with it. Only when it is present in the head zone are the other
+# masthead patterns applied — on every other page the words "Nachnahme",
+# "Halbjahr", "Preis … Franken", "Band II" are body text.
+_MASTHEAD_TITLE_RE = re.compile(
+    r"^\s*(?:Bundesblatt|Feuille\s+f[ée]d[ée]rale|Foglio\s+federale)\s*$", re.IGNORECASE,
+)
 # Lines of the Bundesblatt / Feuille fédérale / Foglio federale masthead that
 # opens every issue (the first page of a document that starts an issue
-# carries it above the title). Matched only in the head zone of a page.
+# carries it above the title). Matched only in the head zone of a page
+# whose head zone also carries the title line.
 _MASTHEAD_RE = re.compile(
     r"^\s*(?:Bundesblatt|Feuille\s+f[ée]d[ée]rale|Foglio\s+federale)\s*$"
     r"|\b\d{1,3}\.?\s*(?:Jahrgang|ann[ée]e|anno)\b"
@@ -81,22 +110,32 @@ _MASTHEAD_RE = re.compile(
     re.IGNORECASE,
 )
 # Printer's signature at the foot of a page ("Bundesblatt. 107. Jahrg. Bd. I 77",
-# "Bundesblatt 127 Jahrg Bd I 23", "Feuille fédérale. 107e année. Vol. I.") and
-# the print-job number ("1975-45", "4042").
-_FOOTER_RE = re.compile(
-    r"^\s*(?:Bundesblatt|Feuille\s+f[ée]d[ée]rale|Foglio\s+federale)\b.*"
-    r"(?:Jahrg|ann[ée]e|anno|Bd\.?|Vol\.?)"
-    r"|^\s*\d{4}-\d{1,3}\s*$|^\s*\d{1,5}\s*$",
+# "Bundesblatt 127 Jahrg Bd I 23", "Feuille fédérale. 107e année. Vol. I 12"):
+# starts with the gazette's name, names the volume year ("Jahrg" / "année" /
+# "anno") and ends with a small integer (the sheet number). A citation in
+# the body ("Bundesblatt 1934, Bd. I, S. 350 und die dortigen Ausführungen.")
+# has no "Jahrg" and ends in a word or punctuation, so it is never matched.
+_SIGNATURE_RE = re.compile(
+    r"^\s*(?:Bundesblatt|Feuille\s+f[ée]d[ée]rale|Foglio\s+federale)\b"
+    r".*\b(?:Jahrg|ann[ée]e|anno)\b.*?\b\d{1,3}\s*\.?\s*$",
     re.IGNORECASE,
 )
-_TAIL_ZONE_LINES = 4
+# The print-job number ("1975-45") on the last line of a document.
+_PRINT_JOB_RE = re.compile(r"^\s*\d{4}-\d{1,3}\s*$")
+# A foot line is dropped only in the last _TAIL_ZONE_LINES non-blank lines.
+_TAIL_ZONE_LINES = 2
 # The Bundesarchiv appends one sheet with the catalogue record of the scan
 # ("Schweizerisches Bundesarchiv, Digitale Amtsdruckschriften …"). It is not
 # part of the document and is dropped as a whole page.
 _ARCHIVE_SHEET_RE = re.compile(
     r"^\s*Schweizerisches\s+Bundesarchiv,\s+Digitale\s+Amtsdruckschriften", re.IGNORECASE,
 )
+# The masthead block of an issue-first page (title, year, price, printer,
+# issue number) runs to about ten lines; searched for the gazette title.
 _HEAD_ZONE_LINES = 12
+# On every page: the page number (and, on a document's first page, the
+# Geschäftsnummer above the title) sit in the first two lines.
+_HEAD_NUMBER_LINES = 2
 _ENUMERATOR_RE = re.compile(
     r"^\s*(?:[IVXLC]+\.|\d+(?:\.\d+)*\.?|[A-Za-z][.)]|[a-z]\)|[-–•])\s+\S"
 )
@@ -121,29 +160,67 @@ def _is_masthead(line: str) -> bool:
     return bool(_MASTHEAD_RE.search(line))
 
 
+def _next_nonblank(lines: list[str], start: int) -> str:
+    for ln in lines[start:]:
+        if ln.strip():
+            return ln
+    return ""
+
+
 def _strip_head_zone(lines: list[str]) -> list[str]:
-    """Drop page numbers, masthead lines and scan markers from the top of a
-    page. Stops at the first line that is none of those."""
+    """Drop what sits above the text at the top of a page — by position.
+
+    * On every page: blank lines and scan markers, and a bare number in the
+      first line (the page number). A bare number in the second line is
+      the Geschäftsnummer only when the title block follows it; any other
+      second-line number (a year in a table that continues from the
+      previous page) is body text and stays.
+    * On an issue-first page — recognised by the gazette's title alone on
+      a line in the head zone — the masthead block: lines matching the
+      masthead patterns, from the top, up to the first line that is not
+      one. A page without that title line never loses a masthead-pattern
+      line ("Die Nachnahme wird …", "Im ersten Halbjahr …" are text).
+    """
+    head = [ln for ln in lines[:_HEAD_ZONE_LINES] if ln.strip()]
+    issue_first = any(_MASTHEAD_TITLE_RE.match(ln) for ln in head)
     i = 0
     n = len(lines)
+    pos = 0        # non-blank, non-masthead lines seen: the number rule is positional
     while i < n and i < _HEAD_ZONE_LINES:
         ln = lines[i]
-        if not ln.strip() or _ST_MARK in ln or _PAGE_NO_RE.match(ln) or _is_masthead(ln):
+        if not ln.strip() or _ST_MARK in ln:
             i += 1
             continue
+        if issue_first and _is_masthead(ln):
+            i += 1
+            continue
+        if _PAGE_NO_RE.match(ln) and pos < _HEAD_NUMBER_LINES:
+            following = _next_nonblank(lines, i + 1)
+            if pos == 0 or _TITLE_KIND_RE.match(following) or _MASTHEAD_TITLE_RE.match(following):
+                i += 1
+                pos += 1
+                continue
         break
     return lines[i:]
 
 
+def _is_foot_line(line: str) -> bool:
+    return bool(_PAGE_NO_RE.match(line) or _PRINT_JOB_RE.match(line)
+                or _SIGNATURE_RE.match(line))
+
+
 def _strip_tail(lines: list[str]) -> list[str]:
     """Drop the page number, the printer's signature and the print-job number
-    from the foot of a page (at most a few lines)."""
+    from the foot of a page — only in the last two non-blank lines, only
+    when the line is nothing but one of those."""
     dropped = 0
-    while lines and dropped < _TAIL_ZONE_LINES and (
-        not lines[-1].strip() or _ST_MARK in lines[-1] or _FOOTER_RE.match(lines[-1])
-    ):
+    while lines and (not lines[-1].strip() or _ST_MARK in lines[-1]):
+        lines.pop()
+    while lines and dropped < _TAIL_ZONE_LINES and _is_foot_line(lines[-1]):
         lines.pop()
         dropped += 1
+        while lines and (not lines[-1].strip() or _ST_MARK in lines[-1]):
+            lines.pop()
     return lines
 
 
@@ -151,22 +228,103 @@ def _strip_tail(lines: list[str]) -> list[str]:
 # conjunction on the next line; the hyphen and the space stay.
 _SUSPENDED_NEXT_RE = re.compile(r"^(?:und|oder|bzw\.|sowie|beziehungsweise|et|ou|e|o|ed|od)\b")
 
+# Fragments before a line-end hyphen that carry a real hyphen in the
+# language: the typesetter breaks "peut-être" at its own hyphen, so
+# "peut-" / "être" must come back as "peut-être", not "peutêtre". Lower-case,
+# compared against the last word before the hyphen. Kept small on purpose:
+# a fragment that is also a syllable of ordinary words ("pré-|sident",
+# "au-|torité", "entre-|prise", "co-|mité", "Pro-|blem") is not listed, so
+# those words are rejoined; the doubtful cases lean towards keeping the
+# hyphen, which is verbatim-safe.
+_HYPHEN_PREFIXES: dict[str, frozenset[str]] = {
+    "de": frozenset({"quasi", "semi", "non"}),
+    "fr": frozenset({
+        "peut", "est", "sont", "ont", "faut", "doit", "avons", "avez",
+        "sous", "non", "demi", "semi", "vice", "quasi", "anti", "contre", "avant",
+        "arrière", "arriere", "sans", "porte", "garde", "après", "apres", "outre",
+        "pseudo", "néo", "neo", "socio", "franco", "italo", "germano", "nord", "sud",
+        "ouest", "grand", "grande", "petit", "petite", "haut", "haute", "saint",
+        "sainte", "lieu", "chef", "vis", "tout", "toute", "même", "meme",
+    }),
+    "it": frozenset({
+        "ex", "vice", "anti", "semi", "quasi", "neo", "post", "non", "filo", "ultra",
+        "extra", "socio", "franco", "italo", "svizzero", "nord", "ovest", "medio",
+        "afro", "euro", "multi", "pluri", "mono",
+    }),
+}
+# Fragments after a line-end hyphen that close a hyphenated compound
+# ("c'est-à-" / "dire", "au-" / "dessus", "ci-" / "joint", "moi-" / "même",
+# "dit-" / "il"): the hyphen stays. Words that are also common second
+# halves of broken words ("commer-|ce", "moy-|en", "ai-|les", "va-|leur")
+# are deliberately absent.
+_HYPHEN_SUFFIXES: dict[str, frozenset[str]] = {
+    "de": frozenset(),
+    "fr": frozenset({
+        "être", "etre", "dire", "dessus", "dessous", "delà", "dela", "là", "vis",
+        "même", "meme", "mêmes", "memes", "parole", "après", "apres", "contre",
+        "joint", "jointe", "joints", "jointes", "annexé", "annexée", "inclus", "incluse",
+        "il", "ils", "elle", "elles", "je", "nous", "vous", "moi", "toi", "lui",
+    }),
+    "it": frozenset({"presidente", "direttore", "console"}),
+}
 
-def _join_hyphen(prev: str, nxt: str) -> str:
-    """Join two physical lines. A line-end hyphen followed by a lower-case
-    continuation is a broken word ("Schweize-" / "rischen" → one word);
-    followed by an upper-case line it is a broken compound ("Basel-" /
-    "Stadt" → "Basel-Stadt"); a suspended hyphen before "und" / "et" keeps
-    its space."""
+
+def _last_word(s: str) -> str:
+    """The alphabetic word closing ``s`` (which ends in "-"), lower-cased;
+    "" when the fragment is not a word (digits, punctuation)."""
+    body = s[:-1]
+    m = re.search(r"([^\W\d_]+)$", body, re.UNICODE)
+    return m.group(1).lower() if m else ""
+
+
+def _first_word(s: str) -> str:
+    m = re.match(r"([^\W\d_]+)", s, re.UNICODE)
+    return m.group(1).lower() if m else ""
+
+
+def _join_hyphen(prev: str, nxt: str, language: str = "de") -> str:
+    """Join two physical lines across a line-end hyphen — conservatively.
+
+    * lower-case continuation whose halves are plain word fragments and
+      not a known hyphenated prefix / suffix of the language: one word
+      ("Schweize-" / "rischen" → "Schweizerischen", "fé-" / "déral" →
+      "fédéral");
+    * a known hyphenated prefix or suffix ("peut-" / "être", "c'est-à-" /
+      "dire", "porte-" / "parole", "au-" / "dessus"), or a fragment that
+      is itself preceded by a hyphen ("vis-à-", "a-t-"): the hyphen stays
+      and the lines meet without a space ("peut-être", "c'est-à-dire");
+    * an upper-case continuation is a broken compound ("Basel-" / "Stadt",
+      "Saint-" / "Gall"): the hyphen stays;
+    * digits on both sides are a range ("1934-" / "1935"): the hyphen stays;
+    * a suspended hyphen before "und" / "et", and everything else in doubt
+      (punctuation, an empty fragment): the hyphen stays and the line
+      break becomes a space — never a rewrite.
+    """
     if prev.endswith("-") and not prev.endswith(" -"):
-        if nxt[:1].islower() and not _SUSPENDED_NEXT_RE.match(nxt):
-            return prev[:-1] + nxt
         if nxt[:1].isupper():
             return prev + nxt
+        if nxt[:1].isdigit() and prev[-2:-1].isdigit():
+            # A range broken at its dash ("1934-" / "1935").
+            return prev + nxt
+        if nxt[:1].islower() and not _SUSPENDED_NEXT_RE.match(nxt):
+            before = _last_word(prev)
+            after = _first_word(nxt)
+            if not before or not after:
+                return prev + " " + nxt
+            body = prev[:-1]
+            # "c'est-à-" / "vis-à-" / "a-t-": the fragment is itself the
+            # tail of a hyphenated compound.
+            tail = body[-(len(before) + 1):-len(before)] if len(body) > len(before) else ""
+            compound = tail == "-"
+            prefixes = _HYPHEN_PREFIXES.get(language, frozenset())
+            suffixes = _HYPHEN_SUFFIXES.get(language, frozenset())
+            if compound or before in prefixes or after in suffixes:
+                return prev + nxt
+            return prev[:-1] + nxt
     return prev + " " + nxt
 
 
-def _page_paragraphs(page_text: str) -> list[str]:
+def _page_paragraphs(page_text: str, language: str = "de") -> list[str]:
     """One OCR page → list of paragraph strings (lines joined by spaces).
 
     The OCR layer carries one physical line per text line and no blank
@@ -212,13 +370,11 @@ def _page_paragraphs(page_text: str) -> list[str]:
                 _close(cur)
                 cur = ""
             continue
-        if _PAGE_NO_RE.match(s):
-            continue
         short = len(s) < short_cut
         terminal = bool(_TERMINAL_RE.search(s))
         nxt = lines[idx + 1].strip() if idx + 1 < n else ""
         if title_block:
-            cur = _join_hyphen(cur, s) if cur else s
+            cur = _join_hyphen(cur, s, language) if cur else s
             # The block runs to its first closing line; the date line
             # "(Vom 8. März 1935.)" that may follow belongs to it.
             if terminal and not date_re.match(nxt):
@@ -254,7 +410,7 @@ def _page_paragraphs(page_text: str) -> list[str]:
                 _close(article_head)
             article_head = s
             continue
-        cur = _join_hyphen(cur, s) if cur else s
+        cur = _join_hyphen(cur, s, language) if cur else s
         if is_heading or standalone or salutation or (short and terminal):
             _close(cur)
             cur = ""
@@ -265,12 +421,12 @@ def _page_paragraphs(page_text: str) -> list[str]:
     return [p.strip() for p in paragraphs if p.strip()]
 
 
-def clean_historical_page(page_text: str) -> str:
+def clean_historical_page(page_text: str, language: str = "de") -> str:
     """One OCR page → paragraphs separated by blank lines (no stitching)."""
-    return "\n\n".join(_page_paragraphs(page_text))
+    return "\n\n".join(_page_paragraphs(page_text, language))
 
 
-def clean_historical_pages(pages: Iterable[str]) -> list[str]:
+def clean_historical_pages(pages: Iterable[str], language: str = "de") -> list[str]:
     """Clean every page and stitch paragraphs that run over a page break.
 
     A paragraph that ends a page without terminal punctuation continues
@@ -279,7 +435,7 @@ def clean_historical_pages(pages: Iterable[str]) -> list[str]:
     on which it starts. Returns one string per input page, blank-line
     separated paragraphs inside — the shape ``parse_botschaft_text`` takes.
     """
-    per_page = [_page_paragraphs(p) for p in pages]
+    per_page = [_page_paragraphs(p, language) for p in pages]
     for i in range(len(per_page) - 1):
         cur, nxt = per_page[i], per_page[i + 1]
         if not cur or not nxt:
@@ -289,7 +445,7 @@ def clean_historical_pages(pages: Iterable[str]) -> list[str]:
                 or _ARTICLE_LINE_RE.match(nxt[0]) or _TITLE_KIND_RE.match(nxt[0].split("\n", 1)[0])
                 or not nxt[0][:1].islower()):
             continue
-        cur[-1] = _join_hyphen(last, nxt[0])
+        cur[-1] = _join_hyphen(last, nxt[0], language)
         del nxt[0]
     return ["\n\n".join(p) for p in per_page]
 
@@ -360,35 +516,47 @@ def store_historical_document(
     (botschaft_id or None, paragraph count, status)."""
     from search_stack.build_botschaft_corpus import parse_botschaft_text
 
-    cleaned = clean_historical_pages(pages)
+    cleaned = clean_historical_pages(pages, cand.language)
     paragraphs = list(parse_botschaft_text(cleaned, language=cand.language))
     if not paragraphs:
         return None, 0, "no_text"
+    if not cand.citation:
+        # NOT NULL column; the citation is Fedlex's or nothing (R1-R3).
+        return None, 0, "no_citation"
     text_hash = hashlib.sha256(pdf_bytes).hexdigest()
     now = datetime.now(timezone.utc).isoformat()
-    cur = conn.execute(
-        """
-        INSERT INTO botschaft_documents
-            (bbl_year, bbl_page, bbl_citation, eli_uri, title, publication_date,
-             source_url, format, language, page_count, text_hash, ingested_at,
-             source_collection, bbl_volume)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, ?, ?)
-        """,
-        (cand.year, cand.page, cand.citation, cand.eli_uri, cand.title,
-         cand.publication_date, cand.file_url, cand.language, len(pages),
-         text_hash, now, source_collection, cand.volume),
-    )
-    botschaft_id = cur.lastrowid
-    conn.executemany(
-        """
-        INSERT INTO botschaft_paragraphs
-            (botschaft_id, para_order, page_number, section_path, article_anchor,
-             text, text_length)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-        [(botschaft_id, p["para_order"], p["page_number"], p["section_path"],
-          p["article_anchor"], p["text"], p["text_length"]) for p in paragraphs],
-    )
+    # One transaction: the document row never outlives a failed paragraph
+    # insert. The caller adds the state row to the same transaction and
+    # commits; any exception here leaves the connection clean.
+    if not conn.in_transaction:
+        conn.execute("BEGIN")
+    try:
+        cur = conn.execute(
+            """
+            INSERT INTO botschaft_documents
+                (bbl_year, bbl_page, bbl_citation, eli_uri, title, publication_date,
+                 source_url, format, language, page_count, text_hash, ingested_at,
+                 source_collection, bbl_volume)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, ?, ?)
+            """,
+            (cand.year, cand.page, cand.citation, cand.eli_uri, cand.title,
+             cand.publication_date, cand.file_url, cand.language, len(pages),
+             text_hash, now, source_collection, cand.volume),
+        )
+        botschaft_id = cur.lastrowid
+        conn.executemany(
+            """
+            INSERT INTO botschaft_paragraphs
+                (botschaft_id, para_order, page_number, section_path, article_anchor,
+                 text, text_length)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [(botschaft_id, p["para_order"], p["page_number"], p["section_path"],
+              p["article_anchor"], p["text"], p["text_length"]) for p in paragraphs],
+        )
+    except BaseException:
+        conn.rollback()
+        raise
     return botschaft_id, len(paragraphs), "done"
 
 
@@ -400,16 +568,34 @@ def ingest_historical_one(
     FetchStopped when the fetcher hit its burst limit (state for this
     candidate is written first)."""
     lang = cand.language
+    if not cand.citation:
+        # Fedlex has no citation string for this expression; nothing is
+        # assembled from the parts. Recorded, not fetched (see module doc).
+        record_state(conn, cand.eli_uri, lang, "no_citation", bump_attempts=False,
+                     error=f"no dct:identifier / historicalLegalId "
+                           f"(year {cand.year}, vol {cand.volume}, page {cand.page})",
+                     source_url=cand.file_url)
+        conn.commit()
+        return "no_citation"
     # Already there (an earlier run, or the typed 1999 overlap): no request.
+    # A BAR row without paragraphs (a run that died between the two
+    # inserts before every document became one transaction) is not
+    # "there": it is removed and the document fetched again.
     row = conn.execute(
-        "SELECT botschaft_id FROM botschaft_documents WHERE eli_uri = ? AND language = ?",
+        "SELECT d.botschaft_id, d.source_collection, "
+        "  (SELECT COUNT(*) FROM botschaft_paragraphs p WHERE p.botschaft_id = d.botschaft_id) "
+        "FROM botschaft_documents d WHERE d.eli_uri = ? AND d.language = ?",
         (cand.eli_uri, lang),
     ).fetchone()
-    if row:
+    if row and (row[2] > 0 or row[1] != source_collection):
         record_state(conn, cand.eli_uri, lang, "exists", botschaft_id=row[0],
                      bump_attempts=False)
         conn.commit()
         return "exists"
+    if row:
+        log.warning("  %s: row %d has no paragraphs; re-fetching", cand.citation, row[0])
+        conn.execute("DELETE FROM botschaft_documents WHERE botschaft_id = ?", (row[0],))
+        conn.commit()
     holder = conn.execute(
         "SELECT botschaft_id, eli_uri FROM botschaft_documents "
         "WHERE bbl_year = ? AND bbl_page = ? AND language = ?",
@@ -457,10 +643,22 @@ def ingest_historical_one(
                      source_url=cand.file_url)
         conn.commit()
         return "collision"
-    record_state(conn, cand.eli_uri, lang, status, http_status=res.status,
-                 botschaft_id=bid, source_url=cand.file_url,
-                 error=None if status == "done" else "no paragraphs after cleaning")
-    conn.commit()
+    except Exception as e:  # noqa: BLE001 — store() has rolled back
+        if conn.in_transaction:
+            conn.rollback()
+        record_state(conn, cand.eli_uri, lang, "error", http_status=res.status,
+                     error=f"store: {type(e).__name__}: {e}", source_url=cand.file_url)
+        conn.commit()
+        log.warning("  %s store failed, rolled back: %s", cand.citation, e)
+        return "error"
+    try:
+        record_state(conn, cand.eli_uri, lang, status, http_status=res.status,
+                     botschaft_id=bid, source_url=cand.file_url,
+                     error=None if status == "done" else "no paragraphs after cleaning")
+        conn.commit()
+    except BaseException:
+        conn.rollback()      # the document goes with its state row, or not at all
+        raise
     log.info("  %s %s: %d pages -> %d paragraphs [%s]",
              cand.citation, lang, len(pages), n_paras, status)
     return status
@@ -499,15 +697,82 @@ def select_candidates(
     return out, skipped
 
 
+# ── Host-level run lock ───────────────────────────────────────────────
+
+# One backfill process per host, whatever its language or unit name: the
+# rate the runbook promises the Bundesarchiv is per host, not per run.
+DEFAULT_LOCK_PATH = Path(__file__).resolve().parents[1] / "logs" / "bar_fetch.lock"
+
+
+class BackfillLocked(RuntimeError):
+    """Another backfill run holds the lock file; this one must not start."""
+
+
+class _RunLock:
+    """``flock(LOCK_EX | LOCK_NB)`` on ``path`` for the life of the object."""
+
+    def __init__(self, path: Path | str) -> None:
+        self.path = Path(path)
+        self._fd: int | None = None
+
+    def __enter__(self) -> "_RunLock":
+        import fcntl
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o644)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as e:
+            os.close(fd)
+            raise BackfillLocked(f"{self.path} is held by another run ({e})") from e
+        os.ftruncate(fd, 0)
+        os.write(fd, f"{os.getpid()} {datetime.now(timezone.utc).isoformat()}\n".encode())
+        self._fd = fd
+        return self
+
+    def __exit__(self, *exc) -> None:
+        import fcntl
+        if self._fd is not None:
+            try:
+                fcntl.flock(self._fd, fcntl.LOCK_UN)
+            finally:
+                os.close(self._fd)
+                self._fd = None
+
+
 def run_historical_backfill(
     conn: sqlite3.Connection, *, language: str, host_allow: set[str],
     min_year: int, max_year: int, max_per_run: int | None, max_attempts: int,
     min_interval: float, dry_run: bool = False, limit: int | None = None,
     discover=None, fetcher: PoliteFetcher | None = None,
+    lock_path: Path | str | None = DEFAULT_LOCK_PATH,
 ) -> dict:
     """Discover, filter, fetch and store; returns a stats dict (also printed
     as JSON by the CLI). ``discover`` and ``fetcher`` are injectable for
-    tests."""
+    tests. A non-dry run holds the host lock (``lock_path``) from before the
+    first request to the end; raises :class:`BackfillLocked` at once when
+    another run holds it."""
+    if dry_run or lock_path is None:
+        return _run_historical_backfill(
+            conn, language=language, host_allow=host_allow, min_year=min_year,
+            max_year=max_year, max_per_run=max_per_run, max_attempts=max_attempts,
+            min_interval=min_interval, dry_run=dry_run, limit=limit,
+            discover=discover, fetcher=fetcher,
+        )
+    with _RunLock(lock_path):
+        return _run_historical_backfill(
+            conn, language=language, host_allow=host_allow, min_year=min_year,
+            max_year=max_year, max_per_run=max_per_run, max_attempts=max_attempts,
+            min_interval=min_interval, dry_run=dry_run, limit=limit,
+            discover=discover, fetcher=fetcher,
+        )
+
+
+def _run_historical_backfill(
+    conn: sqlite3.Connection, *, language: str, host_allow: set[str],
+    min_year: int, max_year: int, max_per_run: int | None, max_attempts: int,
+    min_interval: float, dry_run: bool, limit: int | None,
+    discover, fetcher: PoliteFetcher | None,
+) -> dict:
     if discover is None:
         from scrapers.fedlex_materialien import discover_fga_botschaften_untyped
         discover = discover_fga_botschaften_untyped
@@ -526,14 +791,15 @@ def run_historical_backfill(
         "language": language, "discovered": len(found), "skipped": skipped,
         "eligible": len(todo), "cap": cap, "host_allow": sorted(host_allow),
         "done": 0, "exists": 0, "collision": 0, "not_found": 0, "no_text": 0,
-        "error": 0, "fetched": 0, "stopped": None,
+        "no_citation": 0, "error": 0, "fetched": 0, "stopped": None,
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
     log.info("historical backfill (%s): %d discovered, %d eligible, cap %d, skipped %s",
              language, len(found), len(todo), cap, skipped)
     if dry_run:
         for c in todo[:25]:
-            log.info("  candidate: %s  %s  %s", c.citation, c.file_host, c.title[:80])
+            log.info("  candidate: %s  %s  %s", c.citation or f"(no citation) {c.eli_uri}",
+                     c.file_host, c.title[:80])
         if len(todo) > 25:
             log.info("  … and %d more", len(todo) - 25)
         stats["elapsed_seconds"] = round(time.time() - t0, 2)
@@ -556,12 +822,20 @@ def run_historical_backfill(
             log.error("hard stop: %s", e)
             break
         except Exception as e:  # noqa: BLE001
+            # Last resort: ingest_historical_one records its own errors
+            # inside the document's transaction; reaching here means a
+            # state write itself failed (locked DB, disk). Roll back —
+            # never commit — and stop: requests without persistence are
+            # requests wasted.
             stats["error"] += 1
-            record_state(conn, cand.eli_uri, language, "error",
-                         error=f"{type(e).__name__}: {e}", source_url=cand.file_url)
-            conn.commit()
-            log.warning("  %s failed: %s", cand.citation, e)
-            status = "error"
+            try:
+                conn.rollback()
+            except sqlite3.Error:
+                pass
+            stats["stopped"] = f"persistence failure: {type(e).__name__}: {e}"
+            log.error("  %s failed outside the document transaction: %s; stopping",
+                      cand.citation or cand.eli_uri, e)
+            break
         else:
             stats[status] = stats.get(status, 0) + 1
         stats["fetched"] += fetcher.requests_made - before
@@ -572,10 +846,10 @@ def run_historical_backfill(
             remaining = min(cap, len(todo)) - fetcher.requests_made
             eta = remaining / rate if rate > 0 else 0
             log.info("  progress %d/%d (done=%d exists=%d collision=%d not_found=%d "
-                     "no_text=%d error=%d) %.2f req/s eta=%dmin",
+                     "no_text=%d no_citation=%d error=%d) %.2f req/s eta=%dmin",
                      i, len(todo), stats["done"], stats["exists"], stats["collision"],
-                     stats["not_found"], stats["no_text"], stats["error"], rate,
-                     int(eta / 60))
+                     stats["not_found"], stats["no_text"], stats["no_citation"],
+                     stats["error"], rate, int(eta / 60))
     stats["requests_made"] = fetcher.requests_made
     stats["bytes_received"] = fetcher.bytes_received
     stats["elapsed_seconds"] = round(time.time() - t0, 2)
@@ -592,7 +866,8 @@ def state_summary(conn: sqlite3.Connection) -> dict:
 
 
 __all__ = [
-    "SOURCE_COLLECTION_BAR", "clean_historical_page", "clean_historical_pages",
-    "ingest_historical_one", "record_state", "load_state", "run_historical_backfill",
-    "select_candidates", "state_summary", "store_historical_document",
+    "BackfillLocked", "DEFAULT_LOCK_PATH", "SOURCE_COLLECTION_BAR",
+    "clean_historical_page", "clean_historical_pages", "ingest_historical_one",
+    "record_state", "load_state", "run_historical_backfill", "select_candidates",
+    "state_summary", "store_historical_document",
 ]
