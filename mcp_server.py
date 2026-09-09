@@ -5535,12 +5535,24 @@ def get_materialien(law_code: str, article: str | None = None,
 
 def search_materialien(
     query: str, law_code: str | None = None, limit: int = 10,
+    doc_type: str | None = None,
 ) -> dict:
-    """Full-text search across all preparatory materials.
+    """Full-text search across the curated digest of preparatory materials.
 
     Searches legislative intent, key arguments, design choices, and
     general context of Federal Council Botschaften.
+
+    ``doc_type`` (2026-09-09) is accepted for interface symmetry with
+    search_botschaft / get_materialien and validated against the same
+    enum, but it is a NO-OP here: the ``materialien`` digest table has no
+    Fedlex resource type (every digest is drawn from a Botschaft), so the
+    filter narrows nothing. It is echoed back as ``doc_type_filter`` with
+    a note pointing at search_botschaft, where the filter applies.
     """
+    try:
+        doc_type = _normalise_materialien_doc_type(doc_type)
+    except ValueError as e:
+        return {"error": str(e)}
     conn = _get_materialien_conn()
     if conn is None:
         return {"error": "Materialien database not available."}
@@ -5637,7 +5649,16 @@ def search_materialien(
             # opposite of useful.
             "corpus": ("curated digest of legislative intent: BV and BGFA only "
                        "(167 article digests, 748 debate pages)"),
+            # Symmetry with search_botschaft; see the docstring — a no-op here.
+            "doc_type_filter": doc_type,
         }
+        if doc_type:
+            out["doc_type_note"] = (
+                f"doc_type={doc_type!r} was accepted for symmetry with "
+                "search_botschaft but does not narrow this index: the curated "
+                "digest is not typed by Fedlex resource type. Use "
+                "search_botschaft(doc_type=...) to filter the verbatim documents."
+            )
         if relaxed:
             out["filters_relaxed"] = True
             out["note"] = (
@@ -14758,8 +14779,9 @@ def _handle_search_botschaft(
         except sqlite3.OperationalError:
             # Sanitised input should never reach here, but never 500 on a query:
             # degrade to a structured no-results response.
-            return {"query": q, "language_filter": language, "total": 0,
-                    "results": [], "_hint": "Query could not be parsed as FTS5; try simpler terms."}
+            return {"query": q, "language_filter": language, "doc_type_filter": doc_type,
+                    "total": 0, "results": [],
+                    "_hint": "Query could not be parsed as FTS5; try simpler terms."}
         relaxed = False
         if not rows:
             # Strict AND answered nothing on 57% of calls (30 days to
@@ -26880,6 +26902,17 @@ def _list_tools() -> list[Tool]:
                         "type": "string",
                         "description": "Filter by law abbreviation (e.g., 'BGFA').",
                     },
+                    "doc_type": {
+                        "type": "string",
+                        "enum": list(_MATERIALIEN_DOC_TYPES),
+                        "description": (
+                            "Accepted for symmetry with search_botschaft / "
+                            "get_materialien, but a NO-OP here: the curated digest "
+                            "carries no Fedlex document type, so the filter does not "
+                            "narrow results (echoed back as doc_type_filter). To "
+                            "filter by type, call search_botschaft with doc_type."
+                        ),
+                    },
                     "limit": {
                         "type": "integer",
                         "description": "Maximum results (1-50, default 10).",
@@ -28844,6 +28877,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 query=arguments.get("query", ""),
                 law_code=arguments.get("law_code"),
                 limit=int(arguments.get("limit", 10)),
+                doc_type=arguments.get("doc_type") or None,
             )
             return _text_and_payload(result, json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -31867,6 +31901,13 @@ setInterval(load, 30000);
         q: str = Query(None, description="Alias for `query`."),
         law_code: str = Query(None, description="Filter by law code"),
         limit: int = Query(10, ge=1, le=50, description="Max results"),
+        doc_type: str = Query(
+            None, regex="^(" + "|".join(_MATERIALIEN_DOC_TYPES) + ")$",
+            description=(
+                "Accepted for symmetry with /api/search-botschaft; a no-op on "
+                "this curated digest (echoed back as doc_type_filter)."
+            ),
+        ),
     ):
         query = query or q
         if not query:
@@ -31875,6 +31916,7 @@ setInterval(load, 30000);
             response,
             await asyncio.to_thread(
                 search_materialien, query=query, law_code=law_code, limit=limit,
+                doc_type=doc_type,
             ),
             "no_match_with_filters" if law_code else "no_fts_match")
 

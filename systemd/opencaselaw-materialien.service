@@ -22,18 +22,24 @@ WorkingDirectory=/opt/caselaw/repo
 # tagged botschaft_documents.doc_type. A run cut by TimeoutStartSec resumes
 # where it stopped (every document commits on its own). Files hosted on
 # amtsdruckschriften.bar.admin.ch are skipped here by design.
+# Fetch policy (2026-09-09): --max-per-run 1500 bounds each language run to
+# ~30-80 min at the measured rate (the catch-up takes three nights instead
+# of one); the loop stops with exit 4 on the first HTTP 429/403 or after
+# five consecutive failures, backing off exponentially before that, so the
+# && chain halts and FR/IT plus the enrichment wait for the next night.
+# The 0.5 s rate stays: the files come from Fedlex's own store.
 ExecStart=/bin/bash -c '\
     /usr/bin/python3 -m search_stack.build_botschaft_corpus \
         --ingest-all --discover-via-sparql --language de --min-year 1900 \
-        --types 23,24,25,30,38,39,40 \
+        --types 23,24,25,30,38,39,40 --max-per-run 1500 \
         --rate-limit 0.5 --db /opt/caselaw/repo/output/materialien.db && \
     /usr/bin/python3 -m search_stack.build_botschaft_corpus \
         --ingest-all --discover-via-sparql --language fr --min-year 1900 \
-        --types 23,24,25,30,38,39,40 \
+        --types 23,24,25,30,38,39,40 --max-per-run 1500 \
         --rate-limit 0.5 --db /opt/caselaw/repo/output/materialien.db && \
     /usr/bin/python3 -m search_stack.build_botschaft_corpus \
         --ingest-all --discover-via-sparql --language it --min-year 1900 \
-        --types 23,24,25,30,38,39,40 \
+        --types 23,24,25,30,38,39,40 --max-per-run 1500 \
         --rate-limit 0.5 --db /opt/caselaw/repo/output/materialien.db && \
     /usr/bin/python3 /opt/caselaw/repo/scripts/enrich_botschaft_links.py \
         --types 23,24,25,30,38,39,40 \

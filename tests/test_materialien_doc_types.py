@@ -257,7 +257,7 @@ def test_ingest_one_rejects_unknown_doc_type(tmp_path, monkeypatch):
 
 
 def test_ingest_one_skips_files_off_fedlex(tmp_path, monkeypatch):
-    """The BAR portal is robots-restricted and has its own throttled fetcher;
+    """The BAR portal is robots-restricted and not part of this ingest;
     this path must never download from it."""
     _stub_fetch(monkeypatch,
                 url="https://www.amtsdruckschriften.bar.admin.ch/viewOrigDoc.do?id=10000001&action=open")
@@ -475,12 +475,15 @@ def test_get_article_purpose_orders_botschaft_before_other_types(tmp_path, monke
 
 def test_tool_schemas_expose_doc_type():
     tools = {t.name: t for t in mcp_server._list_tools()}
-    for name in ("search_botschaft", "get_materialien"):
+    for name in ("search_botschaft", "get_materialien", "search_materialien"):
         prop = tools[name].inputSchema["properties"]["doc_type"]
         assert prop["enum"] == list(mcp_server._MATERIALIEN_DOC_TYPES)
         assert len(tools[name].description) <= 1024
     assert "doc_type" in tools["search_botschaft"].description
     assert "Berichte" in tools["search_materialien"].description
+    # symmetry, documented as a no-op on the digest
+    sm = tools["search_materialien"].inputSchema["properties"]["doc_type"]["description"]
+    assert "NO-OP" in sm and "search_botschaft" in sm
 
 
 # ── unit file + enrichment ────────────────────────────────────────────────
@@ -492,6 +495,10 @@ def test_systemd_unit_passes_the_type_list():
     # three ingest runs (de/fr/it) + the link enrichment
     assert len(flags) == 4 and set(flags) == {"23,24,25,30,38,39,40"}
     assert set(int(t) for t in flags[0].split(",")) == set(fm.FGA_DOC_TYPES)
+    # fetch policy: every language run is capped, the rate stays at 0.5 s
+    # (the flag as passed, not the comment that explains it)
+    assert re.findall(r"--max-per-run (\d+) \\", unit) == ["1500"] * 3
+    assert unit.count("--rate-limit 0.5") == 3
 
 
 def test_enrich_chain_query_covers_types():

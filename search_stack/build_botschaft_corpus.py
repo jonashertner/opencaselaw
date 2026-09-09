@@ -84,6 +84,49 @@ logging.basicConfig(
 log = logging.getLogger("build_botschaft_corpus")
 
 
+# ── Fetch policy (2026-09-09) ─────────────────────────────────────────
+#
+# The --ingest-all loop talks to two Fedlex hosts per candidate: the SPARQL
+# endpoint (manifestation lookup) and the file store (HEAD/GET). Before this
+# policy a refusal was one more line in stats['errors'] and the loop kept
+# going at the configured rate. Now a run stops on the first 429/403 or after
+# STOP_AFTER_CONSECUTIVE_FAILURES failures in a row, and each failure widens
+# the pause before the next candidate (exponential backoff, capped). A stop
+# exits non-zero so the unit's && chain halts; every document commits on its
+# own, so the next run resumes after the rows already stored.
+FATAL_HTTP_STATUSES = frozenset({403, 429})
+STOP_AFTER_CONSECUTIVE_FAILURES = 5
+BACKOFF_BASE_SECONDS = 2.0
+BACKOFF_MAX_SECONDS = 60.0
+INGEST_STOPPED_EXIT_CODE = 4
+
+
+class SourceUnavailable(RuntimeError):
+    """A Fedlex lookup or download failed for a reason that is the host's,
+    not the document's (HTTP error, timeout, refused connection). Carries
+    the HTTP status when there was one so the loop can tell a 429 from a
+    flaky read."""
+
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
+
+
+def http_status_of(exc: BaseException) -> int | None:
+    """The HTTP status behind an exception, whichever client raised it:
+    urllib (``.code``), requests (``.response.status_code``) or our own
+    ``SourceUnavailable`` (``.status``). None when there is no status."""
+    for attr in ("status", "code"):
+        v = getattr(exc, attr, None)
+        if isinstance(v, int) and 100 <= v < 600:
+            return v
+    resp = getattr(exc, "response", None)
+    v = getattr(resp, "status_code", None)
+    if isinstance(v, int) and 100 <= v < 600:
+        return v
+    return None
+
+
 # ── Schema ────────────────────────────────────────────────────────────
 
 SCHEMA_SQL = """
@@ -321,8 +364,15 @@ def resolve_manifestation(
     try:
         mans = fetch_manifestations(eli_uri)
     except Exception as e:
+        # A failed lookup is the endpoint's problem, not "no manifestation":
+        # surface it (with the HTTP status when there is one) so the ingest
+        # loop counts it and stops on a refusal, instead of skipping the
+        # document as pre-2003 and moving on at full rate.
         log.warning(f"  SPARQL manifestation lookup failed for {eli_uri}: {e}")
-        return (None, None)
+        raise SourceUnavailable(
+            f"SPARQL manifestation lookup failed for {eli_uri}: {e}",
+            status=http_status_of(e),
+        ) from e
 
     # Filter to requested language; prefer best format.
     same_lang = [m for m in mans if m.language == language]
@@ -544,6 +594,7 @@ def _url_exists(url: str, timeout: int = 15) -> bool:
     PDF parts; we don't want those treated as real parts. Checking the
     declared Content-Type catches that case before we waste a GET.
     """
+    import urllib.error
     import urllib.request
     req = urllib.request.Request(
         url,
@@ -556,6 +607,13 @@ def _url_exists(url: str, timeout: int = 15) -> bool:
                 return False
             ct = (r.headers.get("Content-Type") or "").lower()
             return "application/pdf" in ct
+    except urllib.error.HTTPError as e:
+        if e.code in FATAL_HTTP_STATUSES:
+            # Not "no part N" — the host is refusing us. Let the loop stop.
+            raise SourceUnavailable(
+                f"HEAD {url} answered HTTP {e.code}", status=e.code,
+            ) from e
+        return False
     except Exception:
         return False
 
@@ -670,7 +728,7 @@ def ingest_one(
     if not file_host_allowed(url):
         log.info(
             f"  skipping {citation} ({language}) — file hosted off Fedlex "
-            f"({url[:100]}); left to the amtsdruckschriften fetcher"
+            f"({url[:100]}); the BAR portal is not part of this ingest"
         )
         return None
     log.info(f"  resolved → {fmt}: {url[:120]}")
@@ -904,6 +962,99 @@ def link_from_amendment_refs(conn: sqlite3.Connection) -> dict:
     }
 
 
+def ingest_candidates(
+    conn: sqlite3.Connection,
+    candidates: list[tuple],
+    *,
+    language: str,
+    prefiltered: bool,
+    rate_limit: float,
+    max_consecutive_failures: int = STOP_AFTER_CONSECUTIVE_FAILURES,
+    sleep=None,
+    log_every: int = 25,
+) -> dict:
+    """Run ``ingest_one`` over ``candidates`` — ``(year, page, eli, doc_type)``
+    tuples, newest first — under the fetch policy at the top of this module.
+
+    Returns the stats dict. ``stats['stopped']`` is None for a run that saw
+    every candidate, else the reason: ``'http_429'`` / ``'http_403'`` (the
+    host refused; stop at once) or ``'N_consecutive_failures'``. Rows
+    committed before a stop are kept (``ingest_one`` commits per document),
+    so the next run's dedup resumes after them.
+
+    ``sleep`` is injectable for tests; the pause after a failure is
+    ``BACKOFF_BASE_SECONDS * 2**(n-1)`` capped at ``BACKOFF_MAX_SECONDS``
+    and replaces the rate-limit sleep for that candidate.
+    """
+    import time as _time
+    sleep = sleep or _time.sleep
+    total = len(candidates)
+    stats = {
+        "accepted": 0, "rejected_by_filter": 0, "errors": 0,
+        "total": total, "processed": 0, "stopped": None,
+        "max_consecutive_failures_seen": 0,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    }
+    consecutive = 0
+    t0 = _time.time()
+    for i, (year, page, eli, dtype) in enumerate(candidates, 1):
+        stats["processed"] = i
+        pause = rate_limit
+        try:
+            bid = ingest_one(
+                conn, year=year, page=page, eli_uri=eli,
+                language=language,
+                sr_number=None, article=None,
+                relation="considered",
+                prefiltered=prefiltered,
+                doc_type=dtype,
+            )
+        except Exception as e:
+            stats["errors"] += 1
+            consecutive += 1
+            stats["max_consecutive_failures_seen"] = max(
+                stats["max_consecutive_failures_seen"], consecutive)
+            status = http_status_of(e)
+            log.warning(f"  BBl {year} {page} ({language}) failed: {e}")
+            if status in FATAL_HTTP_STATUSES:
+                stats["stopped"] = f"http_{status}"
+            elif consecutive >= max_consecutive_failures:
+                stats["stopped"] = f"{consecutive}_consecutive_failures"
+            else:
+                pause = min(BACKOFF_MAX_SECONDS,
+                            BACKOFF_BASE_SECONDS * 2 ** (consecutive - 1))
+                log.warning(
+                    f"  backing off {pause:.0f}s after {consecutive} "
+                    f"consecutive failure{'s' if consecutive != 1 else ''}"
+                )
+        else:
+            consecutive = 0
+            if bid is None:
+                stats["rejected_by_filter"] += 1
+            else:
+                stats["accepted"] += 1
+        if stats["stopped"]:
+            log.error(
+                f"  stopping this run ({stats['stopped']}) at {i}/{total}; "
+                "committed rows are kept, the next run resumes after them"
+            )
+            break
+        sleep(pause)
+        if i % log_every == 0 or i == total:
+            elapsed = _time.time() - t0
+            rate = i / elapsed if elapsed > 0 else 0
+            eta = (total - i) / rate if rate > 0 else 0
+            log.info(
+                f"  progress {i}/{total} "
+                f"(accepted={stats['accepted']} "
+                f"filtered={stats['rejected_by_filter']} "
+                f"errors={stats['errors']}) "
+                f"rate={rate:.2f}/s eta={int(eta/60)}min"
+            )
+    stats["elapsed_seconds"] = round(_time.time() - t0, 2)
+    return stats
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument(
@@ -942,6 +1093,23 @@ def main() -> int:
     parser.add_argument(
         "--rate-limit", type=float, default=0.3,
         help="Seconds to sleep between fetches in --ingest-all (default 0.3).",
+    )
+    parser.add_argument(
+        "--max-per-run", type=int, default=None,
+        help=(
+            "Cap on documents processed per --ingest-all run (newest first; "
+            "the rest wait for the next run). Unlike --limit this is a "
+            "production setting: it bounds a catch-up night."
+        ),
+    )
+    parser.add_argument(
+        "--max-consecutive-failures", type=int,
+        default=STOP_AFTER_CONSECUTIVE_FAILURES,
+        help=(
+            "Stop the run (exit 4) after this many failed candidates in a "
+            f"row (default {STOP_AFTER_CONSECUTIVE_FAILURES}). Any HTTP "
+            "429/403 stops it at once regardless."
+        ),
     )
     parser.add_argument(
         "--min-year", type=int, default=2003,
@@ -1096,8 +1264,15 @@ def main() -> int:
                 f"(year, page) candidates ≥ {args.min_year} not yet in "
                 f"materialien.db, lang={args.language}"
             )
-        if args.limit:
-            candidates = candidates[: args.limit]
+        for cap_flag in ("limit", "max_per_run"):
+            cap = getattr(args, cap_flag)
+            if cap and len(candidates) > cap:
+                log.info(
+                    f"--{cap_flag.replace('_', '-')} {cap}: processing the "
+                    f"first {cap} of {len(candidates)} candidates (newest "
+                    "first); the rest wait for the next run"
+                )
+                candidates = candidates[:cap]
         if args.dry_run:
             for year, page, _eli, dtype in candidates[:25]:
                 log.info(f"  candidate: BBl {year} {page} [{dtype}]")
@@ -1105,46 +1280,27 @@ def main() -> int:
                 log.info(f"  … and {len(candidates) - 25} more")
             return 0
 
-        import time as _time
-        stats = {"accepted": 0, "rejected_by_filter": 0, "errors": 0,
-                 "total": len(candidates), "started_at": datetime.now(timezone.utc).isoformat()}
-        t0 = _time.time()
-        for i, (year, page, eli, dtype) in enumerate(candidates, 1):
-            try:
-                bid = ingest_one(
-                    conn, year=year, page=page, eli_uri=eli,
-                    language=args.language,
-                    sr_number=None, article=None,
-                    relation="considered",
-                    prefiltered=args.discover_via_sparql,
-                    doc_type=dtype,
-                )
-                if bid is None:
-                    stats["rejected_by_filter"] += 1
-                else:
-                    stats["accepted"] += 1
-            except Exception as e:
-                stats["errors"] += 1
-                log.warning(f"  BBl {year} {page} ({args.language}) failed: {e}")
-            _time.sleep(args.rate_limit)
-            if i % 25 == 0 or i == len(candidates):
-                elapsed = _time.time() - t0
-                rate = i / elapsed if elapsed > 0 else 0
-                eta = (len(candidates) - i) / rate if rate > 0 else 0
-                log.info(
-                    f"  progress {i}/{len(candidates)} "
-                    f"(accepted={stats['accepted']} "
-                    f"filtered={stats['rejected_by_filter']} "
-                    f"errors={stats['errors']}) "
-                    f"rate={rate:.2f}/s eta={int(eta/60)}min"
-                )
+        stats = ingest_candidates(
+            conn, candidates,
+            language=args.language,
+            prefiltered=args.discover_via_sparql,
+            rate_limit=args.rate_limit,
+            max_consecutive_failures=args.max_consecutive_failures,
+        )
 
-        # Auto-link from amendment_refs after bulk ingest
+        # Auto-link from amendment_refs after bulk ingest (local, idempotent —
+        # worth doing for the rows a stopped run did commit).
         log.info("Auto-linking from amendment_refs…")
         link_stats = link_from_amendment_refs(conn)
         stats["link_stats"] = link_stats
-        stats["elapsed_seconds"] = round(_time.time() - t0, 2)
         print(json.dumps(stats, indent=2, ensure_ascii=False))
+        if stats["stopped"]:
+            log.error(
+                f"run stopped ({stats['stopped']}) after "
+                f"{stats['processed']}/{stats['total']} candidates — "
+                f"exit {INGEST_STOPPED_EXIT_CODE}"
+            )
+            return INGEST_STOPPED_EXIT_CODE
         return 0
 
     parser.print_help()
