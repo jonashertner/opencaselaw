@@ -21451,19 +21451,26 @@ _TRUNCATED_ORDINAL_ALIASES = {
 #   2. the same abbreviation with dots, spaces and hyphens ignored, matched
 #      against the mirror itself — data-driven, so it follows the mirror;
 #   3. docs/api/law_aliases.json — treaties, former names, other-language
-#      names; every SR number in it was verified against Fedlex or the
-#      mirror before it went in (see the file's _verification note);
-#   4. an edition prefix ('aStGB' = the former StGB, 'nDSG' = the current
-#      DSG) in front of anything 1-3 resolves.
-# Nothing here guesses: an unknown name is still a miss, now with the
-# cantonal acts that carry that name as candidates, so the caller can
-# re-ask with a canton instead of getting an apology.
+#      names, edition names (aStGB, nDSG) and section names (SchlT ZGB);
+#      every SR number in it was verified against Fedlex or the mirror
+#      before it went in (see the file's _verification note).
+# There is no fourth step. An edition prefix is not peeled off an unknown
+# name (ASVG is not the former SVG, NWG is not the current WG: only the
+# edition names listed in the table resolve), and a canton code or
+# collection label in `abbreviation` is checked against the federal
+# mirror before it is read as a canton (ZG is the Zollgesetz, BSG the
+# Binnenschifffahrtsgesetz). Nothing here guesses: an unknown name is
+# still a miss, now with the cantonal acts that carry that name as
+# candidates, so the caller can re-ask with a canton instead of getting
+# an apology.
 _LAW_ALIASES_PATH = Path(__file__).resolve().parent / "docs" / "api" / "law_aliases.json"
 _LAW_ALIAS_NORM_RE = re.compile(r"[.\s\-_/]+")
 # 'SR 220', 'RS 220', '220' — a number in place of a name.
 _SR_LIKE_RE = re.compile(r"^\s*(?:SR|RS)?\s*(\d[\d.]*)\s*$", re.IGNORECASE)
 _SQL_NORM_ABBR = ("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER({col}),'.',''),' ',''),"
                   "'-',''),'_',''),'/','')")
+# Block ids in the statute mirror are Akoma Ntoso eId prefixes ('disp_u1').
+_LAW_SECTION_ID_RE = re.compile(r"^[A-Za-z0-9_]{1,40}$")
 _law_alias_cache: dict | None = None
 
 
@@ -21482,8 +21489,18 @@ def _law_alias_data() -> dict:
             raw = json.loads(_LAW_ALIASES_PATH.read_text(encoding="utf-8"))
             for key, entry in (raw.get("aliases") or {}).items():
                 sr = entry.get("sr_number") if isinstance(entry, dict) else None
-                if isinstance(sr, str) and _SR_NUMBER_RE.match(sr):
-                    table[_norm_law_alias(key)] = {**entry, "alias": key}
+                if not (isinstance(sr, str) and _SR_NUMBER_RE.match(sr)):
+                    continue
+                if entry.get("kind") == "section":
+                    # A section name (SchlT ZGB) is served from one block of
+                    # the act; the block id goes into SQL as a literal and
+                    # the heading marker is checked against the mirror, so
+                    # both must be well-formed or the entry is not loaded.
+                    if not (_LAW_SECTION_ID_RE.match(str(entry.get("section") or ""))
+                            and isinstance(entry.get("section_heading"), dict)):
+                        logger.warning("law alias %r: malformed section entry, skipped", key)
+                        continue
+                table[_norm_law_alias(key)] = {**entry, "alias": key}
             colls = {_norm_law_alias(k): str(v).upper()
                      for k, v in (raw.get("cantonal_collections") or {}).items()
                      if str(v).upper() in _CANTON_CODES}
@@ -21495,15 +21512,16 @@ def _law_alias_data() -> dict:
 
 
 def _resolve_federal_abbreviation(
-    conn: sqlite3.Connection, abbreviation: str | None, _depth: int = 0,
+    conn: sqlite3.Connection, abbreviation: str | None,
 ) -> tuple[str | None, dict | None]:
     """(sr_number, how) for a federal act named any way a caller names it.
 
     `how` is None for an exact abbreviation hit and otherwise says what was
     read into the name: kind 'sr_number' / 'form' / the alias table's kind
-    ('treaty', 'former', 'current', 'act', 'name') / 'former_edition' /
-    'current_edition', with `requested`, `resolved` and, where the served
-    text is not what the name literally denotes, a `note` and `as_of_hint`.
+    ('treaty', 'former', 'former_edition', 'current', 'act', 'name',
+    'section'), with `requested`, `resolved` and, where the served text is
+    not what the name literally denotes, a `note` and `as_of_hint`; a
+    'section' entry also carries `section` and `section_heading`.
     """
     raw = (abbreviation or "").strip()
     if not raw:
@@ -21538,43 +21556,19 @@ def _resolve_federal_abbreviation(
         stored = next((a for a in (row[1], row[2], row[3])
                        if a and _norm_law_alias(a) == norm), row[1])
         return row[0], {"kind": "form", "requested": raw, "resolved": stored}
-    # 3. The alias table: treaties, former names, other-language names.
+    # 3. The alias table: treaties, former names, other-language names,
+    #    edition names (aStGB) and section names (SchlT ZGB). An edition
+    #    prefix is never derived from an unknown name: 'ASVG' is not read as
+    #    the former SVG, 'NWG' not as the current WG — a name that is not in
+    #    the mirror or in the table is a miss.
     entry = _law_alias_data()["aliases"].get(norm)
     if entry:
         how = {"kind": entry.get("kind") or "name", "requested": raw,
                "resolved": entry.get("alias"), "title_de": entry.get("title_de")}
-        for k in ("note", "as_of_hint", "successor"):
+        for k in ("note", "as_of_hint", "successor", "section", "section_heading"):
             if entry.get(k):
                 how[k] = entry[k]
         return entry["sr_number"], how
-    # 4. Edition prefix: aStGB / ASTGB is the former StGB, nStPO the current
-    #    StPO. Only in front of a name that resolves on its own, and only one
-    #    letter deep, so an unknown name never turns into a different act.
-    if _depth == 0 and len(norm) >= 3 and norm[0] in ("A", "N"):
-        sr, inner = _resolve_federal_abbreviation(conn, raw[1:], _depth=1)
-        if sr and (inner is None or inner.get("kind") in ("form", "name", "treaty", "act", "former")):
-            base = (inner or {}).get("resolved")
-            if not base:
-                # An exact hit: name the act as the mirror spells it
-                # ('StGB', not the caller's 'STGB').
-                rest = _norm_law_alias(raw[1:])
-                stored = conn.execute(
-                    "SELECT abbr_de, abbr_fr, abbr_it FROM laws WHERE sr_number = ?",
-                    (sr,),
-                ).fetchone()
-                base = next((a for a in (stored or ()) if a and _norm_law_alias(a) == rest),
-                            raw[1:].strip())
-            if norm[0] == "A":
-                return sr, {
-                    "kind": "former_edition", "requested": raw, "resolved": base,
-                    "note": (f"'{raw}' was read as the former edition of {base} (SR {sr}). "
-                             f"The text served is the edition currently in force; pass as_of "
-                             f"with the date the former text applied to get that edition."),
-                }
-            return sr, {
-                "kind": "current_edition", "requested": raw, "resolved": base,
-                "note": f"'{raw}' was read as the current edition of {base} (SR {sr}).",
-            }
     return None, None
 
 
@@ -21688,12 +21682,56 @@ def _annotate_alias(result: dict, how: dict | None, as_of: str | None) -> dict:
         info["note"] = (how.get("note") or "") + served
     elif kind == "former" and as_of:
         info["note"] = how.get("note")
-    elif kind in ("former_edition", "current_edition", "current"):
+    elif kind in ("former_edition", "current", "section"):
         info["note"] = how.get("note")
     elif kind == "form":
         info.pop("note", None)
     result["abbreviation_alias"] = info
     return result
+
+
+def _alias_section_in_mirror(
+    conn: sqlite3.Connection, sr_number: str, language: str, how: dict, has_section: bool,
+) -> tuple[dict | None, dict | None]:
+    """(block, miss) for a section name such as 'SchlT ZGB'.
+
+    The block id ('disp_u1') and its heading per language come from the
+    verified alias table; the mirror must hold that block under a heading
+    carrying the same marker ('Schlusstitel', 'Titre final'). Otherwise —
+    an older build without `section`, or a rebuild that renumbered the
+    blocks — the name is a miss with a note, never the main-body article
+    of the same number."""
+    section = str(how.get("section") or "")
+    if not _LAW_SECTION_ID_RE.match(section):        # it becomes an SQL literal
+        section = ""
+    headings = how.get("section_heading") if isinstance(how.get("section_heading"), dict) else {}
+    expected = str(headings.get(language) or headings.get("de") or "")
+    marker = expected.split(":")[0].strip().casefold()
+    stored = None
+    if has_section and section and marker:
+        row = conn.execute(
+            """SELECT section_heading FROM articles
+               WHERE sr_number = ? AND lang = ? AND section = ? LIMIT 1""",
+            (sr_number, language, section),
+        ).fetchone()
+        stored = row[0] if row else None
+    if stored and marker in str(stored).casefold():
+        return {"section": section, "section_heading": stored}, None
+    requested = how.get("requested")
+    title = how.get("title_de") or f"SR {sr_number}"
+    return None, {
+        "error": f"No law found with abbreviation '{requested}'.",
+        "note": (
+            f"'{requested}' names the {expected.split(':')[0].strip() or 'section'} of "
+            f"{title} (SR {sr_number}) — a section of that act, and the statute mirror "
+            f"in this build does not expose it as one (no block '{section}' headed "
+            f"'{expected}' in '{language}'). Nothing was served instead: an article of "
+            f"the main body under the same number is a different provision. Request "
+            f"the act itself — get_law(sr_number='{sr_number}', article=N) — and read "
+            f"`also_in_sections` / `article_section_note`, or the Fedlex text."
+        ),
+        "act": {"sr_number": sr_number, "title_de": how.get("title_de")},
+    }
 
 
 def get_law(
@@ -21736,20 +21774,45 @@ def get_law(
     # Fields swapped: abbreviation='ZH' (or 'LS', Zurich's collection) with
     # article='211.1' is a canton and a systematic number, not an act called
     # ZH with an article 211.1. Ten such calls in eight days, all misses.
+    # The federal mirror is asked first: 'ZG' is the Zollgesetz, 'BSG' the
+    # Binnenschifffahrtsgesetz and 'BGS' the Geldspielgesetz before they are
+    # Zug, Bern's collection or Appenzell's — a real federal act is served,
+    # with the cantonal reading named as the alternative, never hijacked.
     _argument_note = None
+    _alternative_reading = None
     if (abbreviation and article and not sr_number
             and re.match(r"^\s*\d[\d.]*\s*$", str(article))):
         _code = _norm_law_alias(abbreviation)
         if _code not in _CANTON_CODES:
             _code = _law_alias_data()["collections"].get(_code)
         if _code:
-            _argument_note = (
-                f"abbreviation='{abbreviation}', article='{article}' was read as "
-                f"canton='{_code}', sr_number='{str(article).strip()}' (the whole act; "
-                f"pass the article separately)."
-            )
-            canton_u, sr_number = _code, str(article).strip()
-            abbreviation, article = None, None
+            _federal_sr = None
+            # An explicit canton already says the caller wants cantonal law;
+            # only the federal default is checked against the federal mirror.
+            _fconn = _get_statutes_conn() if canton_u == "CH" else None
+            if _fconn is not None:
+                try:
+                    _federal_sr, _ = _resolve_federal_abbreviation(_fconn, abbreviation)
+                finally:
+                    _fconn.close()
+            if _federal_sr:
+                _alternative_reading = {"canton": _code, "sr_number": str(article).strip()}
+                _argument_note = (
+                    f"'{abbreviation}' is a federal act (SR {_federal_sr}), served here "
+                    f"with Art. {str(article).strip()}. It is also "
+                    f"{'the code of canton ' + _code if _code == _norm_law_alias(abbreviation) else 'the collection label of canton ' + _code}: "
+                    f"for the {_code} act with systematic number '{str(article).strip()}' "
+                    f"pass canton='{_code}', sr_number='{str(article).strip()}'."
+                )
+            else:
+                _argument_note = (
+                    f"abbreviation='{abbreviation}', article='{article}' was read as "
+                    f"canton='{_code}', sr_number='{str(article).strip()}' (the whole act; "
+                    f"pass the article separately). No federal act is named "
+                    f"'{abbreviation}'."
+                )
+                canton_u, sr_number = _code, str(article).strip()
+                abbreviation, article = None, None
     if as_of and canton_u != "CH":
         # Checked before the cantonal branch: LexFind serves current text
         # only, and silently returning it for a dated request would be the
@@ -21761,8 +21824,11 @@ def get_law(
         )}
     if canton_u != "CH":
         res = _get_law_cantonal(sr_number, abbreviation, article, language, canton_u)
-        if _argument_note and isinstance(res, dict) and not res.get("error"):
-            res["argument_note"] = _argument_note
+        if isinstance(res, dict) and not res.get("error"):
+            if _argument_note:
+                res["argument_note"] = _argument_note
+            if _language_fallback:
+                res["language_fallback"] = _language_fallback
         return res
 
     # Federal article numbers carry no 'Art.' prefix, <sup> tag or inner
@@ -21804,6 +21870,18 @@ def get_law(
                     conn.close()
         if not sr_number:
             return {"error": f"Cannot resolve SR number for '{abbreviation}'."}
+        if (_how or {}).get("kind") == "section":
+            # The Fedlex edition fetch addresses the act's main body; Art. N
+            # of the Schlusstitel is a different provision, so a dated
+            # request for a section name is refused rather than answered
+            # with the wrong article.
+            return {"error": (
+                f"as_of is not supported with a section name: '{abbreviation}' names a "
+                f"block of the act at SR {sr_number}, and the historical edition fetch "
+                f"serves the act's main body. Omit as_of for the block's current text, "
+                f"or request the act (sr_number='{sr_number}') with as_of and locate the "
+                f"block in the edition."
+            )}
         sr_number = str(sr_number).strip()
         if not _SR_NUMBER_RE.match(sr_number):
             return {"error": (
@@ -21851,6 +21929,9 @@ def get_law(
         }
         if _language_fallback:
             result["language_fallback"] = _language_fallback
+        if _argument_note:
+            result["argument_note"] = _argument_note
+            result["alternative_reading"] = _alternative_reading
         _annotate_alias(result, _how, None)
         # Source link at the data layer: one field serves the MCP text
         # formatter, the raw-dict REST route (/api/laws/...) and the Copilot
@@ -21888,6 +21969,31 @@ def get_law(
         except sqlite3.Error:
             pass
         _main = " AND section = ''" if _has_section else ""
+        # A section name (SchlT ZGB, Titre final CC): serve that block of the
+        # act and nothing else. Its id is a table literal validated on load
+        # (_LAW_SECTION_ID_RE) and checked against the mirror's heading here.
+        _section = None
+        if _how and _how.get("kind") == "section":
+            _section, _miss = _alias_section_in_mirror(
+                conn, sr_number, language, _how, _has_section)
+            if _miss:
+                return _miss
+            _main = f" AND section = '{_section['section']}'"
+            result["section"] = _section
+            _abbr = result.get("abbreviation") or law["abbr_de"] or sr_number
+            _how["note"] = (
+                f"'{_how.get('requested')}' names the {_section['section_heading']} of "
+                f"{_abbr} (SR {sr_number}) — block '{_section['section']}' of the act, "
+                f"not its main body. The articles served are that block's; "
+                f"Art. N of the main body is a different provision "
+                f"(get_law(abbreviation='{_abbr}', article='N')). The Fedlex link is "
+                f"the act's page: the article anchor would target the main body."
+            )
+            _annotate_alias(result, _how, None)
+            _src = _fedlex_url(law["sr_number"], None, language)
+            if _src:
+                result["source_url"] = _src
+                result["source_label"] = "Fedlex"
 
         if article:
             # Fetch specific article
@@ -21971,7 +22077,7 @@ def get_law(
                             ),
                         }
                         break
-            if _has_section:
+            if _has_section and not _section:
                 if articles:
                     _others = conn.execute(
                         """SELECT DISTINCT section, section_heading FROM articles
@@ -22024,7 +22130,20 @@ def get_law(
                 pass
         else:
             # Return article list (no text to keep response compact)
-            if _has_section:
+            if _section:
+                articles = conn.execute(
+                    f"""SELECT article_num, heading, section, section_heading FROM articles
+                       WHERE sr_number = ? AND lang = ?{_main}
+                       ORDER BY CAST(article_num AS INTEGER), article_num""",
+                    (sr_number, language),
+                ).fetchall()
+                result["article_count"] = len(articles)
+                result["articles"] = [
+                    {"article_num": a["article_num"], "heading": a["heading"],
+                     "section": a["section"], "section_heading": a["section_heading"]}
+                    for a in articles
+                ]
+            elif _has_section:
                 articles = conn.execute(
                     """SELECT article_num, heading, section, section_heading FROM articles
                        WHERE sr_number = ? AND lang = ?
@@ -23331,6 +23450,10 @@ def _format_get_law_response(result: dict) -> str:
                  f"block(s): {names}.\n")
     if result.get("article_section_note"):
         text += f"Note: {result['article_section_note']}\n"
+    if isinstance(result.get("section"), dict):
+        sec = result["section"]
+        text += (f"Section: {sec.get('section_heading') or sec.get('section')} "
+                 f"(block {sec.get('section')}) — served from this block only\n")
     text += "\n"
 
     articles = result.get("articles", [])

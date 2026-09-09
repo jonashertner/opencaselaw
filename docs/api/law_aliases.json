@@ -1,13 +1,15 @@
 {
- "_": "OpenCaseLaw law-alias table. Names a caller may use for a Swiss federal act or a treaty in the Systematische Rechtssammlung (SR) that are NOT the Fedlex abbreviation the statute mirror stores in abbr_de / abbr_fr / abbr_it (those already resolve — with or without dots and spaces: 'Cst', 'OPP2', 'o.p.p. 2' reach 'Cst.' and 'OPP 2'). Loaded once by mcp_server.get_law, search_laws and GET /api/laws/{abbreviation}. Keys are matched after normalisation: upper-cased, with dots, spaces, hyphens, underscores and slashes removed, so 'Pacte II', 'pacte-ii' and 'PACTEII' are one key.",
+ "_": "OpenCaseLaw law-alias table. Names a caller may use for a Swiss federal act or a treaty in the Systematische Rechtssammlung (SR) that are NOT the Fedlex abbreviation the statute mirror stores in abbr_de / abbr_fr / abbr_it (those already resolve — with or without dots and spaces: 'Cst', 'OPP2', 'o.p.p. 2' reach 'Cst.' and 'OPP 2'). Loaded once by mcp_server.get_law, search_laws and GET /api/laws/{abbreviation}. Edition names (aStGB, nDSG) and section names (SchlT ZGB) are ordinary entries: nothing is derived from a prefix, and a section entry names the block of the act it is served from. Keys are matched after normalisation: upper-cased, with dots, spaces, hyphens, underscores and slashes removed, so 'Pacte II', 'pacte-ii' and 'PACTEII' are one key.",
  "_kinds": {
   "treaty": "international treaty in the SR; Fedlex publishes no titleShort for most of them",
   "former": "a repealed or renamed act whose successor carries the same SR number; get_law serves the current text and says so, pass as_of (see as_of_hint) for the former edition",
   "current": "an informal name for the act currently in force ('nDSG')",
   "act": "an act the mirror carries without a usable abbreviation",
-  "name": "another-language or long-form name of an act the mirror abbreviates differently"
+  "name": "another-language or long-form name of an act the mirror abbreviates differently",
+  "former_edition": "an 'a'-prefixed name for a former edition of an act still in force under the same SR number (aStGB, aZGB, aOR); get_law serves the edition in force today and says so, pass as_of with the date the former text applied",
+  "section": "a name for one block of an act (SchlT ZGB = the Schlusstitel of the ZGB): get_law serves that block only, identified by `section` (the Akoma Ntoso block id in the statute mirror) and checked against the mirror's `section_heading` for the served language; when the mirror does not expose the block the name is a miss with a note, never the main body"
  },
- "_verification": "Every sr_number was checked on 2026-09-09 against Fedlex SPARQL (jolux:historicalLegalId or the taxonomy notation of a jolux:ConsolidationAbstract; 'verified': 'fedlex-sparql-2026-09-09') or against docs/data/law_codes.json, which is derived from the production statutes.db ('verified': 'docs/data/law_codes.json ...'). Nothing here comes from memory; add entries only with the same check. Aliases whose SR could not be verified are listed under _excluded_unverified and are NOT loaded.",
+ "_verification": "Every sr_number was checked against docs/data/law_codes.json, which is derived from the production statutes.db ('verified': 'docs/data/law_codes.json ...'; title_de is the mirror's own title, except on 'former' entries, which carry the title of the former act the name denotes), or — for the treaties and two acts that file does not carry — against Fedlex SPARQL (jolux:historicalLegalId or the taxonomy notation of a jolux:ConsolidationAbstract, with the German jolux:title compared to title_de; 'verified': 'fedlex-sparql-2026-09-09', re-run on 2026-09-09 in the fix round and the matching work URI recorded under `fedlex_work`). Section entries record the block id and headings observed in the production mirror. Nothing here comes from memory; add entries only with the same check. Aliases whose SR could not be verified are listed under _excluded_unverified and are NOT loaded.",
  "_excluded_unverified": {
   "OJF": "seen 5x in /api/laws; presumed a French form of OG but not a known Fedlex title — not mapped",
   "LMSD": "seen 3x with language=fr; act not identified — not mapped",
@@ -16,10 +18,7 @@
   "TJPG": "seen 2x; act not identified — not mapped",
   "LTPM": "seen 1x with language=fr; act not identified — not mapped"
  },
- "_edition_prefixes": {
-  "a": "aStGB, aZGB, aOR, aBV, aAuG … — the former edition of the act that follows; resolved to the act's SR number with a note; pass as_of for the historical text",
-  "n": "nStPO, nDSG — the current edition of the act that follows"
- },
+ "_edition_names": "Edition prefixes are not interpreted. Only the edition names listed as entries resolve (aStGB, aCP, aZGB, aCC, aOR, aCO, aBV, aCst, aOG, aDSG, aLPD, nDSG, nLPD, revDSG, nStPO); 'ASVG', 'NWG', 'AZG' and every other unlisted name are misses, with cantonal candidates where the cantonal mirror knows the name.",
  "cantonal_collections": {
   "LS": "ZH",
   "BSG": "BE",
@@ -43,375 +42,438 @@
  "generated": "2026-09-09",
  "license": "CC0-1.0",
  "counts": {
-  "aliases": 205,
-  "sr_numbers": 37
+  "aliases": 211,
+  "sr_numbers": 37,
+  "verified_against_law_codes": 142,
+  "verified_against_fedlex_sparql": 69
  },
  "aliases": {
   "IPBPR": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "Pakt II": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "UNO-Pakt II": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "UN-Pakt II": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "Pacte II": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "Pacte ONU II": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "Patto ONU II": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "Patto II": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "ICCPR": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "CCPR": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "PIDCP": {
    "sr_number": "0.103.2",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über bürgerliche und politische Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/750_750_750"
   },
   "IPWSKR": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "Pakt I": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "UNO-Pakt I": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "UN-Pakt I": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "Pacte I": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "Pacte ONU I": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "Patto ONU I": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "ICESCR": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "PIDESC": {
    "sr_number": "0.103.1",
    "kind": "treaty",
    "title_de": "Internationaler Pakt vom 16. Dezember 1966 über wirtschaftliche, soziale und kulturelle Rechte",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/725_725_725"
   },
   "CERD": {
    "sr_number": "0.104",
    "kind": "treaty",
    "title_de": "Internationales Übereinkommen vom 21. Dezember 1965 zur Beseitigung jeder Form von Rassendiskriminierung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1995/1164_1164_1164"
   },
   "ICERD": {
    "sr_number": "0.104",
    "kind": "treaty",
    "title_de": "Internationales Übereinkommen vom 21. Dezember 1965 zur Beseitigung jeder Form von Rassendiskriminierung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1995/1164_1164_1164"
   },
   "RDK": {
    "sr_number": "0.104",
    "kind": "treaty",
    "title_de": "Internationales Übereinkommen vom 21. Dezember 1965 zur Beseitigung jeder Form von Rassendiskriminierung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1995/1164_1164_1164"
   },
   "CAT": {
    "sr_number": "0.105",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 10. Dezember 1984 gegen Folter und andere grausame, unmenschliche oder erniedrigende Behandlung oder Strafe",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1987/1307_1307_1307"
   },
   "UNCAT": {
    "sr_number": "0.105",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 10. Dezember 1984 gegen Folter und andere grausame, unmenschliche oder erniedrigende Behandlung oder Strafe",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1987/1307_1307_1307"
   },
   "FoK": {
    "sr_number": "0.105",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 10. Dezember 1984 gegen Folter und andere grausame, unmenschliche oder erniedrigende Behandlung oder Strafe",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1987/1307_1307_1307"
   },
   "KRK": {
    "sr_number": "0.107",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 20. November 1989 über die Rechte des Kindes",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1998/2055_2055_2055"
   },
   "UN-KRK": {
    "sr_number": "0.107",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 20. November 1989 über die Rechte des Kindes",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1998/2055_2055_2055"
   },
   "UNO-KRK": {
    "sr_number": "0.107",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 20. November 1989 über die Rechte des Kindes",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1998/2055_2055_2055"
   },
   "CDE": {
    "sr_number": "0.107",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 20. November 1989 über die Rechte des Kindes",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1998/2055_2055_2055"
   },
   "CRC": {
    "sr_number": "0.107",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 20. November 1989 über die Rechte des Kindes",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1998/2055_2055_2055"
   },
   "UNCRC": {
    "sr_number": "0.107",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 20. November 1989 über die Rechte des Kindes",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1998/2055_2055_2055"
   },
   "Kinderrechtskonvention": {
    "sr_number": "0.107",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 20. November 1989 über die Rechte des Kindes",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1998/2055_2055_2055"
   },
   "CEDAW": {
    "sr_number": "0.108",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 18. Dezember 1979 zur Beseitigung jeder Form von Diskriminierung der Frau",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1999/239"
   },
   "FDK": {
    "sr_number": "0.108",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 18. Dezember 1979 zur Beseitigung jeder Form von Diskriminierung der Frau",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1999/239"
   },
   "BRK": {
    "sr_number": "0.109",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 13. Dezember 2006 über die Rechte von Menschen mit Behinderungen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2014/245"
   },
   "UN-BRK": {
    "sr_number": "0.109",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 13. Dezember 2006 über die Rechte von Menschen mit Behinderungen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2014/245"
   },
   "UNO-BRK": {
    "sr_number": "0.109",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 13. Dezember 2006 über die Rechte von Menschen mit Behinderungen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2014/245"
   },
   "CRPD": {
    "sr_number": "0.109",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 13. Dezember 2006 über die Rechte von Menschen mit Behinderungen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2014/245"
   },
   "CDPH": {
    "sr_number": "0.109",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 13. Dezember 2006 über die Rechte von Menschen mit Behinderungen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2014/245"
   },
   "Behindertenrechtskonvention": {
    "sr_number": "0.109",
    "kind": "treaty",
    "title_de": "Übereinkommen vom 13. Dezember 2006 über die Rechte von Menschen mit Behinderungen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2014/245"
   },
   "HKÜ": {
    "sr_number": "0.211.230.02",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung (mit Beilage und Verzeichnis)",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1983/1694_1694_1694"
   },
   "HKUE": {
    "sr_number": "0.211.230.02",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung (mit Beilage und Verzeichnis)",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1983/1694_1694_1694"
   },
   "CLaH80": {
    "sr_number": "0.211.230.02",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung (mit Beilage und Verzeichnis)",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1983/1694_1694_1694"
   },
   "CLaH 80": {
    "sr_number": "0.211.230.02",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung (mit Beilage und Verzeichnis)",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1983/1694_1694_1694"
   },
   "CIEN": {
    "sr_number": "0.211.230.02",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung (mit Beilage und Verzeichnis)",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1983/1694_1694_1694"
   },
   "CEIE": {
    "sr_number": "0.211.230.02",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung (mit Beilage und Verzeichnis)",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1983/1694_1694_1694"
   },
   "Haager Kindesentführungsübereinkommen": {
    "sr_number": "0.211.230.02",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung",
-   "verified": "fedlex-sparql-2026-09-09"
+   "title_de": "Übereinkommen vom 25. Oktober 1980 über die zivilrechtlichen Aspekte internationaler Kindesentführung (mit Beilage und Verzeichnis)",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1983/1694_1694_1694"
   },
   "CISG": {
    "sr_number": "0.221.211.1",
    "kind": "treaty",
    "title_de": "Übereinkommen der Vereinten Nationen vom 11. April 1980 über Verträge über den internationalen Warenkauf",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1991/307_307_307"
   },
   "CVIM": {
    "sr_number": "0.221.211.1",
    "kind": "treaty",
    "title_de": "Übereinkommen der Vereinten Nationen vom 11. April 1980 über Verträge über den internationalen Warenkauf",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1991/307_307_307"
   },
   "WKR": {
    "sr_number": "0.221.211.1",
    "kind": "treaty",
    "title_de": "Übereinkommen der Vereinten Nationen vom 11. April 1980 über Verträge über den internationalen Warenkauf",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1991/307_307_307"
   },
   "Wiener Kaufrecht": {
    "sr_number": "0.221.211.1",
    "kind": "treaty",
    "title_de": "Übereinkommen der Vereinten Nationen vom 11. April 1980 über Verträge über den internationalen Warenkauf",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1991/307_307_307"
   },
   "UN-Kaufrecht": {
    "sr_number": "0.221.211.1",
    "kind": "treaty",
    "title_de": "Übereinkommen der Vereinten Nationen vom 11. April 1980 über Verträge über den internationalen Warenkauf",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1991/307_307_307"
   },
   "UNO-Kaufrecht": {
    "sr_number": "0.221.211.1",
    "kind": "treaty",
    "title_de": "Übereinkommen der Vereinten Nationen vom 11. April 1980 über Verträge über den internationalen Warenkauf",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1991/307_307_307"
   },
   "Römer Statut": {
    "sr_number": "0.312.1",
    "kind": "treaty",
    "title_de": "Römer Statut des Internationalen Strafgerichtshofs vom 17. Juli 1998",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2002/586"
   },
   "Roemer Statut": {
    "sr_number": "0.312.1",
    "kind": "treaty",
    "title_de": "Römer Statut des Internationalen Strafgerichtshofs vom 17. Juli 1998",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2002/586"
   },
   "Statut de Rome": {
    "sr_number": "0.312.1",
    "kind": "treaty",
    "title_de": "Römer Statut des Internationalen Strafgerichtshofs vom 17. Juli 1998",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2002/586"
   },
   "Rome Statute": {
    "sr_number": "0.312.1",
    "kind": "treaty",
    "title_de": "Römer Statut des Internationalen Strafgerichtshofs vom 17. Juli 1998",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2002/586"
   },
   "IStGH-Statut": {
    "sr_number": "0.312.1",
    "kind": "treaty",
    "title_de": "Römer Statut des Internationalen Strafgerichtshofs vom 17. Juli 1998",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2002/586"
   },
   "EUeR": {
    "sr_number": "0.351.1",
    "kind": "treaty",
    "title_de": "Europäisches Übereinkommen vom 20. April 1959 über die Rechtshilfe in Strafsachen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1967/831_871_866"
   },
   "CEEJ": {
    "sr_number": "0.351.1",
    "kind": "treaty",
    "title_de": "Europäisches Übereinkommen vom 20. April 1959 über die Rechtshilfe in Strafsachen",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1967/831_871_866"
   },
   "ECHR": {
    "sr_number": "0.101",
@@ -446,272 +508,291 @@
   "Lugano": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "LugUe": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "revLugÜ": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "LugÜ 2007": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Lugano-Übereinkommen": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Convention de Lugano": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Lugano Convention": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Convenzione di Lugano": {
    "sr_number": "0.275.12",
    "kind": "treaty",
-   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ)",
+   "title_de": "Übereinkommen vom 30. Oktober 2007 über die gerichtliche Zuständigkeit und die Anerkennung und Vollstreckung von Entscheidungen in Zivil- und Handelssachen (Lugano-Übereinkommen, LugÜ) (mit Prot. und Anhängen)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "AFMP": {
    "sr_number": "0.142.112.681",
    "kind": "treaty",
-   "title_de": "Abkommen vom 21. Juni 1999 zwischen der Schweizerischen Eidgenossenschaft einerseits und der Europäischen Gemeinschaft und ihren Mitgliedstaaten andererseits über die Freizügigkeit (FZA)",
+   "title_de": "Abkommen vom 21. Juni 1999 zwischen der Schweizerischen Eidgenossenschaft einerseits und der Europäischen Gemeinschaft und ihren Mitgliedstaaten andererseits über die Freizügigkeit (mit Anhängen, Prot. und Schlussakte)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Freizügigkeitsabkommen": {
    "sr_number": "0.142.112.681",
    "kind": "treaty",
-   "title_de": "Abkommen vom 21. Juni 1999 zwischen der Schweizerischen Eidgenossenschaft einerseits und der Europäischen Gemeinschaft und ihren Mitgliedstaaten andererseits über die Freizügigkeit (FZA)",
+   "title_de": "Abkommen vom 21. Juni 1999 zwischen der Schweizerischen Eidgenossenschaft einerseits und der Europäischen Gemeinschaft und ihren Mitgliedstaaten andererseits über die Freizügigkeit (mit Anhängen, Prot. und Schlussakte)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Accord sur la libre circulation des personnes": {
    "sr_number": "0.142.112.681",
    "kind": "treaty",
-   "title_de": "Abkommen vom 21. Juni 1999 zwischen der Schweizerischen Eidgenossenschaft einerseits und der Europäischen Gemeinschaft und ihren Mitgliedstaaten andererseits über die Freizügigkeit (FZA)",
+   "title_de": "Abkommen vom 21. Juni 1999 zwischen der Schweizerischen Eidgenossenschaft einerseits und der Europäischen Gemeinschaft und ihren Mitgliedstaaten andererseits über die Freizügigkeit (mit Anhängen, Prot. und Schlussakte)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "OG": {
    "sr_number": "173.110",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 1943 über die Organisation der Bundesrechtspflege (Bundesrechtspflegegesetz, OG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "OG/OJ is the Bundesrechtspflegegesetz of 1943 (SR 173.110), repealed on 2007-01-01 and replaced by the Bundesgerichtsgesetz (BGG/LTF) under the same SR number.",
    "as_of_hint": "2006-12-31",
-   "successor": "BGG"
+   "successor": "BGG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/60/271_269_275"
   },
   "OJ": {
    "sr_number": "173.110",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 1943 über die Organisation der Bundesrechtspflege (Bundesrechtspflegegesetz, OG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "OG/OJ is the Bundesrechtspflegegesetz of 1943 (SR 173.110), repealed on 2007-01-01 and replaced by the Bundesgerichtsgesetz (BGG/LTF) under the same SR number.",
    "as_of_hint": "2006-12-31",
-   "successor": "BGG"
+   "successor": "BGG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/60/271_269_275"
   },
   "aOG": {
    "sr_number": "173.110",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 1943 über die Organisation der Bundesrechtspflege (Bundesrechtspflegegesetz, OG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "OG/OJ is the Bundesrechtspflegegesetz of 1943 (SR 173.110), repealed on 2007-01-01 and replaced by the Bundesgerichtsgesetz (BGG/LTF) under the same SR number.",
    "as_of_hint": "2006-12-31",
-   "successor": "BGG"
+   "successor": "BGG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/60/271_269_275"
   },
   "Bundesrechtspflegegesetz": {
    "sr_number": "173.110",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 1943 über die Organisation der Bundesrechtspflege (Bundesrechtspflegegesetz, OG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "OG/OJ is the Bundesrechtspflegegesetz of 1943 (SR 173.110), repealed on 2007-01-01 and replaced by the Bundesgerichtsgesetz (BGG/LTF) under the same SR number.",
    "as_of_hint": "2006-12-31",
-   "successor": "BGG"
+   "successor": "BGG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/60/271_269_275"
   },
   "BStP": {
    "sr_number": "312.0",
    "kind": "former",
    "title_de": "Bundesgesetz vom 15. Juni 1934 über die Bundesstrafrechtspflege (BStP)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "BStP/PPF is the Bundesgesetz über die Bundesstrafrechtspflege of 1934 (SR 312.0), repealed on 2011-01-01 and replaced by the Strafprozessordnung (StPO/CPP) under the same SR number.",
    "as_of_hint": "2010-12-31",
-   "successor": "StPO"
+   "successor": "StPO",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/50/685_709_769"
   },
   "PPF": {
    "sr_number": "312.0",
    "kind": "former",
    "title_de": "Bundesgesetz vom 15. Juni 1934 über die Bundesstrafrechtspflege (BStP)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "BStP/PPF is the Bundesgesetz über die Bundesstrafrechtspflege of 1934 (SR 312.0), repealed on 2011-01-01 and replaced by the Strafprozessordnung (StPO/CPP) under the same SR number.",
    "as_of_hint": "2010-12-31",
-   "successor": "StPO"
+   "successor": "StPO",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/50/685_709_769"
   },
   "Bundesstrafrechtspflege": {
    "sr_number": "312.0",
    "kind": "former",
    "title_de": "Bundesgesetz vom 15. Juni 1934 über die Bundesstrafrechtspflege (BStP)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "BStP/PPF is the Bundesgesetz über die Bundesstrafrechtspflege of 1934 (SR 312.0), repealed on 2011-01-01 and replaced by the Strafprozessordnung (StPO/CPP) under the same SR number.",
    "as_of_hint": "2010-12-31",
-   "successor": "StPO"
+   "successor": "StPO",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/50/685_709_769"
   },
   "ANAG": {
    "sr_number": "142.20",
    "kind": "former",
    "title_de": "Bundesgesetz vom 26. März 1931 über Aufenthalt und Niederlassung der Ausländer (ANAG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "ANAG/LSEE/LDDS is the Bundesgesetz über Aufenthalt und Niederlassung der Ausländer of 1931 (SR 142.20), repealed on 2008-01-01 and replaced by the Ausländergesetz, today the Ausländer- und Integrationsgesetz (AIG/LEI/LStrI), under the same SR number.",
    "as_of_hint": "2007-12-31",
-   "successor": "AIG"
+   "successor": "AIG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/49/279_279_293"
   },
   "LSEE": {
    "sr_number": "142.20",
    "kind": "former",
    "title_de": "Bundesgesetz vom 26. März 1931 über Aufenthalt und Niederlassung der Ausländer (ANAG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "ANAG/LSEE/LDDS is the Bundesgesetz über Aufenthalt und Niederlassung der Ausländer of 1931 (SR 142.20), repealed on 2008-01-01 and replaced by the Ausländergesetz, today the Ausländer- und Integrationsgesetz (AIG/LEI/LStrI), under the same SR number.",
    "as_of_hint": "2007-12-31",
-   "successor": "AIG"
+   "successor": "AIG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/49/279_279_293"
   },
   "LDDS": {
    "sr_number": "142.20",
    "kind": "former",
    "title_de": "Bundesgesetz vom 26. März 1931 über Aufenthalt und Niederlassung der Ausländer (ANAG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "ANAG/LSEE/LDDS is the Bundesgesetz über Aufenthalt und Niederlassung der Ausländer of 1931 (SR 142.20), repealed on 2008-01-01 and replaced by the Ausländergesetz, today the Ausländer- und Integrationsgesetz (AIG/LEI/LStrI), under the same SR number.",
    "as_of_hint": "2007-12-31",
-   "successor": "AIG"
+   "successor": "AIG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/49/279_279_293"
   },
   "AuG": {
    "sr_number": "142.20",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer (AuG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched, the work now carries the AIG title after the 2019 rename)",
    "note": "AuG/LEtr/LStr is the title the Ausländergesetz (SR 142.20) carried from 2008 until it was renamed Ausländer- und Integrationsgesetz (AIG/LEI/LStrI) on 2019-01-01; same act, same SR number.",
    "as_of_hint": "2018-12-31",
-   "successor": "AIG"
+   "successor": "AIG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2007/758"
   },
   "LEtr": {
    "sr_number": "142.20",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer (AuG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched, the work now carries the AIG title after the 2019 rename)",
    "note": "AuG/LEtr/LStr is the title the Ausländergesetz (SR 142.20) carried from 2008 until it was renamed Ausländer- und Integrationsgesetz (AIG/LEI/LStrI) on 2019-01-01; same act, same SR number.",
    "as_of_hint": "2018-12-31",
-   "successor": "AIG"
+   "successor": "AIG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2007/758"
   },
   "LStr": {
    "sr_number": "142.20",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer (AuG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched, the work now carries the AIG title after the 2019 rename)",
    "note": "AuG/LEtr/LStr is the title the Ausländergesetz (SR 142.20) carried from 2008 until it was renamed Ausländer- und Integrationsgesetz (AIG/LEI/LStrI) on 2019-01-01; same act, same SR number.",
    "as_of_hint": "2018-12-31",
-   "successor": "AIG"
+   "successor": "AIG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2007/758"
   },
   "Ausländergesetz": {
    "sr_number": "142.20",
    "kind": "former",
    "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer (AuG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched, the work now carries the AIG title after the 2019 rename)",
    "note": "AuG/LEtr/LStr is the title the Ausländergesetz (SR 142.20) carried from 2008 until it was renamed Ausländer- und Integrationsgesetz (AIG/LEI/LStrI) on 2019-01-01; same act, same SR number.",
    "as_of_hint": "2018-12-31",
-   "successor": "AIG"
+   "successor": "AIG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2007/758"
   },
   "KUVG": {
    "sr_number": "832.10",
    "kind": "former",
    "title_de": "Bundesgesetz über die Kranken- und Unfallversicherung (KUVG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "KUVG/LAMA is the Kranken- und Unfallversicherungsgesetz of 1911 (SR 832.10), repealed on 1996-01-01 and replaced by the Krankenversicherungsgesetz (KVG/LAMal) under the same SR number; accident insurance moved to the UVG/LAA (SR 832.20) in 1984.",
    "as_of_hint": "1995-12-31",
-   "successor": "KVG"
+   "successor": "KVG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/28/353_351_341"
   },
   "LAMA": {
    "sr_number": "832.10",
    "kind": "former",
    "title_de": "Bundesgesetz über die Kranken- und Unfallversicherung (KUVG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "KUVG/LAMA is the Kranken- und Unfallversicherungsgesetz of 1911 (SR 832.10), repealed on 1996-01-01 and replaced by the Krankenversicherungsgesetz (KVG/LAMal) under the same SR number; accident insurance moved to the UVG/LAA (SR 832.20) in 1984.",
    "as_of_hint": "1995-12-31",
-   "successor": "KVG"
+   "successor": "KVG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/28/353_351_341"
   },
   "aDSG": {
    "sr_number": "235.1",
    "kind": "former",
    "title_de": "Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "The Datenschutzgesetz of 1992 (SR 235.1) was repealed on 2023-09-01 and replaced by the totally revised DSG/LPD of 2020 under the same SR number.",
    "as_of_hint": "2023-08-31",
-   "successor": "DSG"
+   "successor": "DSG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/1945_1945_1945"
   },
   "DSG 1992": {
    "sr_number": "235.1",
    "kind": "former",
    "title_de": "Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "The Datenschutzgesetz of 1992 (SR 235.1) was repealed on 2023-09-01 and replaced by the totally revised DSG/LPD of 2020 under the same SR number.",
    "as_of_hint": "2023-08-31",
-   "successor": "DSG"
+   "successor": "DSG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/1945_1945_1945"
   },
   "aLPD": {
    "sr_number": "235.1",
    "kind": "former",
    "title_de": "Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)",
-   "verified": "fedlex-sparql-2026-09-09",
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
    "note": "The Datenschutzgesetz of 1992 (SR 235.1) was repealed on 2023-09-01 and replaced by the totally revised DSG/LPD of 2020 under the same SR number.",
    "as_of_hint": "2023-08-31",
-   "successor": "DSG"
+   "successor": "DSG",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/1993/1945_1945_1945"
   },
   "nDSG": {
    "sr_number": "235.1",
    "kind": "current",
-   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (DSG)",
+   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)",
    "note": "nDSG/revDSG is the totally revised Datenschutzgesetz of 2020, in force since 2023-09-01 — the current DSG/LPD (SR 235.1)."
   },
   "revDSG": {
    "sr_number": "235.1",
    "kind": "current",
-   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (DSG)",
+   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)",
    "note": "nDSG/revDSG is the totally revised Datenschutzgesetz of 2020, in force since 2023-09-01 — the current DSG/LPD (SR 235.1)."
   },
   "nLPD": {
    "sr_number": "235.1",
    "kind": "current",
-   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (DSG)",
+   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)",
    "note": "nDSG/revDSG is the totally revised Datenschutzgesetz of 2020, in force since 2023-09-01 — the current DSG/LPD (SR 235.1)."
   },
   "DSG 2020": {
    "sr_number": "235.1",
    "kind": "current",
-   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (DSG)",
+   "title_de": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)",
    "note": "nDSG/revDSG is the totally revised Datenschutzgesetz of 2020, in force since 2023-09-01 — the current DSG/LPD (SR 235.1)."
   },
   "nStPO": {
    "sr_number": "312.0",
    "kind": "current",
-   "title_de": "Schweizerische Strafprozessordnung vom 5. Oktober 2007 (StPO)",
+   "title_de": "Schweizerische Strafprozessordnung vom 5. Oktober 2007 (Strafprozessordnung, StPO)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)",
    "note": "nStPO is the Schweizerische Strafprozessordnung of 2007, in force since 2011-01-01 — the current StPO/CPP (SR 312.0)."
   },
@@ -719,49 +800,57 @@
    "sr_number": "956.1",
    "kind": "act",
    "title_de": "Bundesgesetz vom 22. Juni 2007 über die Eidgenössische Finanzmarktaufsicht (Finanzmarktaufsichtsgesetz, FINMAG)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2008/736"
   },
   "LFINMA": {
    "sr_number": "956.1",
    "kind": "act",
    "title_de": "Bundesgesetz vom 22. Juni 2007 über die Eidgenössische Finanzmarktaufsicht (Finanzmarktaufsichtsgesetz, FINMAG)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2008/736"
   },
   "FINMA-Gesetz": {
    "sr_number": "956.1",
    "kind": "act",
    "title_de": "Bundesgesetz vom 22. Juni 2007 über die Eidgenössische Finanzmarktaufsicht (Finanzmarktaufsichtsgesetz, FINMAG)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2008/736"
   },
   "Finanzmarktaufsichtsgesetz": {
    "sr_number": "956.1",
    "kind": "act",
    "title_de": "Bundesgesetz vom 22. Juni 2007 über die Eidgenössische Finanzmarktaufsicht (Finanzmarktaufsichtsgesetz, FINMAG)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2008/736"
   },
   "CO2-Gesetz": {
    "sr_number": "641.71",
    "kind": "act",
    "title_de": "Bundesgesetz vom 23. Dezember 2011 über die Reduktion der CO2-Emissionen (CO2-Gesetz)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2012/855"
   },
   "CO2": {
    "sr_number": "641.71",
    "kind": "act",
    "title_de": "Bundesgesetz vom 23. Dezember 2011 über die Reduktion der CO2-Emissionen (CO2-Gesetz)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2012/855"
   },
   "Loi sur le CO2": {
    "sr_number": "641.71",
    "kind": "act",
    "title_de": "Bundesgesetz vom 23. Dezember 2011 über die Reduktion der CO2-Emissionen (CO2-Gesetz)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2012/855"
   },
   "Legge sul CO2": {
    "sr_number": "641.71",
    "kind": "act",
    "title_de": "Bundesgesetz vom 23. Dezember 2011 über die Reduktion der CO2-Emissionen (CO2-Gesetz)",
-   "verified": "fedlex-sparql-2026-09-09"
+   "verified": "fedlex-sparql-2026-09-09 (re-run 2026-09-09, title matched)",
+   "fedlex_work": "https://fedlex.data.admin.ch/eli/cc/2012/855"
   },
   "Const": {
    "sr_number": "101",
@@ -876,39 +965,75 @@
   },
   "SchlT": {
    "sr_number": "210",
-   "kind": "name",
+   "kind": "section",
    "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
-   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+   "verified": "production statutes.db via GET /api/laws/ZGB?language=de|fr|it on 2026-09-09: block disp_u1, 104 articles, headed 'Schlusstitel: Anwendungs- und Einführungsbestimmungen' / 'Titre final: De l’entrée en vigueur et de l’application du code civil' / 'Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile'; SR 210 per docs/data/law_codes.json (production statutes.db, 2026-08-18)",
+   "section": "disp_u1",
+   "section_heading": {
+    "de": "Schlusstitel: Anwendungs- und Einführungsbestimmungen",
+    "fr": "Titre final: De l’entrée en vigueur et de l’application du code civil",
+    "it": "Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile"
+   }
   },
   "SchlT ZGB": {
    "sr_number": "210",
-   "kind": "name",
+   "kind": "section",
    "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
-   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+   "verified": "production statutes.db via GET /api/laws/ZGB?language=de|fr|it on 2026-09-09: block disp_u1, 104 articles, headed 'Schlusstitel: Anwendungs- und Einführungsbestimmungen' / 'Titre final: De l’entrée en vigueur et de l’application du code civil' / 'Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile'; SR 210 per docs/data/law_codes.json (production statutes.db, 2026-08-18)",
+   "section": "disp_u1",
+   "section_heading": {
+    "de": "Schlusstitel: Anwendungs- und Einführungsbestimmungen",
+    "fr": "Titre final: De l’entrée en vigueur et de l’application du code civil",
+    "it": "Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile"
+   }
   },
   "ZGB SchlT": {
    "sr_number": "210",
-   "kind": "name",
+   "kind": "section",
    "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
-   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+   "verified": "production statutes.db via GET /api/laws/ZGB?language=de|fr|it on 2026-09-09: block disp_u1, 104 articles, headed 'Schlusstitel: Anwendungs- und Einführungsbestimmungen' / 'Titre final: De l’entrée en vigueur et de l’application du code civil' / 'Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile'; SR 210 per docs/data/law_codes.json (production statutes.db, 2026-08-18)",
+   "section": "disp_u1",
+   "section_heading": {
+    "de": "Schlusstitel: Anwendungs- und Einführungsbestimmungen",
+    "fr": "Titre final: De l’entrée en vigueur et de l’application du code civil",
+    "it": "Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile"
+   }
   },
   "Schlusstitel ZGB": {
    "sr_number": "210",
-   "kind": "name",
+   "kind": "section",
    "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
-   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+   "verified": "production statutes.db via GET /api/laws/ZGB?language=de|fr|it on 2026-09-09: block disp_u1, 104 articles, headed 'Schlusstitel: Anwendungs- und Einführungsbestimmungen' / 'Titre final: De l’entrée en vigueur et de l’application du code civil' / 'Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile'; SR 210 per docs/data/law_codes.json (production statutes.db, 2026-08-18)",
+   "section": "disp_u1",
+   "section_heading": {
+    "de": "Schlusstitel: Anwendungs- und Einführungsbestimmungen",
+    "fr": "Titre final: De l’entrée en vigueur et de l’application du code civil",
+    "it": "Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile"
+   }
   },
   "Titre final CC": {
    "sr_number": "210",
-   "kind": "name",
+   "kind": "section",
    "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
-   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+   "verified": "production statutes.db via GET /api/laws/ZGB?language=de|fr|it on 2026-09-09: block disp_u1, 104 articles, headed 'Schlusstitel: Anwendungs- und Einführungsbestimmungen' / 'Titre final: De l’entrée en vigueur et de l’application du code civil' / 'Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile'; SR 210 per docs/data/law_codes.json (production statutes.db, 2026-08-18)",
+   "section": "disp_u1",
+   "section_heading": {
+    "de": "Schlusstitel: Anwendungs- und Einführungsbestimmungen",
+    "fr": "Titre final: De l’entrée en vigueur et de l’application du code civil",
+    "it": "Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile"
+   }
   },
   "Tit. fin. CC": {
    "sr_number": "210",
-   "kind": "name",
+   "kind": "section",
    "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
-   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+   "verified": "production statutes.db via GET /api/laws/ZGB?language=de|fr|it on 2026-09-09: block disp_u1, 104 articles, headed 'Schlusstitel: Anwendungs- und Einführungsbestimmungen' / 'Titre final: De l’entrée en vigueur et de l’application du code civil' / 'Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile'; SR 210 per docs/data/law_codes.json (production statutes.db, 2026-08-18)",
+   "section": "disp_u1",
+   "section_heading": {
+    "de": "Schlusstitel: Anwendungs- und Einführungsbestimmungen",
+    "fr": "Titre final: De l’entrée en vigueur et de l’application du code civil",
+    "it": "Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile"
+   }
   },
   "COS": {
    "sr_number": "220",
@@ -1201,25 +1326,25 @@
   "Ausländer- und Integrationsgesetz": {
    "sr_number": "142.20",
    "kind": "name",
-   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (AIG)",
+   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (Ausländer- und Integrationsgesetz, AIG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Loi sur les étrangers et l'intégration": {
    "sr_number": "142.20",
    "kind": "name",
-   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (AIG)",
+   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (Ausländer- und Integrationsgesetz, AIG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Foreign Nationals and Integration Act": {
    "sr_number": "142.20",
    "kind": "name",
-   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (AIG)",
+   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (Ausländer- und Integrationsgesetz, AIG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "FNIA": {
    "sr_number": "142.20",
    "kind": "name",
-   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (AIG)",
+   "title_de": "Bundesgesetz vom 16. Dezember 2005 über die Ausländerinnen und Ausländer und über die Integration (Ausländer- und Integrationsgesetz, AIG)",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   },
   "Asylgesetz": {
@@ -1346,6 +1471,48 @@
    "sr_number": "955.0",
    "kind": "name",
    "title_de": "Bundesgesetz vom 10. Oktober 1997 über die Bekämpfung der Geldwäscherei und der Terrorismusfinanzierung (Geldwäschereigesetz, GwG)",
+   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+  },
+  "aStGB": {
+   "sr_number": "311.0",
+   "kind": "former_edition",
+   "title_de": "Schweizerisches Strafgesetzbuch vom 21. Dezember 1937",
+   "note": "'aStGB' names the former edition of StGB (SR 311.0); the text served is the edition in force today. Pass as_of with the date the former text applied for that edition.",
+   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+  },
+  "aCP": {
+   "sr_number": "311.0",
+   "kind": "former_edition",
+   "title_de": "Schweizerisches Strafgesetzbuch vom 21. Dezember 1937",
+   "note": "'aCP' names the former edition of CP (SR 311.0); the text served is the edition in force today. Pass as_of with the date the former text applied for that edition.",
+   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+  },
+  "aZGB": {
+   "sr_number": "210",
+   "kind": "former_edition",
+   "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
+   "note": "'aZGB' names the former edition of ZGB (SR 210); the text served is the edition in force today. Pass as_of with the date the former text applied for that edition.",
+   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+  },
+  "aCC": {
+   "sr_number": "210",
+   "kind": "former_edition",
+   "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
+   "note": "'aCC' names the former edition of CC (SR 210); the text served is the edition in force today. Pass as_of with the date the former text applied for that edition.",
+   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+  },
+  "aOR": {
+   "sr_number": "220",
+   "kind": "former_edition",
+   "title_de": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+   "note": "'aOR' names the former edition of OR (SR 220); the text served is the edition in force today. Pass as_of with the date the former text applied for that edition.",
+   "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
+  },
+  "aCO": {
+   "sr_number": "220",
+   "kind": "former_edition",
+   "title_de": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+   "note": "'aCO' names the former edition of CO (SR 220); the text served is the edition in force today. Pass as_of with the date the former text applied for that edition.",
    "verified": "docs/data/law_codes.json (production statutes.db, 2026-08-18)"
   }
  }

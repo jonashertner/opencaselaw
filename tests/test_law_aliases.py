@@ -55,13 +55,41 @@ LAWS = [
     {"sr_number": "0.221.211.1", "title_de": "Wiener Kaufrecht"},
     {"sr_number": "0.211.230.02", "title_de": "Haager Kindesentführungsübereinkommen"},
     {"sr_number": "641.71", "title_de": "CO2-Gesetz"},
+    # Federal acts whose abbreviation is also a canton code or a cantonal
+    # collection label, and acts an edition prefix could be peeled off
+    # (SR numbers and abbreviations as in docs/data/law_codes.json).
+    {"sr_number": "631.0", "title_de": "Zollgesetz vom 18. März 2005 (ZG)", "abbr_de": "ZG", "abbr_fr": "LD", "abbr_it": "LD"},
+    {"sr_number": "747.201", "title_de": "Bundesgesetz vom 3. Oktober 1975 über die Binnenschifffahrt (BSG)",
+     "abbr_de": "BSG", "abbr_fr": "LNI", "abbr_it": "LNI"},
+    {"sr_number": "935.51", "title_de": "Bundesgesetz vom 29. September 2017 über Geldspiele (Geldspielgesetz, BGS)",
+     "abbr_de": "BGS", "abbr_fr": "LJAr", "abbr_it": "LGD"},
+    {"sr_number": "741.01", "title_de": "Strassenverkehrsgesetz vom 19. Dezember 1958 (SVG)", "abbr_de": "SVG", "abbr_fr": "LCR", "abbr_it": "LCStr"},
+    {"sr_number": "514.54", "title_de": "Bundesgesetz vom 20. Juni 1997 über Waffen, Waffenzubehör und Munition (Waffengesetz, WG)",
+     "abbr_de": "WG", "abbr_fr": "LArm", "abbr_it": "LArm"},
+    {"sr_number": "131.212", "title_de": "Verfassung des Kantons Bern, vom 6. Juni 1993 (KV)", "abbr_de": "KV", "abbr_fr": "ConstC", "abbr_it": "CostC"},
 ]
 ROWS = [{"sr_number": law["sr_number"], "article_num": "1",
          "text": f"Art. 1 of SR {law['sr_number']}."} for law in LAWS]
+SCHLT_DE = "Schlusstitel: Anwendungs- und Einführungsbestimmungen"
+SCHLT_FR = "Titre final: De l’entrée en vigueur et de l’application du code civil"
 ROWS += [
     {"sr_number": "220", "article_num": "41", "text": "Wer einem andern widerrechtlich Schaden zufügt ..."},
     {"sr_number": "210", "article_num": "314abis", "text": "Fürsorgerische Unterbringung ..."},
     {"sr_number": "311.0", "article_num": "146", "text": "Betrug ..."},
+    {"sr_number": "631.0", "article_num": "7", "text": "Zollpflicht ..."},
+    # The ZGB Schlusstitel as the production mirror exposes it: block
+    # disp_u1, its own Art. 1 (a different provision from main-body Art. 1).
+    {"sr_number": "210", "article_num": "1", "lang": "fr", "text": "Art. 1 CC (corps du code)."},
+    {"sr_number": "210", "article_num": "1", "section": "disp_u1", "section_heading": SCHLT_DE,
+     "heading": "A. Allgemeine Bestimmungen / I. Regel der Nichtrückwirkung",
+     "text": "Die rechtlichen Wirkungen von Tatsachen, die vor dem Inkrafttreten ..."},
+    {"sr_number": "210", "article_num": "2", "section": "disp_u1", "section_heading": SCHLT_DE,
+     "text": "Die Bestimmungen dieses Gesetzes, die um der öffentlichen Ordnung ..."},
+    {"sr_number": "210", "article_num": "1", "lang": "fr", "section": "disp_u1", "section_heading": SCHLT_FR,
+     "text": "Les effets juridiques de faits antérieurs à l’entrée en vigueur ..."},
+    # An OR block that is not a Schlusstitel: a heading mismatch must be a miss.
+    {"sr_number": "220", "article_num": "1", "section": "disp_u2",
+     "section_heading": "Schlussbestimmungen der Änderung vom 23. März 1962", "text": "Übergang ..."},
 ]
 
 
@@ -79,6 +107,9 @@ def statutes(monkeypatch):
     monkeypatch.setattr(m, "_get_statutes_conn", _conn)
     monkeypatch.setattr(m, "_get_cantonal_conn", lambda: None)
     monkeypatch.setattr(m, "_law_alias_cache", None)
+    # An article request consults Fedlex for pending consolidations; the
+    # tests are about names, not the network.
+    monkeypatch.setattr(m, "_fetch_pending_changes", lambda sr: [])
     yield
     monkeypatch.setattr(m, "_law_alias_cache", None)
 
@@ -140,10 +171,32 @@ def test_unknown_name_is_still_a_miss():
 
 
 def test_prefix_never_invents_an_act():
-    # 'A' + something that resolves to nothing stays nothing; 'AT', 'AI' are
-    # too short to be an edition prefix on anything.
-    for name in ("AXYZ", "AT", "AI", "NR"):
-        assert m.get_law(abbreviation=name).get("error"), name
+    # No edition prefix is peeled off an unknown name: ASVG is not the
+    # former SVG (741.01), NWG not the current WG (514.54), AKV/NKV not the
+    # Bern KV (131.212), AZG not the Zollgesetz (631.0) — all of which the
+    # fixture mirror carries. Only the edition names in the table resolve.
+    for name in ("AXYZ", "AT", "AI", "NR", "ASVG", "aSVG", "NWG", "nWG", "AKV", "NKV", "AZG", "NZGB"):
+        r = m.get_law(abbreviation=name)
+        assert r.get("error", "").startswith("No law found with abbreviation"), (name, r)
+        assert "sr_number" not in r, (name, r)
+    con = _conn()
+    try:
+        assert m._resolve_federal_abbreviation(con, "ASVG") == (None, None)
+        assert m._resolve_federal_abbreviation(con, "NWG") == (None, None)
+        assert m._resolve_federal_abbreviation(con, "aStGB")[0] == "311.0"   # a listed edition name
+    finally:
+        con.close()
+
+
+def test_edition_names_come_from_the_table_only():
+    doc = json.loads((REPO / "docs" / "api" / "law_aliases.json").read_text(encoding="utf-8"))
+    assert "_edition_prefixes" not in doc
+    for name, sr in (("aStGB", "311.0"), ("aCP", "311.0"), ("aZGB", "210"), ("aOR", "220"), ("nDSG", "235.1")):
+        assert doc["aliases"][name]["sr_number"] == sr
+    r = m.get_law(abbreviation="aOR", article="41")
+    assert r["sr_number"] == "220" and r["articles"][0]["article_num"] == "41"
+    assert r["abbreviation_alias"]["kind"] == "former_edition"
+    assert "former edition of OR" in r["abbreviation_alias"]["note"]
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +288,45 @@ def test_canton_after_the_name_routes_to_the_canton(monkeypatch):
     assert seen == [(None, "GOG", "16", "GL"), (None, "GOG", "16", "GL")]
 
 
+def test_swapped_fields_never_hijack_a_federal_act(monkeypatch):
+    # ZG is the Zollgesetz (631.0) before it is canton Zug; BSG the
+    # Binnenschifffahrtsgesetz (747.201) before it is Bern's collection; BGS
+    # the Geldspielgesetz (935.51) before it is Appenzell's. The federal act
+    # is served and the cantonal reading offered, never the other way round.
+    seen = []
+    monkeypatch.setattr(m, "_get_law_cantonal",
+                        lambda sr, abbr, art, lang, canton: seen.append((sr, abbr, art, canton)) or {"sr_number": sr})
+    r = m.get_law(abbreviation="ZG", article="7")
+    assert r["sr_number"] == "631.0" and r["abbreviation"] == "ZG"
+    assert [a["article_num"] for a in r["articles"]] == ["7"]
+    assert r["alternative_reading"] == {"canton": "ZG", "sr_number": "7"}
+    assert "code of canton ZG" in r["argument_note"] and "canton='ZG', sr_number='7'" in r["argument_note"]
+    assert "Note: 'ZG' is a federal act (SR 631.0)" in m._format_get_law_response(r)
+    assert m.get_law(abbreviation="BSG", article="3")["sr_number"] == "747.201"
+    assert "collection label of canton BE" in m.get_law(abbreviation="BSG", article="3")["argument_note"]
+    assert m.get_law(abbreviation="bGS", article="3")["sr_number"] == "935.51"
+    assert seen == []                                    # the cantonal branch never ran
+    # No note where there is nothing to disambiguate.
+    assert "argument_note" not in m.get_law(abbreviation="OR", article="41")
+    # An explicit canton already says cantonal: the swapped reading stands.
+    m.get_law(abbreviation="ZG", article="7", canton="ZG")
+    assert seen == [("7", None, None, "ZG")]
+    # Without a federal mirror there is nothing to check against; the
+    # swapped reading is the only one that can answer.
+    monkeypatch.setattr(m, "_get_statutes_conn", lambda: None)
+    m.get_law(abbreviation="ZG", article="7")
+    assert seen[-1] == ("7", None, None, "ZG")
+
+
+def test_swapped_fields_route_to_the_canton_when_no_federal_act_has_the_name(monkeypatch):
+    seen = []
+    monkeypatch.setattr(m, "_get_law_cantonal",
+                        lambda sr, abbr, art, lang, canton: seen.append((sr, abbr, art, canton)) or {"sr_number": sr})
+    r = m.get_law(abbreviation="AG", article="211.1")      # no federal act is named AG
+    assert seen == [("211.1", None, None, "AG")]
+    assert "No federal act is named 'AG'" in r["argument_note"]
+
+
 def test_swapped_canton_and_number_fields(monkeypatch):
     seen = []
     monkeypatch.setattr(m, "_get_law_cantonal",
@@ -245,6 +337,93 @@ def test_swapped_canton_and_number_fields(monkeypatch):
     # Zurich's collection label in place of the canton code.
     r = m.get_law(abbreviation="LS", article="211.1")
     assert seen[-1] == ("211.1", None, None, "ZH")
+
+
+def test_cantonal_language_fallback_is_noted(monkeypatch):
+    monkeypatch.setattr(m, "_get_law_cantonal",
+                        lambda sr, abbr, art, lang, canton: {"sr_number": sr, "language": lang})
+    r = m.get_law(canton="GR", sr_number="110.100", language="rm")
+    assert r["language"] == "de"
+    assert r["language_fallback"] == {"requested": "rm", "served": "de"}
+    assert "language_fallback" not in m.get_law(canton="GR", sr_number="110.100", language="de")
+
+
+# ---------------------------------------------------------------------------
+# Section names: the ZGB Schlusstitel is served from its block, or not at all.
+# ---------------------------------------------------------------------------
+
+def test_schlusstitel_serves_the_section_not_the_main_body():
+    r = m.get_law(abbreviation="SchlT ZGB", article="1")
+    assert r["sr_number"] == "210" and r["abbreviation"] == "ZGB"
+    assert [a["text"][:40] for a in r["articles"]] == ["Die rechtlichen Wirkungen von Tatsachen,"]
+    assert r["articles"][0]["section"] == "disp_u1"
+    assert r["section"] == {"section": "disp_u1", "section_heading": SCHLT_DE}
+    alias = r["abbreviation_alias"]
+    assert alias["kind"] == "section" and alias["requested"] == "SchlT ZGB"
+    assert "block 'disp_u1'" in alias["note"] and "not its main body" in alias["note"]
+    assert "also_in_sections" not in r and "article_section_note" not in r
+    assert "#art_" not in (r.get("source_url") or "")          # the anchor would hit the main body
+    text = m._format_get_law_response(r)
+    assert "Section: Schlusstitel: Anwendungs- und Einführungsbestimmungen (block disp_u1)" in text
+    # The main body is untouched.
+    assert m.get_law(abbreviation="ZGB", article="1")["articles"][0]["text"] == "Art. 1 of SR 210."
+    # French name, French block.
+    r = m.get_law(abbreviation="Titre final CC", article="1", language="fr")
+    assert r["articles"][0]["text"].startswith("Les effets juridiques")
+    assert r["section"]["section_heading"] == SCHLT_FR
+    # Without an article: the block's own list.
+    r = m.get_law(abbreviation="Schlusstitel ZGB")
+    assert r["article_count"] == 2
+    assert {a["section"] for a in r["articles"]} == {"disp_u1"}
+    assert [a["article_num"] for a in r["articles"]] == ["1", "2"]
+
+
+def test_section_name_is_a_miss_when_the_mirror_does_not_expose_the_block():
+    table = m._law_alias_data()["aliases"]
+    entry = table["SCHLTZGB"]
+    entry["section"] = "disp_u9"                    # a rebuild renumbered the blocks
+    r = m.get_law(abbreviation="SchlT ZGB", article="1")
+    assert r["error"] == "No law found with abbreviation 'SchlT ZGB'."
+    assert "does not expose it as one" in r["note"] and "SR 210" in r["note"]
+    assert "articles" not in r
+    assert m._payload_outcome(r) == ("empty", "id_not_found")
+    assert "does not expose" in m._format_get_law_response(r)
+    # A block that exists under another heading is not the Schlusstitel either.
+    entry["sr_number"], entry["section"] = "220", "disp_u2"
+    assert m.get_law(abbreviation="SchlT ZGB", article="1").get("error")
+    # An older build without the `section` column.
+    con = _conn()
+    try:
+        block, miss = m._alias_section_in_mirror(
+            con, "210", "de", {"requested": "SchlT ZGB", "section": "disp_u1",
+                               "section_heading": {"de": SCHLT_DE}}, has_section=False)
+        assert block is None and miss["error"].startswith("No law found")
+    finally:
+        con.close()
+
+
+def test_section_name_with_as_of_is_refused(monkeypatch):
+    called = []
+    monkeypatch.setattr(m, "_fetch_historical_law_version",
+                        lambda *a: called.append(a) or {"sr_number": "210", "articles": []})
+    r = m.get_law(abbreviation="SchlT ZGB", article="1", as_of="2010-01-01")
+    assert r["error"].startswith("as_of is not supported with a section name") and "SR 210" in r["error"]
+    assert called == []
+    # The act itself still takes as_of.
+    assert not m.get_law(abbreviation="ZGB", article="1", as_of="2010-01-01").get("error")
+
+
+def test_malformed_section_entry_is_not_loaded(monkeypatch, tmp_path):
+    bad = {"aliases": {
+        "Good": {"sr_number": "210", "kind": "section", "section": "disp_u1", "section_heading": {"de": "x"}},
+        "Injected": {"sr_number": "210", "kind": "section", "section": "x' OR 1=1 --", "section_heading": {"de": "x"}},
+        "NoHeading": {"sr_number": "210", "kind": "section", "section": "disp_u1"},
+    }}
+    path = tmp_path / "law_aliases.json"
+    path.write_text(json.dumps(bad), encoding="utf-8")
+    monkeypatch.setattr(m, "_law_alias_cache", None)
+    monkeypatch.setattr(m, "_LAW_ALIASES_PATH", path)
+    assert set(m._law_alias_data()["aliases"]) == {"GOOD"}
 
 
 def _cantonal_mirror():
@@ -293,6 +472,9 @@ def test_search_laws_abbreviation_prematch_resolves_aliases():
         assert m._abbreviation_lookup_federal("Pacte II", "de", conn=con)[0]["sr_number"] == "0.103.2"
         assert m._abbreviation_lookup_federal("OG", "de", conn=con)[0]["sr_number"] == "173.110"
         assert m._abbreviation_lookup_federal("OR", "de", conn=con)[0]["sr_number"] == "220"
+        assert m._abbreviation_lookup_federal("aStGB", "de", conn=con)[0]["sr_number"] == "311.0"
+        assert m._abbreviation_lookup_federal("ASVG", "de", conn=con) == []
+        assert m._abbreviation_lookup_federal("ZG", "de", conn=con)[0]["sr_number"] == "631.0"
         assert m._abbreviation_lookup_federal("Kündigung des Mietvertrags wegen Zahlungsverzug", "de", conn=con) == []
     finally:
         con.close()
@@ -342,6 +524,7 @@ def test_alias_table_is_well_formed():
     aliases = doc["aliases"]
     assert len(aliases) >= 150
     kinds = set(doc["_kinds"])
+    assert {"former_edition", "section"} <= kinds
     seen_norm: dict[str, str] = {}
     for key, entry in aliases.items():
         assert re.match(r"^\d[\d.]*$", entry["sr_number"]), key
@@ -349,6 +532,13 @@ def test_alias_table_is_well_formed():
         assert entry["verified"], key            # never from memory
         if entry["kind"] == "former":
             assert entry["note"] and entry["as_of_hint"], key
+        if entry["kind"] == "former_edition":
+            assert entry["note"] and key[0] == "a", key
+        if entry["kind"] == "section":
+            assert m._LAW_SECTION_ID_RE.match(entry["section"]), key
+            assert set(entry["section_heading"]) == {"de", "fr", "it"}, key
+        if entry["verified"].startswith("fedlex-sparql"):
+            assert entry["fedlex_work"].startswith("https://fedlex.data.admin.ch/eli/cc/"), key
         norm = m._norm_law_alias(key)
         assert seen_norm.get(norm, entry["sr_number"]) == entry["sr_number"], key
         seen_norm[norm] = entry["sr_number"]
