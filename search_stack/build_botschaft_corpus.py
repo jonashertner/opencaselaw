@@ -65,6 +65,16 @@ try:
     from scrapers.fedlex_materialien import fetch_manifestations  # noqa: E402
 except ImportError:
     fetch_manifestations = None  # type: ignore[assignment]
+try:
+    from scrapers.fedlex_materialien import (  # noqa: E402
+        DEFAULT_DOC_TYPE, FGA_DOC_TYPES, parse_doc_types,
+    )
+except ImportError:  # pragma: no cover - scrapers/ always ships with this module
+    DEFAULT_DOC_TYPE = "botschaft"
+    FGA_DOC_TYPES = {23: "botschaft"}
+
+    def parse_doc_types(spec):  # type: ignore[misc]
+        return (23,)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -72,6 +82,49 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("build_botschaft_corpus")
+
+
+# ── Fetch policy (2026-09-09) ─────────────────────────────────────────
+#
+# The --ingest-all loop talks to two Fedlex hosts per candidate: the SPARQL
+# endpoint (manifestation lookup) and the file store (HEAD/GET). Before this
+# policy a refusal was one more line in stats['errors'] and the loop kept
+# going at the configured rate. Now a run stops on the first 429/403 or after
+# STOP_AFTER_CONSECUTIVE_FAILURES failures in a row, and each failure widens
+# the pause before the next candidate (exponential backoff, capped). A stop
+# exits non-zero so the unit's && chain halts; every document commits on its
+# own, so the next run resumes after the rows already stored.
+FATAL_HTTP_STATUSES = frozenset({403, 429})
+STOP_AFTER_CONSECUTIVE_FAILURES = 5
+BACKOFF_BASE_SECONDS = 2.0
+BACKOFF_MAX_SECONDS = 60.0
+INGEST_STOPPED_EXIT_CODE = 4
+
+
+class SourceUnavailable(RuntimeError):
+    """A Fedlex lookup or download failed for a reason that is the host's,
+    not the document's (HTTP error, timeout, refused connection). Carries
+    the HTTP status when there was one so the loop can tell a 429 from a
+    flaky read."""
+
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
+
+
+def http_status_of(exc: BaseException) -> int | None:
+    """The HTTP status behind an exception, whichever client raised it:
+    urllib (``.code``), requests (``.response.status_code``) or our own
+    ``SourceUnavailable`` (``.status``). None when there is no status."""
+    for attr in ("status", "code"):
+        v = getattr(exc, attr, None)
+        if isinstance(v, int) and 100 <= v < 600:
+            return v
+    resp = getattr(exc, "response", None)
+    v = getattr(resp, "status_code", None)
+    if isinstance(v, int) and 100 <= v < 600:
+        return v
+    return None
 
 
 # ── Schema ────────────────────────────────────────────────────────────
@@ -91,6 +144,7 @@ CREATE TABLE IF NOT EXISTS botschaft_documents (
     page_count      INTEGER,
     text_hash       TEXT,                     -- sha-256 of full text, for delta detection
     ingested_at     TEXT NOT NULL,
+    doc_type        TEXT NOT NULL DEFAULT 'botschaft',  -- Fedlex resource-type slug (FGA_DOC_TYPES)
     UNIQUE(bbl_year, bbl_page, language)
 );
 
@@ -144,29 +198,56 @@ CREATE INDEX IF NOT EXISTS ix_abl_botschaft ON article_botschaft_links(botschaft
 """
 
 
-# Columns added after the table was first created (2026-09-09: document
-# metadata). ALTER TABLE ... ADD COLUMN, guarded by PRAGMA table_info, so an
-# existing live DB gains them in place and build_materialien_db's
-# sqlite_master copy carries them over unchanged. Readers must tolerate
-# their absence (fixture DBs built from older schemas).
-_ADDITIVE_COLUMNS: tuple[tuple[str, str], ...] = (
+# Columns added after the table first shipped. Each is applied with
+# ``ALTER TABLE … ADD COLUMN`` only when ``PRAGMA table_info`` lacks it, so
+# the migration is additive, idempotent, and leaves every existing reader
+# (mcp_server, build_materialien_db's table copy, generate_stats) working:
+# rows written before the column existed read back as the default / NULL.
+# Order matters: SQLite appends columns in this order, and readers that
+# select them by name must tolerate their absence (fixture DBs built from
+# older schemas). Append new columns at the END, never reorder.
+_ADDITIVE_COLUMNS: tuple[tuple[str, str, str], ...] = (
+    # (table, column, declaration)
     # jolux:dateDocument — the date the message is "vom" (2011-09-07 for
     # "Botschaft vom 7. September 2011"). publication_date holds
     # jolux:publicationDate, the Bundesblatt issue date.
-    ("date_document", "TEXT"),
+    ("botschaft_documents", "date_document", "TEXT"),
     # Where publication_date came from: 'fedlex:publicationDate',
     # 'fedlex:dateDocument' (publicationDate missing on Fedlex) or
     # 'bbl_year' (neither on Fedlex — the value is just the BBl year).
-    ("date_source", "TEXT"),
+    ("botschaft_documents", "date_source", "TEXT"),
+    # Fedlex resource-type slug (FGA_DOC_TYPES); every row from before the
+    # column existed IS a Botschaft.
+    ("botschaft_documents", "doc_type", "TEXT NOT NULL DEFAULT 'botschaft'"),
 )
+_ADDITIVE_INDEXES: tuple[str, ...] = (
+    "CREATE INDEX IF NOT EXISTS ix_bd_doctype ON botschaft_documents(doc_type)",
+)
+
+
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {r[1] for r in conn.execute(f'PRAGMA table_info("{table}")').fetchall()}
+
+
+def migrate_additive(conn: sqlite3.Connection) -> list[str]:
+    """Apply the guarded ``ALTER TABLE … ADD COLUMN`` migrations. Returns the
+    ``table.column`` names actually added (empty when already current)."""
+    added: list[str] = []
+    for table, column, decl in _ADDITIVE_COLUMNS:
+        have = _table_columns(conn, table)
+        if not have or column in have:
+            continue
+        conn.execute(f'ALTER TABLE "{table}" ADD COLUMN {column} {decl}')
+        added.append(f"{table}.{column}")
+        log.info(f"  schema: added column {table}.{column} ({decl})")
+    for ddl in _ADDITIVE_INDEXES:
+        conn.execute(ddl)
+    return added
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
-    have = {r[1] for r in conn.execute("PRAGMA table_info(botschaft_documents)")}
-    for col, decl in _ADDITIVE_COLUMNS:
-        if col not in have:
-            conn.execute(f"ALTER TABLE botschaft_documents ADD COLUMN {col} {decl}")
+    migrate_additive(conn)
     conn.commit()
 
 
@@ -195,6 +276,20 @@ def resolve_publication_date(
     if bbl_year:
         return str(int(bbl_year)), DATE_SOURCE_BBL_YEAR
     return None, None
+
+
+# Only Fedlex's own file store is fetched by this module. The BAR
+# amtsdruckschriften portal (pre-1999 scans) has its own robots-aware
+# fetcher; a manifestation hosted elsewhere is skipped here, never
+# downloaded through this unthrottled path.
+ALLOWED_FILE_HOSTS: frozenset[str] = frozenset({"fedlex.data.admin.ch"})
+
+
+def file_host_allowed(url: str | None) -> bool:
+    if not url:
+        return False
+    from urllib.parse import urlsplit
+    return urlsplit(url).netloc.lower() in ALLOWED_FILE_HOSTS
 
 
 # ── Fedlex BBl URL helpers ────────────────────────────────────────────
@@ -310,8 +405,15 @@ def resolve_manifestation(
     try:
         mans = fetch_manifestations(eli_uri)
     except Exception as e:
+        # A failed lookup is the endpoint's problem, not "no manifestation":
+        # surface it (with the HTTP status when there is one) so the ingest
+        # loop counts it and stops on a refusal, instead of skipping the
+        # document as pre-2003 and moving on at full rate.
         log.warning(f"  SPARQL manifestation lookup failed for {eli_uri}: {e}")
-        return (None, None)
+        raise SourceUnavailable(
+            f"SPARQL manifestation lookup failed for {eli_uri}: {e}",
+            status=http_status_of(e),
+        ) from e
 
     # Filter to requested language; prefer best format.
     same_lang = [m for m in mans if m.language == language]
@@ -533,6 +635,7 @@ def _url_exists(url: str, timeout: int = 15) -> bool:
     PDF parts; we don't want those treated as real parts. Checking the
     declared Content-Type catches that case before we waste a GET.
     """
+    import urllib.error
     import urllib.request
     req = urllib.request.Request(
         url,
@@ -545,6 +648,13 @@ def _url_exists(url: str, timeout: int = 15) -> bool:
                 return False
             ct = (r.headers.get("Content-Type") or "").lower()
             return "application/pdf" in ct
+    except urllib.error.HTTPError as e:
+        if e.code in FATAL_HTTP_STATUSES:
+            # Not "no part N" — the host is refusing us. Let the loop stop.
+            raise SourceUnavailable(
+                f"HEAD {url} answered HTTP {e.code}", status=e.code,
+            ) from e
+        return False
     except Exception:
         return False
 
@@ -696,25 +806,31 @@ def ingest_one(
     title: str | None = None,
     publication_date: str | None = None,
     date_document: str | None = None,
+    doc_type: str = DEFAULT_DOC_TYPE,
 ) -> int | None:
-    """Fetch, parse, and store one Botschaft. Returns botschaft_id, or
-    None if Fedlex has no manifestation (pre-~2003 BBl) or the URI
-    isn't a real Botschaft.
+    """Fetch, parse, and store one Bundesblatt document. Returns
+    botschaft_id, or None if Fedlex has no manifestation (pre-~2003 BBl),
+    the URI isn't a real Botschaft, its file lives off fedlex.data.admin.ch,
+    or its citation page is already taken by a different document.
 
     Pass ``prefiltered=True`` when the caller has already validated the
-    URI is a Botschaft (e.g. SPARQL discovery via typeDocument=23) — it
-    skips the per-URI is_botschaft ASK probe.
+    URI's type (e.g. SPARQL discovery via typeDocument) — it skips the
+    per-URI is_botschaft ASK probe. ``doc_type`` is the FGA_DOC_TYPES slug
+    stored on the row ('botschaft', 'bericht_bundesrat', …); the parse and
+    anchor path is identical for every type.
 
     ``title`` / ``publication_date`` / ``date_document`` are the Fedlex
     SPARQL metadata for this Work in ``language`` (see
-    ``discover_fga_botschaften_meta``). They are stored verbatim on the
-    document row; an existing row that lacks them is filled in even when
-    its text is unchanged. Note that ``main --discover-via-sparql`` never
-    calls this for a (year, page) already in the table — old rows are
-    healed by ``heal_existing_metadata`` (no fetch), which main() runs on
-    every SPARQL pass.
+    ``discover_fga_documents``). They are stored verbatim on the document
+    row; an existing row that lacks them is filled in even when its text is
+    unchanged. Note that ``main --discover-via-sparql`` never calls this for
+    a (year, page) already in the table — old rows are healed by
+    ``heal_existing_metadata`` (no fetch), which main() runs on every SPARQL
+    pass.
     """
     ensure_schema(conn)
+    if doc_type not in FGA_DOC_TYPES.values():
+        raise ValueError(f"Unknown doc_type {doc_type!r}")
     pub_date, date_source = resolve_publication_date(publication_date, date_document, year)
 
     citation = bbl_citation(year, page, language)
@@ -743,7 +859,41 @@ def ingest_one(
             f"pre-2003 publications need v0.3 amtsdruckschriften adapter"
         )
         return None
+    if not file_host_allowed(url):
+        log.info(
+            f"  skipping {citation} ({language}) — file hosted off Fedlex "
+            f"({url[:100]}); the BAR portal is not part of this ingest"
+        )
+        return None
     log.info(f"  resolved → {fmt}: {url[:120]}")
+
+    # Identity: the ELI is the stable key; (year, page, language) is the
+    # citation and the table's UNIQUE constraint. Match the ELI first so a
+    # re-ingest never binds to a different work that happens to share a
+    # gazette page, and refuse to overwrite such a neighbour.
+    row = conn.execute(
+        "SELECT botschaft_id, text_hash, bbl_year, bbl_page FROM botschaft_documents "
+        "WHERE eli_uri=? AND language=?",
+        (eli, language),
+    ).fetchone()
+    if row is not None and (row[2], row[3]) != (year, page):
+        log.warning(
+            f"  {eli} ({language}) already stored as BBl {row[2]} {row[3]}, "
+            f"now discovered as {citation} — keeping the stored citation"
+        )
+        year, page = row[2], row[3]
+    if row is None:
+        row = conn.execute(
+            "SELECT botschaft_id, text_hash, eli_uri FROM botschaft_documents "
+            "WHERE bbl_year=? AND bbl_page=? AND language=?",
+            (year, page, language),
+        ).fetchone()
+        if row is not None and row[2] and row[2] != eli:
+            log.warning(
+                f"  citation-page collision: {citation} ({language}) is held by "
+                f"{row[2]}, refusing to overwrite it with {eli}"
+            )
+            return None
 
     # v0.3 (2026-05-07): for PDF formats we probe Fedlex's multi-part
     # convention (``-1.pdf``/``-2.pdf``…) so big Botschaften aren't
@@ -755,12 +905,6 @@ def ingest_one(
     # Hash the concatenation so a new part triggers re-ingest.
     text_hash = hashlib.sha256(b"".join(parts)).hexdigest()
     raw = parts[0]  # XML parser only needs the first (single) part
-
-    row = conn.execute(
-        "SELECT botschaft_id, text_hash FROM botschaft_documents "
-        "WHERE bbl_year=? AND bbl_page=? AND language=?",
-        (year, page, language),
-    ).fetchone()
 
     if row and row[1] == text_hash:
         log.info(f"  unchanged ({citation}) — keeping existing rows")
@@ -819,9 +963,10 @@ def ingest_one(
             )
             conn.execute(
                 "UPDATE botschaft_documents SET text_hash=?, page_count=?, "
-                "format=?, source_url=?, ingested_at=? WHERE botschaft_id=?",
+                "format=?, source_url=?, ingested_at=?, doc_type=? "
+                "WHERE botschaft_id=?",
                 (text_hash, page_count, stored_format, url,
-                 datetime.now(timezone.utc).isoformat(), row[0]),
+                 datetime.now(timezone.utc).isoformat(), doc_type, row[0]),
             )
             botschaft_id = row[0]
             _fill_metadata(conn, botschaft_id, title, pub_date, date_source, date_document)
@@ -831,13 +976,14 @@ def ingest_one(
                 INSERT INTO botschaft_documents
                 (bbl_year, bbl_page, bbl_citation, eli_uri, source_url,
                  format, language, page_count, text_hash, ingested_at,
-                 title, publication_date, date_document, date_source)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 title, publication_date, date_document, date_source,
+                 doc_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (year, page, citation, eli, url, stored_format, language,
                  page_count, text_hash,
                  datetime.now(timezone.utc).isoformat(),
-                 title, pub_date, date_document, date_source),
+                 title, pub_date, date_document, date_source, doc_type),
             )
             botschaft_id = cur.lastrowid
 
@@ -954,6 +1100,144 @@ def link_from_amendment_refs(conn: sqlite3.Connection) -> dict:
     }
 
 
+# ── Candidates ────────────────────────────────────────────────────────
+#
+# One dict per document to ingest. Built from SPARQL discovery
+# (``candidate_from_discovery``) or from amendment_refs; ``ingest_candidates``
+# also accepts the legacy ``(year, page, eli, doc_type)`` tuple.
+_CANDIDATE_KEYS = ("year", "page", "eli_uri", "doc_type", "title",
+                   "publication_date", "date_document")
+
+
+def candidate_from_discovery(d: dict) -> dict:
+    """A candidate dict from one ``discover_fga_documents`` row. Missing
+    metadata keys read as None; a missing ``doc_type`` is a Botschaft."""
+    return {
+        "year": int(d["year"]),
+        "page": int(d["page"]),
+        "eli_uri": d.get("eli_uri"),
+        "doc_type": d.get("doc_type") or DEFAULT_DOC_TYPE,
+        "title": d.get("title") or None,
+        "publication_date": d.get("publication_date") or None,
+        "date_document": d.get("date_document") or None,
+    }
+
+
+def as_candidate(c) -> dict:
+    """Normalise a candidate: a dict is returned as is (missing keys read as
+    None via ``.get``); a ``(year, page[, eli[, doc_type]])`` tuple becomes
+    a dict."""
+    if isinstance(c, dict):
+        return c
+    seq = list(c)
+    return {
+        "year": seq[0],
+        "page": seq[1],
+        "eli_uri": seq[2] if len(seq) > 2 else None,
+        "doc_type": (seq[3] if len(seq) > 3 else None) or DEFAULT_DOC_TYPE,
+    }
+
+
+def ingest_candidates(
+    conn: sqlite3.Connection,
+    candidates: list,
+    *,
+    language: str,
+    prefiltered: bool,
+    rate_limit: float,
+    max_consecutive_failures: int = STOP_AFTER_CONSECUTIVE_FAILURES,
+    sleep=None,
+    log_every: int = 25,
+) -> dict:
+    """Run ``ingest_one`` over ``candidates`` — candidate dicts (see
+    ``as_candidate``: ``year``, ``page``, ``eli_uri``, ``doc_type`` and the
+    Fedlex ``title`` / ``publication_date`` / ``date_document``), newest
+    first — under the fetch policy at the top of this module.
+
+    Returns the stats dict. ``stats['stopped']`` is None for a run that saw
+    every candidate, else the reason: ``'http_429'`` / ``'http_403'`` (the
+    host refused; stop at once) or ``'N_consecutive_failures'``. Rows
+    committed before a stop are kept (``ingest_one`` commits per document),
+    so the next run's dedup resumes after them.
+
+    ``sleep`` is injectable for tests; the pause after a failure is
+    ``BACKOFF_BASE_SECONDS * 2**(n-1)`` capped at ``BACKOFF_MAX_SECONDS``
+    and replaces the rate-limit sleep for that candidate.
+    """
+    import time as _time
+    sleep = sleep or _time.sleep
+    total = len(candidates)
+    stats = {
+        "accepted": 0, "rejected_by_filter": 0, "errors": 0,
+        "total": total, "processed": 0, "stopped": None,
+        "max_consecutive_failures_seen": 0,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    }
+    consecutive = 0
+    t0 = _time.time()
+    for i, cand in enumerate(candidates, 1):
+        c = as_candidate(cand)
+        year, page, eli = c["year"], c["page"], c.get("eli_uri")
+        stats["processed"] = i
+        pause = rate_limit
+        try:
+            bid = ingest_one(
+                conn, year=year, page=page, eli_uri=eli,
+                language=language,
+                sr_number=None, article=None,
+                relation="considered",
+                prefiltered=prefiltered,
+                title=c.get("title"),
+                publication_date=c.get("publication_date"),
+                date_document=c.get("date_document"),
+                doc_type=c.get("doc_type") or DEFAULT_DOC_TYPE,
+            )
+        except Exception as e:
+            stats["errors"] += 1
+            consecutive += 1
+            stats["max_consecutive_failures_seen"] = max(
+                stats["max_consecutive_failures_seen"], consecutive)
+            status = http_status_of(e)
+            log.warning(f"  BBl {year} {page} ({language}) failed: {e}")
+            if status in FATAL_HTTP_STATUSES:
+                stats["stopped"] = f"http_{status}"
+            elif consecutive >= max_consecutive_failures:
+                stats["stopped"] = f"{consecutive}_consecutive_failures"
+            else:
+                pause = min(BACKOFF_MAX_SECONDS,
+                            BACKOFF_BASE_SECONDS * 2 ** (consecutive - 1))
+                log.warning(
+                    f"  backing off {pause:.0f}s after {consecutive} "
+                    f"consecutive failure{'s' if consecutive != 1 else ''}"
+                )
+        else:
+            consecutive = 0
+            if bid is None:
+                stats["rejected_by_filter"] += 1
+            else:
+                stats["accepted"] += 1
+        if stats["stopped"]:
+            log.error(
+                f"  stopping this run ({stats['stopped']}) at {i}/{total}; "
+                "committed rows are kept, the next run resumes after them"
+            )
+            break
+        sleep(pause)
+        if i % log_every == 0 or i == total:
+            elapsed = _time.time() - t0
+            rate = i / elapsed if elapsed > 0 else 0
+            eta = (total - i) / rate if rate > 0 else 0
+            log.info(
+                f"  progress {i}/{total} "
+                f"(accepted={stats['accepted']} "
+                f"filtered={stats['rejected_by_filter']} "
+                f"errors={stats['errors']}) "
+                f"rate={rate:.2f}/s eta={int(eta/60)}min"
+            )
+    stats["elapsed_seconds"] = round(_time.time() - t0, 2)
+    return stats
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument(
@@ -972,6 +1256,11 @@ def main() -> int:
     parser.add_argument("--year", type=int)
     parser.add_argument("--page", type=int)
     parser.add_argument("--sr", help="SR number to link the article to")
+    parser.add_argument(
+        "--doc-type", default=DEFAULT_DOC_TYPE,
+        choices=sorted(set(FGA_DOC_TYPES.values())),
+        help="doc_type slug stored by --ingest-one (default botschaft)",
+    )
     parser.add_argument("--article", help="article number (links to the Botschaft)")
     parser.add_argument(
         "--language", default="de", choices=["de", "fr", "it"],
@@ -989,6 +1278,23 @@ def main() -> int:
         help="Seconds to sleep between fetches in --ingest-all (default 0.3).",
     )
     parser.add_argument(
+        "--max-per-run", type=int, default=None,
+        help=(
+            "Cap on documents processed per --ingest-all run (newest first; "
+            "the rest wait for the next run). Unlike --limit this is a "
+            "production setting: it bounds a catch-up night."
+        ),
+    )
+    parser.add_argument(
+        "--max-consecutive-failures", type=int,
+        default=STOP_AFTER_CONSECUTIVE_FAILURES,
+        help=(
+            "Stop the run (exit 4) after this many failed candidates in a "
+            f"row (default {STOP_AFTER_CONSECUTIVE_FAILURES}). Any HTTP "
+            "429/403 stops it at once regardless."
+        ),
+    )
+    parser.add_argument(
         "--min-year", type=int, default=2003,
         help="Lowest BBl year to consider in --ingest-all (Fedlex coverage starts ~2003).",
     )
@@ -999,10 +1305,19 @@ def main() -> int:
     parser.add_argument(
         "--discover-via-sparql", action="store_true",
         help=(
-            "Use Fedlex SPARQL (typeDocument=23) as candidate source "
-            "instead of amendment_refs. Yields ~2000 real Botschaften "
-            "across post-2003 coverage; bypasses the per-URI is_botschaft "
-            "ASK probe since SPARQL pre-filters at query time."
+            "Use Fedlex SPARQL (typeDocument in --types, default 23) as "
+            "candidate source instead of amendment_refs. Yields ~2000 real "
+            "Botschaften across post-2003 coverage; bypasses the per-URI "
+            "is_botschaft ASK probe since SPARQL pre-filters at query time."
+        ),
+    )
+    parser.add_argument(
+        "--types", default="23",
+        help=(
+            "Comma-separated Fedlex resource-type ids to discover with "
+            "--discover-via-sparql (default 23 = Botschaft). Known: "
+            + ", ".join(f"{k}={v}" for k, v in sorted(FGA_DOC_TYPES.items()))
+            + ". Rows are tagged botschaft_documents.doc_type."
         ),
     )
     parser.add_argument(
@@ -1049,6 +1364,7 @@ def main() -> int:
             sr_number=args.sr,
             article=args.article,
             relation="enacted" if args.article else "considered",
+            doc_type=args.doc_type,
         )
         log.info(f"botschaft_id = {bid}")
         return 0
@@ -1061,37 +1377,56 @@ def main() -> int:
 
     if args.ingest_all:
         if args.discover_via_sparql:
-            # Pull every typeDocument=23 (Botschaft) FGA URI from Fedlex
+            # Pull every FGA URI of the requested resource types from Fedlex
             # SPARQL, then dedupe against already-ingested rows in
-            # botschaft_documents.
+            # botschaft_documents (by ELI, then by citation page).
             try:
-                from scrapers.fedlex_materialien import discover_fga_botschaften_meta
+                from scrapers.fedlex_materialien import discover_fga_documents
             except ImportError as e:
                 log.error(f"Cannot import SPARQL discoverer: {e}")
                 return 3
-            log.info("Discovering Botschaften via Fedlex SPARQL (typeDocument=23)…")
-            sparql_rows = discover_fga_botschaften_meta(language=args.language)
-            log.info(f"  SPARQL returned {len(sparql_rows)} Botschaften")
+            try:
+                type_ids = parse_doc_types(args.types)
+            except ValueError as e:
+                log.error(str(e))
+                return 2
+            log.info(
+                "Discovering Bundesblatt documents via Fedlex SPARQL "
+                f"(typeDocument in {list(type_ids)})…"
+            )
+            sparql_docs = discover_fga_documents(
+                language=args.language, doc_types=type_ids,
+            )
+            log.info(f"  SPARQL returned {len(sparql_docs)} documents")
 
-            existing = {
-                (y, p) for (y, p) in conn.execute(
-                    "SELECT bbl_year, bbl_page FROM botschaft_documents "
-                    "WHERE language = ? AND bbl_year >= ?",
-                    (args.language, args.min_year),
-                ).fetchall()
-            }
-            # (year, page, eli, meta): the SPARQL title and dates travel with
-            # the candidate so the document row is written complete.
+            existing_rows = conn.execute(
+                "SELECT bbl_year, bbl_page, eli_uri FROM botschaft_documents "
+                "WHERE language = ? AND bbl_year >= ?",
+                (args.language, args.min_year),
+            ).fetchall()
+            existing = {(y, p) for (y, p, _e) in existing_rows}
+            existing_eli = {e for (_y, _p, e) in existing_rows if e}
+            # One candidate dict per work: the SPARQL title and dates travel
+            # with it so the document row is written complete, and doc_type
+            # is the Fedlex resource type it was discovered under.
             candidates = [
-                (m["year"], m["page"], m["eli_uri"], m) for m in sparql_rows
-                if m["year"] >= args.min_year and (m["year"], m["page"]) not in existing
+                candidate_from_discovery(d)
+                for d in sparql_docs
+                if d["year"] >= args.min_year
+                and d["eli_uri"] not in existing_eli
+                and (d["year"], d["page"]) not in existing
             ]
             # Newest first — same convention as amendment_refs path.
-            candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
+            candidates.sort(key=lambda c: (c["year"], c["page"]), reverse=True)
+            by_type: dict[str, int] = {}
+            for c in candidates:
+                by_type[c["doc_type"]] = by_type.get(c["doc_type"], 0) + 1
             log.info(
                 f"--ingest-all (SPARQL): {len(candidates)} candidates "
                 f"≥ {args.min_year} not yet in materialien.db, "
-                f"lang={args.language} (skipped {len(existing)} already ingested)"
+                f"lang={args.language} (skipped {len(existing)} already ingested; "
+                + ", ".join(f"{k}={v}" for k, v in sorted(by_type.items()))
+                + ")"
             )
         else:
             rows = conn.execute(
@@ -1109,24 +1444,33 @@ def main() -> int:
                 """,
                 (args.language, args.min_year),
             ).fetchall()
-            candidates = [(int(r[0]), int(r[1]), None, None) for r in rows]
+            candidates = [
+                {"year": int(r[0]), "page": int(r[1]), "eli_uri": None,
+                 "doc_type": DEFAULT_DOC_TYPE}
+                for r in rows
+            ]
             log.info(
                 f"--ingest-all (amendment_refs): {len(candidates)} unique "
                 f"(year, page) candidates ≥ {args.min_year} not yet in "
                 f"materialien.db, lang={args.language}"
             )
-        if args.limit:
-            candidates = candidates[: args.limit]
+        for cap_flag in ("limit", "max_per_run"):
+            cap = getattr(args, cap_flag)
+            if cap and len(candidates) > cap:
+                log.info(
+                    f"--{cap_flag.replace('_', '-')} {cap}: processing the "
+                    f"first {cap} of {len(candidates)} candidates (newest "
+                    "first); the rest wait for the next run"
+                )
+                candidates = candidates[:cap]
         if args.dry_run:
-            for year, page, _eli, _m in candidates[:25]:
-                log.info(f"  candidate: BBl {year} {page}")
+            for c in candidates[:25]:
+                log.info(f"  candidate: BBl {c['year']} {c['page']} [{c['doc_type']}]")
             if len(candidates) > 25:
                 log.info(f"  … and {len(candidates) - 25} more")
             return 0
 
-        import time as _time
-        stats = {"accepted": 0, "rejected_by_filter": 0, "errors": 0,
-                 "total": len(candidates), "started_at": datetime.now(timezone.utc).isoformat()}
+        heal = None
         if args.discover_via_sparql:
             # The rows filtered out above as "already ingested" are never
             # re-fetched, so their missing title/date must be filled from
@@ -1134,54 +1478,36 @@ def main() -> int:
             # network). This is the nightly heal; the backfill script is
             # the bulk path for ELIs discovery no longer returns.
             heal = heal_existing_metadata(
-                conn, sparql_rows, language=args.language, min_year=args.min_year,
+                conn, sparql_docs, language=args.language, min_year=args.min_year,
             )
-            stats["healed_existing"] = heal
             log.info(
                 f"  healed metadata on {heal['healed']}/{heal['candidates']} "
                 f"existing rows lacking title/date "
                 f"({heal['no_discovery_meta']} without discovery metadata)"
             )
-        t0 = _time.time()
-        for i, (year, page, eli, meta) in enumerate(candidates, 1):
-            meta = meta or {}
-            try:
-                bid = ingest_one(
-                    conn, year=year, page=page, eli_uri=eli,
-                    language=args.language,
-                    sr_number=None, article=None,
-                    relation="considered",
-                    prefiltered=args.discover_via_sparql,
-                    title=meta.get("title"),
-                    publication_date=meta.get("publication_date"),
-                    date_document=meta.get("date_document"),
-                )
-                if bid is None:
-                    stats["rejected_by_filter"] += 1
-                else:
-                    stats["accepted"] += 1
-            except Exception as e:
-                stats["errors"] += 1
-                log.warning(f"  BBl {year} {page} ({args.language}) failed: {e}")
-            _time.sleep(args.rate_limit)
-            if i % 25 == 0 or i == len(candidates):
-                elapsed = _time.time() - t0
-                rate = i / elapsed if elapsed > 0 else 0
-                eta = (len(candidates) - i) / rate if rate > 0 else 0
-                log.info(
-                    f"  progress {i}/{len(candidates)} "
-                    f"(accepted={stats['accepted']} "
-                    f"filtered={stats['rejected_by_filter']} "
-                    f"errors={stats['errors']}) "
-                    f"rate={rate:.2f}/s eta={int(eta/60)}min"
-                )
+        stats = ingest_candidates(
+            conn, candidates,
+            language=args.language,
+            prefiltered=args.discover_via_sparql,
+            rate_limit=args.rate_limit,
+            max_consecutive_failures=args.max_consecutive_failures,
+        )
+        if heal is not None:
+            stats["healed_existing"] = heal
 
-        # Auto-link from amendment_refs after bulk ingest
+        # Auto-link from amendment_refs after bulk ingest (local, idempotent —
+        # worth doing for the rows a stopped run did commit).
         log.info("Auto-linking from amendment_refs…")
         link_stats = link_from_amendment_refs(conn)
         stats["link_stats"] = link_stats
-        stats["elapsed_seconds"] = round(_time.time() - t0, 2)
         print(json.dumps(stats, indent=2, ensure_ascii=False))
+        if stats["stopped"]:
+            log.error(
+                f"run stopped ({stats['stopped']}) after "
+                f"{stats['processed']}/{stats['total']} candidates — "
+                f"exit {INGEST_STOPPED_EXIT_CODE}"
+            )
+            return INGEST_STOPPED_EXIT_CODE
         return 0
 
     parser.print_help()

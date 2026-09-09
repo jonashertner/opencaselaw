@@ -1078,11 +1078,25 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
                     "SELECT MIN(bbl_year) AS lo, MAX(bbl_year) AS hi "
                     "FROM botschaft_documents"
                 ).fetchone()
+                # doc_type is an additive column (2026-09-09); a DB from
+                # before it reads as all-Botschaft.
+                bd_cols = {r[1] for r in m.execute(
+                    "PRAGMA table_info(botschaft_documents)").fetchall()}
+                if "doc_type" in bd_cols:
+                    by_doc_type = {
+                        r["doc_type"]: int(r["n"]) for r in m.execute(
+                            "SELECT doc_type, COUNT(*) AS n FROM botschaft_documents "
+                            "GROUP BY doc_type"
+                        ).fetchall()
+                    }
+                else:
+                    by_doc_type = {"botschaft": int(total)}
                 out["materialien_coverage"] = {
                     "total_documents": int(total),
                     "paragraphs": int(paragraphs),
                     "article_links": int(links),
                     "by_language": by_lang,
+                    "by_doc_type": by_doc_type,
                     "year_range": (
                         {"from": int(year_range["lo"]), "to": int(year_range["hi"])}
                         if year_range and year_range["lo"] else None
