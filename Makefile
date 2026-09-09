@@ -186,3 +186,7 @@ smoke:
 		s=$$(curl -sL -o /dev/null -w "%{http_code}" --max-time 10 "https://mcp.opencaselaw.ch$$p") ; \
 		printf "  %3s  %s\n" "$$s" "$$p" ; \
 	done
+
+.PHONY: check-playbook
+check-playbook:  ## live re-verification of every statute reference in the Claude for Legal playbook (~10 requests)
+	@$(PYTHON) scripts/check_playbook_refs.py

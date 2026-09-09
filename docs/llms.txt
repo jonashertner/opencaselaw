@@ -80,6 +80,7 @@ Public explainer: [opencaselaw.ch/#verification](https://opencaselaw.ch/#verific
 - [Word add-in (BETA)](https://word.opencaselaw.ch/install.html) for legal practitioners — citation insertion, multi-citation clusters, citation styles.
 - [Cantonal laws + commentary modules](https://opencaselaw.ch/#corpus) — local-first lookup for 19 cantonal portals, OnlineKommentar.ch (CC-BY-4.0).
 - [LLM usage receipts](https://github.com/jonashertner/caselaw-repo-1/blob/main/scripts/llm_usage_report.py) — every Anthropic API call logged with token counts + cost; auditable spend dashboard.
+- [Swiss playbook for Anthropic's Claude for Legal plugin](https://opencaselaw.ch/claude/legal.local.md): a `legal.local.md` with Swiss contract, NDA, data-protection and forum positions; every article verified through `get_law` on the date stated in the file; instructs the model to re-verify before stating a provision.
 
 ## What we collect when you use the hosted server
 

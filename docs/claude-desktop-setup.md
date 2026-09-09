@@ -168,6 +168,22 @@ Restart Claude Desktop after saving.
 
 </details>
 
+### Works with the Claude for Legal plugin
+
+Anthropic's [Claude for Legal plugin](https://github.com/anthropics/knowledge-work-plugins) (contract review, NDA triage, compliance checks, briefs) reads your organisation's positions from a file called `legal.local.md`. Its defaults are US positions. A Swiss version is at [opencaselaw.ch/claude/legal.local.md](https://opencaselaw.ch/claude/legal.local.md): Swiss governing law and forum, the OR liability floor, the DSG instead of GDPR-only terms, mandate law on termination, statutory written form for e-signatures, and one standing rule that every article is verified through the OpenCaseLaw connector before it is stated.
+
+1. Connect the OpenCaseLaw server as above.
+2. Install the legal plugin (Cowork: from claude.com/plugins; Claude Code: `claude plugin marketplace add anthropics/knowledge-work-plugins` then `claude plugin install legal@knowledge-work-plugins`).
+3. Save the Swiss playbook where the plugin looks for it: `.claude/legal.local.md` in your project for Claude Code, or any folder you share with Cowork.
+
+```bash
+mkdir -p .claude && curl -fsSL https://opencaselaw.ch/claude/legal.local.md -o .claude/legal.local.md
+```
+
+Values in [brackets] are yours to set (canton of seat, liability cap, notice periods). The statute references were retrieved from the Fedlex mirror on the date stated in the file; the plugin re-verifies them through `get_law` when it uses them. The file is not legal advice.
+
+A companion plugin, `opencaselaw`, bundles the server with skills for research, statute lookup and citation verification; it is in preparation.
+
 ---
 
 ## Option B: Local server (offline access)

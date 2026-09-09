@@ -33,6 +33,12 @@ Open Swiss case law and legislation for legal research and AI.
 No sign-up, no API key, read-only. 42 tools; setup guides for individual
 clients are at [opencaselaw.ch/mcp](https://opencaselaw.ch/mcp/).
 
+Using Anthropic's [Claude for Legal plugin](https://github.com/anthropics/knowledge-work-plugins)?
+A Swiss playbook that makes its contract-review and NDA-triage skills work under
+Swiss law, every article verified against the statute mirror, is at
+[opencaselaw.ch/claude/legal.local.md](https://opencaselaw.ch/claude/legal.local.md);
+see the [setup guide](docs/claude-desktop-setup.md#works-with-the-claude-for-legal-plugin).
+
 ## Automate research
 
 `ocl` is a small command-line client over the public research API, made for

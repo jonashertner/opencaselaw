@@ -1,0 +1,35 @@
+{
+  "retrieved": "2026-09-09",
+  "tool": "get_law (OpenCaseLaw MCP, Fedlex mirror, language de)",
+  "laws": {
+    "OR": {"sr_number": "220", "consolidation_date": "2026-01-01", "pending_changes": ["2026-10-01", "2027-07-01"]},
+    "ZGB": {"sr_number": "210", "consolidation_date": "2026-07-01", "pending_changes": []},
+    "DSG": {"sr_number": "235.1", "consolidation_date": "2025-07-07", "pending_changes": []},
+    "UWG": {"sr_number": "241", "consolidation_date": "2025-01-01", "pending_changes": []},
+    "StGB": {"sr_number": "311.0", "consolidation_date": "2026-06-12", "pending_changes": ["2026-10-01"]},
+    "URG": {"sr_number": "231.1", "consolidation_date": "2025-07-01", "pending_changes": []},
+    "IPRG": {"sr_number": "291", "consolidation_date": "2026-01-01", "pending_changes": []},
+    "ZPO": {"sr_number": "272", "consolidation_date": "2026-07-01", "pending_changes": []},
+    "KG": {"sr_number": "251", "consolidation_date": "2023-07-01", "pending_changes": []}
+  },
+  "articles": [
+    ["OR", "13"], ["OR", "14"], ["OR", "100"], ["OR", "101"], ["OR", "104"],
+    ["OR", "127"], ["OR", "128"], ["OR", "163"], ["OR", "165"], ["OR", "199"],
+    ["OR", "210"], ["OR", "321a"], ["OR", "332"], ["OR", "340"], ["OR", "340a"],
+    ["OR", "340b"], ["OR", "340c"], ["OR", "404"], ["OR", "958f"],
+    ["ZGB", "27"],
+    ["DSG", "8"], ["DSG", "9"], ["DSG", "12"], ["DSG", "14"], ["DSG", "16"],
+    ["DSG", "17"], ["DSG", "19"], ["DSG", "22"], ["DSG", "24"], ["DSG", "25"],
+    ["DSG", "60"], ["DSG", "61"],
+    ["UWG", "6"], ["UWG", "8"],
+    ["StGB", "162"],
+    ["URG", "17"],
+    ["IPRG", "5"], ["IPRG", "116"],
+    ["ZPO", "6"], ["ZPO", "17"], ["ZPO", "35"],
+    ["KG", "5"]
+  ],
+  "decisions": [
+    {"reference": "BGE 115 II 464 E. 2", "decision_id": "bge_BGE_115_II_464", "checked": ["cite", "check_claim_support"]},
+    {"reference": "BGE 109 II 462", "decision_id": "bge_BGE_109_II_462", "checked": ["cite", "check_claim_support"]}
+  ]
+}
