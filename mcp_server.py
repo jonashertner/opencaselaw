@@ -2147,8 +2147,23 @@ _NON_ANSWER_KEYS = {"note", "_note", "hint", "_hint", "query", "queried",
                     # on is still an empty answer: the flag, the identifiers
                     # it echoes and the corpus label carry no law.
                     "no_commentary", "no_materialien", "filters_relaxed",
+                    "found",
                     "law", "law_code", "article", "sr_number", "source",
                     "corpus", "language_filter", "year_filter"}
+
+
+def _is_miss_payload(payload) -> bool:
+    """True when a helper's dict answer is a miss: an `error`, or a
+    never-empty fallback that says so with `found: false` (get_commentary /
+    get_materialien drop `error` on a miss because the payload is an answer
+    — what the corpus holds instead — not a failure). Internal callers that
+    build on another tool's answer test this, never `error` alone, so a
+    fallback payload is never mistaken for the thing asked for."""
+    if not isinstance(payload, dict) or not payload:
+        return True
+    if payload.get("error"):
+        return True
+    return payload.get("found") is False
 
 
 def _response_text(result) -> str:
@@ -3145,6 +3160,53 @@ def _is_pure_phrase_query(fts_query: str) -> bool:
 
 _FTS5_OR_MAX_TERMS = 12
 
+# Function words that must never become an OR term: on decisions_fts a
+# single "in" / "und" / "der" / "de" / "che" matches most of the ~1M rows,
+# and a ranked OR over such a term is a BM25 pass over the whole table.
+# NL_STOPWORDS (query-parse list) plus the common de/fr/it/en function
+# words it leaves out; legal vocabulary is deliberately absent.
+_FTS5_OR_STOPWORDS: frozenset[str] = frozenset(NL_STOPWORDS) | frozenset({
+    # de
+    "es", "er", "sie", "ist", "hat", "wird", "dass", "bei", "nach", "aus",
+    "vom", "vor", "durch", "sich", "auch", "nur", "noch", "wie", "wenn",
+    "sind", "war", "werden", "wurde", "sein", "seine", "seiner", "ihre",
+    "ihrer", "dieser", "diese", "dieses", "gegen", "bzw", "sowie", "kann",
+    "muss", "hier", "dort", "so", "ob", "ab", "je",
+    # fr
+    "est", "sont", "que", "qui", "il", "elle", "ils", "elles", "ne", "pas",
+    "par", "en", "se", "ce", "ces", "cette", "cet", "son", "sa", "ses",
+    "leur", "leurs", "on", "où", "ou", "mais", "donc", "car", "si", "été",
+    "être", "avoir", "fait", "plus", "très", "tout", "tous", "toute",
+    "toutes", "aussi", "comme", "lors", "selon", "vers", "chez", "entre",
+    # it
+    "che", "non", "sono", "da", "come", "ha", "hanno", "era", "essere",
+    "sua", "suo", "suoi", "sue", "loro", "questo", "questa", "questi",
+    "queste", "anche", "più", "già", "tra", "fra", "dal", "dallo", "dalla",
+    "dai", "dagli", "dalle", "nello", "negli", "nelle", "sullo", "sugli",
+    "sulle", "alla", "allo", "alle", "dello", "degli", "dell", "nell",
+    "all", "sull", "dall", "col", "coi", "lo", "gli", "le", "il",
+    # en
+    "is", "are", "was", "were", "be", "been", "by", "at", "as", "it",
+    "its", "this", "that", "these", "those", "from", "into", "than", "then",
+    "not", "no", "yes", "but", "if", "so", "any", "all", "can", "may",
+    "does", "do", "did", "has", "have", "had",
+})
+
+# Ceiling on the rows a relaxed OR may score on decisions_fts. BM25 needs
+# every matched row scored before ORDER BY rank can pick the top of the
+# list, so an OR of common legal words ("Vertrag" OR "Schaden") over the
+# whole table is unbounded; the relaxed query scores the first N matches
+# (court/date filters applied, so a filtered page is not blind) and ranks
+# within them. 20,000 rows is ~50-100 ms of scoring; the strict path's own
+# pool is 5,000.
+_OR_RELAX_SCAN_CAP = 20_000
+# Ceiling on the statute-ranked candidates the OR re-rank scores. Each
+# candidate is one rowid-keyed MATCH (a doclist seek per term, ~1 ms),
+# so the head of the statute ranking is re-ordered and the tail keeps its
+# order. find_leading_cases over-fetches limit×3, so this is only reached
+# at limit > 33.
+_OR_RERANK_MAX_CANDIDATES = 100
+
 
 def _fts5_or_query(query: str) -> str:
     """The ranked-OR relaxation of a free-text query, or "" when there is
@@ -3158,12 +3220,27 @@ def _fts5_or_query(query: str) -> str:
     answered nothing, and the caller flags the result (`filters_relaxed`),
     so a relaxed page is never mistaken for a strict one. A single-term
     query cannot be relaxed (OR of one term is the term) and returns "".
+
+    Function words (_FTS5_OR_STOPWORDS) are dropped first: a query of only
+    stop words returns "" and never relaxes, and "Haftung des Tierhalters"
+    relaxes to "Haftung" OR "Tierhalters", not to a term that matches the
+    whole corpus.
+
+    Invariant #3 exemption: this is the one FTS5 entry point that does not
+    pass through _sanitize_fts5, because the sanitiser quotes the OR
+    operator ('"Art" OR "41"' -> '"Art" "OR" "41"'). It is safe by
+    construction — tokens come from re.findall(r"\\w+") (letters, digits,
+    underscore only), every token is wrapped in double quotes and the FTS5
+    operator words are dropped — so no operator, punctuation or column
+    filter from the input can reach the MATCH expression. Tested against
+    hostile input in tests/test_never_empty_fallbacks.py.
     """
     toks: list[str] = []
     seen: set[str] = set()
     for t in re.findall(r"\w+", query or ""):
         tl = t.lower()
-        if len(tl) < 2 or tl in seen or tl in ("and", "or", "not", "near"):
+        if (len(tl) < 2 or tl in seen or tl in ("and", "or", "not", "near")
+                or tl in _FTS5_OR_STOPWORDS):
             continue
         seen.add(tl)
         toks.append(t)
@@ -5308,6 +5385,8 @@ def get_materialien(law_code: str, article: str | None = None) -> dict:
                 "law_code": law,
                 "sr_number": sr or None,
                 "article": article,
+                # Machine-readable miss signal (see _is_miss_payload).
+                "found": False,
                 "no_materialien": True,
                 "sources": [],
                 "botschaft_documents": [],
@@ -9073,13 +9152,25 @@ def _statute_ref_from_free_text(query: str) -> tuple[str, str, str | None] | Non
     "29" and "BV" onto the citation ranking. Two different provisions in
     one query ("Art. 41 OR vs Art. 55 OR") are left alone: there is no
     single statute path for them.
+
+    The law token must be a law code the corpus knows (_known_law_codes:
+    the statutes mirror and docs/data/law_codes.json). QUERY_STATUTE_PATTERN
+    is case-insensitive, so "Art. 29 der BV" would otherwise yield the
+    function word "DER" as the law and route the call onto the statute
+    path with a law that does not exist — a hard empty where the FTS path
+    answers. An unknown token leaves the query alone, i.e. the old path.
     """
     pairs: list[tuple[str, str]] = []
     for m in QUERY_STATUTE_PATTERN.finditer(query or ""):
-        law = (m.group("law") or "").upper()
+        law_raw = (m.group("law") or "").strip()
+        law = law_raw.upper()
         art = re.sub(r"\s+", "", (m.group("article") or "").lower())
         if not law or not art or law in QUERY_STATUTE_INVALID_LAWS:
             continue
+        if not _looks_like_law_code(law_raw) or law not in _known_law_codes():
+            # Not a law the corpus knows: no statute path exists for it,
+            # so the whole query stays a free-text query.
+            return None
         if (law, art) not in pairs:
             pairs.append((law, art))
     if len(pairs) != 1:
@@ -9090,30 +9181,121 @@ def _statute_ref_from_free_text(query: str) -> tuple[str, str, str | None] | Non
     return law, art, (residual or None)
 
 
+def _looks_like_law_code(law_raw: str) -> bool:
+    """The shape test the citation extractor applies
+    (search_stack/reference_extraction.py): a law abbreviation carries at
+    least one capital, and a title-case word longer than three letters
+    ("Oder", "Della", "Ihrer") is a word, not a code. "Cst", "Abs" pass
+    and are left to the blocklist / known-code check."""
+    n_upper = sum(1 for c in law_raw if c.isupper())
+    if n_upper == 0:
+        return False
+    if n_upper == 1 and len(law_raw) > 3:
+        return False
+    return True
+
+
+_LAW_CODES_JSON_PATH = Path(__file__).resolve().parent / "docs" / "data" / "law_codes.json"
+_known_law_codes_cache: frozenset[str] | None = None
+
+
+def _known_law_codes() -> frozenset[str]:
+    """Upper-cased law abbreviations the corpus can answer a statute lookup
+    for: the static abbreviation maps, the federal aliases in
+    docs/data/law_codes.json (abbr_de/fr/it of every act in the Fedlex
+    mirror) and the `laws` table of statutes.db when it is deployed. A
+    trailing dot is dropped ("Cst." -> "CST") because QUERY_STATUTE_PATTERN
+    never captures one. Loaded once per worker; a missing file or database
+    just leaves its share out, so the set is conservative, never wrong.
+    """
+    global _known_law_codes_cache
+    if _known_law_codes_cache is not None:
+        return _known_law_codes_cache
+    codes: set[str] = set()
+
+    def _add(v) -> None:
+        s = str(v or "").strip().upper().rstrip(".")
+        if len(s) >= 2:
+            codes.add(s)
+
+    for table in (_OK_ABBR_TO_SR, _SR_NUMBER_MAP, _MATERIALIEN_SR_MAP):
+        for k in table:
+            _add(k)
+    try:
+        with open(_LAW_CODES_JSON_PATH, encoding="utf-8") as fh:
+            data = json.load(fh)
+        for k in (data.get("alias_to_sr") or {}):
+            _add(k)
+        for law in (data.get("federal") or []):
+            for key in ("abbr_de", "abbr_fr", "abbr_it"):
+                _add(law.get(key))
+            for a in (law.get("aliases") or []):
+                _add(a)
+    except (OSError, ValueError) as e:
+        logger.debug("law_codes.json not loaded for the known-code set: %s", e)
+    conn = _get_statutes_conn()
+    if conn is not None:
+        try:
+            for r in conn.execute("SELECT abbr_de, abbr_fr, abbr_it FROM laws"):
+                for v in r:
+                    _add(v)
+        except sqlite3.Error as e:
+            logger.debug("statutes.db laws not loaded for the known-code set: %s", e)
+        finally:
+            conn.close()
+    _known_law_codes_cache = frozenset(codes)
+    return _known_law_codes_cache
+
+
 def _rerank_candidates_by_query_or(
     candidates: list[tuple[str, int]], query: str,
 ) -> list[tuple[str, int]]:
     """Order statute-ranked candidates by BM25 of the ranked-OR form of
     `query`; candidates matching none of the terms keep their statute
     order behind the matches. On any FTS failure the statute order stands.
+
+    The MATCH is keyed by rowid (decisions_fts is external-content on
+    decisions, so the rowids coincide) and restricted to the first
+    _OR_RERANK_MAX_CANDIDATES candidates: `decision_id` is UNINDEXED in
+    the FTS table, so `decision_id IN (...)` was a filter over every row
+    the OR matched — on common terms, most of the table — whereas
+    `rowid IN (...)` is one doclist seek per candidate. The materialised
+    CTE keeps FTS5 from running its own sorter per rowid; the ORDER BY is
+    over at most that many rows.
     """
     or_q = _fts5_or_query(query)
     if not or_q or not candidates:
         return candidates
-    ids = [c[0] for c in candidates]
-    by_id = dict(candidates)
+    head = candidates[:_OR_RERANK_MAX_CANDIDATES]
+    tail = candidates[_OR_RERANK_MAX_CANDIDATES:]
+    ids = [c[0] for c in head]
+    by_id = dict(head)
     fts_conn = None
     try:
         fts_conn = get_db()
         placeholders = ",".join("?" for _ in ids)
+        rowid_of = {
+            r["decision_id"]: r["rowid"] for r in fts_conn.execute(
+                f"SELECT rowid, decision_id FROM decisions WHERE decision_id IN ({placeholders})",
+                ids,
+            ).fetchall()
+        }
+        if not rowid_of:
+            return candidates
+        id_of_rowid = {v: k for k, v in rowid_of.items()}
+        rid_placeholders = ",".join("?" for _ in rowid_of)
         rows = fts_conn.execute(
             f"""
-            SELECT decision_id FROM decisions_fts
-            WHERE decisions_fts MATCH ? AND decision_id IN ({placeholders})
-            ORDER BY rank
+            WITH hits AS MATERIALIZED (
+                SELECT rowid AS rid, rank AS r FROM decisions_fts
+                WHERE decisions_fts MATCH ? AND rowid IN ({rid_placeholders})
+            )
+            SELECT rid FROM hits ORDER BY r
             """,
-            (or_q, *ids),
+            (or_q, *rowid_of.values()),
         ).fetchall()
+        rows = [{"decision_id": id_of_rowid[r["rid"]]} for r in rows
+                if r["rid"] in id_of_rowid]
     except sqlite3.Error as e:
         logger.debug("OR re-rank of leading-case candidates failed: %s", e)
         return candidates
@@ -9127,7 +9309,9 @@ def _rerank_candidates_by_query_or(
         if did in by_id and did not in seen:
             seen.add(did)
             matched.append((did, by_id[did]))
-    return matched + [c for c in candidates if c[0] not in seen]
+    # Head: matches by BM25, then the unmatched in statute order; tail
+    # (beyond the re-rank ceiling) keeps its statute order behind both.
+    return matched + [c for c in head if c[0] not in seen] + tail
 
 
 def _find_leading_cases(
@@ -9253,11 +9437,37 @@ def _find_leading_cases(
                     # ordered and bounded, gives the nearest neighbours.
                     # Explicit court/date filters stay — they are the
                     # caller's constraints, not the relaxation's.
+                    # Stop words are already out of the OR form; a query of
+                    # only stop words yields "" and never reaches the table.
+                    # The scan is capped: BM25 scores the first
+                    # _OR_RELAX_SCAN_CAP rows that match (filters applied
+                    # inside the cap, joined by rowid) and ranks within
+                    # them, so a common term cannot force a scored pass
+                    # over the whole table the way a bare ORDER BY rank does.
                     _or_q = _fts5_or_query(query)
                     if _or_q and _or_q != safe_q:
+                        relaxed_sql = """
+                            WITH hits AS MATERIALIZED (
+                                SELECT f.rowid AS rid, f.rank AS r
+                                FROM decisions_fts f
+                                JOIN decisions d ON d.rowid = f.rowid
+                                WHERE decisions_fts MATCH ?
+                        """
+                        if court:
+                            relaxed_sql += " AND d.court = ?"
+                        if date_from:
+                            relaxed_sql += " AND d.decision_date >= ?"
+                        if date_to:
+                            relaxed_sql += " AND d.decision_date <= ?"
+                        relaxed_sql += f"""
+                                LIMIT {int(_OR_RELAX_SCAN_CAP)}
+                            )
+                            SELECT d.decision_id FROM hits
+                            JOIN decisions d ON d.rowid = hits.rid
+                            ORDER BY hits.r LIMIT 2000
+                        """
                         fts_rows = fts_conn.execute(
-                            fts_sql + " ORDER BY rank LIMIT 2000",
-                            (_or_q, *fts_params[1:]),
+                            relaxed_sql, (_or_q, *fts_params[1:]),
                         ).fetchall()
                         fts_ids = [r["decision_id"] for r in fts_rows]
                         filters_relaxed = bool(fts_ids)
@@ -9427,6 +9637,10 @@ def _find_leading_cases(
         )
     if statute_from_query:
         out["statute_parsed_from_query"] = True
+        # The text left after the provision was lifted out — the topic the
+        # caller actually asked about, None for a bare "Art. 8 BV". The
+        # dispatcher pinpoints Erwägungen against this, not the whole query.
+        out["topic_query"] = query
     if filters_relaxed:
         out["filters_relaxed"] = True
         _shown = (original_query or "").strip()
@@ -9446,6 +9660,18 @@ def _find_leading_cases(
                 "not as authority on the whole query."
             )
     return out
+
+
+def _leading_cases_pinpoint_claim(arguments: dict, result) -> str:
+    """The text the find_leading_cases dispatcher pinpoints Erwägungen
+    against. When the provision was lifted out of the free text
+    (`statute_parsed_from_query`), the claim is the residual topic
+    (`topic_query`): a bare "Art. 8 BV" has no topic to pinpoint and made
+    this path ~18 s, so it returns "" and the pinpoint is skipped, exactly
+    as an explicit statute-only lookup is."""
+    if isinstance(result, dict) and result.get("statute_parsed_from_query"):
+        return str(result.get("topic_query") or "").strip()
+    return str(arguments.get("query") or "").strip()
 
 
 def analyze_legal_trend(
@@ -14613,7 +14839,9 @@ def _handle_get_article_history(
                     article=article,
                     language=language,
                 )
-                if c and not c.get("error"):
+                # A miss is `found: false` (never-empty fallback) or
+                # `error`; either way there is no commentary to report.
+                if not _is_miss_payload(c):
                     excerpt = (c.get("excerpt")
                                or c.get("text")
                                or c.get("content")
@@ -18490,6 +18718,7 @@ def _handle_get_doctrine(*, query: str) -> dict:
     article = ""
     law_code = ""
 
+    concept_relaxed_note: str | None = None
     if statute_refs:
         # Statute path: pick the first parsed ref (prefer non-ABS variants)
         ref = next(
@@ -18521,6 +18750,13 @@ def _handle_get_doctrine(*, query: str) -> dict:
         # Concept path: FTS search
         lc_result = _find_leading_cases(query=q, limit=8)
         raw_cases = lc_result.get("results", [])
+        # The leading-case lookup may have relaxed a strict AND to a
+        # ranked OR (filters_relaxed); the doctrine built on those cases
+        # inherits the flag so the page is never read as on-point.
+        if lc_result.get("filters_relaxed"):
+            concept_relaxed_note = lc_result.get("note") or ""
+        else:
+            concept_relaxed_note = None
 
         # Fallback: if citation_targets unavailable, use plain FTS search
         if not raw_cases and "error" in lc_result:
@@ -18635,7 +18871,7 @@ def _handle_get_doctrine(*, query: str) -> dict:
     # Build structured doctrine summary from leading cases
     doctrine_summary = _build_doctrine_summary(leading_cases, law_code if statute_refs else "")
 
-    return {
+    out = {
         "query": q,
         "statute": statute_info,
         "doctrine_summary": doctrine_summary,
@@ -18644,6 +18880,10 @@ def _handle_get_doctrine(*, query: str) -> dict:
         "commentary": commentary_info,
         "materialien": materialien_info,
     }
+    if concept_relaxed_note is not None:
+        out["filters_relaxed"] = True
+        out["note"] = concept_relaxed_note
+    return out
 
 
 # ── OnlineKommentar commentary handlers ─────────────────────
@@ -18745,6 +18985,22 @@ def _statute_fallback_context(
     return out
 
 
+def _commentary_corpus_size() -> int:
+    """Number of commentary records in the deployed OK/OLC database, 0
+    when it is not deployed or cannot be read. One COUNT(*) over a
+    ~1k-row table; called only on the miss path."""
+    conn = _get_ok_conn()
+    if conn is None:
+        return 0
+    try:
+        row = conn.execute("SELECT COUNT(*) AS n FROM commentaries").fetchone()
+        return int(row["n"] if row is not None else 0)
+    except sqlite3.Error:
+        return 0
+    finally:
+        conn.close()
+
+
 def _commentary_fallback(
     *, abbreviation: str | None, sr_number: str | None, article: str | None,
 ) -> dict:
@@ -18763,6 +19019,10 @@ def _commentary_fallback(
         "law": law_label,
         "sr_number": ctx.get("sr_number"),
         "article": article,
+        # Machine-readable miss signal: `error` is gone from this payload
+        # (it is an answer, not a failure), so every caller that used to
+        # test `error` tests `found` — see _is_miss_payload.
+        "found": False,
         "no_commentary": True,
         "doctrine": ctx["doctrine"],
         "leading_cases": ctx["leading_cases"],
@@ -18776,10 +19036,16 @@ def _commentary_fallback(
         ("the scholarship citing it (find_scholarship_citing_statute)",
          "scholarship_citing_statute"),
     ) if out.get(key)]
+    # The corpus size is read live rather than written into the text, so
+    # the note never quotes a number the database does not hold.
+    n_comm = _commentary_corpus_size()
+    corpus_label = (
+        f"the {n_comm:,} OnlineKommentar.ch / OpenLegalCommentary.ch "
+        "commentaries" if n_comm else
+        "the OnlineKommentar.ch / OpenLegalCommentary.ch commentaries")
     out["note"] = (
-        f"No open-access commentary covers {where}: the corpus holds the "
-        "~1,170 OnlineKommentar.ch / OpenLegalCommentary.ch commentaries, "
-        "not every provision. "
+        f"No open-access commentary covers {where}: the corpus holds "
+        f"{corpus_label}, not every provision. "
         + (("Listed instead is what the corpus holds on the provision: "
             + ", ".join(held) + ". Quote statute text only via get_law and "
             "decisions only via get_erwaegung; none of this is commentary.")
@@ -25708,9 +25974,10 @@ def _list_tools() -> list[Tool]:
                 "for a Swiss federal law article. Without article: lists available commentaries "
                 "for that law. With article: returns the full commentary text, authors, and citation. "
                 "Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more. "
-                "Where no commentary exists (most provisions: ~1,170 commentaries in total) the "
-                "answer is flagged `no_commentary: true` and lists what the corpus holds on the "
-                "provision instead — `leading_cases`, a `doctrine` excerpt, "
+                "Where no commentary exists (most provisions: the corpus holds only the "
+                "open-access OnlineKommentar.ch / OpenLegalCommentary.ch commentaries) the "
+                "answer is flagged `found: false` / `no_commentary: true` and lists what the "
+                "corpus holds on the provision instead — `leading_cases`, a `doctrine` excerpt, "
                 "`scholarship_citing_statute` — none of which is commentary."
             ),
             inputSchema={
@@ -25945,7 +26212,7 @@ def _list_tools() -> list[Tool]:
                 "Empty `sources` means no digest exists for that law, NOT that the law has no "
                 "legislative history — read `botschaft_documents` and cite the BBl reference. "
                 "For full text of a message use search_botschaft. A provision with nothing "
-                "keyed to it is flagged `no_materialien: true` and lists `leading_cases`, a "
+                "keyed to it is flagged `found: false` / `no_materialien: true` and lists `leading_cases`, a "
                 "`doctrine` excerpt and `scholarship_citing_statute` instead — none of it is "
                 "legislative history."
             ),
@@ -27700,7 +27967,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
             # Erwägung and made this path ~18s (issue: leading_cases latency);
             # statute-only lookups now skip the pinpoint entirely.
             if bool(arguments.get("include_pinpoint", True)):
-                claim = str(arguments.get("query") or "").strip()
+                claim = _leading_cases_pinpoint_claim(arguments, result)
                 if claim and isinstance(result, dict):
                     items = result.get("results") or []
                     if items:
