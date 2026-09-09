@@ -9,11 +9,12 @@ no network):
   Datenschutzstelle number, stray leading space, chronology id != decree_id.
 - tests/fixtures/zg_gvp_decree_655.json — detail JSON of N/A RR 1996 052.
 - tests/fixtures/zg_gvp_decree_81_dss_2010.pdf / .txt — the 21 KB 2010
-  Datenschutzstelle PDF and its extracted text (text-layer check).
+  Datenschutzstelle PDF and its pdfplumber text (text-layer check).
 """
 from __future__ import annotations
 
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -255,15 +256,47 @@ def _pdf_backend_available() -> bool:
     return False
 
 
-@pytest.mark.skipif(not _pdf_backend_available(), reason="no PDF text backend installed")
-def test_2010_pdf_has_a_text_layer():
+def _importable(mod: str) -> bool:
+    try:
+        __import__(mod)
+        return True
+    except ImportError:
+        return False
+
+
+# extract_pdf_text tries pdfplumber → pymupdf → pdfminer and keeps the first
+# text it gets, so which backend rendered the fixture depends on the machine:
+# CI installs requirements.txt (pymupdf only); the VPS and the dev venv have
+# all three and use pdfplumber. Each case hides the backends that would win
+# over the one under test, so a single local run covers every path CI and
+# production take. pdfminer is never hidden: pdfplumber imports pdfminer.six.
+_PDF_BACKENDS = [
+    pytest.param("pdfplumber", ("fitz",), id="pdfplumber"),
+    pytest.param("fitz", ("pdfplumber",), id="pymupdf"),
+    pytest.param("pdfminer.high_level", ("pdfplumber", "fitz"), id="pdfminer"),
+]
+
+
+@pytest.mark.parametrize("backend, hidden", _PDF_BACKENDS)
+def test_2010_pdf_has_a_text_layer(monkeypatch, backend, hidden):
+    if not _importable(backend):
+        pytest.skip(f"{backend} not installed")
+    for mod in hidden:
+        monkeypatch.setitem(sys.modules, mod, None)  # makes `import mod` raise ImportError
     text = extract_pdf_text(PDF_81)
     assert text.startswith("Datenschutzpraxis")
     assert "Datenschutzgesetz" in text and "BGS 157.1" in text
     assert not looks_glued(text)
     assert len(text) > 3000
-    # the printed GVP page number is part of the page text (kept verbatim)
-    assert text.rstrip().endswith("329")
+    # The printed GVP page numbers (328, 329) are part of the page text and
+    # kept verbatim — but WHERE they land differs by backend. pdfplumber and
+    # pdfminer sort by position and end the text with "329" (offset 3336 of
+    # 3339 and 3475 of 3481 chars); pymupdf emits blocks in content-stream
+    # order and puts the running head "Datenschutzpraxis / 329" first
+    # (offset 2184 of 3363), which is why endswith("329") went red on CI
+    # (2026-09-09, pymupdf 1.28.2). So: each number once, on its own line.
+    for page_no in ("328", "329"):
+        assert len(re.findall(rf"(?m)^{page_no}\s*$", text)) == 1, page_no
 
 
 def test_looks_glued_heuristic():
