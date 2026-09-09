@@ -638,6 +638,51 @@ def _fill_metadata(
     return True
 
 
+def heal_existing_metadata(
+    conn: sqlite3.Connection,
+    sparql_rows: list[dict],
+    language: str,
+    min_year: int = 0,
+) -> dict:
+    """Fill title / publication_date on rows the nightly run will NOT
+    re-fetch, from the discovery metadata it already holds.
+
+    ``main --discover-via-sparql`` drops every (year, page) already present in
+    ``botschaft_documents`` before ``ingest_one`` runs, so the fill inside
+    ``ingest_one`` never reaches an old row. This pass is what makes the
+    nightly run self-healing: one indexed SELECT of the rows in ``language``
+    still lacking a title or a Fedlex date (or carrying only the ``bbl_year``
+    fallback), then ``_fill_metadata`` per row with the SPARQL title/dates
+    for its (year, page) — no fetch, no text change, one commit. Rows whose
+    (year, page) discovery did not return are left alone.
+    ``scripts/backfill_botschaft_metadata.py`` remains the bulk path (it
+    asks Fedlex for ELIs discovery no longer lists).
+    """
+    stats = {"candidates": 0, "healed": 0, "no_discovery_meta": 0}
+    by_key = {(m["year"], m["page"]): m for m in sparql_rows}
+    rows = conn.execute(
+        "SELECT botschaft_id, bbl_year, bbl_page FROM botschaft_documents "
+        "WHERE language = ? AND bbl_year >= ? AND ("
+        "title IS NULL OR title = '' OR publication_date IS NULL OR "
+        "publication_date = '' OR date_source = ?)",
+        (language, min_year, DATE_SOURCE_BBL_YEAR),
+    ).fetchall()
+    stats["candidates"] = len(rows)
+    for botschaft_id, year, page in rows:
+        m = by_key.get((year, page))
+        if m is None:
+            stats["no_discovery_meta"] += 1
+            continue
+        pub_date, date_source = resolve_publication_date(
+            m.get("publication_date"), m.get("date_document"), year,
+        )
+        if _fill_metadata(conn, botschaft_id, m.get("title"), pub_date,
+                          date_source, m.get("date_document")):
+            stats["healed"] += 1
+    conn.commit()
+    return stats
+
+
 def ingest_one(
     conn: sqlite3.Connection,
     year: int,
@@ -664,7 +709,10 @@ def ingest_one(
     SPARQL metadata for this Work in ``language`` (see
     ``discover_fga_botschaften_meta``). They are stored verbatim on the
     document row; an existing row that lacks them is filled in even when
-    its text is unchanged, so the nightly run heals old rows.
+    its text is unchanged. Note that ``main --discover-via-sparql`` never
+    calls this for a (year, page) already in the table — old rows are
+    healed by ``heal_existing_metadata`` (no fetch), which main() runs on
+    every SPARQL pass.
     """
     ensure_schema(conn)
     pub_date, date_source = resolve_publication_date(publication_date, date_document, year)
@@ -1079,6 +1127,21 @@ def main() -> int:
         import time as _time
         stats = {"accepted": 0, "rejected_by_filter": 0, "errors": 0,
                  "total": len(candidates), "started_at": datetime.now(timezone.utc).isoformat()}
+        if args.discover_via_sparql:
+            # The rows filtered out above as "already ingested" are never
+            # re-fetched, so their missing title/date must be filled from
+            # the discovery metadata here (indexed SELECT + UPDATE, no
+            # network). This is the nightly heal; the backfill script is
+            # the bulk path for ELIs discovery no longer returns.
+            heal = heal_existing_metadata(
+                conn, sparql_rows, language=args.language, min_year=args.min_year,
+            )
+            stats["healed_existing"] = heal
+            log.info(
+                f"  healed metadata on {heal['healed']}/{heal['candidates']} "
+                f"existing rows lacking title/date "
+                f"({heal['no_discovery_meta']} without discovery metadata)"
+            )
         t0 = _time.time()
         for i, (year, page, eli, meta) in enumerate(candidates, 1):
             meta = meta or {}

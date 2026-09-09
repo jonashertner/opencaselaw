@@ -11,13 +11,21 @@ for eli/fga/2011/1325, 2013/823 and 2025/960). These tests pin:
 * ``ingest_one`` writes title / publication_date / date_document / date_source,
   falls back to the BBl year with date_source='bbl_year', and heals an
   existing row whose text is unchanged;
+* ``main --discover-via-sparql`` heals the rows it does not re-fetch
+  (``heal_existing_metadata``: discovery metadata only, no network, no text
+  change, idempotent, nothing under --dry-run);
 * the backfill batches ELIs per language, updates in place, is idempotent,
   and writes nothing under --dry-run;
-* the three server tools carry the fields (Fedlex title wins over the header
-  regex in get_materialien) and the tool descriptions say so.
+* the server tools carry the fields (Fedlex title wins over the header
+  regex in get_materialien) and label the date's provenance
+  (``publication_date_source``: Fedlex's publicationDate / dateDocument, or
+  'bbl_year' when the value is only the Bundesblatt year), the descriptions
+  say "from Fedlex where available", and a pre-1999 digest ``bbl_ref``
+  resolves to a message only with its Bundesblatt volume.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -348,17 +356,22 @@ def server_db(tmp_path, monkeypatch):
          (2, 2017, 399, "FF 2017 399", "eli/fr", None, None, None, None, "https://x/fr.pdf", "fr"),
          (3, 2025, 1478, "BBl 2025 1478", "eli/de2", None, None, None, None, "https://x/n.pdf", "de"),
          (4, 1997, 1, "BBl 1997 1", "eli/bv", "Botschaft über eine neue Bundesverfassung",
-          "1997-01-14", "1996-11-20", "fedlex:publicationDate", "https://x/bv.pdf", "de")])
+          "1997-01-14", "1996-11-20", "fedlex:publicationDate", "https://x/bv.pdf", "de"),
+         # Fedlex had neither date: publication_date is only the BBl year.
+         (5, 2020, 55, "BBl 2020 55", "eli/y", "Botschaft ohne Datum",
+          "2020", None, "bbl_year", "https://x/y.pdf", "de")])
     c.executemany(
         "INSERT INTO botschaft_paragraphs (botschaft_id, para_order, text, text_length) "
         "VALUES (?,1,?,?)",
         [(1, "Vaterschaftsurlaub für alle Angestellten im Aktienrecht.", 50),
          (2, HEAD_OR, len(HEAD_OR)),
-         (3, "Die vorliegende Botschaft umfasst vier Bundesbeschlüsse.", 50)])
+         (3, "Die vorliegende Botschaft umfasst vier Bundesbeschlüsse.", 50),
+         (5, "Klimaschutz ohne Datum in der Botschaft.", 40)])
     c.executemany(
         "INSERT INTO article_botschaft_links (sr_number, article, botschaft_id, relation, evidence) "
         "VALUES (?,?,?,'considered','amendment_refs:1')",
-        [("220", "1077", 1), ("220", "1077", 2), ("220", "957", 3), ("101", "8", 4)])
+        [("220", "1077", 1), ("220", "1077", 2), ("220", "957", 3), ("101", "8", 4),
+         ("220", "5", 5)])
     c.execute("INSERT INTO materialien (law_code, sr_number, article, bbl_ref, legislative_intent) "
               "VALUES ('BV','101','8','BBl 1997 I 1','Rechtsgleichheit')")
     c.execute("INSERT INTO materialien_fts (rowid, law_code, article, bbl_ref, legislative_intent) "
@@ -439,4 +452,263 @@ def test_tool_descriptions_mention_the_fields():
     tools = {t.name: t.description for t in mcp_server._list_tools()}
     for name in ("search_botschaft", "get_materialien", "search_materialien"):
         assert "title" in tools[name] and "publication_date" in tools[name], name
+        # The date is Fedlex's where Fedlex has one, else only the BBl year:
+        # the description must not promise more, and must name the label.
+        assert "from Fedlex where available" in tools[name], name
+        assert "publication_date_source" in tools[name], name
+        assert "(from Fedlex)" not in tools[name], name
         assert len(tools[name]) <= 1024
+
+
+# ── nightly heal (main --discover-via-sparql) ─────────────────────────
+#
+# main() drops every (year, page) already in botschaft_documents before
+# ingest_one runs, so the fill inside ingest_one never reaches an old row.
+# heal_existing_metadata is what fills them, from the discovery metadata the
+# run already holds, without fetching any text.
+
+def _meta(year, page, eli, title=None, date_document=None, publication_date=None):
+    return {"year": year, "page": page, "eli_uri": eli, "title": title,
+            "date_document": date_document, "publication_date": publication_date}
+
+
+_DISCOVERED = [
+    _meta(2013, 3729, ELI_WEBI, "Botschaft zum Bundesgesetz über die Weiterbildung", "2013-05-15", None),
+    _meta(2011, 7705, ELI_VVG, "Botschaft zur Totalrevision des Versicherungsvertragsgesetzes",
+          "2011-09-07", "2011-10-25"),
+    _meta(2018, 9, "eli/keep", None, None, None),
+]
+
+
+@pytest.fixture()
+def heal_db(tmp_path):
+    p = tmp_path / "materialien.db"
+    conn = sqlite3.connect(p)
+    bbc.ensure_schema(conn)
+    conn.executemany(
+        "INSERT INTO botschaft_documents (bbl_year, bbl_page, bbl_citation, eli_uri, source_url, "
+        "format, language, ingested_at, title, publication_date, date_source) "
+        "VALUES (?,?,?,?,'https://x','pdf',?,'t',?,?,?)",
+        [(2013, 3729, "BBl 2013 3729", ELI_WEBI, "de", None, None, None),      # everything NULL
+         (2011, 7705, "BBl 2011 7705", ELI_VVG, "de", "Botschaft VVG", "2011", "bbl_year"),
+         (2020, 5, "BBl 2020 5", "eli/gone", "de", None, None, None),           # not in discovery
+         (2013, 3729, "FF 2013 3729", ELI_WEBI, "fr", None, None, None),       # other language
+         (2018, 9, "BBl 2018 9", "eli/keep", "de", "Bleibt", "2018-02-02", "fedlex:publicationDate")])
+    conn.commit()
+    conn.close()
+    return p
+
+
+def _rows(p):
+    conn = sqlite3.connect(p)
+    conn.row_factory = sqlite3.Row
+    out = {(r["bbl_year"], r["bbl_page"], r["language"]): dict(r) for r in
+           conn.execute("SELECT * FROM botschaft_documents")}
+    n_paras = conn.execute("SELECT COUNT(*) FROM botschaft_paragraphs").fetchone()[0]
+    conn.close()
+    return out, n_paras
+
+
+def test_sparql_pass_heals_existing_rows_without_refetching(heal_db, monkeypatch, capsys):
+    monkeypatch.setattr(fedlex_materialien, "discover_fga_botschaften_meta",
+                        lambda language="de": _DISCOVERED)
+    fetched: list = []
+    monkeypatch.setattr(bbc, "ingest_one", lambda *a, **kw: fetched.append(kw) or 1)
+    monkeypatch.setattr(sys, "argv", ["build_botschaft_corpus", "--db", str(heal_db), "--ingest-all",
+                                      "--discover-via-sparql", "--min-year", "2000", "--rate-limit", "0"])
+    assert bbc.main() == 0
+    # Every discovered (year, page) was already present: nothing was fetched.
+    assert fetched == []
+    stats = json.loads(capsys.readouterr().out)
+    assert stats["total"] == 0
+    assert stats["healed_existing"] == {"candidates": 3, "healed": 2, "no_discovery_meta": 1}
+    rows, n_paras = _rows(heal_db)
+    assert n_paras == 0
+    healed = rows[(2013, 3729, "de")]
+    assert healed["title"] == "Botschaft zum Bundesgesetz über die Weiterbildung"
+    assert healed["publication_date"] == "2013-05-15"
+    assert healed["date_document"] == "2013-05-15"
+    assert healed["date_source"] == "fedlex:dateDocument"
+    # The bbl_year fallback is replaced by Fedlex's date; the title is kept.
+    upgraded = rows[(2011, 7705, "de")]
+    assert upgraded["title"] == "Botschaft VVG"
+    assert upgraded["publication_date"] == "2011-10-25"
+    assert upgraded["date_source"] == "fedlex:publicationDate"
+    # Rows discovery did not return, the other language, and complete rows are untouched.
+    assert rows[(2020, 5, "de")]["title"] is None and rows[(2020, 5, "de")]["publication_date"] is None
+    assert rows[(2013, 3729, "fr")]["title"] is None
+    assert rows[(2018, 9, "de")]["publication_date"] == "2018-02-02"
+    assert rows[(2018, 9, "de")]["date_source"] == "fedlex:publicationDate"
+
+
+def test_sparql_pass_is_idempotent_and_dry_run_writes_nothing(heal_db, monkeypatch, capsys):
+    monkeypatch.setattr(fedlex_materialien, "discover_fga_botschaften_meta",
+                        lambda language="de": _DISCOVERED)
+    monkeypatch.setattr(bbc, "ingest_one", lambda *a, **kw: 1)
+    before = _rows(heal_db)
+    monkeypatch.setattr(sys, "argv", ["b", "--db", str(heal_db), "--ingest-all",
+                                      "--discover-via-sparql", "--min-year", "2000", "--dry-run"])
+    assert bbc.main() == 0
+    assert _rows(heal_db) == before
+    monkeypatch.setattr(sys, "argv", ["b", "--db", str(heal_db), "--ingest-all",
+                                      "--discover-via-sparql", "--min-year", "2000", "--rate-limit", "0"])
+    assert bbc.main() == 0
+    after = _rows(heal_db)
+    capsys.readouterr()
+    assert bbc.main() == 0
+    assert _rows(heal_db) == after
+    stats = json.loads(capsys.readouterr().out)
+    # Only the row discovery never answers is still a candidate.
+    assert stats["healed_existing"] == {"candidates": 1, "healed": 0, "no_discovery_meta": 1}
+
+
+def test_heal_never_downgrades_a_fedlex_date(heal_db):
+    conn = sqlite3.connect(heal_db)
+    conn.execute("UPDATE botschaft_documents SET title = NULL WHERE bbl_year = 2018")
+    conn.commit()
+    stats = bbc.heal_existing_metadata(
+        conn, [_meta(2018, 9, "eli/keep", "Botschaft ohne Datum")], language="de")
+    # The other three incomplete DE rows are candidates too; discovery did not name them.
+    assert stats == {"candidates": 4, "healed": 1, "no_discovery_meta": 3}
+    r = conn.execute("SELECT title, publication_date, date_source FROM botschaft_documents "
+                     "WHERE bbl_year = 2018").fetchone()
+    assert r == ("Botschaft ohne Datum", "2018-02-02", "fedlex:publicationDate")
+    conn.close()
+
+
+# ── publication_date provenance ───────────────────────────────────────
+#
+# publication_date is Fedlex's date where Fedlex has one and only the BBl
+# year otherwise; every payload that carries it says which.
+
+def test_search_botschaft_labels_the_date_provenance(server_db):
+    fedlex = mcp_server._handle_search_botschaft(query="Vaterschaftsurlaub")["results"][0]
+    assert fedlex["publication_date_source"] == "fedlex:publicationDate"
+    bare = mcp_server._handle_search_botschaft(query="Klimaschutz")["results"][0]
+    assert bare["publication_date"] == "2020"
+    assert bare["publication_date_source"] == "bbl_year"
+
+
+def test_get_materialien_labels_the_date_provenance(server_db):
+    docs = {d["year"]: d for d in mcp_server.get_materialien("OR")["botschaft_documents"]}
+    assert docs[2017]["publication_date_source"] == "fedlex:publicationDate"
+    assert docs[2020]["publication_date"] == "2020"
+    assert docs[2020]["publication_date_source"] == "bbl_year"
+    assert docs[2025]["publication_date"] is None
+    assert docs[2025]["publication_date_source"] is None
+
+
+def test_get_materialien_another_edition_upgrades_a_bare_year(server_db):
+    w = sqlite3.connect(server_db)
+    w.execute("INSERT INTO botschaft_documents (botschaft_id, bbl_year, bbl_page, bbl_citation, "
+              "eli_uri, title, publication_date, date_source, source_url, format, language, ingested_at) "
+              "VALUES (6, 2020, 55, 'FF 2020 55', 'eli/yf', 'Message sans date', '2020-03-03', "
+              "'fedlex:publicationDate', 'https://x/yf.pdf', 'pdf', 'fr', 't')")
+    w.execute("INSERT INTO article_botschaft_links VALUES ('220','5',6,'considered','x')")
+    w.commit()
+    w.close()
+    d = mcp_server.get_materialien("OR", "5")["botschaft_documents"][0]
+    assert d["publication_date"] == "2020-03-03"
+    assert d["publication_date_source"] == "fedlex:publicationDate"
+    assert {o["language"] for o in d["other_languages"]} | {d["language"]} == {"de", "fr"}
+
+
+def test_search_materialien_labels_the_date_provenance(server_db):
+    hit = mcp_server.search_materialien("Rechtsgleichheit")["results"][0]
+    assert hit["publication_date"] == "1997-01-14"
+    assert hit["publication_date_source"] == "fedlex:publicationDate"
+
+
+def test_get_article_purpose_labels_the_date_provenance(server_db):
+    r = mcp_server._handle_get_article_purpose(sr_number="220", article="5", language="de")
+    assert r["sources"][0]["publication_date"] == "2020"
+    assert r["sources"][0]["publication_date_source"] == "bbl_year"
+    r = mcp_server._handle_get_article_purpose(sr_number="220", article="1077", language="de")
+    assert r["sources"][0]["publication_date_source"] == "fedlex:publicationDate"
+
+
+def test_get_article_history_labels_a_bare_year(server_db, monkeypatch):
+    monkeypatch.setattr(mcp_server, "_get_legislation_local", lambda **kw: None)
+    monkeypatch.setattr(mcp_server, "_find_leading_cases", lambda **kw: {"results": []})
+    monkeypatch.setattr(mcp_server, "get_commentary", lambda **kw: {"error": "stubbed"})
+    res = mcp_server._handle_get_article_history(sr_number="220", article="5")
+    e = next(e for e in res["timeline"] if e["kind"] == "botschaft")
+    assert e["date"] == "2020" and e["date_source"] == "bbl_year"
+    res = mcp_server._handle_get_article_history(sr_number="220", article="1077")
+    e = next(e for e in res["timeline"] if e["kind"] == "botschaft")
+    assert e["date"] == "2017-01-24" and e["date_source"] == "fedlex:publicationDate"
+
+
+def test_bare_year_is_labelled_even_without_the_date_source_column(tmp_path, monkeypatch):
+    """A fixture DB from the older schema has no date_source column; a
+    four-digit publication_date is still never shipped as an ISO date."""
+    p = tmp_path / "old.db"
+    c = _old_schema_db(p)
+    c.execute("INSERT INTO botschaft_documents (botschaft_id, bbl_year, bbl_page, bbl_citation, "
+              "eli_uri, source_url, format, language, ingested_at, title, publication_date) "
+              "VALUES (1, 2019, 7, 'BBl 2019 7', 'e', 'u', 'pdf', 'de', 't', 'Botschaft X', '2019')")
+    c.execute("INSERT INTO botschaft_paragraphs (botschaft_id, para_order, text, text_length) "
+              "VALUES (1, 1, 'Text', 4)")
+    c.execute("INSERT INTO article_botschaft_links VALUES ('220','1077',1,'considered','x')")
+    c.executescript("""
+        CREATE TABLE materialien (id INTEGER PRIMARY KEY, law_code TEXT, sr_number TEXT,
+            article TEXT, bbl_ref TEXT, bbl_page_refs TEXT, legislative_intent TEXT,
+            key_arguments TEXT, design_choices TEXT, rejected_alternatives TEXT, general_context TEXT);
+        CREATE TABLE parliamentary_modifications (law_code TEXT, council TEXT, date TEXT, text TEXT);
+    """)
+    c.commit(); c.close()
+    monkeypatch.setattr(mcp_server, "MATERIALIEN_DB_PATH", p)
+    d = mcp_server.get_materialien("OR", "1077")["botschaft_documents"][0]
+    assert d["publication_date"] == "2019" and d["publication_date_source"] == "bbl_year"
+    # The stored label is authoritative; a full date without one stays unlabelled.
+    assert mcp_server._publication_date_source("2019-01-01", None) is None
+    assert mcp_server._publication_date_source("2019-01-01", "fedlex:dateDocument") == "fedlex:dateDocument"
+    assert mcp_server._publication_date_source(None, None) is None
+
+
+# ── digest bbl_ref -> message: pre-1999 references carry a volume ─────
+
+def test_pre_1999_digest_ref_resolves_only_with_its_volume(server_db):
+    meta = mcp_server._botschaft_meta_for_bbl_ref
+    none = {"title": None, "publication_date": None, "publication_date_source": None}
+    conn = sqlite3.connect(server_db)
+    conn.row_factory = sqlite3.Row
+    got = meta(conn, "BBl 1997 I 1")
+    assert got["title"] == "Botschaft über eine neue Bundesverfassung"
+    assert got["publication_date_source"] == "fedlex:publicationDate"
+    # Without its volume a pre-1999 reference is ambiguous by construction.
+    assert meta(conn, "BBl 1997 1") == none
+    # From 1999 the BBl is paginated per year: (year, page) is the identity.
+    assert meta(conn, "BBl 2020 55")["title"] == "Botschaft ohne Datum"
+    assert meta(conn, "BBl 2020 55")["publication_date_source"] == "bbl_year"
+    conn.close()
+    # Once the historical corpus records the volume, the row must carry it.
+    w = sqlite3.connect(server_db)
+    w.execute("ALTER TABLE botschaft_documents ADD COLUMN bbl_volume TEXT")
+    w.execute("UPDATE botschaft_documents SET bbl_volume = 'I' WHERE botschaft_id = 4")
+    w.commit(); w.close()
+    conn = sqlite3.connect(server_db)
+    conn.row_factory = sqlite3.Row
+    assert meta(conn, "BBl 1997 I 1")["title"] == "Botschaft über eine neue Bundesverfassung"
+    assert meta(conn, "bbl 1997 i 1")["title"] == "Botschaft über eine neue Bundesverfassung"
+    assert meta(conn, "BBl 1997 III 1") == none
+    assert meta(conn, "BBl 1997 1") == none
+    conn.close()
+
+
+def test_pre_1999_digest_ref_skips_rows_from_another_collection(tmp_path):
+    p = tmp_path / "m.db"
+    c = sqlite3.connect(p)
+    c.executescript(bbc.SCHEMA_SQL)
+    bbc.ensure_schema(c)
+    c.execute("ALTER TABLE botschaft_documents ADD COLUMN source_collection TEXT")
+    c.execute("INSERT INTO botschaft_documents (botschaft_id, bbl_year, bbl_page, bbl_citation, "
+              "eli_uri, title, source_url, format, language, ingested_at, source_collection) "
+              "VALUES (1, 1997, 1, 'BBl 1997 1', 'e', 'Historisch', 'u', 'pdf', 'de', 't', 'bar')")
+    c.commit()
+    c.row_factory = sqlite3.Row
+    assert mcp_server._botschaft_meta_for_bbl_ref(c, "BBl 1997 I 1")["title"] is None
+    c.execute("UPDATE botschaft_documents SET source_collection = NULL")
+    c.commit()
+    assert mcp_server._botschaft_meta_for_bbl_ref(c, "BBl 1997 I 1")["title"] == "Historisch"
+    c.close()
