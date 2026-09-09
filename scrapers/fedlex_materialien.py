@@ -621,16 +621,127 @@ def _fga_candidate(
     return (year, page, act_uri, title)
 
 
+def _clean_title(title: str | None) -> str | None:
+    """Fedlex titles verbatim, whitespace only normalised (they carry a
+    trailing blank and occasional line breaks). Never rewritten."""
+    if not title:
+        return None
+    t = " ".join(title.split())
+    return t or None
+
+
+def _clean_date(value: str | None) -> str | None:
+    """``jolux:dateDocument`` / ``jolux:publicationDate`` are xsd:date
+    ("2011-09-07"); keep the date part only, drop a time suffix if any."""
+    if not value:
+        return None
+    v = value.strip()
+    return v[:10] if len(v) >= 10 and v[4] == "-" and v[7] == "-" else (v or None)
+
+
+def _fga_meta_query(language: str, values_clause: str | None = None) -> str:
+    """The one SPARQL shape used by discovery and by the backfill.
+
+    Verified on Fedlex 2026-09-09 for eli/fga/2011/1325, 2013/823 and
+    2025/960: the Work carries ``jolux:dateDocument`` (the date the
+    message is "vom", e.g. 2011-09-07) and ``jolux:publicationDate`` (the
+    Bundesblatt issue date, 2011-10-25); the language Expression carries
+    ``jolux:title`` and ``jolux:memorialPage``.
+    """
+    if values_clause:
+        # Backfill: restrict to the given works, no typeDocument filter (the
+        # rows already are Botschaften; some pre-1999 works lack the type).
+        subject = f"VALUES ?act {{ {values_clause} }}"
+    else:
+        subject = (
+            f"?act jolux:typeDocument <{BOTSCHAFT_TYPE_DOC_URI}> .\n"
+            '      FILTER(strstarts(STR(?act), "https://fedlex.data.admin.ch/eli/fga/"))'
+        )
+    return f"""
+    PREFIX jolux: <{JOLUX}>
+    SELECT DISTINCT ?act ?title ?memPage ?dateDoc ?pubDate WHERE {{
+      {subject}
+      ?act jolux:isRealizedBy ?expr .
+      ?expr jolux:language <{LANG_URIS[language]}> .
+      OPTIONAL {{ ?expr jolux:title ?title }}
+      OPTIONAL {{ ?expr jolux:memorialPage ?memPage }}
+      OPTIONAL {{ ?act jolux:dateDocument ?dateDoc }}
+      OPTIONAL {{ ?act jolux:publicationDate ?pubDate }}
+    }}
+    ORDER BY DESC(?act)
+    """
+
+
+def _fga_meta_from_binding(r: dict) -> dict | None:
+    cand = _fga_candidate(_val(r, "act"), _val(r, "memPage"), _val(r, "title") or "")
+    if cand is None:
+        return None
+    year, page, eli_uri, title = cand
+    return {
+        "year": year,
+        "page": page,
+        "eli_uri": eli_uri,
+        "title": _clean_title(title),
+        "date_document": _clean_date(_val(r, "dateDoc")),
+        "publication_date": _clean_date(_val(r, "pubDate")),
+    }
+
+
+def discover_fga_botschaften_meta(
+    language: str = "de",
+    timeout: int = 120,
+) -> list[dict]:
+    """Enumerate every Bundesblatt-published Botschaft via Fedlex SPARQL,
+    with its metadata.
+
+    Returns one dict per FGA Work of typeDocument=23 (Botschaft) that has
+    an Expression in ``language``::
+
+        {"year", "page", "eli_uri", "title", "date_document",
+         "publication_date"}
+
+    ``title`` is the language-specific ``jolux:title`` verbatim (whitespace
+    normalised); ``date_document`` is ``jolux:dateDocument`` (the date the
+    message is dated), ``publication_date`` is ``jolux:publicationDate``
+    (the Bundesblatt issue). Either date may be None on old records.
+    One row per Work: a second title/date binding for the same ELI only
+    fills fields the first left empty.
+    """
+    if language not in LANG_URIS:
+        raise ValueError(f"Unsupported language: {language!r}")
+    rows = sparql_query(_fga_meta_query(language), timeout=timeout)
+    by_eli: dict[str, dict] = {}
+    for r in rows:
+        meta = _fga_meta_from_binding(r)
+        if meta is None:
+            continue
+        cur = by_eli.get(meta["eli_uri"])
+        if cur is None:
+            by_eli[meta["eli_uri"]] = meta
+        else:
+            for k in ("title", "date_document", "publication_date"):
+                if not cur[k] and meta[k]:
+                    cur[k] = meta[k]
+    out = list(by_eli.values())
+    log.info(
+        "discover_fga_botschaften(%s): %d Botschaften in Fedlex SPARQL",
+        language, len(out),
+    )
+    return out
+
+
 def discover_fga_botschaften(
     language: str = "de",
     timeout: int = 120,
 ) -> list[tuple[int, int, str, str]]:
     """Enumerate every Bundesblatt-published Botschaft via Fedlex SPARQL.
 
-    Returns ``[(year, page, title), ...]`` for every FGA URI of
+    Returns ``[(year, page, eli_uri, title), ...]`` for every FGA URI of
     typeDocument=23 (Botschaft) that has an Expression in the requested
-    ``language``. The full SR vocabulary is post-2003; coverage gaps
-    pre-2003 need the v0.5 amtsdruckschriften adapter.
+    ``language``. Thin view over :func:`discover_fga_botschaften_meta`
+    (which also carries the document and publication dates). The full SR
+    vocabulary is post-2003; coverage gaps pre-2003 need the v0.5
+    amtsdruckschriften adapter.
 
     Why this beats amendment_refs as a candidate source:
     amendment_refs reflects what statute footnotes cite — predominantly
@@ -639,33 +750,48 @@ def discover_fga_botschaften(
     Botschaften (DE) — an 18× expansion vs the 119 we got via
     amendment_refs.
     """
+    return [
+        (m["year"], m["page"], m["eli_uri"], m["title"] or "")
+        for m in discover_fga_botschaften_meta(language=language, timeout=timeout)
+    ]
+
+
+def fetch_fga_metadata(
+    eli_uris: list[str],
+    language: str = "de",
+    timeout: int = 120,
+) -> dict[str, dict]:
+    """Title + dates for a batch of FGA Works, keyed by ELI URI.
+
+    One SPARQL round trip per call (``VALUES`` list; callers batch ~50).
+    Returns ``{eli_uri: {"title", "date_document", "publication_date"}}``
+    for every URI Fedlex answered; URIs without an Expression in
+    ``language`` are absent from the result.
+    """
     if language not in LANG_URIS:
         raise ValueError(f"Unsupported language: {language!r}")
-
-    query = f"""
-    PREFIX jolux: <{JOLUX}>
-    SELECT DISTINCT ?act ?title ?memPage WHERE {{
-      ?act jolux:typeDocument <{BOTSCHAFT_TYPE_DOC_URI}> .
-      ?act jolux:isRealizedBy ?expr .
-      ?expr jolux:language <{LANG_URIS[language]}> .
-      OPTIONAL {{ ?expr jolux:title ?title }}
-      OPTIONAL {{ ?expr jolux:memorialPage ?memPage }}
-      FILTER(strstarts(STR(?act), "https://fedlex.data.admin.ch/eli/fga/"))
-    }}
-    ORDER BY DESC(?act)
-    """
-    rows = sparql_query(query, timeout=timeout)
-    out: list[tuple[int, int, str, str]] = []
+    uris = [u for u in dict.fromkeys(eli_uris) if u]
+    if not uris:
+        return {}
+    values = " ".join(f"<{u}>" for u in uris)
+    rows = sparql_query(_fga_meta_query(language, values_clause=values), timeout=timeout)
+    out: dict[str, dict] = {}
     for r in rows:
-        # bbl page = memorialPage (print/PDF edition); ELI segment is Fedlex's
-        # internal fga index, not the page (issue #30).
-        cand = _fga_candidate(_val(r, "act"), _val(r, "memPage"), _val(r, "title") or "")
-        if cand is not None:
-            out.append(cand)
-    log.info(
-        "discover_fga_botschaften(%s): %d Botschaften in Fedlex SPARQL",
-        language, len(out),
-    )
+        eli = _val(r, "act")
+        if not eli:
+            continue
+        meta = {
+            "title": _clean_title(_val(r, "title")),
+            "date_document": _clean_date(_val(r, "dateDoc")),
+            "publication_date": _clean_date(_val(r, "pubDate")),
+        }
+        cur = out.get(eli)
+        if cur is None:
+            out[eli] = meta
+        else:
+            for k, v in meta.items():
+                if not cur[k] and v:
+                    cur[k] = v
     return out
 
 

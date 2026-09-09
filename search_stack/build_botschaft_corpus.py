@@ -144,9 +144,57 @@ CREATE INDEX IF NOT EXISTS ix_abl_botschaft ON article_botschaft_links(botschaft
 """
 
 
+# Columns added after the table was first created (2026-09-09: document
+# metadata). ALTER TABLE ... ADD COLUMN, guarded by PRAGMA table_info, so an
+# existing live DB gains them in place and build_materialien_db's
+# sqlite_master copy carries them over unchanged. Readers must tolerate
+# their absence (fixture DBs built from older schemas).
+_ADDITIVE_COLUMNS: tuple[tuple[str, str], ...] = (
+    # jolux:dateDocument — the date the message is "vom" (2011-09-07 for
+    # "Botschaft vom 7. September 2011"). publication_date holds
+    # jolux:publicationDate, the Bundesblatt issue date.
+    ("date_document", "TEXT"),
+    # Where publication_date came from: 'fedlex:publicationDate',
+    # 'fedlex:dateDocument' (publicationDate missing on Fedlex) or
+    # 'bbl_year' (neither on Fedlex — the value is just the BBl year).
+    ("date_source", "TEXT"),
+)
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
+    have = {r[1] for r in conn.execute("PRAGMA table_info(botschaft_documents)")}
+    for col, decl in _ADDITIVE_COLUMNS:
+        if col not in have:
+            conn.execute(f"ALTER TABLE botschaft_documents ADD COLUMN {col} {decl}")
     conn.commit()
+
+
+# publication_date / date_source resolution shared by the nightly ingest and
+# scripts/backfill_botschaft_metadata.py.
+DATE_SOURCE_PUBLICATION = "fedlex:publicationDate"
+DATE_SOURCE_DOCUMENT = "fedlex:dateDocument"
+DATE_SOURCE_BBL_YEAR = "bbl_year"
+
+
+def resolve_publication_date(
+    publication_date: str | None,
+    date_document: str | None,
+    bbl_year: int | None,
+) -> tuple[str | None, str | None]:
+    """``(publication_date, date_source)`` for a document row.
+
+    Prefers Fedlex's ``jolux:publicationDate``; falls back to
+    ``jolux:dateDocument``; when Fedlex has neither, the BBl citation year
+    is stored (as a bare "YYYY") and ``date_source`` says so.
+    """
+    if publication_date:
+        return publication_date, DATE_SOURCE_PUBLICATION
+    if date_document:
+        return date_document, DATE_SOURCE_DOCUMENT
+    if bbl_year:
+        return str(int(bbl_year)), DATE_SOURCE_BBL_YEAR
+    return None, None
 
 
 # ── Fedlex BBl URL helpers ────────────────────────────────────────────
@@ -555,6 +603,41 @@ def extract_pdf_pages(pdf_bytes: bytes) -> list[str]:
     return pages_out
 
 
+def _fill_metadata(
+    conn: sqlite3.Connection,
+    botschaft_id: int,
+    title: str | None,
+    publication_date: str | None,
+    date_source: str | None,
+    date_document: str | None,
+) -> bool:
+    """Fill empty metadata on an existing document row. Never overwrites a
+    Fedlex-sourced value with an empty one; a Fedlex date does replace a
+    bbl_year fallback. Returns True when a column changed."""
+    cur = conn.execute(
+        "SELECT title, publication_date, date_document, date_source "
+        "FROM botschaft_documents WHERE botschaft_id = ?", (botschaft_id,),
+    ).fetchone()
+    if cur is None:
+        return False
+    old_title, old_pub, old_doc, old_src = cur
+    new_title = old_title or title
+    if publication_date and (not old_pub or old_src == DATE_SOURCE_BBL_YEAR
+                             and date_source != DATE_SOURCE_BBL_YEAR):
+        new_pub, new_src = publication_date, date_source
+    else:
+        new_pub, new_src = old_pub, old_src
+    new_doc = old_doc or date_document
+    if (new_title, new_pub, new_doc, new_src) == (old_title, old_pub, old_doc, old_src):
+        return False
+    conn.execute(
+        "UPDATE botschaft_documents SET title=?, publication_date=?, "
+        "date_document=?, date_source=? WHERE botschaft_id=?",
+        (new_title, new_pub, new_doc, new_src, botschaft_id),
+    )
+    return True
+
+
 def ingest_one(
     conn: sqlite3.Connection,
     year: int,
@@ -565,6 +648,9 @@ def ingest_one(
     relation: str = "considered",
     prefiltered: bool = False,
     eli_uri: str | None = None,
+    title: str | None = None,
+    publication_date: str | None = None,
+    date_document: str | None = None,
 ) -> int | None:
     """Fetch, parse, and store one Botschaft. Returns botschaft_id, or
     None if Fedlex has no manifestation (pre-~2003 BBl) or the URI
@@ -573,8 +659,15 @@ def ingest_one(
     Pass ``prefiltered=True`` when the caller has already validated the
     URI is a Botschaft (e.g. SPARQL discovery via typeDocument=23) — it
     skips the per-URI is_botschaft ASK probe.
+
+    ``title`` / ``publication_date`` / ``date_document`` are the Fedlex
+    SPARQL metadata for this Work in ``language`` (see
+    ``discover_fga_botschaften_meta``). They are stored verbatim on the
+    document row; an existing row that lacks them is filled in even when
+    its text is unchanged, so the nightly run heals old rows.
     """
     ensure_schema(conn)
+    pub_date, date_source = resolve_publication_date(publication_date, date_document, year)
 
     citation = bbl_citation(year, page, language)
     # The ELI keeps its real fga segment (for fetch/resolve); the citation +
@@ -624,6 +717,7 @@ def ingest_one(
     if row and row[1] == text_hash:
         log.info(f"  unchanged ({citation}) — keeping existing rows")
         botschaft_id = row[0]
+        _fill_metadata(conn, botschaft_id, title, pub_date, date_source, date_document)
     else:
         # Parse: prefer XML/Akoma Ntoso, fall back to PDF.
         paragraphs: list[dict] = []
@@ -682,17 +776,20 @@ def ingest_one(
                  datetime.now(timezone.utc).isoformat(), row[0]),
             )
             botschaft_id = row[0]
+            _fill_metadata(conn, botschaft_id, title, pub_date, date_source, date_document)
         else:
             cur = conn.execute(
                 """
                 INSERT INTO botschaft_documents
                 (bbl_year, bbl_page, bbl_citation, eli_uri, source_url,
-                 format, language, page_count, text_hash, ingested_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 format, language, page_count, text_hash, ingested_at,
+                 title, publication_date, date_document, date_source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (year, page, citation, eli, url, stored_format, language,
                  page_count, text_hash,
-                 datetime.now(timezone.utc).isoformat()),
+                 datetime.now(timezone.utc).isoformat(),
+                 title, pub_date, date_document, date_source),
             )
             botschaft_id = cur.lastrowid
 
@@ -920,12 +1017,12 @@ def main() -> int:
             # SPARQL, then dedupe against already-ingested rows in
             # botschaft_documents.
             try:
-                from scrapers.fedlex_materialien import discover_fga_botschaften
+                from scrapers.fedlex_materialien import discover_fga_botschaften_meta
             except ImportError as e:
                 log.error(f"Cannot import SPARQL discoverer: {e}")
                 return 3
             log.info("Discovering Botschaften via Fedlex SPARQL (typeDocument=23)…")
-            sparql_rows = discover_fga_botschaften(language=args.language)
+            sparql_rows = discover_fga_botschaften_meta(language=args.language)
             log.info(f"  SPARQL returned {len(sparql_rows)} Botschaften")
 
             existing = {
@@ -935,12 +1032,14 @@ def main() -> int:
                     (args.language, args.min_year),
                 ).fetchall()
             }
+            # (year, page, eli, meta): the SPARQL title and dates travel with
+            # the candidate so the document row is written complete.
             candidates = [
-                (y, p, eli) for (y, p, eli, _t) in sparql_rows
-                if y >= args.min_year and (y, p) not in existing
+                (m["year"], m["page"], m["eli_uri"], m) for m in sparql_rows
+                if m["year"] >= args.min_year and (m["year"], m["page"]) not in existing
             ]
             # Newest first — same convention as amendment_refs path.
-            candidates.sort(key=lambda yp: yp, reverse=True)
+            candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
             log.info(
                 f"--ingest-all (SPARQL): {len(candidates)} candidates "
                 f"≥ {args.min_year} not yet in materialien.db, "
@@ -962,7 +1061,7 @@ def main() -> int:
                 """,
                 (args.language, args.min_year),
             ).fetchall()
-            candidates = [(int(r[0]), int(r[1]), None) for r in rows]
+            candidates = [(int(r[0]), int(r[1]), None, None) for r in rows]
             log.info(
                 f"--ingest-all (amendment_refs): {len(candidates)} unique "
                 f"(year, page) candidates ≥ {args.min_year} not yet in "
@@ -971,7 +1070,7 @@ def main() -> int:
         if args.limit:
             candidates = candidates[: args.limit]
         if args.dry_run:
-            for year, page, _eli in candidates[:25]:
+            for year, page, _eli, _m in candidates[:25]:
                 log.info(f"  candidate: BBl {year} {page}")
             if len(candidates) > 25:
                 log.info(f"  … and {len(candidates) - 25} more")
@@ -981,7 +1080,8 @@ def main() -> int:
         stats = {"accepted": 0, "rejected_by_filter": 0, "errors": 0,
                  "total": len(candidates), "started_at": datetime.now(timezone.utc).isoformat()}
         t0 = _time.time()
-        for i, (year, page, eli) in enumerate(candidates, 1):
+        for i, (year, page, eli, meta) in enumerate(candidates, 1):
+            meta = meta or {}
             try:
                 bid = ingest_one(
                     conn, year=year, page=page, eli_uri=eli,
@@ -989,6 +1089,9 @@ def main() -> int:
                     sr_number=None, article=None,
                     relation="considered",
                     prefiltered=args.discover_via_sparql,
+                    title=meta.get("title"),
+                    publication_date=meta.get("publication_date"),
+                    date_document=meta.get("date_document"),
                 )
                 if bid is None:
                     stats["rejected_by_filter"] += 1

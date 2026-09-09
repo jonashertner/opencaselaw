@@ -5166,8 +5166,10 @@ def _resolve_materialien_sr(conn, law: str) -> str:
 # A Botschaft's opening paragraph carries its own header, very regularly:
 #   16.077 / Botschaft / zur Änderung des Obligationenrechts (Aktienrecht) /
 #   vom 23. November 2016
-# botschaft_documents.title and .publication_date are empty for all 6,154 rows,
-# so this is where the human-readable title comes from. Measured on 400 linked
+# botschaft_documents.title / .publication_date are the Fedlex SPARQL
+# metadata (jolux:title, jolux:publicationDate; written by the ingest since
+# 2026-09-09, older rows via scripts/backfill_botschaft_metadata.py). Where a
+# row still lacks a title, this header is the fallback. Measured on 400 linked
 # documents: 69% match. The remainder are recent messages whose first
 # paragraph is the Übersicht itself (no header paragraph at all — scanning
 # further paragraphs does not help, verified); those fall back to an excerpt,
@@ -5208,7 +5210,8 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
     if not sr:
         return []
     sql = """SELECT d.bbl_citation, d.source_url, d.eli_uri, d.language,
-                    d.bbl_year, d.bbl_page, l.article, l.relation,
+                    d.bbl_year, d.bbl_page, d.title AS db_title,
+                    d.publication_date, l.article, l.relation,
                     p.text AS head_text
                FROM article_botschaft_links l
                JOIN botschaft_documents d ON d.botschaft_id = l.botschaft_id
@@ -5219,7 +5222,8 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
     if article:
         sql += " AND l.article = ?"
         params.append(article)
-    # publication_date is empty for every row; bbl_year is the real ordering.
+    # bbl_year/bbl_page is the stable ordering (publication_date is a bare
+    # year on rows Fedlex has no date for).
     # Fetch extra: one message exists once per language (BBl 2022 2743 and
     # FF 2022 2743 are the same document), and those are grouped below, so a
     # bare LIMIT would return half as many distinct messages as asked for.
@@ -5239,11 +5243,18 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
         if item is None:
             if len(grouped) >= limit:
                 continue
-            title, date = _botschaft_header(r["head_text"] or "")
+            head_title, date = _botschaft_header(r["head_text"] or "")
+            # The Fedlex title is authoritative (R1: titles only from
+            # Fedlex); the opening-paragraph header is the fallback for
+            # rows the backfill has not reached.
+            title = (r["db_title"] or "").strip() or head_title
             item = {
                 "bbl_citation": r["bbl_citation"],
                 "title": title,
+                "title_source": ("fedlex" if r["db_title"] else
+                                 "document_header" if head_title else None),
                 "date": date,
+                "publication_date": r["publication_date"],
                 "year": r["bbl_year"],
                 "url": r["source_url"],
                 "eli_uri": r["eli_uri"],
@@ -5273,10 +5284,47 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
             })
         if not item["title"]:
             t2, d2 = _botschaft_header(r["head_text"] or "")
-            if t2:
-                item["title"], item["date"] = t2, d2
+            if r["db_title"]:
+                item["title"], item["title_source"] = r["db_title"].strip(), "fedlex"
+                item["date"] = item["date"] or d2
                 item.pop("excerpt", None)
+            elif t2:
+                item["title"], item["date"] = t2, d2
+                item["title_source"] = "document_header"
+                item.pop("excerpt", None)
+        elif not item["date"]:
+            # Another edition may carry the printed "vom ..." date.
+            item["date"] = _botschaft_header(r["head_text"] or "")[1]
+        if not item["publication_date"] and r["publication_date"]:
+            item["publication_date"] = r["publication_date"]
     return list(grouped.values())
+
+
+_BBL_REF_RE = re.compile(r"^\s*(BBl|FF)\s+(\d{4})\s+(?:[IVX]+\s+)?(\d+)", re.IGNORECASE)
+
+
+def _botschaft_meta_for_bbl_ref(conn, bbl_ref: str | None) -> dict:
+    """``{"title", "publication_date"}`` of the Botschaft a digest row's
+    ``bbl_ref`` ("BBl 1997 I 1", "BBl 1999 6013") points at, from
+    botschaft_documents; both None when the reference does not resolve."""
+    out = {"title": None, "publication_date": None}
+    m = _BBL_REF_RE.match(bbl_ref or "")
+    if not m:
+        return out
+    langs = ("de",) if m.group(1).upper() == "BBL" else ("fr", "it")
+    try:
+        rows = conn.execute(
+            "SELECT title, publication_date, language FROM botschaft_documents "
+            "WHERE bbl_year = ? AND bbl_page = ? AND (title IS NOT NULL OR "
+            "publication_date IS NOT NULL)",
+            (int(m.group(2)), int(m.group(3))),
+        ).fetchall()
+    except sqlite3.Error:
+        return out
+    for r in sorted(rows, key=lambda r: (r["language"] not in langs, r["language"])):
+        out["title"] = out["title"] or r["title"]
+        out["publication_date"] = out["publication_date"] or r["publication_date"]
+    return out
 
 
 def get_materialien(law_code: str, article: str | None = None) -> dict:
@@ -5489,16 +5537,20 @@ def search_materialien(
             relaxed = bool(rows)
         debate_query = _or_q if relaxed else query
 
-        results = [
-            {
+        results = []
+        for r in rows:
+            # Title and publication date of the message the digest is
+            # drawn from, when botschaft_documents holds that BBl page.
+            meta = _botschaft_meta_for_bbl_ref(conn, r["bbl_ref"])
+            results.append({
                 "law_code": r["law_code"],
                 "article": r["article"],
                 "bbl_ref": r["bbl_ref"],
+                "title": meta["title"],
+                "publication_date": meta["publication_date"],
                 "legislative_intent": (r["legislative_intent"] or "")[:300],
                 "snippet": _render_fts_snippet(r["snippet"]),
-            }
-            for r in rows
-        ]
+            })
 
         # Also search debate transcripts (Amtliches Bulletin)
         debate_results = []
@@ -14369,7 +14421,7 @@ def _handle_get_article_purpose(
         rows = conn.execute(
             """
             SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri, bd.format,
-                   bd.publication_date, abl.relation
+                   bd.title, bd.publication_date, abl.relation
             FROM article_botschaft_links abl
             JOIN botschaft_documents bd ON bd.botschaft_id = abl.botschaft_id
             WHERE abl.sr_number = ? AND abl.article = ? AND bd.language = ?
@@ -14408,7 +14460,7 @@ def _handle_get_article_purpose(
                 fb_rows = conn.execute(
                     """
                     SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
-                           bd.format, bd.publication_date,
+                           bd.format, bd.title, bd.publication_date,
                            bp.page_number, bp.section_path, bp.text
                     FROM botschaft_paragraphs_fts
                     JOIN botschaft_paragraphs bp
@@ -14435,6 +14487,7 @@ def _handle_get_article_purpose(
                         by_doc[bid] = {
                             "bbl_citation": r["bbl_citation"],
                             "eli_uri": r["eli_uri"],
+                            "title": r["title"],
                             "publication_date": r["publication_date"],
                             "format": r["format"],
                             "relation": "fts5_match",
@@ -14506,6 +14559,7 @@ def _handle_get_article_purpose(
             sources.append({
                 "bbl_citation": r["bbl_citation"],
                 "eli_uri": r["eli_uri"],
+                "title": r["title"],
                 "publication_date": r["publication_date"],
                 "format": r["format"],
                 "relation": r["relation"],
@@ -14607,7 +14661,7 @@ def _handle_search_botschaft(
 
         sql = """
             SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
-                   bd.language, bd.publication_date, bd.bbl_year,
+                   bd.language, bd.title, bd.publication_date, bd.bbl_year,
                    bp.paragraph_id, bp.page_number, bp.section_path,
                    bp.article_anchor,
                    snippet(botschaft_paragraphs_fts, 0,
@@ -14625,9 +14679,9 @@ def _handle_search_botschaft(
             params.append(language)
         # Temporal scoping for legislative-history research ("on X from the 1990s").
         # bbl_year is the authoritative BBl-publication year (populated for the whole
-        # corpus); publication_date is sparse and often NULL, so filtering on it
-        # silently dropped in-range Botschaften. Compare on bbl_year directly. Rows
-        # with a NULL bbl_year fall out of a year-bounded search (expected).
+        # corpus); publication_date is a bare year on rows Fedlex has no date for, so
+        # filtering on it would drop in-range Botschaften. Compare on bbl_year directly.
+        # Rows with a NULL bbl_year fall out of a year-bounded search (expected).
         if year_min is not None:
             sql += " AND bd.bbl_year >= ? "
             params.append(int(year_min))
@@ -14675,6 +14729,7 @@ def _handle_search_botschaft(
             "bbl_citation":     r["bbl_citation"],
             "eli_uri":          r["eli_uri"],
             "language":         r["language"],
+            "title":            r["title"],
             "publication_date": r["publication_date"],
             "bbl_year":         r["bbl_year"],
             "page":             r["page_number"],
@@ -25882,7 +25937,8 @@ def _list_tools() -> list[Tool]:
                 "caller doesn't know which SR/article to ask for — e.g. "
                 "starting from a concept like 'Vaterschaftsurlaub' or "
                 "'Klimaschutz'. Returns ranked passages (FTS5 BM25) with "
-                "bbl_citation, page, section path, and an article anchor "
+                "bbl_citation, the source message's title and publication_date "
+                "(from Fedlex), page, section path, and an article anchor "
                 "where the parser could identify one. Quote verbatim; "
                 "every snippet has a stable Fedlex ELI URI. When no paragraph "
                 "carries every term, the page is relaxed to ranked OR and "
@@ -26670,8 +26726,8 @@ def _list_tools() -> list[Tool]:
                 "Look up Materialien for a Swiss federal law article. Returns up to three "
                 "things: `sources` = per-article digests of legislative intent (BV and BGFA "
                 "only — 167 articles); `botschaft_documents` = the Federal Council messages "
-                "that concern this article, with BBl citation, title and Fedlex link (620 SR "
-                "numbers, 19,809 article links); `amendment_refs` = the AS/BBl publication "
+                "that concern this article, with BBl citation, title, publication_date and "
+                "Fedlex link (620 SR numbers, 19,809 article links); `amendment_refs` = the AS/BBl publication "
                 "locators from the statute's own footnotes. "
                 "Empty `sources` means no digest exists for that law, NOT that the law has no "
                 "legislative history — read `botschaft_documents` and cite the BBl reference. "
@@ -26704,7 +26760,8 @@ def _list_tools() -> list[Tool]:
                 "intent summaries and key arguments, not verbatim text. "
                 "COVERAGE IS NARROW: BV and BGFA digests (167 articles) plus BV debate "
                 "transcripts, and nothing else. For any other law this returns 0 hits, which "
-                "means 'outside this index', not 'no materials exist'. "
+                "means 'outside this index', not 'no materials exist'. Each hit names its "
+                "source message (bbl_ref, title, publication_date). "
                 "Prefer search_botschaft, which covers all 6,154 Federal Council messages "
                 "verbatim, or get_materialien(law_code) for the messages linked to one statute."
             ),
