@@ -102,22 +102,154 @@ _MONATE_FR = [
     "janvier", "février", "mars", "avril", "mai", "juin",
     "juillet", "août", "septembre", "octobre", "novembre", "décembre",
 ]
-_ALL_MONTHS = "|".join(_MONATE_DE + _MONATE_FR)
+_MONATE_IT = [
+    "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+    "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre",
+]
+_ALL_MONTHS = "|".join(_MONATE_DE + _MONATE_FR + _MONATE_IT)
 
 RE_META = re.compile(
-    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du))\s+"
-    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause)\s+[^_]+\s+"
+    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du)|sentenza della)\s+"
+    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause|nella causa)\s+[^_]+\s+"
     r"(?P<Num2>\d+[A-F]?(?:_|\.)\d+/(?:19|20)\d\d)\s+(?:[^_]+\s+)?"
-    r"(?:vom|du)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
+    r"(?:vom|du|del)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
 )
 
 RE_META_OHNE_GN = re.compile(
-    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du))\s+"
-    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause)\s+[^_]+\s+"
-    r"(?:vom|du)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
+    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du)|sentenza della)\s+"
+    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause|nella causa)\s+[^_]+\s+"
+    r"(?:vom|du|del)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
 )
 
 RE_META_SIMPLE = re.compile(r"^\d+\s?\.\s+(?P<Rest>.+)$")
+
+# ── Urteilskopf fallbacks (2026-09-10, BGE decision-date audit) ──────────
+# The CLIR page splits the Urteilskopf over SEVERAL <div class="paraatf">
+# blocks: "37. Auszug aus dem Urteil der II. zivilrechtlichen Abteilung i.S.
+# A. gegen B. (Beschwerde in Zivilsachen)" and, in a second block,
+# "5A_691/2023 vom 13. August 2024". soup.find() returned only the first,
+# so RE_META never saw "vom <Datum>", every direct row fell through to the
+# 1 January placeholder and chamber/docket_2 stayed NULL. The old French
+# and Italian forms put the date BEFORE the parties ("Extrait de l'arrêt de
+# la Ire Cour civile du 13 juillet 1993 dans la cause ..."), which the
+# anchored RE_META cannot express either. The ruling date is the LAST
+# "vom/du/del <Datum>" token of the joined Urteilskopf; a lower-court date
+# never appears in the Urteilskopf, only in the Sachverhalt.
+RE_KOPF_DATUM = re.compile(
+    r"(?:\bvom|\bdu|\bdel|\bdell')\s+(?P<Datum>\d{1,2}(?:\.|er|°)?\s*(?:"
+    + _ALL_MONTHS + r")\s+(?:18|19|20)\d\d)",
+    re.IGNORECASE,
+)
+RE_KOPF_DOCKET = re.compile(r"\b(?P<Num2>\d{1,2}[A-F]?[._]\d+/(?:19|20)\d\d)\b")
+RE_KOPF_KAMMER = re.compile(
+    r"(?:Urteil|Entscheid|Beschluss|arrêt|sentenza|decisione)\s+"
+    r"(?:der|des|de la|du|della|del)\s+(?P<VKammer>.+?)\s+"
+    r"(?:i\.S\.|in Sachen|dans la cause|nella causa|vom|du|del)\b",
+    re.IGNORECASE,
+)
+
+
+# A ruling is printed in its own volume or the next one, but the collection
+# also carries late publications: BGE 149 IV 97 is 6B_1079/2021 of 22.11.2021
+# in the 2023 volume, BGE 98 Ib 396 an arrêt of 12.12.1970 in the 1972 volume.
+# A header date may therefore trail the volume year by up to three years;
+# it can never FOLLOW it by more than one (a 1985 date in volume 84 = 1958 is
+# a source typo). The read-side warning keeps its symmetric ±1 window.
+BGE_VOLUME_EPOCH = 1874
+BGE_HEADER_LAG_YEARS = 3
+
+
+def header_date_plausible(d: date | None, volume_year: int | None) -> bool:
+    """Volume gate for a date taken from a decision's OWN Urteilskopf/Kopfzeile."""
+    if d is None:
+        return False
+    if not volume_year:
+        return True
+    return volume_year - BGE_HEADER_LAG_YEARS <= d.year <= volume_year + 1
+
+
+def urteilskopf_text(soup: BeautifulSoup) -> str:
+    """The Urteilskopf as ONE space-joined string: every <div class="paraatf">
+    that precedes <div id="regeste">. Regeste, Sachverhalt and Erwägungen
+    reuse the same class further down, so stop at the first block that
+    sits after the Regeste anchor; without an anchor (older pages) stop
+    at the first long block, which is never a header line."""
+    parts: list[str] = []
+    for div in soup.find_all("div", class_="paraatf"):
+        if div.find_previous("div", id="regeste") is not None:
+            break
+        text = RE_DOUBLE_SPACES.sub(" ", div.get_text(" ", strip=True)).strip()
+        if not text:
+            continue
+        if len(text) > 400 and parts:
+            break
+        parts.append(text)
+    return " ".join(parts)
+
+
+def parse_urteilskopf(header: str, volume_year: int | None = None) -> dict:
+    """Ruling date, underlying docket and chamber from a joined Urteilskopf.
+
+    Pure text function, shared by the scraper and the shard repair. RE_META
+    stays the primary path (it matched 90 % of the joined headers in the
+    2026-09-10 shard simulation); the fallbacks take the LAST "vom/du/del
+    <Datum>" token, the first BGG-form docket and the chamber phrase.
+    ``volume_year`` (BGE volume N collects year N + 1874) vetoes a header
+    date outside [volume_year - 3, volume_year + 1] (header_date_plausible):
+    the cite tool's decision_date_warning applies ±1 on the read side; the
+    source-side gate allows the rare late publication but never a date after
+    the volume, so the placeholder is preferred over a wrong year.
+    """
+    meta: dict = {}
+    header = RE_DOUBLE_SPACES.sub(" ", header or "").strip()
+    if not header:
+        return meta
+    candidates: list[date] = []
+    m = RE_META.search(header)
+    if m:
+        meta["chamber"] = m.group("VKammer")
+        meta["docket_2"] = m.group("Num2").replace(".", "_")
+        d = parse_date(m.group("Datum"))
+        if d:
+            candidates.append(d)
+    else:
+        m2 = RE_META_OHNE_GN.search(header)
+        if m2:
+            meta["chamber"] = m2.group("VKammer")
+            d = parse_date(m2.group("Datum"))
+            if d:
+                candidates.append(d)
+    # Fallback tokens in text order. Where a header carries two dates the
+    # ruling date comes FIRST ("arrêt de la Ire Cour civile du 15 mai 2000
+    # dans la cause X contre la décision du 31 janvier 2000 ...", "Urteil vom
+    # 16. März 1978 i.S. Z. betreffend Erläuterung des Urteils vom 5.
+    # September 1977"); 6 of 20,867 shard headers, all of that shape.
+    for tok in RE_KOPF_DATUM.findall(header):
+        d = parse_date(tok)
+        if d and d not in candidates:
+            candidates.append(d)
+    if not meta.get("docket_2"):
+        m3 = RE_KOPF_DOCKET.search(header)
+        if m3:
+            meta["docket_2"] = m3.group("Num2").replace(".", "_")
+    if not meta.get("chamber"):
+        m4 = RE_KOPF_KAMMER.search(header)
+        if m4:
+            meta["chamber"] = m4.group("VKammer").strip()
+    # First candidate that is consistent with the volume year wins; a statute
+    # or referenced-decision date in the header is skipped, not taken.
+    for d in candidates:
+        if header_date_plausible(d, volume_year):
+            meta["decision_date"] = d
+            break
+    else:
+        if candidates:
+            logger.warning(
+                "Urteilskopf date %s contradicts BGE volume year %s — dropping it: %r",
+                candidates[0], volume_year, header[:120],
+            )
+            meta["date_rejected"] = candidates[0]
+    return meta
 
 # HTML cleanup regex: removes div/span/a/artref tags and dangling <br>
 RE_REMOVE_DIVS = re.compile(
@@ -395,37 +527,31 @@ class BGELeitentscheideScraper(BaseScraper):
         """
         Extract metadata from a decision document page.
 
-        XPath: //div[@class='paraatf']/text()
-        Uses three regex levels:
+        XPath: //div[@class='paraatf'] (every block before //div[@id='regeste'],
+        space-joined — see urteilskopf_text). Uses parse_urteilskopf:
         1. RE_META: full match (chamber, docket, date)
         2. RE_META_OHNE_GN: match without docket number
-        3. RE_META_SIMPLE: minimal match
+        3. RE_KOPF_* fallbacks: last "vom/du/del <Datum>", first docket, chamber
+        4. RE_META_SIMPLE + 1 January placeholder when no ruling date parses
 
         Also: //div[@id='highlight_content']/div[@class='content'] for full text.
         """
         soup = BeautifulSoup(html, "html.parser")
         meta = {}
 
-        # Parse metadata from paraatf div
-        paraatf = soup.find("div", class_="paraatf")
-        if paraatf:
-            meta_string = paraatf.get_text(strip=True)
-
-            m = RE_META.search(meta_string)
-            if m:
-                meta["chamber"] = m.group("VKammer")
-                meta["docket_2"] = m.group("Num2").replace(".", "_")
-                meta["decision_date"] = parse_date(m.group("Datum"))
-            else:
-                m2 = RE_META_OHNE_GN.search(meta_string)
-                if m2:
-                    meta["chamber"] = m2.group("VKammer")
-                    meta["decision_date"] = parse_date(m2.group("Datum"))
-                else:
-                    m3 = RE_META_SIMPLE.search(meta_string)
-                    if m3:
-                        meta["formal"] = m3.group("Rest")
-                    meta["decision_date"] = date(year, 1, 1)
+        # Parse metadata from the Urteilskopf — ALL its paraatf blocks, not
+        # only the first (the ruling date sits in the second block).
+        header = urteilskopf_text(soup)
+        if header:
+            meta.update(parse_urteilskopf(header, volume_year=year))
+            if not meta.get("decision_date"):
+                m3 = RE_META_SIMPLE.search(header)
+                if m3:
+                    meta["formal"] = m3.group("Rest")
+                # Placeholder, NOT a ruling date: 1 January of the volume
+                # year keeps the row year-correct until a re-parse.
+                meta["decision_date"] = date(year, 1, 1)
+                meta["date_is_placeholder"] = True
 
         # Extract full text HTML
         content = soup.find("div", id="highlight_content")
