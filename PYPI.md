@@ -27,6 +27,7 @@ you invoke them; review the selected source and applicable terms before a run.
 - Source and issue tracker: <https://github.com/jonashertner/opencaselaw>
 - API documentation: <https://mcp.opencaselaw.ch/api/docs>
 - Dataset: <https://huggingface.co/datasets/voilaj/swiss-caselaw>
+- Project updates: <https://www.linkedin.com/company/opencaselaw-ch/>
 
 Official releases are built from the public repository and published to PyPI
 through GitHub Actions trusted publishing. The release workflow uses short-lived

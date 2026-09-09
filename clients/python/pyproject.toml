@@ -38,6 +38,7 @@ Source = "https://github.com/jonashertner/opencaselaw/tree/main/clients/python"
 Changelog = "https://github.com/jonashertner/opencaselaw/blob/main/clients/python/CHANGELOG.md"
 Issues = "https://github.com/jonashertner/opencaselaw/issues"
 "Agent guide" = "https://github.com/jonashertner/opencaselaw/blob/main/clients/python/src/opencaselaw_cli/AGENTS.md"
+LinkedIn = "https://www.linkedin.com/company/opencaselaw-ch/"
 
 [project.scripts]
 ocl = "opencaselaw_cli.cli:main"

@@ -51,7 +51,8 @@
   function footHTML() {
     return '<footer class="foot"><div class="wrap"><div class="foot-grid">' +
       '<div><a class="brand" href="/"><span class="glyph">+</span> opencaselaw.ch</a>' +
-        '<p class="foot-tag" style="margin-top:14px" data-t="foot_tag"></p></div>' +
+        '<p class="foot-tag" style="margin-top:14px" data-t="foot_tag"></p>' +
+        '<ul style="margin-top:14px"><li><a href="https://www.linkedin.com/company/opencaselaw-ch/" rel="noopener">LinkedIn</a></li></ul></div>' +
       '<div><h4 data-t="foot_browse">Browse</h4><ul>' +
         '<li><a href="/search/" data-t="nav_search">Search</a></li>' +
         '<li><a href="/courts/" data-t="nav_courts">Courts</a></li>' +

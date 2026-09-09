@@ -34,6 +34,7 @@ Homepage = "https://opencaselaw.ch"
 Documentation = "https://opencaselaw.ch"
 Repository = "https://github.com/jonashertner/opencaselaw"
 Issues = "https://github.com/jonashertner/opencaselaw/issues"
+LinkedIn = "https://www.linkedin.com/company/opencaselaw-ch/"
 
 [project.optional-dependencies]
 crypto = ["pycryptodome>=3.20"]

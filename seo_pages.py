@@ -1242,6 +1242,7 @@ def _render_decision(
         <li><a href="https://opencaselaw.ch/paper/">Research</a></li>
         <li><a href="https://opencaselaw.ch/datenschutz/">Privacy</a></li>
         <li><a href="https://opencaselaw.ch/governance-and-removal-policy.md">Governance</a></li>
+        <li><a href="https://www.linkedin.com/company/opencaselaw-ch/" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
   </div>

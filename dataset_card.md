@@ -40,6 +40,7 @@ Full text, structured metadata, extracted case-citation references, and daily up
 
 [![Dashboard](https://img.shields.io/badge/Dashboard-live-d1242f)](https://opencaselaw.ch)
 [![GitHub](https://img.shields.io/badge/GitHub-source-black)](https://github.com/jonashertner/opencaselaw)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-opencaselaw--ch-0A66C2)](https://www.linkedin.com/company/opencaselaw-ch/)
 [![MCP Server](https://img.shields.io/badge/MCP-live-blue)](https://mcp.opencaselaw.ch/health)
 [![Data License: CC0--1.0](https://img.shields.io/badge/Data_License-CC0--1.0-blue.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![Code License: MIT](https://img.shields.io/badge/Code_License-MIT-green.svg)](https://github.com/jonashertner/opencaselaw/blob/main/LICENSE)

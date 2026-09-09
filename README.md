@@ -1326,3 +1326,5 @@ Dataset packaging and added metadata: CC0-1.0 to the extent rights exist. The un
 Questions, feedback, or ideas? Reach out at **team@jonashertner.com**.
 
 You can also [open an issue](https://github.com/jonashertner/opencaselaw/issues) on GitHub.
+
+Project updates are posted on [LinkedIn](https://www.linkedin.com/company/opencaselaw-ch/).
