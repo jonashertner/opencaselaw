@@ -5,9 +5,49 @@
     <link>https://opencaselaw.ch/feed.xml</link>
     <description>Latest published decisions across all Swiss courts indexed by OpenCaseLaw.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 07 Sep 2026 11:49:15 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 12:05:11 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 608 2024 113 vom 2026-09-09</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_608%202024%20113</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Rue des Augustins 3, case postale 630, 1701 Fribourg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+608 2024 113
+Arrêt du 23 juin 2026
+IIe Cour des assurances sociales
+Composition
+Pr…</description>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_608 2024 113</guid>
+      <category>fr_gerichte</category>
+    </item>
+    <item>
+      <title>fr_gerichte 605 2025 154 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_605%202025%20154</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Augustinergasse 3, Postfach 630, 1701 Freiburg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+605 2025 154
+Urteil vom 29. Juni 2026
+I. Sozialversicherungsgerichtshof
+Besetzung
+Präsid…</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_605 2025 154</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>vs_gerichte C1 25 8 vom 2026-09-06</title>
       <link>https://mcp.opencaselaw.ch/entscheid/vs_gerichte_C1%2025%208</link>
@@ -861,42 +901,6 @@ A.________,
       <pubDate>Tue, 25 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_653.2026</guid>
       <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_450/2026 vom 2026-08-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_450_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_450/2026
-
-Ordonnance du 25 août 2026
-
-IVe Cour de droit public
-
-Composition
-
-M. le Juge fédéral Métral, en qualité de juge unique.
-
-Greffier : M. Colombi.
-
-Participants à la pr…</description>
-      <pubDate>Tue, 25 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_450.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht B-2383/2026 vom 2026-08-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-2383_2026</link>
-      <description>Investitions- und Standortförderung</description>
-      <pubDate>Tue, 25 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-2383.2026</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>

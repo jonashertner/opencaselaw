@@ -5,9 +5,29 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 07 Sep 2026 11:49:15 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 12:05:11 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 605 2025 154 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_605%202025%20154</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Augustinergasse 3, Postfach 630, 1701 Freiburg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+605 2025 154
+Urteil vom 29. Juni 2026
+I. Sozialversicherungsgerichtshof
+Besetzung
+Präsid…</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_605 2025 154</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>bs_appellationsgericht AUS.2026.73 vom 2026-09-03</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bs_appellationsgericht_AUS.2026.73</link>
@@ -835,14 +855,6 @@ B…</description>
       <description>Verweigerung vorübergehender Schutz</description>
       <pubDate>Mon, 24 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-8818.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-5357/2026 vom 2026-08-24</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-5357_2026</link>
-      <description>Nichteintreten auf Asylgesuch und Wegweisung (Dublin-Verfahren - Art. 31a Abs. 1 Bst. b AsylG)</description>
-      <pubDate>Mon, 24 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5357.2026</guid>
       <category>bvger</category>
     </item>
   </channel>

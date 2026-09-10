@@ -5,9 +5,29 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 07 Sep 2026 11:49:15 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 12:05:11 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 608 2024 113 vom 2026-09-09</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_608%202024%20113</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Rue des Augustins 3, case postale 630, 1701 Fribourg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+608 2024 113
+Arrêt du 23 juin 2026
+IIe Cour des assurances sociales
+Composition
+Pr…</description>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_608 2024 113</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>vs_gerichte C1 25 8 vom 2026-09-06</title>
       <link>https://mcp.opencaselaw.ch/entscheid/vs_gerichte_C1%2025%208</link>
@@ -887,33 +907,6 @@ Compos…</description>
       <pubDate>Mon, 24 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">fr_gerichte_603 2025 107</guid>
       <category>fr_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ATAS/724/2026 vom 2026-08-24</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ATAS_724_2026</link>
-      <description>Siégeant : Philippe KNUPFER, président. 
- 
- 
- 
- 
-RÉPUBLIQUE ET 
- 
-CANTON DE GENÈVE 
-POUVOIR JUDICIAIRE 
- 
-A/2536/2026 
-ATAS/724/2026 
-COUR DE JUSTICE 
-Chambre des assurances sociales 
-Arrêt du 24 août 2026 
-Chambre 5 
- 
-En la cause 
-A_______ 
-représe…</description>
-      <pubDate>Mon, 24 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ATAS_724_2026</guid>
-      <category>ge_gerichte</category>
     </item>
   </channel>
 </rss>
