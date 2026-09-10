@@ -58,7 +58,7 @@ The largest open collection of Swiss court decisions: 1,050,000+ decision record
 - **12.4 million statute-decision links** in `graph/statute_references.parquet` (e.g., which decisions cite Art. 41 OR)
 - **34 structured fields** per decision in Parquet; 27 in the FTS5 search index
 
-**What this Parquet dataset contains:** the decisions corpus (`data/`), the citation and statute-reference graph (`graph/`), and structured decision sections (`structure/`).
+**What this Parquet dataset contains:** the decisions corpus (`data/`), the citation and statute-reference graph (`graph/`), and structured decision sections (`structure/`). `structure/` is refreshed only when its export fits the nightly build's time budget, so it can lag `data/` by days; the live sidecar behind the MCP tools is always current.
 
 **Not included as bulk Parquet — served live via the [MCP API](https://mcp.opencaselaw.ch) and [dashboard](https://opencaselaw.ch):** the full **law texts** and **legislative materials**. These are queried in real time (`get_law`, `search_laws`, `get_legislation`, `get_materialien`) and sourced from Fedlex SPARQL (5,525 federal laws / 132,586 articles in DE/FR/IT), direct cantonal-portal scraping with LexFind fallback (15,600 cantonal laws / 353,464 articles), and a verbatim Botschaft/Materialien corpus (references for ~33,000 statute articles, digests for BV and BGFA, and Amtliches-Bulletin debate transcripts for the BV). The statute-decision *links* above are included in the download; the article *texts* are not.
 

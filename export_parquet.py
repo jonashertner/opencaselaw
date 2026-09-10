@@ -17,9 +17,12 @@ import argparse
 import json
 import logging
 import os
+import math
 import sqlite3
 import sys
-from datetime import date, datetime
+import time
+import traceback
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pyarrow as pa
@@ -517,7 +520,19 @@ def _stream_query_to_parquet(conn, sql: str, schema, out_path: Path,
             }
             writer.write_table(pa.Table.from_pydict(batch, schema=schema))
             total += len(rows)
-    finally:
+    except BaseException:
+        # never leave a torn .tmp beside the last good artifact, and never
+        # let a failing close() replace the original exception
+        try:
+            writer.close()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+    else:
         writer.close()
     os.replace(tmp, out_path)
     return total
@@ -582,45 +597,243 @@ PARAGRAPH_SCHEMA = pa.schema([
 ])
 
 
+# --- bounded structure export --------------------------------------------
+#
+# Since the sidecar is built from served text (step 2g, 2026-09-09) the
+# ``structure`` rows carry the full Sachverhalt / Erwägungen / Dispositiv
+# text, and the small columns the metadata export needs sit *behind* those
+# text columns in the row layout — so even ``x IS NOT NULL`` walks every
+# overflow page (52 GB for a 7 MB parquet, ~27 min measured 2026-09-10).
+# Step 3 runs under a 3,600 s timeout and is a critical step: when the
+# structure export pushed it over, the HuggingFace upload and both git
+# pushes were cascade-skipped (2026-09-09).  The structure exports are an
+# add-on to the decisions + graph exports, so they are bounded here:
+#
+#   1. a cheap probe (16 windows of 50 rows spread over the rowid range)
+#      projects the full-table read cost, doubled because the probe does
+#      not see the Arrow/zstd write cost (measured ~2x on the paragraphs
+#      export); if that exceeds the budget the export is skipped up front,
+#      and the last good parquet stays in place for step 4 to re-upload;
+#   2. an SQLite progress handler hard-stops the query at 2× the budget
+#      should the projection be wrong (page cache, disk contention).
+#
+# Budgets (seconds): OCL_STRUCTURE_EXPORT_BUDGET_S (metadata, default 600)
+# and OCL_STRUCTURE_PARAGRAPHS_BUDGET_S (Sunday paragraphs, default 1800),
+# both further capped by what is left of OCL_EXPORT_WALLCLOCK_BUDGET_S
+# (default 3300 s for the whole process — see main()).  0 disables the
+# corresponding export.  Once the sidecar carries a
+# covering index for the metadata columns the probe becomes cheap again
+# and the nightly export resumes by itself.
+
+_DEFAULT_STRUCTURE_BUDGET_S = 600
+_DEFAULT_PARAGRAPHS_BUDGET_S = 1800
+# Whole-process wall-clock cap (OCL_EXPORT_WALLCLOCK_BUDGET_S): the
+# structure add-ons only get what is left of it after the decisions + graph
+# exports, so the process stays inside publish step 3's 3,600 s timeout
+# even on Sundays (paragraphs) and on slow days.  Must stay below that
+# timeout with margin for the final prints.
+_DEFAULT_WALLCLOCK_BUDGET_S = 3300
+_PROBE_WINDOWS = 16
+_PROBE_WINDOW_ROWS = 50
+_PROBE_SAFETY_FACTOR = 2.0   # read-only probe vs read + Arrow + zstd write
+_PROGRESS_EVERY_OPCODES = 100_000
+_HARD_STOP_FACTOR = 2.0
+
+
+def _budget_s(env_name: str, default: int) -> float:
+    raw = os.environ.get(env_name)
+    if raw is None or raw.strip() == "":
+        return float(default)
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        logger.warning(f"  {env_name}={raw!r} is not a number; using {default}")
+        return float(default)
+
+
+def _projected_seconds(conn, table: str, select_cols: str, where: str = "") -> float:
+    """Project the wall-clock of ``SELECT <select_cols> FROM <table> [WHERE ..]``
+    over the whole table from rowid windows spread across 2-98 % of the
+    rowid range (it measures the same page reads the real export will do,
+    times ``_PROBE_SAFETY_FACTOR`` for the write side the probe cannot see).
+
+    Returns 0.0 for an empty table and ``math.inf`` when the probe is
+    inconclusive (every window fell into deleted-rowid holes)."""
+    max_rowid = conn.execute(f"SELECT max(rowid) FROM {table}").fetchone()[0]
+    if not max_rowid:
+        return 0.0
+    cond = "rowid BETWEEN ? AND ?" + (f" AND ({where})" if where else "")
+    sql = f"SELECT {select_cols} FROM {table} WHERE {cond}"
+    rows = 0
+    elapsed = 0.0
+    for k in range(_PROBE_WINDOWS):
+        frac = 0.02 + 0.96 * k / max(1, _PROBE_WINDOWS - 1)
+        a = max(1, int(max_rowid * frac) - _PROBE_WINDOW_ROWS // 2)
+        t0 = time.perf_counter()
+        rows += len(conn.execute(sql, (a, a + _PROBE_WINDOW_ROWS - 1)).fetchall())
+        elapsed += time.perf_counter() - t0
+    if rows == 0:
+        return math.inf
+    # max(rowid) over-counts deleted rowids: conservative on purpose
+    return elapsed / rows * max_rowid * _PROBE_SAFETY_FACTOR
+
+
+def _bounded_stream(conn, label: str, table: str, select_cols: str, where: str,
+                    schema, out_path: Path, budget_s: float,
+                    time_left_s: float | None = None) -> tuple[int | None, str | None]:
+    """Run one structure export under a budget. Returns (rows, None) on
+    success, (None, reason) when skipped or interrupted; the previous
+    artifact at ``out_path`` is left untouched in the latter case.
+    ``time_left_s`` (what remains of the process wall-clock cap) bounds
+    both the accepted projection and the hard stop."""
+    if budget_s <= 0:
+        return None, "disabled (budget 0)"
+    hard_stop_s = budget_s * _HARD_STOP_FACTOR
+    if time_left_s is not None:
+        if time_left_s <= 60:
+            return None, (f"no time left in the export window "
+                          f"({time_left_s / 60:.0f} min); last good file kept")
+        budget_s = min(budget_s, time_left_s)
+        hard_stop_s = min(hard_stop_s, time_left_s)
+    projected = _projected_seconds(conn, table, select_cols, where)
+    if math.isinf(projected):
+        return None, "probe inconclusive (no rows in any window); last good file kept"
+    if projected == 0.0 and out_path.exists():
+        return None, f"{table} is empty; last good file kept"
+    if projected > budget_s:
+        return None, (f"projected {projected / 60:.1f} min > budget "
+                      f"{budget_s / 60:.0f} min (last good file kept)")
+    logger.info(f"  {label}: projected {projected / 60:.1f} min "
+                f"(budget {budget_s / 60:.0f} min, hard stop {hard_stop_s / 60:.0f} min)")
+    deadline = time.monotonic() + hard_stop_s
+    conn.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0,
+                              _PROGRESS_EVERY_OPCODES)
+    sql = f"SELECT {select_cols} FROM {table}" + (f" WHERE {where}" if where else "")
+    t0 = time.monotonic()
+    try:
+        n = _stream_query_to_parquet(conn, sql, schema, out_path)
+    except sqlite3.OperationalError as e:
+        if "interrupt" not in str(e).lower():
+            raise
+        return None, (f"hard stop after {(time.monotonic() - t0) / 60:.0f} min; "
+                      f"last good file kept")
+    finally:
+        conn.set_progress_handler(None, 0)
+    return n, None
+
+
+_STRUCTURE_META_COLS = (
+    "decision_id, court, language, "
+    "CAST(sachverhalt IS NOT NULL AND sachverhalt != '' AS INTEGER), "
+    "CAST(erwaegungen IS NOT NULL AND erwaegungen != '' AS INTEGER), "
+    "CAST(dispositiv IS NOT NULL AND dispositiv != '' AS INTEGER), "
+    "sachverhalt_method, erwaegungen_method, dispositiv_method, "
+    "CAST(erwaegungen_paragraph_count AS INTEGER)"
+)
+_PARAGRAPH_COLS = "decision_id, e_number, CAST(depth AS INTEGER), parent, text"
+_PARAGRAPH_WHERE = "text IS NOT NULL AND text != ''"
+
+
 def export_decision_structure(structure_db: Path, output_dir: Path,
-                              include_paragraphs: bool = False) -> dict[str, int]:
+                              include_paragraphs: bool = False,
+                              budget_s: float | None = None,
+                              paragraphs_budget_s: float | None = None,
+                              deadline_monotonic: float | None = None) -> dict:
     """Export the structure sidecar. Clean skip if the DB is absent.
 
-    structure.parquet (per-decision metadata, ~7 MB) is cheap enough for
-    every run. erwaegungen_paragraphs.parquet measured 4.8 GB on the full
+    structure.parquet holds per-decision metadata (~7 MB) and rides every
+    run *when it fits its budget* (see the bounded-export note above — on
+    the served-text sidecar it currently does not, and the last good file
+    is kept).  erwaegungen_paragraphs.parquet measured 4.8 GB on the full
     corpus (9.07M paragraphs WITH text, 10 min) — re-uploading that nightly
     for slowly-changing data is waste, so it is opt-in
     (``include_paragraphs``; the publish pipeline passes it on Sundays,
-    aligned with the weekly full-snapshot cadence)."""
+    aligned with the weekly full-snapshot cadence).
+
+    ``deadline_monotonic`` (a ``time.monotonic()`` value) is the process
+    wall-clock cap set by main(); each export only gets what is left of it.
+
+    Returns the row counts of what was written, plus ``<name>_skipped``
+    reasons for anything that was not."""
     if not structure_db.exists():
         logger.info(f"decision_structure.db not found at {structure_db} — skipping structure export")
         return {}
+    if budget_s is None:
+        budget_s = _budget_s("OCL_STRUCTURE_EXPORT_BUDGET_S", _DEFAULT_STRUCTURE_BUDGET_S)
+    if paragraphs_budget_s is None:
+        paragraphs_budget_s = _budget_s("OCL_STRUCTURE_PARAGRAPHS_BUDGET_S",
+                                        _DEFAULT_PARAGRAPHS_BUDGET_S)
     out = output_dir / "structure"
     out.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(f"file:{structure_db}?mode=ro&immutable=1", uri=True)
+    counts: dict = {}
+
+    def _time_left():
+        if deadline_monotonic is None:
+            return None
+        return deadline_monotonic - time.monotonic()
+
     try:
-        n_meta = _stream_query_to_parquet(
-            conn,
-            "SELECT decision_id, court, language, "
-            "CAST(sachverhalt IS NOT NULL AND sachverhalt != '' AS INTEGER), "
-            "CAST(erwaegungen IS NOT NULL AND erwaegungen != '' AS INTEGER), "
-            "CAST(dispositiv IS NOT NULL AND dispositiv != '' AS INTEGER), "
-            "sachverhalt_method, erwaegungen_method, dispositiv_method, "
-            "CAST(erwaegungen_paragraph_count AS INTEGER) FROM structure",
-            STRUCTURE_META_SCHEMA, out / "structure.parquet")
-        logger.info(f"  structure/structure.parquet: {n_meta} decisions")
-        counts = {"structure": n_meta}
+        n_meta, why = _bounded_stream(
+            conn, "structure/structure.parquet", "structure", _STRUCTURE_META_COLS, "",
+            STRUCTURE_META_SCHEMA, out / "structure.parquet", budget_s, _time_left())
+        if n_meta is None:
+            logger.warning(f"  structure/structure.parquet: SKIPPED — {why}")
+            counts["structure_skipped"] = why
+        else:
+            logger.info(f"  structure/structure.parquet: {n_meta} decisions")
+            counts["structure"] = n_meta
         if include_paragraphs:
-            n_para = _stream_query_to_parquet(
-                conn,
-                "SELECT decision_id, e_number, CAST(depth AS INTEGER), parent, text "
-                "FROM erwaegungen_paragraph WHERE text IS NOT NULL AND text != ''",
-                PARAGRAPH_SCHEMA, out / "erwaegungen_paragraphs.parquet")
-            logger.info(f"  structure/erwaegungen_paragraphs.parquet: {n_para} paragraphs")
-            counts["erwaegungen_paragraphs"] = n_para
+            n_para, why = _bounded_stream(
+                conn, "structure/erwaegungen_paragraphs.parquet", "erwaegungen_paragraph",
+                _PARAGRAPH_COLS, _PARAGRAPH_WHERE, PARAGRAPH_SCHEMA,
+                out / "erwaegungen_paragraphs.parquet", paragraphs_budget_s, _time_left())
+            if n_para is None:
+                logger.warning(f"  structure/erwaegungen_paragraphs.parquet: SKIPPED — {why}")
+                counts["erwaegungen_paragraphs_skipped"] = why
+            else:
+                logger.info(f"  structure/erwaegungen_paragraphs.parquet: {n_para} paragraphs")
+                counts["erwaegungen_paragraphs"] = n_para
     finally:
+        conn.set_progress_handler(None, 0)
         conn.close()
+    _write_structure_status(out, counts)
     return counts
+
+
+def _write_structure_status(out: Path, counts: dict) -> None:
+    """structure/export_status.json: what the last run wrote or skipped and
+    why, so a multi-week freeze is visible on disk, not only in the log.
+    Not uploaded (step 4 only takes *.parquet)."""
+    try:
+        status = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                  "counts": counts}
+        tmp = out / "export_status.json.tmp"
+        tmp.write_text(json.dumps(status, indent=2, sort_keys=True))
+        os.replace(tmp, out / "export_status.json")
+    except OSError as e:
+        logger.warning(f"  could not write structure/export_status.json: {e}")
+
+
+def export_decision_structure_nonfatal(structure_db: Path, output_dir: Path,
+                                       include_paragraphs: bool = False,
+                                       deadline_monotonic: float | None = None) -> dict:
+    """The structure exports are an add-on to the decisions + graph exports:
+    a failure here must not fail publish step 3 (critical → cascade-skips
+    the HuggingFace upload and the git pushes)."""
+    try:
+        return export_decision_structure(structure_db, output_dir,
+                                         include_paragraphs=include_paragraphs,
+                                         deadline_monotonic=deadline_monotonic)
+    except Exception as e:  # noqa: BLE001 — deliberate: log and carry on
+        logger.error(f"  structure export failed (non-fatal, last good files kept): "
+                     f"{type(e).__name__}: {e}")
+        logger.debug(traceback.format_exc())
+        counts = {"structure_skipped": f"error: {type(e).__name__}: {e}"}
+        out = output_dir / "structure"
+        if out.is_dir():
+            _write_structure_status(out, counts)
+        return counts
 
 
 def main():
@@ -658,6 +871,8 @@ def main():
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
+    t_start = time.monotonic()
+    wallclock_budget_s = _budget_s("OCL_EXPORT_WALLCLOCK_BUDGET_S", _DEFAULT_WALLCLOCK_BUDGET_S)
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -673,12 +888,24 @@ def main():
             logger.warning(f"No database at {db_path}, falling back to JSONL")
         results = export_parquet(Path(args.input), Path(args.output))
     graph_counts = export_citation_graph(Path(args.graph_db), Path(args.output))
-    structure_counts = export_decision_structure(
+    elapsed = time.monotonic() - t_start
+    logger.info(f"decisions + graph exports took {elapsed / 60:.1f} min; "
+                f"{max(0.0, wallclock_budget_s - elapsed) / 60:.0f} min left of the "
+                f"{wallclock_budget_s / 60:.0f} min export window for the structure add-ons")
+    structure_counts = export_decision_structure_nonfatal(
         Path(args.structure_db), Path(args.output),
-        include_paragraphs=args.structure_paragraphs)
+        include_paragraphs=args.structure_paragraphs,
+        deadline_monotonic=(t_start + wallclock_budget_s) if wallclock_budget_s > 0 else None)
     if structure_counts:
-        print(f"Structure: {structure_counts.get('structure', 0)} decisions, "
-              f"{structure_counts.get('erwaegungen_paragraphs', 0)} paragraphs")
+        parts = []
+        if "structure" in structure_counts:
+            parts.append(f"{structure_counts['structure']} decisions")
+        if "erwaegungen_paragraphs" in structure_counts:
+            parts.append(f"{structure_counts['erwaegungen_paragraphs']} paragraphs")
+        for key in ("structure_skipped", "erwaegungen_paragraphs_skipped"):
+            if key in structure_counts:
+                parts.append(f"{key.removesuffix('_skipped')} skipped: {structure_counts[key]}")
+        print("Structure: " + ", ".join(parts))
     if results:
         total = sum(results.values())
         print(f"\nExported {total} decisions to {len(results)} Parquet files")
