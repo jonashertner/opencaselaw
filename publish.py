@@ -785,7 +785,29 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
         return False
     logger.info(f"  structure coverage: {old if old is not None else '?'} -> {new:,} current decisions; swapping")
     os.replace(tmp, live_real)
+    _warm_structure_sidecar(live_real, dry_run)
     return True
+
+
+def _warm_structure_sidecar(sidecar: Path, dry_run: bool = False) -> None:
+    """After a sidecar swap the new 52 GB file has no page cache; the pinpoint
+    attach in search_decisions then does random reads per top result and
+    fresh searches took 80-96 s (2026-09-10 00:20 UTC). Reading the covering
+    indexes once (index-only queries, ~100 s) brings that back to seconds.
+    Never fails the step: the swap already happened and is correct."""
+    script = REPO_DIR / "scripts" / "warm_structure_sidecar.py"
+    if not script.exists():
+        logger.warning("  warm_structure_sidecar.py not found; sidecar stays cold until first use")
+        return
+    cmd = ["ionice", "-c", "2", "-n", "7", sys.executable, str(script),
+           "--structure-db", str(sidecar), "--budget-s", "900"]
+    try:
+        ok = run_cmd(cmd, "Warm decision_structure sidecar indexes", dry_run, timeout=1200)
+    except Exception as e:  # noqa: BLE001 — warm-up is best effort
+        ok = False
+        logger.warning(f"  sidecar warm-up raised {type(e).__name__}: {e}")
+    if not ok:
+        logger.warning("  sidecar warm-up did not complete; searches stay slow until the cache fills")
 
 
 def _step_2g_from_shards(dry_run: bool = False) -> bool:
@@ -868,7 +890,17 @@ def step_3_export_parquet(dry_run: bool = False) -> bool:
         logger.error("  export_parquet.py not found")
         return False
 
-    cmd = [sys.executable, str(script),
+    # Step 3 is distribution only (nothing users see waits on it), and the
+    # decisions + graph exports alone take ~49 min (2026-09-10). The structure
+    # add-ons in export_parquet.py budget themselves against
+    # OCL_EXPORT_WALLCLOCK_BUDGET_S, kept 5 min under the timeout here: 2 h
+    # gives the Sunday paragraphs export (4.8 GB, ~12 min) and the nightly
+    # structure metadata (~30-75 min on the served-text sidecar) room without
+    # ever letting the step itself time out and cascade-skip the HuggingFace
+    # upload and the git pushes (2026-09-09 incident).
+    step_timeout_s = 7200
+    cmd = ["env", f"OCL_EXPORT_WALLCLOCK_BUDGET_S={step_timeout_s - 300}",
+           sys.executable, str(script),
            "--input", str(OUTPUT_DIR / "decisions"),
            "--output", str(DATASET_DIR)]
     # The erwaegungen-paragraphs artifact is 4.8 GB (P1.4) — weekly cadence
@@ -876,7 +908,7 @@ def step_3_export_parquet(dry_run: bool = False) -> bool:
     # structure.parquet + graph exports ride every run.
     if datetime.now(timezone.utc).weekday() == 6:
         cmd.append("--structure-paragraphs")
-    return run_cmd(cmd, "Export Parquet", dry_run)
+    return run_cmd(cmd, "Export Parquet", dry_run, timeout=step_timeout_s)
 
 
 def step_3b_build_verification_pack(dry_run: bool = False) -> bool:
@@ -1056,7 +1088,11 @@ def step_2f_build_materialien(dry_run: bool = False, full_rebuild: bool = False)
          "--input-dir", str(materialien_dir)],
         "Build materialien.db",
         dry_run,
-        timeout=600,
+        # 600 → 1800 s (2026-09-09): the step re-indexes botschaft_paragraphs_fts
+        # every night (38 s at 424k paragraphs, measured on the VPS); the
+        # historical Botschaft backfill takes it to ~4M paragraphs, 3-4 min on a
+        # quiet night and no margin under 600 s on a loaded weekday afternoon.
+        timeout=1800,
     )
 
 

@@ -38,6 +38,8 @@ def _setup(tmp_path, monkeypatch, old_ids, new_ids, ok=True):
     calls = []
     def fake_run_cmd(cmd, description, dry_run=False, **kwargs):
         calls.append((cmd, description, kwargs))
+        if any("warm_structure_sidecar.py" in str(part) for part in cmd):
+            return True          # the post-swap warm-up is a separate child
         if ok:
             shutil.copy(new, out / "decision_structure.db.tmp")
         return ok
@@ -55,6 +57,24 @@ def test_served_text_sidecar_is_swapped_in_when_coverage_holds(tmp_path, monkeyp
     assert calls[0][2]["timeout"] == 14400 and not fallback
     assert not (out / "decision_structure.db.tmp").exists()
     assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 4
+    # the swapped-in sidecar is cold: its indexes are warmed right after the
+    # swap, by a bounded, low-I/O-priority child that cannot fail the step
+    warm = calls[1][0]
+    assert warm[:5] == ["ionice", "-c", "2", "-n", "7"]
+    assert any("warm_structure_sidecar.py" in p for p in warm)
+    assert str(out / "decision_structure.db") in warm and calls[1][2]["timeout"] == 1200
+
+
+def test_warm_up_failure_does_not_fail_the_swap(tmp_path, monkeypatch):
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a", "b", "c"], new_ids=["a", "b", "c", "d"])
+    real = publish.run_cmd
+    def failing_warm(cmd, description, dry_run=False, **kwargs):
+        if any("warm_structure_sidecar.py" in str(p) for p in cmd):
+            raise OSError("ionice: command not found")
+        return real(cmd, description, dry_run, **kwargs)
+    monkeypatch.setattr(publish, "run_cmd", failing_warm)
+    assert publish.step_2g_build_decision_structure() is True
+    assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 4
 
 
 def test_coverage_gate_keeps_the_old_sidecar(tmp_path, monkeypatch):
@@ -62,6 +82,7 @@ def test_coverage_gate_keeps_the_old_sidecar(tmp_path, monkeypatch):
     assert publish.step_2g_build_decision_structure() is False
     assert not (out / "decision_structure.db.tmp").exists() and not fallback
     assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 5
+    assert len(calls) == 1   # no swap, nothing to warm
 
 
 def test_failed_extractor_falls_back_to_the_shard_build_only_without_a_sidecar(tmp_path, monkeypatch):
