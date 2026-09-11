@@ -2455,7 +2455,7 @@
     "2026-08": 1354,
     "2026-09": 42
   },
-  "generated_at": "2026-09-11T12:08:43.102019+00:00",
+  "generated_at": "2026-09-11T20:22:05.741693+00:00",
   "scraper_health": {
     "run_at": "2026-09-11T02:14:09.470723+00:00",
     "run_duration_s": 4388.6,
@@ -3708,19 +3708,19 @@
       "reference_article": 40,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10027044,
-    "statute_edges": 12777903
+    "citation_edges": 10028311,
+    "statute_edges": 12779451
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "BGE 125 V 351",
-      "citation_count": 77830,
+      "citation_count": 77833,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 198308
+      "ref_count": 198324
     },
     "oldest_decision": {
       "docket": "1_I_26",
@@ -3732,17 +3732,17 @@
       "de_pct": 47.0,
       "fr_pct": 44.6,
       "it_pct": 8.5,
-      "total": 1075653
+      "total": 1075749
     },
     "regeste_coverage": {
       "pct": 38.3,
-      "with_regeste": 413847,
-      "total": 1079611
+      "with_regeste": 413853,
+      "total": 1079707
     },
     "graph_size": {
-      "decision_edges": 11735431,
-      "statute_edges": 12777903,
-      "total": 24513334
+      "decision_edges": 11767604,
+      "statute_edges": 12779451,
+      "total": 24547055
     },
     "echr_switzerland": {
       "total": 1526,
@@ -3759,13 +3759,13 @@
     "top_5_decisions": [
       {
         "docket": "BGE 125 V 351",
-        "citation_count": 77830,
+        "citation_count": 77833,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
       },
       {
         "docket": "125 V 351",
-        "citation_count": 76336,
+        "citation_count": 76346,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
@@ -3777,7 +3777,7 @@
       },
       {
         "docket": "BGE 134 V 231",
-        "citation_count": 39600,
+        "citation_count": 39607,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_134_V_231"
       },
@@ -3792,27 +3792,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 198308
+        "ref_count": 198324
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 123032
+        "ref_count": 123041
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 108767
+        "ref_count": 108773
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 96824
+        "ref_count": 96853
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 60597
+        "ref_count": 60610
       }
     ],
     "materialien_coverage": {
@@ -3833,9 +3833,9 @@
       {
         "court": "bge",
         "earliest": "1875-01-01",
-        "latest": "2026-03-27",
+        "latest": "2026-05-11",
         "span_years": 151,
-        "decision_count": 50492
+        "decision_count": 50497
       },
       {
         "court": "ch_vb",
@@ -4499,8 +4499,8 @@
       "JU": 1
     },
     "corpus": {
-      "citation_edges": 7073,
-      "statute_edges": 11442
+      "citation_edges": 8340,
+      "statute_edges": 12990
     },
     "previous_generated_at": "2026-09-10T10:54:28.480924+00:00"
   }
