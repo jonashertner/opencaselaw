@@ -30,6 +30,8 @@ Open Swiss case law and legislation for legal research and AI.
 }
 ```
 
+For a minimal Python client example, see [`examples/python/minimal_mcp_client.py`](examples/python/minimal_mcp_client.py).
+
 No sign-up, no API key, read-only. 42 tools; setup guides for individual
 clients are at [opencaselaw.ch/mcp](https://opencaselaw.ch/mcp/).
 
