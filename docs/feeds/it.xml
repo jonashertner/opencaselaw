@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 11 Sep 2026 12:13:31 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 10:51:53 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -37,6 +37,14 @@ Part…</description>
       <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_452.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-2150/2024 vom 2026-09-01</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-2150_2024</link>
+      <description>Diritto alla rendita</description>
+      <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-2150.2024</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht C-3399/2024 vom 2026-09-01</title>
@@ -968,14 +976,6 @@ Ca…</description>
       <description>Asilo (non entrata nel merito) ed allontanamento (paese terzo sicuro - art. 31a cpv. 1 lett. a LAsi)</description>
       <pubDate>Fri, 31 Jul 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-2159.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-2376/2025 vom 2026-07-31</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-2376_2025</link>
-      <description>Asilo (senza esecuzione dell'allontanamento)</description>
-      <pubDate>Fri, 31 Jul 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-2376.2025</guid>
       <category>bvger</category>
     </item>
   </channel>

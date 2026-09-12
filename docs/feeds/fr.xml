@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 11 Sep 2026 12:13:31 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 10:51:53 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -87,6 +87,24 @@ X _________,…</description>
       <category>EMRK / Menschenrechte</category>
     </item>
     <item>
+      <title>ju_gerichte ADM 2024 16 vom 2026-09-03</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ju_gerichte_ADM%202024%2016</link>
+      <description>RÉPUBLIQUE ET CANTON DU JURA
+TRIBUNAL CANTONAL
+COUR ADMINISTRATIVE
+ADM 2024 16
+AJ 2025 86
+Présidente : Sylviane Liniger Odiet
+Juges : Nathalie Brahier et Jean Crevoisier
+Greffière : Mélanie Farine
+ARRÊT DU 2 SEPTEMBRE 2026
+en la cause liée entre
+l’Hô…</description>
+      <pubDate>Thu, 03 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ju_gerichte_ADM 2024 16</guid>
+      <category>ju_gerichte</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht E-3294/2026 vom 2026-09-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-3294_2026</link>
       <description>Asile et renvoi</description>
@@ -108,6 +126,22 @@ X _________,…</description>
       <description>Asile et renvoi</description>
       <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-3304.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-5295/2026 vom 2026-09-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5295_2026</link>
+      <description>Asile et renvoi (procédure accélérée)</description>
+      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5295.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-5892/2026 vom 2026-09-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-5892_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (Etat tiers sûr - art. 31a al. 1 let. a LAsi)</description>
+      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5892.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -191,6 +225,14 @@ A.…</description>
       <description>Asile et renvoi (procédure à l'aéroport)</description>
       <pubDate>Mon, 31 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5710.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-789/2022 vom 2026-08-31</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-789_2022</link>
+      <description>Asile et renvoi</description>
+      <pubDate>Mon, 31 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-789.2022</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -464,6 +506,26 @@ r…</description>
       <category>ge_gerichte</category>
     </item>
     <item>
+      <title>ge_gerichte DCSO/665/2026 vom 2026-08-28</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_DCSO_665_2026</link>
+      <description>REPUBLIQUE ET 
+ 
+CANTON DE GENEVE 
+POUVOIR JUDICIAIRE 
+A/2820/2026-CS 
+DCSO/665/26
+DECISION 
+DE LA COUR DE JUSTICE 
+Chambre de surveillance 
+des Offices des poursuites et faillites 
+DU VENDREDI 28 AOÛT 2026 
+ 
+Causes jointes A/2820/2026-CS et A/2821/…</description>
+      <pubDate>Fri, 28 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ge_gerichte_DCSO_665_2026</guid>
+      <category>ge_gerichte</category>
+    </item>
+    <item>
       <title>Bundesgericht 5A_297/2026 vom 2026-08-27</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_297_2026</link>
       <description>Bundesgericht
@@ -676,87 +738,6 @@ Participants à la pro…</description>
       <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5748.2026</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-6146/2024 vom 2026-08-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-6146_2024</link>
-      <description>Asile et renvoi (demande multiple)</description>
-      <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-6146.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-9497/2025 vom 2026-08-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-9497_2025</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-9497.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>fr_gerichte 102 2026 92 vom 2026-08-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_102%202026%2092</link>
-      <description>Tribunal cantonal TC
-Kantonsgericht KG
-Rue des Augustins 3, case postale 630, 1701 Fribourg
-T +41 26 304 15 00
-www.fr.ch/tc
-—
-Pouvoir Judiciaire PJ
-Gerichtsbehörden GB
-102 2026 92
-Arrêt du 19 juin 2026
-IIe Cour d’appel civil
-Composition
-Vice-Présiden…</description>
-      <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">fr_gerichte_102 2026 92</guid>
-      <category>fr_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte AARP/287/2026 vom 2026-08-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_AARP_287_2026</link>
-      <description>Siégeant : Madame 
-Gaëlle 
-VAN 
-HOVE, 
-présidente ; 
-Madame 
-Fabienne 
-GEISINGER-MARIÉTHOZ et Madame Rita SETHI-KARAM, juges ; 
-Madame Fanny TOUTOU-MPONDO, greffière-juriste délibérante. 
- 
- 
-REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-P/3…</description>
-      <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_AARP_287_2026</guid>
-      <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACJC/1455/2026 vom 2026-08-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACJC_1455_2026</link>
-      <description>Le présent arrêt est communiqué aux parties par plis recommandés du 28 août 2026. 
- 
- 
-REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-C/17880/2025 
-ACJC/1455/2026 
-ARRÊT 
-DE LA COUR DE JUSTICE 
-Chambre civile 
-DU JEUDI 27 AOÛT 2026 
-Entre 
-Ma…</description>
-      <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACJC_1455_2026</guid>
-      <category>ge_gerichte</category>
     </item>
   </channel>
 </rss>
