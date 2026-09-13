@@ -2454,7 +2454,7 @@
     "2026-08": 1401,
     "2026-09": 51
   },
-  "generated_at": "2026-09-12T17:30:39.310833+00:00",
+  "generated_at": "2026-09-12T22:13:57.833315+00:00",
   "scraper_health": {
     "run_at": "2026-09-12T02:59:06.230870+00:00",
     "run_duration_s": 7085.3,
@@ -2882,7 +2882,7 @@
         "note": null,
         "state_count": 98971,
         "jsonl_size_mb": 1496.5,
-        "jsonl_mtime": "2026-09-12T10:35:09.336035+00:00"
+        "jsonl_mtime": "2026-09-12T20:59:00.672964+00:00"
       },
       "be_zivilstraf": {
         "success": true,
@@ -3739,9 +3739,9 @@
       "total": 1079782
     },
     "graph_size": {
-      "decision_edges": 11768197,
+      "decision_edges": 11737463,
       "statute_edges": 12780655,
-      "total": 24548852
+      "total": 24518118
     },
     "echr_switzerland": {
       "total": 1526,
