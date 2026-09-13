@@ -2453,7 +2453,7 @@
     "2026-08": 1401,
     "2026-09": 51
   },
-  "generated_at": "2026-09-13T11:35:20.167486+00:00",
+  "generated_at": "2026-09-13T21:20:44.316962+00:00",
   "scraper_health": {
     "run_at": "2026-09-13T02:06:33.330089+00:00",
     "run_duration_s": 3932.3,
@@ -3668,27 +3668,26 @@
       "ZH": 135
     },
     "commentaries": 1173,
-    "scholarship_publications": 44497,
+    "scholarship_publications": 44434,
     "scholarship_by_source": {
       "zora_law": 14022,
       "boris_law": 7319,
       "unige_law": 6507,
-      "e_periodica_polsci": 3089,
+      "e_periodica_polsci": 3097,
       "e_periodica_law": 3041,
       "zhaw_digitalcollection": 3040,
-      "libra_unine": 1994,
+      "libra_unine": 2020,
       "eth_research_collection": 1760,
-      "e_periodica_pubadmin": 855,
+      "e_periodica_pubadmin": 857,
       "fhnw_irf": 496,
       "onlinekommentar": 391,
       "edoc_unibas_law": 324,
       "sui_generis": 294,
       "medialex": 278,
-      "eizpublishing": 270,
+      "eizpublishing": 271,
       "leges": 204,
       "ex_ante": 176,
       "thegoodboard": 140,
-      "anci_ch": 100,
       "cognitio": 58,
       "cfs": 50,
       "leoh": 45,
@@ -3696,10 +3695,10 @@
       "alexandria_law": 13
     },
     "scholarship_by_type": {
-      "article": 30290,
-      "book": 10614,
+      "article": 30214,
+      "book": 10624,
       "dissertation": 2237,
-      "report": 628,
+      "report": 631,
       "commentary": 421,
       "working_paper": 194,
       "guidance": 70,
@@ -3738,9 +3737,9 @@
       "total": 1079782
     },
     "graph_size": {
-      "decision_edges": 11737463,
+      "decision_edges": 11768197,
       "statute_edges": 12780655,
-      "total": 24518118
+      "total": 24548852
     },
     "echr_switzerland": {
       "total": 1526,
@@ -4356,12 +4355,28 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/2011/101"
     },
     {
-      "sr_number": "741.213.3",
+      "sr_number": "822.221",
       "in_force_date": "2026-10-01",
-      "title_de": "Verordnung des UVEK vom 28. September 2001 über die Tempo-30-Zonen und die Begegnungszonen",
-      "title_fr": "Ordonnance du DETEC du 28 septembre 2001 sur les zones 30 et les zones de rencontre",
-      "title_it": "Ordinanza del DATEC del 28 settembre 2001 concernente le zone con limite di velocità massimo di 30 km/h e le zone d'incontro",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2002/23"
+      "title_de": "Verordnung vom 19. Juni 1995 über die Arbeits- und Ruhezeit der berufsmässigen Motorfahrzeugführer und -führerinnen (Chauffeurverordnung, ARV 1)",
+      "title_fr": "Ordonnance du 19 juin 1995 sur la durée du travail et du repos des conducteurs professionnels de véhicules automobiles (Ordonnance sur les chauffeurs, OTR 1)",
+      "title_it": "Ordinanza del 19 giugno 1995 sulla durata del lavoro e del riposo dei conducenti professionali di veicoli a motore (Ordinanza per gli autisti, OLR 1)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1995/4031_4031_4031"
+    },
+    {
+      "sr_number": "741.41",
+      "in_force_date": "2026-10-01",
+      "title_de": "Verordnung vom 19. Juni 1995 über die technischen Anforderungen an Strassenfahrzeuge (VTS)",
+      "title_fr": "Ordonnance du 19 juin 1995 concernant les exigences techniques requises pour les véhicules routiers (OETV)",
+      "title_it": "Ordinanza del 19 giugno 1995 concernente le esigenze tecniche per i veicoli stradali (OETV)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1995/4425_4425_4425"
+    },
+    {
+      "sr_number": "741.11",
+      "in_force_date": "2026-10-01",
+      "title_de": "Verkehrsregelnverordnung vom 13. November 1962 (VRV)",
+      "title_fr": "Ordonnance du 13 novembre 1962 sur les règles de la circulation routière (OCR)",
+      "title_it": "Ordinanza del 13 novembre 1962 sulle norme della circolazione stradale (ONC)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1962/1364_1409_1420"
     },
     {
       "sr_number": "741.21",
@@ -4372,12 +4387,12 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/1979/1961_1961_1961"
     },
     {
-      "sr_number": "172.010.1",
+      "sr_number": "632.319",
       "in_force_date": "2026-10-01",
-      "title_de": "Regierungs- und Verwaltungsorganisationsverordnung vom 25. November 1998 (RVOV)",
-      "title_fr": "Ordonnance du 25 novembre 1998 sur l'organisation du gouvernement et de l'administration (OLOGA)",
-      "title_it": "Ordinanza del 25 novembre 1998 sull'organizzazione del Governo e dell'Amministrazione (OLOGA)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/1999/170"
+      "title_de": "Verordnung vom 27. Juni 1995 über die Zollansätze für Waren im Verkehr mit Freihandelspartnern (ausgenommen EU- und EFTA-Mitgliedstaaten) (Freihandelsverordnung 2)",
+      "title_fr": "Ordonnance du 27 juin 1995 sur les droits de douane applicables aux marchandises dans le trafic avec les États partenaires de libre-échange (excepté les États membres de l'UE et de l'AELE) (Ordonnance sur le libre-échange 2)",
+      "title_it": "Ordinanza del 27 giugno 1995 sulle aliquote di dazio per le merci nel traffico con partner di libero scambio (esclusi gli Stati membri dell'UE e dell'AELS) (Ordinanza sul libero scambio 2)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1995/2695_2695_2695"
     },
     {
       "sr_number": "741.511",
@@ -4388,12 +4403,36 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/1995/3997_3997_3997"
     },
     {
-      "sr_number": "142.512",
+      "sr_number": "172.010.1",
       "in_force_date": "2026-10-01",
-      "title_de": "Verordnung vom 18. Dezember 2013 über das zentrale Visa-Informationssystem und das nationale Visumsystem (Visa-Informationssystem-Verordnung, VISV)",
-      "title_fr": "Ordonnance du 18 décembre 2013 sur le système central d'information sur les visas et sur le système national d'information sur les visas (Ordonnance VIS, OVIS)",
-      "title_it": "Ordinanza del 18 dicembre 2013 sul sistema centrale d'informazione visti e sul sistema nazionale d'informazione visti (Ordinanza VIS, OVIS)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2014/2"
+      "title_de": "Regierungs- und Verwaltungsorganisationsverordnung vom 25. November 1998 (RVOV)",
+      "title_fr": "Ordonnance du 25 novembre 1998 sur l'organisation du gouvernement et de l'administration (OLOGA)",
+      "title_it": "Ordinanza del 25 novembre 1998 sull'organizzazione del Governo e dell'Amministrazione (OLOGA)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1999/170"
+    },
+    {
+      "sr_number": "955.0",
+      "in_force_date": "2026-10-01",
+      "title_de": "Bundesgesetz vom 10. Oktober 1997 über die Bekämpfung der Geldwäscherei und der Terrorismusfinanzierung (Geldwäschereigesetz, GwG)",
+      "title_fr": "Loi fédérale du 10 octobre 1997 concernant la lutte contre le blanchiment d'argent et le financement du terrorisme (Loi sur le blanchiment d'argent, LBA)",
+      "title_it": "Legge federale del 10 ottobre 1997 relativa alla lotta contro il riciclaggio di denaro e il finanziamento del terrorismo (Legge sul riciclaggio di denaro, LRD)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1998/892_892_892"
+    },
+    {
+      "sr_number": "741.213.3",
+      "in_force_date": "2026-10-01",
+      "title_de": "Verordnung des UVEK vom 28. September 2001 über die Tempo-30-Zonen und die Begegnungszonen",
+      "title_fr": "Ordonnance du DETEC du 28 septembre 2001 sur les zones 30 et les zones de rencontre",
+      "title_it": "Ordinanza del DATEC del 28 settembre 2001 concernente le zone con limite di velocità massimo di 30 km/h e le zone d'incontro",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2002/23"
+    },
+    {
+      "sr_number": "172.213.1",
+      "in_force_date": "2026-10-01",
+      "title_de": "Organisationsverordnung vom 17. November 1999 für das Eidgenössische Justiz- und Polizeidepartement (OV-EJPD)",
+      "title_fr": "Ordonnance du 17 novembre 1999 sur l'organisation du Département fédéral de justice et police (Org DFJP)",
+      "title_it": "Ordinanza del 17 novembre 1999 sull'organizzazione del Dipartimento federale di giustizia e polizia (Org-DFGP)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2000/57"
     },
     {
       "sr_number": "412.10",
@@ -4402,38 +4441,6 @@
       "title_fr": "Loi fédérale du 13 décembre 2002 sur la formation professionnelle (LFPr)",
       "title_it": "Legge federale del 13 dicembre 2002 sulla formazione professionale (Legge sulla formazione professionale, LFPr)",
       "url": "https://www.fedlex.admin.ch/eli/cc/2003/674"
-    },
-    {
-      "sr_number": "361.4",
-      "in_force_date": "2026-10-01",
-      "title_de": "Verordnung vom 15. Oktober 2008 über den Nationalen Polizeiindex (Polizeiindex-Verordnung)",
-      "title_fr": "Ordonnance du 15 octobre 2008 sur l'index national de police",
-      "title_it": "Ordinanza del 15 ottobre 2008 sul Registro nazionale di polizia",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2008/701"
-    },
-    {
-      "sr_number": "362.0",
-      "in_force_date": "2026-10-01",
-      "title_de": "Verordnung vom 8. März 2013 über den nationalen Teil des Schengener Informationssystems (N-SIS) und das SIRENE-Büro (N-SIS-Verordnung)",
-      "title_fr": "Ordonnance du 8 mars 2013 sur la partie nationale du Système d'information Schengen (N-SIS) et sur le bureau SIRENE (Ordonnance N-SIS)",
-      "title_it": "Ordinanza dell' 8 marzo 2013 sulla parte nazionale del Sistema d'informazione di Schengen (N-SIS) e sull'ufficio SIRENE (Ordinanza N-SIS)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2013/179"
-    },
-    {
-      "sr_number": "361.0",
-      "in_force_date": "2026-10-01",
-      "title_de": "Verordnung vom 26. Oktober 2016 über das automatisierte Polizeifahndungssystem (RIPOL-Verordnung)",
-      "title_fr": "Ordonnance du 26 octobre 2016 sur le système de recherches informatisées de police (Ordonnance RIPOL)",
-      "title_it": "Ordinanza del 26 ottobre 2016 sul sistema di ricerca informatizzato di polizia (Ordinanza RIPOL)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2016/665"
-    },
-    {
-      "sr_number": "172.215.1",
-      "in_force_date": "2026-10-01",
-      "title_de": "Organisationsverordnung vom 17. Februar 2010 für das Eidgenössische Finanzdepartement (OV-EFD)",
-      "title_fr": "Ordonnance du 17 février 2010 sur l'organisation du Département fédéral des finances (Org DFF)",
-      "title_it": "Ordinanza del 17 febbraio 2010 sull'organizzazione del Dipartimento federale delle finanze (Org-DFF)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2010/98"
     },
     {
       "sr_number": "142.513",
@@ -4452,20 +4459,12 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/2003/748"
     },
     {
-      "sr_number": "741.11",
+      "sr_number": "955.23",
       "in_force_date": "2026-10-01",
-      "title_de": "Verkehrsregelnverordnung vom 13. November 1962 (VRV)",
-      "title_fr": "Ordonnance du 13 novembre 1962 sur les règles de la circulation routière (OCR)",
-      "title_it": "Ordinanza del 13 novembre 1962 sulle norme della circolazione stradale (ONC)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/1962/1364_1409_1420"
-    },
-    {
-      "sr_number": "632.319",
-      "in_force_date": "2026-10-01",
-      "title_de": "Verordnung vom 27. Juni 1995 über die Zollansätze für Waren im Verkehr mit Freihandelspartnern (ausgenommen EU- und EFTA-Mitgliedstaaten) (Freihandelsverordnung 2)",
-      "title_fr": "Ordonnance du 27 juin 1995 sur les droits de douane applicables aux marchandises dans le trafic avec les États partenaires de libre-échange (excepté les États membres de l'UE et de l'AELE) (Ordonnance sur le libre-échange 2)",
-      "title_it": "Ordinanza del 27 giugno 1995 sulle aliquote di dazio per le merci nel traffico con partner di libero scambio (esclusi gli Stati membri dell'UE e dell'AELS) (Ordinanza sul libero scambio 2)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/1995/2695_2695_2695"
+      "title_de": "Verordnung vom 25. August 2004 über die Meldestelle für Geldwäscherei (MGwV)",
+      "title_fr": "Ordonnance du 25 août 2004 sur le Bureau de communication en matière de blanchiment d'argent (OBCBA)",
+      "title_it": "Ordinanza del 25 agosto 2004 sull'Ufficio di comunicazione in materia di riciclaggio di denaro (OURD)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2004/626"
     }
   ],
   "delta": {
