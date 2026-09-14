@@ -5,9 +5,29 @@
     <link>https://opencaselaw.ch/feed.xml</link>
     <description>Latest published decisions across all Swiss courts indexed by OpenCaseLaw.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 13 Sep 2026 11:40:57 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 14 Sep 2026 11:51:13 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 602 2025 169 vom 2026-09-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_602%202025%20169</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Rue des Augustins 3, case postale 630, 1701 Fribourg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+602 2025 169
+602 2025 170
+Arrêt du 30 juin 2026
+IIe Cour administrative
+Compositio…</description>
+      <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_602 2025 169</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>fr_gerichte 604 2026 30 vom 2026-09-11</title>
       <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_604%202026%2030</link>
@@ -676,14 +696,6 @@ Präs…</description>
       <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">fr_gerichte_105 2026 74</guid>
       <category>fr_gerichte</category>
-    </item>
-    <item>
-      <title>sh_gerichte Nr. 63/2026/10 vom 2026-09-01</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/sh_gerichte_Nr.%2063_2026_10</link>
-      <description>Trotz generellem Leistungsausschluss bei Heimaufenthalt gemäss Ziff. 14.05 HVI-Anhang ist im vorliegenden Fall eine Kostengutsprache zu erteilen, da der Ausschluss eine gravierende Einschränkung des Familienlebens darstellt, welche mit Art. 14 BV und…</description>
-      <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">sh_gerichte_Nr. 63_2026_10</guid>
-      <category>sh_gerichte</category>
     </item>
   </channel>
 </rss>

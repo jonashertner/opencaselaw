@@ -5,9 +5,29 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 13 Sep 2026 11:40:57 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 14 Sep 2026 11:51:14 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 602 2025 169 vom 2026-09-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_602%202025%20169</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Rue des Augustins 3, case postale 630, 1701 Fribourg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+602 2025 169
+602 2025 170
+Arrêt du 30 juin 2026
+IIe Cour administrative
+Compositio…</description>
+      <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_602 2025 169</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>EGMR (Kammer) 17596/23 vom 2026-09-10</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_17596_23_20260910</link>
@@ -729,14 +749,6 @@ Participants à la pro…</description>
       <description>Asile et renvoi</description>
       <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-4908.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-5748/2026 vom 2026-08-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5748_2026</link>
-      <description>Asile (non-entrée en matière) et renvoi (demande multiple)</description>
-      <pubDate>Thu, 27 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5748.2026</guid>
       <category>bvger</category>
     </item>
   </channel>
