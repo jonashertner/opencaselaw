@@ -1,19 +1,19 @@
 {
-  "total": 1079782,
-  "source_representations": 1079782,
+  "total": 1079853,
+  "source_representations": 1079853,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 938979,
-  "unique_decisions_lower_bound": 938929,
+  "unique_decisions": 939050,
+  "unique_decisions_lower_bound": 939000,
   "duplicate_representations": 140803,
   "unique_decisions_status": "current",
   "by_court": [
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193127,
+      "count": 193198,
       "earliest": "1986-10-06",
-      "latest": "2026-09-02",
-      "last_scraped": "2026-09-11T10:02:09.824641+00:00",
+      "latest": "2026-09-07",
+      "last_scraped": "2026-09-14T10:02:10.299470+00:00",
       "languages": [
         "de",
         "fr",
@@ -1884,9 +1884,9 @@
     }
   ],
   "by_language": {
-    "de": 505293,
-    "fr": 479517,
-    "it": 91014,
+    "de": 505323,
+    "fr": 479542,
+    "it": 91030,
     "en": 3958
   },
   "by_year": {
@@ -2039,27 +2039,28 @@
     "2021": 53132,
     "2022": 52880,
     "2023": 52687,
-    "2024": 52742,
-    "2025": 50123,
-    "2026": 22800
+    "2024": 52750,
+    "2025": 50149,
+    "2026": 22837
   },
   "recent_daily": {
     "2026-08-17": 88,
-    "2026-08-18": 65,
-    "2026-08-19": 66,
+    "2026-08-18": 67,
+    "2026-08-19": 68,
     "2026-08-20": 62,
-    "2026-08-21": 34,
-    "2026-08-24": 49,
-    "2026-08-25": 58,
-    "2026-08-26": 27,
-    "2026-08-27": 37,
+    "2026-08-21": 36,
+    "2026-08-24": 50,
+    "2026-08-25": 61,
+    "2026-08-26": 29,
+    "2026-08-27": 42,
     "2026-08-28": 32,
     "2026-08-30": 1,
-    "2026-08-31": 19,
+    "2026-08-31": 20,
     "2026-09-01": 16,
-    "2026-09-02": 15,
+    "2026-09-02": 16,
     "2026-09-03": 10,
     "2026-09-06": 1,
+    "2026-09-07": 1,
     "2026-09-08": 5,
     "2026-09-09": 1,
     "2026-09-10": 2,
@@ -2075,7 +2076,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193127
+      "count": 193198
     },
     {
       "court": "ge_gerichte",
@@ -2273,11 +2274,11 @@
     "2022": -0.5,
     "2023": -0.4,
     "2024": 0.1,
-    "2025": -5.0,
+    "2025": -4.9,
     "2026": -54.5
   },
   "federal_vs_cantonal": {
-    "federal": 397861,
+    "federal": 397932,
     "cantonal": 681921
   },
   "language_by_year": {
@@ -2396,22 +2397,22 @@
       "it": 2422
     },
     "2024": {
-      "de": 23554,
+      "de": 23556,
       "en": 152,
-      "fr": 26813,
-      "it": 2223
+      "fr": 26816,
+      "it": 2226
     },
     "2025": {
-      "de": 23474,
+      "de": 23484,
       "en": 180,
-      "fr": 24921,
-      "it": 1548
+      "fr": 24927,
+      "it": 1558
     },
     "2026": {
-      "de": 11890,
+      "de": 11908,
       "en": 114,
-      "fr": 9980,
-      "it": 816
+      "fr": 9996,
+      "it": 819
     }
   },
   "by_month": {
@@ -2427,33 +2428,33 @@
     "2024-06": 4865,
     "2024-07": 4058,
     "2024-08": 4008,
-    "2024-09": 4298,
-    "2024-10": 4543,
+    "2024-09": 4299,
+    "2024-10": 4548,
     "2024-11": 4622,
-    "2024-12": 4395,
-    "2025-01": 4338,
+    "2024-12": 4397,
+    "2025-01": 4342,
     "2025-02": 4207,
-    "2025-03": 4398,
-    "2025-04": 4071,
-    "2025-05": 4335,
-    "2025-06": 4718,
+    "2025-03": 4400,
+    "2025-04": 4076,
+    "2025-05": 4338,
+    "2025-06": 4719,
     "2025-07": 3897,
     "2025-08": 3805,
-    "2025-09": 4362,
-    "2025-10": 4313,
-    "2025-11": 4048,
-    "2025-12": 3631,
-    "2026-01": 3031,
-    "2026-02": 3671,
+    "2025-09": 4363,
+    "2025-10": 4316,
+    "2025-11": 4049,
+    "2025-12": 3637,
+    "2026-01": 3038,
+    "2026-02": 3672,
     "2026-03": 3630,
     "2026-04": 2937,
     "2026-05": 2713,
     "2026-06": 3044,
-    "2026-07": 2315,
-    "2026-08": 1401,
-    "2026-09": 52
+    "2026-07": 2320,
+    "2026-08": 1423,
+    "2026-09": 54
   },
-  "generated_at": "2026-09-14T11:43:40.140338+00:00",
+  "generated_at": "2026-09-14T19:49:20.376657+00:00",
   "scraper_health": {
     "run_at": "2026-09-14T02:08:54.172138+00:00",
     "run_duration_s": 4073.1,
@@ -2932,7 +2933,7 @@
         "note": null,
         "state_count": 99000,
         "jsonl_size_mb": 1497.0,
-        "jsonl_mtime": "2026-09-14T11:00:59.734062+00:00"
+        "jsonl_mtime": "2026-09-14T12:01:09.655478+00:00"
       },
       "bvger": {
         "success": true,
@@ -3705,8 +3706,8 @@
       "reference_article": 40,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10029011,
-    "statute_edges": 12780655
+    "citation_edges": 10030259,
+    "statute_edges": 12781421
   },
   "interesting_stats": {
     "most_cited_decision": {
@@ -3717,7 +3718,7 @@
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 198348
+      "ref_count": 198351
     },
     "oldest_decision": {
       "docket": "1_I_26",
@@ -3729,17 +3730,17 @@
       "de_pct": 47.0,
       "fr_pct": 44.6,
       "it_pct": 8.5,
-      "total": 1075824
+      "total": 1075895
     },
     "regeste_coverage": {
       "pct": 38.3,
       "with_regeste": 413863,
-      "total": 1079782
+      "total": 1079853
     },
     "graph_size": {
-      "decision_edges": 11768197,
-      "statute_edges": 12780655,
-      "total": 24548852
+      "decision_edges": 11769846,
+      "statute_edges": 12781421,
+      "total": 24551267
     },
     "echr_switzerland": {
       "total": 1526,
@@ -3789,27 +3790,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 198348
+        "ref_count": 198351
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 123048
+        "ref_count": 123049
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 108770
+        "ref_count": 108783
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 96881
+        "ref_count": 96897
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 60598
+        "ref_count": 60622
       }
     ],
     "materialien_coverage": {
@@ -4176,6 +4177,22 @@
   "recent": {
     "bge": [
       {
+        "decision_id": "bger_4D_150_2026",
+        "docket": "4D_150/2026",
+        "date": "2026-09-07",
+        "court": "bger",
+        "language": "fr",
+        "summary": "contrat de bail,"
+      },
+      {
+        "decision_id": "bger_7B_1082_2026",
+        "docket": "7B_1082/2026",
+        "date": "2026-09-02",
+        "court": "bger",
+        "language": "fr",
+        "summary": "Ordonnance de non-entrée en matière; irrecevabilité du"
+      },
+      {
         "decision_id": "bger_6B_554_2026",
         "docket": "6B_554/2026",
         "date": "2026-09-02",
@@ -4208,6 +4225,14 @@
         "summary": "contrat de bail,"
       },
       {
+        "decision_id": "bger_8C_441_2026",
+        "docket": "8C_441/2026",
+        "date": "2026-08-31",
+        "court": "bger",
+        "language": "fr",
+        "summary": "Assurance-chômage (condition de recevabilité),"
+      },
+      {
         "decision_id": "bger_7B_1055_2026",
         "docket": "7B_1055/2026",
         "date": "2026-08-31",
@@ -4230,30 +4255,6 @@
         "court": "bger",
         "language": "de",
         "summary": "Staats- und Gemeindesteuern des Kantons Schaffhausen sowie direkte Bundessteuer, Steuerperiode 2023,"
-      },
-      {
-        "decision_id": "bger_9C_456_2026",
-        "docket": "9C_456/2026",
-        "date": "2026-08-28",
-        "court": "bger",
-        "language": "de",
-        "summary": "Staats- und Gemeindesteuern des Kantons Bern und direkte Bundessteuer, Steuerperiode 2015,"
-      },
-      {
-        "decision_id": "bger_5A_830_2026",
-        "docket": "5A_830/2026",
-        "date": "2026-08-28",
-        "court": "bger",
-        "language": "de",
-        "summary": "Rechtsverweigerung,"
-      },
-      {
-        "decision_id": "bger_5A_829_2026",
-        "docket": "5A_829/2026",
-        "date": "2026-08-28",
-        "court": "bger",
-        "language": "de",
-        "summary": "Kostenvorschuss, unentgeltliche Rechtspflege (Ehescheidung),"
       }
     ],
     "cantonal": [
@@ -4472,10 +4473,15 @@
     }
   ],
   "delta": {
-    "total": 0,
-    "by_court": {},
+    "total": 71,
+    "by_court": {
+      "bger": 71
+    },
     "by_canton": {},
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 1248,
+      "statute_edges": 766
+    },
     "previous_generated_at": "2026-09-13T21:20:44.316962+00:00"
   }
 }
