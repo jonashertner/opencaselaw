@@ -5,9 +5,18 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 14 Sep 2026 11:51:14 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 15 Sep 2026 11:52:43 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesstrafgericht RR.2026.97 vom 2026-09-03</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bstger_RR.2026.97</link>
+      <description>Assistenza giudiziaria internazionale in materia penale all'Italia;
+decisione di estradizione (art. 55 AIMP)</description>
+      <pubDate>Thu, 03 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BStGer:2026:RR.2026.97</guid>
+      <category>bstger</category>
+    </item>
     <item>
       <title>Bundesgericht 1C_452/2026 vom 2026-09-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_452_2026</link>
@@ -82,6 +91,34 @@ Cancelliere Caprara.
 Partecipanti al proce…</description>
       <pubDate>Wed, 26 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_337.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 6B_169/2026 vom 2026-08-25</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_169_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+6B_169/2026
+
+Sentenza del 25 agosto 2026
+
+I Corte di diritto penale
+
+Composizione
+
+Giudici federali Muschietti, Presidente,
+
+Wohlhauser, Lötscher, Giudice supplente,
+
+Cancelliera …</description>
+      <pubDate>Tue, 25 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_169.2026</guid>
       <category>bger</category>
     </item>
     <item>
@@ -226,6 +263,34 @@ Prima Camera di diritto costituzionale e am…</description>
       <pubDate>Thu, 20 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">gr_gerichte_VR1 2026 6</guid>
       <category>gr_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesgericht 1C_275/2026 vom 2026-08-19</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_275_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+1C_275/2026
+
+Sentenza del 19 agosto 2026
+
+I Corte di diritto pubblico
+
+Composizione
+
+Giudici federali Haag, Presidente,
+
+Chaix, Kneubühler, Müller, Mecca, Giudice supplente,
+
+Canc…</description>
+      <pubDate>Wed, 19 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_275.2026</guid>
+      <category>bger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht F-5574/2026 vom 2026-08-19</title>
@@ -455,6 +520,14 @@ Partec…</description>
       <pubDate>Tue, 11 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_200.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesstrafgericht RR.2026.68 vom 2026-08-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bstger_RR.2026.68</link>
+      <description>Consegna di mezzi di prova (art. 74 AIMP)</description>
+      <pubDate>Tue, 11 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BStGer:2026:RR.2026.68</guid>
+      <category>bstger</category>
     </item>
     <item>
       <title>Bundesgericht 6B_373/2025 vom 2026-08-10</title>
@@ -944,38 +1017,6 @@ Ca…</description>
       <description>Assistenza amministrativa</description>
       <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5859.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-5861/2025 vom 2026-08-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-5861_2025</link>
-      <description>Assistenza amministrativa</description>
-      <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5861.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-5862/2025 vom 2026-08-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-5862_2025</link>
-      <description>Assistenza amministrativa</description>
-      <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5862.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-5864/2025 vom 2026-08-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-5864_2025</link>
-      <description>Assistenza amministrativa</description>
-      <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5864.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-2159/2026 vom 2026-07-31</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-2159_2026</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (paese terzo sicuro - art. 31a cpv. 1 lett. a LAsi)</description>
-      <pubDate>Fri, 31 Jul 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-2159.2026</guid>
       <category>bvger</category>
     </item>
   </channel>
