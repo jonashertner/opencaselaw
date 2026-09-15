@@ -1,17 +1,17 @@
 {
- "be_verwaltungsgericht": "Two denominators: the DIRECT scrape captures ~9.3k of the portal's 11,440 (structural discovery gap, not re-run-recoverable, proven 2026-07-02), but the corpus already holds ~11.4k via the archived entscheidsuche feed — the corpus-level residual is only ~10 decisions.",
- "vs_gerichte": "Direct-scrape gap of ~390 vs the portal count (re-run recovers 0; structural discovery class). Check the corpus total against portal_total before treating this as missing data — the archived feed covers part of it.",
- "bs_appellationsgericht": "~350 decisions listed by the Omnis portal but not enumerated by the current session-based discovery; investigation queued.",
+ "be_verwaltungsgericht": "Direct scrape at parity since the docket-anchored parser fix of 2026-08-27: on 2026-09-15 the portal's 11,633 listing rows resolved to 11,600 distinct dockets, all held (11,618 held in total). The remaining listing difference is duplicate or under-filled rows of the date-windowed listing.",
+ "vs_gerichte": "The portal counts documents: ZWR/RVJ journal reprints and same-day re-uploads share a case number with the decision, which the corpus holds once; since 2026-09-15 the gap metric counts distinct case numbers. About 4-5 second rulings filed under an already-held case number (district court and Kantonsgericht) are not in the corpus yet (identity decision pending).",
+ "bs_appellationsgericht": "Verified complete 2026-09-15: every case year 2013-2026 was enumerated and 7,691 of 7,695 listed decisions were held (the other 4 were published that day), including the bulk publication of 11.12.2018 for case years 2014-2017 (2,552 decisions, all held). The portal returns at most 500 rows per query, so the nightly log warns for case years above 500; nothing is missing.",
  "bl_gerichte": "The Kantonsgericht published ~4,997 decisions on a portal that went offline; 903 recovered via the Internet Archive (2026-04). Outreach to the court pending since 2026-04-17; remainder is a known upstream-availability gap, not a scrape failure.",
  "bger": "Complete for published decisions from 2000 (verified against citation-gap oracles). Pre-2000 ordinary judgments were never put online by the court. Pre-2007 EVG social-insurance decisions (~15,215) are recoverable and queued.",
  "bge": "Official collection complete (verified 0 missing vs external benchmark). Volume citations before 1954 partially carry publication-year dating semantics.",
- "ow_gerichte": "Portal offline since Dec 2022; corpus frozen at that date. A successor portal appeared in 2026 and is re-probed weekly; intake resumes if it yields decisions.",
+ "ow_gerichte": "The portal is online but frozen: it lists the same 2,205 decisions every night, newest upload 2022-12-19. A successor portal appeared in 2026 and is re-probed weekly; intake resumes if it yields decisions.",
  "ge_gerichte": "7,051 decisions (ATAS/ACJC 2006-2013) had unreadable CID-font PDF text; recovered via OCR on 2026-07-01 and fully searchable since 2026-07-02. Docket field carries bare cause numbers for some older rows.",
  "ch_vb": "Frozen archive (source ceased publishing in 2021); preserved via the entscheidsuche archive, no new intake by design.",
  "be_steuerrekurs": "Portal's backing database returns zero rows for all queries since Feb 2026 (verified against the live GWT protocol); 343 historical decisions preserved. Re-probed weekly.",
  "mkg": "Complete archival corpus of the Militärkassationsgericht, volumes 1-16 (1915-2025); the court publishes no new volumes.",
  "sg_publikationen": "Publication practice example: St. Gallen published 5 of 272 employment rulings 2002-2017. Low counts here reflect court publication policy, not capture failure.",
- "ti_gerichte": "~549 rows carry no machine-readable date (PDFs truncated upstream). Text completeness restored 2026-06-29 (control-character stripping).",
+ "ti_gerichte": "~549 rows carry no machine-readable date (PDFs truncated upstream). Text completeness restored 2026-06-29 (control-character stripping). Since 2026-09-15 new rows take their decision date from the result table; older undated rows await a backfill.",
  "fr_anwaltsaufsicht": "Registered source; the authority has published zero decisions to date (0 by design, not a failure).",
  "vd_findinfo": "Frozen entscheidsuche-sourced archive of the pre-2015 FindInfo portal; new VD decisions arrive via the direct vd_gerichte scraper."
 }
