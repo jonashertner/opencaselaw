@@ -141,6 +141,8 @@ class TribunaBaseScraper(BaseScraper):
     # DATE_WINDOW_MAX_DEPTH. None = original single-pass behaviour (every other
     # Tribuna portal is unaffected).
     DATE_WINDOW_FIELD: int | None = None
+    # Listing counters of the current windowed walk (see _apply_listing_counts).
+    _listing: dict = {"total": 0, "rows": 0, "dups": 0, "incomplete": False}
     DATE_WINDOW_START_YEAR: int = 2000
     DATE_WINDOW_MAX_DEPTH: int = 1      # 0=year only, 1=+month, 2=+day
     DATE_WINDOW_SPLIT_OVER: int = 150   # only split a window finer when total exceeds this
@@ -526,6 +528,9 @@ class TribunaBaseScraper(BaseScraper):
             return
 
         total = None
+        rows_parsed = 0
+        seen_dockets: set[str] = set()
+        complete = False
         for page in range(self.MAX_PAGES):
             try:
                 body = self._build_search_body(credential, page, total, court_filter)
@@ -550,6 +555,8 @@ class TribunaBaseScraper(BaseScraper):
                 break
 
             for stub in decisions:
+                rows_parsed += 1
+                seen_dockets.add(stub["docket_number"])
                 if since_date and stub.get("decision_date"):
                     d = parse_date(stub["decision_date"])
                     if d and d < since_date:
@@ -565,7 +572,38 @@ class TribunaBaseScraper(BaseScraper):
             # Check if we've exhausted all pages
             if total and (page + 1) * self.PAGE_SIZE >= total:
                 logger.info(f"[{self.court_code}] All {total} results covered in {page+1} pages")
+                complete = True
                 break
+
+        if total:
+            self._apply_listing_counts(
+                f"'{court_filter}'", total, rows_parsed, len(seen_dockets), complete
+            )
+
+    def _apply_listing_counts(
+        self, label: str, total: int, rows_parsed: int, distinct: int, complete: bool
+    ) -> None:
+        """Count the listing in dockets, not rows (2026-09-15).
+
+        The portal total counts rows. A docket can be listed twice (two documents
+        under one Geschaeftsnummer: GR 41 rows, BE VG 15, FR 9 on 2026-09-15, all
+        with 0 unknown ids) and the second row can never become a decision because
+        ids are keyed by docket, so the nightly health gap carried a permanent
+        phantom. Duplicate rows leave portal_count. Rows the parser cannot anchor
+        on a docket stay in it (they are rows we do not have) and are logged so
+        the parser gap remains visible.
+        """
+        dup_rows = max(0, rows_parsed - distinct)
+        if dup_rows:
+            self.portal_count = (self.portal_count or 0) - dup_rows
+        tail = (
+            f", {max(0, total - rows_parsed)} rows not parsed (no docket, or window under-fill)"
+            if complete else ", walk incomplete"
+        )
+        logger.info(
+            f"[{self.court_code}] {label}: {total} rows listed, {distinct} distinct dockets, "
+            f"{dup_rows} duplicate rows{tail}"
+        )
 
     # ------------------------------------------------------------------
     # Date-windowed discovery (opt-in via DATE_WINDOW_FIELD)
@@ -579,8 +617,15 @@ class TribunaBaseScraper(BaseScraper):
         if since_date:
             # Incremental run: only walk windows that can contain new decisions.
             start_year = max(start_year, since_date.year)
+        self._listing = {"total": 0, "rows": 0, "dups": 0, "incomplete": False}
         for year in range(end_year, start_year - 1, -1):
             yield from self._window(credential, court_filter, since_date, str(year), depth=0)
+        counts = self._listing
+        if counts["total"]:
+            self._apply_listing_counts(
+                f"'{court_filter}' windows", counts["total"], counts["rows"],
+                counts["rows"] - counts["dups"], not counts["incomplete"],
+            )
 
     def _window(self, credential, court_filter, since_date, prefix, depth) -> Iterator[dict]:
         """Walk one date window; split finer if the server under-fills it."""
@@ -588,6 +633,7 @@ class TribunaBaseScraper(BaseScraper):
         if depth == 0:
             # Each year is counted once → portal_count tracks the true corpus size.
             self.portal_count = (self.portal_count or 0) + total
+            self._listing["total"] += total
             logger.info(f"[{self.court_code}] window '{prefix}': total={total}")
         if total == 0:
             return
@@ -605,6 +651,9 @@ class TribunaBaseScraper(BaseScraper):
                 f"[{self.court_code}] window '{prefix}': recovered {len(unique)}/{total} "
                 f"(residual under-fill)"
             )
+        # Leaf window: rows seen and rows that repeat a docket already in this window.
+        self._listing["rows"] += len(stubs)
+        self._listing["dups"] += len(stubs) - len(unique)
         yield from self._yield_new(list(unique.values()), since_date)
 
     @staticmethod
@@ -631,6 +680,7 @@ class TribunaBaseScraper(BaseScraper):
                 )
             except Exception as e:
                 logger.error(f"[{self.court_code}] Search page {page} ['{value}'] failed: {e}")
+                self._listing["incomplete"] = True
                 break
             page_total, decisions = self._parse_search_response(resp.text)
             if total is None:
