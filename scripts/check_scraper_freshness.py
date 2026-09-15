@@ -249,20 +249,25 @@ GAP_PERSIST_DAYS = 3  # a gap must survive this long before it is worth waking
 KNOWN_GAP_OFFSETS: dict[str, dict] = {
     "sz_gerichte": {
         "gap": 51,
-        "verified": "2026-08-04",
-        "evidence": "OCL_SCRAPER_RESCAN_ALL=1 walked all 3415 portal pages "
-                    "in 85 min with 0 errors and returned 0 new decisions; "
-                    "the offset held at exactly 51 while 35 decisions were "
-                    "added over three weeks, which a real backlog would not do",
+        "verified": "2026-09-15",
+        "evidence": "OCL_SCRAPER_RESCAN_ALL=1 walked all 3450 portal pages "
+                    "in 86.2 min with 0 errors, 0 NoneReturns and +0 new "
+                    "against 3399 known ids (re-verified 2026-09-15; first "
+                    "verified 2026-08-04 over 3415 pages). The offset held at "
+                    "exactly 51 while the corpus grew by 35+ decisions, which "
+                    "a real backlog would not do",
     },
     "gr_gerichte": {
         "gap": 50,
-        "verified": "2026-08-25",
-        "evidence": "OCL_SCRAPER_RESCAN_ALL=1 covered ALL 14856 portal rows "
-                    "in 743 pages, 31.1 min, 0 errors, 0 NoneReturns, and "
-                    "returned +0 new against 14806 known ids — i.e. every "
-                    "portal row resolved to a decision we already hold, so "
-                    "the 50 are duplicate listings, not missing decisions",
+        "verified": "2026-09-15",
+        "evidence": "Scratch-state listing probe 2026-09-15 (31 min): 14903 "
+                    "portal rows -> 14893 parsed -> 14852 distinct dockets, "
+                    "41 duplicate rows, 10 rows without a recognisable docket, "
+                    "0 unknown ids against 14853 known. The 2026-08-25 "
+                    "RESCAN_ALL over 14856 rows had already returned +0. Since "
+                    "1b8415cd base_tribuna drops duplicate rows from "
+                    "portal_count, so the nightly gap falls to the ~10 "
+                    "unparsed rows",
     },
     "vs_gerichte": {
         "gap": 399,
@@ -275,14 +280,27 @@ KNOWN_GAP_OFFSETS: dict[str, dict] = {
     },
     "fr_gerichte": {
         "gap": 11,
-        "verified": "2026-09-05",
-        "evidence": "OCL_SCRAPER_RESCAN_ALL=1 covered ALL 14685 portal rows "
-                    "in 735 pages, 30.8 min, 0 errors, +0 new against 14674 "
-                    "known ids; 2 NoneReturns are listing rows without a "
-                    "download link (102 2026 223, 601 2026 45), the other 9 "
-                    "are duplicate listings — the gr_gerichte signature on "
-                    "the same Tribuna implementation. The gap held at exactly "
-                    "11 across the 09-03, 09-04 and 09-05 nightly runs",
+        "verified": "2026-09-15",
+        "evidence": "2026-09-15 RESCAN_ALL after the base64-path fix "
+                    "(9f5bf8e9): 14708 rows, 31.8 min, 0 errors, 0 NoneReturns, "
+                    "+25 new, gap 9 = duplicate listing rows (the gr_gerichte "
+                    "signature). CORRECTION of the 2026-09-05 reading: the 2 "
+                    "'rows without a download link' (102 2026 223, 601 2026 45) "
+                    "were the first rows carrying the new base64 document path, "
+                    "i.e. a scraper defect, and had grown to 25 real decisions "
+                    "by 09-15. A NoneReturn on a Tribuna row is not evidence of "
+                    "a structural offset",
+    },
+    "be_verwaltungsgericht": {
+        "gap": 15,
+        "verified": "2026-09-15",
+        "evidence": "OCL_SCRAPER_RESCAN_ALL=1 with the docket-anchored parser "
+                    "(#68 fixed 2026-08-27): 40.2 min, 0 errors, 0 NoneReturns, "
+                    "+0 new against 11618 known ids; scratch-state listing "
+                    "probe the same day: 11633 portal rows -> 11600 distinct "
+                    "dockets, 0 unknown ids. The 15 are duplicate or "
+                    "under-filled rows of the date-windowed listing, not the "
+                    "#68 backlog",
     },
     # NOT added, deliberately: ju_gerichte (29), ne_gerichte (45) and
     # ne_jurisprudence_adm (37) also returned +0 new on 2026-08-25, but their
@@ -297,16 +315,15 @@ KNOWN_GAP_OFFSETS: dict[str, dict] = {
 # which is how an operator learns to ignore the whole channel.
 KNOWN_GAP_REMEDIES: dict[str, str] = {
     "be_verwaltungsgericht": (
-        "ein Rescan half NICHT, solange der Parser defekt war (2026-08-25: "
-        "voller RESCAN_ALL, 33.5 min, 0 Fehler, +0 neu). URSACHE GEFUNDEN "
-        "2026-08-27 (GitHub #68): nicht das Portal, sondern base_tribuna. Der "
-        "Parser zippte doc_id und Geschaeftsnummer nach Position und brach bei "
-        "min(len(doc_ids), len(dockets)) ab — doc_id ist aber optional und "
-        "fehlt bei aelteren Datensaetzen. Die Trefferquote folgte exakt der "
-        "doc_id-Einfuehrungskurve (2013: 82/674, 2012: 53/130, 2011: 2/12; "
-        "2017-2024: 97-99 %). Behoben durch docket-verankerte Spans. Der "
-        "Rueckstand wird ueber die naechsten Laeufe abgebaut (Timeout auf 4h "
-        "erhoeht); diese Meldung verschwindet von selbst), kein Nachlauf."
+        "kein Nachlauf: der #68-Rueckstand (base_tribuna zippte doc_id und "
+        "Geschaeftsnummer nach Position, die Trefferquote folgte der doc_id-"
+        "Kurve, 2013: 82/674; behoben 2026-08-27) ist abgebaut — voller "
+        "RESCAN_ALL 2026-09-15 (40.2 min, 0 Fehler, +0 neu) und eine "
+        "Listing-Probe mit leerem State (11633 Zeilen -> 11600 Dossiers, 0 "
+        "unbekannt). Ein Gap ueber den bekannten 15 waere neu: Duplikat- oder "
+        "Unterfuellungszeilen des datumsgefensterten Listings pruefen (seit "
+        "1b8415cd zieht base_tribuna beobachtete Duplikatzeilen vom "
+        "portal_count ab)."
     ),
     # Forensik 2026-09-02 (3 Agenten + Cross-Check, nach sauberem RESCAN_ALL
     # aller drei Portale mit +0 neu / 0 Fehlern): dieselbe Identitaetsfalle
