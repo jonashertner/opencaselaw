@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import quote
 from typing import Iterator
 
 from base_scraper import BaseScraper
@@ -66,6 +67,26 @@ _RE_DOC_ID = re.compile(r"^[0-9a-f]{32}$")
 _RE_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _RE_DOCKET = re.compile(r"^[A-Z0-9]{1,4}\s+\d{4}\s+\d+$")
 _RE_ENC_PATH = re.compile(r"^[0-9a-f]{60,}$")
+# Since ~2026-08 publicationtc.fr.ch (VTPlus 24.x) sends the encrypted document
+# path as ~140 chars of base64 (with "=" GWT-escaped as \x3D) instead of hex.
+# GR / ZG / BE still send hex, so both forms are recognised.
+_RE_B64_PATH = re.compile(r"^[A-Za-z0-9+/]{110,}={0,2}$")
+_RE_GWT_ESCAPE = re.compile(r"\\x([0-9A-Fa-f]{2})|\\u([0-9A-Fa-f]{4})|\\(.)")
+
+
+def _gwt_unescape(s: str) -> str:
+    r"""Decode the escapes GWT-RPC uses inside its string table (\x3D, \uNNNN, \\, \")."""
+    if "\\" not in s:
+        return s
+
+    def _sub(m: re.Match) -> str:
+        if m.group(1):
+            return chr(int(m.group(1), 16))
+        if m.group(2):
+            return chr(int(m.group(2), 16))
+        return m.group(3)
+
+    return _RE_GWT_ESCAPE.sub(_sub, s)
 _RE_HEX = re.compile(r"^[0-9a-f]{60,}$")
 _RE_B64CRED = re.compile(r"^[A-Za-z0-9+/=]{60,140}$")
 
@@ -394,7 +415,7 @@ class TribunaBaseScraper(BaseScraper):
         # Extract all strings from the response, KEEPING their positions —
         # the row a value belongs to is determined by where it sits, not by
         # how many values of its kind came before it.
-        all_strings = re.findall(r'"([^"]*)"', text)
+        all_strings = [_gwt_unescape(x) for x in re.findall(r'"([^"]*)"', text)]
 
         # Group fields into decisions.
         #
@@ -434,7 +455,7 @@ class TribunaBaseScraper(BaseScraper):
                 kinds.append((idx, "docket", s))
             elif _RE_DATE.match(s):
                 kinds.append((idx, "date", s))
-            elif _RE_ENC_PATH.match(s):
+            elif _RE_ENC_PATH.match(s) or _RE_B64_PATH.match(s):
                 kinds.append((idx, "enc_path", s))
 
         # Find titles: strings that are >10 chars, not hex, not dates, not types
@@ -446,6 +467,7 @@ class TribunaBaseScraper(BaseScraper):
                 and not _RE_DATE.match(s)
                 and not _RE_DOCKET.match(s)
                 and not _RE_ENC_PATH.match(s)
+                and not _RE_B64_PATH.match(s)
                 and not _RE_HEX.match(s)
                 # An all-digit run is an internal row id, not a subject line.
                 # Measured 2026-08-27: the span for be_verwaltungsgericht
@@ -644,6 +666,15 @@ class TribunaBaseScraper(BaseScraper):
         enc_path = stub.get("enc_path", "")
         if not enc_path:
             return ""
+        if not _RE_ENC_PATH.match(enc_path):
+            # base64 path (FR since 2026-08): "/" and "+" must not land in the URL
+            # path segment (the old shape answers HTTP 400); the servlet accepts the
+            # token in the query string alone. Verified live 2026-09-15: 601 2026 45
+            # → 200, application/pdf, 9 pages.
+            return (
+                f"{self._gwt_base}/ServletDownload/{docket_url}"
+                f"?path={quote(enc_path, safe='')}&pathIsEncrypted=1&dossiernummer={docket_url}"
+            )
         return (
             f"{self._gwt_base}/ServletDownload/{docket_url}_{enc_path}"
             f"?path={enc_path}&pathIsEncrypted=1&dossiernummer={docket_url}"
