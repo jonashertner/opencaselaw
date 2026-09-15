@@ -219,17 +219,30 @@ class VSGerichteScraper(BaseScraper):
         # Download PDF via /api/documents/{id}/file/
         pdf_url = f"{DOC_URL}/{doc_id}/file/"
         full_text = ""
+        fetched = False
         try:
             r = self.get(pdf_url, timeout=30)
             if r.status_code == 200 and len(r.content) > 1000:
+                fetched = True
                 full_text = self._extract_pdf_text(r.content)
         except Exception as e:
             logger.warning(f"VS: PDF download failed for {stub['docket_number']}: {e}")
 
+        # Until 2026-09-14 a failed download or an empty extraction was written as a
+        # row with the text "[Text extraction failed for …]" and marked known — 1,555
+        # such rows (22 % of the court) sat in the served corpus and were never
+        # retried. A download failure is transient here (api-justsearch timeouts):
+        # return None so the next run retries; a fetched PDF without a text layer is
+        # cached as a gap for GAP_TTL_DAYS.
+        if not fetched:
+            return None
         if not full_text or len(full_text) < 50:
-            logger.warning(f"VS: short text for {stub['docket_number']}: {len(full_text)} chars")
-            if not full_text:
-                full_text = f"[Text extraction failed for {stub['docket_number']}]"
+            logger.warning(
+                f"VS: no usable text for {stub['docket_number']} ({len(full_text)} chars) — "
+                f"cached as gap for {self.state.GAP_TTL_DAYS} days"
+            )
+            self.state.mark_gap(stub["decision_id"])
+            return None
 
         decision_date = stub.get("decision_date")
         if not decision_date:
