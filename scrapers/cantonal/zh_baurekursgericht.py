@@ -45,6 +45,34 @@ def _url_key(url: str | None) -> str:
     return unquote((url or "").strip()).split("?", 1)[0].rstrip("/").lower()
 
 
+# Caption of a published excerpt: "BRGE II Nrn. 0053/2022 - 0054/2022 vom 15. März 2022 in BEZ 2023 Nr. 13".
+_RE_BRGE_CAPTION = re.compile(r"\b(BRGE|BRKE)\s+(IV|I{1,3})\s+Nrn?\.?\s*(.{0,120}?)(?:\bvom\b|$)", re.S)
+
+
+def _brge_numbers(spec: str) -> set[tuple[int, int]]:
+    """(year, number) pairs of a number list: '0165-0167/2012', '0013/2022, 0014/2022 und 0015/2022'."""
+    out: set[tuple[int, int]] = set()
+    spec = spec.replace("\u2013", "-").replace("\u2014", "-")
+    for a, b, y in re.findall(r"(\d{1,4})\s*-\s*(\d{1,4})\s*/\s*(\d{4})", spec):
+        if int(b) >= int(a) and int(b) - int(a) < 30:
+            out.update((int(y), n) for n in range(int(a), int(b) + 1))
+    pairs = re.findall(r"(\d{1,4})\s*/\s*(\d{4})", spec)
+    out.update((int(y), int(n)) for n, y in pairs)
+    for (n1, y1), (n2, y2) in zip(pairs, pairs[1:]):
+        between = spec[spec.find(f"{n1}/{y1}") + len(f"{n1}/{y1}"): spec.find(f"{n2}/{y2}")]
+        if y1 == y2 and re.fullmatch(r"\s*-\s*", between or "") and 0 < int(n2) - int(n1) < 30:
+            out.update((int(y1), n) for n in range(int(n1), int(n2) + 1))
+    return out
+
+
+def _brge_keys(text: str) -> set[tuple[str, str, int, int]]:
+    """(series, chamber, year, number) keys named by the first BRGE/BRKE caption in text."""
+    m = _RE_BRGE_CAPTION.search(text or "")
+    if not m:
+        return set()
+    return {(m.group(1), m.group(2), y, n) for y, n in _brge_numbers(m.group(3) + " ")}
+
+
 def _extract_text_from_pdf(pdf_bytes: bytes) -> str:
     """Extract text from PDF bytes."""
     try:
@@ -109,6 +137,8 @@ class ZHBaurekursgerichtScraper(BaseScraper):
     # pdf_url key -> (decision_id, docket_number) of every corpus row, loaded once per run.
     _held_by_url: dict[str, tuple[str, str]] | None = None
     _held_loaded = False
+    # (series, chamber, year, number) -> decision_ids of numbered corpus rows, same load.
+    _held_numbers: dict[tuple[str, str, int, int], set[str]] | None = None
     MAX_ERRORS = 50
 
     @property
@@ -195,6 +225,7 @@ class ZHBaurekursgerichtScraper(BaseScraper):
             return self._held_by_url
         self._held_loaded = True
         held: dict[str, tuple[str, str]] = {}
+        numbers: dict[tuple[str, str, int, int], set[str]] = {}
         path = self._shard_path()
         try:
             with open(path, encoding="utf-8") as f:
@@ -206,8 +237,13 @@ class ZHBaurekursgerichtScraper(BaseScraper):
                     key = _url_key(rec.get("pdf_url") or rec.get("source_url"))
                     if key and rec.get("decision_id"):
                         held[key] = (rec["decision_id"], rec.get("docket_number") or "")
+                    docket = str(rec.get("docket_number") or "")
+                    if rec.get("decision_id") and not docket.startswith("Zwischenentscheid"):
+                        for k in _brge_keys(docket):
+                            numbers.setdefault(k, set()).add(rec["decision_id"])
         except OSError as e:
             logger.warning(f"BRG ZH: corpus shard unreadable ({path}): {e}")
+        self._held_numbers = numbers
         if not held and self.state.count() > 0:
             logger.warning(
                 f"BRG ZH: no PDF identities from {path} although state holds "
@@ -321,6 +357,21 @@ class ZHBaurekursgerichtScraper(BaseScraper):
         if not full_text or len(full_text) < 30:
             if not full_text:
                 full_text = f"[PDF extraction failed for {num}]"
+
+        if num.startswith("Zwischenentscheid "):
+            # 2026-09-15: 20 of the first 30 docket-less PDFs ingested were BEZ
+            # republications or second excerpts of decisions held under their BRGE
+            # number, and their caption says so ("BRGE II Nrn. 0053/2022 - 0054/2022 vom
+            # 15. März 2022 in BEZ 2023 Nr. 13"). A BRGE number names one decision, so
+            # such a PDF is not a new decision: remember it as known, write no row.
+            self._held_decisions_by_url()
+            cited = sorted({
+                d for k in _brge_keys(full_text[:400]) for d in (self._held_numbers or {}).get(k, ())
+            })
+            if cited:
+                logger.info(f"BRG ZH: {num} republishes held {cited[0]}; marked known, no row")
+                self.state.mark_scraped(stub["decision_id"])
+                return None
 
         language = detect_language(full_text) if len(full_text) > 100 else "de"
 

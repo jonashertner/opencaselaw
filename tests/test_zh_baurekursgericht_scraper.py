@@ -19,6 +19,7 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
+import scrapers.cantonal.zh_baurekursgericht as zh_mod  # noqa: E402
 from scrapers.cantonal.zh_baurekursgericht import ZHBaurekursgerichtScraper  # noqa: E402
 
 FIXTURE = (REPO / "tests" / "fixtures" / "zh_baurekursgericht_listing_2026_excerpt.html").read_text(encoding="utf-8")
@@ -84,3 +85,60 @@ def test_unreadable_shard_never_mints_ids_while_state_holds_decisions(tmp_path):
     stubs = [s._parse_item(d) for d in soup.find_all("div", class_="search-listing-item")]
     assert [st["docket_number"] for st in stubs if st] == ["BRGE I Nr. 0007/2026"]   # numbered entries unaffected
     assert sum(1 for st in stubs if st is None) == 2                                  # docket-less entries skipped
+
+
+class _PdfResp:
+    content = b"%PDF-1.4 " + b"x" * 500
+
+
+def _stub(docket, pdf):
+    return {"decision_id": f"zh_baurekursgericht_{docket}", "docket_number": docket,
+            "decision_date": date(2022, 3, 15), "pdf_url": pdf, "source_url": pdf,
+            "title": "t", "leitsatz": ""}
+
+
+def _scraper_with_held_brge(tmp_path, monkeypatch, text):
+    shard = tmp_path / "shard.jsonl"
+    shard.write_text(json.dumps({
+        "decision_id": "zh_baurekursgericht_BRGE II Nrn. 0053-0054_2022",
+        "docket_number": "BRGE II Nrn. 0053-0054/2022",
+        "decision_date": "2022-03-15",
+        "pdf_url": "https://www.baurekursgericht-zh.ch/media/brge_ii_0053-0054_2022.pdf",
+    }) + "\n", encoding="utf-8")
+    monkeypatch.setenv("ZH_BAUREKURSGERICHT_SHARD", str(shard))
+    s = ZHBaurekursgerichtScraper(state_dir=tmp_path)
+    monkeypatch.setattr(s, "get", lambda url, **k: _PdfResp())
+    monkeypatch.setattr(zh_mod, "_extract_text_from_pdf", lambda b: text)
+    return s
+
+
+def test_docketless_republication_of_a_held_decision_writes_no_row(tmp_path, monkeypatch):
+    """2026-09-15: 20 of the first 30 docket-less PDFs were BEZ republications or second
+    excerpts of decisions held under their BRGE number."""
+    s = _scraper_with_held_brge(tmp_path, monkeypatch,
+                                "BRGE II Nrn. 0053/2022 – 0054/2022 vom 15. März 2022 in BEZ 2023 Nr. 13. " + "Erwägungen " * 40)
+    stub = _stub("Zwischenentscheid 2023-13", "https://www.baurekursgericht-zh.ch/media/2023-13.pdf")
+    assert s.fetch_decision(stub) is None
+    assert s.state.is_known(stub["decision_id"])
+
+
+def test_docketless_entry_citing_an_unheld_brge_number_is_ingested(tmp_path, monkeypatch):
+    s = _scraper_with_held_brge(tmp_path, monkeypatch,
+                                "BRGE IV Nr. 0105/2026, 0106/2026 Entscheid vom 11. Juni 2026. " + "Erwägungen " * 40)
+    stub = _stub("Zwischenentscheid r4.2025.00190", "https://www.baurekursgericht-zh.ch/media/auszug_r4.2025.00190.pdf")
+    d = s.fetch_decision(stub)
+    assert d is not None and d.decision_id == stub["decision_id"]
+
+
+def test_numbered_entry_that_cites_a_held_decision_is_still_ingested(tmp_path, monkeypatch):
+    s = _scraper_with_held_brge(tmp_path, monkeypatch,
+                                "BRGE II Nrn. 0053/2022 - 0054/2022 vom 15. März 2022 (zitiert). " + "Erwägungen " * 40)
+    stub = _stub("BRGE I Nr. 0007/2026", "https://www.baurekursgericht-zh.ch/media/auszug_r1s.2025.05094.pdf")
+    assert s.fetch_decision(stub) is not None
+
+
+def test_caption_numbers_cover_ranges_lists_and_dashes():
+    keys = zh_mod._brge_keys("BRGE IV Nrn. 0013/2022, 0014/2022 und 0015/2022 vom 3. Februar 2022")
+    assert keys == {("BRGE", "IV", 2022, 13), ("BRGE", "IV", 2022, 14), ("BRGE", "IV", 2022, 15)}
+    assert ("BRGE", "II", 2023, 5) in zh_mod._brge_keys("BRGE II Nrn. 0004/2023 – 0007/2023 vom 17. Januar 2023")
+    assert ("BRKE", "II", 2008, 114) in zh_mod._brge_keys("BRKE II Nrn. 0112-0117/2008")
