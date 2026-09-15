@@ -308,6 +308,11 @@ def _load_written_ids_and_years(jsonl_path: Path) -> tuple[set[str], dict[int, s
     return written_ids, ids_by_year
 
 
+# Seconds to wait before the 2nd and 3rd snapshot attempt when another scraper
+# holds coverage.db past busy_timeout.
+_SNAPSHOT_LOCK_RETRIES = (20, 40)
+
+
 def _record_coverage_snapshots(
     *,
     scraper_key: str,
@@ -315,7 +320,34 @@ def _record_coverage_snapshots(
     ids_by_year: dict[int, set[str]],
     changed_years: set[int],
 ) -> None:
-    """Persist per-year source snapshots for this scraper into coverage tables."""
+    """Persist per-year source snapshots, retrying while coverage.db is locked."""
+    for attempt, delay in enumerate((*_SNAPSHOT_LOCK_RETRIES, None)):
+        try:
+            _record_coverage_snapshots_once(
+                scraper_key=scraper_key,
+                output_dir=output_dir,
+                ids_by_year=ids_by_year,
+                changed_years=changed_years,
+            )
+            return
+        except sqlite3.OperationalError as e:
+            if delay is None or "locked" not in str(e).lower():
+                raise
+            logger.info(
+                f"[{scraper_key}] coverage.db locked, retrying snapshot in {delay}s "
+                f"({attempt + 1}/{len(_SNAPSHOT_LOCK_RETRIES) + 1})"
+            )
+            time.sleep(delay)
+
+
+def _record_coverage_snapshots_once(
+    *,
+    scraper_key: str,
+    output_dir: Path,
+    ids_by_year: dict[int, set[str]],
+    changed_years: set[int],
+) -> None:
+    """One attempt at persisting per-year source snapshots into coverage tables."""
     if not ids_by_year:
         return
 
@@ -364,6 +396,15 @@ def _record_coverage_snapshots(
 class _RunEventWriter:
     """Persist discovery/fetch events and maintain gap queue for one run."""
 
+    # Longest an event transaction may stay open. coverage.db is a
+    # rollback-journal database: one scraper's open write transaction makes
+    # every other scraper's commit and coverage snapshot wait behind
+    # busy_timeout (30 s). With ~12 scrapers in parallel, a slow fetch loop
+    # sitting on <200 uncommitted events held the lock for minutes and 10-20
+    # courts a night logged "Coverage snapshot update failed: database is
+    # locked" (2026-09-01..15), leaving the gap detector on stale snapshots.
+    MAX_TXN_AGE_S = 2.0
+
     def __init__(self, *, output_dir: Path, source_key: str, run_id: str):
         self.output_dir = output_dir
         self.source_key = source_key
@@ -371,6 +412,7 @@ class _RunEventWriter:
         self._conn: sqlite3.Connection | None = None
         self._attempt_counts: dict[str, int] = defaultdict(int)
         self._pending = 0
+        self._last_commit = time.monotonic()
         self._enabled = False
         self._init_db()
 
@@ -396,9 +438,13 @@ class _RunEventWriter:
         if not self._conn:
             return
         self._pending += 1
-        if self._pending >= 200:
+        if (
+            self._pending >= 200
+            or time.monotonic() - self._last_commit >= self.MAX_TXN_AGE_S
+        ):
             self._conn.commit()
             self._pending = 0
+            self._last_commit = time.monotonic()
 
     def close(self) -> None:
         if not self._conn:
