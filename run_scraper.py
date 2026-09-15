@@ -30,6 +30,8 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from models import make_decision_id
+
 logger = logging.getLogger("run_scraper")
 
 
@@ -732,6 +734,20 @@ def run_with_persistence(
                         f"[{scraper_key}] fetch_decision returned None ({none_count}): "
                         f"{stub.get('docket_number', '?')}"
                     )
+                    # Scrapers that enumerate numbered ranges or list image-only
+                    # scans (emark, bge_historical, hudoc, elcom) opt in with
+                    # CACHE_NONE_AS_GAP: a None is a 404 / text-less file that
+                    # would otherwise be re-fetched every night. Same rule as
+                    # BaseScraper.run — which production never calls, so until
+                    # 2026-09-14 the flag was dead here (bge_historical re-probed
+                    # the same 161 ids nightly, hudoc_ch 71, elcom 8). Gaps
+                    # expire after ScraperState.GAP_TTL_DAYS.
+                    if getattr(scraper, "CACHE_NONE_AS_GAP", False):
+                        gap_id = stub.get("decision_id") or make_decision_id(
+                            scraper.court_code, stub.get("docket_number", "") or ""
+                        )
+                        if gap_id and "_" in gap_id:
+                            scraper.state.mark_gap(gap_id)
                     # Consecutive Nones beyond a threshold suggest a systemic issue
                     max_none = getattr(scraper, "MAX_NONE_RETURNS", 200)
                     if none_count >= max_none:

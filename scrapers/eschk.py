@@ -101,7 +101,13 @@ class ESchKScraper(BaseScraper):
             return None
         full_text = _extract_pdf_text(resp.content)
         if not full_text or len(full_text.strip()) < 50:
-            logger.warning(f"[eschk] No text extracted from {docket}")
+            # Image-only scans (tarif_b_15-11-2004, tarif_vn_2004) were re-downloaded
+            # every night; a failed download above is NOT cached, only a text-less file.
+            logger.warning(
+                f"[eschk] No text extracted from {docket} — cached as gap for "
+                f"{self.state.GAP_TTL_DAYS} days"
+            )
+            self.state.mark_gap(make_decision_id("eschk", docket))
             return None
         full_text = self.clean_text(full_text)
         return Decision(
