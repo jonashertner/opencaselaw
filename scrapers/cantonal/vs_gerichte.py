@@ -57,6 +57,16 @@ class VSGerichteScraper(BaseScraper):
         total_yielded = 0
         offset = 0
         api_failures = 0
+        total = 0
+        # The portal lists DOCUMENTS: a case number carries the original PDF plus
+        # ZWR/RVJ journal copies (is_zwr) or a second ruling (district court and
+        # cantonal court under one number). Ids are keyed by case number, so the
+        # health gap must compare distinct ids, not documents (2026-09-15: 5,006
+        # documents under 4,606 case numbers reported as a phantom gap of 397).
+        seen_ids: set[str] = set()
+        listed_docs = 0
+        zwr_copies = 0
+        other_dups = 0
 
         while True:
             try:
@@ -94,6 +104,15 @@ class VSGerichteScraper(BaseScraper):
                 if not stub:
                     continue
 
+                listed_docs += 1
+                if stub["decision_id"] in seen_ids:
+                    if item.get("is_zwr"):
+                        zwr_copies += 1
+                    else:
+                        other_dups += 1
+                else:
+                    seen_ids.add(stub["decision_id"])
+
                 if self.state.is_known(stub["decision_id"]):
                     continue
 
@@ -114,6 +133,14 @@ class VSGerichteScraper(BaseScraper):
             if offset % 500 == 0:
                 logger.info(f"VS: discovered {total_yielded} new at offset {offset}/{total}")
 
+        if total and offset >= total and seen_ids:
+            # Complete walk: report ingestible decisions, not documents.
+            self.portal_count = len(seen_ids)
+            logger.info(
+                f"VS: {listed_docs} documents under {len(seen_ids)} decision ids "
+                f"({zwr_copies} ZWR/RVJ journal copies, {other_dups} further documents "
+                f"sharing a held case number: second rulings or re-uploads)"
+            )
         logger.info(f"VS: discovery complete: {total_yielded} new stubs")
 
     def _parse_result(self, item: dict) -> dict | None:
