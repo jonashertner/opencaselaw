@@ -53,6 +53,7 @@ from models import (
     make_decision_id,
     parse_date,
 )
+from scrapers import pdf_ocr
 from scrapers.elcom import PUB_DATE_PATTERN
 
 logger = logging.getLogger(__name__)
@@ -394,12 +395,17 @@ class PostComScraper(BaseScraper):
             return None
 
         full_text = _extract_pdf_text(response.content)
-        if not full_text or len(full_text.strip()) < 50:
-            logger.warning(
-                f"[postcom] No text extracted from {docket} "
-                f"({len(response.content)} bytes PDF)"
-            )
-            return None
+        if not full_text or len(full_text.strip()) < pdf_ocr.MIN_TEXT_CHARS:
+            # Image-only scans (8 Verfügungen of 2013-2016 on 2026-09-15): OCR before giving up.
+            full_text = pdf_ocr.ocr_pdf_bytes(response.content)
+            if len(full_text) < pdf_ocr.MIN_TEXT_CHARS:
+                logger.warning(
+                    f"[postcom] No text extracted from {docket} ({len(response.content)} bytes PDF, "
+                    f"OCR included) — cached as gap for {self.state.GAP_TTL_DAYS} days"
+                )
+                self.state.mark_gap(make_decision_id("postcom", docket))
+                return None
+            logger.info(f"[postcom] OCR recovered {len(full_text)} chars for {docket}")
 
         full_text = self.clean_text(full_text)
         lang = detect_language(full_text)

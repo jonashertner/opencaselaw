@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 
 from base_scraper import BaseScraper
 from models import Decision, detect_language, extract_citations, make_decision_id, parse_date
+from scrapers import pdf_ocr
 from scrapers.elcom import PUB_DATE_PATTERN, _extract_content_hash, _extract_pdf_text
 
 logger = logging.getLogger(__name__)
@@ -100,15 +101,19 @@ class ESchKScraper(BaseScraper):
             logger.error(f"[eschk] Failed to download PDF for {docket}: {e}")
             return None
         full_text = _extract_pdf_text(resp.content)
-        if not full_text or len(full_text.strip()) < 50:
+        if not full_text or len(full_text.strip()) < pdf_ocr.MIN_TEXT_CHARS:
             # Image-only scans (tarif_b_15-11-2004, tarif_vn_2004) were re-downloaded
-            # every night; a failed download above is NOT cached, only a text-less file.
-            logger.warning(
-                f"[eschk] No text extracted from {docket} — cached as gap for "
-                f"{self.state.GAP_TTL_DAYS} days"
-            )
-            self.state.mark_gap(make_decision_id("eschk", docket))
-            return None
+            # every night; OCR them first. A failed download above is NOT cached, only a
+            # file that stays text-less after OCR.
+            full_text = pdf_ocr.ocr_pdf_bytes(resp.content)
+            if len(full_text) < pdf_ocr.MIN_TEXT_CHARS:
+                logger.warning(
+                    f"[eschk] No text extracted from {docket} (OCR included) — cached as gap for "
+                    f"{self.state.GAP_TTL_DAYS} days"
+                )
+                self.state.mark_gap(make_decision_id("eschk", docket))
+                return None
+            logger.info(f"[eschk] OCR recovered {len(full_text)} chars for {docket}")
         full_text = self.clean_text(full_text)
         return Decision(
             decision_id=make_decision_id("eschk", docket),
