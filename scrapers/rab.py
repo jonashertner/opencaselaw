@@ -60,7 +60,19 @@ class RABScraper(BaseScraper):
             soup = BeautifulSoup(resp.text, "html.parser")
             tiles = soup.select("div.rab-download-tile")
             if not tiles:
-                break  # genuinely empty page = end of pager (don't infer end from new-PDF count)
+                break  # genuinely empty page = end of pager
+            # The "Leading Cases" tile block is static: ?page=N paginates the enforcement
+            # digests underneath, not the tiles, so every page repeats the same 5 PDFs.
+            # Stop as soon as a page brings no tile URL we have not seen on this run
+            # (verified 2026-09-14: pages 0, 1, 19 and 25 all return the same hrefs) —
+            # this used to cost 30 identical listing requests per night.
+            page_urls = {
+                urljoin(BASE_URL, a["href"]) if not a["href"].startswith("http") else a["href"]
+                for a in soup.select("div.rab-download-tile a.rab-download-tile__link[href$='.pdf']")
+            }
+            if page > 0 and not (page_urls - seen_urls):
+                logger.info(f"[rab] page {page} repeats the tile block — pager exhausted")
+                break
             for tile in tiles:
                 info = tile.select_one(".rab-download-tile__info p")
                 m = DOCKET_RE.search(info.get_text(strip=True)) if info else None
