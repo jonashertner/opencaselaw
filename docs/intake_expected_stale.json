@@ -57,6 +57,10 @@
     "ag_baugesetzgebung": {
       "reason": "entscheidsuche mirror of the BVU Rechtsabteilung collection on ag.ch (198 rows to 2021-08-20). ag.ch (checked 2026-09-15): since January 2022 these decisions are published in the AGVE portal and the collection page is no longer continued. The direct ag_gerichte scraper files them under ag_departement_bvu (2022: 14, 2023: 20, 2024: 20, 2025: 16)",
       "since": "2022"
+    },
+    "zg_datenschutzstelle": {
+      "reason": "section of the Zug GVP yearbook chronology read by zg_gvp: 101 Datenschutzstelle entries, newest dated 2016-12-31 (checked 2026-09-15); the office has contributed no GVP entries since, while the chronology keeps adding Regierungsrat and Anwaltsaufsicht entries to 2026",
+      "since": "2017"
     }
   },
   "lag_days": {
