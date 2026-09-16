@@ -163,6 +163,38 @@ against its own date. `STALE` on an umbrella court code (`ag_gerichte`,
 year's rows to finer codes — check `scraper_health.json` `our_count` for the
 scraper of the same name before calling the feed dead.
 
+## Withdrawn BGer decisions (daily, 2026-09)
+
+`scripts/check_bger_withdrawn.py` re-fetches the BGer rows scraped in the last
+21 days at their search.bger.ch document URL through the scraper's own request
+path (tunnel, Incapsula, PoW, CA bundle) and classifies the answer:
+`not_found` (the embedded "Dokument nicht gefunden" document, HTTP 200),
+`present` (decision content carrying the docket), `service_error`, `blocked`,
+`error`, `unknown`. It reads only the tail of `output/decisions/bger.jsonl`,
+never `decisions.db`.
+
+| state | rule | effect |
+|---|---|---|
+| watch | not-found streak younger than 10 days, or seen on one day only | listed in the report, nothing else |
+| CANDIDATE | streak ≥ 10 days old, ≥ 2 distinct days, no `present` since | AZA docket-search witness fetched once (`withdrawn` / `replaced` / `listed`), one ntfy message |
+| relisted | `present` after a streak | streak cleared; one informational ntfy line if the candidate had been alerted |
+| transient | `service_error` / `blocked` / `error` / `unknown` | `last_checked` not advanced, retried next run |
+
+Ledger `logs/bger_withdrawal_state.json`, report
+`logs/bger_withdrawal_candidates.json`, log `logs/bger_withdrawals.log`.
+Timer `opencaselaw-bger-withdrawals.timer` at 13:30 UTC (daytime for the
+MacBook tunnel, outside the 09:30–12:00 UTC Neuheiten/poller band). Topic from
+`NTFY_TOPIC` in `/opt/caselaw/ops.env`, fallback `opencaselaw-scrapers`. If the
+first three fetches fail the run aborts without writing. The check never
+deletes; the follow-up is a maintainer decision under
+`docs/governance-and-removal-policy.md`, steps in
+`runbooks/bger_withdrawn_decisions.md`.
+
+```
+python3 scripts/check_bger_withdrawn.py --dry-run --no-ntfy            # or: make check-bger-withdrawn
+python3 scripts/check_bger_withdrawn.py --decision-id bger_6B_499_2026  # one id, always dry
+```
+
 ## Non-goals (in this phase)
 
 - No external push, email, or webhook notification. Dry-run only.

@@ -1,0 +1,21 @@
+[Unit]
+Description=OpenCaseLaw withdrawn-BGer-decision check (re-fetches recent BGer rows at the source, lists removal candidates; never deletes)
+# Governance: docs/governance-and-removal-policy.md ("source withdrawals").
+# Runbook:    runbooks/bger_withdrawn_decisions.md
+# Egress goes through the residential reverse-SOCKS tunnel (search.bger.ch
+# Incapsula-blocks the Hetzner IP) — drop-ins carry BGER_PROXY, the leaf-only
+# bger.ch CA bundle and NTFY_TOPIC, the same three the poller has.
+# Reads only the tail of output/decisions/bger.jsonl; never opens decisions.db,
+# so the 03:30–17:00 UTC build window does not bind it (CLAUDE.md invariant 9).
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+# No ExecStartPre tunnel healthcheck: it runs hourly on its own timer, and a
+# dead tunnel makes the script abort after three failed fetches (exit 0).
+ExecStart=/usr/bin/python3 scripts/check_bger_withdrawn.py
+# ~200 document fetches at the scraper's 2 s rate limit plus PoW/retries.
+TimeoutStartSec=2400
+StandardOutput=append:/opt/caselaw/repo/logs/bger_withdrawals.log
+StandardError=append:/opt/caselaw/repo/logs/bger_withdrawals.log

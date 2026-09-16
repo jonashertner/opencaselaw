@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily withdrawn-BGer-decision check
+
+[Timer]
+# 13:30 UTC: the tunnel follows the MacBook, so daytime, and outside the
+# 09:30–12:00 UTC band where the Neuheiten batch lands and the hourly
+# bger-poller bursts scrape+publish through the same tunnel. The check never
+# touches decisions.db, so the nightly build (03:30–~17:00 UTC) is irrelevant.
+OnCalendar=*-*-* 13:30:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -190,3 +190,7 @@ smoke:
 .PHONY: check-playbook
 check-playbook:  ## live re-verification of every statute reference in the Claude for Legal playbook (~10 requests)
 	@$(PYTHON) scripts/check_playbook_refs.py
+
+.PHONY: check-bger-withdrawn
+check-bger-withdrawn:  ## live: re-fetch recent BGer rows at search.bger.ch, list withdrawal candidates; writes nothing, posts nothing (~200 requests, ~8 min)
+	@$(PYTHON) scripts/check_bger_withdrawn.py --dry-run --no-ntfy
