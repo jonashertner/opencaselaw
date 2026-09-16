@@ -31,6 +31,7 @@ from typing import Iterator
 from bs4 import BeautifulSoup
 
 from base_scraper import BaseScraper
+from scrapers import pdf_ocr
 from models import (
     Decision,
     detect_language,
@@ -58,6 +59,7 @@ COLLECTIONS = ["JUDGMENTS", "DECISIONS"]
 
 # Full text URL — item_id goes as query parameter, NOT path segment
 FULLTEXT_URL = "https://hudoc.echr.coe.int/app/conversion/docx/html/body?library=ECHR&id={item_id}"
+PDF_URL = "https://hudoc.echr.coe.int/app/conversion/pdf/?library=ECHR&id={item_id}"
 
 
 class HUDOCScraper(BaseScraper):
@@ -361,6 +363,27 @@ _THIRD_PARTY_TRANSLATION = re.compile(
 # keeps canton='CH' to preserve compatibility with the existing
 # hudoc_ch filter and the `canton='CH'` federal-level search facet.
 _RESPONDENT_TO_CANTON = {"CHE": "CH"}
+
+
+def _extract_pdf_text(data: bytes) -> str:
+    """Text layer of a PDF, via fitz (PyMuPDF) with a pdfplumber fallback."""
+    try:
+        import fitz
+
+        doc = fitz.open(stream=data, filetype="pdf")
+        return "\n\n".join(page.get_text() for page in doc)
+    except ImportError:
+        pass
+    try:
+        import io
+
+        import pdfplumber
+
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            return "\n\n".join(page.extract_text() or "" for page in pdf.pages)
+    except ImportError:
+        pass
+    return ""
 
 # HUDOC's importance scale is inverted from intuition: 1 = Key cases,
 # 2 = high, 3 = medium, 4 = low/repetitive.
@@ -700,14 +723,23 @@ class HUDOCFullScraper(BaseScraper):
     # -- fetch ----------------------------------------------------------
 
     def _fetch_body(self, item_id: str) -> str | None:
-        """Plain text of one HUDOC document, or None if it has no body."""
+        """Plain text of one HUDOC document, or None if it has no body.
+
+        The docx-to-html converter is the fast path, and it can fail
+        permanently for one document while the same judgment converts fine as
+        PDF. 001-139179 (application 7974/11, judgment of 19.12.2013) answered
+        500 there every night from at least 2026-09-11: discovery rediscovered
+        it daily, the fetch returned None, the shard gained nothing for five
+        days and the freshness check fired "no write for 5d". A 204 or an
+        empty body still means a placeholder row and spends no PDF request.
+        """
         if not item_id:
             return None
         try:
             response = self.get(FULLTEXT_URL.format(item_id=item_id))
         except Exception as e:
             logger.warning(f"[ecthr] fetch {item_id}: {e}")
-            return None
+            return self._fetch_pdf_body(item_id)
         # 204 = placeholder row. Should not happen now that discovery
         # filters isplaceholder, but a stale listing can still produce one.
         if response.status_code == 204 or not response.text.strip():
@@ -715,7 +747,38 @@ class HUDOCFullScraper(BaseScraper):
         soup = BeautifulSoup(response.text, "html.parser")
         full_text = soup.get_text(separator="\n", strip=True)
         if not full_text or len(full_text) < 100:
+            return self._fetch_pdf_body(item_id)
+        return self.clean_text(full_text)
+
+    def _fetch_pdf_body(self, item_id: str) -> str | None:
+        """Text of the PDF rendering of one HUDOC document, or None.
+
+        Same document, different converter: /app/conversion/pdf answered 200
+        with 237 kB for 001-139179 on 2026-09-16, the day the html converter
+        was still returning 500 for it.
+        """
+        try:
+            response = self.get(PDF_URL.format(item_id=item_id))
+        except Exception as e:
+            logger.warning(f"[ecthr] pdf fetch {item_id}: {e}")
             return None
+        data = getattr(response, "content", b"") or b""
+        if not data:
+            return None
+        full_text = _extract_pdf_text(data)
+        if len(full_text.strip()) < pdf_ocr.MIN_TEXT_CHARS:
+            full_text = pdf_ocr.ocr_pdf_bytes(data)
+        full_text = (full_text or "").strip()
+        if len(full_text) < 100:
+            logger.warning(
+                f"[ecthr] pdf gave no usable text for {item_id} "
+                f"({len(data)} bytes, OCR included)"
+            )
+            return None
+        logger.info(
+            f"[ecthr] {item_id}: html conversion failed, recovered "
+            f"{len(full_text)} chars from the PDF endpoint"
+        )
         return self.clean_text(full_text)
 
     def fetch_decision(self, stub: dict) -> Decision | None:
