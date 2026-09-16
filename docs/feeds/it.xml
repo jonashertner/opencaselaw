@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Tue, 15 Sep 2026 11:52:43 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 16 Sep 2026 12:09:13 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht C-4279/2026 vom 2026-09-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-4279_2026</link>
+      <description>Periodo del contributo minimo</description>
+      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-4279.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesstrafgericht RR.2026.97 vom 2026-09-03</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bstger_RR.2026.97</link>
@@ -61,6 +69,14 @@ Part…</description>
       <description>Affiliazione obbligatoria all'istituto collettore</description>
       <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-3399.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-1768/2026 vom 2026-08-28</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-1768_2026</link>
+      <description>Asilo e allontanamento (procedura celere)</description>
+      <pubDate>Fri, 28 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-1768.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -160,6 +176,22 @@ A…</description>
       <category>bvger</category>
     </item>
     <item>
+      <title>gr_gerichte SV2 2026 24 vom 2026-08-25</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_SV2%202026%2024</link>
+      <description>Obergericht des Kantons Graubünden
+Dretgira superiura dal chantun Grischun
+Tribunale d'appello del Cantone dei Grigioni
+Sentenza del 25 agosto 2026
+comunicata il 28 agosto 2026
+N. d'incarto
+SV2 26 24
+Istanza
+Seconda Camera di diritto delle assicurazi…</description>
+      <pubDate>Tue, 25 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">gr_gerichte_SV2 2026 24</guid>
+      <category>gr_gerichte</category>
+    </item>
+    <item>
       <title>gr_gerichte ZR1 2025 161 vom 2026-08-25</title>
       <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_ZR1%202025%20161</link>
       <description>Obergericht des Kantons Graubünden
@@ -203,6 +235,36 @@ in mat…</description>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:12T_1.2026</guid>
       <category>bger</category>
       <category>Ricorsi in materia di vigilanza</category>
+    </item>
+    <item>
+      <title>Bundesgericht 5A_690/2026 vom 2026-08-21</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_690_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+5A_690/2026
+
+Sentenza del 21 agosto 2026
+
+II Corte di diritto civile
+
+Composizione
+
+Giudice federale Bovey, Presidente,
+
+Cancelliera Antonini.
+
+Partecipanti al procedimento
+
+A.___…</description>
+      <pubDate>Fri, 21 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_690.2026</guid>
+      <category>bger</category>
     </item>
     <item>
       <title>Bundesstrafgericht BV.2026.10 vom 2026-08-21</title>
@@ -986,38 +1048,6 @@ Ca…</description>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_269.2026</guid>
       <category>bger</category>
       <category>Prestazione complementari</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-5746/2025 vom 2026-08-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-5746_2025</link>
-      <description>Assistenza amministrativa</description>
-      <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5746.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-5821/2025 vom 2026-08-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-5821_2025</link>
-      <description>Assistenza amministrativa</description>
-      <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5821.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-5857/2025 vom 2026-08-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-5857_2025</link>
-      <description>Assistenza amministrativa</description>
-      <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5857.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-5859/2025 vom 2026-08-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-5859_2025</link>
-      <description>Assistenza amministrativa</description>
-      <pubDate>Mon, 03 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-5859.2025</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>
