@@ -310,9 +310,31 @@ def _load_written_ids_and_years(jsonl_path: Path) -> tuple[set[str], dict[int, s
     return written_ids, ids_by_year
 
 
-# Seconds to wait before the 2nd and 3rd snapshot attempt when another scraper
-# holds coverage.db past busy_timeout.
-_SNAPSHOT_LOCK_RETRIES = (20, 40)
+# Seconds to wait before the 2nd, 3rd and 4th snapshot attempt when another scraper
+# holds coverage.db past busy_timeout. On 2026-09-16, the first night with bounded event
+# transactions, 14 retries fired and 5 of the ~12 parallel scrapers still gave up: a
+# rollback-journal database allows one writer at a time and grants no fairness, so a
+# loser can starve. WAL (see _open_coverage_db) plus one more step closes that.
+_SNAPSHOT_LOCK_RETRIES = (20, 40, 80)
+
+
+def _open_coverage_db(db_path: Path) -> sqlite3.Connection:
+    """Open coverage.db for writing: WAL journal, 30 s busy timeout.
+
+    WAL lets the readers (gap detector, freshness check) run while a scraper writes and
+    shortens the window in which concurrent writers collide. Until 2026-09-16 the database
+    used the delete journal, where every writer blocked every reader and 10-20 courts a
+    night lost their coverage snapshot. The mode is stored in the database file, so the
+    first connection converts it; if another connection holds a lock at that moment, the
+    next one converts instead.
+    """
+    conn = sqlite3.connect(str(db_path), timeout=30.0)
+    conn.execute("PRAGMA busy_timeout = 30000")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+    except sqlite3.OperationalError as e:
+        logger.debug(f"coverage.db journal mode unchanged: {e}")
+    return conn
 
 
 def _record_coverage_snapshots(
@@ -357,8 +379,7 @@ def _record_coverage_snapshots_once(
 
     db_path = _coverage_db_path(output_dir)
     _maybe_migrate_coverage_from_main_db(db_path, output_dir)
-    conn = sqlite3.connect(str(db_path), timeout=30.0)
-    conn.execute("PRAGMA busy_timeout = 30000")
+    conn = _open_coverage_db(db_path)
     conn.row_factory = sqlite3.Row
     try:
         ensure_coverage_tables(conn)
@@ -427,8 +448,7 @@ class _RunEventWriter:
             # Still keeping the 30s busy_timeout even though the dedicated
             # coverage DB eliminates the decisions.db contention — parallel
             # scrapers writing to the same coverage.db also need serialisation.
-            conn = sqlite3.connect(str(db_path), timeout=30.0)
-            conn.execute("PRAGMA busy_timeout = 30000")
+            conn = _open_coverage_db(db_path)
             ensure_coverage_tables(conn)
             self._conn = conn
             self._enabled = True

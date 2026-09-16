@@ -1,10 +1,12 @@
-"""coverage.db lock hygiene in run_scraper (2026-09-15).
+"""coverage.db lock hygiene in run_scraper (2026-09-15, extended 2026-09-16).
 
-coverage.db is a rollback-journal database shared by ~12 concurrent scrapers. The
-event writer used to commit only every 200 events, so a slow fetch loop held the write
-lock for minutes and 10-20 courts a night logged "Coverage snapshot update failed:
-database is locked". Now a transaction is committed by count OR after MAX_TXN_AGE_S,
-and the snapshot writer retries twice when the database is locked.
+coverage.db is shared by ~12 concurrent scrapers. The event writer used to commit only
+every 200 events, so a slow fetch loop held the write lock for minutes and 10-20 courts a
+night logged "Coverage snapshot update failed: database is locked". A transaction is now
+committed by count OR after MAX_TXN_AGE_S, and the snapshot writer retries while the
+database is locked. On the first night with those bounded transactions 5 courts still gave
+up, because a rollback journal has one writer at a time and no fairness, so the database is
+opened in WAL mode and the retry schedule has one more step.
 """
 from __future__ import annotations
 
@@ -74,13 +76,30 @@ def test_event_transaction_is_still_committed_by_count(isolated_coverage_db, tmp
     w.close()
 
 
+def test_coverage_db_is_opened_in_wal_mode(isolated_coverage_db, tmp_path):
+    """A rollback journal lets one writer block every reader; WAL is what keeps ~12 parallel
+    scrapers from losing their snapshot (5 still failed on 2026-09-16 with retries alone)."""
+    w = run_scraper._RunEventWriter(output_dir=tmp_path, source_key="t_court", run_id="r1")
+    w.log_discovery({"decision_id": "t_court_1", "docket_number": "1"})
+    w.close()
+    conn = sqlite3.connect(str(isolated_coverage_db))
+    try:
+        assert conn.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+    finally:
+        conn.close()
+
+
+def test_snapshot_retry_schedule_has_four_attempts():
+    assert run_scraper._SNAPSHOT_LOCK_RETRIES == (20, 40, 80)
+
+
 def test_snapshot_write_retries_while_locked(monkeypatch, tmp_path):
     calls = []
     sleeps = []
 
     def _once(**kw):
         calls.append(kw["scraper_key"])
-        if len(calls) < 3:
+        if len(calls) <= len(run_scraper._SNAPSHOT_LOCK_RETRIES):
             raise sqlite3.OperationalError("database is locked")
 
     monkeypatch.setattr(run_scraper, "_record_coverage_snapshots_once", _once)
@@ -88,7 +107,7 @@ def test_snapshot_write_retries_while_locked(monkeypatch, tmp_path):
     run_scraper._record_coverage_snapshots(
         scraper_key="t_court", output_dir=tmp_path, ids_by_year={2026: {"a"}}, changed_years={2026}
     )
-    assert calls == ["t_court"] * 3
+    assert calls == ["t_court"] * (len(run_scraper._SNAPSHOT_LOCK_RETRIES) + 1)
     assert sleeps == list(run_scraper._SNAPSHOT_LOCK_RETRIES)
 
 
