@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statistics — OpenCaseLaw</title>
+<meta name="description" content="Daily figures for every element of the OpenCaseLaw corpus: decisions, unique decisions, courts, federal and cantonal laws, Botschaften, commentaries, scholarship, the citation graph, quality and aggregate usage. Regenerated nightly.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://opencaselaw.ch/stats/">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/stats/?lang=de">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/stats/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/stats/?lang=it">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/stats/?lang=rm">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/stats/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/stats/">
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js');</script>
+<link rel="stylesheet" href="/static/css/site.css?v=3">
+<style>
+  /* ── Page tokens: one accent (the site red), one muted series, hairline grid ── */
+  :root{
+    --acc:var(--red);
+    --acc-soft:color-mix(in srgb,var(--red) 14%,transparent);
+    --mut:var(--t3);
+    --grid:var(--line-2);
+  }
+  .tnum{font-variant-numeric:tabular-nums lining-nums}
+  .hero-n,.fig-n:not(.mono){font-variant-numeric:lining-nums}
+  .skel{display:inline-block;height:.85em;width:4em;background:var(--line-2);border-radius:4px;animation:skel 1.4s ease-in-out infinite;vertical-align:middle}
+  @keyframes skel{0%,100%{opacity:.4}50%{opacity:.75}}
+  @media(prefers-reduced-motion:reduce){.skel{animation:none;opacity:.5}}
+  .muted{color:var(--t3)}
+  .small{font-size:13px;color:var(--t2);line-height:1.55}
+  .fn{font-size:13px;color:var(--t3);line-height:1.55;margin:12px 0 0;max-width:70ch}
+  .fn a,.small a{color:var(--t2);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+  .fn a:hover,.small a:hover{color:var(--t1)}
+  .asof{font-family:var(--f-mono);font-size:12px;letter-spacing:.04em;color:var(--t3);margin:18px 0 0}
+  .asof b{color:var(--t1);font-weight:500}
+
+  /* ── Hero figure: one per view, sans, proportional figures ── */
+  .hero{padding:clamp(28px,4vw,44px) 0 0}
+  .hero-n{font-weight:600;font-size:clamp(56px,10vw,128px);letter-spacing:-.045em;line-height:.92;margin:0;color:var(--t1)}
+  .hero-l{font-size:clamp(15px,1.6vw,18px);color:var(--t2);margin:14px 0 0;display:flex;gap:6px 22px;flex-wrap:wrap;align-items:baseline}
+  .hero-l .asof{font-family:var(--f-mono);font-size:12.5px;color:var(--t3);letter-spacing:.01em}
+  .hero-l .asof b{color:var(--t1);font-weight:500}
+  .hero-l .asof #hero-delta b{color:var(--acc);font-weight:600}
+
+  /* ── Anatomy of the number: three nested proportions ── */
+  .anat{margin-top:clamp(36px,5vw,56px);display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)}
+  .an-r{display:grid;grid-template-columns:minmax(240px,38%) 1fr auto;gap:12px clamp(16px,2.5vw,36px);align-items:start;padding:18px 0 20px;border-bottom:1px solid var(--line-2)}
+  .an-l span{display:block;font-weight:600;font-size:15px;letter-spacing:-.01em;color:var(--t1)}
+  .an-l small{display:block;font-size:13px;color:var(--t2);line-height:1.5;margin-top:5px;max-width:52ch}
+  .an-b{position:relative;height:14px;margin-top:6px;display:flex;background:transparent}
+  .an-b i{display:block;height:100%}
+  .an-f{background:var(--acc);width:var(--w);flex:0 0 auto;border-radius:0 3px 3px 0;position:relative;z-index:1}
+  html.js .anat:not(.in) .an-f{width:0}
+  html.js .anat.in .an-f{transition:width 1.1s var(--ease)}
+  @media(prefers-reduced-motion:reduce){html.js .anat.in .an-f{transition:none}}
+  .an-g{flex:1;background:repeating-linear-gradient(135deg,var(--line) 0 1px,transparent 1px 5px);border-radius:0 3px 3px 0;margin-left:2px}
+  .an-v{font-family:var(--f-mono);font-weight:500;font-size:clamp(16px,1.8vw,20px);color:var(--t1);letter-spacing:-.01em;line-height:1;margin-top:4px;text-align:right;min-width:9ch}
+  @media(max-width:720px){.an-r{grid-template-columns:1fr auto;grid-template-areas:"l v" "b b"} .an-l{grid-area:l} .an-v{grid-area:v} .an-b{grid-area:b;margin-top:2px}}
+
+  /* ── Figure cells: one device for every number on the page ── */
+  .figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 clamp(20px,3vw,40px);margin-top:36px;border-top:1px solid var(--line)}
+  .figc{padding:18px 0 22px;border-bottom:1px solid var(--line-2);min-width:0}
+  .figc.wide{grid-column:1 / -1}
+  .figc.head{padding:22px 0 6px;border-bottom:0}
+  .fig-n{font-weight:600;font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1;color:var(--t1)}
+  .fig-n.big{font-size:clamp(40px,6vw,72px);letter-spacing:-.04em}
+  .fig-n.mono{font-family:var(--f-mono);font-weight:500;font-size:clamp(15px,1.5vw,19px);letter-spacing:-.01em;white-space:nowrap}
+  .fig-n a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line)}
+  .fig-n a:hover{border-color:var(--t1)}
+  .fig-l{font-size:13.5px;color:var(--t2);margin-top:9px;line-height:1.45}
+  .fig-l.top{margin:0 0 10px}
+  .fig-s{font-family:var(--f-mono);font-size:11.5px;color:var(--t3);margin-top:6px}
+  .fig-d{font-size:13px;color:var(--t2);margin:9px 0 0;line-height:1.5}
+  .fig-d a{color:var(--t2);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+  .fig-d a:hover{color:var(--t1)}
+  .kv{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--t2);margin:0}
+  .kv b{color:var(--t1);font-weight:600;font-family:var(--f-mono);font-size:12.5px}
+  .meter{height:8px;border-radius:4px;background:var(--acc-soft);overflow:hidden;margin:14px 0 10px}
+  .meter i{display:block;height:100%;width:0;background:var(--acc);border-radius:4px}
+
+  /* ── Section shell ── */
+  .sec .wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+  .sec-head{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:clamp(24px,3vw,44px);margin-top:36px;align-items:start}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:clamp(18px,2.5vw,32px);margin-top:36px;align-items:start}
+  .span2{grid-column:1 / -1}
+  .blk{min-width:0}
+  .blk-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+  .blk-t{font-weight:600;font-size:15px;letter-spacing:-.01em;margin:0;color:var(--t1)}
+  .blk-s{font-size:12.5px;color:var(--t3);font-family:var(--f-mono)}
+
+  /* ── Figure (chart + table toggle + tooltip) ── */
+  .fig{position:relative;min-width:0}
+  .fig .tabs{display:inline-flex;gap:2px;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:3px}
+  .fig .tabs button{padding:4px 10px;font:inherit;font-size:12px;background:transparent;color:var(--t2);border:none;border-radius:5px;cursor:pointer}
+  .fig .tabs button.on{background:var(--paper);color:var(--t1);box-shadow:0 1px 2px var(--line-2);font-weight:500}
+  .fig .tabs button:focus-visible{outline:2px solid var(--red);outline-offset:1px}
+  .fig[data-view="table"] .ch{display:none}
+  .fig:not([data-view="table"]) .tw{display:none}
+  .ch{position:relative}
+  .ch{width:100%}
+  .ch svg{display:block;width:100%;height:auto;overflow:visible}
+  .ch svg text{font-family:var(--f-mono);font-size:11px;fill:var(--t3)}
+  .ch .grid{stroke:var(--grid);stroke-width:1;shape-rendering:crispEdges}
+  .ch .axis{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges}
+  .ch .bar{fill:var(--acc);transition:opacity .12s}
+  .ch .bar.dim{opacity:.35}
+  .ch .bar.on{fill:var(--t1)}
+  .ch .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .ch .ln.acc{stroke:var(--acc)} .ch .ln.mut{stroke:var(--mut)}
+  .ch .ar{fill:var(--acc);opacity:.08}
+  .ch .dot{stroke:var(--paper);stroke-width:2} .ch .dot.acc{fill:var(--acc)} .ch .dot.mut{fill:var(--mut)}
+  .ch .xh{stroke:var(--t3);stroke-width:1;stroke-dasharray:none;opacity:0}
+  .ch.hover .xh{opacity:.7}
+  .ch .endl{fill:var(--t1);font-weight:500}
+  .ch .ann{stroke:var(--t3);stroke-width:1}
+  .ch .annl{fill:var(--t2);font-size:10.5px}
+  .ch .hit{fill:transparent;cursor:crosshair}
+  .tip{position:absolute;pointer-events:none;z-index:5;background:var(--t1);color:var(--paper);font-family:var(--f-mono);font-size:12px;line-height:1.45;padding:7px 10px;border-radius:7px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px));opacity:0;transition:opacity .1s;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .tip.on{opacity:1}
+  .tip b{font-weight:600;color:var(--paper)}
+  .tip .k{opacity:.7}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--t2);margin:0 0 10px}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .legend i{width:14px;height:2px;border-radius:1px;display:inline-block;background:var(--mut)}
+  .legend i.acc{background:var(--acc)}
+  .tw{overflow-x:auto;overflow-y:auto;max-height:360px;border:1px solid var(--line);border-radius:10px}
+  .tw .tbl{margin:0;min-width:420px}
+  .tw .tbl thead th{position:sticky;top:0;background:var(--paper);z-index:1}
+  .tbl th.n{text-align:right}
+
+  /* ── Bar list (magnitude, one hue) ── */
+  .bl{display:flex;flex-direction:column;gap:8px}
+  .bl-r{display:grid;grid-template-columns:minmax(120px,40%) 1fr auto;gap:12px;align-items:center;font-size:13.5px;min-height:20px}
+  .bl-r:hover .bl-b i{background:var(--t1)}
+  .bl-l{color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bl-l small{color:var(--t3);font-family:var(--f-mono);font-size:11px;margin-left:6px}
+  .bl-b{height:10px;background:transparent;position:relative;min-width:0}
+  .bl-b i{display:block;height:100%;background:var(--acc);border-radius:0 4px 4px 0;transition:background .12s}
+  .bl-v{font-family:var(--f-mono);font-size:12.5px;color:var(--t2);text-align:right;white-space:nowrap}
+  .bl-v small{color:var(--t3);margin-left:6px}
+  .bl.compact .bl-r{grid-template-columns:minmax(120px,42%) 1fr auto}
+
+  /* ── Links: a plain list with hairlines ── */
+  .links{margin-top:28px;border-top:1px solid var(--line)}
+  .links a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line-2)}
+  .links a:hover code{color:var(--acc)}
+  .links code{font-family:var(--f-mono);font-size:13.5px;color:var(--t1);font-weight:500;overflow-wrap:anywhere}
+  .links p{margin:0;font-size:13px;color:var(--t2);text-align:right}
+  @media(max-width:720px){.links a{grid-template-columns:1fr} .links p{text-align:left}}
+  .tbl td a{color:var(--t1);text-decoration:none;border-bottom:1px solid var(--line)}
+  .tbl td a:hover{border-color:var(--t1)}
+  .tbl td.name{max-width:38ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #tbl-upcoming{min-width:0;table-layout:fixed;width:100%}
+  #tbl-upcoming th:nth-child(1),#tbl-upcoming td.date{width:7.5em;text-align:left;white-space:nowrap;vertical-align:top}
+  #tbl-upcoming td.name{white-space:normal;max-width:none;line-height:1.4;overflow-wrap:break-word}
+  #tbl-upcoming td.name small{display:block;font-family:var(--f-mono);font-size:11px;color:var(--t3);margin-top:4px}
+  @media(max-width:480px){#tbl-upcoming th:nth-child(1),#tbl-upcoming td.date{width:6.2em}}
+
+  @media(max-width:720px){
+    .bl-r,.bl.compact .bl-r{grid-template-columns:minmax(96px,44%) 1fr auto;font-size:13px}
+  }
+  @media(max-width:480px){
+    .bl-l small{display:none}
+    .tbl th,.tbl td{padding:9px 8px}
+  }
+  noscript p{padding:16px 0;color:var(--t2)}
+</style>
+</head>
+<body>
+<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<div data-nav></div>
+
+<main id="main">
+  <section class="page-head first">
+    <div class="wrap">
+      <p class="page-kicker"><span data-t="kicker">The corpus in numbers</span></p>
+      <h1 class="page-h1" data-t="h1">Statistics</h1>
+      <p class="page-lead" data-t="lead">Every number on this page is regenerated by the nightly rebuild and read live from the same file the homepage uses. Nothing here is typed by hand.</p>
+      <noscript><p class="fn">This page hydrates from <a href="/stats.json">/stats.json</a>. The figures below are the values at the time the page was last published.</p></noscript>
+
+      <div class="hero">
+        <p class="hero-n" id="hero-n">1&#8217;080&#8217;221</p>
+        <p class="hero-l"><span data-t="hero_l">source records</span><span class="asof"><span data-t="asof_pre">as of</span> <b id="asof-d">2026-09-16</b><span id="hero-delta"> · <b>+229</b> <span data-t="hero_delta">since the previous rebuild</span></span></span></p>
+      </div>
+
+      <div class="anat" id="anat">
+        <div class="an-r">
+          <div class="an-l"><span data-t="t_records">Source records</span><small data-t="t_records_d">Rows in the decisions table. Where a court publishes one decision under two identifiers, both are kept and linked, never deleted.</small></div>
+          <div class="an-b"><i class="an-f" id="an-b1" style="--w:100%"></i></div>
+          <div class="an-v tnum" id="an-records">1&#8217;080&#8217;221</div>
+        </div>
+        <div class="an-r">
+          <div class="an-l"><span data-t="t_unique">Unique decisions</span><small id="an-unique-d">Source records minus 140’803 cross-identifier duplicates (GE, VD, SH, VPB, NW, UR, EDÖB).</small></div>
+          <div class="an-b"><i class="an-f" id="an-b2" style="--w:86.96%"></i><i class="an-g" id="an-g2"></i></div>
+          <div class="an-v tnum" id="an-unique">939&#8217;418</div>
+        </div>
+        <div class="an-r">
+          <div class="an-l"><span data-t="t_swiss">Decisions of Swiss courts and authorities</span><small id="an-swiss-d">Unique decisions minus 9’627 ECtHR judgments and the 23’046 VPB rows. Approximate: VPB duplicates already collapsed above are subtracted again, so the true figure is slightly higher.</small></div>
+          <div class="an-b"><i class="an-f" id="an-b3" style="--w:83.94%"></i><i class="an-g" id="an-g3"></i></div>
+          <div class="an-v tnum" id="an-swiss">≈&#8201;906&#8217;745</div>
+        </div>
+      </div>
+
+      <div class="figs" id="kpis">
+        <div class="figc"><div class="fig-n tnum" id="k-courts">123</div><div class="fig-l" data-t="k_courts">Courts and authorities</div></div>
+        <div class="figc"><div class="fig-n tnum" id="k-laws">21&#8217;153</div><div class="fig-l" data-t="k_laws">Laws in force</div><div class="fig-s" id="k-articles">496&#8217;041 <span data-t="k_articles">articles</span></div></div>
+        <div class="figc"><div class="fig-n tnum" id="k-edges">10.0M</div><div class="fig-l" data-t="k_edges">Resolved citations</div></div>
+        <div class="figc"><div class="fig-n tnum" id="k-bot">6&#8217;169</div><div class="fig-l" data-t="k_bot">Federal Council dispatches</div></div>
+        <div class="figc"><div class="fig-n tnum" id="k-comm">1&#8217;173</div><div class="fig-l" data-t="k_comm">Commentaries</div></div>
+        <div class="figc"><div class="fig-n tnum" id="k-schol">44&#8217;434</div><div class="fig-l" data-t="k_schol">Scholarship records</div></div>
+        <div class="figc"><div class="fig-n tnum" id="k-echr">9&#8217;627</div><div class="fig-l" data-t="k_echr">ECtHR judgments</div></div>
+        <div class="figc" id="k-practice-wrap" hidden><div class="fig-n tnum" id="k-practice">—</div><div class="fig-l" data-t="k_practice">Practice documents</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 01 Decisions -->
+  <section class="sec rv" id="decisions">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_decisions">Decisions</span></p>
+      <h2 class="sec-h" data-t="h_decisions">Where the records come from.</h2>
+
+      <div class="grid2">
+        <div class="blk">
+          <div class="blk-h"><h3 class="blk-t" data-t="d_fedcant">Federal and cantonal</h3></div>
+          <div class="bl" id="bl-fedcant"><span class="skel"></span></div>
+          <p class="fn" data-t="d_fed_note">“Federal” here includes the ECtHR judgments and the VPB administrative rulings.</p>
+        </div>
+        <div class="blk">
+          <div class="blk-h"><h3 class="blk-t" data-t="d_lang">By language</h3></div>
+          <div class="bl" id="bl-lang"><span class="skel"></span></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="blk span2 fig" id="fig-year">
+          <div class="blk-h">
+            <h3 class="blk-t" data-t="d_year">By decision year</h3>
+            <div class="tabs" role="group"><button type="button" class="on" data-view="chart" data-t="chart">Chart</button><button type="button" data-view="table" data-t="tbl">Table</button></div>
+          </div>
+          <div class="ch" id="ch-year"><span class="skel" style="width:100%;height:180px"></span></div>
+          <div class="tw" id="tw-year"></div>
+          <p class="fn" data-t="d_year_note">Decision year, not the date we ingested it. The current year keeps filling as courts publish.</p>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="blk">
+          <div class="blk-h"><h3 class="blk-t" data-t="d_cantons">By canton</h3><span class="blk-s" id="cantons-s"></span></div>
+          <div class="bl compact" id="bl-cantons"><span class="skel"></span></div>
+        </div>
+        <div class="blk">
+          <div class="blk-h"><h3 class="blk-t" data-t="d_top">Largest collections</h3></div>
+          <div class="tw" style="display:block;max-height:none;border:0"><table class="tbl" id="tbl-top" style="min-width:0"><tbody><tr><td><span class="skel" style="width:60%"></span></td></tr></tbody></table></div>
+          <div class="blk-h" style="margin-top:28px"><h3 class="blk-t" data-t="d_delta">Added in the last rebuild</h3><span class="blk-s" id="delta-s"></span></div>
+          <div class="bl compact" id="bl-delta"><span class="skel"></span></div>
+        </div>
+      </div>
+
+      <div class="figs" id="echr">
+        <div class="figc wide head"><h3 class="blk-t" data-t="d_echr">European Court of Human Rights</h3></div>
+        <div class="figc"><p class="fig-l top" data-t="e_total">judgments in the corpus</p><div class="fig-n tnum" id="e-total">—</div></div>
+        <div class="figc"><p class="fig-l top" data-t="e_ch">with Switzerland as respondent</p><div class="fig-n tnum" id="e-ch">—</div></div>
+        <div class="figc"><p class="fig-l top" data-t="e_gc">Grand Chamber, Swiss cases</p><div class="fig-n tnum" id="e-gc">—</div></div>
+        <div class="figc"><p class="fig-l top" id="e-year-k">against Switzerland this year</p><div class="fig-n tnum" id="e-year">—</div><p class="fig-d" id="e-recent"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 Growth -->
+  <section class="sec rv" id="growth">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_growth">Growth</span></p>
+      <h2 class="sec-h" data-t="h_growth">How the corpus has grown.</h2>
+      <div class="grid2">
+        <div class="blk span2 fig" id="fig-growth">
+          <div class="blk-h">
+            <h3 class="blk-t" data-t="g_h">Source records and unique decisions, one point per day</h3>
+            <div class="tabs" role="group"><button type="button" class="on" data-view="chart" data-t="chart">Chart</button><button type="button" data-view="table" data-t="tbl">Table</button></div>
+          </div>
+          <div class="legend"><span><i class="acc"></i><span data-t="g_total">Source records</span></span><span><i></i><span data-t="g_unique">Unique decisions</span></span></div>
+          <div class="ch" id="ch-growth"><span class="skel" style="width:100%;height:220px"></span></div>
+          <div class="tw" id="tw-growth"></div>
+          <p class="fn" id="g-note" data-t="g_note">Taken from the committed stats.json of each day. Vertical steps are bulk imports; the slope between them is the nightly intake.</p>
+        </div>
+      </div>
+      <div class="figs">
+        <div class="figc"><p class="fig-l top" data-t="g_30">Last 30 days</p><div class="fig-n tnum" id="g-30">—</div><p class="fig-d" id="g-30-d"></p></div>
+        <div class="figc"><p class="fig-l top" id="g-since-k">Since May 2026</p><div class="fig-n tnum" id="g-since">—</div><p class="fig-d" id="g-since-d"></p></div>
+        <div class="figc"><p class="fig-l top" data-t="g_last">Last data point</p><div class="fig-n tnum" id="g-last">—</div><p class="fig-d" id="g-last-d"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 Legislation -->
+  <section class="sec rv" id="laws">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_laws">Legislation</span></p>
+      <h2 class="sec-h" data-t="h_laws">Federal and cantonal law.</h2>
+      <div class="figs">
+        <div class="figc"><p class="fig-l top" data-t="l_fed">Federal laws</p><div class="fig-n tnum" id="l-fed">—</div><p class="fig-d"><span class="tnum" id="l-fed-art">—</span> <span data-t="l_art">articles</span></p></div>
+        <div class="figc"><p class="fig-l top" data-t="l_cant">Cantonal laws</p><div class="fig-n tnum" id="l-cant">—</div><p class="fig-d"><span class="tnum" id="l-cant-art">—</span> <span data-t="l_art">articles</span></p></div>
+        <div class="figc"><p class="fig-l top" data-t="l_total">Laws in force</p><div class="fig-n tnum" id="l-total">—</div><p class="fig-d"><span class="tnum" id="l-total-art">—</span> <span data-t="l_art">articles</span></p></div>
+      </div>
+      <div class="grid2">
+        <div class="blk">
+          <div class="blk-h"><h3 class="blk-t" data-t="l_by_canton">Cantonal laws by canton</h3></div>
+          <div class="bl compact" id="bl-lawcant"><span class="skel"></span></div>
+        </div>
+        <div class="blk">
+          <div class="blk-h"><h3 class="blk-t" data-t="l_upcoming">Upcoming amendments</h3></div>
+          <div class="tw" style="max-height:520px"><table class="tbl" id="tbl-upcoming"><thead><tr><th data-t="l_inforce">In force</th><th data-t="l_act">Act</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 Materialien -->
+  <section class="sec rv" id="materialien">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_mat">Legislative materials</span></p>
+      <h2 class="sec-h" data-t="h_mat">Federal Council dispatches, verbatim.</h2>
+      <div class="figs" id="mat-grid">
+        <div class="figc"><p class="fig-l top" data-t="m_docs">Botschaften</p><div class="fig-n tnum" id="m-docs">—</div><p class="fig-d" id="m-years"></p></div>
+        <div class="figc"><p class="fig-l top" data-t="m_par">Paragraphs</p><div class="fig-n tnum" id="m-par">—</div><p class="fig-d" data-t="m_par_d">full-text indexed</p></div>
+        <div class="figc"><p class="fig-l top" data-t="m_links">Article links</p><div class="fig-n tnum" id="m-links">—</div><p class="fig-d" data-t="m_links_d">paragraphs tied to a specific article of law</p></div>
+      </div>
+      <div class="grid2">
+        <div class="blk"><div class="blk-h"><h3 class="blk-t" data-t="m_lang">By language</h3></div><div class="bl" id="bl-matlang"><span class="skel"></span></div></div>
+      </div>
+      <p class="fn" id="mat-note" hidden data-t="na">not computed yet</p>
+    </div>
+  </section>
+
+  <!-- 05 Commentaries & scholarship -->
+  <section class="sec rv" id="scholarship">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_schol">Commentaries and scholarship</span></p>
+      <h2 class="sec-h" data-t="h_schol">Open-access legal writing.</h2>
+      <div class="figs">
+        <div class="figc"><p class="fig-l top" data-t="c_comm">Commentaries</p><div class="fig-n tnum" id="c-comm">—</div><p class="fig-d" data-t="c_comm_d">article-by-article, from Onlinekommentar and partner publishers</p></div>
+        <div class="figc"><p class="fig-l top" data-t="c_total">Scholarship records</p><div class="fig-n tnum" id="c-total">—</div><p class="fig-d" id="c-total-d"></p></div>
+      </div>
+      <div class="grid2">
+        <div class="blk"><div class="blk-h"><h3 class="blk-t" data-t="c_src">By source</h3></div><div class="bl" id="bl-src"><span class="skel"></span></div></div>
+        <div class="blk"><div class="blk-h"><h3 class="blk-t" data-t="c_type">By type</h3></div><div class="bl" id="bl-type"><span class="skel"></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 Citation graph -->
+  <section class="sec rv" id="graph">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_graph">Citation graph</span></p>
+      <h2 class="sec-h" data-t="h_graph">Who cites whom.</h2>
+      <div class="figs">
+        <div class="figc"><p class="fig-l top" data-t="gr_dec">decision → decision</p><div class="fig-n tnum" id="gr-dec">—</div><p class="fig-d" data-t="gr_edges">resolved edges</p></div>
+        <div class="figc"><p class="fig-l top" data-t="gr_stat">decision → statute</p><div class="fig-n tnum" id="gr-stat">—</div><p class="fig-d" data-t="gr_edges">resolved edges</p></div>
+        <div class="figc"><p class="fig-l top" data-t="gr_mostd">Most cited decision</p><div class="fig-n tnum" id="gr-mostd">—</div><p class="fig-d" id="gr-mostd-d"></p></div>
+        <div class="figc"><p class="fig-l top" data-t="gr_mosts">Most cited provision</p><div class="fig-n tnum" id="gr-mosts">—</div><p class="fig-d" id="gr-mosts-d"></p></div>
+      </div>
+      <div class="grid2">
+        <div class="blk"><div class="blk-h"><h3 class="blk-t" data-t="gr_top_d">Five most cited decisions</h3></div><div class="tw" style="max-height:none"><table class="tbl" id="tbl-topd"><thead><tr><th data-t="th_decision">Decision</th><th class="n" data-t="gr_cites">citations</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="blk"><div class="blk-h"><h3 class="blk-t" data-t="gr_top_s">Five most cited provisions</h3></div><div class="tw" style="max-height:none"><table class="tbl" id="tbl-tops"><thead><tr><th data-t="th_provision">Provision</th><th class="n" data-t="gr_refs">references</th></tr></thead><tbody></tbody></table></div></div>
+      </div>
+      <p class="fn" id="graph-note" hidden data-t="na">not computed yet</p>
+    </div>
+  </section>
+
+  <!-- 07 Quality -->
+  <section class="sec rv" id="quality">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_quality">Quality</span></p>
+      <h2 class="sec-h" data-t="h_quality">What the records contain.</h2>
+      <div class="figs">
+        <div class="figc"><p class="fig-l top" data-t="q_reg">Headnote coverage</p><div class="fig-n tnum" id="q-reg">—</div><div class="meter"><i id="q-reg-m"></i></div><p class="kv"><span data-t="q_reg_d">records with a Regeste</span><b id="q-reg-n">—</b></p></div>
+        <div class="figc"><p class="fig-l top" data-t="q_dup">Duplicate share</p><div class="fig-n tnum" id="q-dup">—</div><div class="meter"><i id="q-dup-m"></i></div><p class="kv"><span data-t="q_dup_d">second representations</span><b id="q-dup-n">—</b></p></div>
+        <div class="figc"><p class="fig-l top" data-t="q_span">Time span</p><div class="fig-n tnum" id="q-span">—</div><p class="fig-d" id="q-oldest"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 Freshness -->
+  <section class="sec rv" id="freshness">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_fresh">Freshness</span></p>
+      <h2 class="sec-h" data-t="h_fresh">When it was last rebuilt.</h2>
+      <div class="figs">
+        <div class="figc"><p class="fig-l top" data-t="f_rebuilt">Corpus rebuilt</p><div class="fig-n tnum mono" id="f-rebuilt">—</div></div>
+        <div class="figc"><p class="fig-l top" data-t="f_scraped">Cantonal scrape</p><div class="fig-n tnum mono" id="f-scraped">—</div></div>
+        <div class="figc"><p class="fig-l top" data-t="f_scraped_fed">Federal scrape</p><div class="fig-n tnum mono" id="f-scraped-fed">—</div></div>
+        <div class="figc"><p class="fig-l top" data-t="f_added">Records added</p><div class="fig-n tnum" id="f-added">—</div></div>
+      </div>
+      <p class="fn" style="margin-top:22px;max-width:none"><span data-t="f_sched">The rebuild starts at 03:30 UTC every night and the scrapers run every day. Per-source status, including known gaps, is on the coverage page.</span> <a href="/coverage/" data-t="f_link">See the coverage page</a></p>
+    </div>
+  </section>
+
+  <!-- 09 Usage -->
+  <section class="sec rv" id="usage">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_usage">Usage</span></p>
+      <h2 class="sec-h" data-t="h_usage">How much it is used.</h2>
+      <div class="figs">
+        <div class="figc wide"><div class="fig-n tnum big" id="u-calls">—</div><p class="fig-d" id="u-calls-d"></p></div>
+      </div>
+      <div class="grid2">
+        <div class="blk"><div class="blk-h"><h3 class="blk-t" data-t="u_client">By client</h3></div><div class="bl" id="bl-client"><span class="skel"></span></div></div>
+        <div class="blk"><div class="blk-h"><h3 class="blk-t" data-t="u_status">By HTTP status</h3></div><div class="bl" id="bl-status"><span class="skel"></span></div></div>
+      </div>
+      <p class="fn" id="u-priv" style="max-width:none"></p>
+    </div>
+  </section>
+
+  <!-- 10 Data -->
+  <section class="sec rv" id="data">
+    <div class="wrap">
+      <p class="sec-tag"><span data-t="s_data">Data</span></p>
+      <h2 class="sec-h" data-t="h_data">Take the numbers with you.</h2>
+      <p class="sec-sub" data-t="da_lead">Everything on this page is a public file you can fetch directly.</p>
+      <div class="links">
+        <a href="/stats.json"><code>/stats.json</code><p data-t="da_stats">All figures, regenerated nightly</p></a>
+        <a href="/stats/history.json"><code>/stats/history.json</code><p data-t="da_hist">Daily series behind the growth chart</p></a>
+        <a href="/coverage/"><code>/coverage/</code><p data-t="da_cov">Per-source coverage and known gaps</p></a>
+        <a href="https://huggingface.co/datasets/voilaj/swiss-caselaw" rel="noopener"><code>huggingface.co/datasets/voilaj/swiss-caselaw</code><p data-t="da_hf">Parquet mirror of the corpus</p></a>
+        <a href="/api/"><code>get_statistics</code><p data-t="da_api">The same figures via MCP and REST</p></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div data-foot></div>
+
+<script src="/static/js/site.js?v=2"></script>
+<script>
+OCL.init({
+  active:'stats',
+  i18n:{
+    de:{kicker:'Der Korpus in Zahlen',kicker_sub:'tägliche Zahlen',h1:'Statistik',lead:'Jede Zahl auf dieser Seite wird vom nächtlichen Neuaufbau erzeugt und live aus derselben Datei gelesen wie die Startseite. Nichts hier ist von Hand eingetragen.',asof_pre:'Stand',hero_l:'Quelldatensätze',hero_delta:'seit dem letzten Neuaufbau',hero_delta0:'keine Änderung im letzten Neuaufbau',
+      t_records:'Quelldatensätze',t_records_d:'Zeilen in der Entscheidtabelle. Publiziert ein Gericht denselben Entscheid unter zwei Kennungen, bleiben beide erhalten und werden verknüpft, nie gelöscht.',t_unique:'Eindeutige Entscheide',t_unique_d:'Quelldatensätze minus {n} kennungsübergreifende Dubletten (GE, VD, SH, VPB, NW, UR, EDÖB).',t_swiss:'Entscheide Schweizer Gerichte und Behörden',t_swiss_d:'Eindeutige Entscheide ohne {e} EGMR-Urteile und die {v} VPB-Zeilen. Näherung: bereits oben zusammengeführte VPB-Dubletten werden nochmals abgezogen, der wahre Wert liegt etwas höher.',stale:'Wird nach dem laufenden Neuaufbau neu berechnet.',
+      k_courts:'Gerichte und Behörden',k_laws:'Geltende Erlasse',k_articles:'Artikel',k_edges:'Aufgelöste Zitate',k_schol:'Literaturnachweise',k_comm:'Kommentare',k_bot:'Botschaften',k_echr:'EGMR-Urteile',k_practice:'Praxisdokumente',
+      s_decisions:'Entscheide',s_growth:'Wachstum',s_laws:'Gesetzgebung',s_mat:'Materialien',s_schol:'Kommentare und Literatur',s_graph:'Zitiergraph',s_quality:'Qualität',s_fresh:'Aktualität',s_data:'Daten',
+      h_decisions:'Woher die Datensätze stammen.',h_growth:'Wie der Korpus gewachsen ist.',h_laws:'Bundes- und kantonales Recht.',h_mat:'Botschaften des Bundesrats im Wortlaut.',h_schol:'Frei zugängliche Rechtsliteratur.',h_graph:'Wer wen zitiert.',h_quality:'Was die Datensätze enthalten.',h_fresh:'Wann der Korpus zuletzt neu aufgebaut wurde.',h_data:'Die Zahlen zum Mitnehmen.',
+      d_fedcant:'Bund und Kantone',d_fed:'Bund',d_cant:'Kantone',d_fed_note:'«Bund» umfasst hier auch die EGMR-Urteile und die VPB-Verwaltungsentscheide.',d_lang:'Nach Sprache',d_year:'Nach Entscheidjahr',d_year_note:'Entscheidjahr, nicht Erfassungsdatum. Das laufende Jahr füllt sich weiter, während die Gerichte publizieren.',d_cantons:'Nach Kanton',d_courts:'Gerichte',d_top:'Grösste Sammlungen',d_delta:'Im letzten Neuaufbau hinzugekommen',d_echr:'Europäischer Gerichtshof für Menschenrechte',e_total:'Urteile im Korpus',e_ch:'mit der Schweiz als beklagtem Staat',e_gc:'Grosse Kammer, Schweizer Fälle',e_year:'gegen die Schweiz im Jahr {y}',e_recent:'Jüngster Fall gegen die Schweiz',
+      g_h:'Quelldatensätze und eindeutige Entscheide, ein Punkt pro Tag',g_note:'Aus der am jeweiligen Tag eingecheckten stats.json. Senkrechte Stufen sind Massenimporte; die Steigung dazwischen ist der nächtliche Zugang.',g_total:'Quelldatensätze',g_unique:'Eindeutige Entscheide',g_30:'Letzte 30 Tage',g_perday:'{n} Datensätze pro Tag, inkl. Massenimporte',g_since:'Seit {d}',g_last:'Letzter Datenpunkt',g_rows:'Datensätze',
+      l_fed:'Bundeserlasse',l_cant:'Kantonale Erlasse',l_total:'Geltende Erlasse',l_art:'Artikel',l_by_canton:'Kantonale Erlasse nach Kanton',l_upcoming:'Anstehende Änderungen',l_inforce:'In Kraft',l_sr:'SR',l_act:'Erlass',
+      m_docs:'Botschaften',m_par:'Absätze',m_par_d:'im Volltext indexiert',m_links:'Artikelverknüpfungen',m_links_d:'Absätze, die einem bestimmten Gesetzesartikel zugeordnet sind',m_years:'Jahrgänge {a}–{b}',m_lang:'Nach Sprache',
+      c_comm:'Kommentare',c_comm_d:'artikelweise, aus dem Onlinekommentar und Partnerverlagen',c_total:'Literaturnachweise',c_total_d:'aus {n} frei zugänglichen Quellen',c_src:'Nach Quelle',c_type:'Nach Typ',
+      gr_dec:'Entscheid → Entscheid',gr_stat:'Entscheid → Erlass',gr_edges:'aufgelöste Kanten',gr_mostd:'Meistzitierter Entscheid',gr_mosts:'Meistzitierte Bestimmung',gr_cites:'Zitate',gr_refs:'Verweise',gr_top_d:'Die fünf meistzitierten Entscheide',gr_top_s:'Die fünf meistzitierten Bestimmungen',th_decision:'Entscheid',th_provision:'Bestimmung',
+      q_reg:'Regestenabdeckung',q_reg_d:'Datensätze mit Regeste',q_dup:'Dublettenanteil',q_dup_d:'Zweitrepräsentationen',q_span:'Zeitraum',q_oldest:'Ältester Entscheid',
+      f_rebuilt:'Korpus neu aufgebaut',f_scraped:'Kantonale Quellen abgerufen',f_scraped_fed:'Bundesquellen abgerufen',f_added:'Hinzugekommene Datensätze',f_sched:'Der Neuaufbau startet jede Nacht um 03:30 UTC, die Abrufe laufen täglich. Der Stand pro Quelle, inklusive bekannter Lücken, steht auf der Abdeckungsseite.',f_link:'Zur Abdeckungsseite',
+      da_lead:'Alles auf dieser Seite ist eine öffentliche Datei, die Sie direkt abrufen können.',da_stats:'Alle Zahlen, jede Nacht neu erzeugt',da_hist:'Tagesreihe hinter dem Wachstumsdiagramm',da_cov:'Abdeckung und bekannte Lücken pro Quelle',da_hf:'Parquet-Spiegel des Korpus',da_api:'Dieselben Zahlen über MCP und REST',
+      tbl:'Tabelle',chart:'Diagramm',other:'Übrige',na:'noch nicht berechnet',th_year:'Jahr',th_count:'Anzahl',th_date:'Datum',
+      ty_article:'Aufsätze',ty_book:'Bücher',ty_dissertation:'Dissertationen',ty_report:'Berichte',ty_commentary:'Kommentare',ty_working_paper:'Working Papers',ty_guidance:'Leitfäden',ty_reference_article:'Nachschlageartikel',ty_bachelor_thesis:'Bachelorarbeiten',
+      s_usage:'Nutzung',h_usage:'Wie stark der Korpus genutzt wird.',u_calls:'Aufrufe in den letzten {n} Tagen',u_client:'Nach Client',u_status:'Nach HTTP-Status',u_priv:'Die Zählungen sind differentiell privat (ε = {e}); Zellen unter k = {k} werden unterdrückt. Zu keiner Anfrage wird eine IP-Adresse gespeichert, Suchanfragen erscheinen hier nicht.',cl_browser:'Browser',cl_python:'Python-Skripte',cl_claude_hosted:'Claude (gehosteter Connector)',cl_claude_other:'Claude (andere Clients)',cl_chatgpt:'ChatGPT',cl_word:'Word-Add-in',cl_cli:'Research CLI',cl_other:'Übrige',
+      lang_de:'Deutsch',lang_fr:'Französisch',lang_it:'Italienisch',lang_en:'Englisch',lang_rm:'Rätoromanisch'},
+    fr:{kicker:'Le corpus en chiffres',kicker_sub:'chiffres quotidiens',h1:'Statistiques',lead:'Chaque chiffre de cette page est régénéré par la reconstruction nocturne et lu en direct dans le même fichier que la page d’accueil. Rien ici n’est saisi à la main.',asof_pre:'état au',hero_l:'enregistrements source',hero_delta:'depuis la reconstruction précédente',hero_delta0:'aucun changement lors de la dernière reconstruction',
+      t_records:'Enregistrements source',t_records_d:'Lignes de la table des décisions. Lorsqu’un tribunal publie une décision sous deux identifiants, les deux sont conservés et liés, jamais supprimés.',t_unique:'Décisions uniques',t_unique_d:'Enregistrements source moins {n} doublons inter-identifiants (GE, VD, SH, JAAC, NW, UR, PFPDT).',t_swiss:'Décisions des tribunaux et autorités suisses',t_swiss_d:'Décisions uniques moins {e} arrêts CEDH et les {v} lignes JAAC. Approximation : les doublons JAAC déjà fusionnés ci-dessus sont soustraits une seconde fois, le chiffre réel est un peu plus élevé.',stale:'Recalcul en cours après la reconstruction du jour.',
+      k_courts:'Tribunaux et autorités',k_laws:'Actes en vigueur',k_articles:'articles',k_edges:'Citations résolues',k_schol:'Références doctrinales',k_comm:'Commentaires',k_bot:'Messages du Conseil fédéral',k_echr:'Arrêts CEDH',k_practice:'Documents de pratique',
+      s_decisions:'Décisions',s_growth:'Croissance',s_laws:'Législation',s_mat:'Travaux préparatoires',s_schol:'Commentaires et doctrine',s_graph:'Graphe de citations',s_quality:'Qualité',s_fresh:'Fraîcheur',s_data:'Données',
+      h_decisions:'D’où viennent les enregistrements.',h_growth:'Comment le corpus a grandi.',h_laws:'Droit fédéral et cantonal.',h_mat:'Les messages du Conseil fédéral, mot pour mot.',h_schol:'La doctrine en libre accès.',h_graph:'Qui cite qui.',h_quality:'Ce que contiennent les enregistrements.',h_fresh:'Dernière reconstruction.',h_data:'Emportez les chiffres.',
+      d_fedcant:'Fédéral et cantonal',d_fed:'Fédéral',d_cant:'Cantonal',d_fed_note:'« Fédéral » inclut ici les arrêts CEDH et les décisions administratives JAAC.',d_lang:'Par langue',d_year:'Par année de décision',d_year_note:'Année de la décision, non la date de collecte. L’année en cours se remplit au fil des publications.',d_cantons:'Par canton',d_courts:'tribunaux',d_top:'Plus grandes collections',d_delta:'Ajoutés lors de la dernière reconstruction',d_echr:'Cour européenne des droits de l’homme',e_total:'arrêts dans le corpus',e_ch:'avec la Suisse comme État défendeur',e_gc:'Grande Chambre, affaires suisses',e_year:'contre la Suisse en {y}',e_recent:'Affaire suisse la plus récente',
+      g_h:'Enregistrements source et décisions uniques, un point par jour',g_note:'Tiré du fichier stats.json enregistré chaque jour. Les marches verticales sont des imports en masse ; la pente entre elles est l’apport nocturne.',g_total:'Enregistrements source',g_unique:'Décisions uniques',g_30:'30 derniers jours',g_perday:'{n} enregistrements par jour, imports en masse compris',g_since:'Depuis le {d}',g_last:'Dernier point',g_rows:'enregistrements',
+      l_fed:'Actes fédéraux',l_cant:'Actes cantonaux',l_total:'Actes en vigueur',l_art:'articles',l_by_canton:'Actes cantonaux par canton',l_upcoming:'Modifications à venir',l_inforce:'En vigueur',l_sr:'RS',l_act:'Acte',
+      m_docs:'Messages',m_par:'Paragraphes',m_par_d:'indexés en texte intégral',m_links:'Liens vers des articles',m_links_d:'paragraphes rattachés à un article de loi précis',m_years:'Années {a}–{b}',m_lang:'Par langue',
+      c_comm:'Commentaires',c_comm_d:'article par article, de l’Onlinekommentar et d’éditeurs partenaires',c_total:'Références doctrinales',c_total_d:'issues de {n} sources en libre accès',c_src:'Par source',c_type:'Par type',
+      gr_dec:'décision → décision',gr_stat:'décision → loi',gr_edges:'arêtes résolues',gr_mostd:'Décision la plus citée',gr_mosts:'Disposition la plus citée',gr_cites:'citations',gr_refs:'renvois',gr_top_d:'Les cinq décisions les plus citées',gr_top_s:'Les cinq dispositions les plus citées',th_decision:'Décision',th_provision:'Disposition',
+      q_reg:'Couverture des regestes',q_reg_d:'enregistrements avec regeste',q_dup:'Part de doublons',q_dup_d:'secondes représentations',q_span:'Période couverte',q_oldest:'Décision la plus ancienne',
+      f_rebuilt:'Corpus reconstruit',f_scraped:'Sources cantonales collectées',f_scraped_fed:'Sources fédérales collectées',f_added:'Enregistrements ajoutés',f_sched:'La reconstruction démarre chaque nuit à 03:30 UTC et les collectes tournent chaque jour. L’état par source, lacunes connues comprises, figure sur la page Couverture.',f_link:'Voir la page Couverture',
+      da_lead:'Tout ce qui figure sur cette page est un fichier public que vous pouvez récupérer directement.',da_stats:'Tous les chiffres, régénérés chaque nuit',da_hist:'Série quotidienne derrière le graphique de croissance',da_cov:'Couverture et lacunes connues par source',da_hf:'Miroir Parquet du corpus',da_api:'Les mêmes chiffres via MCP et REST',
+      tbl:'Tableau',chart:'Graphique',other:'Autres',na:'pas encore calculé',th_year:'Année',th_count:'Nombre',th_date:'Date',
+      ty_article:'Articles',ty_book:'Livres',ty_dissertation:'Thèses',ty_report:'Rapports',ty_commentary:'Commentaires',ty_working_paper:'Working papers',ty_guidance:'Guides',ty_reference_article:'Articles de référence',ty_bachelor_thesis:'Travaux de bachelor',
+      s_usage:'Utilisation',h_usage:'À quel point il est utilisé.',u_calls:'appels au cours des {n} derniers jours',u_client:'Par client',u_status:'Par statut HTTP',u_priv:'Les comptages sont différentiellement privés (ε = {e}) ; les cellules sous k = {k} sont supprimées. Aucune adresse IP n’est conservée avec une requête et aucune requête de recherche n’apparaît ici.',cl_browser:'Navigateur',cl_python:'Scripts Python',cl_claude_hosted:'Claude (connecteur hébergé)',cl_claude_other:'Claude (autres clients)',cl_chatgpt:'ChatGPT',cl_word:'Complément Word',cl_cli:'Research CLI',cl_other:'Autres',
+      lang_de:'Allemand',lang_fr:'Français',lang_it:'Italien',lang_en:'Anglais',lang_rm:'Romanche'},
+    it:{kicker:'Il corpus in cifre',kicker_sub:'cifre giornaliere',h1:'Statistiche',lead:'Ogni cifra di questa pagina è rigenerata dalla ricostruzione notturna e letta in tempo reale dallo stesso file usato dalla pagina iniziale. Nulla è inserito a mano.',asof_pre:'aggiornato al',hero_l:'record di origine',hero_delta:'dalla ricostruzione precedente',hero_delta0:'nessuna variazione nell’ultima ricostruzione',
+      t_records:'Record di origine',t_records_d:'Righe della tabella delle decisioni. Se un tribunale pubblica una decisione sotto due identificativi, entrambi vengono conservati e collegati, mai cancellati.',t_unique:'Decisioni uniche',t_unique_d:'Record di origine meno {n} duplicati tra identificativi (GE, VD, SH, GAAC, NW, UR, IFPDT).',t_swiss:'Decisioni di tribunali e autorità svizzeri',t_swiss_d:'Decisioni uniche meno {e} sentenze CEDU e le {v} righe GAAC. Approssimazione: i duplicati GAAC già uniti sopra vengono sottratti una seconda volta, il valore reale è leggermente più alto.',stale:'In ricalcolo dopo la ricostruzione odierna.',
+      k_courts:'Tribunali e autorità',k_laws:'Atti in vigore',k_articles:'articoli',k_edges:'Citazioni risolte',k_schol:'Riferimenti dottrinali',k_comm:'Commentari',k_bot:'Messaggi del Consiglio federale',k_echr:'Sentenze CEDU',k_practice:'Documenti di prassi',
+      s_decisions:'Decisioni',s_growth:'Crescita',s_laws:'Legislazione',s_mat:'Materiali legislativi',s_schol:'Commentari e dottrina',s_graph:'Grafo delle citazioni',s_quality:'Qualità',s_fresh:'Aggiornamento',s_data:'Dati',
+      h_decisions:'Da dove provengono i record.',h_growth:'Come è cresciuto il corpus.',h_laws:'Diritto federale e cantonale.',h_mat:'I messaggi del Consiglio federale, parola per parola.',h_schol:'Dottrina ad accesso aperto.',h_graph:'Chi cita chi.',h_quality:'Cosa contengono i record.',h_fresh:'Ultima ricostruzione.',h_data:'Porta con te le cifre.',
+      d_fedcant:'Federale e cantonale',d_fed:'Federale',d_cant:'Cantonale',d_fed_note:'«Federale» comprende qui anche le sentenze CEDU e le decisioni amministrative GAAC.',d_lang:'Per lingua',d_year:'Per anno della decisione',d_year_note:'Anno della decisione, non data di acquisizione. L’anno in corso si riempie man mano che i tribunali pubblicano.',d_cantons:'Per cantone',d_courts:'tribunali',d_top:'Raccolte più grandi',d_delta:'Aggiunti nell’ultima ricostruzione',d_echr:'Corte europea dei diritti dell’uomo',e_total:'sentenze nel corpus',e_ch:'con la Svizzera come Stato convenuto',e_gc:'Grande Camera, casi svizzeri',e_year:'contro la Svizzera nel {y}',e_recent:'Caso svizzero più recente',
+      g_h:'Record di origine e decisioni uniche, un punto al giorno',g_note:'Tratto dal file stats.json salvato ogni giorno. I gradini verticali sono importazioni in blocco; la pendenza tra di essi è l’apporto notturno.',g_total:'Record di origine',g_unique:'Decisioni uniche',g_30:'Ultimi 30 giorni',g_perday:'{n} record al giorno, importazioni in blocco incluse',g_since:'Dal {d}',g_last:'Ultimo punto',g_rows:'record',
+      l_fed:'Atti federali',l_cant:'Atti cantonali',l_total:'Atti in vigore',l_art:'articoli',l_by_canton:'Atti cantonali per cantone',l_upcoming:'Modifiche in arrivo',l_inforce:'In vigore',l_sr:'RS',l_act:'Atto',
+      m_docs:'Messaggi',m_par:'Paragrafi',m_par_d:'indicizzati a testo integrale',m_links:'Collegamenti ad articoli',m_links_d:'paragrafi collegati a un articolo di legge preciso',m_years:'Anni {a}–{b}',m_lang:'Per lingua',
+      c_comm:'Commentari',c_comm_d:'articolo per articolo, dall’Onlinekommentar e da editori partner',c_total:'Riferimenti dottrinali',c_total_d:'da {n} fonti ad accesso aperto',c_src:'Per fonte',c_type:'Per tipo',
+      gr_dec:'decisione → decisione',gr_stat:'decisione → legge',gr_edges:'archi risolti',gr_mostd:'Decisione più citata',gr_mosts:'Disposizione più citata',gr_cites:'citazioni',gr_refs:'rinvii',gr_top_d:'Le cinque decisioni più citate',gr_top_s:'Le cinque disposizioni più citate',th_decision:'Decisione',th_provision:'Disposizione',
+      q_reg:'Copertura dei regesti',q_reg_d:'record con regesto',q_dup:'Quota di duplicati',q_dup_d:'seconde rappresentazioni',q_span:'Periodo coperto',q_oldest:'Decisione più antica',
+      f_rebuilt:'Corpus ricostruito',f_scraped:'Fonti cantonali raccolte',f_scraped_fed:'Fonti federali raccolte',f_added:'Record aggiunti',f_sched:'La ricostruzione parte ogni notte alle 03:30 UTC e le raccolte girano ogni giorno. Lo stato per fonte, lacune note comprese, è nella pagina Copertura.',f_link:'Vai alla pagina Copertura',
+      da_lead:'Tutto ciò che vedi qui è un file pubblico che puoi scaricare direttamente.',da_stats:'Tutte le cifre, rigenerate ogni notte',da_hist:'Serie giornaliera dietro il grafico di crescita',da_cov:'Copertura e lacune note per fonte',da_hf:'Mirror Parquet del corpus',da_api:'Le stesse cifre via MCP e REST',
+      tbl:'Tabella',chart:'Grafico',other:'Altri',na:'non ancora calcolato',th_year:'Anno',th_count:'Numero',th_date:'Data',
+      ty_article:'Articoli',ty_book:'Libri',ty_dissertation:'Tesi di dottorato',ty_report:'Rapporti',ty_commentary:'Commentari',ty_working_paper:'Working paper',ty_guidance:'Guide',ty_reference_article:'Voci di riferimento',ty_bachelor_thesis:'Tesi di bachelor',
+      s_usage:'Utilizzo',h_usage:'Quanto viene usato.',u_calls:'chiamate negli ultimi {n} giorni',u_client:'Per client',u_status:'Per stato HTTP',u_priv:'I conteggi sono differenzialmente privati (ε = {e}); le celle sotto k = {k} sono soppresse. Nessun indirizzo IP è conservato con una richiesta e nessuna ricerca compare qui.',cl_browser:'Browser',cl_python:'Script Python',cl_claude_hosted:'Claude (connettore ospitato)',cl_claude_other:'Claude (altri client)',cl_chatgpt:'ChatGPT',cl_word:'Componente Word',cl_cli:'Research CLI',cl_other:'Altri',
+      lang_de:'Tedesco',lang_fr:'Francese',lang_it:'Italiano',lang_en:'Inglese',lang_rm:'Romancio'},
+    rm:{kicker:'Il corpus en cifras',kicker_sub:'cifras da mintga di',h1:'Statistica',lead:'Mintga cifra sin questa pagina vegn regenerada da la reconstrucziun da notg e legida directamain da la medema datoteca sco la pagina principala. Nagut è endatà a maun.',asof_pre:'stadi dals',hero_l:'datasets da funtauna',hero_delta:'dapi l’ultima reconstrucziun',hero_delta0:'nagina midada en l’ultima reconstrucziun',
+      t_records:'Datasets da funtauna',t_records_d:'Lingias en la tabella da las decisiuns. Sche ina dretgira publitgescha ina decisiun sut dus identificaturs, restan tuts dus e vegnan colliads, mai stizzads.',t_unique:'Decisiuns unicas',t_unique_d:'Datasets da funtauna minus {n} dublettas tranter identificaturs (GE, VD, SH, VPB, NW, UR, EDÖB).',t_swiss:'Decisiuns da dretgiras ed autoritads svizras',t_swiss_d:'Decisiuns unicas minus {e} sentenzas CEDU e las {v} lingias VPB. Approximaziun: dublettas VPB gia unidas survart vegnan deducidas anc ina giada, la cifra vaira è in pau pli auta.',stale:'Vegn calculà da nov suenter la reconstrucziun actuala.',
+      k_courts:'Dretgiras ed autoritads',k_laws:'Leschas en vigur',k_articles:'artitgels',k_edges:'Citats resolvids',k_schol:'Referenzas da litteratura',k_comm:'Commentaris',k_bot:'Messadis dal Cussegl federal',k_echr:'Sentenzas CEDU',k_practice:'Documents da pratica',
+      s_decisions:'Decisiuns',s_growth:'Creschientscha',s_laws:'Legislaziun',s_mat:'Materialias',s_schol:'Commentaris e litteratura',s_graph:'Graf da citats',s_quality:'Qualitad',s_fresh:'Actualitad',s_data:'Datas',
+      h_decisions:'Danunder ch’ils datasets derivan.',h_growth:'Co ch’il corpus è creschì.',h_laws:'Dretg federal e chantunal.',h_mat:'Ils messadis dal Cussegl federal, pled per pled.',h_schol:'Litteratura giuridica averta.',h_graph:'Tgi che cita tgi.',h_quality:'Tge ch’ils datasets cuntegnan.',h_fresh:'Cura ch’il corpus è vegnì reconstruì l’ultima giada.',h_data:'Prendai las cifras cun vus.',
+      d_fedcant:'Federal e chantunal',d_fed:'Federal',d_cant:'Chantunal',d_fed_note:'«Federal» cumpiglia qua era las sentenzas CEDU e las decisiuns administrativas VPB.',d_lang:'Tenor lingua',d_year:'Tenor onn da la decisiun',d_year_note:'Onn da la decisiun, betg data da registraziun. L’onn current s’emplenescha cun las publicaziuns da las dretgiras.',d_cantons:'Tenor chantun',d_courts:'dretgiras',d_top:'Las pli grondas collecziuns',d_delta:'Agiuntà en l’ultima reconstrucziun',d_echr:'Curt europeica dals dretgs umans',e_total:'sentenzas en il corpus',e_ch:'cun la Svizra sco stadi defendent',e_gc:'Gronda chombra, cas svizzers',e_year:'cunter la Svizra l’onn {y}',e_recent:'Il pli nov cas svizzer',
+      g_h:'Datasets da funtauna e decisiuns unicas, in punct per di',g_note:'Prendì da la datoteca stats.json memorisada mintga di. Ils stgalims verticals èn imports en massa; la pendenza tranter els è l’apport da notg.',g_total:'Datasets da funtauna',g_unique:'Decisiuns unicas',g_30:'Ultims 30 dis',g_perday:'{n} datasets per di, imports en massa inclus',g_since:'Dapi ils {d}',g_last:'Ultim punct',g_rows:'datasets',
+      l_fed:'Leschas federalas',l_cant:'Leschas chantunalas',l_total:'Leschas en vigur',l_art:'artitgels',l_by_canton:'Leschas chantunalas tenor chantun',l_upcoming:'Midadas che vegnan',l_inforce:'En vigur',l_sr:'CS',l_act:'Lescha',
+      m_docs:'Messadis',m_par:'Paragrafs',m_par_d:'indexads en text cumplet',m_links:'Colliaziuns cun artitgels',m_links_d:'paragrafs attribuids ad in artitgel da lescha precis',m_years:'Onns {a}–{b}',m_lang:'Tenor lingua',
+      c_comm:'Commentaris',c_comm_d:'artitgel per artitgel, da l’Onlinekommentar e da chasas edituras partenarias',c_total:'Referenzas da litteratura',c_total_d:'da {n} funtaunas avertas',c_src:'Tenor funtauna',c_type:'Tenor tip',
+      gr_dec:'decisiun → decisiun',gr_stat:'decisiun → lescha',gr_edges:'colliaziuns resolvidas',gr_mostd:'Decisiun citada il pli savens',gr_mosts:'Disposiziun citada il pli savens',gr_cites:'citats',gr_refs:'renviaments',gr_top_d:'Las tschintg decisiuns citadas il pli savens',gr_top_s:'Las tschintg disposiziuns citadas il pli savens',th_decision:'Decisiun',th_provision:'Disposiziun',
+      q_reg:'Cuvrida da regests',q_reg_d:'datasets cun regest',q_dup:'Part da dublettas',q_dup_d:'segundas represchentaziuns',q_span:'Perioda cuvrida',q_oldest:'La pli veglia decisiun',
+      f_rebuilt:'Corpus reconstruì',f_scraped:'Funtaunas chantunalas retratgas',f_scraped_fed:'Funtaunas federalas retratgas',f_added:'Datasets agiuntads',f_sched:'La reconstrucziun cumenza mintga notg a las 03:30 UTC, las retschertgas curran mintga di. Il stadi per funtauna, inclusiv lacunas enconuschentas, sa chatta sin la pagina da cuvrida.',f_link:'Guardar la pagina da cuvrida',
+      da_lead:'Tut sin questa pagina è ina datoteca publica che vus pudais retrair directamain.',da_stats:'Tut las cifras, regeneradas mintga notg',da_hist:'Seria da mintga di davos il diagram da creschientscha',da_cov:'Cuvrida e lacunas enconuschentas per funtauna',da_hf:'Spievel Parquet dal corpus',da_api:'Las medemas cifras via MCP e REST',
+      tbl:'Tabella',chart:'Diagram',other:'Auters',na:'anc betg calculà',th_year:'Onn',th_count:'Dumber',th_date:'Data',
+      ty_article:'Artitgels',ty_book:'Cudeschs',ty_dissertation:'Dissertaziuns',ty_report:'Rapports',ty_commentary:'Commentaris',ty_working_paper:'Working papers',ty_guidance:'Guids',ty_reference_article:'Artitgels da referenza',ty_bachelor_thesis:'Lavurs da bachelor',
+      s_usage:'Utilisaziun',h_usage:'Quant ch’il corpus vegn duvrà.',u_calls:'clamadas en ils ultims {n} dis',u_client:'Tenor client',u_status:'Tenor status HTTP',u_priv:'Las dumbraziuns èn differenzialmain privatas (ε = {e}); cellas sut k = {k} vegnan supprimidas. Nagina adressa IP na vegn memorisada cun ina dumonda e naginas dumondas da tschertga na cumparan qua.',cl_browser:'Browser',cl_python:'Scripts Python',cl_claude_hosted:'Claude (connectur hostà)',cl_claude_other:'Claude (auters clients)',cl_chatgpt:'ChatGPT',cl_word:'Add-in Word',cl_cli:'Research CLI',cl_other:'Auters',
+      lang_de:'Tudestg',lang_fr:'Franzos',lang_it:'Talian',lang_en:'Englais',lang_rm:'Rumantsch'},
+    en:{kicker:'The corpus in numbers',kicker_sub:'daily figures',h1:'Statistics',lead:'Every number on this page is regenerated by the nightly rebuild and read live from the same file the homepage uses. Nothing here is typed by hand.',asof_pre:'as of',hero_l:'source records',hero_delta:'since the previous rebuild',hero_delta0:'no change in the last rebuild',
+      t_records:'Source records',t_records_d:'Rows in the decisions table. Where a court publishes one decision under two identifiers, both are kept and linked, never deleted.',t_unique:'Unique decisions',t_unique_d:'Source records minus {n} cross-identifier duplicates (GE, VD, SH, VPB, NW, UR, EDÖB).',t_swiss:'Decisions of Swiss courts and authorities',t_swiss_d:'Unique decisions minus {e} ECtHR judgments and the {v} VPB rows. Approximate: VPB duplicates already collapsed above are subtracted again, so the true figure is slightly higher.',stale:'Being recomputed after the current rebuild.',
+      k_courts:'Courts and authorities',k_laws:'Laws in force',k_articles:'articles',k_edges:'Resolved citations',k_schol:'Scholarship records',k_comm:'Commentaries',k_bot:'Federal Council dispatches',k_echr:'ECtHR judgments',k_practice:'Practice documents',
+      s_decisions:'Decisions',s_growth:'Growth',s_laws:'Legislation',s_mat:'Legislative materials',s_schol:'Commentaries and scholarship',s_graph:'Citation graph',s_quality:'Quality',s_fresh:'Freshness',s_data:'Data',
+      h_decisions:'Where the records come from.',h_growth:'How the corpus has grown.',h_laws:'Federal and cantonal law.',h_mat:'Federal Council dispatches, verbatim.',h_schol:'Open-access legal writing.',h_graph:'Who cites whom.',h_quality:'What the records contain.',h_fresh:'When it was last rebuilt.',h_data:'Take the numbers with you.',
+      d_fedcant:'Federal and cantonal',d_fed:'Federal',d_cant:'Cantonal',d_fed_note:'“Federal” here includes the ECtHR judgments and the VPB administrative rulings.',d_lang:'By language',d_year:'By decision year',d_year_note:'Decision year, not the date we ingested it. The current year keeps filling as courts publish.',d_cantons:'By canton',d_courts:'courts',d_top:'Largest collections',d_delta:'Added in the last rebuild',d_echr:'European Court of Human Rights',e_total:'judgments in the corpus',e_ch:'with Switzerland as respondent',e_gc:'Grand Chamber, Swiss cases',e_year:'against Switzerland in {y}',e_recent:'Most recent Swiss case',
+      g_h:'Source records and unique decisions, one point per day',g_note:'Taken from the stats.json committed each day. Vertical steps are bulk imports; the slope between them is the nightly intake.',g_total:'Source records',g_unique:'Unique decisions',g_30:'Last 30 days',g_perday:'{n} records per day, bulk imports included',g_since:'Since {d}',g_last:'Last data point',g_rows:'records',
+      l_fed:'Federal laws',l_cant:'Cantonal laws',l_total:'Laws in force',l_art:'articles',l_by_canton:'Cantonal laws by canton',l_upcoming:'Upcoming amendments',l_inforce:'In force',l_sr:'SR',l_act:'Act',
+      m_docs:'Dispatches',m_par:'Paragraphs',m_par_d:'full-text indexed',m_links:'Article links',m_links_d:'paragraphs tied to a specific article of law',m_years:'Years {a}–{b}',m_lang:'By language',
+      c_comm:'Commentaries',c_comm_d:'article by article, from Onlinekommentar and partner publishers',c_total:'Scholarship records',c_total_d:'from {n} open-access sources',c_src:'By source',c_type:'By type',
+      gr_dec:'decision → decision',gr_stat:'decision → statute',gr_edges:'resolved edges',gr_mostd:'Most cited decision',gr_mosts:'Most cited provision',gr_cites:'citations',gr_refs:'references',gr_top_d:'Five most cited decisions',gr_top_s:'Five most cited provisions',th_decision:'Decision',th_provision:'Provision',
+      q_reg:'Headnote coverage',q_reg_d:'records with a Regeste',q_dup:'Duplicate share',q_dup_d:'second representations',q_span:'Time span',q_oldest:'Oldest decision',
+      f_rebuilt:'Corpus rebuilt',f_scraped:'Cantonal sources scraped',f_scraped_fed:'Federal sources scraped',f_added:'Records added',f_sched:'The rebuild starts at 03:30 UTC every night and the scrapers run every day. Per-source status, including known gaps, is on the coverage page.',f_link:'See the coverage page',
+      da_lead:'Everything on this page is a public file you can fetch directly.',da_stats:'All figures, regenerated nightly',da_hist:'Daily series behind the growth chart',da_cov:'Per-source coverage and known gaps',da_hf:'Parquet mirror of the corpus',da_api:'The same figures via MCP and REST',
+      tbl:'Table',chart:'Chart',other:'Other',na:'not computed yet',th_year:'Year',th_count:'Count',th_date:'Date',
+      ty_article:'Articles',ty_book:'Books',ty_dissertation:'Dissertations',ty_report:'Reports',ty_commentary:'Commentaries',ty_working_paper:'Working papers',ty_guidance:'Guidance',ty_reference_article:'Reference articles',ty_bachelor_thesis:'Bachelor theses',
+      s_usage:'Usage',h_usage:'How much it is used.',u_calls:'calls in the last {n} days',u_client:'By client',u_status:'By HTTP status',u_priv:'Counts are differentially private (ε = {e}); cells below k = {k} are suppressed. No IP address is stored with a query, and no search queries appear here.',cl_browser:'Browser',cl_python:'Python scripts',cl_claude_hosted:'Claude (hosted connector)',cl_claude_other:'Claude (other clients)',cl_chatgpt:'ChatGPT',cl_word:'Word add-in',cl_cli:'Research CLI',cl_other:'Other',
+      lang_de:'German',lang_fr:'French',lang_it:'Italian',lang_en:'English',lang_rm:'Romansh'}
+  },
+  onReady:function(O){
+    'use strict';
+    var t=O.t, fmt=O.fmt, esc=O.esc, lang=O.lang;
+    var LOC={de:'de-CH',fr:'fr-CH',it:'it-CH',rm:'rm-CH',en:'en-GB'}[lang]||'de-CH';
+    function T(k,v){var s=t(k); if(v)for(var x in v)s=s.split('{'+x+'}').join(v[x]); return s;}
+    function $(id){return document.getElementById(id);}
+    function set(id,html){var e=$(id); if(e) e.innerHTML=html;}
+    function txt(id,s){var e=$(id); if(e) e.textContent=s;}
+    function num(n){return (n==null||isNaN(n))?'—':fmt(Math.round(n));}
+    function compact(n){ if(n==null)return'—'; var a=Math.abs(n); if(a>=1e6)return (n/1e6).toFixed(a>=1e7?1:2)+'M'; if(a>=1e3)return Math.round(n/1e3)+'k'; return String(n);}
+    function axisFmt(v,max){ if(v===0)return'0'; if(max>=1e6)return (v/1e6).toFixed(2).replace(/0$/,'')+'M'; if(max>=1e4)return Math.round(v/1e3)+'k'; return fmt(v);}
+    function pct(a,b){return (b?100*a/b:0);}
+    function isoDate(s){return s?String(s).slice(0,10):'—';}
+    function fmtDate(s){ if(!s)return'—'; var d=new Date(s.length<=10?s+'T00:00:00Z':s); if(isNaN(d))return s; return d.toLocaleDateString(LOC,{year:'numeric',month:'short',day:'numeric',timeZone:'UTC'});}
+    function fmtDateTime(s){ if(!s)return'—'; var d=new Date(s); if(isNaN(d))return s; return d.toISOString().slice(0,16).replace('T',' ')+' UTC';}
+    function sum(arr,f){return arr.reduce(function(a,x){return a+(f?f(x):x);},0);}
+    var CURYEAR=new Date().getUTCFullYear();
+
+    // ── Labels ────────────────────────────────────────────────────────────
+    var CN={AG:'Aargau',AI:'Appenzell I.Rh.',AR:'Appenzell A.Rh.',BE:'Bern',BL:'Basel-Landschaft',BS:'Basel-Stadt',FR:'Fribourg',GE:'Genève',GL:'Glarus',GR:'Graubünden',JU:'Jura',LU:'Luzern',NE:'Neuchâtel',NW:'Nidwalden',OW:'Obwalden',SG:'St. Gallen',SH:'Schaffhausen',SO:'Solothurn',SZ:'Schwyz',TG:'Thurgau',TI:'Ticino',UR:'Uri',VD:'Vaud',VS:'Valais',ZG:'Zug',ZH:'Zürich'};
+    var CANTONS=Object.keys(CN);
+    var COURT_NAMES={bger:'Bundesgericht (Tribunal fédéral)',bge:'BGE — amtliche Sammlung',bge_historical:'BGE — historisch (1875–1985)',bger_evg:'EVG — Eidg. Versicherungsgericht',bvger:'Bundesverwaltungsgericht (TAF)',bstger:'Bundesstrafgericht (TPF)',bpatger:'Bundespatentgericht (TFB)',ch_bundesrat:'Bundesrat',ch_vb:'VPB / JAAC (1900–2016)',bge_egmr:'EGMR — BGE-Übersetzungen',ecthr_chamber:'ECtHR — Chamber',ecthr_grand_chamber:'ECtHR — Grand Chamber',hudoc_ch:'HUDOC — Schweiz',ta_sst:'Eidg. Schiedskommission',emark:'EMARK — Asylrekurskommission',mkg:'Militärkassationsgericht',finma:'FINMA',finma_versicherungsrecht:'FINMA Versicherungsrecht',weko:'WEKO',edoeb:'EDÖB',ubi:'UBI',elcom:'ElCom',postcom:'PostCom',comcom:'ComCom',bazg:'BAZG',esbk:'ESBK',eschk:'ESchK',rab:'RAB',preisueberwacher:'Preisüberwacher',vd_findinfo:'Vaud — FindInfo (Archiv)',vd_omni:'Vaud — Omni (Archiv)',vd_gerichte:'Vaud — Tribunal cantonal',ge_gerichte:'Genève — Pouvoir judiciaire',ti_gerichte:'Ticino — Tribunali',zh_sozialversicherungsgericht:'Zürich — Sozialversicherungsgericht',zh_obergericht:'Zürich — Obergericht',zh_verwaltungsgericht:'Zürich — Verwaltungsgericht',zh_baurekursgericht:'Zürich — Baurekursgericht',zh_steuerrekursgericht:'Zürich — Steuerrekursgericht',zh_mietgericht:'Zürich — Mietgericht',zh_arbeitsgericht_sammlung:'Zürich — Arbeitsgericht (Sammlung)',bs_appellationsgericht:'Basel-Stadt — Appellationsgericht',sg_versicherungsgericht:'St. Gallen — Versicherungsgericht',sg_publikationen:'St. Gallen — Gerichte',be_zivilstraf:'Bern — Zivil-/Strafgerichte',be_verwaltungsgericht:'Bern — Verwaltungsgericht',be_bvd:'Bern — BVD',be_weitere:'Bern — weitere',be_steuerrekurs:'Bern — Steuerrekurskommission',ag_verwaltungsgericht:'Aargau — Verwaltungsgericht',ag_strafgericht:'Aargau — Strafgericht',ag_spezialverwaltungsgericht:'Aargau — Spezialverwaltungsgericht',zg_gvp:'Zug — GVP',zg_obergericht:'Zug — Obergericht',zg_verwaltungsgericht:'Zug — Verwaltungsgericht'};
+    function courtName(code,canton){ if(COURT_NAMES[code])return COURT_NAMES[code]; var cn=CN[canton]||canton||''; var m=code.match(/^([a-z]{2})_(.+)$/); if(m&&CN[m[1].toUpperCase()]){ var rest=m[2].replace(/_/g,' '); if(/^gerichte$|^publikationen$/.test(rest))return CN[m[1].toUpperCase()]+' — Gerichte'; return CN[m[1].toUpperCase()]+' — '+rest.charAt(0).toUpperCase()+rest.slice(1);} return code;}
+    var SRC={zora_law:'ZORA (UZH)',boris_law:'BORIS (Bern)',unige_law:'Archive ouverte (UNIGE)',e_periodica_law:'e-periodica — Recht',e_periodica_polsci:'e-periodica — Politikwissenschaft',e_periodica_pubadmin:'e-periodica — Verwaltung',zhaw_digitalcollection:'ZHAW digitalcollection',libra_unine:'LIBRA (UniNE)',eth_research_collection:'ETH Research Collection',fhnw_irf:'FHNW IRF',onlinekommentar:'Onlinekommentar',edoc_unibas_law:'edoc (Basel)',sui_generis:'sui generis',medialex:'medialex',eizpublishing:'EIZ Publishing',leges:'LeGes',ex_ante:'ex ante',thegoodboard:'The Good Board',cognitio:'cognitio',cfs:'CfS',leoh:'LeoH',repositorium_ch:'Repositorium.ch',alexandria_law:'Alexandria (HSG)'};
+    function srcName(k){return SRC[k]||k.replace(/_/g,' ');}
+    function typeName(k){var v=t('ty_'+k); return v==='ty_'+k? k.replace(/_/g,' ') : v;}
+    function langName(k){var v=t('lang_'+k); return v==='lang_'+k? k.toUpperCase() : v;}
+    var CLIENT={browser_chrome:'Browser (Chrome)',browser_safari:'Browser (Safari)',browser_firefox:'Browser (Firefox)',browser_edge:'Browser (Edge)',browser_other:'Browser',claude_hosted:'Claude (hosted connector)',claude_desktop:'Claude Desktop',claude_code:'Claude Code',claude_other:'Claude (other clients)',chatgpt:'ChatGPT',openai:'ChatGPT',word_addin:'Word add-in',ocl_cli:'Research CLI',cli:'Research CLI',python_script:'Python scripts',go_script:'Go scripts',node_script:'Node.js scripts',curl:'curl / wget',bot:'Crawlers',crawler:'Crawlers'};
+    function clientName(k){ if(CLIENT[k])return CLIENT[k]; if(k==='other')return t('other'); if(/^browser_/.test(k))return 'Browser ('+k.slice(8).replace(/_/g,' ')+')'; if(/_script$/.test(k))return k.slice(0,-7).replace(/_/g,' ').replace(/^./,function(c){return c.toUpperCase();})+' scripts'; return k.replace(/_/g,' ').replace(/^./,function(c){return c.toUpperCase();}); }
+    function isECtHR(c){return /^(ecthr|hudoc|bge_egmr)/.test(c);}
+
+    // ── Components ────────────────────────────────────────────────────────
+    function barList(id,rows,opts){ // rows: [{label,value,sub,small}] sorted by caller
+      opts=opts||{}; var el=$(id); if(!el)return; if(!rows.length){el.innerHTML='<span class="muted">—</span>';return;}
+      var max=opts.max||Math.max.apply(null,rows.map(function(r){return r.value||0;}))||1;
+      var total=opts.total||sum(rows,function(r){return r.value||0;});
+      el.innerHTML=rows.map(function(r){
+        var w=Math.max(0.6,100*(r.value||0)/max);
+        var share=opts.share?'<small>'+pct(r.value,total).toFixed(opts.share===1?0:1)+'%</small>':'';
+        return '<div class="bl-r" title="'+esc(r.label)+': '+fmt(r.value)+'"><span class="bl-l">'+esc(r.label)+(r.sub?'<small>'+esc(r.sub)+'</small>':'')+'</span><span class="bl-b"><i style="width:'+w.toFixed(2)+'%"></i></span><span class="bl-v tnum">'+fmt(r.value)+share+'</span></div>';
+      }).join('');
+    }
+    function tableHTML(cols,rows){ // cols: [{h, n:true}], rows: [[...]]
+      return '<table class="tbl"><thead><tr>'+cols.map(function(c){return '<th'+(c.n?' class="n"':'')+'>'+esc(c.h)+'</th>';}).join('')+'</tr></thead><tbody>'+
+        rows.map(function(r){return '<tr>'+r.map(function(v,i){return '<td class="'+(cols[i].n?'n':'name')+'">'+(v==null?'—':(cols[i].raw?v:esc(String(v))))+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table>';
+    }
+    function wireTabs(fig){ fig.querySelectorAll('.tabs button').forEach(function(b){ b.addEventListener('click',function(){ fig.querySelectorAll('.tabs button').forEach(function(x){x.classList.toggle('on',x===b);}); fig.dataset.view=b.dataset.view; }); }); }
+    function ticks(min,max,n){ var span=max-min||1, s0=span/n, p=Math.pow(10,Math.floor(Math.log10(s0))), m=s0/p, step=(m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p, out=[]; for(var v=Math.ceil(min/step)*step; v<=max+1e-9; v+=step) out.push(+v.toFixed(6)); return {ticks:out,step:step}; }
+    function niceMax(v){ var p=Math.pow(10,Math.floor(Math.log10(v||1))), m=v/p; return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p; }
+    var RERENDER=[]; var rsT=null; window.addEventListener('resize',function(){ clearTimeout(rsT); rsT=setTimeout(function(){ RERENDER.forEach(function(f){f();}); },160); });
+    function chartW(ch){ var w=ch.clientWidth||ch.parentNode.clientWidth||920; return Math.max(320,Math.round(w)); }
+    function tipFor(fig){ var tip=fig.querySelector('.tip'); if(!tip){tip=document.createElement('div');tip.className='tip';fig.appendChild(tip);} return tip; }
+
+    function columnChart(fig,chId,pts,o){ // pts: [{x,y}]
+      var ch=$(chId); if(!ch)return; if(!pts.length){ch.innerHTML='<span class="muted">—</span>';return;}
+      if(!o._reg){o._reg=true; RERENDER.push(function(){columnChart(fig,chId,pts,o);});}
+      var W=chartW(ch), narrow=W<560, H=narrow?200:240,L=narrow?40:48,R=10,Tm=14,B=28, iw=W-L-R, ih=H-Tm-B;
+      var ymax=niceMax(Math.max.apply(null,pts.map(function(p){return p.y;}))||1);
+      var tk=ticks(0,ymax,4).ticks; var n=pts.length, slot=iw/n, bw=Math.max(1.5,Math.min(24,slot-Math.min(2,slot*0.25)));
+      var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'')+'">';
+      tk.forEach(function(v){ var y=Tm+ih-(v/ymax)*ih; s+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'"/><text x="'+(L-7)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+axisFmt(v,ymax)+'</text>'; });
+      s+='<line class="axis" x1="'+L+'" x2="'+(W-R)+'" y1="'+(Tm+ih)+'" y2="'+(Tm+ih)+'"/>';
+      pts.forEach(function(p,i){ var h=(p.y/ymax)*ih, x=L+i*slot+(slot-bw)/2, y=Tm+ih-h; s+='<rect class="bar" data-i="'+i+'" x="'+x.toFixed(2)+'" y="'+y.toFixed(2)+'" width="'+bw.toFixed(2)+'" height="'+Math.max(0,h).toFixed(2)+'"'+(bw>=6?' rx="2"':'')+'/>'; });
+      pts.forEach(function(p,i){ if(o.xTick(p.x,i,n,narrow)){ var x=L+i*slot+slot/2; s+='<text x="'+x.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+esc(String(p.x))+'</text>'; } });
+      s+='<rect class="hit" x="'+L+'" y="0" width="'+iw+'" height="'+H+'"/></svg>';
+      ch.innerHTML=s;
+      var svg=ch.querySelector('svg'), bars=ch.querySelectorAll('.bar'), tip=tipFor(fig), cur=-1;
+      function move(cx,cy){ var r=svg.getBoundingClientRect(), x=(cx-r.left)*(W/r.width), i=Math.floor((x-L)/slot); if(i<0||i>=n){leave();return;} if(i!==cur){ if(cur>=0)bars[cur].classList.remove('on'); bars[i].classList.add('on'); cur=i; tip.innerHTML='<span class="k">'+esc(String(pts[i].x))+'</span><br><b>'+fmt(pts[i].y)+'</b>'; } var fr=fig.getBoundingClientRect(); var bx=L+i*slot+slot/2; tip.style.left=(r.left-fr.left+bx*(r.width/W))+'px'; tip.style.top=(r.top-fr.top+parseFloat(bars[i].getAttribute('y'))*(r.height/H))+'px'; tip.classList.add('on'); }
+      function leave(){ if(cur>=0)bars[cur].classList.remove('on'); cur=-1; tip.classList.remove('on'); }
+      svg.addEventListener('mousemove',function(e){move(e.clientX,e.clientY);}); svg.addEventListener('mouseleave',leave);
+      svg.addEventListener('touchstart',function(e){var tt=e.touches[0]; move(tt.clientX,tt.clientY);},{passive:true}); svg.addEventListener('touchmove',function(e){var tt=e.touches[0]; move(tt.clientX,tt.clientY);},{passive:true}); svg.addEventListener('touchend',leave);
+    }
+
+    function lineChart(fig,chId,dates,series,o){ // series: [{cls:'acc'|'mut', label, vals:[num|null]}]
+      var ch=$(chId); if(!ch)return; var n=dates.length; if(n<2){ch.innerHTML='<span class="muted">—</span>';return;}
+      if(!o._reg){o._reg=true; RERENDER.push(function(){lineChart(fig,chId,dates,series,o);});}
+      var W=chartW(ch), narrow=W<560, H=narrow?240:280,L=narrow?48:56,R=narrow?64:76,Tm=narrow?30:16,B=30, iw=W-L-R, ih=H-Tm-B;
+      var all=[]; series.forEach(function(s){s.vals.forEach(function(v){if(v!=null)all.push(v);});});
+      var lo=Math.min.apply(null,all), hi=Math.max.apply(null,all), pad=(hi-lo)*0.08||1; var tk=ticks(lo-pad,hi+pad,4); var ymin=tk.ticks[0]-tk.step<lo-pad?tk.ticks[0]:tk.ticks[0]-tk.step; ymin=Math.min(ymin,lo-pad); var ymax=Math.max(tk.ticks[tk.ticks.length-1]+tk.step,hi+pad); var tks=ticks(ymin,ymax,5).ticks;
+      function X(i){return L+iw*(i/(n-1));} function Y(v){return Tm+ih-(v-ymin)/(ymax-ymin)*ih;}
+      var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'')+'">';
+      tks.forEach(function(v){ if(v<ymin||v>ymax)return; var y=Y(v); s+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'"/><text x="'+(L-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end">'+axisFmt(v,ymax)+'</text>'; });
+      // month ticks
+      var lastM=''; dates.forEach(function(d,i){ var m=d.slice(0,7); if(m!==lastM){ lastM=m; if(i===0&&n>40&&dates[1].slice(0,7)===m&&d.slice(8)!=='01'){} var lab=new Date(d+'T00:00:00Z').toLocaleDateString(LOC,{month:'short',timeZone:'UTC'}); s+='<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="'+(i===0?'start':'middle')+'">'+esc(lab)+'</text>'; } });
+      series.forEach(function(sr){ var d='', open=false; sr.vals.forEach(function(v,i){ if(v==null){open=false;return;} d+=(open?'L':'M')+X(i).toFixed(2)+' '+Y(v).toFixed(2); open=true; }); if(sr.cls==='acc'){ var a='', first=-1,last=-1; sr.vals.forEach(function(v,i){ if(v==null)return; if(first<0)first=i; last=i; }); if(first>=0){ a=d.split('M').filter(Boolean).map(function(seg){return 'M'+seg;}).join(''); } } s+='<path class="ln '+sr.cls+'" d="'+d+'"/>'; var li=-1; for(var i=n-1;i>=0;i--){if(sr.vals[i]!=null){li=i;break;}} if(li>=0){ s+='<circle class="dot '+sr.cls+'" cx="'+X(li).toFixed(2)+'" cy="'+Y(sr.vals[li]).toFixed(2)+'" r="4"/><text class="endl" x="'+(X(li)+10).toFixed(1)+'" y="'+(Y(sr.vals[li])+4).toFixed(1)+'">'+fmt(sr.vals[li])+'</text>'; } });
+      var annList=(o.ann||[]).slice(); if(narrow){ annList.sort(function(a,b){return (b.sum||0)-(a.sum||0);}); annList=annList.slice(0,2); }
+      annList.forEach(function(a){ var v=series[0].vals[a.i]; if(v==null)return; var x=X(a.i), y=Y(v); s+='<line class="ann" x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+(y-26).toFixed(1)+'" y2="'+(y-8).toFixed(1)+'"/><text class="annl" x="'+x.toFixed(1)+'" y="'+(y-30).toFixed(1)+'" text-anchor="middle">'+esc(a.label)+'</text>'; });
+      s+='<line class="xh" x1="0" x2="0" y1="'+Tm+'" y2="'+(Tm+ih)+'"/>';
+      series.forEach(function(sr,k){ s+='<circle class="dot '+sr.cls+' hv" data-k="'+k+'" r="4" style="opacity:0"/>'; });
+      s+='<rect class="hit" x="'+L+'" y="0" width="'+iw+'" height="'+H+'"/></svg>';
+      ch.innerHTML=s;
+      var svg=ch.querySelector('svg'), xh=svg.querySelector('.xh'), hv=svg.querySelectorAll('.hv'), tip=tipFor(fig);
+      function move(cx){ var r=svg.getBoundingClientRect(), x=(cx-r.left)*(W/r.width), i=Math.round((x-L)/iw*(n-1)); if(i<0||i>=n){leave();return;} var px=X(i); xh.setAttribute('x1',px); xh.setAttribute('x2',px); ch.classList.add('hover'); var html='<span class="k">'+esc(fmtDate(dates[i]))+'</span>'; series.forEach(function(sr,k){ var v=sr.vals[i]; if(v==null){hv[k].style.opacity=0;} else { hv[k].style.opacity=1; hv[k].setAttribute('cx',px); hv[k].setAttribute('cy',Y(v)); } html+='<br>'+esc(sr.label)+': <b>'+(v==null?'—':fmt(v))+'</b>'; }); tip.innerHTML=html; var fr=fig.getBoundingClientRect(); tip.style.left=(r.left-fr.left+px*(r.width/W))+'px'; tip.style.top=(r.top-fr.top+Tm*(r.height/H))+'px'; tip.classList.add('on'); }
+      function leave(){ ch.classList.remove('hover'); hv.forEach(function(c){c.style.opacity=0;}); tip.classList.remove('on'); }
+      svg.addEventListener('mousemove',function(e){move(e.clientX);}); svg.addEventListener('mouseleave',leave);
+      svg.addEventListener('touchstart',function(e){move(e.touches[0].clientX);},{passive:true}); svg.addEventListener('touchmove',function(e){move(e.touches[0].clientX);},{passive:true}); svg.addEventListener('touchend',leave);
+    }
+
+    // ── Render: stats.json ────────────────────────────────────────────────
+    function render(s){
+      if(!s) return;
+      window._stats=s;
+      var byCourt=s.by_court||[], corpus=s.corpus||{}, IS=s.interesting_stats||{}, delta=s.delta||{};
+      var total=s.total, uniqueOK=(s.unique_decisions_status==='current' && s.unique_decisions), unique=uniqueOK?s.unique_decisions:null;
+      var echrTotal=(IS.echr_switzerland&&IS.echr_switzerland.ecthr_corpus_total)||sum(byCourt.filter(function(r){return isECtHR(r.court);}),function(r){return r.count;});
+      var vpb=sum(byCourt.filter(function(r){return r.court==='ch_vb';}),function(r){return r.count;});
+
+      // Header + hero + anatomy
+      txt('asof-d', isoDate(s.generated_at));
+      set('hero-n', fmt(total));
+      var d=delta.total; set('hero-delta', d? ' · <b>'+(d>0?'+':'')+fmt(d)+'</b> '+esc(t('hero_delta')) : '');
+      set('an-records', fmt(total));
+      if(uniqueOK){
+        set('an-unique', fmt(unique)); set('an-unique-d', esc(T('t_unique_d',{n:fmt(s.duplicate_representations)})));
+        var swiss=unique-echrTotal-vpb; set('an-swiss', '≈\u2009'+fmt(swiss)); set('an-swiss-d', esc(T('t_swiss_d',{e:fmt(echrTotal),v:fmt(vpb)})));
+        $('an-b2').style.setProperty('--w',(100*unique/total).toFixed(2)+'%'); $('an-b3').style.setProperty('--w',(100*swiss/total).toFixed(2)+'%');
+      } else { set('an-unique','—'); set('an-unique-d', esc(t('stale'))); set('an-swiss','—'); set('an-swiss-d', esc(t('stale'))); $('an-b2').style.setProperty('--w','0%'); $('an-b3').style.setProperty('--w','0%'); }
+      // One orchestrated moment: the three bars draw from zero once the figures are in.
+      void $('anat').offsetWidth; $('anat').classList.add('in');
+      // KPIs
+      set('k-courts', fmt(s.court_count));
+      var laws=(corpus.federal_laws||0)+(corpus.cantonal_laws||0), arts=(corpus.federal_law_articles||0)+(corpus.cantonal_law_articles||0);
+      set('k-laws', laws?fmt(laws):'—'); set('k-articles', (arts?fmt(arts):'—')+' <span>'+esc(t('k_articles'))+'</span>');
+      set('k-edges', corpus.citation_edges?compact(corpus.citation_edges):'—');
+      set('k-bot', IS.materialien_coverage?fmt(IS.materialien_coverage.total_documents):'—');
+      set('k-comm', corpus.commentaries?fmt(corpus.commentaries):'—');
+      set('k-schol', corpus.scholarship_publications?fmt(corpus.scholarship_publications):'—');
+      set('k-echr', fmt(echrTotal));
+      if(IS.practice_coverage&&IS.practice_coverage.total_documents){ set('k-practice', fmt(IS.practice_coverage.total_documents)); $('k-practice-wrap').hidden=false; }
+
+      // 01 Decisions
+      var fc=s.federal_vs_cantonal||{};
+      barList('bl-fedcant',[{label:t('d_fed'),value:fc.federal||0},{label:t('d_cant'),value:fc.cantonal||0}].sort(function(a,b){return b.value-a.value;}),{share:1});
+      var bl=s.by_language||{}; barList('bl-lang',Object.keys(bl).map(function(k){return {label:langName(k),value:bl[k]};}).sort(function(a,b){return b.value-a.value;}),{share:1});
+      var by=s.by_year||{}; var yrs=Object.keys(by).map(Number).filter(function(y){return y>=1875&&y<=CURYEAR;}).sort(); var ypts=[]; for(var y=yrs[0];y<=CURYEAR;y++) ypts.push({x:y,y:by[String(y)]||0});
+      var figY=$('fig-year'); wireTabs(figY);
+      columnChart(figY,'ch-year',ypts,{label:t('d_year'),xTick:function(x,i,n,narrow){return narrow? x%50===0 : x%25===0;}});
+      set('tw-year', tableHTML([{h:t('th_year')},{h:t('th_count'),n:true}], ypts.slice().reverse().map(function(p){return [p.x,fmt(p.y)];})));
+      var bc=(s.by_canton||[]).filter(function(c){return CN[c.canton];}).sort(function(a,b){return b.count-a.count;});
+      barList('bl-cantons', bc.map(function(c){return {label:CN[c.canton]||c.canton,value:c.count,sub:c.court_count?c.court_count+' '+t('d_courts'):''};}));
+      txt('cantons-s', bc.length+' / 26');
+      var top=(s.top_courts||byCourt.slice().sort(function(a,b){return b.count-a.count;}).slice(0,10));
+      set('tbl-top','<tbody>'+top.map(function(r){return '<tr><td class="name" title="'+esc(r.court)+'">'+esc(courtName(r.court,r.canton))+' <small class="muted" style="font-family:var(--f-mono);font-size:11px">'+esc(r.court)+'</small></td><td class="n">'+fmt(r.count)+'</td></tr>';}).join('')+'</tbody>');
+      var db=delta.by_court||{}; var drows=Object.keys(db).map(function(k){return {label:courtName(k,''),value:db[k]};}).filter(function(r){return r.value>0;}).sort(function(a,b){return b.value-a.value;});
+      barList('bl-delta', drows.slice(0,10)); txt('delta-s', d?('+'+fmt(d)+' · '+isoDate(delta.previous_generated_at)+' – '+isoDate(s.generated_at)):'');
+      var E=IS.echr_switzerland; set('e-total', fmt(echrTotal));
+      if(E){ set('e-ch', fmt(E.total)); set('e-gc', fmt(E.grand_chamber)); txt('e-year-k', T('e_year',{y:CURYEAR})); set('e-year', fmt(E.in_2026!=null?E.in_2026:(E['in_'+CURYEAR]!=null?E['in_'+CURYEAR]:null)));
+        if(E.most_recent&&E.most_recent.docket){ set('e-recent', esc(t('e_recent'))+': <a href="'+esc(E.most_recent.url||'#')+'">'+esc(E.most_recent.docket)+'</a> · '+esc(fmtDate(E.most_recent.decision_date))); } }
+      else { txt('e-year-k', T('e_year',{y:CURYEAR})); }
+
+      // 03 Legislation
+      set('l-fed', fmt(corpus.federal_laws)); set('l-fed-art', fmt(corpus.federal_law_articles));
+      set('l-cant', fmt(corpus.cantonal_laws)); set('l-cant-art', fmt(corpus.cantonal_law_articles));
+      set('l-total', laws?fmt(laws):'—'); set('l-total-art', arts?fmt(arts):'—');
+      var lc=corpus.cantonal_laws_by_canton||{}; barList('bl-lawcant', Object.keys(lc).filter(function(k){return CN[k];}).map(function(k){return {label:CN[k],value:lc[k]};}).sort(function(a,b){return b.value-a.value;}));
+      var up=(s.upcoming_amendments||[]).slice().sort(function(a,b){return String(a.in_force_date).localeCompare(String(b.in_force_date));});
+      var tl={de:'title_de',fr:'title_fr',it:'title_it',rm:'title_de',en:'title_de'}[lang];
+      set('tbl-upcoming','<thead><tr><th>'+esc(t('l_inforce'))+'</th><th>'+esc(t('l_act'))+'</th></tr></thead><tbody>'+(up.length?up.map(function(a){var ti=a[tl]||a.title_de||a.title_fr||a.title_it||''; return '<tr><td class="n date">'+esc(fmtDate(a.in_force_date))+'</td><td class="name">'+(a.url?'<a href="'+esc(a.url)+'" rel="noopener">':'')+esc(ti)+(a.url?'</a>':'')+(a.sr_number?'<small>'+esc(t('l_sr'))+' '+esc(a.sr_number)+'</small>':'')+'</td></tr>';}).join(''):'<tr><td colspan="2" class="muted">—</td></tr>')+'</tbody>');
+
+      // 04 Materialien
+      var M=IS.materialien_coverage;
+      if(M){ set('m-docs', fmt(M.total_documents)); set('m-par', fmt(M.paragraphs)); set('m-links', fmt(M.article_links)); if(M.year_range) txt('m-years', T('m_years',{a:M.year_range.from,b:M.year_range.to}));
+        var ml=M.by_language||{}; barList('bl-matlang', Object.keys(ml).map(function(k){return {label:langName(k),value:ml[k]};}).sort(function(a,b){return b.value-a.value;}),{share:1}); }
+      else { $('mat-note').hidden=false; set('bl-matlang','<span class="muted">—</span>'); }
+
+      // 05 Scholarship
+      set('c-comm', fmt(corpus.commentaries)); set('c-total', fmt(corpus.scholarship_publications));
+      var sb=corpus.scholarship_by_source||{}; var srows=Object.keys(sb).map(function(k){return {label:srcName(k),value:sb[k]};}).sort(function(a,b){return b.value-a.value;});
+      txt('c-total-d', T('c_total_d',{n:srows.length})); barList('bl-src', srows);
+      var st=corpus.scholarship_by_type||{}; barList('bl-type', Object.keys(st).map(function(k){return {label:typeName(k),value:st[k]};}).sort(function(a,b){return b.value-a.value;}),{share:1});
+
+      // 06 Graph
+      set('gr-dec', corpus.citation_edges?fmt(corpus.citation_edges):'—'); set('gr-stat', corpus.statute_edges?fmt(corpus.statute_edges):'—');
+      var MD=IS.most_cited_decision, MS=IS.most_cited_statute;
+      if(MD){ set('gr-mostd', MD.url?'<a href="'+esc(MD.url)+'">'+esc(MD.docket)+'</a>':esc(MD.docket)); txt('gr-mostd-d', fmt(MD.citation_count)+' '+t('gr_cites')); }
+      if(MS){ set('gr-mosts', esc('Art. '+MS.article+' '+MS.law_code)); txt('gr-mosts-d', fmt(MS.ref_count)+' '+t('gr_refs')); }
+      var td=IS.top_5_decisions||[], ts=IS.top_5_statutes||[];
+      set('tbl-topd','<thead><tr><th>'+esc(t('th_decision'))+'</th><th class="n">'+esc(t('gr_cites'))+'</th></tr></thead><tbody>'+(td.length?td.map(function(r){return '<tr><td class="name">'+(r.url?'<a href="'+esc(r.url)+'">':'')+esc(r.docket)+(r.url?'</a>':'')+'</td><td class="n">'+fmt(r.citation_count)+'</td></tr>';}).join(''):'<tr><td colspan="2" class="muted">—</td></tr>')+'</tbody>');
+      set('tbl-tops','<thead><tr><th>'+esc(t('th_provision'))+'</th><th class="n">'+esc(t('gr_refs'))+'</th></tr></thead><tbody>'+(ts.length?ts.map(function(r){return '<tr><td class="name">'+esc('Art. '+r.article+' '+r.law_code)+'</td><td class="n">'+fmt(r.ref_count)+'</td></tr>';}).join(''):'<tr><td colspan="2" class="muted">—</td></tr>')+'</tbody>');
+      if(!MD&&!MS&&!td.length) $('graph-note').hidden=false;
+
+      // 07 Quality
+      var RG=IS.regeste_coverage;
+      if(RG){ set('q-reg', RG.pct.toFixed(1)+'%'); $('q-reg-m').style.width=RG.pct+'%'; txt('q-reg-n', fmt(RG.with_regeste)+' / '+fmt(RG.total)); }
+      if(uniqueOK){ var dp=pct(s.duplicate_representations,total); set('q-dup', dp.toFixed(1)+'%'); $('q-dup-m').style.width=dp+'%'; txt('q-dup-n', fmt(s.duplicate_representations)+' / '+fmt(total)); }
+      var dr=s.date_range||{}; set('q-span', (dr.earliest?dr.earliest.slice(0,4):'—')+' – '+(dr.latest?dr.latest.slice(0,4):'—'));
+      var OD=IS.oldest_decision; if(OD) set('q-oldest', esc(t('q_oldest'))+': '+(OD.url?'<a href="'+esc(OD.url)+'">':'')+esc(OD.docket)+(OD.url?'</a>':'')+' · '+esc(fmtDate(OD.decision_date)));
+
+      // 08 Freshness
+      var SH=s.scraper_health||{};
+      txt('f-rebuilt', fmtDateTime(s.generated_at)); txt('f-scraped', fmtDateTime(SH.run_at_daily||SH.run_at)); txt('f-scraped-fed', fmtDateTime(SH.run_at_federal)); set('f-added', d!=null?((d>0?'+':'')+fmt(d)):'—');
+
+      // 09 Usage — aggregate only: total calls, client classes, HTTP status mix, privacy note.
+      // Deliberately NOT shown: endpoints, latencies, error rates, query text, anything per user.
+      var TR=s.traffic;
+      if(TR&&TR.total_calls){ set('u-calls', fmt(TR.total_calls)); txt('u-calls-d', T('u_calls',{n:TR.window_days})+(TR.window_end?' · '+isoDate(TR.window_end):''));
+        var agg={}; (TR.by_client||[]).forEach(function(c){ var L=clientName(c['class']); agg[L]=(agg[L]||0)+c.n; }); var cl=Object.keys(agg).map(function(L){return {label:L,value:agg[L]};}).filter(function(r){return r.label!==t('other');}).sort(function(a,b){return b.value-a.value;}); var crows=cl.slice(0,8); var rest=sum(cl.slice(8),function(r){return r.value;})+(agg[t('other')]||0); if(rest>0)crows.push({label:t('other'),value:rest});
+        barList('bl-client', crows,{share:1,total:TR.total_calls});
+        var hs=TR.status_hist||{}; var order=['2xx','3xx','404','429','4xx','5xx']; var present=order.filter(function(k){return hs[k]!=null;}); barList('bl-status', present.map(function(k){return {label:k,value:hs[k]};}),{share:true,total:sum(present,function(k){return hs[k];})});
+        var P=TR.privacy||{}; txt('u-priv', T('u_priv',{e:P.dp_epsilon!=null?P.dp_epsilon:'1.0',k:P.k_anon!=null?P.k_anon:'10'})); }
+      else { $('usage').hidden=true; }
+    }
+
+    // ── Render: history.json ──────────────────────────────────────────────
+    function renderHistory(h){
+      var fig=$('fig-growth'); wireTabs(fig);
+      var ser=(h&&h.series)||[]; if(!ser.length){ set('ch-growth','<span class="muted">—</span>'); return; }
+      // Fill day gaps so the x axis is truly daily; missing days carry null.
+      var days=[], byDay={}; ser.forEach(function(p){byDay[p.date]=p;});
+      var d0=new Date(ser[0].date+'T00:00:00Z'), d1=new Date(ser[ser.length-1].date+'T00:00:00Z');
+      for(var d=new Date(d0); d<=d1; d.setUTCDate(d.getUTCDate()+1)){ days.push(d.toISOString().slice(0,10)); }
+      var tot=days.map(function(k){return byDay[k]?byDay[k].total:null;}), uni=days.map(function(k){return byDay[k]&&byDay[k].unique!=null?byDay[k].unique:null;});
+      // Steps: any run of consecutive days where the total jumps by >1,500 is a bulk import; label runs of >=5,000.
+      var ann=[], run=null; for(var i=1;i<days.length;i++){ var a=tot[i-1], b=tot[i]; if(a==null||b==null){run=null;continue;} var dlt=b-a; if(dlt>1500){ if(run&&run.end===i-1){run.end=i;run.sum+=dlt;} else {run={start:i,end:i,sum:dlt}; ann.push(run);} } else run=null; }
+      ann=ann.filter(function(r){return r.sum>=5000;}).map(function(r){return {i:r.end,label:'+'+fmt(r.sum),sum:r.sum};});
+      lineChart(fig,'ch-growth',days,[{cls:'acc',label:t('g_total'),vals:tot},{cls:'mut',label:t('g_unique'),vals:uni}],{label:t('g_h'),ann:ann});
+      set('tw-growth', tableHTML([{h:t('th_date')},{h:t('g_total'),n:true},{h:t('g_unique'),n:true}], ser.slice().reverse().map(function(p){return [p.date,fmt(p.total),p.unique==null?'—':fmt(p.unique)];})));
+      // Stat tiles: last 30 days, since first point, last point
+      var last=ser[ser.length-1]; var cut=new Date(d1); cut.setUTCDate(cut.getUTCDate()-30); var base=null; for(var i=0;i<ser.length;i++){ if(new Date(ser[i].date+'T00:00:00Z')>=cut){base=ser[i];break;} } if(!base)base=ser[0];
+      var dd=Math.max(1,(new Date(last.date+'T00:00:00Z')-new Date(base.date+'T00:00:00Z'))/864e5);
+      set('g-30', '+'+fmt(last.total-base.total)); txt('g-30-d', T('g_perday',{n:fmt(Math.round((last.total-base.total)/dd))})+' · '+base.date+' – '+last.date);
+      var first=ser[0], da=Math.max(1,(new Date(last.date+'T00:00:00Z')-new Date(first.date+'T00:00:00Z'))/864e5);
+      txt('g-since-k', T('g_since',{d:fmtDate(first.date)})); set('g-since', '+'+fmt(last.total-first.total)); txt('g-since-d', T('g_perday',{n:fmt(Math.round((last.total-first.total)/da))})+' · '+fmt(first.total)+' – '+fmt(last.total));
+      set('g-last', fmt(last.total)); txt('g-last-d', last.date+(last.unique!=null?' · '+fmt(last.unique)+' '+t('g_unique').toLowerCase():''));
+      if(h.generated_at){ var gn=$('g-note'), ap=t('asof_pre'); gn.textContent=t('g_note')+' '+ap.charAt(0).toUpperCase()+ap.slice(1)+' '+isoDate(h.generated_at)+'.'; }
+    }
+
+    var v=Math.floor(Date.now()/60000);
+    fetch('/stats.json?v='+v).then(function(r){return r.ok?r.json():null;}).then(render).catch(function(e){console.warn('stats.json',e);});
+    fetch('/stats/history.json?v='+v).then(function(r){return r.ok?r.json():null;}).then(renderHistory).catch(function(e){console.warn('history.json',e); set('ch-growth','<span class="muted">—</span>');});
+  }
+});
+</script>
+</body>
+</html>

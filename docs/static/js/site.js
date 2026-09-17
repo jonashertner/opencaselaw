@@ -7,19 +7,19 @@
 (function () {
   var SHARED = {
     de:{skip:'Zum Inhalt springen',nav_search:'Suche',nav_courts:'Gerichte',nav_laws:'Gesetze',nav_connect:'Verbinden →',nav_quality:'Qualität',
-      foot_browse:'Durchsuchen',foot_build:'Entwickeln',foot_trust:'Vertrauen',foot_coverage:'Abdeckung',foot_scholarship:'Literatur',foot_about:'Über uns',
+      foot_browse:'Durchsuchen',foot_build:'Entwickeln',foot_trust:'Vertrauen',foot_coverage:'Abdeckung',foot_stats:'Statistik',foot_scholarship:'Literatur',foot_about:'Über uns',
       foot_tag:'Das vollständige offene Verzeichnis der Schweizer Rechtsprechung. CC0-Datensatz, MIT-Code.',foot_legal:'Korpus CC0 · Code MIT'},
     fr:{skip:'Aller au contenu',nav_search:'Recherche',nav_courts:'Tribunaux',nav_laws:'Lois',nav_connect:'Connexion →',nav_quality:'Qualité',
-      foot_browse:'Parcourir',foot_build:'Développer',foot_trust:'Confiance',foot_coverage:'Couverture',foot_scholarship:'Doctrine',foot_about:'À propos',
+      foot_browse:'Parcourir',foot_build:'Développer',foot_trust:'Confiance',foot_coverage:'Couverture',foot_stats:'Statistiques',foot_scholarship:'Doctrine',foot_about:'À propos',
       foot_tag:'Le registre ouvert complet de la jurisprudence suisse. Jeu de données CC0, code MIT.',foot_legal:'Corpus CC0 · Code MIT'},
     it:{skip:'Vai al contenuto',nav_search:'Ricerca',nav_courts:'Tribunali',nav_laws:'Leggi',nav_connect:'Collega →',nav_quality:'Qualità',
-      foot_browse:'Sfoglia',foot_build:'Sviluppa',foot_trust:'Fiducia',foot_coverage:'Copertura',foot_scholarship:'Dottrina',foot_about:'Chi siamo',
+      foot_browse:'Sfoglia',foot_build:'Sviluppa',foot_trust:'Fiducia',foot_coverage:'Copertura',foot_stats:'Statistiche',foot_scholarship:'Dottrina',foot_about:'Chi siamo',
       foot_tag:'Il registro aperto completo della giurisprudenza svizzera. Dataset CC0, codice MIT.',foot_legal:'Corpus CC0 · Codice MIT'},
     rm:{skip:'Ir al cuntegn',nav_search:'Tschertga',nav_courts:'Dretgiras',nav_laws:'Leschas',nav_connect:'Connectar →',nav_quality:'Qualitad',
-      foot_browse:'Tschertgar',foot_build:'Sviluppar',foot_trust:'Confidenza',foot_coverage:'Cuvertura',foot_scholarship:'Litteratura',foot_about:'Davart nus',
+      foot_browse:'Tschertgar',foot_build:'Sviluppar',foot_trust:'Confidenza',foot_coverage:'Cuvertura',foot_stats:'Statistica',foot_scholarship:'Litteratura',foot_about:'Davart nus',
       foot_tag:'Il register avert cumplet da la giurisprudenza svizra. Set da datas CC0, code MIT.',foot_legal:'Corpus CC0 · Code MIT'},
     en:{skip:'Skip to content',nav_search:'Search',nav_courts:'Courts',nav_laws:'Laws',nav_connect:'Connect →',nav_quality:'Quality',
-      foot_browse:'Browse',foot_build:'Build',foot_trust:'Trust',foot_coverage:'Coverage',foot_scholarship:'Scholarship',foot_about:'About',
+      foot_browse:'Browse',foot_build:'Build',foot_trust:'Trust',foot_coverage:'Coverage',foot_stats:'Statistics',foot_scholarship:'Scholarship',foot_about:'About',
       foot_tag:'The complete open record of Swiss case law. CC0 dataset, MIT code.',foot_legal:'Corpus CC0 · Code MIT'}
   };
   var LANGS = ['de','fr','it','rm','en'];
@@ -58,7 +58,8 @@
         '<li><a href="/courts/" data-t="nav_courts">Courts</a></li>' +
         '<li><a href="/laws/" data-t="nav_laws">Laws</a></li>' +
         '<li><a href="/scholarship/" data-t="foot_scholarship">Scholarship</a></li>' +
-        '<li><a href="/coverage/" data-t="foot_coverage">Coverage</a></li></ul></div>' +
+        '<li><a href="/coverage/" data-t="foot_coverage">Coverage</a></li>' +
+        '<li><a href="/stats/" data-t="foot_stats">Statistics</a></li></ul></div>' +
       '<div><h4 data-t="foot_build">Build</h4><ul>' +
         '<li><a href="/mcp/">MCP server</a></li>' +
         '<li><a href="/api/">REST API</a></li>' +
