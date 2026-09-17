@@ -1,12 +1,13 @@
-"""coverage.db lock hygiene in run_scraper (2026-09-15, extended 2026-09-16).
+"""coverage.db lock hygiene in run_scraper (2026-09-15, extended 2026-09-16 and 2026-09-17).
 
 coverage.db is shared by ~12 concurrent scrapers. The event writer used to commit only
 every 200 events, so a slow fetch loop held the write lock for minutes and 10-20 courts a
-night logged "Coverage snapshot update failed: database is locked". A transaction is now
-committed by count OR after MAX_TXN_AGE_S, and the snapshot writer retries while the
-database is locked. On the first night with those bounded transactions 5 courts still gave
-up, because a rollback journal has one writer at a time and no fairness, so the database is
-opened in WAL mode and the retry schedule has one more step.
+night logged "Coverage snapshot update failed: database is locked". Bounding a transaction
+by age (2 s) and retrying the snapshot write left 5 failures a night, WAL mode left 2: the
+age was only evaluated when the *next* event arrived, so a scraper that logged one event
+and then sat in a slow fetch kept its transaction, and with it the single WAL writer lock,
+open for minutes. Every event is now committed on its own, which synchronous=NORMAL makes
+an append without an fsync.
 """
 from __future__ import annotations
 
@@ -23,14 +24,6 @@ if str(REPO) not in sys.path:
 import run_scraper  # noqa: E402
 
 
-class _Clock:
-    def __init__(self):
-        self.now = 1000.0
-
-    def __call__(self):
-        return self.now
-
-
 @pytest.fixture
 def isolated_coverage_db(tmp_path, monkeypatch):
     db = tmp_path / "coverage.db"
@@ -38,42 +31,61 @@ def isolated_coverage_db(tmp_path, monkeypatch):
     return db
 
 
-def _rows(db: Path) -> int:
+def _rows(db: Path, table: str = "source_discoveries") -> int:
     conn = sqlite3.connect(str(db))
     try:
-        return conn.execute("SELECT COUNT(*) FROM source_discoveries").fetchone()[0]
+        return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
     finally:
         conn.close()
 
 
-def test_event_transaction_is_committed_by_age(isolated_coverage_db, tmp_path, monkeypatch):
-    clock = _Clock()
-    monkeypatch.setattr(run_scraper.time, "monotonic", clock)
+def _writer(tmp_path):
     w = run_scraper._RunEventWriter(output_dir=tmp_path, source_key="t_court", run_id="r1")
     assert w._enabled
-
-    w.log_discovery({"decision_id": "t_court_1", "docket_number": "1"})
-    assert w._pending == 1                      # under the count threshold: still open
-    assert _rows(isolated_coverage_db) == 0     # a second connection cannot see it yet
-
-    clock.now += run_scraper._RunEventWriter.MAX_TXN_AGE_S + 0.1
-    w.log_discovery({"decision_id": "t_court_2", "docket_number": "2"})
-    assert w._pending == 0                      # age threshold committed the batch
-    assert _rows(isolated_coverage_db) == 2
-    w.close()
+    return w
 
 
-def test_event_transaction_is_still_committed_by_count(isolated_coverage_db, tmp_path, monkeypatch):
-    clock = _Clock()
-    monkeypatch.setattr(run_scraper.time, "monotonic", clock)  # frozen clock: only the count rule
-    w = run_scraper._RunEventWriter(output_dir=tmp_path, source_key="t_court", run_id="r1")
-    for i in range(199):
+def test_every_discovery_is_committed_on_its_own(isolated_coverage_db, tmp_path):
+    w = _writer(tmp_path)
+    for i in range(1, 4):
         w.log_discovery({"decision_id": f"t_court_{i}", "docket_number": str(i)})
-    assert w._pending == 199
-    w.log_discovery({"decision_id": "t_court_199", "docket_number": "199"})
-    assert w._pending == 0
-    assert _rows(isolated_coverage_db) == 200
+        assert _rows(isolated_coverage_db) == i      # a second connection sees it at once
+        assert not w._conn.in_transaction            # and nothing is left open behind it
     w.close()
+
+
+def test_every_fetch_attempt_is_committed_on_its_own(isolated_coverage_db, tmp_path):
+    w = _writer(tmp_path)
+    stub = {"decision_id": "t_court_2026_1", "docket_number": "1", "decision_date": "2026-01-05"}
+    w.log_fetch_attempt(stub=stub, status="error", error_type="HTTPError", error_message="500")
+    assert _rows(isolated_coverage_db, "source_fetch_attempts") == 1
+    assert not w._conn.in_transaction
+    w.log_fetch_attempt(stub=stub, status="success")
+    assert _rows(isolated_coverage_db, "source_fetch_attempts") == 2
+    assert not w._conn.in_transaction
+    w.close()
+
+
+def test_writer_holds_no_lock_between_events(isolated_coverage_db, tmp_path):
+    """The 2026-09-17 failure mode: a scraper sitting between two events (a slow fetch, a
+    long discovery request) must not keep other scrapers from writing their snapshot."""
+    w = _writer(tmp_path)
+    w.log_discovery({"decision_id": "t_court_1", "docket_number": "1"})
+    other = sqlite3.connect(str(isolated_coverage_db), timeout=0.2)
+    try:
+        other.execute("BEGIN IMMEDIATE")             # "database is locked" if w still held it
+        other.rollback()
+    finally:
+        other.close()
+    w.close()
+
+
+def test_close_after_committed_events_is_quiet(isolated_coverage_db, tmp_path):
+    w = _writer(tmp_path)
+    w.log_discovery({"decision_id": "t_court_1", "docket_number": "1"})
+    w.close()
+    w.close()                                        # idempotent
+    assert _rows(isolated_coverage_db) == 1
 
 
 def test_coverage_db_is_opened_in_wal_mode(isolated_coverage_db, tmp_path):
@@ -85,6 +97,15 @@ def test_coverage_db_is_opened_in_wal_mode(isolated_coverage_db, tmp_path):
     conn = sqlite3.connect(str(isolated_coverage_db))
     try:
         assert conn.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"
+    finally:
+        conn.close()
+
+
+def test_coverage_db_commits_without_an_fsync(tmp_path):
+    """synchronous=NORMAL (1) is what makes a commit per event affordable in WAL mode."""
+    conn = run_scraper._open_coverage_db(tmp_path / "coverage.db")
+    try:
+        assert conn.execute("PRAGMA synchronous").fetchone()[0] == 1
     finally:
         conn.close()
 

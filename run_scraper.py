@@ -334,6 +334,10 @@ def _open_coverage_db(db_path: Path) -> sqlite3.Connection:
         conn.execute("PRAGMA journal_mode = WAL")
     except sqlite3.OperationalError as e:
         logger.debug(f"coverage.db journal mode unchanged: {e}")
+    # In WAL mode synchronous=NORMAL syncs the log only at checkpoints, so a commit is
+    # an append and _RunEventWriter can afford one per event. A power cut can lose the
+    # last few events, never corrupt the database (2026-09-17).
+    conn.execute("PRAGMA synchronous = NORMAL")
     return conn
 
 
@@ -419,14 +423,16 @@ def _record_coverage_snapshots_once(
 class _RunEventWriter:
     """Persist discovery/fetch events and maintain gap queue for one run."""
 
-    # Longest an event transaction may stay open. coverage.db is a
-    # rollback-journal database: one scraper's open write transaction makes
-    # every other scraper's commit and coverage snapshot wait behind
-    # busy_timeout (30 s). With ~12 scrapers in parallel, a slow fetch loop
-    # sitting on <200 uncommitted events held the lock for minutes and 10-20
-    # courts a night logged "Coverage snapshot update failed: database is
-    # locked" (2026-09-01..15), leaving the gap detector on stale snapshots.
-    MAX_TXN_AGE_S = 2.0
+    # Every event is committed on its own. coverage.db is shared by ~12 parallel
+    # scrapers and a WAL database has one writer at a time: a write transaction
+    # holds that lock until it commits. Until 2026-09-17 the writer committed
+    # lazily, on the *next* event once the transaction was 2 s old or 200 events
+    # deep, so a scraper that logged one event and then spent minutes in a slow
+    # fetch or a long discovery request held the lock for those minutes, and two
+    # courts a night still lost their coverage snapshot after the 30 s busy
+    # timeout plus three retries (20/40/80 s). With synchronous=NORMAL (see
+    # _open_coverage_db) a WAL commit is an append without an fsync, so a commit
+    # per event costs nothing measurable.
 
     def __init__(self, *, output_dir: Path, source_key: str, run_id: str):
         self.output_dir = output_dir
@@ -434,8 +440,6 @@ class _RunEventWriter:
         self.run_id = run_id
         self._conn: sqlite3.Connection | None = None
         self._attempt_counts: dict[str, int] = defaultdict(int)
-        self._pending = 0
-        self._last_commit = time.monotonic()
         self._enabled = False
         self._init_db()
 
@@ -456,24 +460,18 @@ class _RunEventWriter:
             logger.warning(f"[{self.source_key}] Event tracking disabled: {e}")
             self._enabled = False
 
-    def _maybe_commit(self) -> None:
-        if not self._conn:
-            return
-        self._pending += 1
-        if (
-            self._pending >= 200
-            or time.monotonic() - self._last_commit >= self.MAX_TXN_AGE_S
-        ):
+    def _commit(self) -> None:
+        """Commit the event just written, so no transaction outlives the call."""
+        if self._conn:
             self._conn.commit()
-            self._pending = 0
-            self._last_commit = time.monotonic()
 
     def close(self) -> None:
         if not self._conn:
             return
         try:
-            if self._pending:
-                self._conn.commit()
+            # A no-op unless an earlier per-event commit failed while the
+            # database was locked and left its event pending.
+            self._conn.commit()
         except sqlite3.OperationalError as e:
             # Don't crash the scraper if the coverage DB was locked at commit time
             logger.warning(f"[{self.source_key}] Event commit failed (non-fatal): {e}")
@@ -513,7 +511,7 @@ class _RunEventWriter:
                     stub_json[:20000],
                 ),
             )
-            self._maybe_commit()
+            self._commit()
         except Exception as e:
             logger.debug(f"[{self.source_key}] discovery event logging failed: {e}")
 
@@ -584,7 +582,7 @@ class _RunEventWriter:
                         retry_delay_days=1,
                     )
 
-            self._maybe_commit()
+            self._commit()
         except Exception as e:
             logger.debug(f"[{self.source_key}] fetch event logging failed: {e}")
 
