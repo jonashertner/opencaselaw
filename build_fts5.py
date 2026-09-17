@@ -2329,6 +2329,29 @@ def build_database(
                     pass
                 logger.warning("bger chamber correction skipped (non-fatal): %s", _bc_err)
 
+    # BVGer Abteilung substring bug (scrapers/bvger.py, fixed 2026-09-17):
+    # "Abt. I" matched Abt. II/III/IV and "Abt. V" matched Abt. VI, so
+    # 59,124 Weblaw-era rows (Feb-Sep 2026) carry the wrong Abteilung and
+    # ~14,800 older rows have NULL / bare-letter chambers. Header-first,
+    # docket-letter fallback; same defensive contract: can never fail the
+    # build. quick_publish (incremental nights) copies and inserts only, so
+    # stored rows are corrected here, at the full rebuild.
+    if total_imported > 0:
+        with _phase_timer("bvger chamber correction"):
+            try:
+                import backfill_bvger_chambers as _bvc
+                _n_rl, _n_fl, _n_un = _bvc.apply_to_db(conn)
+                logger.info(
+                    "bvger chambers: %d labels corrected from the judgment "
+                    "header/docket letter, %d NULL/bare-letter/raw values "
+                    "filled, %d left unresolved", _n_rl, _n_fl, _n_un)
+            except Exception as _bvc_err:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                logger.warning("bvger chamber correction skipped (non-fatal): %s", _bvc_err)
+
     if not no_optimize and total_imported > 0:
         with _phase_timer("FTS5 optimize"):
             # heartbeat-wrapped so the publish stall-watchdog doesn't false-kill this ~4h
