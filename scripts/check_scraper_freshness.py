@@ -151,6 +151,12 @@ SILENT_SKIP_EXEMPT_SOURCES = {
     # (14/16/19/20 Jul, 2/4 Aug 2026). Outages are caught instead by
     # check_stalled_corpus below.
     "zh_sozialversicherungsgericht",
+    # Closed historical collection (BGE 1-79, 1875-1953, DFR at
+    # servat.unibe.ch): nothing new is ever published. Since 2026-09-16 the
+    # 161 rulings that exist only as scans on www.fallrecht.ch are
+    # gap-cached, so a caught-up run exits in seconds with 0 new; that is
+    # the normal shape of every run, not an outage.
+    "bge_historical",
 }
 
 

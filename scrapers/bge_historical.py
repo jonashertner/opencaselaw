@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import re
+import subprocess
 from datetime import date, datetime, timezone
 from typing import Iterator
 from urllib.parse import urljoin, urlsplit
@@ -35,6 +36,7 @@ from models import (
     extract_citations,
     make_decision_id,
 )
+from scrapers import pdf_ocr
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,74 @@ def _extract_pdf_text(data: bytes) -> str:
     except ImportError:
         pass
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Image-only rulings (2026-09-17)
+# ---------------------------------------------------------------------------
+# 161 rulings of 1877 and 1909 exist only as scans on www.fallrecht.ch. The German
+# ones are set in Fraktur, with French rulings in Antiqua on the same pages.
+# Tesseract's Antiqua models turn blackletter into German-looking nonsense ("Die
+# Natur diefer Klage ift", "bas Verhältnis quifchen", measured on BGE 3 I 457 and
+# 35 I 773): long enough to pass every length check, served as the ruling, found by
+# no search. OCR therefore runs only with the Fraktur script model (tessdata_best
+# script/Fraktur), which reads both scripts. On a host without that model a scan
+# stays a gap, re-probed weekly, rather than being ingested garbled.
+OCR_LANG = "script/Fraktur"
+
+# The model transcribes the long s as printed and renders the ch and ck ligatures
+# as "<" and ">"; directly after a letter neither sign occurs in these volumes.
+# Line-end hyphens stay as printed: a running header ends in "Schuldbetreibungs-" and
+# German prose in "Zivil- und Strafrecht", so joining would fuse unrelated words.
+_OCR_FIXES = (
+    (re.compile("\u017f"), "s"),
+    (re.compile(r"(?<=[A-Za-zÄÖÜäöü])<"), "ch"),
+    (re.compile(r"(?<=[A-Za-zÄÖÜäöü])>"), "ck"),
+)
+
+_OCR_MODEL_STATE: dict[str, bool] = {}
+
+
+def _ocr_model_installed() -> bool:
+    """True when Tesseract lists OCR_LANG; asked once per process.
+
+    pytesseract.get_languages() keeps only names made of lowercase letters and
+    underscores, so it never reports "script/Fraktur"; the listing is read directly.
+    """
+    if "installed" not in _OCR_MODEL_STATE:
+        try:
+            import pytesseract
+
+            proc = subprocess.run(
+                [pytesseract.pytesseract.tesseract_cmd, "--list-langs"],
+                capture_output=True, text=True, timeout=30,
+            )
+            # Tesseract has printed the listing on stdout or stderr depending on the version.
+            listing = f"{proc.stdout or ''}\n{proc.stderr or ''}"
+            installed = OCR_LANG in {line.strip() for line in listing.splitlines()}
+        except Exception as e:
+            logger.warning(f"[bge_historical] OCR unavailable: {e}")
+            installed = False
+        if not installed:
+            logger.warning(
+                f"[bge_historical] Tesseract model {OCR_LANG} is not installed; "
+                f"image-only rulings stay gap-cached"
+            )
+        _OCR_MODEL_STATE["installed"] = installed
+    return _OCR_MODEL_STATE["installed"]
+
+
+def _normalise_ocr(text: str) -> str:
+    for pattern, replacement in _OCR_FIXES:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def _ocr_scan(data: bytes) -> str:
+    """Text of an image-only PDF; "" when the Fraktur model is missing or OCR fails."""
+    if not _ocr_model_installed():
+        return ""
+    return _normalise_ocr(pdf_ocr.ocr_pdf_bytes(data, lang=OCR_LANG))
 
 
 class BGEHistoricalScraper(BaseScraper):
@@ -215,6 +285,14 @@ class BGEHistoricalScraper(BaseScraper):
 
         if stub["is_pdf"]:
             full_text = _extract_pdf_text(response.content)
+            if len((full_text or "").strip()) < pdf_ocr.MIN_TEXT_CHARS:
+                # Image-only scan: read it with the Fraktur model or leave it a gap.
+                full_text = _ocr_scan(response.content)
+                if full_text:
+                    logger.info(
+                        f"[bge_historical] {docket}: no text layer, read by OCR "
+                        f"({len(full_text)} chars)"
+                    )
         else:
             soup = BeautifulSoup(response.text, "html.parser")
             for tag in soup.find_all(["script", "style"]):
