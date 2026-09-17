@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
@@ -110,7 +111,86 @@ def _representation_dual_count(db_path: Path, conn) -> dict:
         "duplicate_representations": dup,
         "unique_decisions_status": "current",
     })
+    by_court = _duplicates_by_court(manifest, conn)
+    if by_court:
+        out["duplicates_by_court"] = by_court
     return out
+
+
+def _duplicates_by_court(manifest: Path, conn) -> dict:
+    """Duplicate representations per court: manifest member rows that are not their
+    own canonical, joined onto decisions.decision_id for the court code. The
+    manifest carries only the canton, and ch_vb / edoeb / nw / ur share codes, so
+    the join is the only exact way to attribute them. Read-only: the manifest is
+    ATTACHed immutable onto the caller's connection and detached again. {} on any
+    failure — the stats page then falls back to its approximate third tier."""
+    try:
+        conn.execute("ATTACH DATABASE ? AS repmani",
+                     (f"file:{manifest}?mode=ro&immutable=1",))
+    except sqlite3.Error as e:  # pragma: no cover - defensive
+        logger.warning("representation manifest could not be attached: %s", e)
+        return {}
+    try:
+        rows = conn.execute(
+            "SELECT d.court, COUNT(*) FROM repmani.decision_representations r "
+            "JOIN decisions d ON d.decision_id = r.member_decision_id "
+            "WHERE r.member_decision_id != r.canonical_decision_id "
+            "GROUP BY d.court"
+        ).fetchall()
+        return {r[0]: int(r[1]) for r in rows if r[0]}
+    except sqlite3.Error as e:  # pragma: no cover - defensive
+        logger.warning("duplicates_by_court skipped: %s", e)
+        return {}
+    finally:
+        try:
+            conn.execute("DETACH DATABASE repmani")
+        except sqlite3.Error:
+            pass
+
+
+def _practice_coverage(repo_dir: Path) -> dict | None:
+    """Administrative practice (Verwaltungspraxis) counts from practice.db —
+    BSV Wegleitungen, FINMA Rundschreiben, SECO ArG commentary and the rest.
+    Same guard as materialien: missing file, missing table or any sqlite error
+    returns None and the stats page hides the card. Path: output/practice.db
+    (a symlink onto the data volume in production), else the server's
+    SWISS_CASELAW_PRACTICE_DB override."""
+    path = repo_dir / "output" / "practice.db"
+    if not path.exists():
+        env = os.environ.get("SWISS_CASELAW_PRACTICE_DB")
+        if not env or not Path(env).exists():
+            return None
+        path = Path(env)
+    try:
+        p = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=10)
+    except sqlite3.Error:
+        return None
+    try:
+        tables = {r[0] for r in p.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        if "practice" not in tables:
+            return None
+        cols = {r[1] for r in p.execute("PRAGMA table_info(practice)").fetchall()}
+        total = int(p.execute("SELECT COUNT(*) FROM practice").fetchone()[0])
+        if total <= 0:
+            return None
+        def _group(col):
+            if col not in cols:
+                return {}
+            return {str(r[0]): int(r[1]) for r in p.execute(
+                f"SELECT {col}, COUNT(*) FROM practice GROUP BY {col} ORDER BY 2 DESC"
+            ).fetchall() if r[0]}
+        return {
+            "total_documents": total,
+            "sources": len(_group("source")),
+            "by_source": _group("source"),
+            "by_authority": _group("issuing_authority"),
+            "by_language": _group("language"),
+        }
+    except sqlite3.Error:
+        return None
+    finally:
+        p.close()
 
 
 def stats_total(conn) -> int:
@@ -690,6 +770,7 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
           "language_split":      {de_pct, fr_pct, it_pct, total},
           "graph_size":          {decision_edges, statute_edges, total},
           "regeste_coverage":    {pct, with_regeste, total},
+          "practice_coverage":   {total_documents, sources, by_source, by_authority, by_language},
         }
     Each field is best-effort — failures hide the corresponding card via
     the renderer rather than failing the publish.
@@ -1091,6 +1172,11 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
             m.close()
         except sqlite3.Error:
             pass
+
+    # ── 10b. Administrative practice — Verwaltungspraxis documents ───────
+    practice = _practice_coverage(repo_dir)
+    if practice:
+        out["practice_coverage"] = practice
 
     # ── 11. Temporal span — how far back the corpus reaches per court ────
     # Adds richness to oldest_decision: which courts cover what era?

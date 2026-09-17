@@ -1403,10 +1403,38 @@ def _sync_homepage_fallbacks(dry_run: bool = False) -> None:
         logger.warning("  homepage sync failed (non-fatal): %s", e)
 
 
+def _append_stats_history(dry_run: bool = False) -> None:
+    """Append today's headline figures to docs/stats/history.json (the growth
+    series on /stats/). Idempotent per day, so running at both push points
+    (6a early, 6 final) leaves one point carrying the later values. WARN-only:
+    a stale growth chart is cosmetic, a failed publish is not."""
+    script = REPO_DIR / "scripts" / "append_stats_history.py"
+    if not script.exists():
+        logger.warning("  append_stats_history.py missing — growth series not "
+                       "extended this run")
+        return
+    if dry_run:
+        logger.info("  [dry-run] would append today's point to docs/stats/history.json")
+        return
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(script)],
+            capture_output=True, text=True, timeout=30, cwd=str(REPO_DIR),
+        )
+        line = (proc.stdout or proc.stderr or "").strip().splitlines()
+        logger.info("  stats history: %s", line[-1] if line else f"exit {proc.returncode}")
+        if proc.returncode != 0:
+            logger.warning("  stats history exited %s — docs/stats/history.json "
+                           "not extended this run", proc.returncode)
+    except Exception as e:  # noqa: BLE001 - never let this fail the publish
+        logger.warning("  stats history skipped: %s", e)
+
+
 def step_6_git_push(dry_run: bool = False) -> bool:
     """Step 6: Git commit + push docs/stats.json + docs/feed.xml + docs/feeds/
     + docs/integrity/ (the daily Merkle root from Step 5f) + docs/index.html
-    (homepage fallbacks re-derived from stats.json)."""
+    (homepage fallbacks re-derived from stats.json) + docs/stats/history.json
+    (the /stats/ growth series, one point per day)."""
     logger.info("Step 6: Git commit + push stats.json + feeds + integrity")
 
     stats_file = DOCS_DIR / "stats.json"
@@ -1422,6 +1450,10 @@ def step_6_git_push(dry_run: bool = False) -> bool:
     # publish is not. See docs/proposals/homepage-fallback-regeneration.md.
     _sync_homepage_fallbacks(dry_run)
 
+    # Growth series for /stats/: one point per day from the stats.json just
+    # generated. Non-fatal by the same contract as the homepage sync.
+    _append_stats_history(dry_run)
+
     # Files we publish on every cycle. The diff check below short-circuits
     # if none of them changed.
     paths = ["docs/stats.json", "docs/feed.xml", "docs/feeds",
@@ -1430,7 +1462,10 @@ def step_6_git_push(dry_run: bool = False) -> bool:
              # was omitted here, so the public integrity page froze at the
              # 2026-05-21 commit while the nightly kept regenerating it
              # uncommitted. Including it keeps the provenance root current.
-             "docs/integrity"]
+             "docs/integrity",
+             # docs/stats/history.json = the daily growth series behind the
+             # public /stats/ page, appended by _append_stats_history above.
+             "docs/stats/history.json"]
 
     # Check if any of these have unstaged changes
     result = subprocess.run(

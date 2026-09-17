@@ -47,7 +47,7 @@ idempotent per day, atomic write, refuses bad input without writing.
 
 ## Proposals — need explicit approval (invariant 5: pipeline gate)
 
-### P1. Wire the appender and commit the file (publish.py Step 6)
+### P1. Wire the appender and commit the file (publish.py Step 6) — DONE 2026-09-17 (approved by Jonas)
 
 Two lines in `publish.py`:
 
@@ -61,7 +61,7 @@ Step 6 already runs under a WARN-only wrapper. But `paths` still needs the new f
 touched either way. Risk: low (30 s timeout, WARN-only, 33 KB file). Blast radius if the script
 misbehaves: the growth chart stops advancing; nothing else.
 
-### P2. Three missing fields in `generate_stats.py`
+### P2. Three missing fields in `generate_stats.py` — duplicates_by_court + practice_coverage DONE 2026-09-17; structure coverage still open
 
 Not in `stats.json` today:
 
@@ -85,7 +85,7 @@ Not in `stats.json` today:
 Both run inside Step 5e (interesting_stats). Risk: medium only because of *where* they run; the code
 pattern itself is the guarded one already used for materialien.
 
-### P3. Static fallbacks for the stats page
+### P3. Static fallbacks for the stats page — still open
 
 The page carries hardcoded fallback numbers (2026-09-16 values) for crawlers and no-JS readers, like
 the homepage. `scripts/sync_homepage_fallbacks.py` could rewrite them nightly too. It must not let a
