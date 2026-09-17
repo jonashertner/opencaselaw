@@ -42,6 +42,7 @@ COURT_BRANCH = {
     "ag_handelsgericht": ZIVIL,
     "sg_handelsgericht": ZIVIL,
     "ag_zivilgericht": ZIVIL,
+    "bs_zivilgericht": ZIVIL,
     "zh_mietgericht": ZIVIL,
     "zh_arbeitsgericht": ZIVIL,
     # oeffentlich — administrative courts and recourse bodies

@@ -1435,6 +1435,8 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "be_verwaltungsgericht": "BE Verwaltungsgericht",
     "be_zivilstraf": "BE Obergericht", "be_steuerrekurs": "BE Steuerrekursgericht",
     "bl_gerichte": "BL Gerichte", "bs_appellationsgericht": "BS Appellationsgericht",
+    "bs_sozialversicherungsgericht": "BS Sozialversicherungsgericht",
+    "bs_zivilgericht": "BS Zivilgericht",
     "fr_gerichte": "FR Kantonsgericht", "ge_gerichte": "GE Cour de justice",
     "gl_gerichte": "GL Gerichte", "gr_gerichte": "GR Gerichte",
     "ju_gerichte": "JU Tribunal cantonal", "lu_gerichte": "LU Gerichte",
@@ -6428,6 +6430,28 @@ def _lookup_docket_alias(conn: sqlite3.Connection, reference: str | None) -> lis
     return [r[0] for r in rows]
 
 
+def _lookup_previous_id(conn: sqlite3.Connection, reference: str | None) -> str | None:
+    """The current decision_id of a row that used to carry ``reference`` as its
+    id before a re-key (decision_id_aliases; BS Gerichte moved from the case
+    number to the court's decision number on 2026-09-17). Exact, indexed, and
+    joined on decisions so an alias whose target was deduplicated away falls
+    through. Guarded: None when the table is absent (a server on a pre-rebuild
+    DB or a minimal fixture), so this can never raise."""
+    ref = (reference or "").strip()
+    if not ref:
+        return None
+    try:
+        row = conn.execute(
+            "SELECT a.decision_id FROM decision_id_aliases a "
+            "JOIN decisions d ON d.decision_id = a.decision_id "
+            "WHERE a.previous_id = ?",
+            (ref,),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    return row[0] if row else None
+
+
 def _joined_dockets_for(conn: sqlite3.Connection, decision_id: str | None) -> list[str]:
     """Every secondary (joined) docket stored for a consolidated decision (#41),
     in the alias table's normalised form ('1B_243/2022'), sorted; [] when there
@@ -6554,6 +6578,11 @@ def _resolve_decision_id(decision_id: str) -> str:
             ).fetchone()
             if row:
                 return row[0]
+        # An id the row carried before a re-key (decision_id_aliases): exact,
+        # so it comes before any docket fallback.
+        _prev_hit = _lookup_previous_id(conn, decision_id)
+        if _prev_hit:
+            return _prev_hit
         # Fallback: exact docket — always tried.
         row = conn.execute(
             "SELECT decision_id FROM decisions WHERE docket_number = ? "
@@ -8895,6 +8924,18 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             if row:
                 break
 
+    _via_previous_id = False
+    if not row:
+        # An id the row carried before a re-key (decision_id_aliases): exact,
+        # so it comes before the docket fallback, which for a BS case number
+        # would pick one sibling among several.
+        _prev_hit = _lookup_previous_id(conn, decision_id)
+        if _prev_hit:
+            row = conn.execute(
+                "SELECT * FROM decisions WHERE decision_id = ?", (_prev_hit,)
+            ).fetchone()
+            _via_previous_id = bool(row)
+
     if not row:
         # Try searching by docket number — prefer newest decision
         row = conn.execute(
@@ -8986,6 +9027,9 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     # Joined-docket resolution (#41): the caller looked up a secondary docket of
     # a consolidated proceeding; surface that the returned decision is the lead,
     # so downstream consumers don't treat the docket mismatch as an error.
+    if _via_previous_id:
+        result["resolved_via"] = "previous_decision_id"
+        result["queried_id"] = decision_id
     if _via_alias:
         result["resolved_via"] = "joined_docket_alias"
         result["queried_docket"] = decision_id
@@ -15776,6 +15820,11 @@ def _resolve_decision_id_strict(decision_id: str) -> str | None:
             ).fetchone()
             if row:
                 return row[0]
+        # An id the row carried before a re-key: exact and indexed, so an
+        # attest ledger holding a pre-2026-09-17 BS id is not flagged as fabricated.
+        _prev_hit = _lookup_previous_id(conn, decision_id)
+        if _prev_hit:
+            return _prev_hit
         # Exact docket-number match only (no LIKE)
         row = conn.execute(
             "SELECT decision_id FROM decisions WHERE docket_number = ? "

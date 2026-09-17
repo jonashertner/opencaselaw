@@ -145,7 +145,8 @@ DOTTED_SERIAL_COURTS = (
     "ag_anwaltskommission", "ag_aufsichtskommission", "ag_justizgericht",
     "sg_kantonsgericht", "sg_gerichte", "sg_verwaltungsgericht", "sg_versicherungsgericht",
     "sg_handelsgericht", "sg_verwaltungsrekurskommission", "sg_publikationen",
-    "bs_appellationsgericht", "bs_gerichte", "bl_gerichte",
+    "bs_appellationsgericht", "bs_sozialversicherungsgericht", "bs_zivilgericht",
+    "bs_gerichte", "bl_gerichte",
 )
 # Vaud CDAP/CREP files ('PE.2026.0063', four-digit serial).
 VD_DOTTED_COURTS = ("vd_gerichte", "vd_findinfo", "vd_omni")
@@ -490,7 +491,32 @@ def resolve_decision_ref(text: str | None) -> list[str]:
         appno = application_number(core)
         if appno:
             out.append(f"hudoc_ch_{appno.replace('/', '_')}")
+        # BS decision numbers ('AG.2014.40', 'SVG.2018.352', 'ZG.2026.4'): the
+        # id since 2026-09-17. Their prefixes read as the cantons Aargau and
+        # Zug to the head/canton logic above, which would filter the Basel
+        # candidates out, so they are added here, after any canton-restricted
+        # candidates so a real Aargau/Zug id still wins the ordered PK lookups.
+        out += _bs_decision_number_candidates(bare) or _bs_decision_number_candidates(core)
     return [c for c in _dedupe(out) if c != raw]
+
+
+# The court's own decision number on rechtsprechung.gerichte.bs.ch, unique per
+# decision and the decision_id since 2026-09-17 (the cited case number, e.g.
+# 'SB.2013.5', is docket_number and resolves through the DB's docket lookup).
+_BS_DECISION_NUMBER_RE = re.compile(r"^(AG|SVG|ZG)\.(\d{4})\.(\d{1,5})$")
+_BS_DECISION_NUMBER_COURTS = {
+    "AG": "bs_appellationsgericht",
+    "SVG": "bs_sozialversicherungsgericht",
+    "ZG": "bs_zivilgericht",
+}
+
+
+def _bs_decision_number_candidates(core: str) -> list[str]:
+    m = _BS_DECISION_NUMBER_RE.match((core or "").strip())
+    if not m:
+        return []
+    prefix, year, n = m.group(1), m.group(2), m.group(3)
+    return [f"{_BS_DECISION_NUMBER_COURTS[prefix]}_{prefix}.{year}.{n}"]
 
 
 def application_number(text: str | None) -> str | None:

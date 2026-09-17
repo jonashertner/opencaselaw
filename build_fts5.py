@@ -676,7 +676,8 @@ _COURT_OVERLAP_GROUPS: list[set[str]] = [
     # VD: historical findinfo/omni vs current scraper
     {"vd_findinfo", "vd_gerichte", "vd_omni"},
     # BS: entscheidsuche → bs_gerichte, direct scraper → sub-courts
-    {"bs_gerichte", "bs_appellationsgericht", "bs_sozialversicherungsgericht"},
+    {"bs_gerichte", "bs_appellationsgericht", "bs_sozialversicherungsgericht",
+     "bs_zivilgericht"},
     # BE: steuerrekurs overlaps with verwaltungsgericht
     {"be_steuerrekurs", "be_verwaltungsgericht"},
 ]
@@ -706,7 +707,8 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
     placeholders = ",".join("?" * len(overlap_courts))
     rows = conn.execute(
         f"SELECT decision_id, court, docket_number, decision_date, "
-        f"LENGTH(COALESCE(full_text, '')), LENGTH(COALESCE(regeste, '')) "
+        f"LENGTH(COALESCE(full_text, '')), LENGTH(COALESCE(regeste, '')), "
+        f"docket_number_2 "
         f"FROM decisions "
         f"WHERE court IN ({placeholders}) "
         f"AND docket_number IS NOT NULL AND LENGTH(TRIM(docket_number)) > 0",
@@ -715,10 +717,13 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
 
     # Group by (overlap_group_id, normalized_docket)
     groups: dict[str, list[tuple[str, int, int]]] = defaultdict(list)
-    for did, court, docket, date, tlen, rlen in rows:
+    for did, court, docket, date, tlen, rlen, docket2 in rows:
         group = _COURT_TO_GROUP.get(court)
         if not group:
             continue
+        # BS: several decisions share a case number; the decision number
+        # (docket_number_2) is the identity, on the direct and the es rows alike.
+        docket = _dedup_docket({"court": court, "docket_number": docket, "docket_number_2": docket2})
         docket_norm = re.sub(r"[^A-Z0-9]", "", (docket or "").upper())
         if "tg_gerichte" in group:
             docket_norm = re.sub(r"NR(?=\d)", "", docket_norm)  # TG "Nr." noise
@@ -1666,6 +1671,45 @@ def _derive_bge_docket2_inline(full_text, decision_date):
     return None
 
 
+# Courts whose decision_id is minted from the court's own decision number
+# (docket_number_2) while docket_number holds the cited case number, which
+# several decisions can share (BS Gerichte since 2026-09-17: SB.2013.5 carries
+# AG.2014.40 and AG.2020.102). Dedup keys on the decision number for them.
+DECISION_NUMBER_COURTS = frozenset({
+    "bs_appellationsgericht", "bs_sozialversicherungsgericht", "bs_zivilgericht",
+    # the entscheidsuche leftovers carry the same bracketed number
+    "bs_gerichte",
+})
+
+
+def _dedup_docket(row: dict) -> str:
+    """The docket the dedup passes identify a row by: the decision number for
+    DECISION_NUMBER_COURTS when the row has one, else the docket_number."""
+    if row.get("court") in DECISION_NUMBER_COURTS:
+        d2 = (row.get("docket_number_2") or "").strip()
+        if d2:
+            return d2
+    return row.get("docket_number", "") or ""
+
+
+def _record_previous_id(conn: sqlite3.Connection, row: dict) -> None:
+    """Keep the id a re-keyed row used to carry (decision_id_aliases), so the
+    old id keeps resolving to this exact decision. No-op for rows without one;
+    never fails the insert (a fixture without the table just skips it)."""
+    prev = (row.get("previous_decision_id") or "").strip()
+    did = row.get("decision_id") or ""
+    if not prev or not did or prev == did:
+        return
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO decision_id_aliases (previous_id, decision_id, source) "
+            "VALUES (?, ?, ?)",
+            (prev, did, row.get("previous_id_source") or "rekey"),
+        )
+    except sqlite3.OperationalError as e:
+        logger.debug("decision_id_aliases not recorded for %s: %s", did, e)
+
+
 def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
     """Insert a single decision. Returns True if inserted, False if
     skipped (duplicate or stub).
@@ -1815,9 +1859,12 @@ def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
         # json_data: full row as JSON blob (after cleaning)
         row["json_data"] = json.dumps(row, default=str)
 
-        # Canonical key for dedup (aggressive normalization of court+docket+date)
+        # Canonical key for dedup (aggressive normalization of court+docket+date).
+        # Courts whose identity is a decision number distinct from the cited
+        # case number key on that number: two BS decisions under one case
+        # number on the same day are two decisions, not a duplicate.
         row["canonical_key"] = make_canonical_key(
-            row.get("court", ""), row.get("docket_number", ""), row.get("decision_date"),
+            row.get("court", ""), _dedup_docket(row), row.get("decision_date"),
         )
 
         # Build values tuple matching INSERT_COLUMNS order.
@@ -1834,6 +1881,7 @@ def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
 
         cursor = conn.execute(INSERT_OR_IGNORE_SQL, values)
         if cursor.rowcount > 0:
+            _record_previous_id(conn, row)
             return True
 
         # ── Collision disambiguation ───────────────────────────────────

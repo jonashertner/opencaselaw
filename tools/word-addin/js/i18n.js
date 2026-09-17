@@ -89,6 +89,7 @@ var COURT_DISPLAY_NAMES = {
   bl_gerichte: { de: 'Gerichte BL', fr: 'Tribunaux BL', it: 'Tribunali BL', en: 'Courts BL' },
   bs_appellationsgericht: { de: 'Appellationsgericht BS', fr: "Cour d'appel BS", it: "Corte d'appello BS", en: 'Court of Appeal BS' },
   bs_sozialversicherungsgericht: { de: 'Sozialversicherungsgericht BS', fr: 'Tribunal des assurances sociales BS', it: 'Tribunale delle assicurazioni sociali BS', en: 'Social Insurance Court BS' },
+  bs_zivilgericht: { de: 'Zivilgericht BS', fr: 'Tribunal civil BS', it: 'Tribunale civile BS', en: 'Civil Court BS' },
   bs_gerichte: { de: 'Gerichte BS', fr: 'Tribunaux BS', it: 'Tribunali BS', en: 'Courts BS' },
 
   // Bern

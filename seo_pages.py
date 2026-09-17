@@ -531,6 +531,23 @@ def render_decision_page(
         if row:
             return _render_decision(row, highlight=highlight, e_focus=e_focus), 200, None
 
+        # An id the row carried before a re-key (decision_id_aliases, e.g. the
+        # BS Gerichte case-number ids of before 2026-09-17): exact, one target,
+        # so indexed links and bookmarks 301 to the same decision. Joined on
+        # decisions and guarded against a DB without the table.
+        try:
+            prev = conn.execute(
+                "SELECT a.decision_id FROM decision_id_aliases a "
+                "JOIN decisions d ON d.decision_id = a.decision_id "
+                "WHERE a.previous_id = ?",
+                (decision_id,),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            prev = None
+        if prev:
+            location = "/entscheid/" + urllib.parse.quote(str(prev[0]), safe="")
+            return "", 301, location
+
         # P1.4: no LIKE %...% substring fallback here any more — that let
         # /entscheid/1 resolve to an unrelated decision with HTTP 200 via
         # nondeterministic substring matching. An EXACT docket_number match
