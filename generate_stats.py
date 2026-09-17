@@ -1480,6 +1480,28 @@ def collect_scraper_health(repo_dir: Path) -> dict | None:
     return result
 
 
+def _write_json_atomic(path: Path, payload: dict) -> None:
+    """Write JSON to a sibling temp file, then os.replace it over ``path``.
+
+    build_fts5's early-stats-push and publish.py Step 5 both run this script
+    on docs/stats.json at the same time; with a plain open(path, "w") the two
+    writers tore the file on 2026-09-05 (duplicated 16 KiB block, invalid
+    JSON, pushed to the dashboard). Each writer now owns its temp file
+    (pid-suffixed) and readers only ever see a complete document.
+    """
+    path = Path(path)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate stats.json from FTS5 database")
     parser.add_argument(
@@ -1541,7 +1563,7 @@ def main():
         except Exception as e:
             logger.error(f"collect_interesting_stats failed: {e}")
             sys.exit(1)
-        output_path.write_text(json.dumps(existing, indent=2, ensure_ascii=False))
+        _write_json_atomic(output_path, existing)
         logger.info(f"Wrote interesting_stats block → {output_path}")
         return
 
@@ -1734,8 +1756,7 @@ def main():
             "corpus": {}, "previous_generated_at": None,
         }
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(stats, f, indent=2, ensure_ascii=False)
+    _write_json_atomic(output_path, stats)
 
     delta_total = stats["delta"]["total"]
     delta_str = f" (+{delta_total} new)" if delta_total > 0 else ""
