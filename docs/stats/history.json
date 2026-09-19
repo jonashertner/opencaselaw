@@ -1,7 +1,7 @@
 {
 "schema": "opencaselaw.stats_history.v1",
 "note": "One point per day, taken from the committed docs/stats.json of that day. Seeded from git history on 2026-09-17; a nightly appender is proposed (see docs/proposals/stats-dashboard.md). null = not computed that day.",
-"generated_at": "2026-09-19T12:50:11+00:00",
+"generated_at": "2026-09-19T20:12:56+00:00",
 "series": [
 {
 "date": "2026-05-01",
@@ -1820,8 +1820,8 @@
 "cantonal_laws": 15618,
 "scholarship": 44434,
 "commentaries": 1173,
-"citation_edges": 10094079,
-"statute_edges": 12830466
+"citation_edges": 10094846,
+"statute_edges": 12831589
 }
 ]
 }
