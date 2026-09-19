@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 18 Sep 2026 12:53:53 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 12:22:39 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -152,6 +152,14 @@ Compositio…</description>
       <category>fr_gerichte</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht E-5221/2023 vom 2026-09-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5221_2023</link>
+      <description>Asile et renvoi (demande multiple)</description>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5221.2023</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>EGMR (Kammer) 17596/23 vom 2026-09-10</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_17596_23_20260910</link>
       <description>Non-violation de l'article 6+6-3-c - Droit à un procès équitable (Article 6 - Procédure pénale;Article 6-1 - Procès équitable) (Article 6 - Droit à un procès équitable;Article 6-3 - Droits de la défense;Article 6-3-c - Se défendre avec l'assistance d'un défenseur); No violation: 6;6+6-3-c;6-3;6-3-c;6-1; [EGMR / CourEDH / CorteEDU; Art. 6 EMRK / CEDH / CEDU]</description>
@@ -209,6 +217,35 @@ Participants à la…</description>
       <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_244.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 7B_1027/2026 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1027_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+7B_1027/2026
+
+Arrêt du 8 septembre 2026
+
+IIe Cour de droit pénal
+
+Composition
+
+MM. et Mme les Juges fédéraux Abrecht, Président,
+
+van de Graaf et Hofmann.
+
+Greffier : M. Fragnière…</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1027.2026</guid>
+      <category>bger</category>
+      <category>Procédure pénale</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht D-9923/2025 vom 2026-09-08</title>
@@ -507,11 +544,27 @@ Greffière : Mme Rub…</description>
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht D-1898/2023 vom 2026-09-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-1898_2023</link>
+      <description>Asile et renvoi</description>
+      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-1898.2023</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht D-4260/2026 vom 2026-09-04</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4260_2026</link>
       <description>Asile (sans exécution du renvoi)</description>
       <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4260.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-9410/2025 vom 2026-09-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-9410_2025</link>
+      <description>Asile et renvoi</description>
+      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-9410.2025</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -638,6 +691,68 @@ l’Hô…</description>
       <category>ju_gerichte</category>
     </item>
     <item>
+      <title>Bundesgericht 1C_420/2026 vom 2026-09-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_420_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+1C_420/2026
+
+Arrêt du 2 septembre 2026
+
+Ire Cour de droit public
+
+Composition
+
+MM. les Juges fédéraux Haag, Président,
+
+Merz et Mecca, Juge suppléant.
+
+Greffier : M. Parmelin.
+
+Pa…</description>
+      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_420.2026</guid>
+      <category>bger</category>
+      <category>Construction des routes et circulation routière</category>
+    </item>
+    <item>
+      <title>Bundesgericht 6B_415/2026 vom 2026-09-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_415_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+6B_415/2026
+
+Arrêt du 2 septembre 2026
+
+Ire Cour de droit pénal
+
+Composition
+
+MM. et Mme les Juges fédéraux
+
+Muschietti, Président,
+
+Kradolfer et Wohlhauser.
+
+Greffière : Mme Brun…</description>
+      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_415.2026</guid>
+      <category>bger</category>
+      <category>Droit pénal (en général)</category>
+    </item>
+    <item>
       <title>Bundesgericht 7B_1082/2026 vom 2026-09-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1082_2026</link>
       <description>Bundesgericht
@@ -698,6 +813,37 @@ A.____…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesgericht 7B_770/2026 vom 2026-09-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_770_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+7B_770/2026
+
+Arrêt du 2 septembre 2026
+
+IIe Cour de droit pénal
+
+Composition
+
+MM. et Mme les Juges fédéraux Abrecht, Président,
+
+van de Graaf et Hofmann,
+
+Greffière : Mme Kropf.
+
+…</description>
+      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_770.2026</guid>
+      <category>bger</category>
+      <category>Procédure pénale</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht B-6764/2025 vom 2026-09-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-6764_2025</link>
       <description>Travail d'intérêt général (service civil)</description>
@@ -720,105 +866,6 @@ A.____…</description>
       <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-3298.2026</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-3304/2026 vom 2026-09-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-3304_2026</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-3304.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-4567/2026 vom 2026-09-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-4567_2026</link>
-      <description>Refus de la protection provisoire</description>
-      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-4567.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-5295/2026 vom 2026-09-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5295_2026</link>
-      <description>Asile et renvoi (procédure accélérée)</description>
-      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5295.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-5892/2026 vom 2026-09-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-5892_2026</link>
-      <description>Asile (non-entrée en matière) et renvoi (Etat tiers sûr - art. 31a al. 1 let. a LAsi)</description>
-      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5892.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>fr_gerichte 502 2026 86 vom 2026-09-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_502%202026%2086</link>
-      <description>Tribunal cantonal TC
-Kantonsgericht KG
-Rue des Augustins 3, case postale 630, 1701 Fribourg
-T +41 26 304 15 00
-www.fr.ch/tc
-—
-Pouvoir Judiciaire PJ
-Gerichtsbehörden GB
-502 2026 86
-Arrêt du 16 juillet 2026
-Chambre pénale
-Composition
-Président :
-Lauren…</description>
-      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">fr_gerichte_502 2026 86</guid>
-      <category>fr_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACPR/826/2026 vom 2026-09-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_826_2026</link>
-      <description>REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-P/5250/2026 
-ACPR/826/2026
-COUR DE JUSTICE 
-Chambre pénale de recours 
-Arrêt du mercredi 2 septembre 2026 
- 
-Entre 
-A______, représenté par Me B______, avocat, 
-recourant, 
- 
- 
-contre l’ordonnanc…</description>
-      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACPR_826_2026</guid>
-      <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACPR/831/2026 vom 2026-09-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_831_2026</link>
-      <description>REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-P/24251/2024 
-ACPR/831/2026
-COUR DE JUSTICE 
-Chambre pénale de recours 
-Arrêt du mercredi 2 septembre 2026 
- 
-Entre 
-A______, domicilié ______, agissant en personne, 
-recourant, 
- 
- 
-contre l'ord…</description>
-      <pubDate>Wed, 02 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACPR_831_2026</guid>
-      <category>ge_gerichte</category>
     </item>
   </channel>
 </rss>

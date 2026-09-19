@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 18 Sep 2026 12:53:53 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 12:22:39 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -102,6 +102,37 @@ Part…</description>
       <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-3399.2024</guid>
       <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 5A_792/2026 vom 2026-08-28</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_792_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+5A_792/2026
+
+Sentenza del 28 agosto 2026
+
+II Corte di diritto civile
+
+Composizione
+
+Giudice federale Bovey, Presidente,
+
+Cancelliera Antonini.
+
+Partecipanti al procedimento
+
+A.___…</description>
+      <pubDate>Fri, 28 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_792.2026</guid>
+      <category>bger</category>
+      <category>Diritto delle esecuzioni e del fallimento</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht D-1768/2026 vom 2026-08-28</title>
@@ -270,6 +301,37 @@ Moses, …</description>
       <pubDate>Tue, 25 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">gr_gerichte_ZR1 2025 161</guid>
       <category>gr_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesgericht 4D_115/2026 vom 2026-08-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_4D_115_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+4D_115/2026
+
+Sentenza del 24 agosto 2026
+
+I Corte di diritto civile
+
+Composizione
+
+Giudice federale Hurni, Presidente,
+
+Cancelliere G. Piatti.
+
+Partecipanti al procedimento
+
+A.___…</description>
+      <pubDate>Mon, 24 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:4D_115.2026</guid>
+      <category>bger</category>
+      <category>Diritto delle esecuzioni e del fallimento</category>
     </item>
     <item>
       <title>Bundesgericht 12T_1/2026 vom 2026-08-21</title>
@@ -963,45 +1025,6 @@ Parte…</description>
       <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-3946.2025</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-7722/2025 vom 2026-08-05</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-7722_2025</link>
-      <description>Asilo ed allontanamento</description>
-      <pubDate>Wed, 05 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-7722.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 4F_16/2026 vom 2026-08-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_4F_16_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-4F_16/2026
-
-Sentenza del 4 agosto 2026
-
-I Corte di diritto civile
-
-Composizione
-
-Giudice federale Hurni, Presidente,
-
-Cancelliere G. Piatti.
-
-Partecipanti al procedimento
-
-A._____…</description>
-      <pubDate>Tue, 04 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:4F_16.2026</guid>
-      <category>bger</category>
-      <category>Diritto delle obbligazioni (in generale)</category>
     </item>
   </channel>
 </rss>

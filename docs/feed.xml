@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feed.xml</link>
     <description>Latest published decisions across all Swiss courts indexed by OpenCaseLaw.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 18 Sep 2026 12:53:53 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 12:22:38 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feed.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -226,6 +226,14 @@ Bese…</description>
       <category>gr_gerichte</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht B-4702/2026 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-4702_2026</link>
+      <description>Öffentliches Beschaffungswesen</description>
+      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-4702.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>fr_gerichte 604 2026 30 vom 2026-09-11</title>
       <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_604%202026%2030</link>
       <description>Tribunal cantonal TC
@@ -272,6 +280,22 @@ Bundesrichter Stadelmann, Bundesrichterin …</description>
       <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:9F_19.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-6255/2026 vom 2026-09-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6255_2026</link>
+      <description>Erläuterung</description>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6255.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-5221/2023 vom 2026-09-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5221_2023</link>
+      <description>Asile et renvoi (demande multiple)</description>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5221.2023</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>EGMR (Kammer) 17596/23 vom 2026-09-10</title>
@@ -452,6 +476,35 @@ A.________,
       <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_778.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 7B_1027/2026 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1027_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+7B_1027/2026
+
+Arrêt du 8 septembre 2026
+
+IIe Cour de droit pénal
+
+Composition
+
+MM. et Mme les Juges fédéraux Abrecht, Président,
+
+van de Graaf et Hofmann.
+
+Greffier : M. Fragnière…</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1027.2026</guid>
+      <category>bger</category>
+      <category>Procédure pénale</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht D-9923/2025 vom 2026-09-08</title>
@@ -749,11 +802,48 @@ A.A.______…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesgericht 6B_325/2024 vom 2026-09-07</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_325_2024</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+6B_325/2024
+
+Verfügung vom 7. September 2026
+
+I. strafrechtliche Abteilung
+
+Besetzung
+
+Bundesrichter Muschietti, Präsident,
+
+Gerichtsschreiberin Arquint Hill.
+
+Verfahrensbeteiligt…</description>
+      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_325.2024</guid>
+      <category>bger</category>
+      <category>Straftaten</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht B-1401/2026 vom 2026-09-07</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-1401_2026</link>
       <description>Öffentliches Beschaffungswesen</description>
       <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-1401.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht B-2822/2026 vom 2026-09-07</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-2822_2026</link>
+      <description>Arbeitslosenversicherung</description>
+      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-2822.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -770,54 +860,6 @@ A.A.______…</description>
       <description>Übriges</description>
       <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-6610.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht C-6344/2023 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-6344_2023</link>
-      <description>Rentenanspruch</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-6344.2023</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-1691/2026 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-1691_2026</link>
-      <description>Asile (sans excécution du renvoi) (procédure accélérée)</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-1691.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-2895/2025 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-2895_2025</link>
-      <description>Verweigerung vorübergehender Schutz</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-2895.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-5699/2026 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5699_2026</link>
-      <description>Asyl und Wegweisung (Wiedererwägung)</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5699.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-1060/2026 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-1060_2026</link>
-      <description>Einreiseverbot</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-1060.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-1088/2026 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-1088_2026</link>
-      <description>Schengen-Visum</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-1088.2026</guid>
       <category>bvger</category>
     </item>
   </channel>
