@@ -251,6 +251,35 @@ SOURCES: list[ScholarshipSource] = [
         active=True,
     ),
 
+    # Attribution-only entry: the shard is built once from the publisher's
+    # ePub by scripts/build_shk_kommentar_shard.py (a static 2021 edition), so
+    # there is nothing to harvest weekly — hence active=False.
+    ScholarshipSource(
+        key="shk_kommentar",
+        name="Kommentar zur Schaffhauser Verwaltungsrechtspflege "
+             "(Meyer/Herrmann/Bilger, Hrsg.; EIZ Publishing 2021)",
+        kind="custom",
+        license_default="CC-BY-SA",
+        license_url_default=None,
+        attribution=(
+            "© 2021 the respective authors. Kilian Meyer / Oliver Herrmann / "
+            "Stefan Bilger (Hrsg.), Kommentar zur Schaffhauser "
+            "Verwaltungsrechtspflege, EIZ Publishing 2021, "
+            "https://doi.org/10.36862/eiz-411. Imprint: \"CC BY-NC-ND (Werk), "
+            "CC BY-SA (Text)\" — the text served here is CC BY-SA. Cite as: "
+            "BearbeiterIn, in: Meyer/Herrmann/Bilger (Hrsg.), Kommentar zur "
+            "Schaffhauser Verwaltungsrechtspflege, 2021, Art. X VRG/JG N. X."
+        ),
+        homepage="https://eizpublishing.ch/publikationen/"
+                 "kommentar-zur-schaffhauser-verwaltungsrechtspflege/",
+        notes="One record per Kommentierung (98 articles of VRG + JG), two "
+              "essays, three checklists. Parsed from the ePub; margin numbers "
+              "and text verified against the PDF edition. Editors and "
+              "authors confirmed their agreement to the ingest (J. Hertner, "
+              "2026-09-22).",
+        active=False,
+    ),
+
     # ── Standalone OA law journals (small but high-quality) ─────────────
     ScholarshipSource(
         key="sui_generis",
