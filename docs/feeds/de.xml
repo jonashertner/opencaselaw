@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 21 Sep 2026 12:36:22 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 14:23:16 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -63,6 +63,14 @@ Bese…</description>
       <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">gr_gerichte_VR2 2026 45</guid>
       <category>gr_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht A-7505/2025 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-7505_2025</link>
+      <description>Öffentlichkeitsprinzip</description>
+      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-7505.2025</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht B-4702/2026 vom 2026-09-11</title>
@@ -210,6 +218,44 @@ Zweite sozialversicherungsrechtliche Kamm…</description>
       <category>gr_gerichte</category>
     </item>
     <item>
+      <title>ag_strafgericht SBK.2026.220 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ag_strafgericht_SBK.2026.220</link>
+      <description>Obergericht
+Beschwerdekammer in Strafsachen
+SBK.2026.220
+(STA.2025.4183)
+Art. 360
+Entscheid vom 8. September 2026
+Besetzung Oberrichter Richli, Präsident
+Oberrichterin Massari
+Oberrichterin Schär
+Gerichtsschreiberin Toebak
+Beschwerde- A._____, […]
+fü…</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ag_strafgericht_SBK.2026.220</guid>
+      <category>ag_strafgericht</category>
+    </item>
+    <item>
+      <title>ag_strafgericht SBK.2026.235 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ag_strafgericht_SBK.2026.235</link>
+      <description>Obergericht
+Beschwerdekammer in Strafsachen
+SBK.2026.235
+(STA.2025.884)
+Art. 361
+Entscheid vom 8. September 2026
+Besetzung Oberrichter Richli, Präsident
+Oberrichterin Massari
+Oberrichterin Schär
+Gerichtsschreiberin Flütsch
+Beschwerde- A._____, […]
+fü…</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ag_strafgericht_SBK.2026.235</guid>
+      <category>ag_strafgericht</category>
+    </item>
+    <item>
       <title>Bundesgericht 1F_9/2026 vom 2026-09-08</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_1F_9_2026</link>
       <description>Bundesgericht
@@ -270,6 +316,42 @@ A.________,
       <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_778.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 8C_455/2026 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_455_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+8C_455/2026
+
+Verfügung vom 8. September 2026
+
+IV. öffentlich-rechtliche Abteilung
+
+Besetzung
+
+Bundesrichter Maillard, als Einzelrichter,
+
+Gerichtsschreiber Hochuli.
+
+Verfahrensbet…</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_455.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht B-2657/2026 vom 2026-09-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-2657_2026</link>
+      <description>Forschungsförderung allgemein</description>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-2657.2026</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht F-6102/2026 vom 2026-09-08</title>
@@ -746,46 +828,6 @@ A.________,
       <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_774.2026</guid>
       <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesstrafgericht SN.2026.4 vom 2026-09-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bstger_SN.2026.4</link>
-      <description>Gesuch um Ausschluss der Öffentlichkeit (Art. 70 Abs. 1 lit. a StPO)</description>
-      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BStGer:2026:SN.2026.4</guid>
-      <category>bstger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-1033/2025 vom 2026-09-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-1033_2025</link>
-      <description>Elektrische Erzeugnisse</description>
-      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-1033.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht B-1906/2026 vom 2026-09-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-1906_2026</link>
-      <description>Anerkennung Abschluss/Ausbildung</description>
-      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-1906.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-4700/2026 vom 2026-09-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4700_2026</link>
-      <description>Asyl und Wegweisung (beschleunigtes Verfahren)</description>
-      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4700.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-4967/2026 vom 2026-09-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4967_2026</link>
-      <description>Asyl und Wegweisung</description>
-      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4967.2026</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>

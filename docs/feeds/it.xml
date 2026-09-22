@@ -5,9 +5,39 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 21 Sep 2026 12:36:22 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 14:23:17 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 4A_239/2026 vom 2026-09-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_239_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+4A_239/2026
+
+Sentenza del 10 settembre 2026
+
+I Corte di diritto civile
+
+Composizione
+
+Giudice federale Hurni, Presidente,
+
+Cancelliere G. Piatti.
+
+Partecipanti al procedimento
+
+A.…</description>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_239.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesverwaltungsgericht F-5972/2026 vom 2026-09-09</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-5972_2026</link>
@@ -52,6 +82,22 @@ Partecipant…</description>
       <description>UE/AELS</description>
       <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5651.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht A-472/2026 vom 2026-09-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-472_2026</link>
+      <description>Assistenza amministrativa</description>
+      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-472.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht A-543/2026 vom 2026-09-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-543_2026</link>
+      <description>Assistenza amministrativa</description>
+      <pubDate>Fri, 04 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-543.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -132,6 +178,36 @@ Part…</description>
       <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-3399.2024</guid>
       <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 9C_365/2026 vom 2026-08-31</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_9C_365_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+9C_365/2026
+
+Sentenza del 31 agosto 2026
+
+III Corte di diritto pubblico
+
+Composizione
+
+Giudici federali Parrino, giudice presidente,
+
+Beusch, Bollinger,
+
+Cancelliere Savoldelli.
+
+…</description>
+      <pubDate>Mon, 31 Aug 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:9C_365.2026</guid>
+      <category>bger</category>
     </item>
     <item>
       <title>Bundesgericht 5A_792/2026 vom 2026-08-28</title>
@@ -923,128 +999,6 @@ Partecipanti al pro…</description>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_401.2026</guid>
       <category>bger</category>
       <category>Assistenza giudiziaria e estradizione</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_153/2026 vom 2026-08-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_153_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_153/2026
-
-Sentenza del 6 agosto 2026
-
-IV Corte di diritto pubblico
-
-Composizione
-
-Giudici federali Viscione, Presidente,
-
-Maillard, Scherrer Reber,
-
-Cancelliere Colombi.
-
-Parte…</description>
-      <pubDate>Thu, 06 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_153.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_162/2026 vom 2026-08-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_162_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_162/2026
-
-Sentenza del 6 agosto 2026
-
-IV Corte di diritto pubblico
-
-Composizione
-
-Giudici federali Viscione, Presidente,
-
-Heine, Scherrer Reber,
-
-Cancelliere Colombi.
-
-Partecip…</description>
-      <pubDate>Thu, 06 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_162.2026</guid>
-      <category>bger</category>
-      <category>Assicurazione contro la disoccupazione</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_188/2026 vom 2026-08-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_188_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_188/2026
-
-Sentenza del 6 agosto 2026
-
-IV Corte di diritto pubblico
-
-Composizione
-
-Giudici federali Viscione, Presidente,
-
-Maillard, Scherrer Reber,
-
-Cancelliere Colombi.
-
-Parte…</description>
-      <pubDate>Thu, 06 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_188.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_65/2026 vom 2026-08-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_65_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_65/2026
-
-Sentenza del 6 agosto 2026
-
-IV Corte di diritto pubblico
-
-Composizione
-
-Giudici federali Viscione, Presidente,
-
-Maillard, Scherrer Reber,
-
-Cancelliere Colombi.
-
-Partec…</description>
-      <pubDate>Thu, 06 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_65.2026</guid>
-      <category>bger</category>
-      <category>Assicurazione contro gli infortuni</category>
     </item>
   </channel>
 </rss>
