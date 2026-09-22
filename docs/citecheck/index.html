@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>citecheck — Zitatprüfung in Word — OpenCaseLaw</title>
+<meta name="description" content="citecheck prüft die Verweise auf Gerichtsentscheide in einem Entwurf direkt in Word: Gibt es den Entscheid, gibt es die Erwägung. Der Entwurf verlässt das Gerät nicht. Open Source, MIT.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://opencaselaw.ch/citecheck/">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/citecheck/?lang=de">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/citecheck/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/citecheck/?lang=it">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/citecheck/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/citecheck/">
+<link rel="icon" href="/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://opencaselaw.ch/citecheck/">
+<meta property="og:title" content="citecheck — Zitatprüfung in Word">
+<meta property="og:description" content="Prüft die Verweise auf Gerichtsentscheide in einem Entwurf, direkt in Word. Der Entwurf verlässt das Gerät nicht.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js');</script>
+<link rel="stylesheet" href="/static/css/site.css?v=3">
+<style>
+  .cc-cta{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 0}
+  .prose .btn-primary{color:var(--on-red);text-decoration:none}
+  .prose .btn-ghost{text-decoration:none}
+  .cc-note{font-family:var(--f-mono);font-size:12px;color:var(--t3);margin:14px 0 0}
+
+  /* install: one tab per Word, no script needed */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 0}
+  .tabs label{padding:8px 16px;border:1px solid var(--line);border-radius:999px;font-size:14px;color:var(--t2);cursor:pointer;background:var(--paper)}
+  .tabs label:hover{color:var(--t1);border-color:var(--t3)}
+  .tab-in{position:absolute;opacity:0;pointer-events:none}
+  .tab-in:focus-visible+label{outline:2px solid var(--red);outline-offset:2px}
+  .panel{display:none;margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:22px 24px;background:var(--paper)}
+  #t-win:checked~.tabs label[for=t-win],#t-web:checked~.tabs label[for=t-web],#t-mac:checked~.tabs label[for=t-mac]{background:var(--t1);color:var(--paper);border-color:var(--t1)}
+  #t-win:checked~#p-win,#t-web:checked~#p-web,#t-mac:checked~#p-mac{display:block}
+  .steps{list-style:none;padding:0;margin:0;counter-reset:s}
+  .steps li{position:relative;padding:0 0 14px 40px;counter-increment:s;font-size:15px;line-height:1.55;color:var(--t2)}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;
+    background:var(--red);color:var(--on-red);font-family:var(--f-mono);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+  .steps li:last-child{padding-bottom:0}
+  .steps b{color:var(--t1);font-weight:600}
+  .steps code{font-family:var(--f-mono);font-size:.88em;background:var(--paper-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;overflow-wrap:anywhere}
+  .panel .hint{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line-2);font-size:13.5px;color:var(--t3);line-height:1.55}
+
+  /* data flow: three places, two arrows, one closed door */
+  .flow{display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,1.15fr) 128px minmax(0,1fr);gap:0 12px;align-items:stretch;margin:28px 0 18px}
+  .place{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:var(--paper)}
+  .place.here{border-color:var(--t1);border-width:2px}
+  .place h3{font-size:15px;font-weight:600;margin:0 0 6px;letter-spacing:-.01em}
+  .place p{font-size:13.5px;color:var(--t2);line-height:1.5;margin:0}
+  .place ul{list-style:none;padding:0;margin:10px 0 0}
+  .place li{font-size:13.5px;color:var(--t2);line-height:1.5;padding-left:16px;position:relative}
+  .place li::before{content:"";position:absolute;left:0;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--t3)}
+  .place li.stay::before{background:#1e7a4f}
+  .place li.pub::before{background:var(--red)}
+  .arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-family:var(--f-mono);font-size:11px;line-height:1.4;color:var(--t3);text-align:center;padding:0 4px}
+  .arrow span.in,.arrow span.out{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .arrow span.out{color:#1e7a4f;margin-top:18px}
+  .arrow svg{width:64px;height:22px;stroke:var(--t3);fill:none;stroke-width:1.6}
+  .arrow svg.no{stroke:#1e7a4f}
+  .flow-key{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--t2);margin:0 0 6px}
+  .flow-key span{display:inline-flex;align-items:center;gap:8px}
+  .flow-key i{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .verify{margin-top:26px;border-left:3px solid var(--line);padding:2px 0 2px 18px}
+  .verify p{font-size:14.5px}
+
+  .shot{display:block;width:100%;max-width:340px;border:1px solid var(--line);border-radius:12px;margin:26px 0 0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
+  @media (max-width:820px){
+    .flow{grid-template-columns:1fr}
+    .arrow{flex-direction:row;justify-content:space-around;padding:8px 0}
+    .arrow span.out{margin-top:0}
+    .arrow svg{transform:rotate(90deg);width:22px;height:22px}
+    .two{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<div data-nav></div>
+
+<main id="main">
+  <section class="page-head first">
+    <div class="wrap">
+      <p class="page-kicker"><b data-t="kicker">citecheck · Word add-in for courts</b></p>
+      <h1 class="page-h1" data-t="h1">Check every case reference in a draft, inside Word, without the draft leaving the device</h1>
+      <p class="page-lead" data-t="lead">citecheck reads the open draft, finds the references to court decisions and compares them with the public OpenCaseLaw cite list: does the decision exist, does it have the cited Erwägung, do page and date match. It is open source (MIT), runs entirely in the Word task pane, and sends nothing.</p>
+      <div class="cc-cta">
+        <a class="btn btn-primary" href="#install" data-t="cta_install">Install in Word</a>
+        <a class="btn btn-ghost" href="#data" data-t="cta_data">Where the data goes</a>
+        <a class="btn btn-ghost" href="https://github.com/jonashertner/citecheck" rel="noopener" target="_blank" data-t="cta_source">Source code</a>
+      </div>
+      <p class="cc-note" data-t="note">Test version 0.1 · September 2026 · 1,081,116 decisions in the list · Microsoft 365 or Office 2021 and later</p>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-bottom:clamp(64px,9vw,112px)">
+    <div class="prose" style="max-width:none">
+
+      <div class="two">
+        <div>
+          <h2 style="margin-top:0" data-t="what_h">What it checks</h2>
+          <ul>
+            <li data-t="what_1"><strong>Exists.</strong> BGE/ATF/DTF, file numbers of the Bundesgericht (all spellings: 4A_747/2012, 4A 747/2012, 4C.230/2006), Bundesverwaltungsgericht, Bundesstrafgericht and cantonal courts, against 1,081,116 decisions, BGE from volume 1.</li>
+            <li data-t="what_2"><strong>Erwägung.</strong> Whether the decision has the cited E. / consid.; if not, which ones it has. Known for about four fifths of the decisions, otherwise marked "cannot be checked".</li>
+            <li data-t="what_3"><strong>Page and date.</strong> For a BGE, whether the cited page lies within the decision; for a file number, whether the written date is the decision's.</li>
+            <li data-t="what_4"><strong>Typing errors.</strong> A near label is offered when it carries the written date or the cited Erwägung, for instance 4A_747/2012 for "4A_747/2013 vom 5. April 2013", or BGE 140 III 115 for "BGE 140 III 120" (p. 120 lies within it).</li>
+          </ul>
+          <h3 data-t="not_h">What it does not do</h3>
+          <ul>
+            <li data-t="not_1">It does not judge whether a decision supports what the draft says.</li>
+            <li data-t="not_2">"Not in the list" is not "does not exist": unpublished and very recent decisions are missing. The pane states what the list holds for that court.</li>
+            <li data-t="not_3">It never changes the text. It can select a reference and, on request, attach a Word comment.</li>
+          </ul>
+        </div>
+        <div>
+          <img class="shot" src="pane.png" alt="The citecheck pane after a check">
+          <p class="cc-note" data-t="shot_cap">The pane after a check: a summary, the draft's margin with one mark per reference, and the findings. German, French, Italian and English.</p>
+        </div>
+      </div>
+
+      <h2 id="install" data-t="install_h">Install in Word</h2>
+      <p data-t="install_p">One file, uploaded once in Word. No installer, no administrator rights, no command line. The file (5 KB) contains only the address of the add-in.</p>
+      <p><a class="btn btn-primary" href="https://jonashertner.github.io/citecheck/manifest.xml" download="citecheck-manifest.xml" data-t="dl">Download the add-in file</a></p>
+
+      <div style="position:relative">
+        <input class="tab-in" type="radio" name="t" id="t-win" checked>
+        <input class="tab-in" type="radio" name="t" id="t-web">
+        <input class="tab-in" type="radio" name="t" id="t-mac">
+        <div class="tabs">
+          <label for="t-win" data-t="tab_win">Word for Windows</label>
+          <label for="t-web" data-t="tab_web">Word in the browser</label>
+          <label for="t-mac" data-t="tab_mac">Word for Mac</label>
+        </div>
+        <div class="panel" id="p-win">
+          <ol class="steps">
+            <li data-t="win_1">Open Word. On the <b>Insert</b> tab click <b>Add-ins</b> (in some versions <b>Get Add-ins</b>).</li>
+            <li data-t="win_2">In the Office Add-ins window choose <b>My Add-ins</b>, then <b>Upload My Add-in</b> at the top right.</li>
+            <li data-t="win_3">Pick the downloaded file <code>citecheck-manifest.xml</code> and click <b>Upload</b>.</li>
+            <li data-t="win_4">The pane opens on the right. From then on the button <b>Zitate prüfen</b> sits on the <b>Review</b> tab.</li>
+          </ol>
+          <p class="hint" data-t="win_hint">No "Upload My Add-in"? Then your organisation has switched off self-installed add-ins. Your IT can add the same file for chosen users in the Microsoft 365 admin centre (Integrated apps, Upload custom app), or host the add-in on the intranet: <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">deployment guide</a>.</p>
+        </div>
+        <div class="panel" id="p-web">
+          <ol class="steps">
+            <li data-t="web_1">Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b>, <b>More Add-ins</b>.</li>
+            <li data-t="web_2"><b>My Add-ins</b>, <b>Upload My Add-in</b>, pick the downloaded file.</li>
+            <li data-t="web_3">The pane opens on the right.</li>
+          </ol>
+        </div>
+        <div class="panel" id="p-mac">
+          <ol class="steps">
+            <li data-t="mac_1">Quit Word.</li>
+            <li data-t="mac_2">In the Finder: <b>Go</b>, <b>Go to Folder…</b>, paste <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. If the folder <code>wef</code> does not exist, create it inside <code>Documents</code>.</li>
+            <li data-t="mac_3">Move the downloaded file into that folder.</li>
+            <li data-t="mac_4">Start Word. <b>Home</b>, <b>Add-ins</b>, under "Developer Add-ins" choose citecheck.</li>
+          </ol>
+        </div>
+      </div>
+
+      <h3 data-t="use_h">Using it</h3>
+      <ol>
+        <li data-t="use_1">Open the draft and press <strong>Entwurf prüfen</strong>. The first time, the add-in loads the cite list (17 MB); afterwards only when the list has changed. Every check first asks whether a newer list exists.</li>
+        <li data-t="use_2">Every reference gets a line: found, differs, not in the list, not checked. Clicking it shows the reason; <strong>Im Entwurf zeigen</strong> selects the place in the document; <strong>Entscheid öffnen</strong> opens the decision on opencaselaw.ch, at the cited Erwägung.</li>
+        <li data-t="use_3">Without Word: open <a href="https://jonashertner.github.io/citecheck/taskpane.html" rel="noopener">the pane in a browser</a> and drop the .docx on it. It is read in the page, not uploaded.</li>
+      </ol>
+
+      <h2 id="data" data-t="data_h">Where the data goes</h2>
+      <p data-t="data_p">Three places are involved. The draft stays in the first.</p>
+
+      <div class="flow-key">
+        <span><i style="background:#1e7a4f"></i><span data-t="key_stay">stays on the device</span></span>
+        <span><i style="background:var(--red)"></i><span data-t="key_pub">public, identical for everyone</span></span>
+      </div>
+      <div class="flow">
+        <div class="place">
+          <h3 data-t="pl2_h">The add-in's host</h3>
+          <p data-t="pl2_p">A web server with static files: the add-in's page and the cite list. Today jonashertner.github.io; a court can host the same folder on its intranet.</p>
+          <ul>
+            <li class="pub" data-t="pl2_1">the add-in's page, script and style</li>
+            <li class="pub" data-t="pl2_2">the cite list: court, date, number and Erwägung numbers of every decision, no text</li>
+            <li data-t="pl2_3">sees only that the pane was opened and the list fetched, as any web server does</li>
+          </ul>
+        </div>
+        <div class="arrow">
+          <span class="in"><svg viewBox="0 0 64 22" aria-hidden="true"><path d="M2 11h44"/><path d="M40 4l7 7-7 7"/></svg><span data-t="ar2">public files only</span></span>
+          <span class="out"><svg class="no" viewBox="0 0 64 22" aria-hidden="true"><path d="M62 11H22"/><path d="M28 4l-7 7 7 7"/><path d="M4 3l10 16M14 3L4 19"/></svg><span data-t="ar1">nothing about the draft</span></span>
+        </div>
+        <div class="place here">
+          <h3 data-t="pl1_h">Your computer, inside Word</h3>
+          <p data-t="pl1_p">The add-in runs in the task pane. Here it reads the draft, finds the references and compares them with the list held in memory.</p>
+          <ul>
+            <li class="stay" data-t="pl1_1">the draft</li>
+            <li class="stay" data-t="pl1_2">the references found in it</li>
+            <li class="stay" data-t="pl1_3">the results and any comments</li>
+            <li class="pub" data-t="pl1_4">a copy of the cite list, kept for the next check</li>
+          </ul>
+        </div>
+        <div class="arrow">
+          <span class="in"><svg viewBox="0 0 64 22" aria-hidden="true"><path d="M62 11H18"/><path d="M24 4l-7 7 7 7"/></svg><span data-t="ar3">office.js only</span></span>
+          <span class="out"><svg class="no" viewBox="0 0 64 22" aria-hidden="true"><path d="M2 11h40"/><path d="M36 4l7 7-7 7"/><path d="M50 3l10 16M60 3L50 19"/></svg><span data-t="ar1">nothing about the draft</span></span>
+        </div>
+        <div class="place">
+          <h3 data-t="pl3_h">Microsoft</h3>
+          <p data-t="pl3_p">Word loads office.js from appsforoffice.microsoft.com. Every Word add-in must; it is a script, not document data.</p>
+          <ul>
+            <li data-t="pl3_1">sees that an add-in was opened, nothing else</li>
+          </ul>
+        </div>
+      </div>
+      <p data-t="data_link"><strong>Links are the one exception, and only when you click.</strong> "Entscheid öffnen" opens that one decision's page on opencaselaw.ch in your browser, like any link in a document. opencaselaw.ch then sees that this page was opened, not the draft and not the other references.</p>
+
+      <div class="verify">
+        <p data-t="enf_h"><strong>What enforces this, not just promises it.</strong></p>
+        <p data-t="enf_1">The add-in's page carries a Content-Security-Policy that allows connections to its own host only. The browser inside Word refuses every other connection, from our code and from Microsoft's script alike. No inline script, no eval, no form posts.</p>
+        <p data-t="enf_2">The code has one place that talks to the network, two requests, both to the list next to the page. A test in the repository fails if that policy is loosened, if a second network call appears, or if the Word code does anything but read, select and comment.</p>
+        <p data-t="enf_3">You can check it yourself: open the pane with the browser's developer tools and watch the network tab during a check. Nothing is requested. The full description: <a href="https://github.com/jonashertner/citecheck/blob/main/SECURITY.md" rel="noopener">SECURITY.md</a>.</p>
+      </div>
+
+      <h2 data-t="court_h">For a court's IT</h2>
+      <p data-t="court_p">The add-in is a folder of static files and one manifest; nothing runs on a server. Copy the folder to an intranet server, mirror the cite list next to it (or build it from the public verification pack), generate the manifest for that address, and roll it out through the Microsoft 365 admin centre or a trusted catalog. Then the workstation contacts no one outside the court but Microsoft's script host. With <code>--read-only</code> the manifest asks Word for read access only. Steps and the nginx lines: <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">deployment guide</a>.</p>
+
+      <h2 data-t="fb_h">Test version, feedback</h2>
+      <p data-t="fb_p">citecheck is a test version. For a wrong or missing finding, send the reference as written in the draft and the message the pane shows, as an <a href="https://github.com/jonashertner/citecheck/issues" rel="noopener">issue on GitHub</a> or by e-mail. The cite list is rebuilt from the OpenCaseLaw corpus; a decision that is missing from it is usually missing from the corpus, and the <a href="/coverage/">coverage page</a> says which courts and years are covered.</p>
+    </div>
+  </section>
+</main>
+
+<div data-foot></div>
+<script src="/static/js/site.js?v=2"></script>
+<script>
+OCL.init({
+  active:'',
+  i18n:{
+  "de": {
+    "kicker": "citecheck · Word-Add-in für Gerichte",
+    "h1": "Jeden Verweis auf einen Entscheid prüfen, direkt in Word, ohne dass der Entwurf das Gerät verlässt",
+    "lead": "citecheck liest den geöffneten Entwurf, findet die Verweise auf Gerichtsentscheide und vergleicht sie mit der öffentlichen Zitatliste von OpenCaseLaw: Gibt es den Entscheid, hat er die zitierte Erwägung, stimmen Seite und Datum. Open Source (MIT), läuft vollständig im Aufgabenbereich von Word und sendet nichts.",
+    "cta_install": "In Word installieren", "cta_data": "Wohin die Daten gehen", "cta_source": "Quellcode",
+    "note": "Testversion 0.1 · September 2026 · 1'081'116 Entscheide in der Liste · Microsoft 365 oder Office 2021 und neuer",
+    "what_h": "Was geprüft wird",
+    "what_1": "<strong>Existenz.</strong> BGE/ATF/DTF, Dossiernummern des Bundesgerichts (alle Schreibweisen: 4A_747/2012, 4A 747/2012, 4C.230/2006), des Bundesverwaltungsgerichts, des Bundesstrafgerichts und der kantonalen Gerichte, gegen 1'081'116 Entscheide, BGE ab Band 1.",
+    "what_2": "<strong>Erwägung.</strong> Ob der Entscheid die zitierte E. / consid. hat; wenn nicht, welche er hat. Bekannt für rund vier Fünftel der Entscheide, sonst «nicht prüfbar».",
+    "what_3": "<strong>Seite und Datum.</strong> Bei einem BGE, ob die zitierte Seite im Entscheid liegt; bei einer Dossiernummer, ob das geschriebene Datum das des Entscheids ist.",
+    "what_4": "<strong>Tippfehler.</strong> Eine ähnliche Nummer wird vorgeschlagen, wenn sie das geschriebene Datum oder die zitierte Erwägung trägt, etwa 4A_747/2012 für «4A_747/2013 vom 5. April 2013», oder BGE 140 III 115 für «BGE 140 III 120» (S. 120 liegt darin).",
+    "not_h": "Was es nicht tut",
+    "not_1": "Es beurteilt nicht, ob ein Entscheid die Aussage im Entwurf trägt.",
+    "not_2": "«Nicht in der Liste» heisst nicht «gibt es nicht»: Unveröffentlichte und sehr neue Entscheide fehlen. Das Fenster nennt, was die Liste für das betreffende Gericht enthält.",
+    "not_3": "Es ändert nie den Text. Es kann einen Verweis markieren und auf Wunsch einen Word-Kommentar anbringen.",
+    "shot_cap": "Das Fenster nach einer Prüfung: Zusammenfassung, der Rand des Entwurfs mit einer Marke pro Verweis, die Befunde. Deutsch, Französisch, Italienisch und Englisch.",
+    "install_h": "In Word installieren",
+    "install_p": "Eine Datei, einmal in Word hochgeladen. Kein Installationsprogramm, keine Administratorrechte, keine Kommandozeile. Die Datei (5 KB) enthält nur die Adresse des Add-ins.",
+    "dl": "Add-in-Datei herunterladen",
+    "tab_win": "Word für Windows", "tab_web": "Word im Browser", "tab_mac": "Word für Mac",
+    "win_1": "Word öffnen. Im Menüband <b>Einfügen</b> auf <b>Add-ins</b> klicken (in manchen Versionen <b>Add-ins abrufen</b>).",
+    "win_2": "Im Fenster «Office-Add-Ins» <b>Meine Add-Ins</b> wählen, dann oben rechts <b>Mein Add-In hochladen</b>.",
+    "win_3": "Die heruntergeladene Datei <code>citecheck-manifest.xml</code> wählen und <b>Hochladen</b> klicken.",
+    "win_4": "Das Fenster öffnet sich rechts. Von da an steht die Schaltfläche <b>Zitate prüfen</b> im Menüband <b>Überprüfen</b>.",
+    "win_hint": "Kein «Mein Add-In hochladen»? Dann hat Ihre Organisation selbst installierte Add-ins abgeschaltet. Die IT kann dieselbe Datei im Microsoft 365 Admin Center für ausgewählte Personen freigeben (Integrierte Apps, Benutzerdefinierte App hochladen) oder das Add-in im Intranet betreiben: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Anleitung für die IT</a>.",
+    "web_1": "Das Dokument in Word auf office.com öffnen. <b>Einfügen</b>, <b>Add-ins</b>, <b>Weitere Add-Ins</b>.",
+    "web_2": "<b>Meine Add-Ins</b>, <b>Mein Add-In hochladen</b>, die heruntergeladene Datei wählen.",
+    "web_3": "Das Fenster öffnet sich rechts.",
+    "mac_1": "Word beenden.",
+    "mac_2": "Im Finder: <b>Gehe zu</b>, <b>Gehe zum Ordner …</b>, einfügen: <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Gibt es den Ordner <code>wef</code> nicht, im Ordner <code>Documents</code> anlegen.",
+    "mac_3": "Die heruntergeladene Datei in diesen Ordner legen.",
+    "mac_4": "Word starten. <b>Start</b>, <b>Add-ins</b>, unter «Entwickler-Add-ins» citecheck wählen.",
+    "use_h": "Verwendung",
+    "use_1": "Entwurf öffnen und <strong>Entwurf prüfen</strong> drücken. Beim ersten Mal lädt das Add-in die Zitatliste (17 MB), danach nur, wenn sie sich geändert hat. Jede Prüfung fragt zuerst, ob es eine neuere Liste gibt.",
+    "use_2": "Jeder Verweis erhält eine Zeile: gefunden, weicht ab, nicht in der Liste, nicht geprüft. Anklicken zeigt die Begründung; <strong>Im Entwurf zeigen</strong> markiert die Stelle im Dokument; <strong>Entscheid öffnen</strong> führt zum Entscheid auf opencaselaw.ch, direkt zur zitierten Erwägung.",
+    "use_3": "Ohne Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">das Fenster im Browser öffnen</a> und die .docx hineinziehen. Sie wird in der Seite gelesen, nicht hochgeladen.",
+    "data_h": "Wohin die Daten gehen",
+    "data_p": "Drei Orte sind beteiligt. Der Entwurf bleibt am ersten.",
+    "key_stay": "bleibt auf dem Gerät", "key_pub": "öffentlich, für alle gleich",
+    "pl1_h": "Ihr Computer, in Word",
+    "pl1_p": "Das Add-in läuft im Aufgabenbereich. Hier liest es den Entwurf, findet die Verweise und vergleicht sie mit der Liste im Arbeitsspeicher.",
+    "pl1_1": "der Entwurf", "pl1_2": "die darin gefundenen Verweise", "pl1_3": "die Ergebnisse und allfällige Kommentare", "pl1_4": "eine Kopie der Zitatliste, für die nächste Prüfung",
+    "ar1": "nichts über den Entwurf", "ar3": "nur office.js",
+    "pl2_h": "Der Host des Add-ins",
+    "pl2_p": "Ein Webserver mit statischen Dateien: die Seite des Add-ins und die Zitatliste. Heute jonashertner.github.io; ein Gericht kann denselben Ordner im Intranet betreiben.",
+    "pl2_1": "Seite, Skript und Stil des Add-ins",
+    "pl2_2": "die Zitatliste: Gericht, Datum, Nummer und Erwägungsnummern jedes Entscheids, kein Text",
+    "pl2_3": "sieht nur, dass das Fenster geöffnet und die Liste geladen wurde, wie jeder Webserver",
+    "ar2": "nur öffentliche Dateien",
+    "pl3_h": "Microsoft",
+    "pl3_p": "Word lädt office.js von appsforoffice.microsoft.com. Das muss jedes Word-Add-in; es ist ein Skript, keine Dokumentdaten.",
+    "pl3_1": "sieht, dass ein Add-in geöffnet wurde, sonst nichts",
+    "data_link": "<strong>Links sind die eine Ausnahme, und nur auf Klick.</strong> «Entscheid öffnen» ruft die Seite dieses einen Entscheids auf opencaselaw.ch im Browser auf, wie jeder Link in einem Dokument. opencaselaw.ch sieht dann, dass diese Seite geöffnet wurde, nicht den Entwurf und nicht die anderen Verweise.",
+    "enf_h": "<strong>Was das erzwingt, nicht nur verspricht.</strong>",
+    "enf_1": "Die Seite des Add-ins trägt eine Content-Security-Policy, die Verbindungen nur zum eigenen Host erlaubt. Der Browser in Word verweigert jede andere Verbindung, aus unserem Code wie aus Microsofts Skript. Kein Inline-Skript, kein eval, keine Formulare.",
+    "enf_2": "Der Code hat eine einzige Stelle, die mit dem Netz spricht, zwei Anfragen, beide an die Liste neben der Seite. Ein Test im Repository schlägt fehl, wenn die Policy gelockert wird, ein zweiter Netzaufruf auftaucht oder der Word-Code etwas anderes tut als lesen, markieren und kommentieren.",
+    "enf_3": "Sie können es selbst prüfen: das Fenster mit den Entwicklerwerkzeugen des Browsers öffnen und während einer Prüfung den Netzwerk-Tab beobachten. Es wird nichts angefragt. Die vollständige Beschreibung: <a href=\"https://github.com/jonashertner/citecheck/blob/main/SECURITY.md\" rel=\"noopener\">SECURITY.md</a>.",
+    "court_h": "Für die IT eines Gerichts",
+    "court_p": "Das Add-in ist ein Ordner statischer Dateien und ein Manifest; auf einem Server läuft nichts. Den Ordner auf einen Intranet-Server kopieren, die Zitatliste daneben spiegeln (oder aus dem öffentlichen Verifikationspaket bauen), das Manifest für diese Adresse erzeugen und über das Microsoft 365 Admin Center oder einen vertrauenswürdigen Katalog verteilen. Dann kontaktiert der Arbeitsplatz ausserhalb des Gerichts nur noch Microsofts Skript-Host. Mit <code>--read-only</code> verlangt das Manifest von Word nur Lesezugriff. Schritte und nginx-Zeilen: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Anleitung für die IT</a>.",
+    "fb_h": "Testversion, Rückmeldungen",
+    "fb_p": "citecheck ist eine Testversion. Bei einem falschen oder fehlenden Befund bitte den Verweis, wie er im Entwurf steht, und die Meldung des Fensters senden, als <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">Issue auf GitHub</a> oder per E-Mail. Die Zitatliste wird aus dem OpenCaseLaw-Korpus gebaut; ein Entscheid, der darin fehlt, fehlt meist im Korpus, und die <a href=\"/coverage/\">Abdeckungsseite</a> sagt, welche Gerichte und Jahre erfasst sind."
+  },
+  "fr": {
+    "kicker": "citecheck · complément Word pour les tribunaux",
+    "h1": "Contrôler chaque renvoi à une décision, dans Word, sans que le projet quitte l'appareil",
+    "lead": "citecheck lit le projet ouvert, repère les renvois à des décisions judiciaires et les compare à la liste publique des citations d'OpenCaseLaw: la décision existe-t-elle, a-t-elle le considérant cité, la page et la date concordent-elles. Open source (MIT), il s'exécute entièrement dans le volet de Word et n'envoie rien.",
+    "cta_install": "Installer dans Word", "cta_data": "Où vont les données", "cta_source": "Code source",
+    "note": "Version test 0.1 · septembre 2026 · 1 081 116 décisions dans la liste · Microsoft 365 ou Office 2021 et plus récent",
+    "what_h": "Ce qui est contrôlé",
+    "what_1": "<strong>Existence.</strong> ATF/BGE/DTF, numéros de dossier du Tribunal fédéral (toutes les graphies: 4A_747/2012, 4A 747/2012, 4C.230/2006), du Tribunal administratif fédéral, du Tribunal pénal fédéral et des tribunaux cantonaux, contre 1 081 116 décisions, ATF dès le volume 1.",
+    "what_2": "<strong>Considérant.</strong> Si la décision a le consid. cité; sinon, lesquels elle a. Connu pour environ quatre cinquièmes des décisions, sinon «non contrôlable».",
+    "what_3": "<strong>Page et date.</strong> Pour un ATF, si la page citée se trouve dans la décision; pour un numéro de dossier, si la date écrite est celle de la décision.",
+    "what_4": "<strong>Fautes de frappe.</strong> Un numéro proche est proposé s'il porte la date écrite ou le considérant cité, par exemple 4A_747/2012 pour «4A_747/2013 du 5 avril 2013», ou ATF 140 III 115 pour «ATF 140 III 120» (la p. 120 s'y trouve).",
+    "not_h": "Ce qu'il ne fait pas",
+    "not_1": "Il ne juge pas si une décision étaye ce que dit le projet.",
+    "not_2": "«Absent de la liste» ne signifie pas «n'existe pas»: les décisions non publiées et très récentes manquent. Le volet indique ce que la liste contient pour ce tribunal.",
+    "not_3": "Il ne modifie jamais le texte. Il peut sélectionner un renvoi et, sur demande, y attacher un commentaire Word.",
+    "shot_cap": "Le volet après un contrôle: résumé, marge du projet avec une marque par renvoi, constats. Allemand, français, italien et anglais.",
+    "install_h": "Installer dans Word",
+    "install_p": "Un fichier, chargé une fois dans Word. Pas de programme d'installation, pas de droits d'administrateur, pas de ligne de commande. Le fichier (5 Ko) ne contient que l'adresse du complément.",
+    "dl": "Télécharger le fichier du complément",
+    "tab_win": "Word pour Windows", "tab_web": "Word dans le navigateur", "tab_mac": "Word pour Mac",
+    "win_1": "Ouvrir Word. Dans l'onglet <b>Insertion</b>, cliquer sur <b>Compléments</b> (selon la version <b>Obtenir des compléments</b>).",
+    "win_2": "Dans la fenêtre «Compléments Office», choisir <b>Mes compléments</b>, puis en haut à droite <b>Charger mon complément</b>.",
+    "win_3": "Choisir le fichier téléchargé <code>citecheck-manifest.xml</code> et cliquer sur <b>Charger</b>.",
+    "win_4": "Le volet s'ouvre à droite. Dès lors, le bouton <b>Contrôler les citations</b> se trouve dans l'onglet <b>Révision</b>.",
+    "win_hint": "Pas de «Charger mon complément»? Votre organisation a désactivé les compléments installés par l'utilisateur. L'informatique peut mettre le même fichier à disposition dans le centre d'administration Microsoft 365 (Applications intégrées, Charger des applications personnalisées) ou héberger le complément sur l'intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">guide pour l'informatique</a>.",
+    "web_1": "Ouvrir le document dans Word sur office.com. <b>Insertion</b>, <b>Compléments</b>, <b>Autres compléments</b>.",
+    "web_2": "<b>Mes compléments</b>, <b>Charger mon complément</b>, choisir le fichier téléchargé.",
+    "web_3": "Le volet s'ouvre à droite.",
+    "mac_1": "Quitter Word.",
+    "mac_2": "Dans le Finder: <b>Aller</b>, <b>Aller au dossier…</b>, coller <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Si le dossier <code>wef</code> n'existe pas, le créer dans <code>Documents</code>.",
+    "mac_3": "Déposer le fichier téléchargé dans ce dossier.",
+    "mac_4": "Lancer Word. <b>Accueil</b>, <b>Compléments</b>, sous «Compléments de développeur» choisir citecheck.",
+    "use_h": "Utilisation",
+    "use_1": "Ouvrir le projet et appuyer sur <strong>Contrôler le projet</strong>. La première fois, le complément charge la liste (17 Mo); ensuite seulement si elle a changé. Chaque contrôle demande d'abord s'il existe une liste plus récente.",
+    "use_2": "Chaque renvoi reçoit une ligne: trouvé, divergent, absent de la liste, non contrôlé. Un clic montre le motif; <strong>Montrer dans le projet</strong> sélectionne le passage; <strong>Ouvrir la décision</strong> mène à la décision sur opencaselaw.ch, au considérant cité.",
+    "use_3": "Sans Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">ouvrir le volet dans un navigateur</a> et y déposer le .docx. Il est lu dans la page, pas téléversé.",
+    "data_h": "Où vont les données",
+    "data_p": "Trois lieux sont impliqués. Le projet reste au premier.",
+    "key_stay": "reste sur l'appareil", "key_pub": "public, identique pour tous",
+    "pl1_h": "Votre ordinateur, dans Word",
+    "pl1_p": "Le complément s'exécute dans le volet. C'est là qu'il lit le projet, repère les renvois et les compare à la liste en mémoire.",
+    "pl1_1": "le projet", "pl1_2": "les renvois qui y sont trouvés", "pl1_3": "les résultats et les éventuels commentaires", "pl1_4": "une copie de la liste, pour le prochain contrôle",
+    "ar1": "rien du projet", "ar3": "office.js seulement",
+    "pl2_h": "L'hôte du complément",
+    "pl2_p": "Un serveur web avec des fichiers statiques: la page du complément et la liste. Aujourd'hui jonashertner.github.io; un tribunal peut héberger le même dossier sur son intranet.",
+    "pl2_1": "page, script et style du complément",
+    "pl2_2": "la liste: tribunal, date, numéro et numéros de considérants de chaque décision, aucun texte",
+    "pl2_3": "voit seulement que le volet a été ouvert et la liste chargée, comme tout serveur web",
+    "ar2": "fichiers publics uniquement",
+    "pl3_h": "Microsoft",
+    "pl3_p": "Word charge office.js depuis appsforoffice.microsoft.com. Tout complément Word le doit; c'est un script, pas des données du document.",
+    "pl3_1": "voit qu'un complément a été ouvert, rien d'autre",
+    "data_link": "<strong>Les liens sont la seule exception, et seulement sur clic.</strong> «Ouvrir la décision» appelle la page de cette seule décision sur opencaselaw.ch dans votre navigateur, comme tout lien dans un document. opencaselaw.ch voit alors que cette page a été ouverte, pas le projet ni les autres renvois.",
+    "enf_h": "<strong>Ce qui l'impose, au lieu de seulement le promettre.</strong>",
+    "enf_1": "La page du complément porte une Content-Security-Policy qui n'autorise les connexions qu'à son propre hôte. Le navigateur dans Word refuse toute autre connexion, venant de notre code comme du script de Microsoft. Pas de script en ligne, pas d'eval, pas de formulaire.",
+    "enf_2": "Le code a un seul endroit qui parle au réseau, deux requêtes, toutes deux vers la liste à côté de la page. Un test du dépôt échoue si la policy est assouplie, si un second appel réseau apparaît ou si le code Word fait autre chose que lire, sélectionner et commenter.",
+    "enf_3": "Vous pouvez le vérifier vous-même: ouvrir le volet avec les outils de développement du navigateur et observer l'onglet réseau pendant un contrôle. Rien n'est demandé. Description complète: <a href=\"https://github.com/jonashertner/citecheck/blob/main/SECURITY.md\" rel=\"noopener\">SECURITY.md</a>.",
+    "court_h": "Pour l'informatique d'un tribunal",
+    "court_p": "Le complément est un dossier de fichiers statiques et un manifeste; rien ne s'exécute sur un serveur. Copier le dossier sur un serveur intranet, y mettre en miroir la liste (ou la construire à partir du paquet de vérification public), générer le manifeste pour cette adresse et le distribuer via le centre d'administration Microsoft 365 ou un catalogue approuvé. Le poste de travail ne contacte alors plus, hors du tribunal, que l'hôte de script de Microsoft. Avec <code>--read-only</code>, le manifeste ne demande à Word qu'un accès en lecture. Étapes et lignes nginx: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">guide pour l'informatique</a>.",
+    "fb_h": "Version test, retours",
+    "fb_p": "citecheck est une version test. Pour un constat faux ou manquant, envoyer le renvoi tel qu'il figure dans le projet et le message du volet, comme <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">issue sur GitHub</a> ou par courriel. La liste est construite à partir du corpus OpenCaseLaw; une décision qui y manque manque généralement dans le corpus, et la <a href=\"/coverage/\">page de couverture</a> indique quels tribunaux et quelles années sont couverts."
+  },
+  "it": {
+    "kicker": "citecheck · componente Word per i tribunali",
+    "h1": "Controllare ogni rinvio a una decisione, in Word, senza che il progetto lasci il dispositivo",
+    "lead": "citecheck legge il progetto aperto, trova i rinvii a decisioni giudiziarie e li confronta con la lista pubblica delle citazioni di OpenCaseLaw: la decisione esiste, ha il considerando citato, pagina e data corrispondono. Open source (MIT), gira interamente nel riquadro di Word e non invia nulla.",
+    "cta_install": "Installare in Word", "cta_data": "Dove vanno i dati", "cta_source": "Codice sorgente",
+    "note": "Versione di prova 0.1 · settembre 2026 · 1 081 116 decisioni nella lista · Microsoft 365 o Office 2021 e successivi",
+    "what_h": "Che cosa viene controllato",
+    "what_1": "<strong>Esistenza.</strong> DTF/BGE/ATF, numeri d'incarto del Tribunale federale (tutte le grafie: 4A_747/2012, 4A 747/2012, 4C.230/2006), del Tribunale amministrativo federale, del Tribunale penale federale e dei tribunali cantonali, contro 1 081 116 decisioni, DTF dal volume 1.",
+    "what_2": "<strong>Considerando.</strong> Se la decisione ha il consid. citato; altrimenti quali ha. Noto per circa quattro quinti delle decisioni, altrimenti «non controllabile».",
+    "what_3": "<strong>Pagina e data.</strong> Per una DTF, se la pagina citata si trova nella decisione; per un numero d'incarto, se la data scritta è quella della decisione.",
+    "what_4": "<strong>Errori di battitura.</strong> Un numero simile viene proposto se porta la data scritta o il considerando citato, ad esempio 4A_747/2012 per «4A_747/2013 del 5 aprile 2013», o DTF 140 III 115 per «DTF 140 III 120» (la pag. 120 vi si trova).",
+    "not_h": "Che cosa non fa",
+    "not_1": "Non giudica se una decisione sostiene quanto scritto nel progetto.",
+    "not_2": "«Non nella lista» non significa «non esiste»: mancano le decisioni non pubblicate e molto recenti. Il riquadro indica che cosa la lista contiene per quel tribunale.",
+    "not_3": "Non modifica mai il testo. Può selezionare un rinvio e, su richiesta, aggiungervi un commento Word.",
+    "shot_cap": "Il riquadro dopo un controllo: riepilogo, margine del progetto con un segno per rinvio, risultati. Tedesco, francese, italiano e inglese.",
+    "install_h": "Installare in Word",
+    "install_p": "Un file, caricato una volta in Word. Nessun programma d'installazione, nessun diritto di amministratore, nessuna riga di comando. Il file (5 KB) contiene solo l'indirizzo del componente.",
+    "dl": "Scaricare il file del componente",
+    "tab_win": "Word per Windows", "tab_web": "Word nel browser", "tab_mac": "Word per Mac",
+    "win_1": "Aprire Word. Nella scheda <b>Inserisci</b> fare clic su <b>Componenti aggiuntivi</b> (in alcune versioni <b>Ottieni componenti aggiuntivi</b>).",
+    "win_2": "Nella finestra «Componenti aggiuntivi di Office» scegliere <b>I miei componenti aggiuntivi</b>, poi in alto a destra <b>Carica il mio componente aggiuntivo</b>.",
+    "win_3": "Scegliere il file scaricato <code>citecheck-manifest.xml</code> e fare clic su <b>Carica</b>.",
+    "win_4": "Il riquadro si apre a destra. Da allora il pulsante <b>Controllare le citazioni</b> si trova nella scheda <b>Revisione</b>.",
+    "win_hint": "Manca «Carica il mio componente aggiuntivo»? L'organizzazione ha disattivato i componenti installati dall'utente. L'informatica può rendere disponibile lo stesso file nell'interfaccia di amministrazione di Microsoft 365 (App integrate, Carica app personalizzate) o ospitare il componente nella intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">guida per l'informatica</a>.",
+    "web_1": "Aprire il documento in Word su office.com. <b>Inserisci</b>, <b>Componenti aggiuntivi</b>, <b>Altri componenti aggiuntivi</b>.",
+    "web_2": "<b>I miei componenti aggiuntivi</b>, <b>Carica il mio componente aggiuntivo</b>, scegliere il file scaricato.",
+    "web_3": "Il riquadro si apre a destra.",
+    "mac_1": "Chiudere Word.",
+    "mac_2": "Nel Finder: <b>Vai</b>, <b>Vai alla cartella…</b>, incollare <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Se la cartella <code>wef</code> non esiste, crearla in <code>Documents</code>.",
+    "mac_3": "Spostare il file scaricato in quella cartella.",
+    "mac_4": "Avviare Word. <b>Home</b>, <b>Componenti aggiuntivi</b>, sotto «Componenti aggiuntivi per sviluppatori» scegliere citecheck.",
+    "use_h": "Uso",
+    "use_1": "Aprire il progetto e premere <strong>Controllare il progetto</strong>. La prima volta il componente carica la lista (17 MB); poi solo se è cambiata. Ogni controllo chiede prima se esiste una lista più recente.",
+    "use_2": "Ogni rinvio riceve una riga: trovato, divergente, non nella lista, non controllato. Un clic mostra il motivo; <strong>Mostrare nel progetto</strong> seleziona il passaggio; <strong>Aprire la decisione</strong> porta alla decisione su opencaselaw.ch, al considerando citato.",
+    "use_3": "Senza Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">aprire il riquadro in un browser</a> e trascinarvi il .docx. Viene letto nella pagina, non caricato.",
+    "data_h": "Dove vanno i dati",
+    "data_p": "Sono coinvolti tre luoghi. Il progetto resta nel primo.",
+    "key_stay": "resta sul dispositivo", "key_pub": "pubblico, uguale per tutti",
+    "pl1_h": "Il vostro computer, in Word",
+    "pl1_p": "Il componente gira nel riquadro. Qui legge il progetto, trova i rinvii e li confronta con la lista in memoria.",
+    "pl1_1": "il progetto", "pl1_2": "i rinvii trovati", "pl1_3": "i risultati ed eventuali commenti", "pl1_4": "una copia della lista, per il prossimo controllo",
+    "ar1": "nulla del progetto", "ar3": "solo office.js",
+    "pl2_h": "L'host del componente",
+    "pl2_p": "Un server web con file statici: la pagina del componente e la lista. Oggi jonashertner.github.io; un tribunale può ospitare la stessa cartella nella intranet.",
+    "pl2_1": "pagina, script e stile del componente",
+    "pl2_2": "la lista: tribunale, data, numero e numeri dei considerandi di ogni decisione, nessun testo",
+    "pl2_3": "vede solo che il riquadro è stato aperto e la lista caricata, come ogni server web",
+    "ar2": "solo file pubblici",
+    "pl3_h": "Microsoft",
+    "pl3_p": "Word carica office.js da appsforoffice.microsoft.com. Ogni componente Word deve farlo; è uno script, non dati del documento.",
+    "pl3_1": "vede che un componente è stato aperto, nient'altro",
+    "data_link": "<strong>I link sono l'unica eccezione, e solo al clic.</strong> «Aprire la decisione» richiama la pagina di quella sola decisione su opencaselaw.ch nel browser, come ogni link in un documento. opencaselaw.ch vede allora che quella pagina è stata aperta, non il progetto né gli altri rinvii.",
+    "enf_h": "<strong>Che cosa lo impone, invece di limitarsi a prometterlo.</strong>",
+    "enf_1": "La pagina del componente porta una Content-Security-Policy che consente connessioni solo al proprio host. Il browser in Word rifiuta ogni altra connessione, dal nostro codice come dallo script di Microsoft. Nessuno script inline, nessun eval, nessun modulo.",
+    "enf_2": "Il codice ha un solo punto che parla con la rete, due richieste, entrambe alla lista accanto alla pagina. Un test nel repository fallisce se la policy viene allentata, se compare una seconda chiamata di rete o se il codice Word fa altro che leggere, selezionare e commentare.",
+    "enf_3": "Potete verificarlo voi stessi: aprire il riquadro con gli strumenti per sviluppatori del browser e osservare la scheda rete durante un controllo. Non viene richiesto nulla. Descrizione completa: <a href=\"https://github.com/jonashertner/citecheck/blob/main/SECURITY.md\" rel=\"noopener\">SECURITY.md</a>.",
+    "court_h": "Per l'informatica di un tribunale",
+    "court_p": "Il componente è una cartella di file statici e un manifesto; su un server non gira nulla. Copiare la cartella su un server intranet, replicare accanto la lista (o costruirla dal pacchetto di verifica pubblico), generare il manifesto per quell'indirizzo e distribuirlo tramite l'interfaccia di amministrazione di Microsoft 365 o un catalogo attendibile. La postazione contatta allora, fuori dal tribunale, solo l'host di script di Microsoft. Con <code>--read-only</code> il manifesto chiede a Word solo l'accesso in lettura. Passi e righe nginx: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">guida per l'informatica</a>.",
+    "fb_h": "Versione di prova, riscontri",
+    "fb_p": "citecheck è una versione di prova. Per un risultato errato o mancante, inviare il rinvio come sta nel progetto e il messaggio del riquadro, come <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">issue su GitHub</a> o per e-mail. La lista è costruita dal corpus OpenCaseLaw; una decisione che vi manca manca di solito nel corpus, e la <a href=\"/coverage/\">pagina della copertura</a> indica quali tribunali e anni sono coperti."
+  },
+  "en": {
+      "kicker": "citecheck · Word add-in for courts",
+      "h1": "Check every case reference in a draft, inside Word, without the draft leaving the device",
+      "lead": "citecheck reads the open draft, finds the references to court decisions and compares them with the public OpenCaseLaw cite list: does the decision exist, does it have the cited Erwägung, do page and date match. It is open source (MIT), runs entirely in the Word task pane, and sends nothing.",
+      "cta_install": "Install in Word",
+      "cta_data": "Where the data goes",
+      "cta_source": "Source code",
+      "note": "Test version 0.1 · September 2026 · 1,081,116 decisions in the list · Microsoft 365 or Office 2021 and later",
+      "what_h": "What it checks",
+      "what_1": "<strong>Exists.</strong> BGE/ATF/DTF, file numbers of the Bundesgericht (all spellings: 4A_747/2012, 4A 747/2012, 4C.230/2006), Bundesverwaltungsgericht, Bundesstrafgericht and cantonal courts, against 1,081,116 decisions, BGE from volume 1.",
+      "what_2": "<strong>Erwägung.</strong> Whether the decision has the cited E. / consid.; if not, which ones it has. Known for about four fifths of the decisions, otherwise marked \"cannot be checked\".",
+      "what_3": "<strong>Page and date.</strong> For a BGE, whether the cited page lies within the decision; for a file number, whether the written date is the decision's.",
+      "what_4": "<strong>Typing errors.</strong> A near label is offered when it carries the written date or the cited Erwägung, for instance 4A_747/2012 for \"4A_747/2013 vom 5. April 2013\", or BGE 140 III 115 for \"BGE 140 III 120\" (p. 120 lies within it).",
+      "not_h": "What it does not do",
+      "not_1": "It does not judge whether a decision supports what the draft says.",
+      "not_2": "\"Not in the list\" is not \"does not exist\": unpublished and very recent decisions are missing. The pane states what the list holds for that court.",
+      "not_3": "It never changes the text. It can select a reference and, on request, attach a Word comment.",
+      "shot_cap": "The pane after a check: a summary, the draft's margin with one mark per reference, and the findings. German, French, Italian and English.",
+      "install_h": "Install in Word",
+      "install_p": "One file, uploaded once in Word. No installer, no administrator rights, no command line. The file (5 KB) contains only the address of the add-in.",
+      "dl": "Download the add-in file",
+      "tab_win": "Word for Windows",
+      "tab_web": "Word in the browser",
+      "tab_mac": "Word for Mac",
+      "win_1": "Open Word. On the <b>Insert</b> tab click <b>Add-ins</b> (in some versions <b>Get Add-ins</b>).",
+      "win_2": "In the Office Add-ins window choose <b>My Add-ins</b>, then <b>Upload My Add-in</b> at the top right.",
+      "win_3": "Pick the downloaded file <code>citecheck-manifest.xml</code> and click <b>Upload</b>.",
+      "win_4": "The pane opens on the right. From then on the button <b>Zitate prüfen</b> sits on the <b>Review</b> tab.",
+      "win_hint": "No \"Upload My Add-in\"? Then your organisation has switched off self-installed add-ins. Your IT can add the same file for chosen users in the Microsoft 365 admin centre (Integrated apps, Upload custom app), or host the add-in on the intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">deployment guide</a>.",
+      "web_1": "Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b>, <b>More Add-ins</b>.",
+      "web_2": "<b>My Add-ins</b>, <b>Upload My Add-in</b>, pick the downloaded file.",
+      "web_3": "The pane opens on the right.",
+      "mac_1": "Quit Word.",
+      "mac_2": "In the Finder: <b>Go</b>, <b>Go to Folder…</b>, paste <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. If the folder <code>wef</code> does not exist, create it inside <code>Documents</code>.",
+      "mac_3": "Move the downloaded file into that folder.",
+      "mac_4": "Start Word. <b>Home</b>, <b>Add-ins</b>, under \"Developer Add-ins\" choose citecheck.",
+      "use_h": "Using it",
+      "use_1": "Open the draft and press <strong>Entwurf prüfen</strong>. The first time, the add-in loads the cite list (17 MB); afterwards only when the list has changed. Every check first asks whether a newer list exists.",
+      "use_2": "Every reference gets a line: found, differs, not in the list, not checked. Clicking it shows the reason; <strong>Im Entwurf zeigen</strong> selects the place in the document; <strong>Entscheid öffnen</strong> opens the decision on opencaselaw.ch, at the cited Erwägung.",
+      "use_3": "Without Word: open <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">the pane in a browser</a> and drop the .docx on it. It is read in the page, not uploaded.",
+      "data_h": "Where the data goes",
+      "data_p": "Three places are involved. The draft stays in the first.",
+      "key_stay": "stays on the device",
+      "key_pub": "public, identical for everyone",
+      "pl1_h": "Your computer, inside Word",
+      "pl1_p": "The add-in runs in the task pane. Here it reads the draft, finds the references and compares them with the list held in memory.",
+      "pl1_1": "the draft",
+      "pl1_2": "the references found in it",
+      "pl1_3": "the results and any comments",
+      "pl1_4": "a copy of the cite list, kept for the next check",
+      "ar1": "nothing about the draft", "ar3": "office.js only",
+      "pl2_h": "The add-in's host",
+      "pl2_p": "A web server with static files: the add-in's page and the cite list. Today jonashertner.github.io; a court can host the same folder on its intranet.",
+      "pl2_1": "the add-in's page, script and style",
+      "pl2_2": "the cite list: court, date, number and Erwägung numbers of every decision, no text",
+      "pl2_3": "sees only that the pane was opened and the list fetched, as any web server does",
+      "ar2": "public files only",
+      "pl3_h": "Microsoft",
+      "pl3_p": "Word loads office.js from appsforoffice.microsoft.com. Every Word add-in must; it is a script, not document data.",
+      "pl3_1": "sees that an add-in was opened, nothing else",
+      "data_link": "<strong>Links are the one exception, and only when you click.</strong> \"Entscheid öffnen\" opens that one decision's page on opencaselaw.ch in your browser, like any link in a document. opencaselaw.ch then sees that this page was opened, not the draft and not the other references.",
+      "enf_h": "<strong>What enforces this, not just promises it.</strong>",
+      "enf_1": "The add-in's page carries a Content-Security-Policy that allows connections to its own host only. The browser inside Word refuses every other connection, from our code and from Microsoft's script alike. No inline script, no eval, no form posts.",
+      "enf_2": "The code has one place that talks to the network, two requests, both to the list next to the page. A test in the repository fails if that policy is loosened, if a second network call appears, or if the Word code does anything but read, select and comment.",
+      "enf_3": "You can check it yourself: open the pane with the browser's developer tools and watch the network tab during a check. Nothing is requested. The full description: <a href=\"https://github.com/jonashertner/citecheck/blob/main/SECURITY.md\" rel=\"noopener\">SECURITY.md</a>.",
+      "court_h": "For a court's IT",
+      "court_p": "The add-in is a folder of static files and one manifest; nothing runs on a server. Copy the folder to an intranet server, mirror the cite list next to it (or build it from the public verification pack), generate the manifest for that address, and roll it out through the Microsoft 365 admin centre or a trusted catalog. Then the workstation contacts no one outside the court but Microsoft's script host. With <code>--read-only</code> the manifest asks Word for read access only. Steps and the nginx lines: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">deployment guide</a>.",
+      "fb_h": "Test version, feedback",
+      "fb_p": "citecheck is a test version. For a wrong or missing finding, send the reference as written in the draft and the message the pane shows, as an <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">issue on GitHub</a> or by e-mail. The cite list is rebuilt from the OpenCaseLaw corpus; a decision that is missing from it is usually missing from the corpus, and the <a href=\"/coverage/\">coverage page</a> says which courts and years are covered."
+  }
+}
+});
+</script>
+</body>
+</html>
