@@ -45,6 +45,8 @@
   .steps li:last-child{padding-bottom:0}
   .steps b{color:var(--t1);font-weight:600}
   .steps code{font-family:var(--f-mono);font-size:.88em;background:var(--paper-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;overflow-wrap:anywhere}
+  .panel .intro{margin:0 0 18px;font-size:14.5px;color:var(--t2);line-height:1.55}
+  .panel .intro b{color:var(--t1);font-weight:600}
   .panel .hint{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line-2);font-size:13.5px;color:var(--t3);line-height:1.55}
 
   /* data flow: three places, two arrows, one closed door */
@@ -139,19 +141,21 @@
           <label for="t-mac" data-t="tab_mac">Word for Mac</label>
         </div>
         <div class="panel" id="p-win">
+          <p class="intro" data-t="win_intro">Word for Windows installs an add-in from a file only through a shared folder (steps below, about five minutes). Quicker: the same file in <b>Word in the browser</b> (next tab), or the pane without Word (see Use).</p>
           <ol class="steps">
-            <li data-t="win_1">Open Word. Tab <b>Insert</b>, button <b>Add-ins</b> (or <b>Get Add-ins</b>).</li>
-            <li data-t="win_2">Click <b>My Add-ins</b>, then <b>Upload My Add-in</b> (top right).</li>
-            <li data-t="win_3">Select <code>citecheck-manifest.xml</code>, click <b>Upload</b>.</li>
-            <li data-t="win_4">The pane opens. Next time: tab <b>Review</b>, button <b>Zitate prüfen</b>.</li>
+            <li data-t="win_1">Make a folder, for example <code>C:\citecheck</code>, and put the file in it. Right-click the folder, <b>Properties</b>, tab <b>Sharing</b>, <b>Share</b>, <b>Share</b>. Note the network path shown, for example <code>\\YOUR-PC\citecheck</code>.</li>
+            <li data-t="win_2">In Word: <b>File</b>, <b>Options</b>, <b>Trust Center</b>, <b>Trust Center Settings</b>, <b>Trusted Add-in Catalogs</b>. Paste the network path under <b>Catalog Url</b>, <b>Add catalog</b>, tick <b>Show in Menu</b>, <b>OK</b>, <b>OK</b>. Restart Word.</li>
+            <li data-t="win_3"><b>Home</b>, <b>Add-ins</b>, <b>Advanced</b> (older versions: <b>Insert</b>, <b>My Add-ins</b>). Tab <b>Shared Folder</b>, select citecheck, <b>Add</b>.</li>
+            <li data-t="win_4">The pane opens. Next time: tab <b>Review</b>, button <b>Check cites</b>.</li>
           </ol>
-          <p class="hint" data-t="win_hint">If there is no "Upload My Add-in", your organisation has blocked it. Your IT can add the same file in the Microsoft 365 admin center (Integrated apps, Upload custom apps) or put the add-in on the intranet: <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">instructions for IT</a>.</p>
+          <p class="hint" data-t="win_hint">Some Microsoft 365 versions of Word also show <b>Upload My Add-in</b> under <b>My Add-ins</b>; if yours does, upload the file there instead. If sharing a folder is not allowed, your IT can add the same file in the Microsoft 365 admin center (Integrated apps, Upload custom apps) or put the add-in on the intranet: <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">instructions for IT</a>.</p>
         </div>
         <div class="panel" id="p-web">
           <ol class="steps">
-            <li data-t="web_1">Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b>, <b>More Add-ins</b>.</li>
-            <li data-t="web_2"><b>My Add-ins</b>, <b>Upload My Add-in</b>, select the file.</li>
+            <li data-t="web_1">Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b> (newer versions: <b>Home</b>, <b>Add-ins</b>, <b>More Settings</b>).</li>
+            <li data-t="web_2"><b>My Add-ins</b>, <b>Manage My Add-ins</b>, <b>Upload My Add-in</b>, select the file, <b>Upload</b>.</li>
           </ol>
+          <p class="hint" data-t="web_hint">Word in the browser keeps the add-in in this browser only. In another browser, or after clearing the browser's data, upload the file again.</p>
         </div>
         <div class="panel" id="p-mac">
           <ol class="steps">
@@ -165,7 +169,7 @@
 
       <h3 data-t="use_h">Use</h3>
       <ol>
-        <li data-t="use_1">Open the draft, press <strong>Entwurf prüfen</strong>. The first time, the list is downloaded (17 MB). After that only when a newer list exists; this is checked before every run.</li>
+        <li data-t="use_1">Open the draft, press <strong>Check the draft</strong>. The first time, the list is downloaded (17 MB). After that only when a newer list exists; this is checked before every run.</li>
         <li data-t="use_2">One line per citation: found, differs, not in the list, not checked. Click a line for details.</li>
         <li data-t="use_3">Without Word: <a href="https://jonashertner.github.io/citecheck/taskpane.html" rel="noopener">open the pane in a browser</a> and drop the .docx on it. The file is read in the browser, not uploaded.</li>
       </ol>
@@ -260,13 +264,15 @@ OCL.init({
       "tab_win": "Word für Windows",
       "tab_web": "Word im Browser",
       "tab_mac": "Word für Mac",
-      "win_1": "Word öffnen. Registerkarte <b>Einfügen</b>, Schaltfläche <b>Add-ins</b> (oder <b>Add-ins abrufen</b>).",
-      "win_2": "<b>Meine Add-Ins</b> anklicken, dann <b>Mein Add-In hochladen</b> (oben rechts).",
-      "win_3": "<code>citecheck-manifest.xml</code> auswählen, <b>Hochladen</b>.",
+      "win_intro": "Word für Windows installiert ein Add-in aus einer Datei nur über einen freigegebenen Ordner (Schritte unten, etwa fünf Minuten). Schneller: dieselbe Datei in <b>Word im Browser</b> (nächster Reiter) oder das Fenster ohne Word (siehe Verwenden).",
+      "win_1": "Einen Ordner anlegen, zum Beispiel <code>C:\\citecheck</code>, und die Datei hineinlegen. Rechtsklick auf den Ordner, <b>Eigenschaften</b>, Registerkarte <b>Freigabe</b>, <b>Freigeben</b>, <b>Freigeben</b>. Den angezeigten Netzwerkpfad notieren, zum Beispiel <code>\\\\IHR-PC\\citecheck</code>.",
+      "win_2": "In Word: <b>Datei</b>, <b>Optionen</b>, <b>Trust Center</b>, <b>Einstellungen für das Trust Center</b>, <b>Kataloge vertrauenswürdiger Add-Ins</b>. Den Netzwerkpfad bei <b>Katalog-URL</b> einfügen, <b>Katalog hinzufügen</b>, <b>Im Menü anzeigen</b> ankreuzen, <b>OK</b>, <b>OK</b>. Word neu starten.",
+      "win_3": "<b>Start</b>, <b>Add-Ins</b>, <b>Erweitert</b> (ältere Versionen: <b>Einfügen</b>, <b>Meine Add-Ins</b>). Registerkarte <b>Freigegebener Ordner</b>, citecheck auswählen, <b>Hinzufügen</b>.",
       "win_4": "Das Fenster öffnet sich. Beim nächsten Mal: Registerkarte <b>Überprüfen</b>, Schaltfläche <b>Zitate prüfen</b>.",
-      "win_hint": "Gibt es kein «Mein Add-In hochladen», hat Ihre Organisation das gesperrt. Ihre IT kann dieselbe Datei im Microsoft 365 Admin Center hinzufügen (Integrierte Apps, Benutzerdefinierte Apps hochladen) oder das Add-in ins Intranet stellen: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Anleitung für die IT</a>.",
-      "web_1": "Das Dokument in Word auf office.com öffnen. <b>Einfügen</b>, <b>Add-ins</b>, <b>Weitere Add-Ins</b>.",
-      "web_2": "<b>Meine Add-Ins</b>, <b>Mein Add-In hochladen</b>, die Datei auswählen.",
+      "win_hint": "Manche Microsoft-365-Versionen von Word zeigen unter <b>Meine Add-Ins</b> auch <b>Mein Add-In hochladen</b>; dann die Datei dort hochladen, das geht schneller. Ist das Freigeben von Ordnern nicht erlaubt, kann Ihre IT dieselbe Datei im Microsoft 365 Admin Center hinzufügen (Integrierte Apps, Benutzerdefinierte Apps hochladen) oder das Add-in ins Intranet stellen: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Anleitung für die IT</a>.",
+      "web_1": "Das Dokument in Word auf office.com öffnen. <b>Einfügen</b>, <b>Add-Ins</b> (neuere Versionen: <b>Start</b>, <b>Add-Ins</b>, <b>Weitere Einstellungen</b>).",
+      "web_2": "<b>Meine Add-Ins</b>, <b>Meine Add-Ins verwalten</b>, <b>Mein Add-In hochladen</b>, die Datei auswählen, <b>Hochladen</b>.",
+      "web_hint": "Word im Browser merkt sich das Add-in nur in diesem Browser. In einem anderen Browser oder nach dem Löschen der Browserdaten die Datei erneut hochladen.",
       "mac_1": "Word beenden.",
       "mac_2": "Im Finder: <b>Gehe zu</b>, <b>Gehe zum Ordner …</b>, einfügen: <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Den Ordner <code>wef</code> anlegen, falls er fehlt.",
       "mac_3": "Die Datei in diesen Ordner legen.",
@@ -329,13 +335,15 @@ OCL.init({
       "tab_win": "Word pour Windows",
       "tab_web": "Word dans le navigateur",
       "tab_mac": "Word pour Mac",
-      "win_1": "Ouvrir Word. Onglet <b>Insertion</b>, bouton <b>Compléments</b> (ou <b>Obtenir des compléments</b>).",
-      "win_2": "Cliquer sur <b>Mes compléments</b>, puis <b>Charger mon complément</b> (en haut à droite).",
-      "win_3": "Sélectionner <code>citecheck-manifest.xml</code>, <b>Charger</b>.",
+      "win_intro": "Word pour Windows n'installe un complément depuis un fichier que par un dossier partagé (étapes ci-dessous, environ cinq minutes). Plus rapide: le même fichier dans <b>Word dans le navigateur</b> (onglet suivant), ou le volet sans Word (voir Utiliser).",
+      "win_1": "Créer un dossier, par exemple <code>C:\\citecheck</code>, et y déposer le fichier. Clic droit sur le dossier, <b>Propriétés</b>, onglet <b>Partage</b>, <b>Partager</b>, <b>Partager</b>. Noter le chemin réseau affiché, par exemple <code>\\\\VOTRE-PC\\citecheck</code>.",
+      "win_2": "Dans Word: <b>Fichier</b>, <b>Options</b>, <b>Centre de gestion de la confidentialité</b>, <b>Paramètres du Centre de gestion de la confidentialité</b>, <b>Catalogues de compléments approuvés</b>. Coller le chemin réseau sous <b>URL du catalogue</b>, <b>Ajouter un catalogue</b>, cocher <b>Afficher dans le menu</b>, <b>OK</b>, <b>OK</b>. Redémarrer Word.",
+      "win_3": "<b>Accueil</b>, <b>Compléments</b>, <b>Avancé</b> (anciennes versions: <b>Insertion</b>, <b>Mes compléments</b>). Onglet <b>Dossier partagé</b>, sélectionner citecheck, <b>Ajouter</b>.",
       "win_4": "Le volet s'ouvre. La prochaine fois: onglet <b>Révision</b>, bouton <b>Contrôler les citations</b>.",
-      "win_hint": "S'il n'y a pas de «Charger mon complément», votre organisation l'a bloqué. Votre informatique peut ajouter le même fichier dans le centre d'administration Microsoft 365 (Applications intégrées, Charger des applications personnalisées) ou mettre le complément sur l'intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">instructions pour l'informatique</a>.",
-      "web_1": "Ouvrir le document dans Word sur office.com. <b>Insertion</b>, <b>Compléments</b>, <b>Autres compléments</b>.",
-      "web_2": "<b>Mes compléments</b>, <b>Charger mon complément</b>, sélectionner le fichier.",
+      "win_hint": "Certaines versions Microsoft 365 de Word affichent aussi <b>Charger mon complément</b> sous <b>Mes compléments</b>; dans ce cas, charger le fichier là, c'est plus rapide. Si le partage de dossiers n'est pas autorisé, votre informatique peut ajouter le même fichier dans le centre d'administration Microsoft 365 (Applications intégrées, Charger des applications personnalisées) ou mettre le complément sur l'intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">instructions pour l'informatique</a>.",
+      "web_1": "Ouvrir le document dans Word sur office.com. <b>Insertion</b>, <b>Compléments</b> (versions récentes: <b>Accueil</b>, <b>Compléments</b>, <b>Plus de paramètres</b>).",
+      "web_2": "<b>Mes compléments</b>, <b>Gérer mes compléments</b>, <b>Charger mon complément</b>, sélectionner le fichier, <b>Charger</b>.",
+      "web_hint": "Word dans le navigateur garde le complément dans ce navigateur seulement. Dans un autre navigateur, ou après avoir effacé les données du navigateur, charger à nouveau le fichier.",
       "mac_1": "Quitter Word.",
       "mac_2": "Dans le Finder: <b>Aller</b>, <b>Aller au dossier…</b>, coller <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Créer le dossier <code>wef</code> s'il manque.",
       "mac_3": "Déposer le fichier dans ce dossier.",
@@ -398,13 +406,15 @@ OCL.init({
       "tab_win": "Word per Windows",
       "tab_web": "Word nel browser",
       "tab_mac": "Word per Mac",
-      "win_1": "Aprire Word. Scheda <b>Inserisci</b>, pulsante <b>Componenti aggiuntivi</b> (o <b>Ottieni componenti aggiuntivi</b>).",
-      "win_2": "Fare clic su <b>I miei componenti aggiuntivi</b>, poi <b>Carica il mio componente aggiuntivo</b> (in alto a destra).",
-      "win_3": "Selezionare <code>citecheck-manifest.xml</code>, <b>Carica</b>.",
+      "win_intro": "Word per Windows installa un componente aggiuntivo da un file solo tramite una cartella condivisa (passi qui sotto, circa cinque minuti). Più rapido: lo stesso file in <b>Word nel browser</b> (scheda successiva), o il riquadro senza Word (vedi Usare).",
+      "win_1": "Creare una cartella, per esempio <code>C:\\citecheck</code>, e mettervi il file. Clic destro sulla cartella, <b>Proprietà</b>, scheda <b>Condivisione</b>, <b>Condividi</b>, <b>Condividi</b>. Annotare il percorso di rete indicato, per esempio <code>\\\\NOME-PC\\citecheck</code>.",
+      "win_2": "In Word: <b>File</b>, <b>Opzioni</b>, <b>Centro protezione</b>, <b>Impostazioni Centro protezione</b>, <b>Cataloghi di componenti aggiuntivi attendibili</b>. Incollare il percorso di rete in <b>URL catalogo</b>, <b>Aggiungi catalogo</b>, spuntare <b>Mostra nel menu</b>, <b>OK</b>, <b>OK</b>. Riavviare Word.",
+      "win_3": "<b>Home</b>, <b>Componenti aggiuntivi</b>, <b>Avanzate</b> (versioni precedenti: <b>Inserisci</b>, <b>I miei componenti aggiuntivi</b>). Scheda <b>Cartella condivisa</b>, selezionare citecheck, <b>Aggiungi</b>.",
       "win_4": "Il riquadro si apre. La prossima volta: scheda <b>Revisione</b>, pulsante <b>Controllare le citazioni</b>.",
-      "win_hint": "Se manca «Carica il mio componente aggiuntivo», l'organizzazione lo ha bloccato. L'informatica può aggiungere lo stesso file nell'interfaccia di amministrazione di Microsoft 365 (App integrate, Carica app personalizzate) o mettere il componente nella intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">istruzioni per l'informatica</a>.",
-      "web_1": "Aprire il documento in Word su office.com. <b>Inserisci</b>, <b>Componenti aggiuntivi</b>, <b>Altri componenti aggiuntivi</b>.",
-      "web_2": "<b>I miei componenti aggiuntivi</b>, <b>Carica il mio componente aggiuntivo</b>, selezionare il file.",
+      "win_hint": "Alcune versioni Microsoft 365 di Word mostrano anche <b>Carica il mio componente aggiuntivo</b> sotto <b>I miei componenti aggiuntivi</b>; in tal caso caricare lì il file, è più rapido. Se la condivisione di cartelle non è consentita, l'informatica può aggiungere lo stesso file nell'interfaccia di amministrazione di Microsoft 365 (App integrate, Carica app personalizzate) o mettere il componente nella intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">istruzioni per l'informatica</a>.",
+      "web_1": "Aprire il documento in Word su office.com. <b>Inserisci</b>, <b>Componenti aggiuntivi</b> (versioni recenti: <b>Home</b>, <b>Componenti aggiuntivi</b>, <b>Altre impostazioni</b>).",
+      "web_2": "<b>I miei componenti aggiuntivi</b>, <b>Gestisci i miei componenti aggiuntivi</b>, <b>Carica il mio componente aggiuntivo</b>, selezionare il file, <b>Carica</b>.",
+      "web_hint": "Word nel browser conserva il componente solo in questo browser. In un altro browser, o dopo aver cancellato i dati del browser, caricare di nuovo il file.",
       "mac_1": "Chiudere Word.",
       "mac_2": "Nel Finder: <b>Vai</b>, <b>Vai alla cartella…</b>, incollare <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Creare la cartella <code>wef</code> se manca.",
       "mac_3": "Mettere il file in quella cartella.",
@@ -467,19 +477,21 @@ OCL.init({
       "tab_win": "Word for Windows",
       "tab_web": "Word in the browser",
       "tab_mac": "Word for Mac",
-      "win_1": "Open Word. Tab <b>Insert</b>, button <b>Add-ins</b> (or <b>Get Add-ins</b>).",
-      "win_2": "Click <b>My Add-ins</b>, then <b>Upload My Add-in</b> (top right).",
-      "win_3": "Select <code>citecheck-manifest.xml</code>, click <b>Upload</b>.",
-      "win_4": "The pane opens. Next time: tab <b>Review</b>, button <b>Zitate prüfen</b>.",
-      "win_hint": "If there is no \"Upload My Add-in\", your organisation has blocked it. Your IT can add the same file in the Microsoft 365 admin center (Integrated apps, Upload custom apps) or put the add-in on the intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">instructions for IT</a>.",
-      "web_1": "Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b>, <b>More Add-ins</b>.",
-      "web_2": "<b>My Add-ins</b>, <b>Upload My Add-in</b>, select the file.",
+      "win_intro": "Word for Windows installs an add-in from a file only through a shared folder (steps below, about five minutes). Quicker: the same file in <b>Word in the browser</b> (next tab), or the pane without Word (see Use).",
+      "win_1": "Make a folder, for example <code>C:\\citecheck</code>, and put the file in it. Right-click the folder, <b>Properties</b>, tab <b>Sharing</b>, <b>Share</b>, <b>Share</b>. Note the network path shown, for example <code>\\\\YOUR-PC\\citecheck</code>.",
+      "win_2": "In Word: <b>File</b>, <b>Options</b>, <b>Trust Center</b>, <b>Trust Center Settings</b>, <b>Trusted Add-in Catalogs</b>. Paste the network path under <b>Catalog Url</b>, <b>Add catalog</b>, tick <b>Show in Menu</b>, <b>OK</b>, <b>OK</b>. Restart Word.",
+      "win_3": "<b>Home</b>, <b>Add-ins</b>, <b>Advanced</b> (older versions: <b>Insert</b>, <b>My Add-ins</b>). Tab <b>Shared Folder</b>, select citecheck, <b>Add</b>.",
+      "win_4": "The pane opens. Next time: tab <b>Review</b>, button <b>Check cites</b>.",
+      "win_hint": "Some Microsoft 365 versions of Word also show <b>Upload My Add-in</b> under <b>My Add-ins</b>; if yours does, upload the file there instead. If sharing a folder is not allowed, your IT can add the same file in the Microsoft 365 admin center (Integrated apps, Upload custom apps) or put the add-in on the intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">instructions for IT</a>.",
+      "web_1": "Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b> (newer versions: <b>Home</b>, <b>Add-ins</b>, <b>More Settings</b>).",
+      "web_2": "<b>My Add-ins</b>, <b>Manage My Add-ins</b>, <b>Upload My Add-in</b>, select the file, <b>Upload</b>.",
+      "web_hint": "Word in the browser keeps the add-in in this browser only. In another browser, or after clearing the browser's data, upload the file again.",
       "mac_1": "Quit Word.",
       "mac_2": "In the Finder: <b>Go</b>, <b>Go to Folder…</b>, paste <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Create the folder <code>wef</code> if it is missing.",
       "mac_3": "Put the file in that folder.",
       "mac_4": "Start Word. <b>Home</b>, <b>Add-ins</b>, <b>Developer Add-ins</b>, citecheck.",
       "use_h": "Use",
-      "use_1": "Open the draft, press <strong>Entwurf prüfen</strong>. The first time, the list is downloaded (17 MB). After that only when a newer list exists; this is checked before every run.",
+      "use_1": "Open the draft, press <strong>Check the draft</strong>. The first time, the list is downloaded (17 MB). After that only when a newer list exists; this is checked before every run.",
       "use_2": "One line per citation: found, differs, not in the list, not checked. Click a line for details.",
       "use_3": "Without Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">open the pane in a browser</a> and drop the .docx on it. The file is read in the browser, not uploaded.",
       "data_h": "What is sent where",
