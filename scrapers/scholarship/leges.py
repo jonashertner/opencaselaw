@@ -32,6 +32,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ._atomic import atomic_jsonl
+
 log = logging.getLogger("scholarship.leges")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -133,7 +135,7 @@ def harvest(*, max_records: int | None = None,
     log.info("total issues=%d, distinct articles=%d", issues_found, len(article_urls))
 
     total = 0
-    with out_path.open("w", encoding="utf-8") as fh:
+    with atomic_jsonl(out_path) as fh:
         for url in article_urls:
             code, html = _fetch(url)
             if code != 200 or len(html) < 2000:

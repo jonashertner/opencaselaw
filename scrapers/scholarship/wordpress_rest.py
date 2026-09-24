@@ -26,6 +26,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ._atomic import atomic_jsonl
+
 log = logging.getLogger("scholarship.wordpress")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -107,7 +109,7 @@ def harvest(
 
     total = 0
     types_to_walk = [post_type] + (extra_post_types or [])
-    with out_path.open("w", encoding="utf-8") as fh:
+    with atomic_jsonl(out_path) as fh:
         for ptype in types_to_walk:
             log.info("walking post_type=%s", ptype)
             page = 1
