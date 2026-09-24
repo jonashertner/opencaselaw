@@ -17,6 +17,7 @@ if str(REPO) not in sys.path:
 
 import scrapers.elcom as elcom_mod  # noqa: E402
 import scrapers.eschk as eschk_mod  # noqa: E402
+import scrapers.finma_versicherungsrecht as finma_vr_mod  # noqa: E402
 import scrapers.pdf_ocr as pdf_ocr  # noqa: E402
 import scrapers.postcom as postcom_mod  # noqa: E402
 from base_scraper import BaseScraper  # noqa: E402
@@ -42,6 +43,13 @@ CASES = [
                           "decision_date": "", "title": "t"}),
     (eschk_mod, "eschk", {"docket_number": "tarif_vn_2004", "pdf_url": "https://www.eschk.admin.ch/x.pdf",
                           "decision_date": "", "title": "t"}),
+    # 2 of 2,585 FINMA Art. 49 VAG decisions are scans (2026-09-24)
+    (finma_vr_mod, "finma_versicherungsrecht",
+     {"decision_id": make_decision_id("finma_versicherungsrecht", "20091204_d_ch_b_01"),
+      "docket_number": "20091204_d_ch_b_01", "decision_date": "04.12.2009",
+      "url": "https://www.finma.ch/~/media/finma/dokumente/dokumentencenter/myfinma/"
+             "versicherungsrecht/2009/20091204_d_ch_b_01.pdf",
+      "title": "4. Dezember 2009 Bundesgericht Deutsch"}),
 ]
 
 
