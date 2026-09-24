@@ -9291,6 +9291,118 @@ def _known_law_codes() -> frozenset[str]:
     return _known_law_codes_cache
 
 
+# find_leading_cases, free-text mode: the most-cited matches are re-ranked
+# by how much of the query their regeste and title carry. Ranking every
+# text match by citation count alone put megacases that mention the topic
+# in passing on top (live 2026-09-24: "résiliation abusive du bail" ->
+# BGE 141 IV 1, standing of the private plaintiff, 4,885 citations). The
+# regeste is the court's own statement of what a case decides, and BGE
+# carry it in DE/FR/IT, so the check works across languages. Measured on
+# production over 32 topic queries, each mapped to its governing
+# provision: the share of the top 10 applying that provision rose from
+# 53% to 66%; over 133 queries (32 topic + 101 from the capture log, 33 of
+# them on the relaxed-OR page), top-10 results with >2,000 citations and
+# no query term in their regeste fell from 120 to 1, at unchanged warm
+# latency (median 0.04 s). The partial-match weight lets a much-cited BGE
+# whose regeste carries most of the query outrank a barely cited ruling
+# that carries all of it; below the partial tier, citations never lift a
+# case.
+_LEADING_TOPIC_HEAD = 100
+_LEADING_TOPIC_PARTIAL = 0.4          # share of query terms for the partial tier
+_LEADING_TOPIC_PARTIAL_WEIGHT = 0.2   # its citation weight against a full match
+# Citation and statute tokens that are not topic words.
+_LEADING_TOPIC_SKIP = frozenset({"art", "abs", "lit", "let", "ziff", "cpv", "and", "or", "not", "near"})
+
+
+def _fold_ascii(text: str) -> str:
+    """Lower-case `text` with diacritics dropped ("Kündigung" -> "kundigung")."""
+    t = (text or "").lower().replace("ß", "ss").replace("æ", "ae").replace("œ", "oe")
+    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode("ascii")
+
+
+def _leading_topic_terms(query: str) -> list[str]:
+    """The topic words of a free-text query, folded and lightly stemmed —
+    the last two letters dropped, never below four — so "abusive" meets
+    "abusif" and "Kündigung" meets "Kündigungsschutz"."""
+    terms: list[str] = []
+    for tok in re.findall(r"\w+", query or ""):
+        low = tok.lower()
+        if (len(low) < 3 or low.isdigit() or low in _FTS5_OR_STOPWORDS
+                or low in _LEADING_TOPIC_SKIP):
+            continue
+        folded = _fold_ascii(low)
+        stem = folded[:max(4, len(folded) - 2)]
+        if stem and stem not in terms:
+            terms.append(stem)
+    return terms
+
+
+def _regeste_term_share(terms: list[str], text: str) -> float | None:
+    """Share of `terms` that begin a word of `text`; None when there is no
+    regeste or title to judge by."""
+    if not terms or len((text or "").strip()) < 20:
+        return None
+    words = re.findall(r"[0-9a-z]+", _fold_ascii(text))
+    lengths = {len(t) for t in terms}
+    prefixes = {w[:n] for w in words for n in lengths}
+    return sum(1 for t in terms if t in prefixes) / len(terms)
+
+
+def _leading_topic_key(share: float | None, count: int) -> tuple:
+    """Sort key of a free-text leading-case candidate. Full and partial
+    regeste matches (every query term / at least _LEADING_TOPIC_PARTIAL
+    of them) share a band, ranked by citations with partial matches
+    weighted down; then fewer terms or no regeste to judge by; last a
+    regeste without any query term — the text only mentions the topic."""
+    if share is not None and share >= 1:
+        return (0, -count)
+    if share is not None and share >= _LEADING_TOPIC_PARTIAL:
+        return (0, -count * _LEADING_TOPIC_PARTIAL_WEIGHT)
+    if share is None or share > 0:
+        return (1, -count)
+    return (2, -count)
+
+
+def _rank_leading_by_regeste(
+    candidates: list[tuple[str, int]], query: str,
+) -> tuple[list[tuple[str, int]], dict[str, float | None]]:
+    """Re-rank citation-ordered free-text candidates by _leading_topic_key
+    and collapse the two ids a BGE can carry ("bge_133 III 61" /
+    "bge_BGE_133_III_61") into the better-cited one, the better regeste
+    speaking for both.
+
+    The caller bounds the candidates (the _LEADING_TOPIC_HEAD most cited,
+    or `limit` if larger). Returns the ranked candidates and each kept
+    id's regeste share. On a lookup failure, or a query without topic
+    words, the citation order stands.
+    """
+    terms = _leading_topic_terms(query)
+    if not terms or not candidates:
+        return candidates, {}
+    try:
+        rows = _fetch_decision_rows_by_ids([did for did, _ in candidates])
+    except sqlite3.Error as e:
+        logger.debug("Regeste lookup for leading cases failed: %s", e)
+        return candidates, {}
+    rows_by_id: dict = {r["decision_id"]: r for r in rows}
+    for r in rows:
+        for v in _decision_id_variants(r["decision_id"]):
+            rows_by_id.setdefault(v, r)
+    groups: dict[str, list] = {}  # key -> [decision_id, count, share]
+    for did, cnt in candidates:
+        row = rows_by_id.get(did) or {}
+        share = _regeste_term_share(
+            terms, f"{row.get('regeste') or ''} {row.get('title') or ''}")
+        key = f"{row.get('court') or ''}|{_norm_cite_ref(row.get('docket_number') or did)}"
+        g = groups.get(key)
+        if g is None:
+            groups[key] = [did, cnt, share]
+        elif share is not None and (g[2] is None or share > g[2]):
+            g[2] = share
+    ranked = sorted(groups.values(), key=lambda g: _leading_topic_key(g[2], g[1]))
+    return [(g[0], g[1]) for g in ranked], {g[0]: g[2] for g in ranked}
+
+
 def _rerank_candidates_by_query_or(
     candidates: list[tuple[str, int]], query: str,
 ) -> list[tuple[str, int]]:
@@ -9400,6 +9512,7 @@ def _find_leading_cases(
     try:
         candidates: list[tuple[str, int]] = []  # (decision_id, ranking_count)
         global_by_id: dict[str, int] = {}       # decision_id -> global citation count
+        regeste_share: dict[str, float | None] = {}  # free-text mode only
 
         if law_code and article:
             # Statute path: candidates are decisions applying this provision, ranked
@@ -9476,6 +9589,19 @@ def _find_leading_cases(
                 fts_rows = fts_conn.execute(fts_sql + " LIMIT 5000",
                                             tuple(fts_params)).fetchall()
                 fts_ids = [r["decision_id"] for r in fts_rows]
+                if len(fts_ids) >= 5000:
+                    # The cap cut the match set at an arbitrary rowid; the
+                    # decisions whose regeste or title carries the query
+                    # must not be among those cut off.
+                    try:
+                        _reg_rows = fts_conn.execute(
+                            fts_sql + " LIMIT 5000",
+                            (f"{{title regeste}} : ({safe_q})", *fts_params[1:]),
+                        ).fetchall()
+                        fts_ids = list(dict.fromkeys(
+                            [r["decision_id"] for r in _reg_rows] + fts_ids))
+                    except sqlite3.Error as e:
+                        logger.debug("Regeste-scoped leading-case pool failed: %s", e)
                 if not fts_ids:
                     # Strict AND matched nothing: the ranked-OR form, BM25
                     # ordered and bounded, gives the nearest neighbours.
@@ -9537,13 +9663,14 @@ def _find_leading_cases(
                         ORDER BY cite_count DESC
                         LIMIT ?
                         """,
-                        (*fts_ids, limit),
+                        (*fts_ids, max(limit, _LEADING_TOPIC_HEAD)),
                     ).fetchall()
                     candidates = [(r["decision_id"], int(r["cite_count"])) for r in rows]
                 except sqlite3.Error as e:
                     logger.debug("Graph citation lookup failed: %s", e)
                 finally:
                     graph2.close()
+            candidates, regeste_share = _rank_leading_by_regeste(candidates, query)
             # Skip the post-hoc FTS filter since we already started from FTS
             query = None  # prevent double-filtering below
         else:
@@ -9662,6 +9789,9 @@ def _find_leading_cases(
         }
         if glob is not None:
             entry["topic_citation_count"] = cite_count
+        if did in regeste_share:
+            share = regeste_share[did]
+            entry["regeste_match"] = None if share is None else round(share, 2)
         results.append(entry)
 
     out = {
@@ -9699,7 +9829,8 @@ def _find_leading_cases(
         else:
             out["note"] = (
                 f"No decision matched every term of \"{_shown}\"; listed instead "
-                "are the most-cited decisions matching any of the terms "
+                "are the most-cited decisions matching any of the terms, "
+                "those whose regeste carries more of them first "
                 "(filters_relaxed, ranked OR). Treat them as nearest neighbours, "
                 "not as authority on the whole query."
             )
@@ -25566,7 +25697,10 @@ def _list_tools() -> list[Tool]:
             title="Find leading cases",
             description=(
                 "Find the most-cited decisions for a topic or statute. "
-                "Authority ranking based on citation graph. "
+                "Authority ranking based on citation graph; a free-text topic "
+                "ranks decisions whose regeste carries the query terms first "
+                "(`regeste_match`: share of terms found, null without a "
+                "regeste). "
                 "Filter by statute (law_code + article), topic query, court, and date range. "
                 "Top-3 results auto-attach a `pinpoint` field "
                 "{e_number, matched_sentence, confidence, url, score, source} "
