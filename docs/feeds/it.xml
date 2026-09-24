@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Wed, 23 Sep 2026 13:37:32 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 24 Sep 2026 12:52:46 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht F-6290/2026 vom 2026-09-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6290_2026</link>
+      <description>Asilo (non entrata nel merito) ed allontanamento (procedura Dublino - art. 31a cpv. 1 lett. b LAsi)</description>
+      <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6290.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesgericht 4A_239/2026 vom 2026-09-10</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_239_2026</link>
@@ -968,37 +976,6 @@ Seconda Camera di diritto delle assicurazio…</description>
       <pubDate>Fri, 07 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">gr_gerichte_SV2 2026 17</guid>
       <category>gr_gerichte</category>
-    </item>
-    <item>
-      <title>Bundesgericht 1C_401/2026 vom 2026-08-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_401_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-1C_401/2026
-
-Sentenza del 6 agosto 2026
-
-I Corte di diritto pubblico
-
-Composizione
-
-Giudici federali Haag, Presidente,
-
-Chaix, Müller,
-
-Cancelliere M. Piatti.
-
-Partecipanti al pro…</description>
-      <pubDate>Thu, 06 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_401.2026</guid>
-      <category>bger</category>
-      <category>Assistenza giudiziaria e estradizione</category>
     </item>
   </channel>
 </rss>

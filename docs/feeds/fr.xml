@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Wed, 23 Sep 2026 13:37:31 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 24 Sep 2026 12:52:46 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -37,6 +37,14 @@ Participants…</description>
       <pubDate>Tue, 15 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_397.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-6436/2026 vom 2026-09-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6436_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6436.2026</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>fr_gerichte 101 2026 39 vom 2026-09-15</title>
@@ -223,6 +231,14 @@ F…</description>
       <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ge_gerichte_ACST_35_2026</guid>
       <category>ge_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-4144/2023 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4144_2023</link>
+      <description>Asile et renvoi</description>
+      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4144.2023</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>ge_gerichte ACJC/1552/2026 vom 2026-09-11</title>
@@ -919,34 +935,6 @@ République et canton de Genève
 POUVOIR…</description>
       <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ge_gerichte_ACJC_1519_2026</guid>
-      <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACJC/1521/2026 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACJC_1521_2026</link>
-      <description>Communiqué le dispositif du présent arrêt aux parties par plis recommandés, ainsi qu'à
-l'Office des faillites, à l'Office des poursuites, au Registre du commerce et au Registre foncier
-le 8 septembre 2026. 
- 
- 
-République et canton de Genève 
-POUVOIR…</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACJC_1521_2026</guid>
-      <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACJC/1522/2026 vom 2026-09-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACJC_1522_2026</link>
-      <description>Communiqué le dispositif du présent arrêt aux parties par plis recommandés, ainsi qu'à
-l'Office des faillites, à l'Office des poursuites, au Registre du commerce et au Registre foncier
-le 8 septembre 2026. 
- 
- 
-République et canton de Genève 
-POUVOIR…</description>
-      <pubDate>Mon, 07 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACJC_1522_2026</guid>
       <category>ge_gerichte</category>
     </item>
   </channel>
