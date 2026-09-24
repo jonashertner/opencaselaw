@@ -618,7 +618,7 @@ PARAGRAPH_SCHEMA = pa.schema([
 #      should the projection be wrong (page cache, disk contention).
 #
 # Budgets (seconds): OCL_STRUCTURE_EXPORT_BUDGET_S (metadata, default 600)
-# and OCL_STRUCTURE_PARAGRAPHS_BUDGET_S (Sunday paragraphs, default 1800),
+# and OCL_STRUCTURE_PARAGRAPHS_BUDGET_S (Sunday paragraphs, default 2700),
 # both further capped by what is left of OCL_EXPORT_WALLCLOCK_BUDGET_S
 # (default 3300 s for the whole process — see main()).  0 disables the
 # corresponding export.  Once the sidecar carries a
@@ -626,7 +626,11 @@ PARAGRAPH_SCHEMA = pa.schema([
 # and the nightly export resumes by itself.
 
 _DEFAULT_STRUCTURE_BUDGET_S = 600
-_DEFAULT_PARAGRAPHS_BUDGET_S = 1800
+# 1800 -> 2700 (2026-09-24): the Sunday export projected 32.4 min on 09-20 and
+# was skipped with 68 min of the export window left. The budget is always
+# capped by what remains of OCL_EXPORT_WALLCLOCK_BUDGET_S (see _bounded_stream),
+# so it cannot push step 3 past its timeout.
+_DEFAULT_PARAGRAPHS_BUDGET_S = 2700
 # Whole-process wall-clock cap (OCL_EXPORT_WALLCLOCK_BUDGET_S): the
 # structure add-ons only get what is left of it after the decisions + graph
 # exports, so the process stays inside publish step 3's 3,600 s timeout
