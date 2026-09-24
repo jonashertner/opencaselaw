@@ -2,8 +2,9 @@
 """Build the scholarship shard for the Kommentar zur Schaffhauser
 Verwaltungsrechtspflege (Meyer/Herrmann/Bilger, EIZ Publishing 2021).
 
-One record per Kommentierung (article of the VRG / JG), plus the two essays
-and the three checklists, parsed from the publisher's ePub edition:
+One record per Kommentierung (article of the VRG / JG), plus the two essays,
+the three checklists, the editorial and the four reference lists (authors,
+abbreviations, literature, materials), parsed from the publisher's ePub edition:
 
   https://eizpublishing.ch/publikationen/kommentar-zur-schaffhauser-verwaltungsrechtspflege/
 
@@ -241,18 +242,64 @@ def _render(content: list[Tag], fn_map: dict[str, int], anchors_out: list,
     return text, n
 
 
+# Front matter carried as records (2026-09-24). The table of contents is left
+# out (it duplicates the per-article records) and so is the back-matter
+# Sachregister (it points to print page numbers).
+FRONT_MATTER = {
+    "introduction": ("editorial", "Editorial", True),
+    "autorenverzeichnis": ("autorenverzeichnis", "Autorenverzeichnis", False),
+    "abkuerzungsverzeichnis": ("abkuerzungsverzeichnis", "Abkürzungsverzeichnis", False),
+    "literaturverzeichnis": ("literaturverzeichnis", "Literaturverzeichnis", False),
+    "materialienverzeichnis": ("materialienverzeichnis", "Materialienverzeichnis", False),
+}
+EDITOR_NAMES = ["Kilian Meyer", "Oliver Herrmann", "Stefan Bilger"]
+
+
+def _render_front(el: Tag, fn_map: dict[str, int], out: list[str]) -> None:
+    """Front matter: definition lists (author list, abbreviations) become one
+    "term — definition" line per entry; paragraphs and headings stay as they
+    are; the white "*" spacer paragraphs of the author list are dropped."""
+    for c in el.children:
+        if not isinstance(c, Tag):
+            continue
+        cls = c.get("class") or []
+        if "footnotes" in cls or c.name == "hr":
+            continue
+        if c.name == "dl":
+            for dt in c.find_all("dt", recursive=False):
+                dd = dt.find_next_sibling("dd")
+                term = _inline(dt, fn_map)
+                desc = _inline(dd, fn_map) if dd is not None else ""
+                out.append(f"{term} — {desc}" if desc else term)
+        elif re.fullmatch(r"h[1-6]", c.name or ""):
+            t = _inline(c, fn_map)
+            if t:
+                out.extend(["", t, ""])
+        elif c.name == "p":
+            t = _inline(c, fn_map)
+            if t and t != "*":
+                out.append(t)
+        elif c.name in ("div", "section"):
+            _render_front(c, fn_map, out)
+        else:
+            t = _inline(c, fn_map)
+            if t:
+                out.append(t)
+
+
 def parse_epub(epub_path: Path) -> tuple[list[dict], list[str]]:
     records: list[dict] = []
     problems: list[str] = []
     z = zipfile.ZipFile(epub_path)
     names = sorted(n for n in z.namelist()
-                   if re.search(r"OEBPS/(chapter|part|back-matter)-\d+.*\.html$", n))
+                   if re.search(r"OEBPS/(chapter|part|back-matter)-\d+.*\.html$", n)
+                   or re.search(r"OEBPS/front-matter-\d+-(%s)\.html$" % "|".join(FRONT_MATTER), n))
     sha = hashlib.sha256(epub_path.read_bytes()).hexdigest()
     current_law = None
     for name in names:
         soup = BeautifulSoup(z.read(name).decode("utf-8"), "lxml")
         base = os.path.basename(name)
-        ugc = soup.select_one(".chapter-ugc, .part-ugc, .back-matter-ugc")
+        ugc = soup.select_one(".chapter-ugc, .part-ugc, .back-matter-ugc, .front-matter-ugc")
         if ugc is None:
             continue
         part_title = soup.select_one(".part-title")
@@ -274,6 +321,53 @@ def parse_epub(epub_path: Path) -> tuple[list[dict], list[str]]:
                 for a in li.find_all("a", class_="return-footnote"):
                     a.decompose()
                 fn_text[k] = _clean(li.get_text(" "))
+        if base.startswith("front-matter"):
+            key = re.match(r"front-matter-\d+-(.+)\.html$", base).group(1)
+            rid, label, signed = FRONT_MATTER[key]
+            lines: list[str] = []
+            _render_front(ugc.find("div") or ugc, fn_map, lines)
+            body = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+            if not body:
+                problems.append(f"{base}: '{label}' has no content")
+                continue
+            used = sorted({int(k) for k in re.findall(r"\[(\d+)\]", body) if int(k) in fn_text})
+            text = f"{label}\n{BOOK}\n\n{body}"
+            if used:
+                text += "\n\nFussnoten\n" + "\n".join(f"[{k}] {fn_text[k]}" for k in used)
+            records.append({
+                "source": SOURCE,
+                "source_record_id": rid,
+                "datestamp": "2021-10-27",
+                "pub_type": "chapter",
+                "title": f"{label} — {BOOK}",
+                "authors": list(EDITOR_NAMES) if signed else [],
+                "abstract": None,
+                "full_text": text,
+                "publication_date": "2021-11-05",
+                "year": 2021,
+                "sources_raw": [f"{BOOK} ({EDITORS}, Hrsg.)"],
+                "publisher": "EIZ Publishing",
+                "doi": DOI,
+                "url": LANDING,
+                "pdf_url": PDF_URL,
+                "language": "de",
+                "license": LICENSE,
+                "license_url": LICENSE_URL,
+                "rights_raw": [RIGHTS_RAW],
+                "subjects": ["Verwaltungsrechtspflege", "Kanton Schaffhausen"],
+                "law": None,
+                "article": None,
+                "randziffern": 0,
+                "footnotes": len(used),
+                "citation_suggestion": f"{EDITORS} (Hrsg.), {BOOK}, 2021, {label}",
+                "citation_suggestion_source": "imprint: BearbeiterIn, in: Meyer/Herrmann/Bilger "
+                                              "(Hrsg.), Kommentar zur Schaffhauser "
+                                              "Verwaltungsrechtspflege, 2021, Art. X VRG/JG N. X.",
+                "edition_version": "1.02-20211005",
+                "epub_file": base,
+                "epub_sha256": sha,
+            })
+            continue
         if base.startswith("back-matter"):
             t = wrap.select_one(".back-matter-title") if wrap else None
             title = _clean(t.get_text(" ")) if t else base

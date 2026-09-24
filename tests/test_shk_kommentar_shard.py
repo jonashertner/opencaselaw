@@ -71,3 +71,21 @@ def test_licence_and_citation_come_from_the_imprint(parsed):
         "WALDVOGEL, in: Meyer/Herrmann/Bilger (Hrsg.), Kommentar zur Schaffhauser "
         "Verwaltungsrechtspflege, 2021, Art. 18 VRG N. X")
     assert r["doi"] == "10.36862/eiz-411"
+
+
+def test_editorial_is_signed_by_the_three_editors(parsed):
+    ed = parsed[0]["editorial"]
+    assert ed["authors"] == ["Kilian Meyer", "Oliver Herrmann", "Stefan Bilger"]
+    assert ed["pub_type"] == "chapter"
+    assert ed["full_text"].rstrip().endswith("Kilian Meyer / Oliver Herrmann / Stefan Bilger")
+
+
+def test_author_list_pairs_each_author_with_their_articles(parsed):
+    txt = parsed[0]["autorenverzeichnis"]["full_text"]
+    assert "Dr. iur. Stefan Bilger Staatsschreiber des Kantons Schaffhausen — Art. 15, 32, 33 VRG; Art. 65 JG" in txt
+    assert "\n*\n" not in txt and not txt.rstrip().endswith("*")
+    assert parsed[0]["autorenverzeichnis"]["authors"] == []
+
+
+def test_toc_and_subject_index_are_not_records(parsed):
+    assert not any(k.startswith(("inhalt", "sachregister")) for k in parsed[0])
