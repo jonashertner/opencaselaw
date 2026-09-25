@@ -379,3 +379,25 @@ def test_canton_without_commentary_is_a_cantonal_miss(monkeypatch):
 def test_article_qualifiers_are_ignored(served, art):
     res = mcp_server.get_commentary(canton="SH", abbreviation="VRG", article=art)
     assert res["pub_id"] == "shk_kommentar:vrg-art-18"
+
+
+def test_get_doctrine_cantonal_query_drops_other_cantons_cases(served, monkeypatch):
+    monkeypatch.setattr(mcp_server, "_get_ok_conn", lambda: None)
+    monkeypatch.setattr(mcp_server, "_fetch_statute_text", lambda **k: {})
+    monkeypatch.setattr(mcp_server, "_count_citations", lambda _id: (0, 0))
+    monkeypatch.setattr(mcp_server, "_find_leading_cases", lambda **k: {"results": [
+        {"decision_id": "zh_verwaltungsgericht__AN.2011.00002", "docket_number": "AN.2011.00002",
+         "decision_date": "2011-12-06", "regeste": "ZH", "citation_count": 5},
+        {"decision_id": "bger_1C_346_2009", "docket_number": "1C_346/2009",
+         "decision_date": "2009-11-06", "regeste": "BGer", "citation_count": 49},
+        {"decision_id": "sh_gerichte_Nr. 60_2016_26", "docket_number": "Nr. 60/2016/26",
+         "decision_date": "2017-01-01", "regeste": "SH", "citation_count": 1},
+    ]})
+    monkeypatch.setattr(mcp_server, "_get_materialien_for_doctrine", lambda *a: None)
+    res = mcp_server._handle_get_doctrine(query="Art. 18 VRG SH")
+    assert [c["decision_id"] for c in res["leading_cases"]] == ["sh_gerichte_Nr. 60_2016_26"]
+    assert [t["bge_ref"] for t in res["doctrine_timeline"]] == ["Nr. 60/2016/26"]
+    assert "limited to SH rulings" in res["leading_cases_note"]
+    # a federal query is untouched
+    fed = mcp_server._handle_get_doctrine(query="Art. 18 VRG")
+    assert len(fed["leading_cases"]) == 3 and "leading_cases_note" not in fed

@@ -19097,6 +19097,7 @@ def _handle_get_doctrine(*, query: str) -> dict:
 
     # A cantonal act named with its canton ("Art. 6 VRG SH", "SH/VRG",
     # "Schaffhauser VRG"): the Kommentierung from the scholarship corpus.
+    cantonal_cases_note: str | None = None
     if commentary_info is None and statute_refs and article and law_code:
         try:
             cant = next((t for t in re.findall(r"\b([A-Z]{2})\b", q)
@@ -19105,6 +19106,20 @@ def _handle_get_doctrine(*, query: str) -> dict:
                 cant = "SH"
             key = _cantonal_commentary_key(law_code, None, cant) if cant else None
             if key:
+                # Leading cases are keyed on the bare abbreviation, and "VRG"
+                # is an act of several cantons: keep only that canton's own
+                # rulings, never another canton's act of the same name.
+                prefix = f"{key[0].lower()}_"
+                kept = [c for c in leading_cases
+                        if str(c.get("decision_id") or "").startswith(prefix)]
+                if len(kept) != len(leading_cases):
+                    leading_cases[:] = kept
+                    refs = {c["bge_ref"] for c in kept}
+                    timeline[:] = [t for t in timeline if t.get("bge_ref") in refs]
+                    cantonal_cases_note = (
+                        f"Leading cases are limited to {key[0]} rulings: "
+                        f"'{key[1]}' names acts of several cantons, so decisions "
+                        "matched on the abbreviation alone are not shown.")
                 c = _cantonal_commentary(key, article)
                 if c.get("found"):
                     commentary_info = {
@@ -19144,6 +19159,8 @@ def _handle_get_doctrine(*, query: str) -> dict:
         "commentary": commentary_info,
         "materialien": materialien_info,
     }
+    if cantonal_cases_note is not None:
+        out["leading_cases_note"] = cantonal_cases_note
     if concept_relaxed_note is not None:
         out["filters_relaxed"] = True
         out["note"] = concept_relaxed_note
