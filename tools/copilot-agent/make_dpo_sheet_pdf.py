@@ -51,13 +51,17 @@ def make(out: Path) -> None:
 
         p("En bref", h2),
         p("&bull;&nbsp;L'agent envoie à OpenCaseLaw uniquement des termes de recherche juridique. "
-          "Aucune identité, aucun compte, aucun jeton, aucune adresse IP d'utilisateur."),
+          "Aucune identité, aucun compte, aucun jeton."),
+        p("&bull;&nbsp;Aucune adresse IP individuelle d'utilisateur n'est reçue ni enregistrée : les requêtes "
+          "passent par les serveurs de Microsoft, dont seules les adresses apparaissent dans les journaux "
+          "techniques."),
         p("&bull;&nbsp;OpenCaseLaw ne peut donc rattacher aucune requête à une personne de l'UNIL, "
           "sauf si une personne saisit elle-même des données personnelles dans sa question."),
         p("&bull;&nbsp;Les requêtes de l'agent ne sont pas conservées : pas d'archive, pas d'entraînement de "
           "modèles, pas de profils. Seuls des journaux techniques subsistent (section 3)."),
         p("&bull;&nbsp;Certaines recherches sont transmises à Anthropic (États-Unis) pour l'analyse et le "
-          "reclassement, et la recherche d'actes cantonaux à LexFind (Suisse)."),
+          "reclassement ; Anthropic ne les utilise pas pour entraîner ses modèles. La recherche d'actes "
+          "cantonaux passe par LexFind (Suisse)."),
 
         p("1. Rôles", h2),
         table([
@@ -89,7 +93,8 @@ def make(out: Path) -> None:
           "y arrivent, les seuls enregistrements sont :"),
         table([
             ["Enregistrement", "Contenu", "Durée"],
-            ["Journal d'accès", "Adresse IP (ici : Microsoft), user agent, URL", "72 heures"],
+            ["Journal d'accès", "Adresse IP des serveurs de Microsoft (aucune adresse IP individuelle "
+                                "d'utilisateur), user agent, URL", "72 heures"],
             ["Journal d'application", "Nom de l'outil et paramètres structurels (numéros d'articles, "
                                       "références d'arrêts, filtres). Aucun texte libre, aucune adresse IP.",
              "Rotation technique"],
@@ -103,8 +108,8 @@ def make(out: Path) -> None:
           "recherche, le registre des coûts par adresse IP. Les requêtes de l'agent n'entrent dans aucune "
           "archive de recherche et ne servent pas à entraîner des modèles.", body),
         p("Transmissions au moment de la requête : à Anthropic, le texte de la requête et de courts extraits "
-          "de décisions candidates, sans adresse IP ni identifiant, selon les conditions commerciales de "
-          "l'API d'Anthropic ; à LexFind, le texte de recherche pour les actes cantonaux.", body),
+          "de décisions candidates, sans adresse IP ni identifiant ; Anthropic n'utilise pas ces données pour "
+          "entraîner ses modèles. À LexFind, le texte de recherche pour les actes cantonaux.", body),
         p("Les outils d'OpenCaseLaw qui envoient des textes plus longs à un modèle d'IA (audit de citations, "
           "décisions fictives, questions d'examen) ne font pas partie de l'agent.", small),
 
