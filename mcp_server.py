@@ -430,7 +430,7 @@ def _llm_usage_log(*, model: str, feature: str, response_json: dict | None,
         # edge-originated calls; internal batches carry no IP. Retention is
         # enforced by logrotate (deploy/logrotate/ocl-llm-ledger, maxage 90).
         _ip = _ctx_client_ip.get("")
-        if _ip and _src in ("mcp", "rest"):
+        if _ip and _src in ("mcp", "rest") and not _ctx_no_retention.get():
             with open(LLM_LEDGER_LOG_PATH, "a", encoding="utf-8") as f:
                 f.write(json.dumps({
                     "ts": record["ts"], "ip_pseudonym": _ip_pseudonym(_ip),
@@ -2002,6 +2002,23 @@ except Exception as _mcp_quota_err:                     # noqa: BLE001
 _ctx_client_ua = contextvars.ContextVar("client_ua", default="")
 _ctx_session_id = contextvars.ContextVar("session_id", default="")
 
+# No-retention endpoint (2026-09-25). The Microsoft 365 Copilot agent
+# (tools/copilot-agent) calls /mcp-copilot instead of /mcp, so that a
+# university's data-protection officer can be told the plain fact: its
+# users' queries are not kept. On this path nothing per request is
+# written past the technical logs — no full capture (_capture_event), no
+# search traces (_log_search_trace), no per-IP cost ledger (_llm_usage_log).
+# The Anthropic and LexFind calls themselves are unchanged. The flag is
+# set in MCPRootApp and reaches the tool handler because the stateless
+# Streamable HTTP transport runs each request in a copy of the POST's
+# context; asyncio.to_thread copies it on into the search workers.
+_NO_RETENTION_PATHS = frozenset({"/mcp-copilot"})
+_ctx_no_retention = contextvars.ContextVar("no_retention", default=False)
+
+
+def _is_no_retention_path(path: str) -> bool:
+    return (path or "").rstrip("/") in _NO_RETENTION_PATHS
+
 # One opaque id per live MCP connection, minted on first use.
 #
 # The ASGI layer can read a session id off the wire (`session_id=` in the
@@ -2429,7 +2446,7 @@ def _traffic_class(client: str | None, src: str, tool: str | None,
 
 def _capture_event(record: dict) -> None:
     """Append one full-capture record. Never raises; never blocks."""
-    if not _FULL_CAPTURE:
+    if not _FULL_CAPTURE or _ctx_no_retention.get():
         return
     try:
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -2892,6 +2909,8 @@ def _start_metrics_flusher():
 
 def _log_search_trace(trace: dict):
     """Append a search trace to the daily research log (non-blocking)."""
+    if _ctx_no_retention.get():
+        return
     try:
         _RESEARCH_LOG_DIR.mkdir(parents=True, exist_ok=True)
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -29624,6 +29643,7 @@ def main_remote(host: str, port: int):
             _ctx_client_ip.set(ip)
             _ctx_client_ua.set(ua)
             _ctx_llm_source.set("mcp")
+            _ctx_no_retention.set(_is_no_retention_path(path))
 
             # Extract and track session_id
             qs = scope.get("query_string", b"").decode("utf-8", errors="ignore")
