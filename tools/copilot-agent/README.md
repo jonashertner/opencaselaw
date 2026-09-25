@@ -32,11 +32,18 @@ Users should therefore not enter personal data of third parties in their questio
 
 ## Installation (tenant admin)
 
-1. Upload `opencaselaw-copilot-agent.zip` as a custom (line-of-business) app: Teams admin center > **Teams apps** > **Manage apps** > **Upload new app**, or the equivalent upload in the Microsoft 365 admin center (**Integrated apps** / **Agents**). Menu names shift between Microsoft releases.
-2. Assign it to a pilot group first (for example one course), then to all students.
-3. Users open Copilot Chat (<https://m365.cloud.microsoft/chat>), select **OpenCaseLaw** under **Agents**, and ask. Copilot may ask once for permission to call OpenCaseLaw.
+Tested 2026-09-25 in a tenant with Microsoft 365 Copilot Chat (Basic) only.
+
+1. Teams admin center > **Teams apps > Manage apps > Actions > Upload new app**, and select `opencaselaw-copilot-agent.zip`. The first time this page is used in a tenant, Microsoft can take up to 30 minutes to enable it.
+2. Set **Available to** (default: the whole organisation). An admin cannot pre-install this app type; users add it themselves.
+3. Users open Copilot Chat (<https://m365.cloud.microsoft/chat>) > **Agents > more agents**, search **OpenCaseLaw** ("Built by your org") and click **Add**. It appears a few minutes after the upload.
+4. On the first call Copilot asks once for permission to connect to OpenCaseLaw. After that, calls run without confirmation, because every pinned tool carries `readOnlyHint: true`.
+
+To update, upload the new zip under **New version > Upload file** on the app page. Users who already added the agent get the new version with a delay; removing and re-adding the agent picks it up at once.
 
 ## Building
+
+`python tools/copilot-agent/make_guide_pdf.py` writes the French installation guide for admins.
 
 ```bash
 python tools/copilot-agent/build_package.py                    # tool definitions from the live server

@@ -30,7 +30,7 @@ MCP_URL = "https://mcp.opencaselaw.ch/mcp"
 
 # Stable forever: Microsoft identifies the app by this id across versions.
 APP_ID = "943f49dd-4fad-4d2f-8e32-dbe4bc778631"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.3"
 
 # Tools the agent may call. Excluded on purpose:
 # - the LLM-backed tools (attest_response, check_claim_support,
@@ -86,7 +86,7 @@ DESCRIPTION = (
 )
 
 # Keys the tools/list format allows inside mcp_tool_description.
-_TOOL_KEYS = ("name", "title", "description", "inputSchema")
+_TOOL_KEYS = ("name", "title", "description", "inputSchema", "annotations")
 
 
 def fetch_tools(url: str = MCP_URL) -> list[dict]:
@@ -179,7 +179,24 @@ def build_files(tools: list[dict]) -> dict[str, bytes]:
         "contact_email": "team@jonashertner.com",
         "privacy_policy_url": "https://opencaselaw.ch/datenschutz/",
         "legal_info_url": "https://opencaselaw.ch/fair-use.html",
-        "functions": [{"name": n} for n in names],
+        # Microsoft's upload validator requires a description per function,
+        # although the published v2.4 schema marks it optional.
+        "functions": [{
+            "name": t["name"],
+            "description": t["description"],
+            "capabilities": {
+                # Without this, Copilot asks before every call and shows the
+                # full tool description in the card. Read-only public data:
+                # a short card that users can set to "Always allow".
+                "confirmation": {
+                    "type": "AdaptiveCard",
+                    "title": "OpenCaseLaw",
+                    "body": "Rechercher dans OpenCaseLaw (jurisprudence et législation suisses) ?",
+                    "isNonConsequential": True,
+                },
+                "security_info": {"data_handling": ["GetPublicData"]},
+            },
+        } for t in tools],
         "runtimes": [{
             "type": "RemoteMCPServer",
             "auth": {"type": "None"},

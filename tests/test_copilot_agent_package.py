@@ -24,6 +24,7 @@ def _fake_tools(extra=()):
     names = list(build.PINNED_TOOLS) + list(extra)
     return [{"name": n, "title": n, "description": f"{n} tool",
              "inputSchema": {"type": "object", "properties": {"q": {"type": "string"}}},
+             "annotations": {"readOnlyHint": True},
              "outputSchema": {"type": "object"}} for n in names]
 
 
@@ -40,7 +41,9 @@ def test_pinned_tools_exclude_quota_tools():
 def test_pin_drops_unpinned_tools_and_extra_keys(files):
     tools = json.loads(files["mcp-tools.json"])["tools"]
     assert [t["name"] for t in tools] == build.PINNED_TOOLS
-    assert all(set(t) <= {"name", "title", "description", "inputSchema"} for t in tools)
+    assert all(set(t) <= {"name", "title", "description", "inputSchema", "annotations"} for t in tools)
+    # Copilot reads readOnlyHint to decide how to confirm a call.
+    assert all(t["annotations"]["readOnlyHint"] for t in tools)
 
 
 def test_missing_pinned_tool_fails():
@@ -51,6 +54,8 @@ def test_missing_pinned_tool_fails():
 def test_plugin_binds_every_function_to_the_mcp_runtime(files):
     plugin = json.loads(files["ai-plugin.json"])
     names = [f["name"] for f in plugin["functions"]]
+    # The Teams admin center rejects functions without a description.
+    assert all(f.get("description") for f in plugin["functions"])
     runtime, = plugin["runtimes"]
     assert runtime["type"] == "RemoteMCPServer"
     assert runtime["auth"] == {"type": "None"}
