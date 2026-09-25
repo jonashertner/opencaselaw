@@ -86,12 +86,12 @@ def make(out: Path) -> None:
         "aucun jeton ni identité d'utilisateur n'est transmis, et OpenCaseLaw ne voit que les adresses IP de Microsoft.",
         "L'agent a pour consigne de ne transmettre que des termes juridiques et d'anonymiser les faits "
         "(«&nbsp;locataire&nbsp;», «&nbsp;employeur&nbsp;») avant tout appel d'outil.",
-        "Chez OpenCaseLaw, chaque appel est enregistré avec l'outil, ses paramètres y compris le texte de "
-        "recherche, l'heure, une classe de client et un identifiant de connexion, sans adresse IP. Les textes de "
-        "recherche sont conservés sans limite de durée dans une archive de recherche à accès restreint (qualité "
-        "de la recherche, recherche, entraînement de modèles).",
-        "Pour l'analyse des requêtes et le reclassement des résultats, le texte de recherche et de courts extraits "
-        "de décisions sont transmis à l'API d'Anthropic (Claude), sans adresse IP ni identifiant.",
+        "L'agent appelle un point d'accès propre (mcp.opencaselaw.ch/mcp-copilot). Pour ces requêtes, "
+        "OpenCaseLaw ne conserve ni le texte des requêtes ni d'identifiant de session : pas d'archive de "
+        "recherche, pas d'entraînement de modèles. Seuls des journaux techniques subsistent.",
+        "Au moment de la requête, le texte de recherche et de courts extraits de décisions sont transmis à "
+        "l'API d'Anthropic (Claude) pour l'analyse et le reclassement, sans adresse IP ni identifiant ; "
+        "pour les actes cantonaux, le texte de recherche est transmis à LexFind (Suisse).",
         "Le journal d'accès du serveur (adresse IP, user agent) est supprimé après 72 heures.",
         "Détails : https://opencaselaw.ch/datenschutz/. Il est recommandé d'indiquer aux utilisateurs de ne pas "
         "saisir de données personnelles de tiers.",

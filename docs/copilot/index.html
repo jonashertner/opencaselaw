@@ -51,7 +51,7 @@
         <a class="btn btn-ghost" href="OpenCaseLaw-Copilot-guide-installation.pdf" data-t="cta_guide">Installation guide (PDF, French)</a>
         <a class="btn btn-ghost" href="https://github.com/jonashertner/opencaselaw/tree/main/tools/copilot-agent" rel="noopener" target="_blank" data-t="cta_source">Source code</a>
       </div>
-      <p class="cc-note" data-t="note">Version 1.0.3 · tested in Microsoft 365 Copilot Chat (Basic)</p>
+      <p class="cc-note" data-t="note">Version 1.1.0 · tested in Microsoft 365 Copilot Chat (Basic)</p>
     </div>
   </section>
 
@@ -73,7 +73,7 @@
       <p data-t="in_p">An app manifest, the agent's instructions (including the citation rules), 24 read-only research tools of the OpenCaseLaw server and two icons. Readable JSON files, no program code. The AI-backed tools of OpenCaseLaw are left out.</p>
 
       <h2 data-t="data_h">What is sent where</h2>
-      <p data-t="data_p">Copilot sends the search terms (legal concepts, article numbers, decision references) from Microsoft's cloud to mcp.opencaselaw.ch, without any user identity or token; OpenCaseLaw sees Microsoft's IP addresses, not the users'. The agent is instructed not to pass on names or other personal details. What OpenCaseLaw logs and keeps is described in the <a href="/datenschutz/">privacy policy</a>.</p>
+      <p data-t="data_p">Copilot sends the search terms (legal concepts, article numbers, decision references) from Microsoft's cloud to mcp.opencaselaw.ch, without any user identity or token; OpenCaseLaw sees Microsoft's IP addresses, not the users'. The agent's queries are not kept: no archive, no model training, only technical logs. The agent is instructed not to pass on names or other personal details. What OpenCaseLaw logs and keeps is described in the <a href="/datenschutz/">privacy policy</a>.</p>
 
       <h2 data-t="not_h">Limits</h2>
       <ul>
@@ -100,7 +100,7 @@ OCL.init({
       "cta_zip": "Download the package (zip)",
       "cta_guide": "Installation guide (PDF, French)",
       "cta_source": "Source code",
-      "note": "Version 1.0.3 · tested in Microsoft 365 Copilot Chat (Basic)",
+      "note": "Version 1.1.0 · tested in Microsoft 365 Copilot Chat (Basic)",
       "lic_h": "Licence and cost",
       "lic_p": "The agent is a declarative agent with one action: it calls the public OpenCaseLaw server. Microsoft lists custom actions in declarative agents as available in Copilot Chat without usage-based billing (<a href=\"https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/prerequisites#agent-capabilities-and-licensing-models\" rel=\"noopener\">Agent capabilities and licensing models</a>). It needs no Copilot Studio licence, no Copilot credits and no Microsoft 365 Copilot licence. It reads no data of your organisation.",
       "it_h": "For IT: install",
@@ -111,7 +111,7 @@ OCL.init({
       "in_h": "What is in the package",
       "in_p": "An app manifest, the agent's instructions (including the citation rules), 24 read-only research tools of the OpenCaseLaw server and two icons. Readable JSON files, no program code. The AI-backed tools of OpenCaseLaw are left out.",
       "data_h": "What is sent where",
-      "data_p": "Copilot sends the search terms (legal concepts, article numbers, decision references) from Microsoft's cloud to mcp.opencaselaw.ch, without any user identity or token; OpenCaseLaw sees Microsoft's IP addresses, not the users'. The agent is instructed not to pass on names or other personal details. What OpenCaseLaw logs and keeps is described in the <a href=\"/datenschutz/\">privacy policy</a>.",
+      "data_p": "Copilot sends the search terms (legal concepts, article numbers, decision references) from Microsoft's cloud to mcp.opencaselaw.ch, without any user identity or token; OpenCaseLaw sees Microsoft's IP addresses, not the users'. The agent's queries are not kept: no archive, no model training, only technical logs. The agent is instructed not to pass on names or other personal details. What OpenCaseLaw logs and keeps is described in the <a href=\"/datenschutz/\">privacy policy</a>.",
       "not_h": "Limits",
       "not_1": "A research aid, not legal advice. Check every source before relying on it.",
       "not_2": "Federal Council messages (Botschaften) before 2003 are not yet in the corpus.",
@@ -125,7 +125,7 @@ OCL.init({
       "cta_zip": "Télécharger le paquet (zip)",
       "cta_guide": "Guide d'installation (PDF)",
       "cta_source": "Code source",
-      "note": "Version 1.0.3 · testé dans Microsoft 365 Copilot Chat (de base)",
+      "note": "Version 1.1.0 · testé dans Microsoft 365 Copilot Chat (de base)",
       "lic_h": "Licence et coût",
       "lic_p": "L'agent est un agent déclaratif doté d'une action : il interroge le serveur public d'OpenCaseLaw. Selon Microsoft, les actions personnalisées des agents déclaratifs sont disponibles dans Copilot Chat sans facturation à l'usage (<a href=\"https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/prerequisites#agent-capabilities-and-licensing-models\" rel=\"noopener\">Agent capabilities and licensing models</a>). Il ne requiert ni licence Copilot Studio, ni crédits Copilot, ni licence Microsoft 365 Copilot. Il n'accède à aucune donnée de votre organisation.",
       "it_h": "Pour le service informatique : installation",
@@ -136,7 +136,7 @@ OCL.init({
       "in_h": "Contenu du paquet",
       "in_p": "Un manifeste d'application, les instructions de l'agent (y compris les règles de citation), 24 outils de recherche en lecture seule du serveur OpenCaseLaw et deux icônes. Des fichiers JSON lisibles, aucun code exécutable. Les outils d'OpenCaseLaw reposant sur un modèle d'IA sont exclus.",
       "data_h": "Quelles données vont où",
-      "data_p": "Copilot transmet les termes de recherche (notions juridiques, articles, références d'arrêts) depuis le cloud de Microsoft à mcp.opencaselaw.ch, sans identité ni jeton d'utilisateur ; OpenCaseLaw voit les adresses IP de Microsoft, pas celles des utilisateurs. L'agent a pour consigne de ne transmettre ni noms ni autres données personnelles. Ce qu'OpenCaseLaw enregistre et conserve est décrit dans la <a href=\"/datenschutz/\">politique de confidentialité</a>.",
+      "data_p": "Copilot transmet les termes de recherche (notions juridiques, articles, références d'arrêts) depuis le cloud de Microsoft à mcp.opencaselaw.ch, sans identité ni jeton d'utilisateur ; OpenCaseLaw voit les adresses IP de Microsoft, pas celles des utilisateurs. Les requêtes de l'agent ne sont pas conservées : ni archive, ni entraînement de modèles, seulement des journaux techniques. L'agent a pour consigne de ne transmettre ni noms ni autres données personnelles. Ce qu'OpenCaseLaw enregistre et conserve est décrit dans la <a href=\"/datenschutz/\">politique de confidentialité</a>.",
       "not_h": "Limites",
       "not_1": "Une aide à la recherche, pas un conseil juridique. Vérifiez chaque source avant de vous y fier.",
       "not_2": "Les Messages du Conseil fédéral antérieurs à 2003 ne sont pas encore dans le corpus.",
@@ -150,7 +150,7 @@ OCL.init({
       "cta_zip": "Paket herunterladen (zip)",
       "cta_guide": "Installationsanleitung (PDF, Französisch)",
       "cta_source": "Quellcode",
-      "note": "Version 1.0.3 · getestet in Microsoft 365 Copilot Chat (Basic)",
+      "note": "Version 1.1.0 · getestet in Microsoft 365 Copilot Chat (Basic)",
       "lic_h": "Lizenz und Kosten",
       "lic_p": "Der Agent ist ein deklarativer Agent mit einer Aktion: Er fragt den öffentlichen OpenCaseLaw-Server ab. Microsoft führt benutzerdefinierte Aktionen in deklarativen Agenten als in Copilot Chat ohne nutzungsabhängige Abrechnung verfügbar (<a href=\"https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/prerequisites#agent-capabilities-and-licensing-models\" rel=\"noopener\">Agent capabilities and licensing models</a>). Er braucht keine Copilot-Studio-Lizenz, keine Copilot-Credits und keine Microsoft-365-Copilot-Lizenz. Er liest keine Daten Ihrer Organisation.",
       "it_h": "Für die IT: Installation",
@@ -161,7 +161,7 @@ OCL.init({
       "in_h": "Was im Paket ist",
       "in_p": "Ein App-Manifest, die Anweisungen des Agenten (einschliesslich der Zitierregeln), 24 nur lesende Recherchewerkzeuge des OpenCaseLaw-Servers und zwei Icons. Lesbare JSON-Dateien, kein Programmcode. Die KI-gestützten Werkzeuge von OpenCaseLaw sind nicht dabei.",
       "data_h": "Was wohin gesendet wird",
-      "data_p": "Copilot sendet die Suchbegriffe (Rechtsbegriffe, Artikelnummern, Entscheidverweise) aus der Microsoft-Cloud an mcp.opencaselaw.ch, ohne Benutzeridentität oder Token; OpenCaseLaw sieht die IP-Adressen von Microsoft, nicht die der Nutzenden. Der Agent ist angewiesen, keine Namen oder anderen Personendaten weiterzugeben. Was OpenCaseLaw protokolliert und aufbewahrt, steht in der <a href=\"/datenschutz/\">Datenschutzerklärung</a>.",
+      "data_p": "Copilot sendet die Suchbegriffe (Rechtsbegriffe, Artikelnummern, Entscheidverweise) aus der Microsoft-Cloud an mcp.opencaselaw.ch, ohne Benutzeridentität oder Token; OpenCaseLaw sieht die IP-Adressen von Microsoft, nicht die der Nutzenden. Die Anfragen des Agenten werden nicht aufbewahrt: kein Archiv, kein Modelltraining, nur technische Logs. Der Agent ist angewiesen, keine Namen oder anderen Personendaten weiterzugeben. Was OpenCaseLaw protokolliert und aufbewahrt, steht in der <a href=\"/datenschutz/\">Datenschutzerklärung</a>.",
       "not_h": "Grenzen",
       "not_1": "Eine Recherchehilfe, keine Rechtsberatung. Prüfen Sie jede Quelle, bevor Sie sich darauf stützen.",
       "not_2": "Botschaften des Bundesrats vor 2003 sind noch nicht im Korpus.",
@@ -175,7 +175,7 @@ OCL.init({
       "cta_zip": "Scarica il pacchetto (zip)",
       "cta_guide": "Guida all'installazione (PDF, francese)",
       "cta_source": "Codice sorgente",
-      "note": "Versione 1.0.3 · testato in Microsoft 365 Copilot Chat (di base)",
+      "note": "Versione 1.1.0 · testato in Microsoft 365 Copilot Chat (di base)",
       "lic_h": "Licenza e costi",
       "lic_p": "L'agente è un agente dichiarativo con un'azione: interroga il server pubblico di OpenCaseLaw. Secondo Microsoft, le azioni personalizzate degli agenti dichiarativi sono disponibili in Copilot Chat senza fatturazione a consumo (<a href=\"https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/prerequisites#agent-capabilities-and-licensing-models\" rel=\"noopener\">Agent capabilities and licensing models</a>). Non richiede né licenza Copilot Studio, né crediti Copilot, né licenza Microsoft 365 Copilot. Non accede ai dati della vostra organizzazione.",
       "it_h": "Per il servizio informatico: installazione",
@@ -186,7 +186,7 @@ OCL.init({
       "in_h": "Contenuto del pacchetto",
       "in_p": "Un manifesto dell'app, le istruzioni dell'agente (comprese le regole di citazione), 24 strumenti di ricerca in sola lettura del server OpenCaseLaw e due icone. File JSON leggibili, nessun codice eseguibile. Gli strumenti di OpenCaseLaw basati su un modello di IA sono esclusi.",
       "data_h": "Quali dati vanno dove",
-      "data_p": "Copilot invia i termini di ricerca (nozioni giuridiche, articoli, riferimenti a sentenze) dal cloud di Microsoft a mcp.opencaselaw.ch, senza identità né token dell'utente; OpenCaseLaw vede gli indirizzi IP di Microsoft, non quelli degli utenti. L'agente ha l'istruzione di non trasmettere nomi o altri dati personali. Ciò che OpenCaseLaw registra e conserva è descritto nell'<a href=\"/datenschutz/\">informativa sulla privacy</a>.",
+      "data_p": "Copilot invia i termini di ricerca (nozioni giuridiche, articoli, riferimenti a sentenze) dal cloud di Microsoft a mcp.opencaselaw.ch, senza identità né token dell'utente; OpenCaseLaw vede gli indirizzi IP di Microsoft, non quelli degli utenti. Le richieste dell'agente non vengono conservate: nessun archivio, nessun addestramento di modelli, solo log tecnici. L'agente ha l'istruzione di non trasmettere nomi o altri dati personali. Ciò che OpenCaseLaw registra e conserva è descritto nell'<a href=\"/datenschutz/\">informativa sulla privacy</a>.",
       "not_h": "Limiti",
       "not_1": "Un ausilio alla ricerca, non una consulenza giuridica. Verificate ogni fonte prima di basarvi su di essa.",
       "not_2": "I messaggi del Consiglio federale anteriori al 2003 non sono ancora nel corpus.",

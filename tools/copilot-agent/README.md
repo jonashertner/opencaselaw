@@ -22,11 +22,13 @@ The tools are pinned: the agent can call only these 24 read-only research tools,
 
 When a user asks the agent something, Copilot sends the tool call (search terms, article numbers, decision ids) from Microsoft's cloud to `mcp.opencaselaw.ch`. The runtime is configured without authentication, so no user token is passed, and OpenCaseLaw sees Microsoft's IP addresses, not the users'. The agent is instructed to send legal search terms only and to abstract names and personal details before calling a tool.
 
-On OpenCaseLaw's side (full detail in the privacy policy, <https://opencaselaw.ch/datenschutz/>):
+On OpenCaseLaw's side the agent calls its own endpoint, `/mcp-copilot` (`_NO_RETENTION_PATHS` in `mcp_server.py`). For requests there:
 
-- Each tool call is recorded with the tool, its parameters including the search text, the time, a client class and a per-connection session id. No IP address is stored with it. Search texts are kept without time limit in an access-restricted research archive (search quality, research, model training).
-- For query analysis and re-ranking, the search text and short excerpts of candidate decisions are sent to Anthropic's API (Claude). No IP address or identifier is sent.
-- The web server's access log (IP address, user agent) is deleted after 72 hours.
+- Not kept: query text, session id, full capture, search-quality traces, per-IP cost ledger. No research archive, no model training.
+- Kept: the web server's access log (Microsoft's IP address, user agent, URL; 72 hours), the application log line (tool name and structural parameters such as article numbers, no free text), tier-2/3 logs without personal data, and cost accounting without IP or query text.
+- Sent at request time: to Anthropic's API (Claude), the search text and short excerpts of candidate decisions for query analysis and re-ranking, without IP or identifier; to LexFind (Switzerland), the search text for cantonal legislation.
+
+Full detail: <https://opencaselaw.ch/datenschutz/> (section on the Copilot agent) and the French fact sheet (`make_dpo_sheet_pdf.py`).
 
 Users should therefore not enter personal data of third parties in their questions.
 
@@ -43,7 +45,7 @@ To update, upload the new zip under **New version > Upload file** on the app pag
 
 ## Building
 
-`python tools/copilot-agent/make_guide_pdf.py` writes the French installation guide for admins.
+`python tools/copilot-agent/make_guide_pdf.py` writes the French installation guide for admins; `make_dpo_sheet_pdf.py` the French data-protection fact sheet (keep it in line with /datenschutz/).
 
 ```bash
 python tools/copilot-agent/build_package.py                    # tool definitions from the live server

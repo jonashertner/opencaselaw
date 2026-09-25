@@ -59,7 +59,8 @@ def test_plugin_binds_every_function_to_the_mcp_runtime(files):
     runtime, = plugin["runtimes"]
     assert runtime["type"] == "RemoteMCPServer"
     assert runtime["auth"] == {"type": "None"}
-    assert runtime["spec"]["url"] == "https://mcp.opencaselaw.ch/mcp"
+    # The no-retention endpoint; mcp_server._NO_RETENTION_PATHS must list it.
+    assert runtime["spec"]["url"] == "https://mcp.opencaselaw.ch/mcp-copilot"
     assert runtime["run_for_functions"] == names == build.PINNED_TOOLS
     assert re.fullmatch(r"[A-Za-z0-9]+", plugin["namespace"])
     assert len(plugin["name_for_human"]) <= 20
@@ -115,3 +116,9 @@ def test_zip_written(tmp_path, monkeypatch):
     assert set(zipfile.ZipFile(out).namelist()) == {
         "manifest.json", "declarativeAgent.json", "ai-plugin.json",
         "mcp-tools.json", "color.png", "outline.png"}
+
+
+def test_package_url_is_a_no_retention_path():
+    import mcp_server
+    from urllib.parse import urlparse
+    assert mcp_server._is_no_retention_path(urlparse(build.MCP_URL).path)
