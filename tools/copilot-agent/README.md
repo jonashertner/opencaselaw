@@ -52,3 +52,5 @@ python tools/copilot-agent/build_package.py --schemas DIR       # also validate 
 ```
 
 The zip lands in `tools/copilot-agent/dist/`. Bump `APP_VERSION` for every release; never change `APP_ID`.
+
+Release: copy the zip and the PDF to `docs/copilot/` and update the version in `docs/copilot/index.html` (all four languages). They are served at <https://opencaselaw.ch/copilot/>.
