@@ -11,7 +11,7 @@ server's cite() so both read a citation the same way.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 
 # Abteilung/Jahr/Nummer, optional letter suffix (60/2008/20A).
 OGE_RE = re.compile(r"\bOGE\s+(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)(?![\d/])")
@@ -59,12 +59,6 @@ def cited_date(after: str) -> str | None:
     if not (1 <= d <= 31 and 1 <= mo <= 12):
         return UNREADABLE
     return f"{y:04d}-{mo:02d}-{d:02d}"
-
-
-def iter_oge(text: str) -> Iterator[tuple[str, str, str | None]]:
-    """(raw match, docket, cited date or None or UNREADABLE) per citation."""
-    for m in OGE_RE.finditer(text or ""):
-        yield m.group(0), m.group(1), cited_date(text[m.end():m.end() + 60])
 
 
 def pick(candidates: Iterable[tuple[str, str | None, str]],

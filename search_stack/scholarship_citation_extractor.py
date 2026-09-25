@@ -184,12 +184,17 @@ def extract_for_publication(
 
     # "OGE 60/2017/43 vom 10. Januar 2020": linked only to a ruling of the
     # written date when one is written (a docket can carry several rulings).
-    for raw, docket, date in oge_citation.iter_oge(full_text) if sh_dockets else ():
-        decision_id = oge_citation.pick(sh_dockets.get(docket, ()), date)
+    for m in oge_citation.OGE_RE.finditer(full_text) if sh_dockets else ():
+        date = oge_citation.cited_date(full_text[m.end():m.end() + 60])
+        decision_id = oge_citation.pick(sh_dockets.get(m.group(1), ()), date)
         if not decision_id or decision_id in seen_decisions:
             continue
         seen_decisions.add(decision_id)
-        decisions.append((decision_id, _snippet_for(full_text, raw)))
+        # the snippet shows THIS occurrence (with its date), not the first
+        # mention of the docket, which may cite another ruling under it
+        start = max(0, m.start() - 60)
+        snip = " ".join(full_text[start:m.end() + 60].split())[:140] or None
+        decisions.append((decision_id, snip))
 
     for ref in extract_statute_references(full_text):
         sr = law_lookups.get(ref.law_code.upper())

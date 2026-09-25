@@ -444,3 +444,12 @@ def test_get_doctrine_cantonal_query_drops_other_cantons_cases(served, monkeypat
     # a federal query is untouched
     fed = mcp_server._handle_get_doctrine(query="Art. 18 VRG")
     assert len(fed["leading_cases"]) == 3 and "leading_cases_note" not in fed
+
+
+def test_oge_snippet_shows_the_matching_occurrence(built):
+    sh = load_sh_dockets(str(built["decisions"]))
+    text = ("x" * 100 + " vgl. OGE 60/2015/14 vom 1. Januar 2014 E. 1; später "
+            "OGE 60/2015/14 vom 3. März 2017, AB 2017. " + "y" * 100)
+    (did, snip), = extract_for_publication(text, {}, {}, sh)[0]
+    assert did == "sh_gerichte_Nr. 60_2015_14"
+    assert "3. März 2017" in snip
