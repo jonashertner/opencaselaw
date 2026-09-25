@@ -3,7 +3,8 @@ pub_citations_decisions + pub_citations_statutes in legal_scholarship.db.
 
 Two outputs per scholarship publication:
   1. Case citations resolved against decisions.db (BGE, BGer, BVGer, BStGer,
-     BPatGer dockets). Unresolvable refs are silently dropped.
+     BPatGer dockets, and Schaffhausen Obergericht "OGE 60/2017/43").
+     Unresolvable refs are silently dropped.
   2. Statute references resolved via statutes.db's abbreviation → sr_number
      map (Art. 41 OR → SR 220, Art. 8 BV → SR 101, etc.).
 
@@ -17,6 +18,7 @@ matches what we apply to decisions themselves.
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 import time
 from typing import Optional
@@ -27,6 +29,12 @@ from search_stack.reference_extraction import (
 )
 
 log = logging.getLogger("scholarship_citation_extractor")
+
+
+# "OGE 60/2017/43" — Schaffhausen Obergericht, Abteilung/Jahr/Nummer, an
+# optional letter suffix (60/2008/20A). Stored dockets may carry "Nr. ".
+_OGE_RE = re.compile(r"\bOGE\s+(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)(?![\d/])")
+_SH_DOCKET_RE = re.compile(r"(?:Nr\.\s*)?(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)")
 
 
 # Match decision_id_variants() in mcp_server.py — BGE keys are kept both with
@@ -83,10 +91,27 @@ def load_decision_lookups(decisions_db_path: str) -> dict[str, str]:
         lookups[key] = decision_id
         n_other += 1
 
+    # Schaffhausen Obergericht: literature cites it as "OGE 60/2017/43"
+    # (Obergerichtsentscheid). The same ruling is held twice, as sh_gerichte
+    # "Nr. 60/2017/43" (the direct scraper) and sh_obergericht "60/2017/43";
+    # sh_gerichte is read first and wins, and find_scholarship_citing_decision
+    # reaches the twin through the representation manifest.
+    n_sh = 0
+    for court in ("sh_gerichte", "sh_obergericht"):
+        for decision_id, docket in conn.execute(
+            "SELECT decision_id, docket_number FROM decisions "
+            "WHERE court = ? AND docket_number IS NOT NULL", (court,)
+        ):
+            m = _SH_DOCKET_RE.fullmatch((docket or "").strip())
+            if not m:
+                continue
+            if lookups.setdefault(f"OGE {m.group(1)}", decision_id) == decision_id:
+                n_sh += 1
+
     conn.close()
     log.info(
-        "decision lookups: %d entries (bge=%d, bger=%d, other=%d)",
-        len(lookups), n_bge, n_bger, n_other,
+        "decision lookups: %d entries (bge=%d, bger=%d, other=%d, sh=%d)",
+        len(lookups), n_bge, n_bger, n_other, n_sh,
     )
     return lookups
 
@@ -152,6 +177,13 @@ def extract_for_publication(
             continue
         seen_decisions.add(decision_id)
         decisions.append((decision_id, _snippet_for(full_text, cit.raw)))
+
+    for m in _OGE_RE.finditer(full_text):
+        decision_id = decision_lookups.get(f"OGE {m.group(1)}")
+        if not decision_id or decision_id in seen_decisions:
+            continue
+        seen_decisions.add(decision_id)
+        decisions.append((decision_id, _snippet_for(full_text, m.group(0))))
 
     for ref in extract_statute_references(full_text):
         sr = law_lookups.get(ref.law_code.upper())

@@ -6554,6 +6554,29 @@ def _decision_exists(decision_id: str | None) -> bool:
         conn.close()
 
 
+# "OGE 60/2017/43" — a Schaffhausen Obergericht ruling as the cantonal
+# literature cites it (Obergerichtsentscheid + Abteilung/Jahr/Nummer). Any
+# trailing "vom …" / "E. …" is ignored; the docket decides.
+_OGE_REF_RE = re.compile(r"^\s*OGE\s+(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)(?![\d/])")
+
+
+def _lookup_oge(conn, reference: str) -> str | None:
+    """decision_id for an "OGE" reference: the sh_gerichte row (the direct
+    scraper, "Nr. 60/2017/43") before its sh_obergericht twin. Two indexed
+    docket lookups; None when the reference is not in OGE form or not held."""
+    m = _OGE_REF_RE.match(reference or "")
+    if not m:
+        return None
+    docket = m.group(1)
+    row = conn.execute(
+        "SELECT decision_id FROM decisions WHERE docket_number IN (?, ?) "
+        "AND court IN ('sh_gerichte', 'sh_obergericht') "
+        "ORDER BY court = 'sh_gerichte' DESC, decision_date DESC LIMIT 1",
+        (f"Nr. {docket}", docket),
+    ).fetchone()
+    return row[0] if row else None
+
+
 def _resolve_decision_id(decision_id: str) -> str:
     """Resolve a user-supplied decision_id to the actual stored decision_id.
 
@@ -6578,6 +6601,9 @@ def _resolve_decision_id(decision_id: str) -> str:
             ).fetchone()
             if row:
                 return row[0]
+        _oge_hit = _lookup_oge(conn, decision_id)
+        if _oge_hit:
+            return _oge_hit
         # An id the row carried before a re-key (decision_id_aliases): exact,
         # so it comes before any docket fallback.
         _prev_hit = _lookup_previous_id(conn, decision_id)
@@ -15287,6 +15313,16 @@ def _cite_identity(reference: str, decision: dict) -> dict | None:
         return None
     carried = [decision.get(name) for name in ("docket_number", "docket_number_2") if isinstance(decision.get(name), str)]
     carried += [d for d in (decision.get("joined_dockets") or []) if isinstance(d, str)]
+    oge = _OGE_REF_RE.match(reference)
+    if oge:
+        # "OGE" names the Schaffhausen Obergericht: another court's docket of
+        # the same shape is never the ruling the reference means.
+        if not str(decision.get("court") or "").startswith("sh_"):
+            return None
+        for docket in carried:
+            if re.sub(r"^Nr\.\s*", "", docket.strip()) == oge.group(1):
+                return {"method": "exact_docket", "label": docket}
+        return None
     primary = parsed.primary_docket
     if primary is not None:
         key = reference_parser.fold_docket(primary)
@@ -19040,6 +19076,35 @@ def _handle_get_doctrine(*, query: str) -> dict:
         except Exception as e:
             logger.debug("OK commentary lookup failed: %s", e)
 
+    # A cantonal act named with its canton ("Art. 6 VRG SH", "SH/VRG",
+    # "Schaffhauser VRG"): the Kommentierung from the scholarship corpus.
+    if commentary_info is None and statute_refs and article and law_code:
+        try:
+            cant = next((t for t in re.findall(r"\b([A-Z]{2})\b", q)
+                         if t in _CANTON_CODES), None)
+            if cant is None and re.search(r"schaffhaus", q, re.IGNORECASE):
+                cant = "SH"
+            key = _cantonal_commentary_key(law_code, None, cant) if cant else None
+            if key:
+                c = _cantonal_commentary(key, article)
+                if c.get("found"):
+                    commentary_info = {
+                        "title": c["title"],
+                        "excerpt": (c.get("content_text") or "")[:800],
+                        "authors": c.get("authors") or [],
+                        "html_link": c.get("html_link"),
+                        "suggested_citation": c.get("suggested_citation"),
+                        "source": (c.get("attribution") or {}).get("name") or c.get("source"),
+                        "license": c.get("license"),
+                        "pub_id": c.get("pub_id"),
+                        "full_text": (f"get_commentary(canton='{key[0]}', "
+                                      f"abbreviation='{key[1]}', article='{article}')"),
+                        "statute": (f"get_law(canton='{key[0]}', sr_number="
+                                    f"'{c['systematic_number']}', article='{article}')"),
+                    }
+        except Exception as e:  # noqa: BLE001
+            logger.debug("cantonal commentary lookup failed: %s", e)
+
     # Enrich with Materialien (Botschaft legislative intent) if available
     materialien_info = None
     if statute_refs and article and law_code:
@@ -19236,13 +19301,260 @@ def _commentary_fallback(
     return out
 
 
+# Cantonal commentaries held in the scholarship corpus, one record per
+# Kommentierung (pub_id "<source>:<prefix>-art-<article>"). Keyed by canton
+# and the act's usual abbreviation; the systematic number is the canton's own
+# (SHR), not an SR number.
+_CANTONAL_COMMENTARIES: dict[tuple[str, str], dict] = {
+    ("SH", "VRG"): {"source": "shk_kommentar", "prefix": "vrg", "number": "172.200",
+                    "act": "Gesetz über den Rechtsschutz in Verwaltungssachen "
+                           "(Verwaltungsrechtspflegegesetz, VRG)"},
+    ("SH", "JG"): {"source": "shk_kommentar", "prefix": "jg", "number": "173.200",
+                   "act": "Justizgesetz (JG)"},
+}
+
+
+def _cantonal_request(
+    abbreviation: str | None, sr_number: str | None, canton: str | None,
+) -> tuple[str, str, str]:
+    """(canton, law, number) as written; canton '' for a federal request.
+    See _cantonal_commentary_key for the accepted forms."""
+    cant = (canton or "").strip().upper()
+    if cant == "CH":
+        cant = ""
+    law = ""
+    parts = [x for x in re.split(r"[\s/_-]+", (abbreviation or "").strip().upper()) if x]
+    for x in parts:
+        if x in _CANTON_CODES and (len(parts) > 1 or cant):
+            cant = cant or x
+        else:
+            law = law or x
+    sr = (sr_number or "").strip().upper()
+    m = re.fullmatch(r"([A-Z]{2})R\s*([\d.]+)", sr)  # "SHR 172.200"
+    if m and m.group(1) in _CANTON_CODES:
+        cant, sr = cant or m.group(1), m.group(2)
+    return cant, law, sr
+
+
+def _cantonal_commentary_key(
+    abbreviation: str | None, sr_number: str | None, canton: str | None,
+) -> tuple[str, str] | None:
+    """(canton, law) of a cantonal commentary the corpus holds, or None.
+
+    Accepts the forms get_law uses ('SH/VRG', 'VRG/SH') plus 'VRG SH',
+    'VRG-SH', canton='SH' with 'VRG', and canton='SH' (or 'SHR 172.200')
+    with the systematic number. A bare '172.200' without a canton stays
+    federal: SR and SHR numbers overlap in form.
+    """
+    cant, law, sr = _cantonal_request(abbreviation, sr_number, canton)
+    if not cant:
+        return None
+    for (c, name), spec in _CANTONAL_COMMENTARIES.items():
+        if c == cant and (law == name or (not law and sr == spec["number"])):
+            return (c, name)
+    return None
+
+
+def _cite_surnames(authors_field) -> str:
+    """'RIHS/BAECKERT' from the stored authors (JSON list or plain string;
+    a co-authored byline 'A und B' counts as two authors)."""
+    names: list[str] = []
+    raw = authors_field
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (ValueError, TypeError):
+            raw = [raw]
+    for a in raw or []:
+        names.extend(p for p in re.split(r"\s+und\s+|;\s*", str(a)) if p.strip())
+    return "/".join(n.split()[-1].upper() for n in names if n.split())
+
+
+def _cantonal_commentary(
+    key: tuple[str, str], article: str | None,
+) -> dict:
+    """get_commentary for a cantonal act whose commentary is in the
+    scholarship corpus. Same payload shape as the OnlineKommentar answer
+    (detail / list / found:false), plus pub_id, licence and attribution.
+    The text is the record's verbatim full text; nothing is composed."""
+    canton, law = key
+    spec = _CANTONAL_COMMENTARIES[key]
+    law_label = f"{law} {canton}"
+    conn = _get_scholarship_conn()
+    if conn is None:
+        return {"error": "Legal scholarship database not available."}
+    prefix = f"{spec['source']}:{spec['prefix']}-art-"
+    art = None
+    if article:
+        art = re.sub(r"^(?:art\.?|§)\s*", "", article.strip(), flags=re.IGNORECASE).lower()
+        # the article number only: "6 Abs. 1" and "36b lit. a" are Art. 6, 36b
+        m_art = re.match(r"(\d+[a-z]*)", art)
+        art = m_art.group(1) if m_art else re.sub(r"\s+", "", art)
+    try:
+        # The index of the act first (~100 short rows); the full text only
+        # for the one record asked for.
+        rows = conn.execute(
+            "SELECT pub_id, title, authors, language "
+            "FROM publications WHERE source = ? AND substr(pub_id, 1, ?) = ?",
+            (spec["source"], len(prefix), prefix),
+        ).fetchall()
+        # "vrg-art-36c-37" is one record for Art. 36c and 37 (repealed together).
+        by_article: dict[str, sqlite3.Row] = {}
+        for r in rows:
+            for a in r["pub_id"][len(prefix):].split("-"):
+                by_article.setdefault(a.lower(), r)
+        hit = by_article.get(art) if art else None
+        full = conn.execute(
+            "SELECT pub_id, title, authors, full_text, license, license_url, "
+            "url, pdf_url, doi, year, language FROM publications WHERE pub_id = ?",
+            (hit["pub_id"],),
+        ).fetchone() if hit is not None else None
+    except sqlite3.Error as e:
+        logger.error("cantonal commentary lookup error: %s", e)
+        return {"error": f"Database error: {e}"}
+    finally:
+        conn.close()
+    base = {
+        "law": law_label, "canton": canton, "systematic_number": spec["number"],
+        "act": spec["act"], "source": spec["source"],
+        "attribution": _scholarship_attribution(spec["source"]),
+    }
+    if not article:
+        seen: set[str] = set()
+        articles = []
+        for a, r in sorted(by_article.items(), key=lambda kv: _article_sort_key(kv[0])):
+            if r["pub_id"] in seen:
+                continue
+            seen.add(r["pub_id"])
+            articles.append({"article_num": a, "title": r["title"],
+                             "language": r["language"], "pub_id": r["pub_id"],
+                             "authors": _authors_list(r["authors"])})
+        if not articles:
+            return {**base, "found": False, "no_commentary": True, "article": None,
+                    "note": f"The commentary on the {law_label} is not in the "
+                            "deployed scholarship database."}
+        return {**base, "article_count": len(articles), "articles": articles,
+                "sources": (base["attribution"] or {}).get("name") or spec["source"]}
+    r = full
+    if r is None:
+        held = sorted({a for a in by_article}, key=_article_sort_key)
+        return {**base, "article": article, "found": False, "no_commentary": True,
+                "commented_articles": held,
+                "note": (f"The commentary on the {law_label} has no Kommentierung "
+                         f"of Art. {article}. Commented articles: "
+                         f"{', '.join(held) if held else 'none'}. The statute "
+                         f"text is at get_law(canton='{canton}', "
+                         f"sr_number='{spec['number']}', article='{article}').")}
+    surnames = _cite_surnames(r["authors"])
+    shown_art = r["pub_id"][len(prefix):].replace("-", " und ")
+    return {
+        **base,
+        "found": True,
+        "article": art,
+        "title": r["title"],
+        "language": r["language"],
+        "date": str(r["year"]) if r["year"] else None,
+        "authors": _authors_list(r["authors"]),
+        "editors": ["Kilian Meyer", "Oliver Herrmann", "Stefan Bilger"]
+        if spec["source"] == "shk_kommentar" else [],
+        # The imprint's citation form, filled with this record's authors;
+        # the margin number is the caller's pinpoint ("N 12" in the text).
+        "suggested_citation": (
+            f"{surnames or 'BEARBEITER/IN'}, in: Meyer/Herrmann/Bilger (Hrsg.), "
+            f"Kommentar zur Schaffhauser Verwaltungsrechtspflege, 2021, "
+            f"Art. {shown_art} {law} N. …") if spec["source"] == "shk_kommentar" else None,
+        "pinpoint_note": ("Margin numbers appear in the text as 'N 1', 'N 2', …; "
+                          "cite them as 'N. 12'."),
+        "pub_id": r["pub_id"],
+        "html_link": r["url"],
+        "pdf_link": r["pdf_url"],
+        "doi": r["doi"],
+        "license": r["license"],
+        "license_url": r["license_url"],
+        "license_usage": _scholarship_license_hint(r["license"]),
+        "content_text": r["full_text"],
+        "legal_text": None,
+    }
+
+
+def _cantonal_commentary_pointer(
+    canton: str, number: str | None, article: str | None,
+) -> dict | None:
+    """What get_law adds to a cantonal act the corpus holds a commentary on:
+    the Kommentierung of the article (pub_id, authors, citation form) or, for
+    the whole act, how many articles are commented. None otherwise, and None
+    rather than an error when the scholarship DB is unavailable."""
+    key = next((k for k, spec in _CANTONAL_COMMENTARIES.items()
+                if k[0] == canton and spec["number"] == (number or "").strip()), None)
+    if key is None:
+        return None
+    try:
+        res = _cantonal_commentary(key, article)
+    except Exception as e:  # noqa: BLE001 — an enrichment must not break get_law
+        logger.debug("commentary pointer failed: %s", e)
+        return None
+    if res.get("error"):
+        return None
+    name = (res.get("attribution") or {}).get("name") or res.get("source")
+    call = (f"get_commentary(canton='{key[0]}', abbreviation='{key[1]}'"
+            + (f", article='{article}')" if article else ")"))
+    if article:
+        if not res.get("found"):
+            return None
+        return {"law": key[1], "source": name, "pub_id": res["pub_id"],
+                "title": res["title"], "authors": res["authors"],
+                "suggested_citation": res.get("suggested_citation"),
+                "license": res.get("license"), "get": call}
+    if not res.get("articles"):
+        return None
+    return {"law": key[1], "source": name, "article_count": res["article_count"],
+            "get": call}
+
+
+def _authors_list(field) -> list[str]:
+    if not field:
+        return []
+    if isinstance(field, list):
+        return [str(a) for a in field]
+    try:
+        v = json.loads(field)
+        if isinstance(v, list):
+            return [str(a) for a in v]
+    except (ValueError, TypeError):
+        pass
+    return [a.strip() for a in str(field).split(";") if a.strip()]
+
+
+def _article_sort_key(a: str) -> tuple:
+    m = re.match(r"(\d+)(.*)", a or "")
+    return (int(m.group(1)), m.group(2)) if m else (10**9, a or "")
+
+
 def get_commentary(
     abbreviation: str | None = None,
     sr_number: str | None = None,
     article: str | None = None,
     language: str = "de",
+    canton: str | None = None,
 ) -> dict:
-    """Fetch OnlineKommentar commentary for a statute article."""
+    """Fetch OnlineKommentar commentary for a statute article — or, for a
+    cantonal act listed in _CANTONAL_COMMENTARIES, the Kommentierung from the
+    scholarship corpus."""
+    ckey = _cantonal_commentary_key(abbreviation, sr_number, canton)
+    if ckey is not None:
+        return _cantonal_commentary(ckey, article)
+    cant, law, number = _cantonal_request(abbreviation, sr_number, canton)
+    if cant:
+        # A cantonal act without a commentary here: say so, rather than
+        # falling through to a federal act of the same abbreviation.
+        held = ", ".join(f"{n} {c}" for c, n in _CANTONAL_COMMENTARIES)
+        what = f"{law or number} {cant}".strip()
+        return {"law": what, "canton": cant, "article": article,
+                "found": False, "no_commentary": True,
+                "note": (f"No open-access commentary on {what} is in the corpus. "
+                         f"Cantonal commentaries held: {held}. The statute text "
+                         f"is at get_law(canton='{cant}', ...); "
+                         "search_scholarship covers cantonal literature by topic.")}
     conn = _get_ok_conn()
     if conn is None:
         return {"error": "OnlineKommentar commentaries database not available."}
@@ -19794,13 +20106,23 @@ def find_scholarship_citing_decision(
         # same normalization every graph tool applies. Without this the query
         # silently returned 0 for any non-exact id form.
         variants = _decision_id_variants(decision_id) or [decision_id]
+        # A ruling held under two ids (SH twin courts, GE/VD dual numbers) is
+        # linked once, under whichever id the build resolved; the
+        # representation manifest makes either id find it.
+        rep = _representation_info(decision_id)
+        if rep:
+            for twin in [rep["canonical_decision_id"],
+                         *(m["decision_id"] for m in rep["members"])]:
+                variants.extend(_decision_id_variants(twin))
+        variants = list(dict.fromkeys(variants))
         placeholders = ",".join("?" for _ in variants)
         rows = conn.execute(
             f"""SELECT p.pub_id, p.source, p.pub_type, p.title, p.authors,
-                      p.language, p.year, p.url, pcd.snippet
+                      p.language, p.year, p.url, MIN(pcd.snippet) AS snippet
                FROM pub_citations_decisions pcd
                JOIN publications p ON p.id = pcd.pub_id
                WHERE pcd.decision_id IN ({placeholders})
+               GROUP BY p.id
                ORDER BY p.year DESC NULLS LAST
                LIMIT ?""",
             (*variants, limit),
@@ -20164,6 +20486,15 @@ def _format_get_scholarship_response(result: dict) -> str:
         text += "\n## Cites statutes\n"
         for s in result["cites_statutes"][:50]:
             text += f"- SR {s['sr_number']} Art. {s['article'] or '?'}\n"
+    decs = result.get("cites_decisions") or []
+    if decs:
+        # Ids and links only: a citation string comes from cite() (R1).
+        text += (f"\n## Cites decisions held in the corpus ({len(decs)})\n"
+                 "Pass a decision_id to cite() for its citation string.\n")
+        for d in decs[:100]:
+            text += f"- {_md_link(d, _canonical_decision_url(d))}\n"
+        if len(decs) > 100:
+            text += f"- … {len(decs) - 100} more (in `cites_decisions`)\n"
     a = result.get("attribution") or {}
     if a.get("attribution") or a.get("name"):
         text += "\n---\n**Attribution:** "
@@ -20293,15 +20624,21 @@ def _format_get_commentary_response(result: dict) -> str:
             text += "\n"
         return text
 
+    # Cantonal commentaries (scholarship corpus) carry their own source name,
+    # licence and attribution; OnlineKommentar answers do not.
+    attr = result.get("attribution") if isinstance(result.get("attribution"), dict) else None
+    source_name = (attr or {}).get("name") or "OnlineKommentar"
+
     # List mode
     if "articles" in result and "content_text" not in result:
-        text = f"# OnlineKommentar — {result['law']}\n"
+        text = f"# {source_name} — {result['law']}\n"
         text += f"**{result['article_count']} commentaries available**\n"
-        text += f"Source: {result.get('source', 'OnlineKommentar.ch')}\n\n"
+        text += f"Source: {result.get('sources') or result.get('source', 'OnlineKommentar.ch')}\n\n"
         for art in result["articles"]:
             authors = ", ".join(art.get("authors", []))
             author_str = f" ({authors})" if authors else ""
-            text += f"- **Art. {art['article_num']}** — {art['title']}{author_str} [{art['language']}]\n"
+            pid = f" — `{art['pub_id']}`" if art.get("pub_id") else ""
+            text += f"- **Art. {art['article_num']}** — {art['title']}{author_str} [{art['language']}]{pid}\n"
         return text
 
     # Detail mode
@@ -20309,13 +20646,24 @@ def _format_get_commentary_response(result: dict) -> str:
     text = f"# {result['title']}\n"
     if authors:
         text += f"**Authors:** {authors}\n"
+    if result.get("editors") and attr:
+        text += f"**Editors:** {', '.join(result['editors'])}\n"
     text += f"**Language:** {result.get('language', '?')} | "
     text += f"**Date:** {result.get('date', '?')}\n"
     if result.get("suggested_citation"):
         text += f"**Citation:** {result['suggested_citation']}\n"
+    if result.get("pinpoint_note"):
+        text += f"**Pinpoint:** {result['pinpoint_note']}\n"
     if result.get("html_link"):
-        text += f"**Link:** {_md_link('OnlineKommentar', result['html_link'])}\n"
-    text += f"Source: {result.get('source', 'OnlineKommentar.ch')}\n\n"
+        label = "OnlineKommentar" if not attr else "Publisher"
+        text += f"**Link:** {_md_link(label, result['html_link'])}\n"
+    if result.get("doi"):
+        text += f"**DOI:** {result['doi']}\n"
+    if result.get("pub_id"):
+        text += f"**pub_id:** `{result['pub_id']}`\n"
+    if result.get("license"):
+        text += f"**License:** {result['license']}\n"
+    text += f"Source: {source_name if attr else result.get('source', 'OnlineKommentar.ch')}\n\n"
 
     if result.get("legal_text"):
         text += "## Gesetzestext\n\n"
@@ -20324,6 +20672,12 @@ def _format_get_commentary_response(result: dict) -> str:
     if result.get("content_text"):
         text += "## Kommentar\n\n"
         text += result["content_text"] + "\n"
+
+    if attr and attr.get("attribution"):
+        text += f"\n---\n**Attribution:** {attr['attribution']}\n"
+    lu = result.get("license_usage") or {}
+    if lu.get("note"):
+        text += f"**License usage:** {lu['note']}\n"
 
     return text
 
@@ -20624,6 +20978,13 @@ def _get_law_cantonal(
                     if row:
                         sr_number = row["sr_number"]
             if not sr_number:
+                # Acts whose abbreviation the canton does not publish but a
+                # commentary we hold uses (SH: VRG = SHR 172.200, JG = 173.200).
+                spec = _CANTONAL_COMMENTARIES.get(
+                    (canton_u, abbreviation.strip().upper()))
+                if spec:
+                    sr_number = spec["number"]
+            if not sr_number:
                 # Never a bare dead end: the law is usually in the corpus and
                 # only the name we were given does not reach it. Hand back
                 # real laws so the caller can pick one, rather than an
@@ -20710,6 +21071,10 @@ def _get_law_cantonal(
                 {"article_num": a["article_num"], "heading": a["heading"]}
                 for a in articles_rows
             ]
+        ptr = _cantonal_commentary_pointer(canton_u, result["sr_number"], article)
+        if ptr:
+            result["abbreviation"] = result["abbreviation"] or ptr["law"]
+            result["commentary"] = ptr
         return result
     except sqlite3.Error as e:
         logger.error("Cantonal law lookup error: %s", e)
@@ -23622,6 +23987,17 @@ def _format_get_law_response(result: dict) -> str:
                  f"{am.get('method', 'closest')} matches {', '.join(am.get('matched') or [])}.\n")
     if result.get("note"):
         text += f"Note: {result['note']}\n"
+    cm = result.get("commentary")
+    if cm:
+        if cm.get("pub_id"):
+            who = ", ".join(cm.get("authors") or [])
+            text += (f"Commentary: {cm.get('title')}"
+                     + (f" ({who})" if who else "")
+                     + f" — full text via {cm.get('get')}; "
+                     f"cite as {cm.get('suggested_citation')}\n")
+        else:
+            text += (f"Commentary: {cm.get('source')} comments "
+                     f"{cm.get('article_count')} articles of this act — {cm.get('get')}\n")
     if result.get("also_in_sections"):
         blocks = result["also_in_sections"]
         names = "; ".join(b.get("section_heading") or b.get("section") or "?" for b in blocks)
@@ -26621,6 +26997,10 @@ def _list_tools() -> list[Tool]:
                 "for a Swiss federal law article. Without article: lists available commentaries "
                 "for that law. With article: returns the full commentary text, authors, and citation. "
                 "Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more. "
+                "Cantonal: the Kommentar zur Schaffhauser Verwaltungsrechtspflege (Meyer/Herrmann/"
+                "Bilger, 2021; CC BY-SA text) for the Schaffhausen VRG (SHR 172.200) and JG "
+                "(SHR 173.200), article by article with margin numbers — pass canton='SH' and "
+                "abbreviation 'VRG' or 'JG' (or 'SH/VRG'). "
                 "Where no commentary exists (most provisions: the corpus holds only the "
                 "open-access OnlineKommentar.ch / OpenLegalCommentary.ch commentaries) the "
                 "answer is flagged `found: false` / `no_commentary: true` and lists what the "
@@ -26646,6 +27026,10 @@ def _list_tools() -> list[Tool]:
                         "type": "string",
                         "description": "Preferred language (de, en, fr, it). Falls back to de if unavailable.",
                         "default": "de",
+                    },
+                    "canton": {
+                        "type": "string",
+                        "description": "Two-letter canton code for a cantonal act (e.g. 'SH' with abbreviation 'VRG' or 'JG'). Omit for federal law.",
                     },
                 },
             },
@@ -28775,6 +29159,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 sr_number=arguments.get("sr_number"),
                 article=arguments.get("article"),
                 language=arguments.get("language", "de"),
+                canton=arguments.get("canton"),
             )
             return _text_and_payload(result, _format_get_commentary_response(result))
 
@@ -31671,12 +32056,13 @@ setInterval(load, 30000);
         sr_number: str = Query(None, description="SR number"),
         article: str = Query(None, description="Article number"),
         language: str = Query("de", description="Language: de, fr, it"),
+        canton: str = Query(None, description="Canton code for a cantonal act (e.g. SH with VRG or JG)"),
     ):
         return _declare_outcome(
             response,
             await asyncio.to_thread(
                 get_commentary, abbreviation=abbreviation, sr_number=sr_number,
-                article=article, language=language,
+                article=article, language=language, canton=canton,
             ),
             "article_not_found" if article else "id_not_found")
 

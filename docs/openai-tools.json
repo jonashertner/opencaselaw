@@ -884,7 +884,7 @@
       "type": "function",
       "function": {
         "name": "get_commentary",
-        "description": "Look up a scholarly legal commentary from OnlineKommentar.ch (CC-BY-4.0) for a Swiss federal law article. Without article: lists available commentaries for that law. With article: returns the full commentary text, authors, and citation. Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more.",
+        "description": "Look up a scholarly legal commentary from OnlineKommentar.ch (CC-BY-4.0) for a Swiss federal law article. Without article: lists available commentaries for that law. With article: returns the full commentary text, authors, and citation. Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more. Cantonal: the Kommentar zur Schaffhauser Verwaltungsrechtspflege (Meyer/Herrmann/Bilger, 2021; CC BY-SA text) for the Schaffhausen VRG (SHR 172.200) and JG (SHR 173.200), article by article with margin numbers — pass canton='SH' and abbreviation 'VRG' or 'JG' (or 'SH/VRG').",
         "parameters": {
           "type": "object",
           "properties": {
@@ -904,6 +904,10 @@
               "type": "string",
               "description": "Preferred language (de, en, fr, it). Falls back to de if unavailable.",
               "default": "de"
+            },
+            "canton": {
+              "type": "string",
+              "description": "Two-letter canton code for a cantonal act (e.g. 'SH' with abbreviation 'VRG' or 'JG'). Omit for federal law."
             }
           }
         }

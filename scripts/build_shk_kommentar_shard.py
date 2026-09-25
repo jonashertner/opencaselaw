@@ -76,6 +76,25 @@ def _clean(s: str) -> str:
     return re.sub(r"[ \t\r\n]+", " ", s).strip()
 
 
+def _split_authors(byline: str) -> list[str]:
+    """"Alexander Rihs und Andreas Baeckert" -> two authors. The ePub prints a
+    co-authored Kommentierung as one byline joined by "und"."""
+    return [a for a in (p.strip() for p in re.split(r"\s+und\s+", byline)) if a]
+
+
+def _cite_names(authors: list[str]) -> str:
+    """Surnames in capitals joined by "/", the form the imprint prescribes
+    ("RIHS/BAECKERT, in: ..."). The surname is the last word of each name."""
+    return "/".join(a.split()[-1].upper() for a in authors)
+
+
+def _lead(body: str, cap: int = 600) -> str | None:
+    """Abstract for a record without an "N 1" paragraph (checklists, repealed
+    notices, front matter): its opening text, verbatim, up to `cap` chars."""
+    lines = [ln.strip() for ln in body.split("\n") if ln.strip()]
+    return _clean(" ".join(lines))[:cap] or None
+
+
 def _is_unit(el: Tag) -> bool:
     """True for elements that carry a margin number in the print edition."""
     if el.find_parent(class_="footnotes") or el.find_parent("ol", class_="eizlegal"):
@@ -341,7 +360,7 @@ def parse_epub(epub_path: Path) -> tuple[list[dict], list[str]]:
                 "pub_type": "chapter",
                 "title": f"{label} — {BOOK}",
                 "authors": list(EDITOR_NAMES) if signed else [],
-                "abstract": None,
+                "abstract": _lead(body),
                 "full_text": text,
                 "publication_date": "2021-11-05",
                 "year": 2021,
@@ -385,6 +404,7 @@ def parse_epub(epub_path: Path) -> tuple[list[dict], list[str]]:
                 title = _inline(title_el, fn_map)
                 title = re.sub(r"\s*\[\d+\]\s*$", "", title)
             author = _clean(author_el.get_text(" ")) if author_el is not None else ""
+            authors = _split_authors(author)
             law = _clean(sub_el.get_text(" ")) if sub_el is not None else ""
             m_id = ANCHOR_RE.match((title_el.get("id") or "") + "n0") if title_el is not None else None
             if not law and m_id:
@@ -413,14 +433,14 @@ def parse_epub(epub_path: Path) -> tuple[list[dict], list[str]]:
                 art, heading = m_art.group(1), m_art.group(2).strip()
                 rid = f"{law.lower()}-art-" + re.sub(r"\s+und\s+", "-", art)
                 full_title = f"Art. {art} {law} / {heading}"
-                cite = (f"{author.split()[-1].upper() if author else 'BEARBEITER/IN'}, in: "
+                cite = (f"{_cite_names(authors) or 'BEARBEITER/IN'}, in: "
                         f"{EDITORS} (Hrsg.), {BOOK}, 2021, Art. {art} {law} N. X")
                 pub_type = "commentary"
             else:
                 art, heading = None, title
                 rid = re.sub(r"^(chapter|back-matter|part)-\d+-", "", base[:-5])
                 full_title = title
-                cite = (f"{author.split()[-1].upper() if author else EDITORS}, {title}, in: "
+                cite = (f"{_cite_names(authors) or EDITORS}, {title}, in: "
                         f"{EDITORS} (Hrsg.), {BOOK}, 2021")
                 pub_type = "chapter"
             if not body.strip():
@@ -441,8 +461,8 @@ def parse_epub(epub_path: Path) -> tuple[list[dict], list[str]]:
                 "datestamp": "2021-10-27",
                 "pub_type": pub_type,
                 "title": f"{full_title} — {BOOK}" if art else full_title,
-                "authors": [author] if author else [],
-                "abstract": _clean(first_para[5:])[:600] or None,
+                "authors": authors,
+                "abstract": _clean(first_para[5:])[:600] or _lead(body),
                 "full_text": text,
                 "publication_date": "2021-11-05",
                 "year": 2021,

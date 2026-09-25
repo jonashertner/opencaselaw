@@ -863,6 +863,19 @@ def license_usage_hint(license_code: str | None) -> dict:
             "itself need not be CC-BY-SA. Quotation downstream is fine."
         )
         return base
+    if code == "CC-BY-SA":
+        # The licensor named the licence without a version (the Schaffhausen
+        # commentary imprint: "CC BY-SA (Text)"). Attribution and share-alike
+        # are common to every version, so those terms are stated; the
+        # version-specific details are not invented.
+        base["share_alike_required"] = True
+        base["note"] = (
+            "CC BY-SA, version not stated by the licensor: attribution "
+            "required (author, work, licence, link). Adaptations must be "
+            "released under CC BY-SA (Share-Alike); these two conditions hold "
+            "in every CC BY-SA version. Quotation with attribution is fine."
+        )
+        return base
     if code == "CC-BY-ND-4.0":
         base["may_summarize_or_paraphrase"] = False
         base["note"] = (
