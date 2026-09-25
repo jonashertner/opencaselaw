@@ -1,6 +1,6 @@
-"""The /mcp-copilot endpoint keeps nothing per request past the technical logs.
+"""The /mcp-edu endpoint keeps nothing per request past the technical logs.
 
-The Microsoft 365 Copilot agent (tools/copilot-agent) calls /mcp-copilot, and
+The Microsoft 365 Copilot agent (tools/copilot-agent) calls /mcp-edu, and
 the data-protection fact sheet given to universities states that its users'
 queries are not kept. These tests hold the three per-request writers to that:
 full capture, search traces and the per-IP cost ledger.
@@ -29,8 +29,10 @@ def no_retention():
 
 
 @pytest.mark.parametrize("path,expected", [
-    ("/mcp-copilot", True),
-    ("/mcp-copilot/", True),
+    ("/mcp-edu", True),
+    ("/mcp-edu/", True),
+    ("/mcp-copilot", True),   # first name, agent 1.1.0
+    ("/mcp-education", False),
     ("/mcp", False),
     ("/", False),
     ("/mcp-copilotx", False),

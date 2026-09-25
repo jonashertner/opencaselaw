@@ -2003,7 +2003,7 @@ _ctx_client_ua = contextvars.ContextVar("client_ua", default="")
 _ctx_session_id = contextvars.ContextVar("session_id", default="")
 
 # No-retention endpoint (2026-09-25). The Microsoft 365 Copilot agent
-# (tools/copilot-agent) calls /mcp-copilot instead of /mcp, so that a
+# (tools/copilot-agent) calls /mcp-edu instead of /mcp, so that a
 # university's data-protection officer can be told the plain fact: its
 # users' queries are not kept. On this path nothing per request is
 # written past the technical logs — no full capture (_capture_event), no
@@ -2012,7 +2012,9 @@ _ctx_session_id = contextvars.ContextVar("session_id", default="")
 # set in MCPRootApp and reaches the tool handler because the stateless
 # Streamable HTTP transport runs each request in a copy of the POST's
 # context; asyncio.to_thread copies it on into the search workers.
-_NO_RETENTION_PATHS = frozenset({"/mcp-copilot"})
+# /mcp-copilot was the first name (agent 1.1.0, 2026-09-25); kept so that
+# tenants that installed 1.1.0 keep the same guarantee.
+_NO_RETENTION_PATHS = frozenset({"/mcp-edu", "/mcp-copilot"})
 _ctx_no_retention = contextvars.ContextVar("no_retention", default=False)
 
 
