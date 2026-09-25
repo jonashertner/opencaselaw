@@ -85,7 +85,7 @@ def make(out: Path) -> None:
           "dans leurs questions.", small),
 
         p("3. Ce qui est enregistré", h2),
-        p("L'agent appelle un point d'accès propre (mcp.opencaselaw.ch/mcp-copilot). Pour les requêtes qui "
+        p("L'agent appelle un point d'accès propre (mcp.opencaselaw.ch/mcp-edu). Pour les requêtes qui "
           "y arrivent, les seuls enregistrements sont :"),
         table([
             ["Enregistrement", "Contenu", "Durée"],

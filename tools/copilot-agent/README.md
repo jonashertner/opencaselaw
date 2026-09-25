@@ -22,7 +22,7 @@ The tools are pinned: the agent can call only these 24 read-only research tools,
 
 When a user asks the agent something, Copilot sends the tool call (search terms, article numbers, decision ids) from Microsoft's cloud to `mcp.opencaselaw.ch`. The runtime is configured without authentication, so no user token is passed, and OpenCaseLaw sees Microsoft's IP addresses, not the users'. The agent is instructed to send legal search terms only and to abstract names and personal details before calling a tool.
 
-On OpenCaseLaw's side the agent calls its own endpoint, `/mcp-copilot` (`_NO_RETENTION_PATHS` in `mcp_server.py`). For requests there:
+On OpenCaseLaw's side the agent calls its own endpoint, `/mcp-edu` (`_NO_RETENTION_PATHS` in `mcp_server.py`). For requests there:
 
 - Not kept: query text, session id, full capture, search-quality traces, per-IP cost ledger. No research archive, no model training.
 - Kept: the web server's access log (Microsoft's IP address, user agent, URL; 72 hours), the application log line (tool name and structural parameters such as article numbers, no free text), tier-2/3 logs without personal data, and cost accounting without IP or query text.

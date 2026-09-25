@@ -60,7 +60,7 @@ def test_plugin_binds_every_function_to_the_mcp_runtime(files):
     assert runtime["type"] == "RemoteMCPServer"
     assert runtime["auth"] == {"type": "None"}
     # The no-retention endpoint; mcp_server._NO_RETENTION_PATHS must list it.
-    assert runtime["spec"]["url"] == "https://mcp.opencaselaw.ch/mcp-copilot"
+    assert runtime["spec"]["url"] == "https://mcp.opencaselaw.ch/mcp-edu"
     assert runtime["run_for_functions"] == names == build.PINNED_TOOLS
     assert re.fullmatch(r"[A-Za-z0-9]+", plugin["namespace"])
     assert len(plugin["name_for_human"]) <= 20

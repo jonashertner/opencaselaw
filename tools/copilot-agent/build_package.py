@@ -28,11 +28,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 # The no-retention endpoint: queries arriving here are not kept (see
 # _NO_RETENTION_PATHS in mcp_server.py and the DPO fact sheet).
-MCP_URL = "https://mcp.opencaselaw.ch/mcp-copilot"
+MCP_URL = "https://mcp.opencaselaw.ch/mcp-edu"
 
 # Stable forever: Microsoft identifies the app by this id across versions.
 APP_ID = "943f49dd-4fad-4d2f-8e32-dbe4bc778631"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 
 # Tools the agent may call. Excluded on purpose:
 # - the LLM-backed tools (attest_response, check_claim_support,

@@ -86,7 +86,7 @@ def make(out: Path) -> None:
         "aucun jeton ni identité d'utilisateur n'est transmis, et OpenCaseLaw ne voit que les adresses IP de Microsoft.",
         "L'agent a pour consigne de ne transmettre que des termes juridiques et d'anonymiser les faits "
         "(«&nbsp;locataire&nbsp;», «&nbsp;employeur&nbsp;») avant tout appel d'outil.",
-        "L'agent appelle un point d'accès propre (mcp.opencaselaw.ch/mcp-copilot). Pour ces requêtes, "
+        "L'agent appelle un point d'accès propre (mcp.opencaselaw.ch/mcp-edu). Pour ces requêtes, "
         "OpenCaseLaw ne conserve ni le texte des requêtes ni d'identifiant de session : pas d'archive de "
         "recherche, pas d'entraînement de modèles. Seuls des journaux techniques subsistent.",
         "Au moment de la requête, le texte de recherche et de courts extraits de décisions sont transmis à "
