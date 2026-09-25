@@ -18,23 +18,17 @@ matches what we apply to decisions themselves.
 from __future__ import annotations
 
 import logging
-import re
 import sqlite3
 import time
 from typing import Optional
 
+from search_stack import oge_citation
 from search_stack.reference_extraction import (
     extract_case_citations,
     extract_statute_references,
 )
 
 log = logging.getLogger("scholarship_citation_extractor")
-
-
-# "OGE 60/2017/43" — Schaffhausen Obergericht, Abteilung/Jahr/Nummer, an
-# optional letter suffix (60/2008/20A). Stored dockets may carry "Nr. ".
-_OGE_RE = re.compile(r"\bOGE\s+(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)(?![\d/])")
-_SH_DOCKET_RE = re.compile(r"(?:Nr\.\s*)?(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)")
 
 
 # Match decision_id_variants() in mcp_server.py — BGE keys are kept both with
@@ -91,29 +85,38 @@ def load_decision_lookups(decisions_db_path: str) -> dict[str, str]:
         lookups[key] = decision_id
         n_other += 1
 
-    # Schaffhausen Obergericht: literature cites it as "OGE 60/2017/43"
-    # (Obergerichtsentscheid). The same ruling is held twice, as sh_gerichte
-    # "Nr. 60/2017/43" (the direct scraper) and sh_obergericht "60/2017/43";
-    # sh_gerichte is read first and wins, and find_scholarship_citing_decision
-    # reaches the twin through the representation manifest.
-    n_sh = 0
-    for court in ("sh_gerichte", "sh_obergericht"):
-        for decision_id, docket in conn.execute(
-            "SELECT decision_id, docket_number FROM decisions "
-            "WHERE court = ? AND docket_number IS NOT NULL", (court,)
-        ):
-            m = _SH_DOCKET_RE.fullmatch((docket or "").strip())
-            if not m:
-                continue
-            if lookups.setdefault(f"OGE {m.group(1)}", decision_id) == decision_id:
-                n_sh += 1
-
     conn.close()
     log.info(
-        "decision lookups: %d entries (bge=%d, bger=%d, other=%d, sh=%d)",
-        len(lookups), n_bge, n_bger, n_other, n_sh,
+        "decision lookups: %d entries (bge=%d, bger=%d, other=%d)",
+        len(lookups), n_bge, n_bger, n_other,
     )
     return lookups
+
+
+def load_sh_dockets(decisions_db_path: str) -> dict[str, list[tuple[str, str, str]]]:
+    """Schaffhausen Obergericht docket -> [(decision_id, decision_date, court)].
+
+    Literature cites it as "OGE 60/2017/43 vom …". A docket may carry several
+    rulings and every ruling is held twice (sh_gerichte "Nr. 60/2017/43",
+    sh_obergericht "60/2017/43"), so the rows are kept and the citation's own
+    date picks among them (oge_citation.pick)."""
+    out: dict[str, list[tuple[str, str, str]]] = {}
+    conn = sqlite3.connect(
+        f"file:{decisions_db_path}?mode=ro&immutable=1", uri=True
+    )
+    try:
+        for decision_id, docket, date, court in conn.execute(
+            "SELECT decision_id, docket_number, decision_date, court FROM decisions "
+            "WHERE court IN ('sh_gerichte', 'sh_obergericht') "
+            "AND docket_number IS NOT NULL"
+        ):
+            m = oge_citation.SH_DOCKET_RE.fullmatch((docket or "").strip())
+            if m:
+                out.setdefault(m.group(1), []).append((decision_id, date or "", court))
+    finally:
+        conn.close()
+    log.info("sh docket lookups: %d dockets", len(out))
+    return out
 
 
 def load_law_abbr_lookups(statutes_db_path: str) -> dict[str, str]:
@@ -152,6 +155,7 @@ def extract_for_publication(
     full_text: str,
     decision_lookups: dict[str, str],
     law_lookups: dict[str, str],
+    sh_dockets: Optional[dict[str, list[tuple[str, str, str]]]] = None,
 ) -> tuple[list[tuple[str, Optional[str]]], list[tuple[str, str, Optional[str]]]]:
     """Extract resolved citations from one publication's full_text.
 
@@ -178,12 +182,14 @@ def extract_for_publication(
         seen_decisions.add(decision_id)
         decisions.append((decision_id, _snippet_for(full_text, cit.raw)))
 
-    for m in _OGE_RE.finditer(full_text):
-        decision_id = decision_lookups.get(f"OGE {m.group(1)}")
+    # "OGE 60/2017/43 vom 10. Januar 2020": linked only to a ruling of the
+    # written date when one is written (a docket can carry several rulings).
+    for raw, docket, date in oge_citation.iter_oge(full_text) if sh_dockets else ():
+        decision_id = oge_citation.pick(sh_dockets.get(docket, ()), date)
         if not decision_id or decision_id in seen_decisions:
             continue
         seen_decisions.add(decision_id)
-        decisions.append((decision_id, _snippet_for(full_text, m.group(0))))
+        decisions.append((decision_id, _snippet_for(full_text, raw)))
 
     for ref in extract_statute_references(full_text):
         sr = law_lookups.get(ref.law_code.upper())
@@ -212,6 +218,7 @@ def extract_all(
     """
     t_start = time.time()
     decision_lookups = load_decision_lookups(decisions_db_path)
+    sh_dockets = load_sh_dockets(decisions_db_path)
     law_lookups = load_law_abbr_lookups(statutes_db_path)
     log.info(
         "lookups loaded in %.1fs (%d decisions, %d law abbrevs)",
@@ -230,7 +237,7 @@ def extract_all(
     for i, (db_id, pub_id, full_text) in enumerate(rows):
         n_pubs += 1
         decisions, statutes = extract_for_publication(
-            full_text, decision_lookups, law_lookups
+            full_text, decision_lookups, law_lookups, sh_dockets
         )
         if decisions or statutes:
             n_with += 1

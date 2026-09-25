@@ -6575,27 +6575,44 @@ def _decision_exists(decision_id: str | None) -> bool:
         conn.close()
 
 
-# "OGE 60/2017/43" — a Schaffhausen Obergericht ruling as the cantonal
-# literature cites it (Obergerichtsentscheid + Abteilung/Jahr/Nummer). Any
-# trailing "vom …" / "E. …" is ignored; the docket decides.
+# "OGE 60/2017/43 vom 10. Januar 2020" — a Schaffhausen Obergericht ruling as
+# the cantonal literature cites it (Obergerichtsentscheid + Abteilung/Jahr/
+# Nummer). A docket can carry several rulings, so a written date must match
+# (search_stack/oge_citation.py, shared with the scholarship extractor).
 _OGE_REF_RE = re.compile(r"^\s*OGE\s+(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)(?![\d/])")
 
 
-def _lookup_oge(conn, reference: str) -> str | None:
-    """decision_id for an "OGE" reference: the sh_gerichte row (the direct
-    scraper, "Nr. 60/2017/43") before its sh_obergericht twin. Two indexed
-    docket lookups; None when the reference is not in OGE form or not held."""
+def _oge_ref(reference: str) -> tuple[str, str | None] | None:
+    """(docket, cited date / None / UNREADABLE) of an OGE reference, or None."""
     m = _OGE_REF_RE.match(reference or "")
     if not m:
         return None
-    docket = m.group(1)
-    row = conn.execute(
-        "SELECT decision_id FROM decisions WHERE docket_number IN (?, ?) "
-        "AND court IN ('sh_gerichte', 'sh_obergericht') "
-        "ORDER BY court = 'sh_gerichte' DESC, decision_date DESC LIMIT 1",
+    from search_stack.oge_citation import cited_date
+    return m.group(1), cited_date(reference[m.end():])
+
+
+def _oge_unreadable() -> str:
+    from search_stack.oge_citation import UNREADABLE
+    return UNREADABLE
+
+
+def _lookup_oge(conn, reference: str) -> str | None:
+    """decision_id for an "OGE" reference: among the rows carrying the docket
+    (both SH twins), the one of the written date, else the sh_gerichte row
+    when no date is written. One indexed docket lookup; None when the
+    reference is not in OGE form, not held, or no ruling has its date."""
+    ref = _oge_ref(reference)
+    if ref is None:
+        return None
+    docket, date = ref
+    from search_stack.oge_citation import pick
+    rows = conn.execute(
+        "SELECT decision_id, decision_date, court FROM decisions "
+        "WHERE docket_number IN (?, ?) "
+        "AND court IN ('sh_gerichte', 'sh_obergericht')",
         (f"Nr. {docket}", docket),
-    ).fetchone()
-    return row[0] if row else None
+    ).fetchall()
+    return pick([(r[0], r[1], r[2]) for r in rows], date)
 
 
 def _resolve_decision_id(decision_id: str) -> str:
@@ -15334,14 +15351,19 @@ def _cite_identity(reference: str, decision: dict) -> dict | None:
         return None
     carried = [decision.get(name) for name in ("docket_number", "docket_number_2") if isinstance(decision.get(name), str)]
     carried += [d for d in (decision.get("joined_dockets") or []) if isinstance(d, str)]
-    oge = _OGE_REF_RE.match(reference)
+    oge = _oge_ref(reference)
     if oge:
         # "OGE" names the Schaffhausen Obergericht: another court's docket of
-        # the same shape is never the ruling the reference means.
+        # the same shape is never the ruling the reference means, and a
+        # written date that differs names another ruling under the docket.
+        docket_ref, date_ref = oge
         if not str(decision.get("court") or "").startswith("sh_"):
             return None
+        if date_ref and (date_ref == _oge_unreadable() or
+                         str(decision.get("decision_date") or "")[:10] != date_ref):
+            return None
         for docket in carried:
-            if re.sub(r"^Nr\.\s*", "", docket.strip()) == oge.group(1):
+            if re.sub(r"^Nr\.\s*", "", docket.strip()) == docket_ref:
                 return {"method": "exact_docket", "label": docket}
         return None
     primary = parsed.primary_docket

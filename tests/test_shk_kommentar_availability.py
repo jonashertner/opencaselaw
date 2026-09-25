@@ -18,10 +18,12 @@ import build_shk_kommentar_shard as shk  # noqa: E402
 import mcp_server  # noqa: E402
 from scrapers.scholarship.sources import license_usage_hint  # noqa: E402
 from search_stack import build_legal_scholarship as bls  # noqa: E402
+from search_stack import oge_citation  # noqa: E402
 from search_stack.scholarship_citation_extractor import (  # noqa: E402
     extract_all,
     extract_for_publication,
     load_decision_lookups,
+    load_sh_dockets,
 )
 
 FIXTURE = REPO / "tests" / "fixtures" / "shk_kommentar"
@@ -42,15 +44,23 @@ def built(tmp_path_factory):
 
     decisions = tmp / "decisions.db"
     d = sqlite3.connect(decisions)
-    d.execute("CREATE TABLE decisions (decision_id TEXT, court TEXT, docket_number TEXT)")
-    d.executemany("INSERT INTO decisions VALUES (?,?,?)", [
-        # the same ruling under both SH representations
-        ("sh_gerichte_Nr. 60_2016_26", "sh_gerichte", "Nr. 60/2016/26"),
-        ("sh_obergericht_60_2016_26", "sh_obergericht", "60/2016/26"),
-        # held only by the legacy court code
-        ("sh_obergericht_60_2005_68", "sh_obergericht", "60/2005/68"),
+    d.execute("CREATE TABLE decisions (decision_id TEXT, court TEXT, docket_number TEXT, "
+              "decision_date TEXT)")
+    d.executemany("INSERT INTO decisions VALUES (?,?,?,?)", [
+        # the same ruling under both SH representations, the dates as cited
+        # ("OGE 60/2016/26 vom 20. September 2016")
+        ("sh_gerichte_Nr. 60_2016_26", "sh_gerichte", "Nr. 60/2016/26", "2016-09-20"),
+        ("sh_obergericht_60_2016_26", "sh_obergericht", "60/2016/26", "2016-09-20"),
+        # held only by the legacy court code ("vom 16. Dezember 2005")
+        ("sh_obergericht_60_2005_68", "sh_obergericht", "60/2005/68", "2005-12-16"),
+        # a Jan-1 placeholder on one twin; the other carries the cited date
+        # ("OGE 60/2015/42 vom 2. September 2016")
+        ("sh_gerichte_Nr. 60_2015_42", "sh_gerichte", "Nr. 60/2015/42", "2015-01-01"),
+        ("sh_obergericht_60_2015_42", "sh_obergericht", "60/2015/42", "2016-09-02"),
+        # another ruling under a cited docket: cited "vom 10. Juni 2016"
+        ("sh_gerichte_Nr. 60_2015_14", "sh_gerichte", "Nr. 60/2015/14", "2017-03-03"),
         # a docket of the same shape at another court must not match "OGE"
-        ("zh_obergericht_60_2014_15", "zh_obergericht", "60/2014/15"),
+        ("zh_obergericht_60_2014_15", "zh_obergericht", "60/2014/15", "2015-08-04"),
     ])
     d.commit()
     d.close()
@@ -111,10 +121,15 @@ def test_oge_citations_resolve_to_schaffhausen_decisions(built):
         "JOIN publications p ON p.id = d.pub_id").fetchall()
     conn.close()
     linked = {(p, dec) for p, dec, _ in rows}
-    # sh_gerichte wins over its sh_obergericht twin; one link per ruling
+    # both twins carry the cited date: sh_gerichte wins; one link per ruling
     assert ("shk_kommentar:vrg-art-18", "sh_gerichte_Nr. 60_2016_26") in linked
     assert ("shk_kommentar:vrg-art-18", "sh_obergericht_60_2016_26") not in linked
     assert ("shk_kommentar:vrg-art-18", "sh_obergericht_60_2005_68") in linked
+    # the twin with the cited date, not the placeholder-dated one
+    assert ("shk_kommentar:vrg-art-18", "sh_obergericht_60_2015_42") in linked
+    assert ("shk_kommentar:vrg-art-18", "sh_gerichte_Nr. 60_2015_42") not in linked
+    # a ruling of another date under the cited docket is not the one cited
+    assert not any(dec.endswith("60_2015_14") for _, dec in linked)
     assert not any(dec.startswith("zh_") for _, dec in linked)
     snip = {dec: s for _, dec, s in rows}
     assert "60/2016/26" in snip["sh_gerichte_Nr. 60_2016_26"]
@@ -122,12 +137,31 @@ def test_oge_citations_resolve_to_schaffhausen_decisions(built):
 
 def test_oge_pattern_edges(built):
     lookups = load_decision_lookups(str(built["decisions"]))
-    text = ("x" * 100 + " OGE 60/2016/26 vom 1. Mai; OGE 60/2016/261 und "
-            "OGE vom 14. November 1997 i.S. X; OGE 60/2005/68.")
-    decisions, _ = extract_for_publication(text, lookups, {})
+    sh = load_sh_dockets(str(built["decisions"]))
+    text = ("x" * 100 + " OGE 60/2016/26 E. 2; OGE 60/2016/261 und "
+            "OGE vom 14. November 1997 i.S. X; OGE 60/2005/68 vom 16.12.2005; "
+            "OGE 60/2015/42 du 2 septembre 2016; OGE 60/2015/14 vom gestern.")
+    decisions, _ = extract_for_publication(text, lookups, {}, sh)
     ids = [d for d, _ in decisions]
-    # 60/2016/261 is a different docket, not a prefix match of 60/2016/26
-    assert ids == ["sh_gerichte_Nr. 60_2016_26", "sh_obergericht_60_2005_68"]
+    # 60/2016/261 is a different docket, not a prefix match of 60/2016/26;
+    # no date written -> sh_gerichte; an unreadable date links nothing
+    assert ids == ["sh_gerichte_Nr. 60_2016_26", "sh_obergericht_60_2005_68",
+                   "sh_obergericht_60_2015_42"]
+    # without the SH lookups (an older caller) nothing SH is linked
+    assert extract_for_publication(text, lookups, {})[0] == []
+
+
+@pytest.mark.parametrize("after, want", [
+    (" vom 10. Januar 2020 E. 3.1", "2020-01-10"),
+    (" vom 2.3.2021 E. 4.7.4", "2021-03-02"),
+    (" du 3 juillet 2018", "2018-07-03"),
+    (" du 1er mars 2019", "2019-03-01"),
+    (", AB 2006, S. 94", None),
+    (" E. 2", None),
+    (" vom gestern", oge_citation.UNREADABLE),
+])
+def test_cited_date(after, want):
+    assert oge_citation.cited_date(after) == want
 
 
 # ── get_commentary, cantonal ─────────────────────────────────────────────
@@ -292,6 +326,8 @@ def _decisions_conn():
     c.executemany("INSERT INTO decisions VALUES (?,?,?,?)", [
         ("sh_gerichte_Nr. 60_2017_43", "sh_gerichte", "Nr. 60/2017/43", "2020-01-10"),
         ("sh_obergericht_60_2017_43", "sh_obergericht", "60/2017/43", "2011-12-16"),
+        ("sh_gerichte_Nr. 60_2019_5", "sh_gerichte", "Nr. 60/2019/5", "2019-01-01"),
+        ("sh_obergericht_60_2019_5", "sh_obergericht", "60/2019/5", "2019-09-24"),
         ("sh_obergericht_60_2005_68", "sh_obergericht", "60/2005/68", "2006-01-01"),
         ("zh_obergericht_60_2014_15", "zh_obergericht", "60/2014/15", "2015-01-01"),
     ])
@@ -301,6 +337,11 @@ def _decisions_conn():
 @pytest.mark.parametrize("ref, want", [
     ("OGE 60/2017/43", "sh_gerichte_Nr. 60_2017_43"),
     ("OGE 60/2017/43 vom 10. Januar 2020 E. 3.1", "sh_gerichte_Nr. 60_2017_43"),
+    # a date no held ruling carries: another ruling under the docket
+    ("OGE 60/2017/43 vom 19. Dezember 2017", None),
+    # the twin that carries the cited date
+    ("OGE 60/2019/5 vom 24. September 2019", "sh_obergericht_60_2019_5"),
+    ("OGE 60/2019/5", "sh_gerichte_Nr. 60_2019_5"),
     ("OGE 60/2005/68", "sh_obergericht_60_2005_68"),
     ("OGE 60/2014/15", None),            # the ZH docket of the same shape
     ("OGE 60/2017/431", None),
@@ -317,6 +358,8 @@ def test_cite_identity_accepts_oge_for_the_sh_ruling_only():
     assert ident == {"method": "exact_docket", "label": "Nr. 60/2017/43"}
     other = dict(sh, docket_number="Nr. 60/2017/44")
     assert mcp_server._cite_identity("OGE 60/2017/43", other) is None
+    assert mcp_server._cite_identity("OGE 60/2017/43 vom 10. Januar 2020", sh)
+    assert mcp_server._cite_identity("OGE 60/2017/43 vom 19. Dezember 2017", sh) is None
 
 
 # ── get_doctrine("Art. 18 VRG SH") ───────────────────────────────────────
