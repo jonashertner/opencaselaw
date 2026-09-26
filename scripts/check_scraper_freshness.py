@@ -353,13 +353,16 @@ KNOWN_GAP_REMEDIES: dict[str, str] = {
         "2026-09-02 (83 Seiten, 5.4 min, 0 Fehler): +0."
     ),
     "ju_gerichte": (
-        "GEMISCHT, kein Nachlauf: 4 von 29 sind real, aber upstream defekt — "
-        "das Portal liefert fuer ADM 2011 85, ADM 2015 126, ADM 2015 140 und "
-        "ADM 2016 11 Null-Byte-PDFs (HTTP 200, Content-Length: 0, verifiziert "
-        "2026-09-02; einzige Abhilfe: Meldung ans Tribunal cantonal JU). Die "
-        "uebrigen 25 sind vermutlich Duplikat-Zeilen der Portalliste, aber "
-        "unklassifiziert. RESCAN_ALL 2026-09-02 (alle 1170 Seiten, 29.4 min, "
-        "0 Fehler): +0 neu, 4 NoneReturns — die vier genannten."
+        "KLASSIFIZIERT 2026-09-26 (alle 1192 Portalzeilen, 53 PDFs, Textvergleich): "
+        "keine Duplikat-Zeilen. 12 echte Entscheide lagen unter bereits gehaltenen "
+        "Dossiernummern (docket-basierte IDs); die dokumentgenaue Identitaet "
+        "(state/ju_gerichte.docids.txt, Seed in scrapers/cantonal/seeds) holt sie "
+        "beim naechsten Lauf nach. Kein Nachlauf fuer den Rest: 16 Portaldateien "
+        "sind leer (HTTP 200, 0 Byte; u. a. ADM 2011 85, ADM 2015 126, ADM 2015 "
+        "140, ADM 2016 11 — einzige Abhilfe: Meldung ans Tribunal cantonal JU), "
+        "2 sind Doppel-Uploads mit identischem Text (CC 2017 19, CC 2017 5). "
+        "Erwartete Restluecke danach: 18. Frueher: RESCAN_ALL 2026-09-02 (alle "
+        "1170 Seiten, 29.4 min, 0 Fehler): +0 neu, 4 NoneReturns."
     ),
 }
 
