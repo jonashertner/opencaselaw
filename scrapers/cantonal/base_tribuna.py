@@ -87,6 +87,42 @@ def _gwt_unescape(s: str) -> str:
         return m.group(3)
 
     return _RE_GWT_ESCAPE.sub(_sub, s)
+
+
+def _row_dates_from_stream(text: str) -> dict[str, str]:
+    """Map docket -> decision date, read from each row's own record.
+
+    The string table of a GWT-RPC response is DEDUPLICATED: a date shared by
+    two rows is stored once, under the first. Rows point into the table from
+    the integer stream before it, and every row record holds the
+    decisionDate reference immediately before its dossierNumber reference
+    (column order of _COLUMNS). Measured 2026-09-27 on both fixtures: 40 of
+    40 rows found, 44 ints per record; 18 checked against the judgment text,
+    18 right. The docket-span reading got 9 of those 18 NULL and 3 wrong
+    (it took createDate or the Rechtskraft date, some in the future).
+
+    A docket can also match inside the leading byte-array blocks, which are
+    ASCII codes that collide with small table indices; the row records come
+    after them, so the LAST match wins.
+    """
+    table_at = text.find('["')
+    if not text.startswith("//OK[") or table_at < 0:
+        return {}
+    table = [_gwt_unescape(s) for s in re.findall(r'"((?:[^"\\]|\\.)*)"', text[table_at:])]
+    dates: dict[str, str] = {}
+    prev = None
+    for tok in text[5:table_at].split(","):
+        try:
+            n = int(float(tok))
+        except ValueError:
+            prev = None
+            continue
+        s = table[n - 1] if 0 < n <= len(table) else None
+        if (s is not None and prev is not None and _RE_DOCKET.match(s)
+                and _RE_DATE.match(prev) and prev != "0000-00-00"):
+            dates[s] = prev
+        prev = s
+    return dates
 _RE_HEX = re.compile(r"^[0-9a-f]{60,}$")
 _RE_B64CRED = re.compile(r"^[A-Za-z0-9+/=]{60,140}$")
 
@@ -481,6 +517,13 @@ class TribunaBaseScraper(BaseScraper):
                 kinds.append((idx, "title", s))
         kinds.sort(key=lambda t: t[0])
 
+        # The span date is only a fallback: the string table is deduplicated,
+        # so a row whose date an earlier row already carried has no date in
+        # its span and picks up createDate / the Rechtskraft date instead.
+        # See _row_dates_from_stream.
+        row_dates = _row_dates_from_stream(text)
+        corrected = 0
+
         # One row per docket. Row i spans [its own index, next docket's index).
         docket_positions = [i for i, (_, k, _) in enumerate(kinds) if k == "docket"]
         for n, ki in enumerate(docket_positions):
@@ -493,14 +536,24 @@ class TribunaBaseScraper(BaseScraper):
                         return v
                 return ""
 
+            docket = kinds[ki][2]
+            # "0000-00-00" is the Rechtskraft sentinel, not a date.
+            span_date = _first("date", {"0000-00-00"})
+            date = row_dates.get(docket) or span_date
+            if date != span_date:
+                corrected += 1
             decisions.append({
-                "docket_number": kinds[ki][2],
-                # "0000-00-00" is the Rechtskraft sentinel, not a date.
-                "decision_date": _first("date", {"0000-00-00"}),
+                "docket_number": docket,
+                "decision_date": date,
                 "enc_path": _first("enc_path"),
                 "title": _first("title"),
             })
 
+        if corrected:
+            logger.info(
+                f"[{self.court_code}] {corrected}/{len(decisions)} row dates taken "
+                f"from the row record (docket span had none or another date)"
+            )
         return total, decisions
 
     def discover_new(self, since_date=None) -> Iterator[dict]:
