@@ -87,7 +87,7 @@ ENTSCHEIDSUCHE_ONLY = {
 TOLERATED_PARTIAL_SOURCES = {
     "ecthr",
 }
-# These scrapers egress through the MacBook reverse-SOCKS tunnel, which
+# These scrapers egress through the Mac mini reverse-SOCKS tunnel, which
 # sleeps when the laptop sleeps (JU/NE portals block Hetzner at TCP;
 # search.bger.ch Incapsula-blocks the Hetzner IP since 2026-06-29, so
 # BGer/BGE discovery is proxied too). Failures during the 01:00 UTC
@@ -751,7 +751,7 @@ def main():
                 if k in TOLERATED_PARTIAL_SOURCES:
                     alerts.append(f"WARN {k}: {err} (tolerated upstream limitation)")
                 elif k in TUNNEL_DEPENDENT_SOURCES:
-                    alerts.append(f"WARN {k}: {err} (MacBook SOCKS tunnel — late-scrapers retry at 10:00 UTC)")
+                    alerts.append(f"WARN {k}: {err} (Mac mini SOCKS tunnel — late-scrapers retry at 10:20 UTC)")
                 else:
                     alerts.append(f"FAIL {k}: {err}")
 

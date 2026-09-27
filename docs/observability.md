@@ -183,7 +183,7 @@ never `decisions.db`.
 Ledger `logs/bger_withdrawal_state.json`, report
 `logs/bger_withdrawal_candidates.json`, log `logs/bger_withdrawals.log`.
 Timer `opencaselaw-bger-withdrawals.timer` at 13:30 UTC (daytime for the
-MacBook tunnel, outside the 09:30–12:00 UTC Neuheiten/poller band). Topic from
+Mac mini tunnel, outside the 09:30–12:00 UTC Neuheiten/poller band). Topic from
 `NTFY_TOPIC` in `/opt/caselaw/ops.env`, fallback `opencaselaw-scrapers`. If the
 first three fetches fail the run aborts without writing. The check never
 deletes; the follow-up is a maintainer decision under

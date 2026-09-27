@@ -34,6 +34,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator
@@ -587,6 +588,17 @@ class BGELeitentscheideScraper(BaseScraper):
     # Discovery
     # ---------------------------------------------------------------
 
+    LISTING_RETRY_PAUSE = 60.0
+
+    def _volume_stubs(self, year: int, volume: str) -> list[dict]:
+        """Unknown stubs of one volume listing. Raises if the fetch fails."""
+        response = self._safe_get(self._volume_url(year, volume))
+        stubs = self._parse_volume_listing(response.text, year, volume)
+        return [
+            s for s in stubs
+            if not self.state.is_known(make_decision_id("bge", s["docket_number"]))
+        ]
+
     def discover_new(self, since_date=None) -> Iterator[dict]:
         """
         Discover all BGE Leitentscheide.
@@ -605,19 +617,33 @@ class BGELeitentscheideScraper(BaseScraper):
                 since_date = parse_date(since_date) or date(AUFSETZ_JAHR, 1, 1)
             start_year = max(since_date.year, AUFSETZ_JAHR)
 
-        # Iterate years (newest first for incremental scraping)
+        # Iterate years (newest first for incremental scraping). A listing that
+        # fails is held back and retried once after a pause: since 2026-09-26
+        # search.bger.ch drops a handful of listing requests per run
+        # (RemoteDisconnected during the 20 req/min bursts), which is enough
+        # for the health check to flag the whole run as portal-down. Only a
+        # listing that fails again is logged as an error.
+        failed: list[tuple[int, str]] = []
         for year in range(current_year, start_year - 1, -1):
             for volume in VOLUMES:
-                url = self._volume_url(year, volume)
                 try:
-                    response = self._safe_get(url)
-                    stubs = self._parse_volume_listing(response.text, year, volume)
-                    for stub in stubs:
-                        # Check if already scraped
-                        decision_id = make_decision_id("bge", stub["docket_number"])
-                        if self.state.is_known(decision_id):
-                            continue
-                        yield stub
+                    yield from self._volume_stubs(year, volume)
+                except Exception as e:
+                    logger.warning(
+                        f"Listing {year}/{volume} failed ({type(e).__name__}), "
+                        f"retrying at end of run"
+                    )
+                    failed.append((year, volume))
+
+        if failed:
+            logger.info(
+                f"Retrying {len(failed)} failed listings after "
+                f"{self.LISTING_RETRY_PAUSE:.0f}s pause"
+            )
+            time.sleep(self.LISTING_RETRY_PAUSE)
+            for year, volume in failed:
+                try:
+                    yield from self._volume_stubs(year, volume)
                 except Exception as e:
                     logger.error(f"Failed to fetch listing {year}/{volume}: {e}")
 

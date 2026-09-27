@@ -1,5 +1,5 @@
 [Unit]
-Description=OpenCaseLaw late-scrapers retry (BGer/BGE/JU/NE — depend on MacBook SOCKS tunnel)
+Description=OpenCaseLaw late-scrapers retry (BGer/BGE/JU/NE — depend on Mac mini SOCKS tunnel)
 After=network-online.target
 
 [Service]

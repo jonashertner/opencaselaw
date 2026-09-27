@@ -6,11 +6,11 @@ After=network.target
 Type=oneshot
 WorkingDirectory=/opt/caselaw/repo
 # Kick the SOCKS tunnel before the scrape: if a zombie listener is bound,
-# this kills it so the MacBook autossh can reconnect cleanly. The `-`
+# this kills it so the Mac mini autossh can reconnect cleanly. The `-`
 # prefix tells systemd to ignore non-zero exit codes (the script's
 # exit code reflects whether a kill was needed, not a real error).
 ExecStartPre=-/opt/caselaw/repo/scripts/scraper_tunnel_healthcheck.sh
-# Brief sleep to let MacBook autossh re-establish the reverse port-forward
+# Brief sleep to let Mac mini autossh re-establish the reverse port-forward
 # before scrapers start hitting 127.0.0.1:1080.
 ExecStartPre=/bin/sleep 60
 ExecStart=/usr/bin/python3 run_all_scrapers.py

@@ -15,7 +15,7 @@
 #
 # WHY TWO GROUPS: jura.ch and ne.ch block Hetzner IPs at TCP (CLAUDE.md
 # invariant #6), so NE/JU can only be scraped through the reverse SOCKS tunnel
-# from the MacBook. If the tunnel is down those three CANNOT work, and this
+# from the Mac mini. If the tunnel is down those three CANNOT work, and this
 # script skips them loudly instead of burning an hour failing.
 #
 # SAFETY
@@ -58,7 +58,7 @@ cd "$REPO" || exit 1
 # Courts that work from the Hetzner IP directly. Biggest LAST so the quick
 # wins land first and a long Bern run cannot delay them.
 DIRECT=(gr_gerichte vs_gerichte be_verwaltungsgericht)
-# Courts that require the MacBook SOCKS tunnel.
+# Courts that require the Mac mini SOCKS tunnel.
 TUNNELED=(ju_gerichte ne_jurisprudence_adm ne_gerichte)
 
 if [ "$WAIT_FOR_BUILD" = "1" ]; then

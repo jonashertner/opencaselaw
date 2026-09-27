@@ -1,12 +1,12 @@
 #!/bin/bash
 # scraper_tunnel_healthcheck.sh — detect zombie SOCKS tunnel
 #
-# The MacBook reverse SOCKS tunnel (127.0.0.1:1080) is used by ju_gerichte
+# The Mac mini reverse SOCKS tunnel (127.0.0.1:1080) is used by ju_gerichte
 # and ne_gerichte scrapers to reach court portals that block Hetzner IPs.
 #
-# When the MacBook sleeps, the SSH session stays "established" per TCP
+# When the Mac mini sleeps, the SSH session stays "established" per TCP
 # (keepalive timer hasn't expired) but traffic forwarding is dead. This
-# script detects that state and kills the zombie so MacBook can reconnect
+# script detects that state and kills the zombie so the Mac mini can reconnect
 # cleanly on next wake.
 #
 # Ran hourly via opencaselaw-tunnel-healthcheck.timer.
@@ -15,7 +15,7 @@ set -u
 
 LISTENER=$(ss -tln 2>/dev/null | grep -c ':1080')
 if [ "$LISTENER" -eq 0 ]; then
-    echo "$(date -u +%FT%TZ) tunnel: NO LISTENER (MacBook not connected)"
+    echo "$(date -u +%FT%TZ) tunnel: NO LISTENER (Mac mini not connected)"
     exit 0
 fi
 

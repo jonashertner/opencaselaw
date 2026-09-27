@@ -1,5 +1,5 @@
 [Unit]
-Description=Detect zombie MacBook SOCKS tunnel and kill listener for clean reconnect
+Description=Detect zombie Mac mini SOCKS tunnel and kill listener for clean reconnect
 After=network-online.target
 
 [Service]
