@@ -3,6 +3,12 @@
 The client follows semantic versioning. The research API contract it consumes is
 versioned separately (`x-opencaselaw-contract-version` in `/api/research/openapi.json`).
 
+## Unreleased
+
+- `ocl doctor` accepts either id the service may return for BGE 136 III 513
+  (`bge_BGE_136_III_513` or `bge_136 III 513`), so its reference check keeps
+  passing when the service drops the entscheidsuche BGE ids.
+
 ## 0.9.1 (2026-09-07)
 
 - A short PDF filing (a one-line cover letter) is no longer mistaken for a scan:

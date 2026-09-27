@@ -184,3 +184,11 @@ def test_tool_json_prefers_the_rest_endpoint_and_falls_back_to_mcp():
     assert client.tool_json("find_leading_cases", {"query": "x"})["cases"] == [{"decision_id": "a"}]
     fallback = client.tool_json("old_tool", {})
     assert fallback == {"text": "markdown", "_tool": "old_tool"} and seen[-1][1].endswith("/")
+
+
+def test_doctor_cite_check_accepts_the_direct_bge_id():
+    # the service drops the entscheidsuche BGE ids (#40): the direct
+    # scraper's id is an equally good answer to the reference check
+    from opencaselaw_cli import cli
+    assert "bge_136 III 513" in cli._CITE_CHECK_IDS
+    assert "bge_BGE_136_III_513" in cli._CITE_CHECK_IDS

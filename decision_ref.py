@@ -276,7 +276,23 @@ def _expand_year(y: str) -> str:
 
 
 def _bge_ids(vol: str, div: str, page: str) -> list[str]:
-    return [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    out = [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    if div != div.upper():
+        # the direct scraper's Ia/Ib id is upper-case: "bge_116 IA 28" (#40)
+        out.append(f"bge_{vol} {div.upper()} {page}")
+    return out
+
+
+def bge_id_candidates(decision_id: str | None) -> list[str]:
+    """The OTHER stored ids a BGE decision_id may go by ("bge_BGE_140_III_244"
+    <-> "bge_140 III 244", Ia/Ib in either case), in resolution order; [] for
+    anything that is not a BGE id. The page is exact: 131 III 12 never yields
+    131 III 121 (#40)."""
+    m = re.match(r"^bge_(?:BGE_)?(\d{1,3})[ _]([IVX]+)([abAB]?)[ _](\d{1,4})$", decision_id or "")
+    if not m:
+        return []
+    ids = _bge_ids(m.group(1), m.group(2) + m.group(3).lower(), m.group(4))
+    return [i for i in ids if i != decision_id]
 
 
 # ── Grammar inference on a bare docket ───────────────────────────────────
@@ -454,7 +470,7 @@ def _rest_as_docket(rest: str) -> str:
         if re.fullmatch(r"[A-Z]{1,5}", head) and head not in EVG_CHAMBERS:
             return f"{head}/{m.group(2)}/{m.group(3)}"
         return f"{head}{sep}{m.group(2)}/{m.group(3)}"
-    if re.match(r"^(?:BGE_)?\d{1,3}_[IVXab]+_\d{1,4}$", rest):
+    if re.match(r"^(?:BGE_)?\d{1,3}_[IVX]+[abAB]?_\d{1,4}$", rest):
         return rest.replace("_", " ")
     return rest
 

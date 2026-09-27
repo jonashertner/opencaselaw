@@ -1051,7 +1051,7 @@ def doctor_offline(args, client):
         started = _time.monotonic()
         cite = client.get("/api/cite", {"reference": "BGE 136 III 513", "language": "de"})
         report["cite_ms"] = round(1000 * (_time.monotonic() - started))
-        report["cite_ok"] = cite.get("exists") is True and cite.get("decision_id") == "bge_BGE_136_III_513"
+        report["cite_ok"] = cite.get("exists") is True and cite.get("decision_id") in _CITE_CHECK_IDS
         if not report["cite_ok"]:
             warnings.append("the reference check did not find BGE 136 III 513 in the pack; the pack may be partial")
         if warnings:
@@ -1060,6 +1060,12 @@ def doctor_offline(args, client):
         report.update(ok=False, error=exc.to_dict() if isinstance(exc, APIError) else {"status": None, "message": str(exc)})
         return report, 3
     return report, 0
+
+
+# BGE 136 III 513 is served as "bge_BGE_136_III_513" while the entscheidsuche
+# rows are in the corpus and as the direct scraper's "bge_136 III 513" once
+# they are retired; either answer means the reference resolved.
+_CITE_CHECK_IDS = ("bge_BGE_136_III_513", "bge_136 III 513")
 
 
 def doctor(args, client):
@@ -1082,7 +1088,7 @@ def doctor(args, client):
         started = _time.monotonic()
         cite = client.get("/api/cite", {"reference": "BGE 136 III 513", "language": "de"})
         report["cite_ms"] = round(1000 * (_time.monotonic() - started))
-        report["cite_ok"] = cite.get("exists") is True and cite.get("decision_id") == "bge_BGE_136_III_513"
+        report["cite_ok"] = cite.get("exists") is True and cite.get("decision_id") in _CITE_CHECK_IDS
         if not report["cite_ok"]:
             report["ok"] = False
             report["note"] = "the reference check did not return the expected decision"

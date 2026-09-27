@@ -56,13 +56,13 @@ from typing import Optional
 # ── Parsers ──────────────────────────────────────────────────────────
 
 _BGE_FORM = re.compile(
-    r"^\s*(?:BGE|ATF|DTF)?\s*(\d+)\s+([IVX]+)\s+(\d+)\s*$",
+    r"^\s*(?:BGE|ATF|DTF)?\s*(\d+)\s+([IVX]+[ab]?)\s+(\d+)\s*$",
     flags=re.IGNORECASE,
 )
-# Accept both modern (bge_BGE_V_D_P) and historical (bge_V_D_P) ID forms.
-# The historical BGE archive (1875-1953) uses the latter shape.
+# Accept the entscheidsuche (bge_BGE_V_D_P), historical (bge_V_D_P) and direct
+# scraper (bge_V D P, Ia/Ib upper-case) ID forms (#40).
 _DECISION_ID_BGE = re.compile(
-    r"^bge_(?:BGE_|ATF_|DTF_)?(\d+)_([IVX]+)_(\d+)$",
+    r"^bge_(?:BGE_|ATF_|DTF_)?(\d+)[_ ]([IVX]+[ab]?)[_ ](\d+)$",
     flags=re.IGNORECASE,
 )
 _DOCKET_SEP = re.compile(r"[_/\-\.\s]+")

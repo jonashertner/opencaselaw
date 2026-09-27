@@ -4127,22 +4127,40 @@ def _search_fts5_inner(
     LLM_BGE_RRF_WEIGHT = SCORING_CONFIG["llm_bge_rrf_weight"]
     STRUCTURED_BGE_RRF_WEIGHT = SCORING_CONFIG["structured_bge_rrf_weight"]
     if not is_docket_query:
-        bge_pattern = re.compile(r"BGE\s+(\d{1,3})\s+([IVX]{1,4})\s+(\d{1,4})", re.IGNORECASE)
-        llm_bge_ids: list[str] = []
-        structured_bge_ids: list[str] = []
+        bge_pattern = re.compile(r"BGE\s+(\d{1,3})\s+([IVX]{1,4}[ab]?)\s+(\d{1,4})", re.IGNORECASE)
+        llm_bge_refs: list[str] = []
+        structured_bge_refs: list[str] = []
         # From structured parse (deterministic)
         for bge_ref in (structured_parse.get("leading_bge") or []):
             m = bge_pattern.search(bge_ref)
             if m:
-                candidate_id = f"bge_BGE_{m.group(1)}_{m.group(2).upper()}_{m.group(3)}"
-                structured_bge_ids.append(candidate_id)
+                structured_bge_refs.append(f"BGE {m.group(1)} {m.group(2)} {m.group(3)}")
         # From LLM free-text expansion (stochastic, fallback)
         if llm_terms:
             for term in llm_terms:
                 for m in bge_pattern.finditer(term):
-                    candidate_id = f"bge_BGE_{m.group(1)}_{m.group(2).upper()}_{m.group(3)}"
-                    if candidate_id not in structured_bge_ids:
-                        llm_bge_ids.append(candidate_id)
+                    ref = f"BGE {m.group(1)} {m.group(2)} {m.group(3)}"
+                    if ref not in structured_bge_refs:
+                        llm_bge_refs.append(ref)
+        # Each reference -> the id the BGE is stored under: bge_BGE_ while the
+        # entscheidsuche rows are served, the direct scraper's id otherwise
+        # ("bge_140 III 244", Ia/Ib upper-case) (#40). One indexed lookup.
+        _ref_cands = {ref: _bge_ref_candidates(ref)
+                      for ref in dict.fromkeys(structured_bge_refs + llm_bge_refs)}
+        _flat = [c for cands in _ref_cands.values() for c in cands]
+        _stored: set[str] = set()
+        if _flat:
+            _stored = {r["decision_id"] for r in conn.execute(
+                f"SELECT decision_id FROM decisions WHERE decision_id IN "
+                f"({','.join('?' for _ in _flat)})", _flat).fetchall()}
+
+        def _stored_id(ref: str) -> str:
+            cands = _ref_cands.get(ref) or [ref]
+            return next((c for c in cands if c in _stored), cands[0])
+
+        structured_bge_ids = list(dict.fromkeys(_stored_id(r) for r in structured_bge_refs))
+        llm_bge_ids = [i for i in dict.fromkeys(_stored_id(r) for r in llm_bge_refs)
+                       if i not in structured_bge_ids]
         all_bge_ids = structured_bge_ids + llm_bge_ids
         if all_bge_ids:
             # Fetch rows for BGE IDs not already in pool
@@ -6369,7 +6387,13 @@ def _bge_ref_candidates(ref: str) -> list[str]:
     vol = m.group(1)
     div = m.group(2).upper() + m.group(3).lower()
     page = m.group(4)
-    return [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    out = [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    if div != div.upper():
+        # The direct scraper stores Ia/Ib upper-case ("bge_116 IA 28"); ids
+        # are matched exactly, so without this the ruling is found only
+        # through the entscheidsuche rows (#40).
+        out.append(f"bge_{vol} {div.upper()} {page}")
+    return out
 
 
 def _docket_is_prefix_of_longer(inp: str, docket: str | None) -> bool:

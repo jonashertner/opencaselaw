@@ -23,7 +23,10 @@ from pathlib import Path
 
 
 def _norm(did: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", (did or "").lower())
+    # "bge_BGE_140_III_244" and the direct scraper's "bge_140 III 244" are
+    # one BGE (#40): drop the repeated collection prefix before comparing.
+    did = re.sub(r"^bge_(?:BGE|ATF|DTF)_", "bge_", did or "", flags=re.IGNORECASE)
+    return re.sub(r"[^a-z0-9]+", "", did.lower())
 
 
 def load(candidates_path: Path, sweep_path: Path):

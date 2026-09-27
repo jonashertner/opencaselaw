@@ -19,6 +19,7 @@ import sqlite3
 import urllib.parse
 from pathlib import Path
 
+import decision_ref
 import ecthr_docket
 
 logger = logging.getLogger("swiss-caselaw-mcp")
@@ -547,6 +548,19 @@ def render_decision_page(
         if prev:
             location = "/entscheid/" + urllib.parse.quote(str(prev[0]), safe="")
             return "", 301, location
+
+        # A BGE is stored under the direct scraper's id ("bge_140 III 244")
+        # and, while the entscheidsuche feed is served, "bge_BGE_140_III_244"
+        # as well. Links minted with either form (cite(), cli:ch, indexed
+        # pages) 301 to the one that exists (#40). Exact (volume, division,
+        # page) candidates only.
+        for cand in decision_ref.bge_id_candidates(decision_id):
+            hit = conn.execute(
+                "SELECT decision_id FROM decisions WHERE decision_id = ?", (cand,)
+            ).fetchone()
+            if hit:
+                location = "/entscheid/" + urllib.parse.quote(str(hit[0]), safe="")
+                return "", 301, location
 
         # P1.4: no LIKE %...% substring fallback here any more — that let
         # /entscheid/1 resolve to an unrelated decision with HTTP 200 via
