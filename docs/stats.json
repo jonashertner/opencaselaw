@@ -2475,7 +2475,7 @@
     "2026-08": 2113,
     "2026-09": 562
   },
-  "generated_at": "2026-09-27T12:12:09.466861+00:00",
+  "generated_at": "2026-09-27T23:13:35.616233+00:00",
   "scraper_health": {
     "run_at": "2026-09-27T02:11:33.620185+00:00",
     "run_duration_s": 4232.5,
@@ -3690,15 +3690,15 @@
       "ZH": 135
     },
     "commentaries": 1173,
-    "scholarship_publications": 45067,
+    "scholarship_publications": 45069,
     "scholarship_by_source": {
       "zora_law": 14022,
       "boris_law": 7614,
       "unige_law": 6529,
-      "e_periodica_polsci": 3097,
+      "e_periodica_polsci": 3098,
       "zhaw_digitalcollection": 3076,
       "e_periodica_law": 3041,
-      "libra_unine": 2020,
+      "libra_unine": 2021,
       "eth_research_collection": 1760,
       "e_periodica_pubadmin": 857,
       "fhnw_irf": 508,
@@ -3720,8 +3720,8 @@
       "usi_law": 7
     },
     "scholarship_by_type": {
-      "article": 30580,
-      "book": 10758,
+      "article": 30581,
+      "book": 10759,
       "dissertation": 2244,
       "report": 648,
       "commentary": 519,
@@ -3731,8 +3731,8 @@
       "chapter": 11,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10111192,
-    "statute_edges": 12847789
+    "citation_edges": 10111490,
+    "statute_edges": 12847989
   },
   "interesting_stats": {
     "most_cited_decision": {
@@ -3755,17 +3755,17 @@
       "de_pct": 47.0,
       "fr_pct": 44.6,
       "it_pct": 8.4,
-      "total": 1078248
+      "total": 1078259
     },
     "regeste_coverage": {
       "pct": 38.3,
       "with_regeste": 414011,
-      "total": 1082209
+      "total": 1082220
     },
     "graph_size": {
-      "decision_edges": 11838118,
-      "statute_edges": 12847789,
-      "total": 24685907
+      "decision_edges": 11869523,
+      "statute_edges": 12847989,
+      "total": 24717512
     },
     "echr_switzerland": {
       "total": 1526,
@@ -3825,12 +3825,12 @@
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109021
+        "ref_count": 109022
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97776
+        "ref_count": 97781
       },
       {
         "law_code": "BGG",
@@ -4545,7 +4545,10 @@
       "BS": 4,
       "JU": 6
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 298,
+      "statute_edges": 200
+    },
     "previous_generated_at": "2026-09-26T23:42:52.389989+00:00"
   }
 }
