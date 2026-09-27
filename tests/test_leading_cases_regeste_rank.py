@@ -178,7 +178,7 @@ def test_ranking_order_and_regeste_match_field(corpus):
     out = m._find_leading_cases(query="résiliation abusive du bail", limit=10)
     got = [(r["docket_number"], r["regeste_match"]) for r in out["results"]]
     assert got == [
-        ("120 II 31", 1.0),        # full match, 4 citations
+        ("BGE 120 II 31", 1.0),    # full match, 4 citations
         ("4A_345/2007", 1.0),      # full match, 2
         ("BGE 133 III 61", 0.67),  # partial, 8 x 0.2 = 1.6
         ("4A_1/2024", 1.0),        # full match, 1
@@ -192,10 +192,11 @@ def test_bge_dual_ids_collapse_to_one_entry_with_the_better_regeste(corpus):
     dockets = [r["docket_number"] for r in out["results"]]
     # only the prefixed id's regeste is trilingual (its bare twin's German
     # regeste carries none of the terms), but the bare id is better cited:
-    # one entry, under the better-cited id, judged by the better regeste
+    # one entry, ranked by the better-cited id, judged by the better regeste
+    # and served under the bge_BGE_ id cite() resolves to (#40)
     assert dockets.count("120 II 31") + dockets.count("BGE 120 II 31") == 1
     top = out["results"][0]
-    assert top["decision_id"] == "bge_120 II 31"
+    assert top["decision_id"] == "bge_BGE_120_II_31"
     assert top["citation_count"] == 4
     assert top["regeste_match"] == 1.0
 

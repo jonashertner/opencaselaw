@@ -6784,6 +6784,115 @@ def _decision_id_variants(decision_id: str) -> list[str]:
     return list(variants)
 
 
+# BGE dual ids (#40). One BGE is served under two decision_ids: the direct
+# search.bger.ch scraper's "bge_140 III 244" (scrapers/bge.py, the printed
+# reference as docket) and the frozen entscheidsuche feed's
+# "bge_BGE_140_III_244" (es_bge.jsonl). build_fts5's dedup keeps both whenever
+# their dates differ at insert time: 15,038 BGEs in a 2026-09-27 replica of
+# the served build (15,029 pairs, 9 triples), 6,813 of them still dated
+# differently after the build's date correction. Until the representation merge lands, the read paths that
+# list decisions fold a pair into one entry.
+# Divisions Ia/Ib come in either case: the direct scraper stores
+# "bge_116 IA 28", the entscheidsuche feed both "bge_BGE_116_Ia_28" and
+# "bge_BGE_116_IA_28" — a BGE can carry three ids.
+_BGE_TWIN_ID_RE = re.compile(r"^bge_(?:BGE_)?(\d+)[ _]([IVX]+)([abAB]?)[ _](\d+)$")
+
+
+def _bge_twin_key(decision_id: str | None) -> str | None:
+    """The (volume, division, page) key all ids of one BGE share, else None.
+    The division is folded the way _bge_ref_candidates spells it ('Ia')."""
+    m = _BGE_TWIN_ID_RE.match(decision_id or "")
+    if not m:
+        return None
+    return f"{m.group(1)}|{m.group(2)}{m.group(3).lower()}|{m.group(4)}"
+
+
+def _bge_twin_rank(decision_id: str | None) -> int:
+    """Order of the surviving id: the bge_BGE_ form with the division as
+    _bge_ref_candidates (cite, get_decision) spells it first ('Ia', not
+    'IA'), then any other bge_BGE_ form, then the direct scraper's id."""
+    m = _BGE_TWIN_ID_RE.match(decision_id or "")
+    if not m or not decision_id.startswith("bge_BGE_"):
+        return 2
+    return 0 if m.group(3) in ("", "a", "b") else 1
+
+
+def _bge_date_credible(value, decision_id: str | None) -> bool:
+    """A date that can be the ruling date of this BGE: not the 1 January
+    volume placeholder, and inside the window scrapers.bge.
+    header_date_plausible applies to a header date (volume year -3 .. +1)."""
+    key = _bge_twin_key(decision_id)
+    iso = str(value or "")
+    if not key or not iso or iso.endswith("-01-01"):
+        return False
+    try:
+        year = int(iso[:4])
+    except ValueError:
+        return False
+    volume_year = int(key.split("|")[0]) + _BGE_VOLUME_EPOCH
+    return volume_year - 3 <= year <= volume_year + 1
+
+
+def _bge_twin_date(rows) -> str | None:
+    """decision_date of a folded BGE pair: the first credible date in
+    surviving-id order, else the surviving row's own date.
+
+    Measured on the 2026-09-27 replica against the Urteilskopf date: 95.6% of
+    the groups right (98.7% once the pending BGE shard date repair has run),
+    against 70.9% for always taking the bge_BGE_ row's date — its feed carries
+    1 January placeholders for most of the pairs whose dates disagree."""
+    ordered = sorted(rows, key=lambda r: _bge_twin_rank(_row_get(r, "decision_id")))
+    for r in ordered:
+        if _bge_date_credible(_row_get(r, "decision_date"), _row_get(r, "decision_id")):
+            return _row_get(r, "decision_date")
+    return _row_get(ordered[0], "decision_date") if ordered else None
+
+
+def _fold_bge_twin_candidates(
+    candidates: list[tuple[str, int]], global_by_id: dict[str, int],
+) -> tuple[list[tuple[str, int]], dict[str, int]]:
+    """Fold the two ids of one BGE in a ranked (decision_id, count) list into
+    the first, better-ranked one. Counts take the MAXIMUM, never the sum: the
+    graph resolves most citing decisions to BOTH ids (BGE 140 III 244: 256 and
+    214 edges, 198 citing decisions shared), so a sum double-counts them."""
+    out: list[list] = []
+    glob = dict(global_by_id)
+    at: dict[str, int] = {}
+    for did, cnt in candidates:
+        key = _bge_twin_key(did)
+        if key is None or key not in at:
+            if key is not None:
+                at[key] = len(out)
+            out.append([did, cnt])
+            continue
+        kept = out[at[key]]
+        kept[1] = max(kept[1], cnt)
+        if did in glob:
+            glob[kept[0]] = max(glob.get(kept[0], 0), glob[did])
+    return [(did, cnt) for did, cnt in out], glob
+
+
+def _fold_bge_twin_row(kept, twin):
+    """The search row a folded BGE pair is served as: the better-ranked
+    row's score and snippet under the bge_BGE_ id and the credible date
+    (#40). Returns `kept` itself when nothing changes or the two rows are
+    not one BGE."""
+    kid, tid = _row_get(kept, "decision_id"), _row_get(twin, "decision_id")
+    if not _bge_twin_key(kid) or _bge_twin_key(kid) != _bge_twin_key(tid):
+        return kept
+    pair = [kept, twin]
+    best_id = min((kid, tid), key=_bge_twin_rank)
+    best_date = _bge_twin_date(pair)
+    if best_id == kid and best_date == _row_get(kept, "decision_date"):
+        return kept
+    out = dict(kept) if isinstance(kept, dict) else {k: kept[k] for k in kept.keys()}
+    out["decision_id"] = best_id
+    out["decision_date"] = best_date
+    if best_id == tid:
+        out["docket_number"] = _row_get(twin, "docket_number", out.get("docket_number"))
+    return out
+
+
 def _count_citations(decision_id: str) -> tuple[int, int]:
     """Return (incoming_count, outgoing_count) for a decision from the graph DB.
 
@@ -7449,6 +7558,7 @@ def _rerank_rows(
     _seen_ids: set[str] = set()
     _seen_keys: set[str] = set()
     _seen_dockets: set[str] = set()
+    _docket_at: dict[str, int] = {}
     _deduped: list = []
     for _entry in scored:
         _row = _entry[3]
@@ -7470,12 +7580,18 @@ def _rerank_rows(
             _dn = re.sub(r"^(?:CH)?(?:BGE|ATF|DTF)", "", _dn)
         _dkey = f"{_court}|{_dn}"
         if _dn and _dkey in _seen_dockets:
+            if _court == "bge":
+                _i = _docket_at[_dkey]
+                _k = _deduped[_i]
+                _deduped[_i] = (*_k[:3], _fold_bge_twin_row(_k[3], _row))
+                _seen_ids.add(_did)
             continue
         _seen_ids.add(_did)
         if _ckey and "||" not in _ckey:
             _seen_keys.add(_ckey)
         if _dn:
             _seen_dockets.add(_dkey)
+            _docket_at.setdefault(_dkey, len(_deduped))
         _deduped.append(_entry)
     scored = _deduped
     result_slice = scored[offset:offset + limit]
@@ -9586,7 +9702,8 @@ def _find_leading_cases(
             # 2026-06-28: BGE 126 I 97, right-to-be-heard, 6,535 global cites). The
             # global count is kept for context. Graph DB uses uppercase law codes.
             law_code = law_code.upper()
-            overfetch = limit * 3 if query else limit
+            # x2: each BGE may fill two rows (#40), folded below.
+            overfetch = (limit * 3 if query else limit) * 2
             _statute_sub = (
                 "SELECT ds.decision_id FROM decision_statutes ds "
                 "JOIN statutes s ON s.statute_id = ds.statute_id "
@@ -9759,7 +9876,7 @@ def _find_leading_cases(
             if conditions:
                 sql += " WHERE " + " AND ".join(conditions)
             sql += " GROUP BY ct.target_decision_id ORDER BY cite_count DESC LIMIT ?"
-            params.append(limit)
+            params.append(limit * 2)  # BGE pairs fold below (#40)
             rows = conn.execute(sql, tuple(params)).fetchall()
             candidates = [(r["decision_id"], int(r["cite_count"])) for r in rows]
     except sqlite3.Error as e:
@@ -9815,6 +9932,11 @@ def _find_leading_cases(
             candidates = _rerank_candidates_by_query_or(statute_ranked, query)
             filters_relaxed = True
 
+    # Fold the two ids a BGE can carry (#40) before the page is cut, so the
+    # pair costs one slot, not two. Free-text candidates arrive folded by
+    # _rank_leading_by_regeste already.
+    candidates, global_by_id = _fold_bge_twin_candidates(candidates, global_by_id)
+
     # Truncate to limit
     candidates = candidates[:limit]
 
@@ -9825,6 +9947,11 @@ def _find_leading_cases(
     # Build rows_by_id with all ID variants as keys so graph-format IDs
     # (e.g. "bge_126 I 97") resolve to the FTS5 row ("bge_BGE_126_I_97").
     candidate_ids = [c[0] for c in candidates]
+    # The id variants keep the division's case; add the 'Ia'-spelled id so an
+    # Ia/Ib ruling's pair is found from its 'IA' twin (#40).
+    for _key in filter(None, map(_bge_twin_key, list(candidate_ids))):
+        _vol, _div, _page = _key.split("|")
+        candidate_ids.append(f"bge_BGE_{_vol}_{_div}_{_page}")
     rows = _fetch_decision_rows_by_ids(candidate_ids)
     rows_by_id: dict = {}
     for r in rows:
@@ -9832,12 +9959,25 @@ def _find_leading_cases(
         for v in _decision_id_variants(r["decision_id"]):
             rows_by_id.setdefault(v, r)
 
+    twin_rows: dict[str, list] = {}
+    for r in rows:
+        key = _bge_twin_key(r["decision_id"])
+        if key:
+            twin_rows.setdefault(key, []).append(r)
+
     results = []
     for did, cite_count in candidates:
         row = rows_by_id.get(did, {})
+        ranked_did = did
+        pair = twin_rows.get(_bge_twin_key(did) or "", [])
+        if len(pair) > 1:
+            # Serve the pair under the bge_BGE_ id with the credible date (#40).
+            row = dict(min(pair, key=lambda r: _bge_twin_rank(r["decision_id"])))
+            row["decision_date"] = _bge_twin_date(pair)
+            did = row["decision_id"]
         url = _canonical_decision_url(did)
         docket = row.get("docket_number", did)
-        glob = global_by_id.get(did)
+        glob = global_by_id.get(ranked_did)
         entry = {
             "decision_id": did,
             "docket_number": docket,
@@ -9853,8 +9993,8 @@ def _find_leading_cases(
         }
         if glob is not None:
             entry["topic_citation_count"] = cite_count
-        if did in regeste_share:
-            share = regeste_share[did]
+        if ranked_did in regeste_share:
+            share = regeste_share[ranked_did]
             entry["regeste_match"] = None if share is None else round(share, 2)
         results.append(entry)
 
