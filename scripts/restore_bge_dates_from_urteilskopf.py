@@ -36,7 +36,7 @@ metadata date there (the direct scraper never sets it; the entscheidsuche
 ingest sets None). Every changed row gets a `date_restore` stamp; the old
 `date_extraction` stamp is kept as history.
 
-Streaming, temp file + atomic replace, court == 'bge' rows only, DRY RUN by
+Streaming, temp file + atomic replace, court 'bge' / 'bge_historical' rows only, DRY RUN by
 default. Do not run on the VPS shards during the build window (they are the
 build's input) — run after publish.py exits, then let the next full build
 pick the shard up. Never scp the result into the git tree (MCP deploy path).
@@ -44,6 +44,7 @@ pick the shard up. Never scp the result into the git tree (MCP deploy path).
 Usage:
   python3 scripts/restore_bge_dates_from_urteilskopf.py output/decisions/bge.jsonl
   python3 scripts/restore_bge_dates_from_urteilskopf.py output/decisions/es_bge.jsonl --apply
+  python3 scripts/restore_bge_dates_from_urteilskopf.py output/decisions/bge_historical.jsonl
 """
 from __future__ import annotations
 
@@ -63,6 +64,12 @@ if str(REPO) not in sys.path:
 
 from models import parse_date
 from scrapers.bge import BGE_VOLUME_EPOCH, header_date_plausible, parse_urteilskopf
+
+# bge_historical.jsonl (volumes 1-79, OCR of the printed volumes) was rewritten
+# by the same 03-12 pass: 649 rows took an OCR-garbled body date ("Arrêt du
+# 6 avril 1980" for 1900). Those rows carry no Urteilskopf line, so they fall
+# through to the metadata restore, which puts back the volume's 1 January.
+BGE_COURTS = ("bge", "bge_historical")
 
 _KEY_RE = re.compile(
     r"(?:^|[\s_])(?:BGE|ATF|DTF)?[\s_]*(\d{1,3})[\s_]+([IVX]+[abAB]?)[\s_]+(\d{1,4})(?:$|[\s_,;)])"
@@ -187,7 +194,7 @@ def run(path: Path, apply: bool, examples: int) -> Counter:
                     if fout:
                         fout.write(line)
                     continue
-                if obj.get("court") != "bge":
+                if obj.get("court") not in BGE_COURTS:
                     stats["other_court"] += 1
                     if fout:
                         fout.write(line)

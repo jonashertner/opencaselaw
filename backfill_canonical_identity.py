@@ -15,6 +15,7 @@ dates are replaced, and every change is provenance-stamped.
 from __future__ import annotations
 
 import argparse
+import re
 import sqlite3
 import sys
 from datetime import date
@@ -45,6 +46,36 @@ def _enrich_row(court, stored_date, docket, full_text, max_year, max_date=None):
     return best, prov, nd, ecli
 
 
+# Volume N of the BGE collects the rulings of year N + 1874. A ruling's own
+# date may trail its volume by up to three years (late publications such as
+# BGE 149 IV 97 = 6B_1079/2021 of 22.11.2021) but never follow it by more than
+# one. Same window as scrapers.bge.header_date_plausible (not imported: that
+# module pulls in the scraper stack); tests/test_apply_canonical_dates.py pins
+# the constants to it.
+BGE_VOLUME_EPOCH = 1874
+BGE_HEADER_LAG_YEARS = 3
+_BGE_VOLUME_RE = re.compile(r"^(?:bge_)?(?:BGE[ _]|historical_)?(\d{1,3})[ _][IVX]+[abAB]?[ _]\d+$")
+
+
+def bge_date_in_volume(iso: str | None, docket: str | None, decision_id: str | None,
+                       lag: int = BGE_HEADER_LAG_YEARS) -> bool:
+    """True when `iso` can be the ruling date of the BGE named by `docket` /
+    `decision_id`, or when neither yields a volume (nothing to check against).
+    `lag` is how many years the date may trail the volume: the late-publication
+    allowance for a date read from the ruling's own header, 1 for any other
+    text date."""
+    for s in (docket, decision_id):
+        m = _BGE_VOLUME_RE.match((s or "").strip())
+        if m:
+            break
+    else:
+        return True
+    if not iso or not str(iso)[:4].isdigit():
+        return False
+    volume_year = int(m.group(1)) + BGE_VOLUME_EPOCH
+    return volume_year - lag <= int(str(iso)[:4]) <= volume_year + 1
+
+
 def apply_to_db(conn, max_date: str | None = None) -> tuple[int, int]:
     """In-build correction: replace synthetic YYYY-01-01 BGE decision dates with the
     text-verified Urteilsdatum, and set publication_date from the volume year, on an
@@ -61,12 +92,23 @@ def apply_to_db(conn, max_date: str | None = None) -> tuple[int, int]:
     if "date_provenance" not in cols:
         conn.execute("ALTER TABLE decisions ADD COLUMN date_provenance TEXT")
     rows = conn.execute(
-        "SELECT decision_id, decision_date, publication_date, full_text FROM decisions "
+        "SELECT decision_id, docket_number, decision_date, publication_date, full_text FROM decisions "
         "WHERE court='bge' AND (decision_date IS NULL OR decision_date='' OR decision_date LIKE '%-01-01')"
     ).fetchall()
     n_date = n_pub = 0
-    for did, sd, spub, ft in rows:
+    for did, docket, sd, spub, ft in rows:
         dd, dprov, pd, pprov = d.derive_dates(sd, spub, ft, max_year=yr, max_date=md)
+        if dprov == "extracted_from_text":
+            # A text date outside the volume window is not this ruling's date:
+            # a statute, a lower-court ruling or an OCR misreading (volume 1 =
+            # 1875 took "2020-03-15"). Only the docket-validated Urteilskopf
+            # date gets the late-publication allowance; a date from the body
+            # trailing the volume by 2-3 years was the lower court's in 206 of
+            # 208 cases (2026-09-27 replica). The placeholder stays.
+            from_header = d.extract_urteilskopf(ft, max_year=yr).get("date") == dd
+            lag = BGE_HEADER_LAG_YEARS if from_header else 1
+            if not bge_date_in_volume(dd, docket, did, lag=lag):
+                dd, dprov = None, "volume_synthetic"
         sets, params = ["date_provenance = ?"], [dprov]
         if dprov == "extracted_from_text" and dd:        # only high-confidence, docket-validated
             sets.append("decision_date = ?"); params.append(dd); n_date += 1
