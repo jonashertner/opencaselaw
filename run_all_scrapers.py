@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import shutil
 import subprocess
 import sys
@@ -110,6 +111,29 @@ def _socks_tunnel_up(host: str = "127.0.0.1", port: int = 1080) -> bool:
             return True
     except OSError:
         return False
+
+
+# A listing or search page the portal REFUSED (the scraper's own terminal ERROR
+# after its retries). requests words these "403 Client Error: Forbidden",
+# "503 Server Error: ...", which none of the connection-failure markers match,
+# so a run with every listing refused reported "+0 new, Errors: 0" as success:
+# bge 2026-09-28 09:00 (356/356 listings 403), bger 10:20 (both hosts 403).
+# Replaying every run in logs/*.log on 2026-09-28: 12 runs flip to FAILED, all
+# bge/bger, all real refusals (two bger runs predate the "via host" wording). Per-
+# document errors are left out on purpose (listing/search lines only), and so
+# is bger's first host: "via https://www.bger.ch" falls through to
+# search.bger.ch, so a refusal there is only a failure when the fallback fails
+# too, which logs its own line.
+_HTTP_REFUSAL = re.compile(r"\b(403|429|502|503|504) (Client|Server) Error")
+
+
+def _is_listing_refusal(line: str) -> bool:
+    return (
+        " ERROR " in line
+        and _HTTP_REFUSAL.search(line) is not None
+        and ("listing" in line.lower() or " Search " in line)
+        and "via https://www.bger.ch" not in line
+    )
 
 # Scrapers where a high none_count (>=200) is expected and not a portal failure.
 #
@@ -289,6 +313,7 @@ def run_single_scraper(court: str, timeout: int) -> dict:
                             " ERROR " in line
                             and "search failed" in line.lower()
                         )
+                        or _is_listing_refusal(line)
                     ):
                         discovery_errors += 1
 

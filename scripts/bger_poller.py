@@ -163,16 +163,41 @@ def _fetch_neuheiten(date_str: str) -> set[str]:
 
 
 def _fetch_neuheiten_via_proxy(url: str, proxy: str) -> set[str]:
-    """Residential egress (reverse-SOCKS tunnel). A residential IP is not
-    challenged, so a plain GET returns the real page — no Incapsula cookies, no
-    PoW. An empty result is genuine (e.g. weekend with no publications)."""
+    """Residential egress (reverse-SOCKS tunnel), plain GET, no cookies or PoW.
+
+    The residential IP is USUALLY not challenged — but on 2026-09-28 Incapsula
+    refused it from ~05:00 to ~10:30 UTC (403/502/503 on BGE, BGer and here), so
+    the body is classified rather than trusted:
+
+    - whitespace only: BGer's genuine answer for a date with nothing listed yet
+      (a single "\\n", measured for a Sunday and for tomorrow on 2026-09-28);
+    - the list itself: aza:// ids / dockets, or the "neu aufgenommenen
+      Entscheide" header;
+    - anything else is not a Neuheiten page (challenge/block page) and raises,
+      so it is reported as a failed fetch instead of a quiet "0 decisions".
+    """
     import requests
     session = requests.Session()
     session.headers["User-Agent"] = _UA
     session.proxies = {"http": proxy, "https": proxy}
     r = session.get(url, timeout=45)
     r.raise_for_status()
-    return _extract_feed_dockets(r.text)
+    return _classify_neuheiten_page(r.text)
+
+
+NEUHEITEN_LIST_MARKER = "neu aufgenommenen Entscheide"
+
+
+def _classify_neuheiten_page(text: str) -> set[str]:
+    """Dockets of a real Neuheiten answer; raises on a page that is not one."""
+    if not text.strip():
+        return set()
+    dockets = _extract_feed_dockets(text)
+    if dockets or NEUHEITEN_LIST_MARKER in text:
+        return dockets
+    raise RuntimeError(
+        f"not a Neuheiten page ({len(text)} bytes, no list, no "
+        f"'{NEUHEITEN_LIST_MARKER}' header) — challenge or block page")
 
 
 def _fetch_neuheiten_direct(url: str) -> set[str]:
@@ -250,6 +275,34 @@ def _alert_empty_neuheiten(today_iso: str) -> None:
     logger.error(msg)
     _alert_ntfy("BGer poller: empty Neuheiten on a workday", msg,
                 tags="warning,rotating_light")
+
+
+def _alert_fetch_failure(today_iso: str, err: Exception, now=None) -> bool:
+    """ntfy once per day when the Neuheiten fetch itself fails after BGer's
+    publication window (workday, >= 11:00 UTC).
+
+    The empty-feed alarm covers a fetch that returns nothing; a fetch that
+    raises used to be logged only. That was already true for a 503, and since
+    block pages are now raised rather than read as "0 decisions", staying quiet
+    here would have made the blocked case LESS visible. Before the window a
+    failure only logs, like the empty feed (morning noise). Returns True when
+    an alert was sent. The state is re-saved unchanged except for the marker.
+    """
+    if not _empty_feed_is_anomalous(now):
+        return False
+    state = _load_state()
+    alerts = dict(state.get("alerts", {}))
+    if alerts.get("fetch") == today_iso:
+        return False
+    msg = (f"BGer Neuheiten fetch failed on a workday ({today_iso}): {err}. "
+           f"Check the reverse-SOCKS tunnel / BGER_PROXY; the 01:00 scrape is the backstop.")
+    _alert_ntfy("BGer poller: Neuheiten fetch failing", msg,
+                tags="warning,rotating_light")
+    alerts["fetch"] = today_iso
+    _save_state(state.get("date") or today_iso, set(state.get("dockets", [])),
+                dict(state.get("failing", {})), bool(state.get("pending_publish", False)),
+                alerts)
+    return True
 
 
 def _load_state() -> dict:
@@ -841,6 +894,7 @@ def main():
         current_dockets = _fetch_neuheiten(today)
     except Exception as e:
         logger.error("Failed to fetch Neuheiten: %s", e)
+        _alert_fetch_failure(today_iso, e)
         return
 
     logger.info("Neuheiten %s: %d decisions", today_iso, len(current_dockets))
