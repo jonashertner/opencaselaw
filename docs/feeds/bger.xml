@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/bger.xml</link>
     <description>Latest published Bundesgericht decisions.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 28 Sep 2026 12:02:47 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 28 Sep 2026 23:09:53 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/bger.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -980,6 +980,34 @@ Verfahrensbete…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesgericht 8F_7/2026 vom 2026-09-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_8F_7_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+8F_7/2026
+
+Arrêt du 10 septembre 2026
+
+IVe Cour de droit public
+
+Composition
+
+M. le Juge fédéral Métral, en qualité de juge unique.
+
+Greffière : Mme Barman Ionta.
+
+Participants à …</description>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:8F_7.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
       <title>Bundesgericht 9F_19/2026 vom 2026-09-10</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_9F_19_2026</link>
       <description>Bundesgericht
@@ -1454,36 +1482,6 @@ A.________,
 …</description>
       <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_778.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 5A_780/2026 vom 2026-09-08</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_780_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-5A_780/2026
-
-Arrêt du 8 septembre 2026
-
-IIe Cour de droit civil
-
-Composition
-
-M. le Juge fédéral Bovey, Président.
-
-Greffière : Mme Mairot.
-
-Participants à la procédure
-
-A._______…</description>
-      <pubDate>Tue, 08 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_780.2026</guid>
       <category>bger</category>
     </item>
   </channel>

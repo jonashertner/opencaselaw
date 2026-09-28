@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 28 Sep 2026 12:02:47 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 28 Sep 2026 23:09:53 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -799,6 +799,34 @@ Participants à l…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesgericht 8F_7/2026 vom 2026-09-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_8F_7_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+8F_7/2026
+
+Arrêt du 10 septembre 2026
+
+IVe Cour de droit public
+
+Composition
+
+M. le Juge fédéral Métral, en qualité de juge unique.
+
+Greffière : Mme Barman Ionta.
+
+Participants à …</description>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:8F_7.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht B-820/2026 vom 2026-09-10</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-820_2026</link>
       <description>Encouragement de la formation universitaire</description>
@@ -927,36 +955,6 @@ Donzallaz et Wohlhauser.
 Greffier : M. de Cha…</description>
       <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_154.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_216/2025 vom 2026-09-09</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_216_2025</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_216/2025
-
-Arrêt du 9 septembre 2026
-
-IIe Cour de droit pénal
-
-Composition
-
-MM. et Mme les Juges fédéraux Abrecht, Président,
-
-Koch et Hofmann.
-
-Greffier: M. Hösli.
-
-Participant…</description>
-      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_216.2025</guid>
       <category>bger</category>
     </item>
   </channel>
