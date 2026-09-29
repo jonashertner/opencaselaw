@@ -12406,7 +12406,7 @@ server = Server(
         "Code: MIT (github.com/jonashertner/opencaselaw). Data: CC0 1.0 "
         "(public domain). Attribution appreciated: \"Source: "
         "OpenCaseLaw.ch\". Nonprofit, open-access, no cookies, no user "
-        "accounts, no query logging. Privacy policy: "
+        "accounts. Privacy policy: "
         "https://opencaselaw.ch/datenschutz/"
     ),
 )
