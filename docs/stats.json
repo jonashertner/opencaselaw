@@ -1,9 +1,9 @@
 {
-  "total": 1081092,
-  "source_representations": 1081092,
+  "total": 1081158,
+  "source_representations": 1081158,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 940289,
-  "unique_decisions_lower_bound": 940239,
+  "unique_decisions": 940355,
+  "unique_decisions_lower_bound": 940305,
   "duplicate_representations": 140803,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -19,10 +19,10 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193470,
+      "count": 193536,
       "earliest": "1986-10-06",
-      "latest": "2026-09-17",
-      "last_scraped": "2026-09-28T12:00:26.340197+00:00",
+      "latest": "2026-09-18",
+      "last_scraped": "2026-09-29T10:38:54.086614+00:00",
       "languages": [
         "de",
         "fr",
@@ -1904,9 +1904,9 @@
     }
   ],
   "by_language": {
-    "de": 505817,
-    "fr": 480200,
-    "it": 91114,
+    "de": 505848,
+    "fr": 480219,
+    "it": 91130,
     "en": 3961
   },
   "by_year": {
@@ -2059,29 +2059,29 @@
     "2021": 53148,
     "2022": 52905,
     "2023": 52696,
-    "2024": 52778,
-    "2025": 50331,
-    "2026": 24650,
+    "2024": 52786,
+    "2025": 50357,
+    "2026": 24682,
     "2027": 1
   },
   "recent_daily": {
     "2026-08-30": 1,
-    "2026-08-31": 104,
-    "2026-09-01": 76,
-    "2026-09-02": 93,
+    "2026-08-31": 105,
+    "2026-09-01": 77,
+    "2026-09-02": 95,
     "2026-09-03": 68,
     "2026-09-04": 61,
     "2026-09-06": 1,
-    "2026-09-07": 66,
-    "2026-09-08": 58,
-    "2026-09-09": 39,
-    "2026-09-10": 31,
+    "2026-09-07": 68,
+    "2026-09-08": 60,
+    "2026-09-09": 42,
+    "2026-09-10": 32,
     "2026-09-11": 22,
     "2026-09-14": 26,
-    "2026-09-15": 29,
+    "2026-09-15": 30,
     "2026-09-16": 15,
     "2026-09-17": 11,
-    "2026-09-18": 1,
+    "2026-09-18": 2,
     "2026-09-20": 1,
     "2026-09-21": 3,
     "2026-09-22": 1,
@@ -2096,7 +2096,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193470
+      "count": 193536
     },
     {
       "court": "ge_gerichte",
@@ -2299,7 +2299,7 @@
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 397387,
+    "federal": 397453,
     "cantonal": 683705
   },
   "language_by_year": {
@@ -2418,22 +2418,22 @@
       "it": 2423
     },
     "2024": {
-      "de": 23581,
+      "de": 23583,
       "en": 152,
-      "fr": 26818,
-      "it": 2227
+      "fr": 26821,
+      "it": 2230
     },
     "2025": {
-      "de": 23571,
+      "de": 23581,
       "en": 180,
-      "fr": 25026,
-      "it": 1554
+      "fr": 25032,
+      "it": 1564
     },
     "2026": {
-      "de": 12842,
+      "de": 12861,
       "en": 117,
-      "fr": 10798,
-      "it": 893
+      "fr": 10808,
+      "it": 896
     }
   },
   "by_month": {
@@ -2449,33 +2449,33 @@
     "2024-06": 4866,
     "2024-07": 4061,
     "2024-08": 4008,
-    "2024-09": 4301,
-    "2024-10": 4550,
+    "2024-09": 4302,
+    "2024-10": 4555,
     "2024-11": 4629,
-    "2024-12": 4408,
-    "2025-01": 4354,
+    "2024-12": 4410,
+    "2025-01": 4358,
     "2025-02": 4218,
-    "2025-03": 4407,
-    "2025-04": 4079,
-    "2025-05": 4347,
-    "2025-06": 4724,
+    "2025-03": 4409,
+    "2025-04": 4084,
+    "2025-05": 4350,
+    "2025-06": 4725,
     "2025-07": 3906,
     "2025-08": 3837,
-    "2025-09": 4387,
-    "2025-10": 4332,
-    "2025-11": 4069,
-    "2025-12": 3671,
-    "2026-01": 3044,
-    "2026-02": 3694,
+    "2025-09": 4388,
+    "2025-10": 4335,
+    "2025-11": 4070,
+    "2025-12": 3677,
+    "2026-01": 3051,
+    "2026-02": 3695,
     "2026-03": 3691,
     "2026-04": 3010,
     "2026-05": 2800,
     "2026-06": 3200,
     "2026-07": 2466,
-    "2026-08": 2137,
-    "2026-09": 603
+    "2026-08": 2148,
+    "2026-09": 616
   },
-  "generated_at": "2026-09-29T12:47:21.636014+00:00",
+  "generated_at": "2026-09-29T21:40:38.817191+00:00",
   "scraper_health": {
     "run_at": "2026-09-29T01:56:30.731331+00:00",
     "run_duration_s": 3329.4,
@@ -3731,19 +3731,19 @@
       "chapter": 11,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10094100,
-    "statute_edges": 12831535
+    "citation_edges": 10095762,
+    "statute_edges": 12833278
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "BGE 125 V 351",
-      "citation_count": 79158,
+      "citation_count": 79160,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 198602
+      "ref_count": 198615
     },
     "oldest_decision": {
       "docket": "1_I_26",
@@ -3755,17 +3755,17 @@
       "de_pct": 47.0,
       "fr_pct": 44.6,
       "it_pct": 8.5,
-      "total": 1077074
+      "total": 1077197
     },
     "regeste_coverage": {
       "pct": 38.2,
-      "with_regeste": 412764,
-      "total": 1081035
+      "with_regeste": 412772,
+      "total": 1081158
     },
     "graph_size": {
-      "decision_edges": 11109301,
-      "statute_edges": 12831535,
-      "total": 23940836
+      "decision_edges": 11142132,
+      "statute_edges": 12833278,
+      "total": 23975410
     },
     "echr_switzerland": {
       "total": 1526,
@@ -3782,13 +3782,13 @@
     "top_5_decisions": [
       {
         "docket": "BGE 125 V 351",
-        "citation_count": 79158,
+        "citation_count": 79160,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
       },
       {
         "docket": "125 V 351",
-        "citation_count": 77447,
+        "citation_count": 77454,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
@@ -3800,7 +3800,7 @@
       },
       {
         "docket": "BGE 134 V 231",
-        "citation_count": 40465,
+        "citation_count": 40469,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_134_V_231"
       },
@@ -3815,37 +3815,37 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 198602
+        "ref_count": 198615
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 123134
+        "ref_count": 123142
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 108998
+        "ref_count": 109005
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97776
+        "ref_count": 97797
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 60759
+        "ref_count": 60772
       }
     ],
     "materialien_coverage": {
-      "total_documents": 6181,
-      "paragraphs": 425704,
+      "total_documents": 6184,
+      "paragraphs": 426119,
       "article_links": 20204,
       "by_language": {
-        "de": 2060,
-        "fr": 2061,
-        "it": 2060
+        "de": 2061,
+        "fr": 2062,
+        "it": 2061
       },
       "year_range": {
         "from": 1999,
@@ -3928,9 +3928,9 @@
       {
         "court": "ge_gerichte",
         "earliest": "1908-11-08",
-        "latest": "2026-09-16",
+        "latest": "2026-09-17",
         "span_years": 118,
-        "decision_count": 170749
+        "decision_count": 170771
       }
     ]
   },
@@ -4535,8 +4535,9 @@
     }
   ],
   "delta": {
-    "total": 57,
+    "total": 123,
     "by_court": {
+      "bger": 24,
       "ge_gerichte": 22,
       "bvger": 13,
       "vd_gerichte": 12,
@@ -4564,7 +4565,10 @@
       "AG": 6,
       "ZG": 1
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 1662,
+      "statute_edges": 1743
+    },
     "previous_generated_at": "2026-09-28T22:59:51.677125+00:00"
   }
 }
