@@ -590,6 +590,36 @@ class BGELeitentscheideScraper(BaseScraper):
 
     LISTING_RETRY_PAUSE = 60.0
 
+    # Daily runs list only the volumes that can still grow; the full walk from
+    # 1954 runs once a week. New BGE appear only in the current year's volume
+    # (and, early in a year, the previous one), yet every run listed all ~356
+    # volumes, three times a day; on 2026-09-28 and 09-29 search.bger.ch's
+    # Incapsula refused the tunnel address in the 09:00-10:30 window when that
+    # traffic peaks. The weekly walk still catches anything a daily run missed.
+    # The marker holds the date of the last full walk whose listings all
+    # loaded; a walk with a listing that failed twice does not count, so the
+    # next run walks fully again. OCL_SCRAPER_RESCAN_ALL=1 forces a full walk.
+    FULL_WALK_EVERY_DAYS = 7
+    RECENT_YEARS = 2
+
+    def _fullwalk_marker(self) -> Path:
+        return Path(self.state.state_file).with_name(f"{self.court_code}.fullwalk")
+
+    def _full_walk_due(self, today: date) -> bool:
+        if os.environ.get("OCL_SCRAPER_RESCAN_ALL"):
+            return True
+        try:
+            last = date.fromisoformat(self._fullwalk_marker().read_text().strip())
+        except (OSError, ValueError):
+            return True
+        return (today - last).days >= self.FULL_WALK_EVERY_DAYS
+
+    def _mark_full_walk(self, today: date) -> None:
+        marker = self._fullwalk_marker()
+        tmp = marker.with_name(marker.name + ".tmp")
+        tmp.write_text(today.isoformat() + "\n")
+        os.replace(tmp, marker)
+
     def _volume_stubs(self, year: int, volume: str) -> list[dict]:
         """Unknown stubs of one volume listing. Raises if the fetch fails."""
         response = self._safe_get(self._volume_url(year, volume))
@@ -603,19 +633,31 @@ class BGELeitentscheideScraper(BaseScraper):
         """
         Discover all BGE Leitentscheide.
 
-        Iterates year-by-year from AUFSETZ_JAHR (1954) to current year,
-        volumes I-V per year. Optionally also EGMR decisions.
+        Iterates year-by-year, newest first, volumes I-V per year: the last
+        RECENT_YEARS years on a daily run, every year from AUFSETZ_JAHR (1954)
+        once a week or with since_date. Optionally also EGMR decisions.
         """
         # Establish session first
         self._establish_session()
 
-        current_year = date.today().year
+        today = date.today()
+        current_year = today.year
         start_year = AUFSETZ_JAHR
+        full_walk = False
 
         if since_date:
             if isinstance(since_date, str):
                 since_date = parse_date(since_date) or date(AUFSETZ_JAHR, 1, 1)
             start_year = max(since_date.year, AUFSETZ_JAHR)
+        elif self._full_walk_due(today):
+            full_walk = True
+            logger.info(f"Full walk of all volumes since {AUFSETZ_JAHR}")
+        else:
+            start_year = current_year - self.RECENT_YEARS + 1
+            logger.info(
+                f"Daily walk: volumes {start_year}-{current_year} "
+                f"(full walk every {self.FULL_WALK_EVERY_DAYS} days)"
+            )
 
         # Iterate years (newest first for incremental scraping). A listing that
         # fails is held back and retried once after a pause: since 2026-09-26
@@ -641,11 +683,17 @@ class BGELeitentscheideScraper(BaseScraper):
                 f"{self.LISTING_RETRY_PAUSE:.0f}s pause"
             )
             time.sleep(self.LISTING_RETRY_PAUSE)
+            still_failed: list[tuple[int, str]] = []
             for year, volume in failed:
                 try:
                     yield from self._volume_stubs(year, volume)
                 except Exception as e:
+                    still_failed.append((year, volume))
                     logger.error(f"Failed to fetch listing {year}/{volume}: {e}")
+            failed = still_failed
+
+        if full_walk and not failed:
+            self._mark_full_walk(today)
 
         # EGMR decisions
         if self.include_egmr:

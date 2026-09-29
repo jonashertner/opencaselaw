@@ -103,6 +103,40 @@ TUNNEL_DEPENDENT: set[str] = {
 }
 
 
+# Scrapers the 10:20 late run (--source manual) only retries: when today's
+# 09:00 federal run of the same scraper succeeded there is nothing to retry,
+# and running it again only adds load on a portal that has started refusing
+# the tunnel address in that window (bge, 2026-09-28/29).
+RETRY_ONLY_IF_FEDERAL_FAILED: set[str] = {"bge"}
+
+
+def _clean_federal_run_today(court: str, logs_dir: Path | None = None,
+                             today: str | None = None) -> str | None:
+    """The time (HH:MM UTC) of today's successful federal run of `court`, else None."""
+    path = (logs_dir or REPO_DIR / "logs") / "scraper_health_federal.json"
+    try:
+        health = json.loads(path.read_text())
+        run_at = datetime.fromisoformat(health["run_at"])
+        entry = health["scrapers"][court]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    today = today or datetime.now(timezone.utc).date().isoformat()
+    run_at = run_at.astimezone(timezone.utc)
+    if run_at.date().isoformat() != today:
+        return None
+    if not entry.get("success") or entry.get("timed_out"):
+        return None
+    return run_at.strftime("%H:%M")
+
+
+def _skipped_result(court: str, note: str) -> dict:
+    return {
+        "court": court, "success": True, "new_count": 0, "skip_count": 0,
+        "error_count": 0, "none_count": 0, "duration": 0.0,
+        "error": None, "note": note,
+    }
+
+
 def _socks_tunnel_up(host: str = "127.0.0.1", port: int = 1080) -> bool:
     """True if something is listening on the reverse-SOCKS tunnel port."""
     import socket
@@ -503,6 +537,15 @@ def main():
     # Run scrapers with controlled parallelism
     results = []
     total_start = time.time()
+
+    if args.source == "manual":
+        for court in [c for c in courts if c in RETRY_ONLY_IF_FEDERAL_FAILED]:
+            clean_at = _clean_federal_run_today(court)
+            if clean_at:
+                courts.remove(court)
+                note = f"skipped: today's {clean_at} UTC federal run succeeded"
+                logger.info(f"  [SKIP] {court}: {note}")
+                results.append(_skipped_result(court, note))
 
     with ProcessPoolExecutor(max_workers=args.parallel) as executor:
         futures = {}
