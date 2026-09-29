@@ -1,9 +1,9 @@
 {
-  "total": 1081035,
-  "source_representations": 1081035,
+  "total": 1081092,
+  "source_representations": 1081092,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 940232,
-  "unique_decisions_lower_bound": 940182,
+  "unique_decisions": 940289,
+  "unique_decisions_lower_bound": 940239,
   "duplicate_representations": 140803,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -19,7 +19,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193512,
+      "count": 193470,
       "earliest": "1986-10-06",
       "latest": "2026-09-17",
       "last_scraped": "2026-09-28T12:00:26.340197+00:00",
@@ -32,10 +32,10 @@
     {
       "court": "ge_gerichte",
       "canton": "GE",
-      "count": 170749,
+      "count": 170771,
       "earliest": "1908-11-08",
-      "latest": "2026-09-16",
-      "last_scraped": "2026-09-26T01:20:45.254334+00:00",
+      "latest": "2026-09-17",
+      "last_scraped": "2026-09-29T01:20:34.310312+00:00",
       "languages": [
         "fr",
         "de",
@@ -45,10 +45,10 @@
     {
       "court": "bvger",
       "canton": "CH",
-      "count": 109109,
+      "count": 109122,
       "earliest": "1951-07-28",
-      "latest": "2026-09-17",
-      "last_scraped": "2026-09-27T01:02:07.409917+00:00",
+      "latest": "2026-09-18",
+      "last_scraped": "2026-09-29T01:02:53.621244+00:00",
       "languages": [
         "de",
         "fr",
@@ -70,10 +70,10 @@
     {
       "court": "vd_gerichte",
       "canton": "VD",
-      "count": 68694,
+      "count": 68706,
       "earliest": "1969-02-16",
-      "latest": "2026-09-09",
-      "last_scraped": "2026-09-26T01:30:40.935923+00:00",
+      "latest": "2026-09-11",
+      "last_scraped": "2026-09-29T01:29:44.377978+00:00",
       "languages": [
         "fr",
         "it",
@@ -83,10 +83,10 @@
     {
       "court": "ti_gerichte",
       "canton": "TI",
-      "count": 66962,
+      "count": 66968,
       "earliest": "1922-05-07",
       "latest": "2026-08-11",
-      "last_scraped": "2026-09-26T01:28:12.164159+00:00",
+      "last_scraped": "2026-09-29T01:28:31.015619+00:00",
       "languages": [
         "it",
         "de",
@@ -109,10 +109,10 @@
     {
       "court": "zh_sozialversicherungsgericht",
       "canton": "ZH",
-      "count": 34759,
+      "count": 34764,
       "earliest": "1981-01-21",
       "latest": "2026-06-17",
-      "last_scraped": "2026-09-28T01:36:58.584735+00:00",
+      "last_scraped": "2026-09-29T01:35:15.802868+00:00",
       "languages": [
         "de"
       ]
@@ -166,10 +166,10 @@
     {
       "court": "gr_gerichte",
       "canton": "GR",
-      "count": 15846,
+      "count": 15849,
       "earliest": "1992-09-02",
       "latest": "2026-09-21",
-      "last_scraped": "2026-09-26T01:05:34.582190+00:00",
+      "last_scraped": "2026-09-29T01:05:51.571362+00:00",
       "languages": [
         "de",
         "it"
@@ -213,10 +213,10 @@
     {
       "court": "be_verwaltungsgericht",
       "canton": "BE",
-      "count": 12124,
+      "count": 12133,
       "earliest": "1962-01-12",
       "latest": "2026-09-02",
-      "last_scraped": "2026-09-26T01:06:51.036626+00:00",
+      "last_scraped": "2026-09-29T01:09:47.155524+00:00",
       "languages": [
         "de",
         "fr"
@@ -225,10 +225,10 @@
     {
       "court": "bstger",
       "canton": "CH",
-      "count": 11689,
+      "count": 11700,
       "earliest": "1969-09-10",
       "latest": "2026-09-08",
-      "last_scraped": "2026-09-25T01:02:49.592105+00:00",
+      "last_scraped": "2026-09-29T01:03:01.641026+00:00",
       "languages": [
         "de",
         "it",
@@ -296,10 +296,10 @@
     {
       "court": "be_zivilstraf",
       "canton": "BE",
-      "count": 6073,
+      "count": 6074,
       "earliest": "1979-07-04",
       "latest": "2026-08-31",
-      "last_scraped": "2026-09-25T01:02:39.214541+00:00",
+      "last_scraped": "2026-09-29T01:01:18.904455+00:00",
       "languages": [
         "de",
         "fr"
@@ -443,10 +443,10 @@
     {
       "court": "ag_strafgericht",
       "canton": "AG",
-      "count": 2167,
+      "count": 2168,
       "earliest": "1999-08-24",
       "latest": "2026-09-15",
-      "last_scraped": "2026-09-26T01:01:26.579079+00:00",
+      "last_scraped": "2026-09-29T01:01:15.819199+00:00",
       "languages": [
         "de"
       ]
@@ -454,10 +454,10 @@
     {
       "court": "ag_versicherungsgericht",
       "canton": "AG",
-      "count": 2096,
+      "count": 2098,
       "earliest": "1995-12-11",
       "latest": "2026-08-17",
-      "last_scraped": "2026-09-26T01:01:17.887818+00:00",
+      "last_scraped": "2026-09-29T01:01:18.700983+00:00",
       "languages": [
         "de"
       ]
@@ -477,10 +477,10 @@
     {
       "court": "ag_zivilgericht",
       "canton": "AG",
-      "count": 1947,
+      "count": 1949,
       "earliest": "1992-11-18",
-      "latest": "2026-09-10",
-      "last_scraped": "2026-09-26T01:01:23.567410+00:00",
+      "latest": "2026-09-11",
+      "last_scraped": "2026-09-29T01:01:11.749352+00:00",
       "languages": [
         "de"
       ]
@@ -499,10 +499,10 @@
     {
       "court": "ag_verwaltungsgericht",
       "canton": "AG",
-      "count": 1910,
+      "count": 1911,
       "earliest": "1923-09-07",
       "latest": "2026-09-14",
-      "last_scraped": "2026-09-26T01:01:13.866550+00:00",
+      "last_scraped": "2026-09-29T01:01:13.839014+00:00",
       "languages": [
         "de"
       ]
@@ -752,10 +752,10 @@
     {
       "court": "zh_arbeitsgericht",
       "canton": "ZH",
-      "count": 655,
+      "count": 656,
       "earliest": "2002-02-27",
       "latest": "2026-06-23",
-      "last_scraped": "2026-09-24T01:38:22.822914+00:00",
+      "last_scraped": "2026-09-29T01:36:30.770799+00:00",
       "languages": [
         "de"
       ]
@@ -1122,6 +1122,19 @@
       ]
     },
     {
+      "court": "esbk",
+      "canton": "CH",
+      "count": 60,
+      "earliest": "2006-11-23",
+      "latest": "2026-06-10",
+      "last_scraped": "2026-09-29T01:01:54.995015+00:00",
+      "languages": [
+        "de",
+        "it",
+        "fr"
+      ]
+    },
+    {
       "court": "zh_bezirksgericht_buelach",
       "canton": "ZH",
       "count": 58,
@@ -1130,19 +1143,6 @@
       "last_scraped": "2026-09-24T01:36:56.232091+00:00",
       "languages": [
         "de"
-      ]
-    },
-    {
-      "court": "esbk",
-      "canton": "CH",
-      "count": 51,
-      "earliest": "2006-11-23",
-      "latest": "2026-04-01",
-      "last_scraped": "2026-09-23T01:02:03.700130+00:00",
-      "languages": [
-        "de",
-        "it",
-        "fr"
       ]
     },
     {
@@ -1263,10 +1263,10 @@
     {
       "court": "zg_anwaltsaufsicht",
       "canton": "ZG",
-      "count": 26,
+      "count": 27,
       "earliest": "1998-11-12",
-      "latest": "2026-06-10",
-      "last_scraped": "2026-09-10T03:23:57.350431+00:00",
+      "latest": "2026-08-07",
+      "last_scraped": "2026-09-29T01:31:05.113577+00:00",
       "languages": [
         "de"
       ]
@@ -1585,10 +1585,10 @@
     {
       "canton": "VD",
       "name": "Vaud",
-      "count": 171441,
+      "count": 171453,
       "court_count": 3,
       "earliest": "1958-10-27",
-      "latest": "2026-09-09",
+      "latest": "2026-09-11",
       "languages": [
         "fr",
         "it",
@@ -1598,10 +1598,10 @@
     {
       "canton": "GE",
       "name": "Genève",
-      "count": 170751,
+      "count": 170773,
       "court_count": 2,
       "earliest": "1908-11-08",
-      "latest": "2026-09-16",
+      "latest": "2026-09-17",
       "languages": [
         "fr",
         "de",
@@ -1611,7 +1611,7 @@
     {
       "canton": "ZH",
       "name": "Zürich",
-      "count": 87289,
+      "count": 87295,
       "court_count": 23,
       "earliest": "1935-09-17",
       "latest": "2026-09-03",
@@ -1624,7 +1624,7 @@
     {
       "canton": "TI",
       "name": "Ticino",
-      "count": 66962,
+      "count": 66968,
       "court_count": 1,
       "earliest": "1922-05-07",
       "latest": "2026-08-11",
@@ -1637,7 +1637,7 @@
     {
       "canton": "BE",
       "name": "Bern",
-      "count": 21771,
+      "count": 21781,
       "court_count": 8,
       "earliest": "1962-01-12",
       "latest": "2026-09-02",
@@ -1672,7 +1672,7 @@
     {
       "canton": "GR",
       "name": "Graubünden",
-      "count": 15846,
+      "count": 15849,
       "court_count": 1,
       "earliest": "1992-09-02",
       "latest": "2026-09-21",
@@ -1708,7 +1708,7 @@
     {
       "canton": "AG",
       "name": "Aargau",
-      "count": 13194,
+      "count": 13200,
       "court_count": 18,
       "earliest": "1923-09-07",
       "latest": "2026-09-15",
@@ -1801,7 +1801,7 @@
     {
       "canton": "ZG",
       "name": "Zug",
-      "count": 4225,
+      "count": 4226,
       "court_count": 8,
       "earliest": "1995-01-17",
       "latest": "2026-09-21",
@@ -1904,9 +1904,9 @@
     }
   ],
   "by_language": {
-    "de": 505786,
-    "fr": 480171,
-    "it": 91117,
+    "de": 505817,
+    "fr": 480200,
+    "it": 91114,
     "en": 3961
   },
   "by_year": {
@@ -2059,28 +2059,29 @@
     "2021": 53148,
     "2022": 52905,
     "2023": 52696,
-    "2024": 52785,
-    "2025": 50354,
-    "2026": 24563,
+    "2024": 52778,
+    "2025": 50331,
+    "2026": 24650,
     "2027": 1
   },
   "recent_daily": {
     "2026-08-30": 1,
-    "2026-08-31": 102,
+    "2026-08-31": 104,
     "2026-09-01": 76,
-    "2026-09-02": 92,
-    "2026-09-03": 67,
-    "2026-09-04": 53,
+    "2026-09-02": 93,
+    "2026-09-03": 68,
+    "2026-09-04": 61,
     "2026-09-06": 1,
-    "2026-09-07": 63,
-    "2026-09-08": 54,
-    "2026-09-09": 36,
-    "2026-09-10": 30,
-    "2026-09-11": 17,
-    "2026-09-14": 24,
-    "2026-09-15": 28,
-    "2026-09-16": 12,
-    "2026-09-17": 8,
+    "2026-09-07": 66,
+    "2026-09-08": 58,
+    "2026-09-09": 39,
+    "2026-09-10": 31,
+    "2026-09-11": 22,
+    "2026-09-14": 26,
+    "2026-09-15": 29,
+    "2026-09-16": 15,
+    "2026-09-17": 11,
+    "2026-09-18": 1,
     "2026-09-20": 1,
     "2026-09-21": 3,
     "2026-09-22": 1,
@@ -2095,17 +2096,17 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193512
+      "count": 193470
     },
     {
       "court": "ge_gerichte",
       "canton": "GE",
-      "count": 170749
+      "count": 170771
     },
     {
       "court": "bvger",
       "canton": "CH",
-      "count": 109109
+      "count": 109122
     },
     {
       "court": "vd_findinfo",
@@ -2115,12 +2116,12 @@
     {
       "court": "vd_gerichte",
       "canton": "VD",
-      "count": 68694
+      "count": 68706
     },
     {
       "court": "ti_gerichte",
       "canton": "TI",
-      "count": 66962
+      "count": 66968
     },
     {
       "court": "bge",
@@ -2130,7 +2131,7 @@
     {
       "court": "zh_sozialversicherungsgericht",
       "canton": "ZH",
-      "count": 34759
+      "count": 34764
     },
     {
       "court": "zh_obergericht",
@@ -2294,12 +2295,12 @@
     "2023": -0.4,
     "2024": 0.2,
     "2025": -4.6,
-    "2026": -51.2,
+    "2026": -51.0,
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 397396,
-    "cantonal": 683639
+    "federal": 397387,
+    "cantonal": 683705
   },
   "language_by_year": {
     "2005": {
@@ -2417,26 +2418,26 @@
       "it": 2423
     },
     "2024": {
-      "de": 23583,
+      "de": 23581,
       "en": 152,
-      "fr": 26821,
-      "it": 2229
+      "fr": 26818,
+      "it": 2227
     },
     "2025": {
-      "de": 23579,
+      "de": 23571,
       "en": 180,
-      "fr": 25031,
-      "it": 1564
+      "fr": 25026,
+      "it": 1554
     },
     "2026": {
-      "de": 12801,
+      "de": 12842,
       "en": 117,
-      "fr": 10761,
-      "it": 884
+      "fr": 10798,
+      "it": 893
     }
   },
   "by_month": {
-    "2023-09": 439,
+    "2023-09": 178,
     "2023-10": 4406,
     "2023-11": 4796,
     "2023-12": 4315,
@@ -2445,39 +2446,39 @@
     "2024-03": 4451,
     "2024-04": 4316,
     "2024-05": 4514,
-    "2024-06": 4865,
+    "2024-06": 4866,
     "2024-07": 4061,
     "2024-08": 4008,
-    "2024-09": 4302,
-    "2024-10": 4555,
+    "2024-09": 4301,
+    "2024-10": 4550,
     "2024-11": 4629,
-    "2024-12": 4410,
-    "2025-01": 4358,
+    "2024-12": 4408,
+    "2025-01": 4354,
     "2025-02": 4218,
-    "2025-03": 4409,
-    "2025-04": 4084,
-    "2025-05": 4350,
-    "2025-06": 4725,
-    "2025-07": 3905,
+    "2025-03": 4407,
+    "2025-04": 4079,
+    "2025-05": 4347,
+    "2025-06": 4724,
+    "2025-07": 3906,
     "2025-08": 3837,
     "2025-09": 4387,
-    "2025-10": 4335,
+    "2025-10": 4332,
     "2025-11": 4069,
-    "2025-12": 3677,
-    "2026-01": 3049,
-    "2026-02": 3695,
-    "2026-03": 3687,
-    "2026-04": 3005,
-    "2026-05": 2794,
-    "2026-06": 3185,
-    "2026-07": 2462,
-    "2026-08": 2114,
-    "2026-09": 567
+    "2025-12": 3671,
+    "2026-01": 3044,
+    "2026-02": 3694,
+    "2026-03": 3691,
+    "2026-04": 3010,
+    "2026-05": 2800,
+    "2026-06": 3200,
+    "2026-07": 2466,
+    "2026-08": 2137,
+    "2026-09": 603
   },
-  "generated_at": "2026-09-28T22:59:51.677125+00:00",
+  "generated_at": "2026-09-29T12:47:21.636014+00:00",
   "scraper_health": {
-    "run_at": "2026-09-28T02:07:35.956493+00:00",
-    "run_duration_s": 3991.5,
+    "run_at": "2026-09-29T01:56:30.731331+00:00",
+    "run_duration_s": 3329.4,
     "scrapers": {
       "ai_gerichte": {
         "success": true,
@@ -2494,41 +2495,7 @@
         "note": null,
         "state_count": 21,
         "jsonl_size_mb": 5.1,
-        "jsonl_mtime": "2026-09-28T01:01:07.535289+00:00"
-      },
-      "ag_gerichte": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 11194,
-        "portal_count": 11192,
-        "gap": -2,
-        "duration_s": 8.0,
-        "error": null,
-        "note": null,
-        "state_count": 11194,
-        "jsonl_size_mb": 279.5,
-        "jsonl_mtime": "2026-09-28T01:01:12.348336+00:00"
-      },
-      "bge_egmr": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 488,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 9.7,
-        "error": null,
-        "note": null,
-        "state_count": 488,
-        "jsonl_size_mb": 22.5,
-        "jsonl_mtime": "2026-09-28T01:01:14.018352+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:04.549449+00:00"
       },
       "be_direktionen": {
         "success": true,
@@ -2545,41 +2512,58 @@
         "note": null,
         "state_count": 218,
         "jsonl_size_mb": 9.0,
-        "jsonl_mtime": "2026-09-28T01:01:15.214364+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:12.149517+00:00"
       },
-      "bpatger": {
+      "bge_egmr": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 177,
+        "our_count": 488,
         "portal_count": null,
         "gap": null,
-        "duration_s": 4.9,
+        "duration_s": 12.8,
         "error": null,
         "note": null,
-        "state_count": 177,
-        "jsonl_size_mb": 10.7,
-        "jsonl_mtime": "2026-09-28T09:00:05.804449+00:00"
+        "state_count": 488,
+        "jsonl_size_mb": 22.5,
+        "jsonl_mtime": "2026-09-29T01:01:14.111535+00:00"
       },
-      "bl_gerichte": {
+      "bge_historical": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 9368,
+        "our_count": 14578,
         "portal_count": null,
         "gap": null,
-        "duration_s": 7.3,
+        "duration_s": 13.5,
         "error": null,
         "note": null,
-        "state_count": 9368,
-        "jsonl_size_mb": 296.5,
-        "jsonl_mtime": "2026-09-28T01:01:21.368424+00:00"
+        "state_count": 14578,
+        "jsonl_size_mb": 214.4,
+        "jsonl_mtime": "2026-09-29T01:01:18.037570+00:00"
+      },
+      "ag_gerichte": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 6,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 11200,
+        "portal_count": 11198,
+        "gap": -2,
+        "duration_s": 17.5,
+        "error": null,
+        "note": null,
+        "state_count": 11200,
+        "jsonl_size_mb": 279.7,
+        "jsonl_mtime": "2026-09-29T01:01:18.784577+00:00"
       },
       "be_anwaltsaufsicht": {
         "success": true,
@@ -2596,24 +2580,24 @@
         "note": null,
         "state_count": 68,
         "jsonl_size_mb": 2.0,
-        "jsonl_mtime": "2026-09-28T01:01:22.240433+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:19.229581+00:00"
       },
-      "bge_historical": {
+      "bl_gerichte": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 14578,
+        "our_count": 9368,
         "portal_count": null,
         "gap": null,
-        "duration_s": 14.8,
+        "duration_s": 6.0,
         "error": null,
         "note": null,
-        "state_count": 14578,
-        "jsonl_size_mb": 214.4,
-        "jsonl_mtime": "2026-09-28T01:01:22.333434+00:00"
+        "state_count": 9368,
+        "jsonl_size_mb": 296.5,
+        "jsonl_mtime": "2026-09-29T01:01:20.158589+00:00"
       },
       "bazg": {
         "success": true,
@@ -2630,7 +2614,24 @@
         "note": null,
         "state_count": 123,
         "jsonl_size_mb": 2.6,
-        "jsonl_mtime": "2026-09-28T09:00:20.889632+00:00"
+        "jsonl_mtime": "2026-09-29T09:00:20.910843+00:00"
+      },
+      "bpatger": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 0,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 177,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 4.5,
+        "error": null,
+        "note": null,
+        "state_count": 177,
+        "jsonl_size_mb": 10.7,
+        "jsonl_mtime": "2026-09-29T09:00:05.384691+00:00"
       },
       "ch_bundesrat": {
         "success": true,
@@ -2647,7 +2648,7 @@
         "note": null,
         "state_count": 25,
         "jsonl_size_mb": 0.5,
-        "jsonl_mtime": "2026-09-28T01:01:24.938460+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:22.405610+00:00"
       },
       "bs_rekurskommissionen": {
         "success": true,
@@ -2659,12 +2660,12 @@
         "our_count": 52,
         "portal_count": null,
         "gap": null,
-        "duration_s": 10.4,
+        "duration_s": 10.6,
         "error": null,
         "note": null,
         "state_count": 52,
         "jsonl_size_mb": 0.8,
-        "jsonl_mtime": "2026-09-28T01:01:31.762527+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:29.784676+00:00"
       },
       "edoeb": {
         "success": true,
@@ -2676,12 +2677,12 @@
         "our_count": 657,
         "portal_count": null,
         "gap": null,
-        "duration_s": 3.9,
+        "duration_s": 4.1,
         "error": null,
         "note": null,
         "state_count": 657,
         "jsonl_size_mb": 21.2,
-        "jsonl_mtime": "2026-09-28T01:01:35.653565+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:33.845713+00:00"
       },
       "elcom": {
         "success": true,
@@ -2698,7 +2699,7 @@
         "note": null,
         "state_count": 433,
         "jsonl_size_mb": 21.0,
-        "jsonl_mtime": "2026-09-28T09:00:02.529409+00:00"
+        "jsonl_mtime": "2026-09-29T09:00:02.539663+00:00"
       },
       "emark": {
         "success": true,
@@ -2710,29 +2711,12 @@
         "our_count": 433,
         "portal_count": null,
         "gap": null,
-        "duration_s": 1.5,
+        "duration_s": 1.4,
         "error": null,
         "note": null,
         "state_count": 433,
         "jsonl_size_mb": 8.8,
-        "jsonl_mtime": "2026-09-28T01:01:38.425592+00:00"
-      },
-      "esbk": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 53,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 2.4,
-        "error": null,
-        "note": null,
-        "state_count": 53,
-        "jsonl_size_mb": 1.2,
-        "jsonl_mtime": "2026-09-28T01:01:40.849616+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:36.565737+00:00"
       },
       "comcom": {
         "success": true,
@@ -2749,7 +2733,24 @@
         "note": null,
         "state_count": 64,
         "jsonl_size_mb": 9.8,
-        "jsonl_mtime": "2026-09-28T01:01:53.407740+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:50.912868+00:00"
+      },
+      "esbk": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 9,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 62,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 20.5,
+        "error": null,
+        "note": null,
+        "state_count": 62,
+        "jsonl_size_mb": 1.3,
+        "jsonl_mtime": "2026-09-29T01:01:57.014923+00:00"
       },
       "finma": {
         "success": true,
@@ -2766,7 +2767,7 @@
         "note": null,
         "state_count": 455,
         "jsonl_size_mb": 1.0,
-        "jsonl_mtime": "2026-09-28T01:01:54.921755+00:00"
+        "jsonl_mtime": "2026-09-29T01:01:58.546937+00:00"
       },
       "finma_versicherungsrecht": {
         "success": true,
@@ -2778,12 +2779,12 @@
         "our_count": 2585,
         "portal_count": null,
         "gap": null,
-        "duration_s": 27.5,
+        "duration_s": 27.7,
         "error": null,
         "note": null,
         "state_count": 2585,
         "jsonl_size_mb": 76.2,
-        "jsonl_mtime": "2026-09-28T01:02:22.408027+00:00"
+        "jsonl_mtime": "2026-09-29T01:02:26.258191+00:00"
       },
       "fr_anwaltsaufsicht": {
         "success": true,
@@ -2795,29 +2796,12 @@
         "our_count": 3,
         "portal_count": null,
         "gap": null,
-        "duration_s": 0.4,
+        "duration_s": 2.4,
         "error": null,
         "note": null,
         "state_count": 3,
         "jsonl_size_mb": 0.0,
-        "jsonl_mtime": "2026-09-28T01:02:22.812031+00:00"
-      },
-      "bstger": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 11105,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 87.3,
-        "error": null,
-        "note": null,
-        "state_count": 11140,
-        "jsonl_size_mb": 311.9,
-        "jsonl_mtime": "2026-09-28T09:01:28.192448+00:00"
+        "jsonl_mtime": "2026-09-29T01:02:28.612212+00:00"
       },
       "eschk": {
         "success": true,
@@ -2829,12 +2813,29 @@
         "our_count": 417,
         "portal_count": null,
         "gap": null,
-        "duration_s": 70.6,
+        "duration_s": 70.5,
         "error": null,
         "note": null,
         "state_count": 417,
         "jsonl_size_mb": 18.7,
-        "jsonl_mtime": "2026-09-28T01:02:51.461315+00:00"
+        "jsonl_mtime": "2026-09-29T01:03:01.434515+00:00"
+      },
+      "bstger": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 0,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 11116,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 89.0,
+        "error": null,
+        "note": null,
+        "state_count": 11151,
+        "jsonl_size_mb": 312.2,
+        "jsonl_mtime": "2026-09-29T09:01:29.870524+00:00"
       },
       "gl_gerichte": {
         "success": true,
@@ -2846,12 +2847,12 @@
         "our_count": 726,
         "portal_count": 726,
         "gap": 0,
-        "duration_s": 145.2,
+        "duration_s": 145.3,
         "error": null,
         "note": null,
         "state_count": 726,
         "jsonl_size_mb": 25.9,
-        "jsonl_mtime": "2026-09-28T01:05:16.642768+00:00"
+        "jsonl_mtime": "2026-09-29T01:05:29.857910+00:00"
       },
       "ar_gerichte": {
         "success": true,
@@ -2863,12 +2864,12 @@
         "our_count": 1664,
         "portal_count": null,
         "gap": null,
-        "duration_s": 379.0,
+        "duration_s": 379.3,
         "error": null,
         "note": null,
         "state_count": 1664,
         "jsonl_size_mb": 38.1,
-        "jsonl_mtime": "2026-09-28T01:07:23.380050+00:00"
+        "jsonl_mtime": "2026-09-29T01:07:20.573973+00:00"
       },
       "hudoc_ch": {
         "success": true,
@@ -2880,12 +2881,12 @@
         "our_count": 854,
         "portal_count": null,
         "gap": null,
-        "duration_s": 9.2,
+        "duration_s": 10.5,
         "error": null,
         "note": null,
         "state_count": 854,
         "jsonl_size_mb": 21.1,
-        "jsonl_mtime": "2026-09-28T01:07:32.550143+00:00"
+        "jsonl_mtime": "2026-09-29T01:07:31.073075+00:00"
       },
       "bs_gerichte": {
         "success": true,
@@ -2897,12 +2898,12 @@
         "our_count": 11036,
         "portal_count": 11035,
         "gap": -1,
-        "duration_s": 415.4,
+        "duration_s": 404.3,
         "error": null,
         "note": null,
         "state_count": 21665,
         "jsonl_size_mb": 323.7,
-        "jsonl_mtime": "2026-09-28T01:08:14.366568+00:00"
+        "jsonl_mtime": "2026-09-29T01:08:03.160387+00:00"
       },
       "ju_gerichte": {
         "success": true,
@@ -2914,29 +2915,12 @@
         "our_count": 1174,
         "portal_count": 1192,
         "gap": 18,
-        "duration_s": 301.0,
+        "duration_s": 299.2,
         "error": null,
         "note": null,
         "state_count": 1174,
         "jsonl_size_mb": 41.0,
-        "jsonl_mtime": "2026-09-28T10:25:00.664095+00:00"
-      },
-      "bvger": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 94752,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 680.2,
-        "error": null,
-        "note": null,
-        "state_count": 94294,
-        "jsonl_size_mb": 2734.8,
-        "jsonl_mtime": "2026-09-28T09:11:21.076526+00:00"
+        "jsonl_mtime": "2026-09-29T10:25:00.162476+00:00"
       },
       "mkg": {
         "success": true,
@@ -2948,29 +2932,46 @@
         "our_count": 1244,
         "portal_count": null,
         "gap": null,
-        "duration_s": 19.6,
+        "duration_s": 19.5,
         "error": null,
         "note": null,
         "state_count": 1244,
         "jsonl_size_mb": 15.9,
-        "jsonl_mtime": "2026-09-28T01:12:53.185427+00:00"
+        "jsonl_mtime": "2026-09-29T01:12:49.815218+00:00"
       },
       "be_zivilstraf": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 1,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 1,
+        "our_count": 5992,
+        "portal_count": 5994,
+        "gap": 2,
+        "duration_s": 777.3,
+        "error": null,
+        "note": "1 listed on portal but content not downloadable (empty page or missing PDF)",
+        "state_count": 5992,
+        "jsonl_size_mb": 307.1,
+        "jsonl_mtime": "2026-09-29T01:13:58.617907+00:00"
+      },
+      "bger": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
-        "none_count": 1,
-        "our_count": 5991,
-        "portal_count": 5993,
-        "gap": 2,
-        "duration_s": 814.3,
+        "none_count": 0,
+        "our_count": 99297,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 875.3,
         "error": null,
-        "note": "1 listed on portal but content not downloadable (empty page or missing PDF)",
-        "state_count": 5991,
-        "jsonl_size_mb": 306.9,
-        "jsonl_mtime": "2026-09-28T01:14:38.654516+00:00"
+        "note": null,
+        "state_count": 99338,
+        "jsonl_size_mb": 1502.6,
+        "jsonl_mtime": "2026-09-29T12:00:52.261334+00:00"
       },
       "nw_gerichte": {
         "success": true,
@@ -2987,24 +2988,24 @@
         "note": "1 listed on portal but content not downloadable (empty page or missing PDF)",
         "state_count": 544,
         "jsonl_size_mb": 23.9,
-        "jsonl_mtime": "2026-09-28T01:14:43.414565+00:00"
+        "jsonl_mtime": "2026-09-29T01:15:52.245051+00:00"
       },
-      "bger": {
+      "ne_jurisprudence_adm": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 99291,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 862.6,
+        "our_count": 1648,
+        "portal_count": 1648,
+        "gap": 0,
+        "duration_s": 321.7,
         "error": null,
         "note": null,
-        "state_count": 99314,
-        "jsonl_size_mb": 1502.3,
-        "jsonl_mtime": "2026-09-28T12:01:11.278163+00:00"
+        "state_count": 1648,
+        "jsonl_size_mb": 33.1,
+        "jsonl_mtime": "2026-09-29T10:24:45.009308+00:00"
       },
       "postcom": {
         "success": true,
@@ -3021,7 +3022,7 @@
         "note": null,
         "state_count": 334,
         "jsonl_size_mb": 4.8,
-        "jsonl_mtime": "2026-09-28T01:15:37.469125+00:00"
+        "jsonl_mtime": "2026-09-29T01:19:22.861186+00:00"
       },
       "preisueberwacher": {
         "success": true,
@@ -3038,7 +3039,7 @@
         "note": "2 listed on portal but content not downloadable (empty page or missing PDF)",
         "state_count": 29,
         "jsonl_size_mb": 0.6,
-        "jsonl_mtime": "2026-09-28T01:15:45.824211+00:00"
+        "jsonl_mtime": "2026-09-29T01:19:31.220271+00:00"
       },
       "rab": {
         "success": true,
@@ -3050,12 +3051,12 @@
         "our_count": 5,
         "portal_count": null,
         "gap": null,
-        "duration_s": 2.5,
+        "duration_s": 2.4,
         "error": null,
         "note": null,
         "state_count": 5,
         "jsonl_size_mb": 0.3,
-        "jsonl_mtime": "2026-09-28T01:15:48.304237+00:00"
+        "jsonl_mtime": "2026-09-29T01:19:33.686296+00:00"
       },
       "sav_international": {
         "success": true,
@@ -3072,7 +3073,7 @@
         "note": "2 listed on portal but content not downloadable (empty page or missing PDF)",
         "state_count": 4,
         "jsonl_size_mb": 0.2,
-        "jsonl_mtime": "2026-09-28T01:15:52.635282+00:00"
+        "jsonl_mtime": "2026-09-29T01:19:37.987340+00:00"
       },
       "sav_kantone": {
         "success": true,
@@ -3089,24 +3090,24 @@
         "note": null,
         "state_count": 33,
         "jsonl_size_mb": 0.7,
-        "jsonl_mtime": "2026-09-28T01:15:53.221288+00:00"
+        "jsonl_mtime": "2026-09-29T01:19:38.639347+00:00"
       },
-      "ne_jurisprudence_adm": {
+      "bge": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 1648,
-        "portal_count": 1648,
-        "gap": 0,
-        "duration_s": 360.4,
+        "our_count": 21365,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 1106.1,
         "error": null,
         "note": null,
-        "state_count": 1648,
-        "jsonl_size_mb": 33.1,
-        "jsonl_mtime": "2026-09-28T10:26:36.358205+00:00"
+        "state_count": 21365,
+        "jsonl_size_mb": 492.0,
+        "jsonl_mtime": "2026-09-29T10:55:11.696475+00:00"
       },
       "sh_gerichte": {
         "success": true,
@@ -3118,29 +3119,46 @@
         "our_count": 722,
         "portal_count": null,
         "gap": null,
-        "duration_s": 11.0,
+        "duration_s": 23.9,
         "error": null,
         "note": null,
         "state_count": 722,
         "jsonl_size_mb": 1.0,
-        "jsonl_mtime": "2026-09-28T01:19:04.627274+00:00"
+        "jsonl_mtime": "2026-09-29T01:20:14.502712+00:00"
       },
-      "ge_gerichte": {
+      "bvger": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 93849,
+        "our_count": 94765,
         "portal_count": null,
         "gap": null,
-        "duration_s": 1089.4,
+        "duration_s": 1049.7,
         "error": null,
         "note": null,
-        "state_count": 93859,
-        "jsonl_size_mb": 2579.8,
-        "jsonl_mtime": "2026-09-28T01:20:57.747451+00:00"
+        "state_count": 94307,
+        "jsonl_size_mb": 2735.1,
+        "jsonl_mtime": "2026-09-29T09:17:30.623554+00:00"
+      },
+      "ge_gerichte": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 22,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 93871,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 1150.4,
+        "error": null,
+        "note": null,
+        "state_count": 93881,
+        "jsonl_size_mb": 2580.3,
+        "jsonl_mtime": "2026-09-29T01:22:11.775909+00:00"
       },
       "sz_gerichte": {
         "success": true,
@@ -3157,24 +3175,7 @@
         "note": null,
         "state_count": 3422,
         "jsonl_size_mb": 33.4,
-        "jsonl_mtime": "2026-09-28T01:25:56.981570+00:00"
-      },
-      "so_gerichte": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 9387,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 505.0,
-        "error": null,
-        "note": null,
-        "state_count": 9387,
-        "jsonl_size_mb": 257.1,
-        "jsonl_mtime": "2026-09-28T01:27:29.619538+00:00"
+        "jsonl_mtime": "2026-09-29T01:25:31.914958+00:00"
       },
       "ta_sst": {
         "success": true,
@@ -3186,12 +3187,12 @@
         "our_count": 49,
         "portal_count": null,
         "gap": null,
-        "duration_s": 0.3,
+        "duration_s": 0.2,
         "error": null,
         "note": null,
         "state_count": 49,
         "jsonl_size_mb": 3.2,
-        "jsonl_mtime": "2026-09-28T01:27:29.910541+00:00"
+        "jsonl_mtime": "2026-09-29T01:25:32.189961+00:00"
       },
       "tg_anwaltskommission": {
         "success": true,
@@ -3203,12 +3204,29 @@
         "our_count": 5,
         "portal_count": null,
         "gap": null,
-        "duration_s": 8.3,
+        "duration_s": 7.0,
         "error": null,
         "note": "1 listed on portal but content not downloadable (empty page or missing PDF)",
         "state_count": 5,
         "jsonl_size_mb": 0.0,
-        "jsonl_mtime": "2026-09-28T01:27:38.206627+00:00"
+        "jsonl_mtime": "2026-09-29T01:25:39.122032+00:00"
+      },
+      "sz_verwaltungsgericht": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 0,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 2235,
+        "portal_count": 2240,
+        "gap": 5,
+        "duration_s": 299.3,
+        "error": null,
+        "note": null,
+        "state_count": 2235,
+        "jsonl_size_mb": 15.5,
+        "jsonl_mtime": "2026-09-29T01:27:11.124976+00:00"
       },
       "tg_gerichte": {
         "success": true,
@@ -3225,58 +3243,7 @@
         "note": null,
         "state_count": 2304,
         "jsonl_size_mb": 25.7,
-        "jsonl_mtime": "2026-09-28T01:29:56.921077+00:00"
-      },
-      "bge": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 21365,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 2236.3,
-        "error": null,
-        "note": null,
-        "state_count": 21365,
-        "jsonl_size_mb": 492.0,
-        "jsonl_mtime": "2026-09-28T09:37:17.161045+00:00"
-      },
-      "ow_gerichte": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 2205,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 932.6,
-        "error": null,
-        "note": null,
-        "state_count": 2205,
-        "jsonl_size_mb": 26.5,
-        "jsonl_mtime": "2026-09-28T01:30:16.009276+00:00"
-      },
-      "ur_gerichte": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 426,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 1.3,
-        "error": null,
-        "note": null,
-        "state_count": 426,
-        "jsonl_size_mb": 9.4,
-        "jsonl_mtime": "2026-09-28T01:30:17.349290+00:00"
+        "jsonl_mtime": "2026-09-29T01:27:57.818456+00:00"
       },
       "ubi": {
         "success": true,
@@ -3288,63 +3255,46 @@
         "our_count": 674,
         "portal_count": null,
         "gap": null,
-        "duration_s": 11.0,
+        "duration_s": 12.7,
         "error": null,
         "note": null,
         "state_count": 674,
         "jsonl_size_mb": 16.3,
-        "jsonl_mtime": "2026-09-28T01:30:23.214351+00:00"
+        "jsonl_mtime": "2026-09-29T01:28:10.510587+00:00"
       },
-      "sz_verwaltungsgericht": {
+      "ur_gerichte": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 2235,
-        "portal_count": 2240,
-        "gap": 5,
-        "duration_s": 299.1,
-        "error": null,
-        "note": null,
-        "state_count": 2235,
-        "jsonl_size_mb": 15.5,
-        "jsonl_mtime": "2026-09-28T01:30:56.053695+00:00"
-      },
-      "weko": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 2,
-        "our_count": 321,
+        "our_count": 426,
         "portal_count": null,
         "gap": null,
-        "duration_s": 11.3,
+        "duration_s": 4.3,
         "error": null,
-        "note": "2 listed on portal but content not downloadable (empty page or missing PDF)",
-        "state_count": 321,
-        "jsonl_size_mb": 82.2,
-        "jsonl_mtime": "2026-09-28T01:31:07.308812+00:00"
+        "note": null,
+        "state_count": 426,
+        "jsonl_size_mb": 9.4,
+        "jsonl_mtime": "2026-09-29T01:28:14.860631+00:00"
       },
-      "zg_gvp": {
+      "so_gerichte": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 1357,
-        "portal_count": 1357,
-        "gap": 0,
-        "duration_s": 1.6,
+        "our_count": 9387,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 483.5,
         "error": null,
         "note": null,
-        "state_count": 1357,
-        "jsonl_size_mb": 22.7,
-        "jsonl_mtime": "2026-09-28T01:31:08.926829+00:00"
+        "state_count": 9387,
+        "jsonl_size_mb": 257.1,
+        "jsonl_mtime": "2026-09-29T01:28:17.971663+00:00"
       },
       "vs_gerichte": {
         "success": true,
@@ -3361,7 +3311,58 @@
         "note": null,
         "state_count": 4610,
         "jsonl_size_mb": 161.8,
-        "jsonl_mtime": "2026-09-28T01:32:54.948938+00:00"
+        "jsonl_mtime": "2026-09-29T01:30:49.674385+00:00"
+      },
+      "weko": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 0,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 2,
+        "our_count": 321,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 11.3,
+        "error": null,
+        "note": "2 listed on portal but content not downloadable (empty page or missing PDF)",
+        "state_count": 321,
+        "jsonl_size_mb": 82.2,
+        "jsonl_mtime": "2026-09-29T01:31:01.013515+00:00"
+      },
+      "zg_gvp": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 1,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 1358,
+        "portal_count": 1358,
+        "gap": 0,
+        "duration_s": 4.1,
+        "error": null,
+        "note": null,
+        "state_count": 1358,
+        "jsonl_size_mb": 22.7,
+        "jsonl_mtime": "2026-09-29T01:31:05.120562+00:00"
+      },
+      "ow_gerichte": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 0,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 2205,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 932.6,
+        "error": null,
+        "note": null,
+        "state_count": 2205,
+        "jsonl_size_mb": 26.5,
+        "jsonl_mtime": "2026-09-29T01:31:24.864787+00:00"
       },
       "fr_gerichte": {
         "success": true,
@@ -3373,12 +3374,12 @@
         "our_count": 14779,
         "portal_count": 14779,
         "gap": 0,
-        "duration_s": 1862.5,
+        "duration_s": 1862.3,
         "error": null,
         "note": null,
         "state_count": 14779,
         "jsonl_size_mb": 423.1,
-        "jsonl_mtime": "2026-09-28T01:33:25.251255+00:00"
+        "jsonl_mtime": "2026-09-29T01:33:30.873209+00:00"
       },
       "zh_arbeitsgericht_sammlung": {
         "success": true,
@@ -3395,7 +3396,7 @@
         "note": null,
         "state_count": 530,
         "jsonl_size_mb": 3.5,
-        "jsonl_mtime": "2026-09-28T01:33:26.002263+00:00"
+        "jsonl_mtime": "2026-09-29T01:33:31.627218+00:00"
       },
       "zg_obergericht": {
         "success": true,
@@ -3412,7 +3413,7 @@
         "note": null,
         "state_count": 2185,
         "jsonl_size_mb": 67.2,
-        "jsonl_mtime": "2026-09-28T01:34:07.613698+00:00"
+        "jsonl_mtime": "2026-09-29T01:34:03.816577+00:00"
       },
       "zg_verwaltungsgericht": {
         "success": true,
@@ -3429,58 +3430,58 @@
         "note": null,
         "state_count": 2710,
         "jsonl_size_mb": 90.5,
-        "jsonl_mtime": "2026-09-28T01:36:03.678972+00:00"
-      },
-      "zh_gerichte": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 35942,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 143.8,
-        "error": null,
-        "note": null,
-        "state_count": 36242,
-        "jsonl_size_mb": 1037.7,
-        "jsonl_mtime": "2026-09-28T01:36:31.091282+00:00"
-      },
-      "gr_gerichte": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 14899,
-        "portal_count": 14908,
-        "gap": 9,
-        "duration_s": 1882.3,
-        "error": null,
-        "note": null,
-        "state_count": 14899,
-        "jsonl_size_mb": 461.1,
-        "jsonl_mtime": "2026-09-28T01:36:38.952371+00:00"
+        "jsonl_mtime": "2026-09-29T01:34:33.556908+00:00"
       },
       "zh_sozialversicherungsgericht": {
         "success": true,
         "timed_out": false,
-        "new_count": 15,
+        "new_count": 5,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 34729,
+        "our_count": 34734,
         "portal_count": null,
         "gap": null,
-        "duration_s": 54.9,
+        "duration_s": 42.3,
         "error": null,
         "note": null,
-        "state_count": 34810,
-        "jsonl_size_mb": 1072.6,
-        "jsonl_mtime": "2026-09-28T01:36:58.595593+00:00"
+        "state_count": 34815,
+        "jsonl_size_mb": 1072.8,
+        "jsonl_mtime": "2026-09-29T01:35:15.853377+00:00"
+      },
+      "zh_gerichte": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 1,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 35943,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 148.0,
+        "error": null,
+        "note": null,
+        "state_count": 36243,
+        "jsonl_size_mb": 1037.8,
+        "jsonl_mtime": "2026-09-29T01:36:31.339209+00:00"
+      },
+      "gr_gerichte": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 3,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 14902,
+        "portal_count": 14909,
+        "gap": 7,
+        "duration_s": 1890.0,
+        "error": null,
+        "note": null,
+        "state_count": 14902,
+        "jsonl_size_mb": 461.3,
+        "jsonl_mtime": "2026-09-29T01:36:59.791521+00:00"
       },
       "zh_baurekursgericht": {
         "success": true,
@@ -3497,7 +3498,7 @@
         "note": null,
         "state_count": 1181,
         "jsonl_size_mb": 27.5,
-        "jsonl_mtime": "2026-09-28T01:37:32.580975+00:00"
+        "jsonl_mtime": "2026-09-29T01:37:38.235941+00:00"
       },
       "zh_steuerrekursgericht": {
         "success": true,
@@ -3514,58 +3515,24 @@
         "note": null,
         "state_count": 887,
         "jsonl_size_mb": 24.4,
-        "jsonl_mtime": "2026-09-28T01:39:28.165263+00:00"
+        "jsonl_mtime": "2026-09-29T01:38:12.623317+00:00"
       },
       "be_verwaltungsgericht": {
         "success": true,
         "timed_out": false,
-        "new_count": 0,
+        "new_count": 9,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 11645,
-        "portal_count": 11649,
+        "our_count": 11654,
+        "portal_count": 11658,
         "gap": 4,
-        "duration_s": 2460.7,
+        "duration_s": 2462.3,
         "error": null,
         "note": null,
-        "state_count": 11645,
-        "jsonl_size_mb": 384.0,
-        "jsonl_mtime": "2026-09-28T01:42:05.032992+00:00"
-      },
-      "ne_gerichte": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 7760,
-        "portal_count": 7769,
-        "gap": 9,
-        "duration_s": 2012.1,
-        "error": null,
-        "note": null,
-        "state_count": 7769,
-        "jsonl_size_mb": 193.7,
-        "jsonl_mtime": "2026-09-28T10:57:35.050232+00:00"
-      },
-      "sg_publikationen": {
-        "success": true,
-        "timed_out": false,
-        "new_count": 0,
-        "skip_count": 0,
-        "error_count": 0,
-        "none_count": 0,
-        "our_count": 12822,
-        "portal_count": null,
-        "gap": null,
-        "duration_s": 1962.7,
-        "error": null,
-        "note": null,
-        "state_count": 12822,
-        "jsonl_size_mb": 384.9,
-        "jsonl_mtime": "2026-09-28T01:48:35.877229+00:00"
+        "state_count": 11654,
+        "jsonl_size_mb": 384.4,
+        "jsonl_mtime": "2026-09-29T01:42:03.636815+00:00"
       },
       "zh_verwaltungsgericht": {
         "success": true,
@@ -3577,12 +3544,46 @@
         "our_count": 11982,
         "portal_count": null,
         "gap": null,
-        "duration_s": 730.9,
+        "duration_s": 629.1,
         "error": null,
         "note": null,
         "state_count": 11982,
         "jsonl_size_mb": 315.0,
-        "jsonl_mtime": "2026-09-28T01:48:49.825379+00:00"
+        "jsonl_mtime": "2026-09-29T01:47:00.933991+00:00"
+      },
+      "ne_gerichte": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 0,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 7760,
+        "portal_count": 7769,
+        "gap": 9,
+        "duration_s": 2062.1,
+        "error": null,
+        "note": null,
+        "state_count": 7781,
+        "jsonl_size_mb": 194.0,
+        "jsonl_mtime": "2026-09-29T10:54:30.048998+00:00"
+      },
+      "vd_gerichte": {
+        "success": true,
+        "timed_out": false,
+        "new_count": 12,
+        "skip_count": 0,
+        "error_count": 0,
+        "none_count": 0,
+        "our_count": 74648,
+        "portal_count": null,
+        "gap": null,
+        "duration_s": 1249.3,
+        "error": null,
+        "note": null,
+        "state_count": 74759,
+        "jsonl_size_mb": 2096.2,
+        "jsonl_mtime": "2026-09-29T01:49:04.135299+00:00"
       },
       "lu_gerichte": {
         "success": true,
@@ -3599,59 +3600,59 @@
         "note": null,
         "state_count": 4054,
         "jsonl_size_mb": 54.7,
-        "jsonl_mtime": "2026-09-28T01:50:41.543579+00:00"
+        "jsonl_mtime": "2026-09-29T01:50:30.357212+00:00"
       },
-      "vd_gerichte": {
+      "sg_publikationen": {
         "success": true,
         "timed_out": false,
         "new_count": 0,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 74636,
+        "our_count": 12822,
         "portal_count": null,
         "gap": null,
-        "duration_s": 1230.3,
+        "duration_s": 1961.1,
         "error": null,
         "note": null,
-        "state_count": 74747,
-        "jsonl_size_mb": 2095.8,
-        "jsonl_mtime": "2026-09-28T01:50:47.626644+00:00"
+        "state_count": 12822,
+        "jsonl_size_mb": 384.9,
+        "jsonl_mtime": "2026-09-29T01:52:19.666368+00:00"
       },
       "ti_gerichte": {
         "success": true,
         "timed_out": false,
-        "new_count": 0,
+        "new_count": 6,
         "skip_count": 0,
         "error_count": 0,
         "none_count": 0,
-        "our_count": 58290,
+        "our_count": 58296,
         "portal_count": null,
         "gap": null,
-        "duration_s": 2259.0,
+        "duration_s": 1759.6,
         "error": null,
         "note": null,
-        "state_count": 58290,
+        "state_count": 58296,
         "jsonl_size_mb": 266.8,
-        "jsonl_mtime": "2026-09-28T02:07:35.873372+00:00"
+        "jsonl_mtime": "2026-09-29T01:56:30.653016+00:00"
       }
     },
-    "run_at_daily": "2026-09-28T02:07:35.956493+00:00",
-    "run_at_federal": "2026-09-28T09:37:17.228412+00:00",
+    "run_at_daily": "2026-09-29T01:56:30.731331+00:00",
+    "run_at_federal": "2026-09-29T09:18:27.087620+00:00",
     "disk": {
       "data_volume": {
         "path": "/mnt/HC_Volume_104655575",
         "total_gb": 450.0,
-        "used_gb": 323.3,
+        "used_gb": 323.2,
         "free_gb": 126.7,
         "used_percent": 71.8
       },
       "repo": {
         "path": "/opt/caselaw/repo",
         "total_gb": 149.9,
-        "used_gb": 115.8,
-        "free_gb": 28.0,
-        "used_percent": 77.3
+        "used_gb": 116.1,
+        "free_gb": 27.7,
+        "used_percent": 77.4
       }
     }
   },
@@ -3935,68 +3936,68 @@
   },
   "traffic": {
     "window_days": 30,
-    "window_end": "2026-09-27",
-    "total_calls": 8765174,
+    "window_end": "2026-09-28",
+    "total_calls": 8937899,
     "by_client": [
       {
         "class": "browser_chrome",
-        "n": 5103400
+        "n": 5098817
       },
       {
         "class": "other",
-        "n": 1303824
-      },
-      {
-        "class": "python_script",
-        "n": 912801
+        "n": 1406071
       },
       {
         "class": "claude_hosted",
-        "n": 893559
+        "n": 938582
+      },
+      {
+        "class": "python_script",
+        "n": 931814
       },
       {
         "class": "chatgpt",
-        "n": 250008
+        "n": 254408
       },
       {
         "class": "claude_other",
-        "n": 96365
+        "n": 97957
       },
       {
         "class": "claude_desktop",
-        "n": 62966
+        "n": 64756
       },
       {
         "class": "node_script",
-        "n": 36658
+        "n": 37218
       },
       {
         "class": "browser_other",
-        "n": 24516
+        "n": 25298
       },
       {
         "class": "browser_safari",
-        "n": 22091
-      },
-      {
-        "class": "go_script",
-        "n": 16744
+        "n": 22314
       },
       {
         "class": "browser_firefox",
-        "n": 16627
+        "n": 17253
+      },
+      {
+        "class": "go_script",
+        "n": 16804
       },
       {
         "class": "curl",
-        "n": 15477
+        "n": 16251
       },
       {
         "class": "cursor",
-        "n": 5007
+        "n": 5140
       },
       {
         "class": "copilot_studio",
-        "n": 4175
+        "n": 4239
       },
       {
         "class": "browser_ie",
@@ -4012,7 +4013,7 @@
       },
       {
         "class": "word_addin",
-        "n": 36
+        "n": 57
       },
       {
         "class": "empty",
@@ -4022,63 +4023,63 @@
     "top_endpoints": [
       {
         "class": "rest_other",
-        "n": 4394664
+        "n": 4401977
       },
       {
         "class": "mcp_root",
-        "n": 1635701
+        "n": 1709065
       },
       {
         "class": "seo_decision_page",
-        "n": 1273288
+        "n": 1276047
       },
       {
         "class": "other",
-        "n": 492562
+        "n": 534610
       },
       {
         "class": "mcp_messages",
-        "n": 240009
+        "n": 240895
       },
       {
         "class": "mcp_sse",
-        "n": 208134
+        "n": 206670
       },
       {
         "class": "health",
-        "n": 137708
+        "n": 141804
       },
       {
         "class": "rest_get_law",
-        "n": 135944
+        "n": 137574
       },
       {
         "class": "rest_get_decision",
-        "n": 85519
+        "n": 123285
       },
       {
         "class": "rest_search_decisions",
-        "n": 65376
+        "n": 66133
       },
       {
         "class": "wellknown",
-        "n": 34321
+        "n": 36245
       },
       {
         "class": "rest_case_brief",
-        "n": 14141
+        "n": 14925
       },
       {
         "class": "rest_leading_cases",
-        "n": 13835
+        "n": 14078
       },
       {
         "class": "rest_get_commentary",
-        "n": 12171
+        "n": 12409
       },
       {
-        "class": "rest_search_laws",
-        "n": 5398
+        "class": "rest_get_legislation",
+        "n": 5994
       }
     ],
     "latency_ms": {
@@ -4091,96 +4092,96 @@
         "p95": 9
       },
       "mcp_root": {
-        "p50": 5551,
-        "p95": 16816
+        "p50": 5505,
+        "p95": 16707
       },
       "mcp_sse": {
-        "p50": 9931,
-        "p95": 28252
+        "p50": 9570,
+        "p95": 28512
       },
       "other": {
         "p50": 25,
-        "p95": 13087
+        "p95": 12924
       },
       "rest_appeal_chain": {
-        "p50": 32,
-        "p95": 184
+        "p50": 31,
+        "p95": 178
       },
       "rest_billing": {
-        "p50": 145,
-        "p95": 172
+        "p50": 153,
+        "p95": 181
       },
       "rest_case_brief": {
-        "p50": 1024,
-        "p95": 1768
+        "p50": 1022,
+        "p95": 1767
       },
       "rest_citations": {
-        "p50": 163,
-        "p95": 672
+        "p50": 165,
+        "p95": 737
       },
       "rest_doctrine": {
-        "p50": 345,
-        "p95": 915
+        "p50": 347,
+        "p95": 921
       },
       "rest_get_commentary": {
         "p50": 31,
-        "p95": 1518
-      },
-      "rest_get_decision": {
-        "p50": 45,
-        "p95": 101
-      },
-      "rest_get_law": {
-        "p50": 56,
-        "p95": 1167
-      },
-      "rest_get_legislation": {
-        "p50": 316,
-        "p95": 847
-      },
-      "rest_leading_cases": {
-        "p50": 2000,
-        "p95": 3951
-      },
-      "rest_list_courts": {
-        "p50": 695,
-        "p95": 3414
-      },
-      "rest_other": {
-        "p50": 79,
         "p95": 1528
       },
+      "rest_get_decision": {
+        "p50": 44,
+        "p95": 100
+      },
+      "rest_get_law": {
+        "p50": 55,
+        "p95": 1162
+      },
+      "rest_get_legislation": {
+        "p50": 311,
+        "p95": 833
+      },
+      "rest_leading_cases": {
+        "p50": 1963,
+        "p95": 4133
+      },
+      "rest_list_courts": {
+        "p50": 943,
+        "p95": 3821
+      },
+      "rest_other": {
+        "p50": 80,
+        "p95": 1533
+      },
       "rest_search_commentaries": {
-        "p50": 54,
-        "p95": 74
+        "p50": 56,
+        "p95": 77
       },
       "rest_search_decisions": {
-        "p50": 5819,
-        "p95": 18099
+        "p50": 5800,
+        "p95": 18114
       },
       "rest_search_laws": {
-        "p50": 384,
-        "p95": 3063
+        "p50": 374,
+        "p95": 3021
       },
       "rest_search_legislation": {
-        "p50": 2510,
-        "p95": 8720
+        "p50": 2503,
+        "p95": 8860
       },
       "rest_statistics": {
-        "p50": 1599,
-        "p95": 3249
+        "p50": 1660,
+        "p95": 3283
       },
       "seo_decision_page": {
-        "p50": 569,
-        "p95": 982
+        "p50": 566,
+        "p95": 973
       },
       "seo_robots": {
         "p50": 2,
         "p95": 3
       },
       "seo_sitemap": {
-        "p50": 780,
-        "p95": 1715
+        "p50": 796,
+        "p95": 1776
       },
       "wellknown": {
         "p50": 0,
@@ -4190,30 +4191,30 @@
     "error_rate": {
       "health": 0.0006,
       "mcp_messages": 0.002,
-      "mcp_root": 0.0123,
-      "mcp_sse": 0.0228,
-      "other": 0.1755,
+      "mcp_root": 0.0118,
+      "mcp_sse": 0.0241,
+      "other": 0.1689,
       "rest_appeal_chain": 0.0016,
-      "rest_billing": 0.381,
-      "rest_case_brief": 0.0094,
-      "rest_citations": 0.8613,
-      "rest_doctrine": 0.0642,
-      "rest_get_commentary": 0.0093,
-      "rest_get_decision": 0.0044,
+      "rest_billing": 0.3659,
+      "rest_case_brief": 0.0089,
+      "rest_citations": 0.8777,
+      "rest_doctrine": 0.0554,
+      "rest_get_commentary": 0.0092,
+      "rest_get_decision": 0.0031,
       "rest_get_law": 0.0048,
-      "rest_get_legislation": 0.0026,
+      "rest_get_legislation": 0.0023,
       "rest_leading_cases": 0.0046,
-      "rest_list_courts": 0.1128,
+      "rest_list_courts": 0.1127,
       "rest_other": 0.0029,
       "rest_search_commentaries": 0.0,
-      "rest_search_decisions": 0.0469,
-      "rest_search_laws": 0.0245,
-      "rest_search_legislation": 0.0134,
-      "rest_statistics": 0.1239,
+      "rest_search_decisions": 0.0484,
+      "rest_search_laws": 0.0236,
+      "rest_search_legislation": 0.0132,
+      "rest_statistics": 0.1287,
       "seo_decision_page": 0.0096,
-      "seo_robots": 0.0898,
-      "seo_sitemap": 0.0386,
-      "wellknown": 0.9985
+      "seo_robots": 0.091,
+      "seo_sitemap": 0.0436,
+      "wellknown": 0.9987
     },
     "reach": [
       {
@@ -4222,12 +4223,12 @@
       }
     ],
     "status_hist": {
-      "2xx": 8484811,
-      "3xx": 104538,
-      "404": 75086,
-      "429": 13722,
-      "4xx": 90309,
-      "5xx": 1245
+      "2xx": 8652414,
+      "3xx": 103762,
+      "404": 76979,
+      "429": 16796,
+      "4xx": 91222,
+      "5xx": 1257
     },
     "privacy": {
       "k_anon": 10,
@@ -4237,6 +4238,14 @@
   },
   "recent": {
     "bge": [
+      {
+        "decision_id": "bger_8C_528_2026",
+        "docket": "8C_528/2026",
+        "date": "2026-09-18",
+        "court": "bger",
+        "language": "de",
+        "summary": "Arbeitslosenversicherung (Prozessvoraussetzung),"
+      },
       {
         "decision_id": "bger_1C_257_2024",
         "docket": "1C_257/2024",
@@ -4252,6 +4261,14 @@
         "court": "bger",
         "language": "de",
         "summary": "Entzug des Führerausweises für Motorfahrzeuge,"
+      },
+      {
+        "decision_id": "bger_9C_543_2026",
+        "docket": "9C_543/2026",
+        "date": "2026-09-15",
+        "court": "bger",
+        "language": "it",
+        "summary": "Canone radiotelevisivo,"
       },
       {
         "decision_id": "bger_7B_1042_2026",
@@ -4300,22 +4317,6 @@
         "court": "bger",
         "language": "fr",
         "summary": "déni de justice,"
-      },
-      {
-        "decision_id": "bger_5A_694_2026",
-        "docket": "5A_694/2026",
-        "date": "2026-09-15",
-        "court": "bger",
-        "language": "fr",
-        "summary": "effet suspensif; curatelle,"
-      },
-      {
-        "decision_id": "bger_5A_652_2026",
-        "docket": "5A_652/2026",
-        "date": "2026-09-15",
-        "court": "bger",
-        "language": "fr",
-        "summary": "placement à des fins d'assistance,"
       }
     ],
     "cantonal": [
@@ -4534,18 +4535,36 @@
     }
   ],
   "delta": {
-    "total": -1185,
+    "total": 57,
     "by_court": {
-      "bger": 48,
-      "zh_sozialversicherungsgericht": 15
+      "ge_gerichte": 22,
+      "bvger": 13,
+      "vd_gerichte": 12,
+      "ti_gerichte": 6,
+      "zh_sozialversicherungsgericht": 5,
+      "gr_gerichte": 3,
+      "be_verwaltungsgericht": 9,
+      "bstger": 11,
+      "be_zivilstraf": 1,
+      "ag_strafgericht": 1,
+      "ag_versicherungsgericht": 2,
+      "ag_zivilgericht": 2,
+      "ag_verwaltungsgericht": 1,
+      "zh_arbeitsgericht": 1,
+      "esbk": 9,
+      "zg_anwaltsaufsicht": 1
     },
     "by_canton": {
-      "ZH": 15
+      "VD": 12,
+      "GE": 22,
+      "ZH": 6,
+      "TI": 6,
+      "BE": 10,
+      "GR": 3,
+      "AG": 6,
+      "ZG": 1
     },
-    "corpus": {
-      "citation_edges": -17390,
-      "statute_edges": -16454
-    },
-    "previous_generated_at": "2026-09-27T23:13:35.616233+00:00"
+    "corpus": {},
+    "previous_generated_at": "2026-09-28T22:59:51.677125+00:00"
   }
 }
