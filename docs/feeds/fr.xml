@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 28 Sep 2026 23:09:53 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 29 Sep 2026 12:54:53 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht E-5790/2026 vom 2026-09-18</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5790_2026</link>
+      <description>Exécution du renvoi</description>
+      <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5790.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesgericht 1C_257/2024 vom 2026-09-17</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_257_2024</link>
@@ -45,6 +53,56 @@ Participants…</description>
       <pubDate>Thu, 17 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-530.2024</guid>
       <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-6234/2026 vom 2026-09-17</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6234_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Thu, 17 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6234.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>ge_gerichte ACPR/869/2026 vom 2026-09-17</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_869_2026</link>
+      <description>REPUBLIQUE ET 
+ 
+CANTON DE GENEVE 
+POUVOIR JUDICIAIRE 
+P/16872/2026 
+ACPR/869/2026
+COUR DE JUSTICE 
+Chambre pénale de recours 
+Arrêt du jeudi 17 septembre 2026 
+ 
+Entre 
+A______, domicilié ______, agissant en personne, 
+recourant, 
+ 
+ 
+contre l’ordon…</description>
+      <pubDate>Thu, 17 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ge_gerichte_ACPR_869_2026</guid>
+      <category>ge_gerichte</category>
+    </item>
+    <item>
+      <title>ge_gerichte ACPR/870/2026 vom 2026-09-17</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_870_2026</link>
+      <description>REPUBLIQUE ET 
+ 
+CANTON DE GENEVE 
+POUVOIR JUDICIAIRE 
+P/15163/2022 
+ACPR/870/2026
+COUR DE JUSTICE 
+Chambre pénale de recours 
+Arrêt du jeudi 17 septembre 2026 
+ 
+Entre 
+A______, représentée par Me Laïla BATOU, avocate, BOLIVAR &amp; BATOU, rue des Pâqui…</description>
+      <pubDate>Thu, 17 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ge_gerichte_ACPR_870_2026</guid>
+      <category>ge_gerichte</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht D-2751/2023 vom 2026-09-16</title>
@@ -152,6 +210,44 @@ Entre
 A______, actuellement détenu à la prison de Champ-Dollon, représenté par Me B…</description>
       <pubDate>Wed, 16 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ge_gerichte_ACPR_865_2026</guid>
+      <category>ge_gerichte</category>
+    </item>
+    <item>
+      <title>ge_gerichte ACPR/867/2026 vom 2026-09-16</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_867_2026</link>
+      <description>REPUBLIQUE ET 
+ 
+CANTON DE GENEVE 
+POUVOIR JUDICIAIRE 
+P/20095/2026 
+ACPR/867/2026
+COUR DE JUSTICE 
+Chambre pénale de recours 
+Arrêt du mercredi 16 septembre 2026 
+ 
+Entre 
+A______, actuellement détenu à la prison de Champ-Dollon, représenté par Me B…</description>
+      <pubDate>Wed, 16 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ge_gerichte_ACPR_867_2026</guid>
+      <category>ge_gerichte</category>
+    </item>
+    <item>
+      <title>ge_gerichte ACPR/868/2026 vom 2026-09-16</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_868_2026</link>
+      <description>REPUBLIQUE ET 
+ 
+CANTON DE GENEVE 
+POUVOIR JUDICIAIRE 
+P/10882/2024 
+ACPR/868/2026
+COUR DE JUSTICE 
+Chambre pénale de recours 
+Arrêt du mercredi 16 septembre 2026 
+ 
+Entre 
+A______, actuellement détenu à la prison de Champ-Dollon, chemin de Champ-Dol…</description>
+      <pubDate>Wed, 16 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ge_gerichte_ACPR_868_2026</guid>
       <category>ge_gerichte</category>
     </item>
     <item>
@@ -469,6 +565,14 @@ Composition…</description>
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht F-5113/2026 vom 2026-09-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-5113_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5113.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>fr_gerichte 602 2025 169 vom 2026-09-14</title>
       <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_602%202025%20169</link>
       <description>Tribunal cantonal TC
@@ -711,6 +815,44 @@ Recours (C/24783/2018-CS) formé en date du 8 juin 2026 par Madame A______,…</
       <category>ge_gerichte</category>
     </item>
     <item>
+      <title>vd_gerichte 361 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_60333c34-63dc-463e-beda-47415465a067</link>
+      <description>TRIBUNAL CANTONAL
+TD21.***-***
+TD21.***-***
+361
+CO UR D’APPEL CIVI L E
+_____________________________
+Arrêt du 11 septembre 2026
+Composition : Mme DROZ-SAUTHIER, juge unique
+Greffier : M. Klay
+*****
+Art. 179 al. 1 CC
+Statuant sur l’appel interjeté par…</description>
+      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_60333c34-63dc-463e-beda-47415465a067</guid>
+      <category>vd_gerichte</category>
+      <category>Divorce sur demande unilatérale</category>
+    </item>
+    <item>
+      <title>vd_gerichte 622 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_b6bb2bb1-152d-448d-9d9e-0c136c737666</link>
+      <description>TRIBUNAL CANTONAL ZH25.***
+622
+CO UR DE S ASSURANCES S OCIALES
+_____________________________________________
+Arrêt du 11 septembre 2026
+Composition : M. NEU, juge unique
+Greffier : M. Germond
+*****
+Cause pendante entre :
+A.________, à B***, recourant…</description>
+      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_b6bb2bb1-152d-448d-9d9e-0c136c737666</guid>
+      <category>vd_gerichte</category>
+      <category>Prestations complémentaires</category>
+    </item>
+    <item>
       <title>Bundesgericht 5A_630/2026 vom 2026-09-10</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_630_2026</link>
       <description>Bundesgericht
@@ -796,165 +938,6 @@ Greffière : Mme von Zwehl.
 Participants à l…</description>
       <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_410.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8F_7/2026 vom 2026-09-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8F_7_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8F_7/2026
-
-Arrêt du 10 septembre 2026
-
-IVe Cour de droit public
-
-Composition
-
-M. le Juge fédéral Métral, en qualité de juge unique.
-
-Greffière : Mme Barman Ionta.
-
-Participants à …</description>
-      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8F_7.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht B-820/2026 vom 2026-09-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-820_2026</link>
-      <description>Encouragement de la formation universitaire</description>
-      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-820.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-2268/2026 vom 2026-09-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-2268_2026</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-2268.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-5221/2023 vom 2026-09-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5221_2023</link>
-      <description>Asile et renvoi (demande multiple)</description>
-      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5221.2023</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-6294/2026 vom 2026-09-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6294_2026</link>
-      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
-      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6294.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>EGMR (Kammer) 17596/23 vom 2026-09-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_17596_23_20260910</link>
-      <description>Non-violation de l'article 6+6-3-c - Droit à un procès équitable (Article 6 - Procédure pénale;Article 6-1 - Procès équitable) (Article 6 - Droit à un procès équitable;Article 6-3 - Droits de la défense;Article 6-3-c - Se défendre avec l'assistance d'un défenseur); No violation: 6;6+6-3-c;6-3;6-3-c;6-1; [EGMR / CourEDH / CorteEDU; Art. 6 EMRK / CEDH / CEDU]</description>
-      <pubDate>Thu, 10 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ecthr_chamber_17596_23_20260910</guid>
-      <category>ecthr_chamber</category>
-      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
-    </item>
-    <item>
-      <title>Bundesgericht 4F_23/2026 vom 2026-09-09</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_4F_23_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-4F_23/2026
-
-Arrêt du 9 septembre 2026
-
-Ire Cour de droit civil
-
-Composition
-
-MM. et Mme les Juges fédéraux
-
-Hurni, Président, Kiss et Denys
-
-Greffier : M. Botteron.
-
-Participants …</description>
-      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:4F_23.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 6B_106/2026 vom 2026-09-09</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_106_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-6B_106/2026
-
-Arrêt du 9 septembre 2026
-
-Ire Cour de droit pénal
-
-Composition
-
-MM. les Juges fédéraux
-
-von Felten, Juge présidant,
-
-Guidon et Segura, Juge suppléant.
-
-Greffier : M.…</description>
-      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_106.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 6B_154/2026 vom 2026-09-09</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_154_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-6B_154/2026
-
-Arrêt du 9 septembre 2026
-
-Ire Cour de droit pénal
-
-Composition
-
-MM. et Mme les Juges fédéraux
-
-Muschietti, Président,
-
-Donzallaz et Wohlhauser.
-
-Greffier : M. de Cha…</description>
-      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_154.2026</guid>
       <category>bger</category>
     </item>
   </channel>

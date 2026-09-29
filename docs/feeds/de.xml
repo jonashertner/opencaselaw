@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 28 Sep 2026 23:09:53 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 29 Sep 2026 12:54:53 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -96,6 +96,34 @@ Schuldbetreibungs- und Konkurskammer
       <category>gr_gerichte</category>
     </item>
     <item>
+      <title>Bundesgericht 8C_528/2026 vom 2026-09-18</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_528_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+8C_528/2026
+
+Verfügung vom 18. September 2026
+
+IV. öffentlich-rechtliche Abteilung
+
+Besetzung
+
+Bundesrichterin Viscione, Präsidentin,
+
+Gerichtsschreiber Grünvogel.
+
+Verfahrensbete…</description>
+      <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_528.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
       <title>bs_appellationsgericht AUS.2026.77 vom 2026-09-17</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bs_appellationsgericht_AG.2026.587</link>
       <description>Appellationsgericht
@@ -183,6 +211,14 @@ A._______…</description>
       <description>Datenschutz</description>
       <pubDate>Wed, 16 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-2239.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-6141/2026 vom 2026-09-16</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6141_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (sicherer Drittstaat - Art. 31a Abs. 1 Bst. a AsylG)</description>
+      <pubDate>Wed, 16 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6141.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -453,6 +489,14 @@ Verfahrensbeteili…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht B-1861/2026 vom 2026-09-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-1861_2026</link>
+      <description>Beiträge für vorbereitende Kurse</description>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-1861.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht D-6406/2026 vom 2026-09-15</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6406_2026</link>
       <description>Nichteintreten auf Asylgesuch und Wegweisung (Wiedererwägung)</description>
@@ -685,6 +729,14 @@ Verfahrensbeteiligte
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht D-5318/2025 vom 2026-09-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5318_2025</link>
+      <description>Verweigerung vorübergehender Schutz</description>
+      <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5318.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht E-3756/2021 vom 2026-09-14</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-3756_2021</link>
       <description>Asyl und Wegweisung</description>
@@ -749,6 +801,26 @@ Bese…</description>
       <pubDate>Mon, 14 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">gr_gerichte_VR2 2026 45</guid>
       <category>gr_gerichte</category>
+    </item>
+    <item>
+      <title>ag_zivilgericht ZSU.2026.120 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ag_zivilgericht_ZSU.2026.120</link>
+      <description>Obergericht
+Zivilgericht, 4. Kammer
+ZSU.2026.120
+(SR.2026.2)
+Art. 209
+Entscheid vom 11. September 2026
+Besetzung Oberrichter Richli, Präsident
+Oberrichterin Massari
+Oberrichterin Jacober
+Gerichtsschreiber Huber
+Klägerin A._____ AG,
+[…]
+Beklagte B.___…</description>
+      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ag_zivilgericht_ZSU.2026.120</guid>
+      <category>ag_zivilgericht</category>
     </item>
     <item>
       <title>Bundesgericht 5A_716/2026 vom 2026-09-11</title>
@@ -855,60 +927,6 @@ Ge…</description>
       <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-9181.2025</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht B-4702/2026 vom 2026-09-11</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-4702_2026</link>
-      <description>Öffentliches Beschaffungswesen</description>
-      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-4702.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-4479/2022 vom 2026-09-11</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4479_2022</link>
-      <description>Asyl und Wegweisung (Mehrfachgesuch)</description>
-      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4479.2022</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-5252/2026 vom 2026-09-11</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5252_2026</link>
-      <description>Asyl und Wegweisung (beschleunigtes Verfahren)</description>
-      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5252.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-5979/2025 vom 2026-09-11</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5979_2025</link>
-      <description>Asyl und Wegweisung (beschleunigtes Verfahren)</description>
-      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5979.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>fr_gerichte 604 2026 30 vom 2026-09-11</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_604%202026%2030</link>
-      <description>Tribunal cantonal TC
-Kantonsgericht KG
-Augustinergasse 3, Postfach 630, 1701 Freiburg
-T +41 26 304 15 00
-www.fr.ch/tc
-—
-Pouvoir Judiciaire PJ
-Gerichtsbehörden GB
-604 2026 30
-604 2026 31
-604 2026 32
-Urteil vom 3. Juli 2026
-Steuergerichtshof
-Besetzung
-…</description>
-      <pubDate>Fri, 11 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">fr_gerichte_604 2026 30</guid>
-      <category>fr_gerichte</category>
     </item>
   </channel>
 </rss>
