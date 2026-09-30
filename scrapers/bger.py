@@ -56,6 +56,7 @@ from bs4 import BeautifulSoup
 from base_scraper import BaseScraper
 from models import Decision, extract_citations, make_decision_id
 from incapsula_bypass import IncapsulaCookieManager
+from scrapers.refusal import is_refusal
 
 logger = logging.getLogger(__name__)
 
@@ -422,6 +423,12 @@ class BgerScraper(BaseScraper):
 
     # Search in 4-day windows for manageable result sets
     WINDOW_DAYS = 4
+    # Search windows refused (403/429) on every host in a row before the AZA
+    # search stops for this run. On 2026-09-29 10:20 and 09-30 01:00 bger.ch
+    # refused the tunnel address outright and each run still sent ~90 refused
+    # search requests. Neuheiten (14 pages, where new rulings come in) is not
+    # cut short.
+    WINDOW_REFUSAL_LIMIT = 3
     MAX_RETRIES = 5  # pow.php redirect retries
     # search.bger.ch (Incapsula) hard-blocks the Hetzner IP — egress via the
     # residential reverse-SOCKS tunnel like NE/JU. BaseScraper falls back to
@@ -1044,6 +1051,7 @@ class BgerScraper(BaseScraper):
         current = since_date
         # Bound the walk at --until (recovery mode) instead of today.
         today = self.until_date or date.today()
+        refused_windows = 0
 
         while current <= today:
             end = min(current + timedelta(days=self.WINDOW_DAYS - 1), today)
@@ -1056,6 +1064,7 @@ class BgerScraper(BaseScraper):
             # A window that fails on both is logged once per host and
             # skipped, as before; a window that succeeds on the fallback
             # makes that host the preferred one for the rest of the run.
+            window_refused = True
             for host in self._aza_host_sequence():
                 url = self._aza_url(host, von_str, bis_str)
                 try:
@@ -1107,9 +1116,21 @@ class BgerScraper(BaseScraper):
                         )
                         yield from self._follow_pagination(soup, "de", current, end)
 
+                    window_refused = False
                     break
                 except Exception as e:
+                    if not is_refusal(e):
+                        window_refused = False
                     logger.error(f"Search {von_str}-{bis_str} via {host}: {e}")
+
+            refused_windows = refused_windows + 1 if window_refused else 0
+            if refused_windows >= self.WINDOW_REFUSAL_LIMIT:
+                logger.error(
+                    f"bger.ch refused {refused_windows} search windows in a row "
+                    f"on every host — stopping the AZA search for this run at "
+                    f"{bis_str}; the next run tries again"
+                )
+                return
 
             current = end + timedelta(days=1)
 

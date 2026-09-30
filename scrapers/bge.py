@@ -51,6 +51,7 @@ from models import (
     parse_date,
 )
 from incapsula_bypass import IncapsulaCookieManager
+from scrapers.refusal import is_refusal
 
 logger = logging.getLogger(__name__)
 
@@ -601,6 +602,10 @@ class BGELeitentscheideScraper(BaseScraper):
     # next run walks fully again. OCL_SCRAPER_RESCAN_ALL=1 forces a full walk.
     FULL_WALK_EVERY_DAYS = 7
     RECENT_YEARS = 2
+    # Listings refused (403/429) in a row before the walk stops for this run.
+    # During a block every further listing is refused too; carrying on only
+    # adds refused requests (304 of them at 01:00 on 2026-09-30).
+    REFUSAL_LIMIT = 5
 
     def _fullwalk_marker(self) -> Path:
         return Path(self.state.state_file).with_name(f"{self.court_code}.fullwalk")
@@ -619,6 +624,21 @@ class BGELeitentscheideScraper(BaseScraper):
         tmp = marker.with_name(marker.name + ".tmp")
         tmp.write_text(today.isoformat() + "\n")
         os.replace(tmp, marker)
+
+    def _stop_refused(self, refused: list) -> None:
+        """Log the refused streak as failed listings (run_all_scrapers counts
+        them, so the run reads as failed) and say why the walk ends here."""
+        for year, volume, e in refused:
+            logger.error(f"Failed to fetch listing {year}/{volume}: {e}")
+        self._log_stop(len(refused))
+
+    @staticmethod
+    def _log_stop(n: int) -> None:
+        logger.error(
+            f"search.bger.ch refused {n} listings in a row — stopping this "
+            f"run's walk (no further listings, no EGMR listing); the next run "
+            f"tries again"
+        )
 
     def _volume_stubs(self, year: int, volume: str) -> list[dict]:
         """Unknown stubs of one volume listing. Raises if the fetch fails."""
@@ -666,11 +686,20 @@ class BGELeitentscheideScraper(BaseScraper):
         # for the health check to flag the whole run as portal-down. Only a
         # listing that fails again is logged as an error.
         failed: list[tuple[int, str]] = []
+        refused: list[tuple[int, str, Exception]] = []
         for year in range(current_year, start_year - 1, -1):
             for volume in VOLUMES:
                 try:
                     yield from self._volume_stubs(year, volume)
+                    refused.clear()
                 except Exception as e:
+                    if is_refusal(e):
+                        refused.append((year, volume, e))
+                        if len(refused) >= self.REFUSAL_LIMIT:
+                            self._stop_refused(refused)
+                            return
+                    else:
+                        refused.clear()
                     logger.warning(
                         f"Listing {year}/{volume} failed ({type(e).__name__}), "
                         f"retrying at end of run"
@@ -684,12 +713,18 @@ class BGELeitentscheideScraper(BaseScraper):
             )
             time.sleep(self.LISTING_RETRY_PAUSE)
             still_failed: list[tuple[int, str]] = []
+            streak = 0
             for year, volume in failed:
                 try:
                     yield from self._volume_stubs(year, volume)
+                    streak = 0
                 except Exception as e:
                     still_failed.append((year, volume))
                     logger.error(f"Failed to fetch listing {year}/{volume}: {e}")
+                    streak = streak + 1 if is_refusal(e) else 0
+                    if streak >= self.REFUSAL_LIMIT:
+                        self._log_stop(streak)
+                        return
             failed = still_failed
 
         if full_walk and not failed:
