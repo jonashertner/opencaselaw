@@ -71,7 +71,10 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import concurrent.futures
 import contextvars
+import functools
+import itertools
 import jsonschema
 import copy
 import hashlib
@@ -674,6 +677,305 @@ PINPOINT_MAX_WORKERS = int(os.environ.get("OCL_PINPOINT_WORKERS", "5"))
 # list_tools (on the event loop) stayed instant. A timeout returns a clean error
 # instead of an indefinite hang. Generous so only pathological calls trip it.
 TOOL_DISPATCH_TIMEOUT_S = float(os.environ.get("OCL_TOOL_TIMEOUT_S", "120"))
+
+# ── Admission control: execution lanes ────────────────────────────
+# Every blocking call used to share one thread pool per worker, nothing bounded
+# the work a worker accepted, and queued work ran long after its caller had
+# gone: on 2026-09-30 get_law, a key read, averaged 55 s behind searches and
+# exports. A request now carries a lane, set where it enters (MCP dispatch,
+# REST middleware), and its asyncio.to_thread work runs on that lane's pool:
+#   fast  - primary-key reads (a law article, a decision, an Erwägung);
+#   heavy - search, export, anything that scans or calls out; admission-
+#           controlled, refused at once when a new call could not start in time;
+#   other - work outside a request (SEO pages, startup): the old behaviour.
+# OCL_LANES=0 restores the single pool and the single timeout exactly.
+OCL_LANES = os.environ.get("OCL_LANES", "1") != "0"
+LANE_FAST_THREADS = int(os.environ.get("OCL_LANE_FAST_THREADS", "8"))
+LANE_HEAVY_THREADS = int(os.environ.get("OCL_LANE_HEAVY_THREADS", "12"))
+LANE_OTHER_THREADS = int(os.environ.get("OCL_LANE_OTHER_THREADS", "20"))
+# Queue-delay admission: refuse new heavy work once the oldest queued job has
+# waited this long. It adapts to how fast jobs are finishing; a fixed queue
+# length cannot tell 24 one-second jobs from 24 one-minute ones. The length
+# cap is only a safety net.
+HEAVY_MAX_QUEUE_WAIT_S = float(os.environ.get("OCL_HEAVY_MAX_QUEUE_WAIT_S", "10"))
+LANE_HEAVY_QUEUE = int(os.environ.get("OCL_LANE_HEAVY_QUEUE", "64"))
+# REST fairness: heavy requests in flight per client IP, per worker, enforced
+# only while the heavy lane is full, so one harvester cannot take a full lane
+# from everyone else. Not applied to MCP: claude.ai's egress is a single /24
+# shared by all of its users.
+HEAVY_PER_CLIENT = int(os.environ.get("OCL_HEAVY_PER_CLIENT", "2"))
+HEAVY_TIMEOUT_S = float(os.environ.get("OCL_HEAVY_TIMEOUT_S", "60"))
+BUSY_RETRY_AFTER_S = int(os.environ.get("OCL_BUSY_RETRY_AFTER_S", "10"))
+
+_ctx_lane: contextvars.ContextVar = contextvars.ContextVar("ocl_lane", default=None)
+# Absolute time.monotonic() by which the current request is over.
+_ctx_request_deadline: contextvars.ContextVar = contextvars.ContextVar(
+    "ocl_request_deadline", default=None)
+
+
+class _LaneDeadlineExpired(Exception):
+    """Queued work whose request deadline passed before a thread was free."""
+
+
+class _LaneExecutor(concurrent.futures.ThreadPoolExecutor):
+    """asyncio's default executor, routing each job to its request's lane.
+
+    It must BE a ThreadPoolExecutor: loop.set_default_executor rejects anything
+    else. Its own threads are the `other` lane; it owns the fast and heavy pools.
+    submit() runs on the event-loop thread inside the caller's task context
+    (asyncio.to_thread -> run_in_executor), which is how the lane and deadline
+    arrive without touching any call site.
+    """
+
+    def __init__(self, fast: int, heavy: int, other: int):
+        super().__init__(max_workers=other, thread_name_prefix="lane-other")
+        self._fast = concurrent.futures.ThreadPoolExecutor(fast, thread_name_prefix="lane-fast")
+        self._heavy = concurrent.futures.ThreadPoolExecutor(heavy, thread_name_prefix="lane-heavy")
+        self._sizes = {"fast": fast, "heavy": heavy, "other": other}
+        self._lock = threading.Lock()
+        self._seq = itertools.count()
+        # job id -> enqueue time. FIFO like the pools, so the first entry is
+        # the job that has waited longest.
+        self._pending = {lane: collections.OrderedDict() for lane in self._sizes}
+        self._stats = {lane: collections.Counter() for lane in self._sizes}
+
+    def submit(self, fn, /, *args, **kwargs):
+        lane = _ctx_lane.get()
+        if lane not in ("fast", "heavy"):
+            lane = "other"
+        deadline = _ctx_request_deadline.get()
+        job = next(self._seq)
+        with self._lock:
+            self._pending[lane][job] = time.monotonic()
+        try:
+            if lane == "fast":
+                fut = self._fast.submit(self._run, lane, job, deadline, fn, args, kwargs)
+            elif lane == "heavy":
+                fut = self._heavy.submit(self._run, lane, job, deadline, fn, args, kwargs)
+            else:
+                fut = super().submit(self._run, lane, job, deadline, fn, args, kwargs)
+        except BaseException:
+            with self._lock:
+                self._pending[lane].pop(job, None)
+            raise
+        # A job cancelled before it starts (its awaiting coroutine was
+        # cancelled by a dispatch timeout) is skipped by the pool, so _run never
+        # sees it; without this the queued count would leak and the lane would
+        # end up refusing everything. Only a job that never started can be
+        # cancelled, so this is exact.
+        fut.add_done_callback(functools.partial(self._on_done, lane, job))
+        return fut
+
+    def _run(self, lane, job, deadline, fn, args, kwargs):
+        with self._lock:
+            self._pending[lane].pop(job, None)
+            self._stats[lane]["running"] += 1
+        try:
+            if deadline is not None and time.monotonic() > deadline:
+                with self._lock:
+                    self._stats[lane]["expired"] += 1
+                raise _LaneDeadlineExpired(
+                    f"{lane} lane: the request deadline passed while this work was queued")
+            result = fn(*args, **kwargs)
+            with self._lock:
+                self._stats[lane]["completed"] += 1
+            return result
+        finally:
+            with self._lock:
+                self._stats[lane]["running"] -= 1
+
+    def _on_done(self, lane, job, fut):
+        if fut.cancelled():
+            with self._lock:
+                if self._pending[lane].pop(job, None) is not None:
+                    self._stats[lane]["cancelled"] += 1
+
+    def queued(self, lane: str) -> int:
+        with self._lock:
+            return len(self._pending[lane])
+
+    def saturated(self, lane: str) -> bool:
+        """Every thread of the lane busy, or work already waiting."""
+        with self._lock:
+            return (bool(self._pending[lane])
+                    or self._stats[lane]["running"] >= self._sizes[lane])
+
+    def oldest_wait(self, lane: str) -> float:
+        with self._lock:
+            pending = self._pending[lane]
+            if not pending:
+                return 0.0
+            return time.monotonic() - next(iter(pending.values()))
+
+    def note_rejected(self, lane: str) -> None:
+        with self._lock:
+            self._stats[lane]["rejected"] += 1
+
+    def snapshot(self) -> dict:
+        now = time.monotonic()
+        out = {}
+        with self._lock:
+            for lane, size in self._sizes.items():
+                pending = self._pending[lane]
+                stats = self._stats[lane]
+                out[lane] = {
+                    "threads": size,
+                    "queued": len(pending),
+                    "running": stats["running"],
+                    "completed": stats["completed"],
+                    "expired": stats["expired"],
+                    "cancelled": stats["cancelled"],
+                    "rejected": stats["rejected"],
+                    "oldest_wait_s": round(now - next(iter(pending.values())), 3) if pending else 0.0,
+                }
+        return out
+
+    def shutdown(self, wait=True, *, cancel_futures=False):
+        self._fast.shutdown(wait=wait, cancel_futures=cancel_futures)
+        self._heavy.shutdown(wait=wait, cancel_futures=cancel_futures)
+        super().shutdown(wait=wait, cancel_futures=cancel_futures)
+
+
+# Installed as the running loop's default executor in main_remote's lifespan.
+# Pools start no threads until first use, so stdio mode and imports pay nothing.
+_LANES = _LaneExecutor(LANE_FAST_THREADS, LANE_HEAVY_THREADS, LANE_OTHER_THREADS)
+_LANES_INSTALLED = False
+# REST client IP -> heavy requests in flight. Touched only on the event loop.
+_heavy_client_inflight: dict = {}
+
+_FAST_TOOLS = frozenset({
+    "get_law", "get_decision", "get_erwaegung", "get_regeste",
+    "get_decision_structure", "list_courts",
+})
+
+
+def _lane_for_tool(name: str, arguments: dict | None = None) -> str:
+    """Lane for an MCP tool call. Only primary-key reads are fast; anything
+    unlisted is heavy, the safe side. `cite` is heavy because a miss falls
+    through to a full search_fts5 (Haiku parse, rerank); cantonal get_law is
+    heavy because it queries lexfind.ch live."""
+    name = _TOOL_NAME_ALIASES.get(name, name)
+    if name not in _FAST_TOOLS:
+        return "heavy"
+    args = arguments or {}
+    if name == "get_law" and _is_cantonal_law_request(args.get("abbreviation"), args.get("canton")):
+        return "heavy"
+    return "fast"
+
+
+def _is_cantonal_law_request(abbreviation, canton) -> bool:
+    """Would get_law take its cantonal (lexfind.ch live) branch? canton 'CH'
+    or empty is federal; a canton-prefixed name ('ZH/StG') is cantonal
+    whatever `canton` says, as in get_law."""
+    if str(canton or "").strip().upper() not in ("", "CH"):
+        return True
+    return "/" in str(abbreviation or "")
+
+
+# Never refused: no thread-pool work, or must not fail (the Stripe webhook).
+_REST_EXEMPT_RE = re.compile(
+    r"^/(?:openapi[^/]*|docs|redoc|research/openapi\.json|tool|integrity/.+|"
+    r"scraper-health|scholarship/licenses|quota/usage|billing/.+)$")
+_REST_FAST_RE = re.compile(
+    r"^/(?:laws/(?!search$)[^/]+|decisions/[^/]+|erwaegung/[^/]+/[^/]+|"
+    r"regeste/[^/]+|structure/[^/]+|courts)$")
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def _lane_for_rest(path: str, query) -> str | None:
+    """Lane for a REST request; None = exempt from lanes and admission.
+    Accepts the path with or without the /api mount prefix. POST /tool/{name}
+    is classified by name only (a cantonal get_law there runs fast)."""
+    p = path[4:] if path.startswith("/api/") else path
+    if _REST_EXEMPT_RE.match(p):
+        return None
+    if p == "/lookup":
+        return "fast" if str(query.get("exact", "")).lower() in _TRUTHY else "heavy"
+    if p.startswith("/tool/"):
+        return _lane_for_tool(p[len("/tool/"):], {})
+    if _REST_FAST_RE.match(p):
+        if p.startswith("/laws/") and _is_cantonal_law_request(
+                urllib.parse.unquote(p[len("/laws/"):]), query.get("canton")):
+            return "heavy"
+        return "fast"
+    return "heavy"
+
+
+def _heavy_admit(client_key: str | None = None) -> bool:
+    """May a new heavy request start? Counts real thread occupancy: a request
+    that timed out while its thread still runs still holds capacity. A soft
+    gate (check, then submit), so a burst can overshoot by the number of
+    simultaneous entries; the thread count stays the hard bound. The
+    per-client cap is work-conserving: it applies only while the lane is full,
+    so an integrator's parallel searches all run on a worker with spare threads."""
+    if not OCL_LANES:
+        return True
+    if (client_key and _heavy_client_inflight.get(client_key, 0) >= HEAVY_PER_CLIENT
+            and _LANES.saturated("heavy")):
+        return False
+    if _LANES.queued("heavy") >= LANE_HEAVY_QUEUE:
+        return False
+    return _LANES.oldest_wait("heavy") <= HEAVY_MAX_QUEUE_WAIT_S
+
+
+def _lane_timeout(lane: str | None) -> float:
+    """Dispatch timeout for a lane. Heavy is capped by the global timeout too,
+    so lowering OCL_TOOL_TIMEOUT_S still lowers every lane."""
+    if lane == "heavy":
+        return min(HEAVY_TIMEOUT_S, TOOL_DISPATCH_TIMEOUT_S)
+    return TOOL_DISPATCH_TIMEOUT_S
+
+
+def _busy_payload(tool: str | None = None, *, rest: bool = False) -> dict:
+    """The refusal a heavy call gets when it could not start in time. Written
+    for the model reading it: what happened, what still works, and not to loop."""
+    still_works = ("GET /api/decisions/{id}, /api/laws/{abbreviation}, /api/lookup?exact=true"
+                   if rest else "get_decision, get_law, get_erwaegung")
+    payload = {
+        "error": "server_busy",
+        "retry_after_seconds": BUSY_RETRY_AFTER_S,
+        "message": (
+            "The search service is at capacity right now, so this call was not "
+            f"started. Retry after about {BUSY_RETRY_AFTER_S} s. Lookups of a known "
+            f"decision or statute ({still_works}) are unaffected. If this persists, "
+            "tell the user the search service is busy rather than retrying in a loop."
+        ),
+    }
+    if tool:
+        payload["tool"] = tool
+    return payload
+
+
+def _lanes_snapshot() -> dict:
+    return {"enabled": OCL_LANES, "installed": _LANES_INSTALLED, **_LANES.snapshot()}
+
+
+def _install_lanes(loop) -> None:
+    """Make the lane executor the default executor of the loop that serves
+    requests (uvicorn's, from lifespan). No-op when OCL_LANES=0."""
+    global _LANES_INSTALLED
+    if not OCL_LANES:
+        logger.info("Execution lanes OFF (OCL_LANES=0): asyncio default executor")
+        return
+    loop.set_default_executor(_LANES)
+    _LANES_INSTALLED = True
+    logger.info(
+        "Execution lanes: fast=%d heavy=%d other=%d threads; heavy refused after %.0fs "
+        "queue wait or %d queued, %d per REST client; heavy timeout %.0fs",
+        LANE_FAST_THREADS, LANE_HEAVY_THREADS, LANE_OTHER_THREADS,
+        HEAVY_MAX_QUEUE_WAIT_S, LANE_HEAVY_QUEUE, HEAVY_PER_CLIENT, _lane_timeout("heavy"))
+
+
+def _search_deadline(t0: float) -> float | None:
+    """Soft deadline for one search: its own SEARCH_DEADLINE_MS budget from t0,
+    capped at the request's hard deadline when one is set. Not "arrival +
+    budget": tools that run several searches per call would then degrade their
+    later searches with no contention at all."""
+    own = (t0 + SEARCH_DEADLINE_MS / 1000.0) if SEARCH_DEADLINE_MS > 0 else None
+    request_deadline = _ctx_request_deadline.get()
+    if request_deadline is not None and (own is None or request_deadline < own):
+        return request_deadline
+    return own
 
 # ── In-client UI widgets (Tier B, flag-gated, default OFF) ────────
 # When OCL_UI_WIDGETS is on, search_laws/search_legislation advertise an
@@ -2999,6 +3301,7 @@ def _get_metrics() -> dict:
             "skipped": _metrics["haiku_rerank_skipped"],
             "changed_top": _metrics["haiku_rerank_changed_top"],
         },
+        "lanes": _lanes_snapshot(),
         "search_result_cache": {
             "hits": _metrics["search_result_cache_hits"],
             "misses": _metrics["search_result_cache_misses"],
@@ -3592,7 +3895,7 @@ def _search_fts5_inner(
     if meta is not None:
         meta["total_is_lower_bound"] = False
     _trace_t0 = time.monotonic()
-    _deadline = (_trace_t0 + SEARCH_DEADLINE_MS / 1000.0) if SEARCH_DEADLINE_MS > 0 else None
+    _deadline = _search_deadline(_trace_t0)
     _trace = {
         # Privacy contract (/datenschutz/): search query CONTENT is never
         # persisted. Search traces are kept for latency/strategy analysis, so we
@@ -28279,21 +28582,37 @@ def _capture_outcome(name: str, outcome: str, started: float,
 
 
 async def _dispatch_with_timeout(name: str, arguments: dict):
-    """Run one tool dispatch under TOOL_DISPATCH_TIMEOUT_S. On timeout, return a
-    clean error payload instead of letting the client hang indefinitely. (wait_for
-    cancels the awaiting coroutine; the underlying to_thread thread finishes in the
-    background, but the request is freed.) Separate from the decorated wrapper so
-    it is unit-testable."""
+    """Run one tool dispatch in its lane, under that lane's timeout. A heavy
+    call that could not start in time is refused at once (server_busy); on
+    timeout, return a clean error payload instead of letting the client hang.
+    (wait_for cancels the awaiting coroutine, which also drops its queued
+    to_thread work; a thread already running finishes in the background, but
+    the request is freed.) Separate from the decorated wrapper so it is
+    unit-testable."""
     _started = time.monotonic()
     # Before dispatch, so an aliased argument reaches the handler under the
     # name it expects and an unrecognised one is reported rather than
     # silently discarded.
     _unknown = _normalise_tool_args(_TOOL_NAME_ALIASES.get(name, name),
                                     arguments)
+    _lane = _lane_for_tool(name, arguments) if OCL_LANES else None
+    _timeout = _lane_timeout(_lane)
+    if _lane == "heavy" and not _heavy_admit():
+        _LANES.note_rejected("heavy")
+        logger.info("tool dispatch refused: %s (heavy lane at capacity)", name)
+        _record_tool_outcome(name, "busy")
+        _capture_outcome(name, "busy", _started, error="heavy lane at capacity",
+                         unknown=_unknown)
+        return [TextContent(type="text", text=json.dumps(
+            _busy_payload(name), ensure_ascii=False))]
+    _tokens = []
+    if _lane is not None:
+        _tokens = [(_ctx_lane, _ctx_lane.set(_lane)),
+                   (_ctx_request_deadline, _ctx_request_deadline.set(_started + _timeout))]
     try:
         result = await asyncio.wait_for(
             _handle_call_tool_inner(name, arguments),
-            timeout=TOOL_DISPATCH_TIMEOUT_S,
+            timeout=_timeout,
         )
         result = _prepend_arg_warning(
             result, _TOOL_NAME_ALIASES.get(name, name), _unknown)
@@ -28309,22 +28628,25 @@ async def _dispatch_with_timeout(name: str, arguments: dict):
         _capture_outcome(name, _outcome, _started, result=result,
                          unknown=_unknown)
         return result
-    except asyncio.TimeoutError:
+    except (asyncio.TimeoutError, _LaneDeadlineExpired):
         logger.warning(
             "tool dispatch aborted: %s exceeded %ss server-side timeout (load/backlog)",
-            name, TOOL_DISPATCH_TIMEOUT_S,
+            name, _timeout,
         )
         _capture_outcome(name, "timeout", _started,
-                         error=f"exceeded {TOOL_DISPATCH_TIMEOUT_S}s",
+                         error=f"exceeded {_timeout}s",
                          unknown=_unknown)
         return [TextContent(type="text", text=json.dumps({
             "error": "server_timeout",
             "tool": name,
-            "timeout_seconds": TOOL_DISPATCH_TIMEOUT_S,
+            "timeout_seconds": _timeout,
+            "retry_after_seconds": BUSY_RETRY_AFTER_S,
             "message": (
-                f"This call exceeded the server-side limit of {int(TOOL_DISPATCH_TIMEOUT_S)}s "
+                f"This call exceeded the server-side limit of {_timeout:g}s "
                 "and was aborted so your connection is not left hanging. The server may be "
-                "under temporary load — please retry; typical calls return in 1-10s."
+                f"under temporary load; retry after about {BUSY_RETRY_AFTER_S} s. Typical "
+                "calls return in 1-10s, and lookups of a known decision or statute are "
+                "served separately from searches."
             ),
         }, ensure_ascii=False))]
     except Exception as exc:
@@ -28335,6 +28657,9 @@ async def _dispatch_with_timeout(name: str, arguments: dict):
                          error=f"{type(exc).__name__}: {exc}",
                          unknown=_unknown)
         raise
+    finally:
+        for _var, _tok in reversed(_tokens):
+            _var.reset(_tok)
 
 
 _UI_WIDGETS = [m for m in (law_widget, decision_widget) if m is not None]
@@ -29597,6 +29922,11 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
+    except _LaneDeadlineExpired:
+        # Not a tool failure: the request ran out of time while its work was
+        # queued. _dispatch_with_timeout answers it as a timeout.
+        _tool_error = True
+        raise
     except FileNotFoundError as e:
         _tool_error = True
         return [TextContent(
@@ -29789,13 +30119,13 @@ def main_remote(host: str, port: int):
     # Silence client-disconnect noise so worker journals surface real errors.
     logging.getLogger("uvicorn.error").addFilter(_ClientDisconnectNoiseFilter())
 
-    # Size thread pool for concurrent DB queries (default is too small)
-    import concurrent.futures
-    pool_size = max(32, (os.cpu_count() or 4) * 4)
+    # Blocking work runs on the lane executor (_LaneExecutor), installed on
+    # uvicorn's own loop in lifespan below. An executor set on this loop was
+    # never used: uvicorn.run starts a fresh loop through asyncio.run, so until
+    # 2026-09-30 production ran on asyncio's lazy default pool of 20 threads
+    # while this line logged 64.
     loop = asyncio.new_event_loop()
-    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=pool_size))
     asyncio.set_event_loop(loop)
-    logger.info(f"Thread pool: {pool_size} workers")
 
     sse = SseServerTransport("/messages/")
 
@@ -30531,6 +30861,50 @@ setInterval(load, 30000);
         _ctx_client_ip.set(_client_ip(request))
         _ctx_client_ua.set(request.headers.get("user-agent", ""))
         return await call_next(request)
+
+    @rest_api.middleware("http")
+    async def _rest_admission(request: Request, call_next):
+        # Lane + deadline for the request's to_thread work (see _LaneExecutor),
+        # and a fast 503 when a heavy request could not start in time or this
+        # client already has its share of heavy requests in flight.
+        if not OCL_LANES:
+            return await call_next(request)
+        lane = _lane_for_rest(request.url.path, request.query_params)
+        if lane is None:
+            return await call_next(request)
+        started = time.monotonic()
+        client = None
+        if lane == "heavy":
+            client = _client_ip(request) or None
+            if not _heavy_admit(client):
+                _LANES.note_rejected("heavy")
+                return JSONResponse(
+                    status_code=503, content=_busy_payload(rest=True),
+                    headers={"Retry-After": str(BUSY_RETRY_AFTER_S)})
+            if client:
+                _heavy_client_inflight[client] = _heavy_client_inflight.get(client, 0) + 1
+        t_lane = _ctx_lane.set(lane)
+        t_deadline = _ctx_request_deadline.set(started + _lane_timeout(lane))
+        try:
+            return await call_next(request)
+        finally:
+            _ctx_request_deadline.reset(t_deadline)
+            _ctx_lane.reset(t_lane)
+            if client:
+                left = _heavy_client_inflight.get(client, 1) - 1
+                if left > 0:
+                    _heavy_client_inflight[client] = left
+                else:
+                    _heavy_client_inflight.pop(client, None)
+
+    async def _lane_deadline_expired(request: Request, exc: Exception):
+        # Work queued past its request deadline is the server's overload, not
+        # the client's error: same answer as a refusal.
+        return JSONResponse(
+            status_code=503, content=_busy_payload(rest=True),
+            headers={"Retry-After": str(BUSY_RETRY_AFTER_S)})
+
+    rest_api.add_exception_handler(_LaneDeadlineExpired, _lane_deadline_expired)
 
     # ── Per-IP daily quota for expensive (LLM-backed) endpoints ────
     # Defense against commercial-tool inner-loop integration costs (see
@@ -33431,6 +33805,7 @@ setInterval(load, 30000);
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
+        _install_lanes(asyncio.get_running_loop())
         async with session_manager.run():
             logger.info("Streamable HTTP session manager started")
             yield
