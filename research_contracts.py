@@ -191,6 +191,8 @@ class LookupResponse(ResearchModel):
     total: int = Field(description="Returned hits, not an uncapped count; inspect all hits for ambiguity and treat a full page conservatively.")
     results: list[LookupHit]
     hint: str | None = None
+    match: str | None = Field(default=None, description="Without exact=true: 'exact' when the hits carry the reference as their own docket or BGE label, 'search' when nothing matched exactly and the hits are near or related numbers.")
+    partial: bool | None = Field(default=None, description="True when the fallback search was cut short under load: the hits are incomplete, never proof of absence. With no hits the endpoint answers 503 instead.")
 
 
 RESEARCH_MODELS: dict[str, type[ResearchModel]] = {

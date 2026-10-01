@@ -28261,11 +28261,13 @@ def _lookup_exact(qn: str, limit: int = 25) -> dict:
 def _lookup_case_number(q: str, limit: int = 8, exact: bool = False) -> dict:
     """Instant case-number / docket lookup for the public site search box.
 
-    Guards to docket-style input via _looks_like_docket_query, so it never triggers the
-    Haiku query-parse / rerank path — a case number resolves in tens of ms via search_fts5's
-    exact-docket fast-path. Returns lean hits with /entscheid/ links. R1-safe: citation
-    strings come from _build_citation_strings (the pipeline), never constructed here. A
-    non-case-number input returns instantly with a hint, not a slow full-text fallback.
+    Guards to docket-style input via _looks_like_docket_query. A reference that IS a
+    stored docket or BGE label resolves through _lookup_exact (indexed, tens of ms);
+    only when nothing matches exactly (a partial or near number) does it fall back to
+    search_fts5. Returns lean hits with /entscheid/ links; `match` says which path
+    answered. R1-safe: citation strings come from _build_citation_strings (the
+    pipeline), never constructed here. A non-case-number input returns instantly with
+    a hint, not a slow full-text fallback.
     """
     qn = (q or "").strip()
     if not qn:
@@ -28284,7 +28286,22 @@ def _lookup_case_number(q: str, limit: int = 8, exact: bool = False) -> dict:
     if not _looks_like_docket_query(qn):
         return {"query": qn, "is_case_number": False, "total": 0, "results": [],
                 "hint": "Not a recognised Swiss case number — use full-text search for topics."}
-    rows, _total = search_fts5(query=qn, limit=max(1, min(int(limit), 25)))
+    lim = max(1, min(int(limit), 25))
+    # Exact first. search_fts5's docket fast path misses BGE citations (it strips
+    # the spaces the stored docket keeps) and slash dockets (the sanitiser removes
+    # the slash before the docket gate), so this used to run the full search:
+    # 5-10 s, citing decisions mixed in, and an empty answer when the search
+    # deadline cut it short under load (2026-09-30: "BGE 140 III 86", 22 s, 0 hits).
+    try:
+        exact_hit = _lookup_exact(qn, lim)
+    except Exception as exc:
+        logger.debug("exact-first lookup unavailable, falling back to search: %s", exc)
+        exact_hit = None
+    if exact_hit and exact_hit.get("results"):
+        return {"query": qn, "is_case_number": True, "match": "exact",
+                "total": exact_hit["total"], "results": exact_hit["results"]}
+    _meta: dict = {}
+    rows, _total = search_fts5(query=qn, limit=lim, meta=_meta)
     out = []
     try:
         conn = get_db()  # for the joined-docket lookups; the hits come from search_fts5
@@ -28314,7 +28331,13 @@ def _lookup_case_number(q: str, limit: int = 8, exact: bool = False) -> dict:
         if conn is not None:
             conn.close()
     _attach_canonical_ids(out)
-    return {"query": qn, "is_case_number": True, "total": len(out), "results": out}
+    res = {"query": qn, "is_case_number": True, "match": "search", "total": len(out), "results": out}
+    if _meta.get("deadline_partial"):
+        # The search ran out of time: "nothing found" would be a false negative.
+        res["partial"] = True
+        res["hint"] = ("The search was cut short under load, so this result is incomplete. "
+                       "Retry, or pass exact=true to resolve a full case number directly.")
+    return res
 
 
 def _deep_research_search(query: str, limit: int = DEEP_RESEARCH_SEARCH_LIMIT) -> dict:
@@ -31831,7 +31854,8 @@ setInterval(load, 30000);
                   summary="Instant case-number lookup",
                   description="Resolve a Swiss case number / docket (e.g. 'BGE 140 III 86', "
                               "'4A_636/2025', 'WBE.2026.33') straight to the matching "
-                              "decision(s) — no Haiku, no rerank, tens of ms. Returns lean "
+                              "decision(s) — an indexed exact match first (tens of ms), a "
+                              "search only for partial or near numbers (`match` says which). Returns lean "
                               "hits with citation + /entscheid/ link. Use /decisions for "
                               "topic search; `is_case_number=false` when the input is not a "
                               "recognised docket. `total` counts returned hits, not all matches; "
@@ -31844,7 +31868,15 @@ setInterval(load, 30000);
         exact: bool = Query(False, description="Only decisions whose own docket or BGE label is the reference "
                                                "(separator-agnostic, alias-aware); no related or citing decisions."),
     ):
-        return await asyncio.to_thread(_lookup_case_number, (q or query or ""), limit, exact)
+        result = await asyncio.to_thread(_lookup_case_number, (q or query or ""), limit, exact)
+        if result.get("partial") and not result.get("results"):
+            # Unanswered, not "not found": a client must not read this as absence.
+            return JSONResponse(
+                status_code=503,
+                content={"error": "search_incomplete", "query": result.get("query"),
+                         "retry_after_seconds": BUSY_RETRY_AFTER_S, "message": result["hint"]},
+                headers={"Retry-After": str(BUSY_RETRY_AFTER_S)})
+        return result
 
     @rest_api.post("/tool/{name}", tags=["Research"],
                    summary="Call any research tool and get its structured payload",

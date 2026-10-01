@@ -134,8 +134,10 @@ def test_lookup_hits_list_joined_dockets_and_canonical_ids(corpus, monkeypatch):
     assert hit["canonical_decision_id"] == LEAD and hit["is_canonical"] is True
     validate_payload("lookup", exact)
     jsonschema.validate(exact, output_schema("lookup"))
-    # the site search box path (search_fts5 hits) carries the same fields
+    # the site search box path (search_fts5 hits) carries the same fields; it is
+    # reached only when nothing matches exactly, so the exact step is emptied here
     monkeypatch.setattr(m, "_looks_like_docket_query", lambda q: True)
+    monkeypatch.setattr(m, "_lookup_exact", lambda qn, limit=25: {"total": 0, "results": []})
     rows = [dict(r) for r in _rconn(str(corpus / "decisions.db")).execute(
         "SELECT * FROM decisions WHERE decision_id IN (?, ?)", (LEAD, BGE_DUPLICATE))]
     monkeypatch.setattr(m, "search_fts5", lambda **k: (rows, len(rows)))
