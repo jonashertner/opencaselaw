@@ -133,34 +133,71 @@ _COURT_MAP = {
     "arbeitsgericht": "zh_arbeitsgericht",
 }
 
-# Keywords that take precedence over the Bezirksgericht they sit in.
+# The Arbeitsgericht and the Mietgericht are divisions of a Bezirksgericht, and
+# every district has its own. Only the two in Zürich carry a court code of
+# their own (zh_arbeitsgericht / zh_mietgericht: the courts behind the AGer-Z
+# and ZMP collections). Everywhere else the deciding court is the district
+# court and the division is its chamber.
 _SPECIALISED_COURTS = ("arbeitsgericht", "mietgericht")
+_ZURICH_DISTRICT = "zh_bezirksgericht_zuerich"
+
+_DISTRICT_KEYS = sorted(
+    (k for k in _COURT_MAP if k.startswith("bezirksgericht ")), key=len, reverse=True
+)
+# "Mietgericht des Bezirkes Horgen", "Arbeitsgericht Zürich": the division
+# named as the court, the district only in the tail.
+_DIVISION_AS_COURT_RE = re.compile(
+    r"^(arbeitsgericht|mietgericht)\s+(?:des\s+bezirke?s\s+)?(.+)$", re.IGNORECASE
+)
+
+
+def _clean_kammer(kammer: str | None) -> str | None:
+    """The portal prints "-" for "no chamber"."""
+    k = (kammer or "").strip()
+    return k if k and k != "-" else None
+
+
+def _district_code(gericht: str) -> tuple[str | None, str | None]:
+    """(district court code, division named in the Gericht field) or (None, None)."""
+    g = " ".join((gericht or "").lower().split())
+    for key in _DISTRICT_KEYS:
+        if key in g:
+            return _COURT_MAP[key], None
+    m = _DIVISION_AS_COURT_RE.match(g)
+    if m:
+        code = _COURT_MAP.get(f"bezirksgericht {m.group(2).strip()}")
+        if code:
+            return code, m.group(1).capitalize()
+    return None, None
 
 
 def _map_court(gericht: str, kammer: str) -> tuple[str, str | None]:
     """
     Map Gericht/Behörde + Abteilung/Kammer to (court_code, chamber_str).
 
-    Strategy: check combined text against court map, longest match first.
-    The kammer field becomes the chamber string.
+    The court code names the court that decided. A district court's
+    Arbeitsgericht or Mietgericht stays with that district court and becomes
+    its chamber; the Zürich ones keep their own code.
     """
     combined = f"{gericht} {kammer}".lower().strip()
-    kammer_clean = kammer.strip() if kammer and kammer.strip() else None
+    kammer_clean = _clean_kammer(kammer)
 
-    # Specialised first-instance courts win over their host Bezirksgericht.
-    # Since 2024 the portal files Arbeitsgericht / Mietgericht rulings as
-    # Gericht="Bezirksgericht Zürich", Abteilung/Kammer="Arbeitsgericht";
-    # before that as Gericht="Arbeitsgericht Zürich", Kammer="4. Abteilung".
-    # The longest-keyword rule below picked "bezirksgericht zürich" over
-    # "arbeitsgericht", so 67 Arbeitsgericht rulings (2006–2026) sat under
-    # zh_bezirksgericht_zuerich while zh_arbeitsgericht held 34 (2026-09-04).
-    for keyword in _SPECIALISED_COURTS:
-        if keyword in combined:
-            code = _COURT_MAP[keyword]
+    district, division = _district_code(gericht)
+    if district:
+        specialised = next((k for k in _SPECIALISED_COURTS if k in combined), None)
+        if specialised and district == _ZURICH_DISTRICT:
             # A Kammer that only repeats the court name carries no information.
-            if kammer_clean and kammer_clean.lower() == keyword:
-                return code, None
-            return code, kammer_clean
+            if kammer_clean and kammer_clean.lower() == specialised:
+                return _COURT_MAP[specialised], None
+            return _COURT_MAP[specialised], kammer_clean
+        # 2026-10-02: until now every district's Arbeitsgericht / Mietgericht
+        # was filed as zh_arbeitsgericht / zh_mietgericht with the chamber
+        # dropped — 58 rulings of ten district courts shown as "Arbeitsgericht
+        # ZH", and two courts' docket series sharing one id space
+        # (AN230001 of Pfäffikon hidden behind AN230001 of Zürich).
+        if division and kammer_clean:
+            return district, f"{division}, {kammer_clean}"
+        return district, kammer_clean or division
 
     # Check longest keywords first to avoid substring collisions
     for keyword, code in sorted(_COURT_MAP.items(), key=lambda x: len(x[0]), reverse=True):
@@ -170,7 +207,7 @@ def _map_court(gericht: str, kammer: str) -> tuple[str, str | None]:
 
     # Fallback
     logger.debug(f"ZH unmapped court: gericht={gericht!r}, kammer={kammer!r}")
-    return "zh_gerichte", kammer.strip() if kammer and kammer.strip() else None
+    return "zh_gerichte", kammer_clean
 
 
 # ============================================================
@@ -223,8 +260,46 @@ def _get_detail_field(details_soup, label: str) -> str | None:
         spans = p.find_all("span")
         if len(spans) >= 2:
             if spans[0].get_text(strip=True) == label:
-                return spans[1].get_text(strip=True)
+                # Multi-line values (Verweise, Gesetze) are <br>-separated.
+                return _tidy(spans[1].get_text("\n", strip=True))
     return None
+
+
+def _tidy(text: str) -> str:
+    """Portal text carries soft hyphens and non-breaking spaces."""
+    text = (text or "").replace("\xad", "").replace("\xa0", " ")
+    lines = [" ".join(ln.split()) for ln in text.splitlines()]
+    return "\n".join(ln for ln in lines if ln)
+
+
+def _extract_headnote(details_soup) -> str:
+    """
+    The Leitsatz: the paragraphs of the details block that are not labelled
+    fields. 2,815 of the portal's 37,336 entries carry one (2026-10-02),
+    nearly all of the Kassationsgericht's and the Obergericht's leading
+    rulings. It was looked for in an <em> the portal never emits, so not one
+    was ever stored.
+    """
+    paras = []
+    for p in details_soup.find_all("p", recursive=False):
+        if p.find("span", class_="titel"):
+            continue
+        text = _tidy(p.get_text(" ", strip=True))
+        if text:
+            paras.append(text)
+    return "\n\n".join(paras)
+
+
+# Shortest text taken as a Leitsatz (the real ones start around 40 characters).
+MIN_HEADNOTE_CHARS = 30
+
+# The portal's way of saying "none".
+_NO_VALUE = {"", "-", "keine", "n/a"}
+
+
+def _value_or_none(text: str | None) -> str | None:
+    t = (text or "").strip()
+    return None if t.lower() in _NO_VALUE else t
 
 
 def _parse_date_ddmmyyyy(text: str) -> date | None:
@@ -350,6 +425,11 @@ class ZHGerichteScraper(BaseScraper):
             logger.debug(f"ZH window {von}–{bis}: empty response")
             return
 
+        yield from self._parse_window(html, f"{von}–{bis}")
+
+    def _parse_window(self, html: str, label: str = "") -> Iterator[dict]:
+        """Stubs of one livesearch response. Network-free: the metadata
+        migration (scripts/migrate_zh_portal_metadata.py) replays it."""
         soup = BeautifulSoup(html, "html.parser")
 
         # Parse count from <div id="entscheideText"><strong>N</strong>
@@ -359,7 +439,7 @@ class ZHGerichteScraper(BaseScraper):
             if strong:
                 try:
                     count = int(strong.get_text(strip=True))
-                    logger.debug(f"ZH window {von}–{bis}: {count} decisions")
+                    logger.debug(f"ZH window {label}: {count} decisions")
                 except ValueError:
                     pass
 
@@ -373,7 +453,7 @@ class ZHGerichteScraper(BaseScraper):
 
         if len(entscheide) != len(details_divs):
             logger.warning(
-                f"ZH window {von}–{bis}: mismatched counts: "
+                f"ZH window {label}: mismatched counts: "
                 f"{len(entscheide)} entscheide vs {len(details_divs)} details"
             )
 
@@ -438,22 +518,24 @@ class ZHGerichteScraper(BaseScraper):
         titel = ""
         strong = entscheid_div.find("strong")
         if strong:
-            titel = strong.get_text(strip=True)
+            titel = _tidy(strong.get_text(" ", strip=True)).replace("\n", " ")
 
-        # Leitsatz (italic text in entscheid div)
-        leitsatz = ""
-        em = entscheid_div.find("em")
-        if em:
-            leitsatz = em.get_text(strip=True)
+        # Leitsatz. A few entries only repeat the title or say "(Volltext)" /
+        # "Muster" there; that is not a headnote.
+        leitsatz = _extract_headnote(details_div)
+        if len(leitsatz) < MIN_HEADNOTE_CHARS or leitsatz == titel:
+            leitsatz = ""
 
         # Entscheidart
-        entscheidart = _get_detail_field(details_div, "Entscheidart") or ""
+        entscheidart = _value_or_none(_get_detail_field(details_div, "Entscheidart")) or ""
 
-        # Verweise (Weiterzug)
-        verweise = _get_detail_field(details_div, "Verweise") or ""
+        # Verweise (Weiterzug, verwandte Geschäfte)
+        verweise = _value_or_none(_get_detail_field(details_div, "Verweise")) or ""
 
-        # Gesetz/e
-        gesetze = _get_detail_field(details_div, "Gesetz/e, Verordnung/en etc") or ""
+        # Gesetz/e (the label ends in a dot; without it nothing ever matched)
+        gesetze = _value_or_none(
+            _get_detail_field(details_div, "Gesetz/e, Verordnung/en etc.")
+        ) or ""
 
         # PDF URL
         pdf_link = details_div.find("a", class_="pdf-icon")
@@ -554,8 +636,8 @@ class ZHGerichteScraper(BaseScraper):
         # Decision type
         decision_type = stub.get("entscheidart") or None
 
-        # Weiterzug / references
-        stub.get("verweise") or None
+        # Weiterzug / references ("Weiterzug ans Bundesgericht, 6B_122/2024")
+        appeal_info = stub.get("verweise") or None
 
         return Decision(
             decision_id=stub["decision_id"],
@@ -571,6 +653,7 @@ class ZHGerichteScraper(BaseScraper):
             source_url=stub["source_url"],
             pdf_url=pdf_url,
             decision_type=decision_type,
+            appeal_info=appeal_info,
             cited_decisions=extract_citations(full_text) if len(full_text) > 200 else [],
             external_id=f"zh_gerichte_{stub['doc_id']}",
         )

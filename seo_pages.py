@@ -215,7 +215,38 @@ _COURT_NAMES = {
     "vs_gerichte": "Wallis", "zg_obergericht": "Zug OG",
     "zh_obergericht": "Zürich OG", "zh_verwaltungsgericht": "Zürich VerwG",
     "zh_sozialversicherungsgericht": "Zürich SozVersG",
+    "zh_handelsgericht": "Handelsgericht Zürich",
+    "zh_kassationsgericht": "Kassationsgericht Zürich",
+    "zh_steuerrekursgericht": "Steuerrekursgericht Zürich",
+    "zh_baurekursgericht": "Baurekursgericht Zürich",
+    # The Arbeitsgericht / Mietgericht of the Bezirksgericht Zürich; the other
+    # districts' divisions are a chamber of their district court.
+    "zh_arbeitsgericht": "Arbeitsgericht Zürich",
+    "zh_mietgericht": "Mietgericht Zürich",
+    "zh_bezirksgericht_zuerich": "Bezirksgericht Zürich",
+    "zh_bezirksgericht_winterthur": "Bezirksgericht Winterthur",
+    "zh_bezirksgericht_uster": "Bezirksgericht Uster",
+    "zh_bezirksgericht_pfaeffikon": "Bezirksgericht Pfäffikon",
+    "zh_bezirksgericht_meilen": "Bezirksgericht Meilen",
+    "zh_bezirksgericht_horgen": "Bezirksgericht Horgen",
+    "zh_bezirksgericht_hinwil": "Bezirksgericht Hinwil",
+    "zh_bezirksgericht_dietikon": "Bezirksgericht Dietikon",
+    "zh_bezirksgericht_dielsdorf": "Bezirksgericht Dielsdorf",
+    "zh_bezirksgericht_buelach": "Bezirksgericht Bülach",
+    "zh_bezirksgericht_andelfingen": "Bezirksgericht Andelfingen",
+    "zh_bezirksgericht_affoltern": "Bezirksgericht Affoltern",
 }
+
+
+def _court_display_name(court_code: str) -> str:
+    """Court name for a decision page. A code without an entry keeps its
+    canton prefix in capitals ("ZH Arbeitsgericht", never "Zh Arbeitsgericht")."""
+    if court_code in _COURT_NAMES:
+        return _COURT_NAMES[court_code]
+    prefix, _, rest = court_code.partition("_")
+    if len(prefix) == 2 and rest:
+        return f"{prefix.upper()} {rest.replace('_', ' ').title()}"
+    return court_code.replace("_", " ").title()
 
 
 def _get_db():
@@ -634,7 +665,10 @@ def _render_decision(
 ) -> str:
     did = row["decision_id"]
     court = row["court"] or ""
-    court_name = _COURT_NAMES.get(court, court.replace("_", " ").title())
+    court_name = _court_display_name(court)
+    # The division that decided (e.g. the Arbeitsgericht of a Bezirksgericht).
+    chamber = (row["chamber"] if "chamber" in row.keys() else None) or ""
+    chamber = chamber.strip() if chamber.strip() not in ("", "-") else ""
     canton = row["canton"] or ""
     # ECtHR dockets carry a _yyyymmdd key suffix that must never reach a page
     # title, an og:title or the Schema.org LegalCase name.
@@ -1208,6 +1242,7 @@ def _render_decision(
     {f'<p class="decision-subtitle">{_esc(title)}</p>' if title else ''}
     <div class="decision-meta">
       <span><strong>{_esc(court_name)}</strong></span>
+      {f'<span class="sep">·</span><span>{_esc(chamber)}</span>' if chamber else ''}
       <span class="sep">·</span>
       <span>{_esc(date)}</span>
       <span class="sep">·</span>
