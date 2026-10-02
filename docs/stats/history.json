@@ -1,7 +1,7 @@
 {
 "schema": "opencaselaw.stats_history.v1",
 "note": "One point per day, taken from the committed docs/stats.json of that day. Seeded from git history on 2026-09-17; a nightly appender is proposed (see docs/proposals/stats-dashboard.md). null = not computed that day.",
-"generated_at": "2026-10-01T21:05:58+00:00",
+"generated_at": "2026-10-02T00:26:03+00:00",
 "series": [
 {
 "date": "2026-05-01",
