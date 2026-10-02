@@ -234,6 +234,7 @@ class ReflectRequest(BaseModel):
 # Add repo root to path so db_schema can be imported when run from any directory
 sys.path.insert(0, str(Path(__file__).parent))
 from db_schema import SCHEMA_SQL, INSERT_OR_IGNORE_SQL, INSERT_COLUMNS  # noqa: E402
+import appeal_refs  # noqa: E402  (the court's appeal note, read from json_data)
 import docket_aliases  # noqa: E402  (joined-docket resolution, issue #41)
 import reference_parser
 import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; honest not-found reasons)
@@ -9518,6 +9519,11 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                 break
 
     _joined = _joined_dockets_for(conn, row["decision_id"]) if row else []
+    # What the court says happened next ("Weiterzug ans Bundesgericht,
+    # 6B_122/2024"), verbatim, and the decisions it names that we hold.
+    _appeal = appeal_refs.appeal_info_of(row) if row else None
+    _appeal_links = (appeal_refs.resolve(conn, _appeal, row["court"], row["decision_id"])
+                     if _appeal else [])
     conn.close()
 
     if not row:
@@ -9526,6 +9532,10 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     result = dict(row)
     # Remove json_data blob from response (redundant)
     result.pop("json_data", None)
+    if _appeal:
+        result["appeal_info"] = _appeal
+        if _appeal_links:
+            result["appeal_references"] = _appeal_links
     # The caller typed something other than the stored id (a docket, a
     # citation string, a percent-encoded or differently-separated id): say
     # what was resolved so a client can tell normalisation from a mismatch.

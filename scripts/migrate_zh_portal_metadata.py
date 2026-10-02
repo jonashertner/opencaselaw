@@ -78,34 +78,12 @@ _EXT_RE = re.compile(r"^zh_gerichte_(\d+)$")
 _SRC_RE = re.compile(r"entscheidDrucken\]=(\d+)$")
 _PLACEHOLDER_REGESTE = "[PDF text extraction failed"
 
-# The caption of a Zürich ruling: "Urteil vom 10. Februar 2022",
-# "Beschluss und Teilurteil vom 6. Februar 2025", "Beschluss vom 20.06.2013".
-# Anchored to a line of its own, so a date quoted in the reasoning ("mit
-# Verfügung vom 20. Juni 2013 trat die Einzelrichterin …") is not a caption.
-_MONTHS = {"januar": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5,
-           "juni": 6, "juli": 7, "august": 8, "september": 9, "oktober": 10,
-           "november": 11, "dezember": 12}
-_CAPTION_RE = re.compile(
-    r"^[ \t]*(?:(?:Teil|Zwischen|Vor|End)?(?:[Uu]rteil|[Bb]eschluss|[Vv]erfügung(?:en)?|[Ee]ntscheid)"
-    r"(?:[ \t]+und[ \t]+)?){1,2}[ \t]+vom[ \t]+"
-    r"(\d{1,2})\.[ \t]*(?:(\d{1,2})\.|([A-Za-zä]+))[ \t]*((?:19|20)\d{2})[ \t]*$",
-    re.MULTILINE,
+# The caption helpers live with the scraper, which reads a missing date from them.
+from scrapers.cantonal.zh_gerichte import (  # noqa: E402,F401
+    _CAPTION_RE,
+    CAPTION_HEAD_CHARS,
+    caption_dates,
 )
-CAPTION_HEAD_CHARS = 4000
-
-
-def caption_dates(full_text: str | None) -> set[str]:
-    """ISO dates of the caption lines in the head of a ruling."""
-    out: set[str] = set()
-    for m in _CAPTION_RE.finditer((full_text or "")[:CAPTION_HEAD_CHARS]):
-        month = int(m.group(2)) if m.group(2) else _MONTHS.get(m.group(3).lower())
-        if not month:
-            continue
-        try:
-            out.add(date(int(m.group(4)), month, int(m.group(1))).isoformat())
-        except ValueError:
-            continue
-    return out
 
 
 def fetch_listing(out: Path, delay: float = 2.0) -> int:
@@ -140,7 +118,8 @@ def fetch_listing(out: Path, delay: float = 2.0) -> int:
             if declared and int(declared.group(1)) != entries:
                 raise SystemExit(f"window {v}–{b}: portal declares {declared.group(1)}, got {entries}")
             for stub in parser._parse_window(resp.text, f"{v}–{b}"):
-                stub["decision_date"] = stub["decision_date"].isoformat()
+                stub["decision_date"] = (stub["decision_date"].isoformat()
+                                         if stub["decision_date"] else None)
                 f.write(json.dumps(stub, ensure_ascii=False) + "\n")
                 n += 1
             log.info(f"  {v or '…'}–{b}: {entries} entries")

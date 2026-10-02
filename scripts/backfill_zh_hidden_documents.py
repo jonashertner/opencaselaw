@@ -56,9 +56,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from migrate_zh_portal_metadata import (  # noqa: E402
-    _CAPTION_RE,
-    CAPTION_HEAD_CHARS,
     _rows,
+    caption_dates,
     doc_id_of,
     load_listing,
 )
@@ -93,13 +92,6 @@ def overlap(a: str, b: str) -> tuple[float, float]:
     return in_b, in_a
 
 
-def captions(text: str | None) -> set[str]:
-    """The caption lines of a ruling ("Beschluss und Urteil vom 9. Juli 2014"),
-    whitespace-folded. An extract has none: it opens with the Leitsatz."""
-    head = (text or "")[:CAPTION_HEAD_CHARS]
-    return {" ".join(m.group(0).split()).lower() for m in _CAPTION_RE.finditer(head)}
-
-
 def classify(new_text: str, new_doc: str, held: dict) -> str:
     """How a hidden document relates to a held row of the same court, docket
     and date: identical | newer_version | older_version | fuller | shorter | distinct."""
@@ -108,12 +100,15 @@ def classify(new_text: str, new_doc: str, held: dict) -> str:
         return "identical"
     in_held, in_new = overlap(new_text, held_text)
     if max(in_held, in_new) < SAME_RULING:
-        # Little shared text. Two rulings of one day each carry their own
-        # caption ("Beschluss vom …" and "Urteil vom …"). A heavily edited
-        # extract carries none, or the same one: then it is the same ruling
-        # and the fuller text is the one to keep.
-        cap_new, cap_held = captions(new_text), captions(held_text)
-        if cap_new and cap_held and cap_new != cap_held:
+        # Little shared text. A heavily edited extract shares little with its
+        # judgment, but cites it by date ("Urteil vom 6. Januar 2015") where
+        # the judgment's caption reads "Beschluss und Urteil vom 6. Januar
+        # 2015": the caption DATES agree, so it is the same ruling and the
+        # fuller text is the one to keep. Captions that name different days
+        # are different rulings (LC120032: a fee order of 13 November 2012
+        # listed under the judgment's date of 29 October).
+        cap_new, cap_held = caption_dates(new_text), caption_dates(held_text)
+        if cap_new and cap_held and cap_new.isdisjoint(cap_held):
             return "distinct"
         return "fuller" if len(new_text) > LONGER_BY * len(held_text) else "shorter"
     if min(in_held, in_new) >= SAME_VERSION:
@@ -174,8 +169,14 @@ def build_patch(shard: Path, listing: dict[str, dict], out: Path, limit: int | N
                     rec["op"] = "skip"
                     rec["why"] = "same_pdf"
                 else:
-                    stub_d = dict(stub, decision_date=date.fromisoformat(stub["decision_date"]))
+                    stub_d = dict(stub, decision_date=(date.fromisoformat(stub["decision_date"])
+                                                       if stub["decision_date"] else None))
                     decision = scraper.fetch_decision(stub_d)
+                    if decision and not stub["decision_date"]:
+                        # "n/A" on the portal: the date fetch_decision read from the caption
+                        stub = dict(stub, decision_date=(decision.decision_date.isoformat()
+                                                         if decision.decision_date else None))
+                        rec["date"] = stub["decision_date"]
                     stats["fetched"] += 1
                     text = decision.full_text if decision else ""
                     if not decision or text.startswith("[PDF text extraction failed"):
@@ -193,6 +194,9 @@ def build_patch(shard: Path, listing: dict[str, dict], out: Path, limit: int | N
                             # the same text listed again under another date
                             rec["op"] = "skip"
                             rec["why"] = "identical_other_date"
+                        elif not stub["decision_date"]:
+                            rec["op"] = "held"
+                            rec["why"] = "undated_under_held_docket"
                         elif not same_day:
                             row["decision_id"] = dated_id(row["decision_id"], stub["decision_date"])
                             rec["op"] = "add"
@@ -222,9 +226,21 @@ def build_patch(shard: Path, listing: dict[str, dict], out: Path, limit: int | N
                                 rec["regeste"] = stub["leitsatz"]
                                 target["regeste"] = stub["leitsatz"]
                         else:
-                            rec["op"] = "held"
-                            rec["why"] = "distinct_same_day"
-                            rec["against"] = [r["decision_id"] for _, r in verdicts]
+                            # A different ruling filed under the day of another.
+                            # Its own caption says when it was made.
+                            own = caption_dates(text)
+                            taken_days = {str(r.get("decision_date") or "")[:10] for r in rows}
+                            if len(own) == 1 and not (own & taken_days):
+                                day = next(iter(own))
+                                row["decision_date"] = day
+                                row["decision_id"] = dated_id(row["decision_id"], day)
+                                rec["op"] = "add"
+                                rec["why"] = "other_date_by_caption"
+                                rec["date"] = day
+                            else:
+                                rec["op"] = "held"
+                                rec["why"] = "distinct_same_day"
+                                rec["against"] = [r["decision_id"] for _, r in verdicts]
                         if rec["op"] == "add" and row["decision_id"] in ids:
                             rec["op"] = "held"
                             rec["why"] = f"id_taken:{row['decision_id']}"

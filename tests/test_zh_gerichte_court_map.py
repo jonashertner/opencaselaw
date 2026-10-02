@@ -149,3 +149,30 @@ def test_a_title_or_a_stub_in_the_headnote_slot_is_not_a_headnote():
     long = "Die Wahrung der Rechtsmittelfrist ist von Amtes wegen zu prüfen (E. 2)."
     assert stub(long)["leitsatz"] == long
     assert stub(long)["chamber"] is None
+
+
+def test_docket_is_read_from_the_pdf_name_when_the_portal_has_none():
+    from scrapers.cantonal.zh_gerichte import _docket_from_pdf
+    assert _docket_from_pdf("https://x/oeffentlich/VO110048-O1.pdf") == "VO110048"
+    assert _docket_from_pdf("https://x/60259F69CB005C13C1256EC20039F2A1_UK040072.pdf") == "UK040072"
+    assert _docket_from_pdf("https://x/AA110010.pdf") == "AA110010"
+    assert _docket_from_pdf("https://x/Brief_an_BGP_-_Postkontrolle.pdf") is None
+    assert _docket_from_pdf("https://x/011BA36C3B2D8C16C1256C5600566264_Geschwind1.pdf") is None
+
+
+def test_undated_entry_is_kept_and_dated_from_the_caption():
+    from scrapers.cantonal.zh_gerichte import ZHGerichteScraper, caption_dates
+    html = (
+        '<div class="entscheid entscheid_nummer_9"><p><strong>Betrug</strong></p></div>'
+        '<div class="entscheidDetails container_9">'
+        '<div class="pdf"><p><a class="pdf-icon" href="/f/SB160213-O1.pdf"></a></p></div>'
+        '<p><span class="titel">Gericht/Behörde</span><span>Obergericht des Kantons Zürich</span></p>'
+        '<p><span class="titel">Abteilung/Kammer</span><span>I. Strafkammer</span></p>'
+        '<p><span class="titel">Entscheiddatum</span><span>n/A</span></p>'
+        '<p><span class="titel">Geschäftsnummer</span><span></span></p></div>'
+    )
+    sc = ZHGerichteScraper.__new__(ZHGerichteScraper)
+    stub = next(iter(sc._parse_window(html)))
+    assert stub["decision_date"] is None
+    assert stub["docket_number"] == "SB160213" and stub["decision_id"] == "zh_obergericht_SB160213"
+    assert caption_dates("Obergericht\nUrteil vom 3. März 2017\nin Sachen") == {"2017-03-03"}

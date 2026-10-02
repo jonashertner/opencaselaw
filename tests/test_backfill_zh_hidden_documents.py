@@ -41,10 +41,19 @@ def test_corrected_version_the_later_upload_wins():
     assert bf.classify(corrected, "50", held(FULL, doc="100")) == "older_version"
 
 
-def test_two_rulings_of_one_day_each_have_their_own_caption():
-    a = "Obergericht\nBeschluss vom 5. September 2018\nin Sachen\n" + FULL
-    b = "Obergericht\nUrteil vom 5. September 2018\nin Sachen\n" + OTHER
+def test_captions_naming_different_days_are_different_rulings():
+    """LC120032: a fee order of 13 November listed under the judgment's 29 October."""
+    a = "Obergericht\nBeschluss und Urteil vom 29. Oktober 2012\nin Sachen\n" + FULL
+    b = "§ 23 AnwGebV. Honorar.\nBeschluss vom 13. November 2012\n" + OTHER
     assert bf.classify(b, "200", held(a)) == "distinct"
+
+
+def test_extract_citing_its_judgment_by_date_is_the_same_ruling():
+    """NG140002: the extract says "Urteil vom …", the judgment "Beschluss und Urteil vom …"."""
+    full = "Obergericht\nBeschluss und Urteil vom 6. Januar 2015\nin Sachen\n" + FULL
+    extract = "Art. 316 Abs. 3 ZPO, Beweisabnahme.\nUrteil vom 6. Januar 2015\n" + OTHER[:900]
+    assert bf.classify(full, "200", held(extract)) == "fuller"
+    assert bf.classify(extract, "200", held(full)) == "shorter"
 
 
 def test_heavily_edited_extract_without_a_caption_is_the_same_ruling():

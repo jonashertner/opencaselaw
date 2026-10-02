@@ -783,8 +783,72 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
             conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
             deleted += 1
 
+    deleted += _generic_bucket_twin_dedup(conn)
+
     if deleted:
         conn.commit()
+    return deleted
+
+
+# Share of 60-character windows of one text found in the other, both ways, at
+# or above which two rows of one docket are the same ruling.
+BUCKET_TWIN_MIN_OVERLAP = 0.9
+_TWIN_WINDOW = 60
+
+
+def _same_ruling_text(a: str, b: str) -> bool:
+    """Identical after normalisation, or near-identical both ways (two
+    extractions of one PDF differ by hyphenation and page furniture)."""
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+
+    def share(x: str, y: str) -> float:
+        wins = [x[i:i + _TWIN_WINDOW] for i in range(0, max(len(x) - _TWIN_WINDOW, 1), _TWIN_WINDOW // 2)]
+        return sum(1 for w in wins if w in y) / len(wins)
+
+    return share(a, b) >= BUCKET_TWIN_MIN_OVERLAP and share(b, a) >= BUCKET_TWIN_MIN_OVERLAP
+
+
+def _generic_bucket_twin_dedup(conn: sqlite3.Connection) -> int:
+    """Delete a generic-bucket row whose text the corpus also holds under the
+    deciding court and the same docket, whatever the date says.
+
+    The date-keyed pass above cannot see these: the federation copy carries
+    another date than the court's own entry (measured 2026-10-02 on the
+    production Zürich shards: of 1,180 zh_gerichte rows left after that pass,
+    1,027 had text identical to a direct row of the same docket and 117
+    near-identical — every one of them a ruling served twice, once without a
+    court). The text decides, so a different ruling of the same docket stays.
+    """
+    if not _GENERIC_BUCKET_COURTS:
+        return 0
+    marks = ",".join("?" * len(_GENERIC_BUCKET_COURTS))
+    bucket = conn.execute(
+        f"SELECT decision_id, court, docket_number, full_text FROM decisions "
+        f"WHERE court IN ({marks}) AND docket_number IS NOT NULL "
+        f"AND LENGTH(TRIM(docket_number)) > 0",
+        list(_GENERIC_BUCKET_COURTS),
+    ).fetchall()
+    deleted = 0
+    for did, court, docket, text in bucket:
+        peers = [c for c in _COURT_TO_GROUP.get(court, ()) if c not in _GENERIC_BUCKET_COURTS]
+        if not peers:
+            continue
+        norm = _norm_for_dedup(text)
+        if not norm:
+            continue
+        pmarks = ",".join("?" * len(peers))
+        twins = conn.execute(
+            f"SELECT full_text FROM decisions WHERE docket_number = ? AND court IN ({pmarks})",
+            [docket, *peers],
+        ).fetchall()
+        if any(_same_ruling_text(norm, _norm_for_dedup(t[0])) for t in twins):
+            conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+            deleted += 1
+    if deleted:
+        logger.info(f"  Generic-bucket twins (same docket, same text, other date): removed {deleted}")
     return deleted
 
 

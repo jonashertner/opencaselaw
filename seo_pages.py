@@ -20,6 +20,7 @@ import urllib.parse
 from pathlib import Path
 
 import decision_ref
+import appeal_refs
 import ecthr_docket
 
 logger = logging.getLogger("swiss-caselaw-mcp")
@@ -236,6 +237,29 @@ _COURT_NAMES = {
     "zh_bezirksgericht_andelfingen": "Bezirksgericht Andelfingen",
     "zh_bezirksgericht_affoltern": "Bezirksgericht Affoltern",
 }
+
+
+def _appeal_html(row) -> str:
+    """The court's appeal note for the page header: its own wording, with the
+    dockets it names linked where the corpus holds exactly that decision."""
+    text = appeal_refs.appeal_info_of(row)
+    if not text:
+        return ""
+    refs: list[dict] = []
+    try:
+        conn = _get_db()
+        try:
+            refs = appeal_refs.resolve(conn, text, row["court"], row["decision_id"])
+        finally:
+            conn.close()
+    except Exception as e:  # a missing link must never cost the page
+        logger.debug("appeal references not resolved for %s: %s", row["decision_id"], e)
+    out = _esc(" · ".join(ln for ln in text.splitlines() if ln.strip()))
+    for ref in refs:
+        docket = _esc(ref["docket"])
+        href = _esc(f"{BASE_URL}/entscheid/{urllib.parse.quote(ref['decision_id'])}")
+        out = out.replace(docket, f'<a href="{href}">{docket}</a>', 1)
+    return out
 
 
 def _court_display_name(court_code: str) -> str:
@@ -666,6 +690,7 @@ def _render_decision(
     did = row["decision_id"]
     court = row["court"] or ""
     court_name = _court_display_name(court)
+    appeal_html = _appeal_html(row)
     # The division that decided (e.g. the Arbeitsgericht of a Bezirksgericht).
     chamber = (row["chamber"] if "chamber" in row.keys() else None) or ""
     chamber = chamber.strip() if chamber.strip() not in ("", "-") else ""
@@ -919,6 +944,8 @@ def _render_decision(
     home_label = breadcrumb_labels.get(language, "Home")
     source_label = sources_labels.get(language, "Source")
     pdf_label = pdf_labels.get(language, "Original PDF")
+    appeal_label = {"de": "Weiterzug / Verweise", "fr": "Recours / renvois",
+                    "it": "Ricorso / rinvii"}.get(language, "Appeal / references")
     export_label = export_labels.get(language, "Export")
 
     return f"""<!DOCTYPE html>
@@ -1011,6 +1038,10 @@ def _render_decision(
         align-items: baseline; font-size: var(--t-sm);
         margin-top: var(--s-3);
     }}
+    .decision-appeal {{
+        font-size: var(--t-sm); color: var(--text-2); margin: 0 0 var(--s-4);
+    }}
+    .decision-appeal .label {{ color: var(--text-3); margin-right: var(--s-2); }}
     .decision-actions a {{
         color: var(--text); text-decoration: none;
         padding-bottom: 1px;
@@ -1249,6 +1280,7 @@ def _render_decision(
       <span>{_esc(lang_label)}</span>
       {f'<span class="canton">{_esc(canton)}</span>' if canton else ''}
     </div>
+    {f'<p class="decision-appeal"><span class="label">{_esc(appeal_label)}</span> {appeal_html}</p>' if appeal_html else ''}
     <div class="decision-actions">
       <span class="group">
         <span class="label">{_esc(source_label)}</span>

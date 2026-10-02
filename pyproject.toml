@@ -76,6 +76,7 @@ include = [
 [tool.setuptools]
 py-modules = [
     "appeal_extract",
+    "appeal_refs",
     "backfill_bger_chambers",
     "backfill_bvger_chambers",
     "backfill_canonical_identity",

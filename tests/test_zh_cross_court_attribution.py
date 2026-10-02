@@ -63,10 +63,11 @@ def test_longer_attributed_row_wins_as_before(tmp_path):
     assert _ids(c) == ["zh_obergericht_LA170001"]
 
 
-def test_other_dates_are_other_decisions(tmp_path):
+def test_another_date_and_another_text_is_another_decision(tmp_path):
     c = _db(tmp_path,
-            _row("zh_obergericht_LA170001", "zh_obergericht", "x" * 980),
-            _row("zh_gerichte_LA170001", "zh_gerichte", "x" * 1000, date="2018-01-15"))
+            _row("zh_obergericht_LA170001", "zh_obergericht", "Urteil in der Hauptsache. " * 40),
+            _row("zh_gerichte_LA170001", "zh_gerichte", "Beschluss über die Kosten. " * 40,
+                 date="2018-01-15"))
     assert build_fts5._cross_court_dedup(c) == 0
 
 
@@ -101,3 +102,39 @@ def test_env_adds_exemptions_for_a_run(monkeypatch):
     build_fts5._check_swap_per_court_gate(new, live)
     with pytest.raises(RuntimeError):
         build_fts5._check_swap_per_court_gate({"bger": 50_000, "bvger": 10_000}, live)
+
+
+# ── the same ruling under another date ──────────────────────────────────
+
+TEXT = " ".join(f"Erwägung {i}: Die Vorinstanz hat Ziffer {i} zutreffend gewürdigt." for i in range(80))
+OTHER = " ".join(f"Kostenpunkt {i}: Die Gebühr für Abschnitt {i} wird neu festgesetzt." for i in range(80))
+
+
+def test_federation_copy_with_another_date_is_the_same_ruling(tmp_path):
+    c = _db(tmp_path,
+            _row("zh_mietgericht_ED200048", "zh_mietgericht", TEXT, docket="ED200048", date="2020-08-04"),
+            _row("zh_gerichte_ED200048", "zh_gerichte", TEXT.replace(" ", "\n"), docket="ED200048",
+                 date="2020-10-20"))
+    assert build_fts5._cross_court_dedup(c) == 1
+    assert _ids(c) == ["zh_mietgericht_ED200048"]
+
+
+def test_near_identical_extraction_is_the_same_ruling(tmp_path):
+    c = _db(tmp_path,
+            _row("zh_handelsgericht_HG210238", "zh_handelsgericht", TEXT, docket="HG210238", date="2023-06-14"),
+            _row("zh_gerichte_HG210238", "zh_gerichte", "Seite 1\n" + TEXT.replace("Ziffer 7 ", "Zif- fer 7 "),
+                 docket="HG210238", date="2023-06-16"))
+    assert build_fts5._cross_court_dedup(c) == 1
+    assert _ids(c) == ["zh_handelsgericht_HG210238"]
+
+
+def test_a_different_ruling_of_the_docket_stays(tmp_path):
+    c = _db(tmp_path,
+            _row("zh_mietgericht_MJ210048", "zh_mietgericht", TEXT, docket="MJ210048", date="2021-05-06"),
+            _row("zh_gerichte_MJ210048", "zh_gerichte", OTHER, docket="MJ210048", date="2023-01-17"))
+    assert build_fts5._cross_court_dedup(c) == 0
+
+
+def test_copy_without_a_direct_row_stays(tmp_path):
+    c = _db(tmp_path, _row("zh_gerichte_LA110009", "zh_gerichte", TEXT, docket="LA110009", date="2011-02-17"))
+    assert build_fts5._cross_court_dedup(c) == 0

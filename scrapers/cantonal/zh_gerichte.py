@@ -294,6 +294,47 @@ def _extract_headnote(details_soup) -> str:
 # Shortest text taken as a Leitsatz (the real ones start around 40 characters).
 MIN_HEADNOTE_CHARS = 30
 
+# The caption of a Zürich ruling: "Urteil vom 10. Februar 2022",
+# "Beschluss und Teilurteil vom 6. Februar 2025", "Beschluss vom 20.06.2013".
+# Anchored to a line of its own, so a date quoted in the reasoning ("mit
+# Verfügung vom 20. Juni 2013 trat die Einzelrichterin …") is not a caption.
+_MONTHS = {"januar": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5,
+           "juni": 6, "juli": 7, "august": 8, "september": 9, "oktober": 10,
+           "november": 11, "dezember": 12}
+_CAPTION_RE = re.compile(
+    r"^[ \t]*(?:(?:Teil|Zwischen|Vor|End)?(?:[Uu]rteil|[Bb]eschluss|[Vv]erfügung(?:en)?|[Ee]ntscheid)"
+    r"(?:[ \t]+und[ \t]+)?){1,2}[ \t]+vom[ \t]+"
+    r"(\d{1,2})\.[ \t]*(?:(\d{1,2})\.|([A-Za-zä]+))[ \t]*((?:19|20)\d{2})[ \t]*$",
+    re.MULTILINE,
+)
+CAPTION_HEAD_CHARS = 4000
+
+
+def caption_dates(full_text: str | None) -> set[str]:
+    """ISO dates of the caption lines in the head of a ruling."""
+    out: set[str] = set()
+    for m in _CAPTION_RE.finditer((full_text or "")[:CAPTION_HEAD_CHARS]):
+        month = int(m.group(2)) if m.group(2) else _MONTHS.get(m.group(3).lower())
+        if not month:
+            continue
+        try:
+            out.add(date(int(m.group(4)), month, int(m.group(1))).isoformat())
+        except ValueError:
+            continue
+    return out
+
+
+# A docket in a PDF file name: "VO110048-O1.pdf", "AA110010.pdf",
+# "60259F69CB005C13C1256EC20039F2A1_UK040072.pdf".
+_PDF_DOCKET_RE = re.compile(r"(?:^|_)([A-Z]{2}\d{6})(?=[-_.]|$)")
+
+
+def _docket_from_pdf(pdf_url: str | None) -> str | None:
+    name = (pdf_url or "").rsplit("/", 1)[-1]
+    m = _PDF_DOCKET_RE.search(name)
+    return m.group(1) if m else None
+
+
 # "<docket id>_d<YYYYMMDD>": a further ruling of a held docket on another day.
 _DATED_ID_RE = re.compile(r"_d\d{8}$")
 
@@ -426,6 +467,8 @@ class ZHGerichteScraper(BaseScraper):
         if not self.state.is_known(base) and base not in self._claimed:
             self._claimed.add(base)
             return base
+        if stub["decision_date"] is None:
+            return None             # undated entry under a held docket: nothing to tell it by
         day = stub["decision_date"].isoformat()
         held = self._held.get(base, [])
         if any(pdf == stub["pdf_url"] for _, pdf in held):
@@ -605,21 +648,12 @@ class ZHGerichteScraper(BaseScraper):
         """Parse a single entscheid + details pair into a stub dict."""
 
         # Geschäftsnummer (docket number)
+        # 9 entries have none; for four the PDF file name carries it (below).
         num = _get_detail_field(details_div, "Geschäftsnummer")
-        if not num:
-            logger.warning(f"ZH no Geschäftsnummer for doc_id={doc_id}")
-            return None
 
-        # Entscheiddatum
-        edatum_str = _get_detail_field(details_div, "Entscheiddatum")
-        if not edatum_str:
-            logger.warning(f"ZH no Entscheiddatum for {num} (doc_id={doc_id})")
-            return None
-
-        edatum = _parse_date_ddmmyyyy(edatum_str)
-        if not edatum:
-            logger.warning(f"ZH unparseable date {edatum_str!r} for {num}")
-            return None
+        # Entscheiddatum. 7 entries say "n/A": the stub goes on without a date
+        # and fetch_decision reads it from the ruling's caption.
+        edatum = _parse_date_ddmmyyyy(_get_detail_field(details_div, "Entscheiddatum") or "")
 
         # Gericht/Behörde
         gericht = _get_detail_field(details_div, "Gericht/Behörde") or ""
@@ -678,6 +712,13 @@ class ZHGerichteScraper(BaseScraper):
         if not pdf_url:
             logger.warning(f"ZH no PDF URL for {num} (doc_id={doc_id})")
             return None
+
+        if not num:
+            num = _docket_from_pdf(pdf_url)
+            if not num:
+                # circulars, statute texts, letters: not a ruling with a docket
+                logger.info(f"ZH no Geschäftsnummer for doc_id={doc_id} ({pdf_url})")
+                return None
 
         # Build decision ID
         decision_id = make_decision_id(court_code, num)
@@ -740,6 +781,12 @@ class ZHGerichteScraper(BaseScraper):
             if not full_text:
                 full_text = f"[PDF text extraction failed for {num}]"
 
+        # No date on the portal ("n/A"): the caption has it.
+        if stub["decision_date"] is None:
+            own = caption_dates(full_text)
+            if len(own) == 1:
+                stub["decision_date"] = date.fromisoformat(next(iter(own)))
+
         # Language detection
         language = detect_language(full_text) if len(full_text) > 100 else "de"
 
@@ -758,8 +805,8 @@ class ZHGerichteScraper(BaseScraper):
         # Recorded now, counted only once the id is in state (after the durable
         # write), so a crash in between retries the document.
         if getattr(self, "_docids", None) is not None:
-            self._mark_docid(str(stub["doc_id"]), stub["decision_id"],
-                             stub["decision_date"].isoformat(), pdf_url)
+            day = stub["decision_date"].isoformat() if stub["decision_date"] else ""
+            self._mark_docid(str(stub["doc_id"]), stub["decision_id"], day, pdf_url)
 
         return Decision(
             decision_id=stub["decision_id"],
