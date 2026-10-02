@@ -3,7 +3,7 @@
 The client follows semantic versioning. The research API contract it consumes is
 versioned separately (`x-opencaselaw-contract-version` in `/api/research/openapi.json`).
 
-## 0.9.2 (unreleased)
+## 0.9.2 (2026-10-02)
 
 - References parsed as written now cover the EVG single-letter chambers
   (`B 59/2001`, `I 25/2005`, `B.59/2001`: B C H I K M P U) and the two-digit
