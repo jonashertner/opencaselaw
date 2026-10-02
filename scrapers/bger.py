@@ -56,7 +56,7 @@ from bs4 import BeautifulSoup
 from base_scraper import BaseScraper
 from models import Decision, extract_citations, make_decision_id
 from incapsula_bypass import IncapsulaCookieManager
-from scrapers.refusal import is_refusal
+from scrapers.refusal import PortalRefused, is_refusal
 
 logger = logging.getLogger(__name__)
 
@@ -921,6 +921,56 @@ class BgerScraper(BaseScraper):
     # Discovery via Neuheiten page
     # ───────────────────────────────────────────────────────────────────────
 
+    # Neuheiten lookback. 14 days is the normal walk. The marker holds the date
+    # of the last walk in which EVERY page was read; after a block or an outage
+    # the next walk reaches back to 14 days before that date (capped), so a
+    # publication day that could not be read is never left behind by the
+    # window moving on. Without it, a ruling published during a refusal longer
+    # than 14 days was only recoverable through the AZA date search, which
+    # looks at the decision date (180 days daily, 730 weekly) and so misses
+    # exactly the late-published older rulings this walk exists for.
+    NEUHEITEN_DAYS = 14
+    NEUHEITEN_MAX_DAYS = 120
+    NEUHEITEN_LIST_MARKER = "neu aufgenommenen Entscheide"
+
+    def _neuheiten_marker(self) -> Path:
+        return Path(self.state.state_file).with_name(
+            f"{self.court_code}.neuheiten_clean")
+
+    def _neuheiten_window(self, today: date) -> int:
+        try:
+            last = date.fromisoformat(self._neuheiten_marker().read_text().strip())
+        except Exception:
+            return self.NEUHEITEN_DAYS
+        gap = (today - last).days
+        return max(self.NEUHEITEN_DAYS,
+                   min(self.NEUHEITEN_MAX_DAYS, gap + self.NEUHEITEN_DAYS))
+
+    def _mark_neuheiten_clean(self, today: date) -> None:
+        try:
+            marker = self._neuheiten_marker()
+            tmp = marker.with_name(marker.name + ".tmp")
+            tmp.write_text(today.isoformat() + "\n")
+            os.replace(tmp, marker)
+        except Exception as e:
+            logger.warning(f"Could not write the Neuheiten marker: {e}")
+
+    @classmethod
+    def _check_neuheiten_page(cls, text: str) -> None:
+        """Raise PortalRefused unless `text` is a real Neuheiten answer.
+
+        Real answers (measured 2026-09-28): whitespace only for a date with
+        nothing listed (weekends, tomorrow), or the list with its
+        "neu aufgenommenen Entscheide" header / aza:// document ids. Anything
+        else is a challenge or block page; parsed as a list it reads as
+        "0 published", i.e. a blocked day would look like a quiet one."""
+        if not text.strip():
+            return
+        if "aza://" in text or cls.NEUHEITEN_LIST_MARKER in text:
+            return
+        raise PortalRefused(
+            f"not a Neuheiten page, {len(text)} bytes — challenge or block page")
+
     def _discover_via_neuheiten(self) -> Iterator[dict]:
         """
         Check each of the last 14 days' Neuheiten pages for published decisions.
@@ -938,12 +988,20 @@ class BgerScraper(BaseScraper):
         today = date.today()
         total_published = 0
         total_new = 0
-        for days_ago in range(14):
+        failed_pages = 0
+        window = self._neuheiten_window(today)
+        if window > self.NEUHEITEN_DAYS:
+            logger.info(
+                f"Neuheiten: walking {window} days (last walk with every page "
+                f"read was more than a day ago)"
+            )
+        for days_ago in range(window):
             check_date = today - timedelta(days=days_ago)
             date_str = check_date.strftime("%Y%m%d")
             url = NEUHEITEN_DATE_URL.format(lang="de", date=date_str)
             try:
                 resp = self._get_with_pow(url)
+                self._check_neuheiten_page(resp.text)
                 soup = BeautifulSoup(resp.text, "html.parser")
                 new_count = 0
                 published = 0
@@ -974,11 +1032,19 @@ class BgerScraper(BaseScraper):
                     f"{new_count} new, {known} already known"
                 )
             except Exception as e:
-                logger.warning(f"Neuheiten {check_date}: {e}")
+                # ERROR, and worded as a listing: run_all_scrapers counts a
+                # refused or unreachable listing page, so a walk that could
+                # not read its pages fails the run instead of passing as
+                # "0 new". (A WARNING here hid 55 unread pages on 2026-09-30.)
+                failed_pages += 1
+                logger.error(f"Neuheiten listing {check_date}: {e}")
         logger.info(
             f"Neuheiten total: {total_published} published, "
-            f"{total_new} new across last 14 days"
+            f"{total_new} new across last {window} days"
+            + (f"; {failed_pages} page(s) could not be read" if failed_pages else "")
         )
+        if not failed_pages:
+            self._mark_neuheiten_clean(today)
 
     def _parse_neuheiten_html(
         self, soup: BeautifulSoup, lang: str
@@ -1119,7 +1185,7 @@ class BgerScraper(BaseScraper):
                     window_refused = False
                     break
                 except Exception as e:
-                    if not is_refusal(e):
+                    if not is_refusal(e, listing=True):
                         window_refused = False
                     logger.error(f"Search {von_str}-{bis_str} via {host}: {e}")
 

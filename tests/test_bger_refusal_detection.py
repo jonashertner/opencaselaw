@@ -76,7 +76,12 @@ def test_the_status_family_is_limited_to_refusals():
               "502 Server Error: Proxy Error", "503 Server Error: Service Unavailable",
               "504 Server Error: Gateway Timeout"):
         assert _is_listing_refusal(base.format(s)), s
-    assert not _is_listing_refusal(base.format("404 Client Error: Not Found"))
+    # 404 joined the family on 2026-10-02: bger.ch refuses with a 404 error
+    # page on index/listing/search URLs that always exist (see
+    # scrapers/refusal.py and test_bger_capture_guarantees.py).
+    assert _is_listing_refusal(base.format("404 Client Error: Not Found"))
+    assert not _is_listing_refusal(base.format("400 Client Error: Bad Request"))
+    assert not _is_listing_refusal(base.format("500 Server Error: Internal Server Error"))
 
 
 # ── bger_poller: classify the tunnel answer instead of trusting a 200 ──

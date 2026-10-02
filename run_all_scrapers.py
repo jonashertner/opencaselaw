@@ -158,7 +158,13 @@ def _socks_tunnel_up(host: str = "127.0.0.1", port: int = 1080) -> bool:
 # is bger's first host: "via https://www.bger.ch" falls through to
 # search.bger.ch, so a refusal there is only a failure when the fallback fails
 # too, which logs its own line.
-_HTTP_REFUSAL = re.compile(r"\b(403|429|502|503|504) (Client|Server) Error")
+# 404 joined on 2026-10-02: bger.ch now also refuses with a 404 error page on
+# index/listing/search URLs that always exist. No scraper log on the host had
+# ever carried a 404 on a listing or search line, so nothing else changes.
+# "portal refused" is scrapers.refusal.PortalRefused: a block or challenge page
+# served with status 200 where a listing was asked for.
+_HTTP_REFUSAL = re.compile(
+    r"\b(403|404|429|502|503|504) (Client|Server) Error|portal refused")
 
 
 def _is_listing_refusal(line: str) -> bool:

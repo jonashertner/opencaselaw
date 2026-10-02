@@ -51,7 +51,7 @@ from models import (
     parse_date,
 )
 from incapsula_bypass import IncapsulaCookieManager
-from scrapers.refusal import is_refusal
+from scrapers.refusal import PortalRefused, is_refusal
 
 logger = logging.getLogger(__name__)
 
@@ -394,6 +394,11 @@ class BGELeitentscheideScraper(BaseScraper):
                 logger.error(f"Incapsula refresh failed: {e}")
             return self._safe_get(url, retry + 1, max_retries, **kwargs)
 
+        if self._incapsula.is_incapsula_blocked(resp.text):
+            # Still the block page after the cookie refreshes. Returning it
+            # made the caller parse it as a listing with no entries: a blocked
+            # run looked like a quiet one.
+            raise PortalRefused("Incapsula block page")
         return resp
 
     # ---------------------------------------------------------------
@@ -693,7 +698,7 @@ class BGELeitentscheideScraper(BaseScraper):
                     yield from self._volume_stubs(year, volume)
                     refused.clear()
                 except Exception as e:
-                    if is_refusal(e):
+                    if is_refusal(e, listing=True):
                         refused.append((year, volume, e))
                         if len(refused) >= self.REFUSAL_LIMIT:
                             self._stop_refused(refused)
@@ -721,7 +726,7 @@ class BGELeitentscheideScraper(BaseScraper):
                 except Exception as e:
                     still_failed.append((year, volume))
                     logger.error(f"Failed to fetch listing {year}/{volume}: {e}")
-                    streak = streak + 1 if is_refusal(e) else 0
+                    streak = streak + 1 if is_refusal(e, listing=True) else 0
                     if streak >= self.REFUSAL_LIMIT:
                         self._log_stop(streak)
                         return
