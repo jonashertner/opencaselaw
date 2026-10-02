@@ -78,6 +78,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://opencaselaw.ch/posters/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://opencaselaw.ch/entscheide/</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>

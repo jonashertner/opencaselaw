@@ -1,0 +1,43 @@
+{
+ "schema": "opencaselaw.posters.v1",
+ "weeks": [
+  {
+   "week": "2026-W40",
+   "from": "2026-09-24",
+   "to": "2026-10-01",
+   "added": 1009,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "topo",
+     "file": "2026-w40/de-topo.webp",
+     "caption": "Woche 40 in der Schweizer Rechtsprechung, als Karte gezeichnet: 1’009 Entscheide sind zwischen dem 24.9. und dem 1.10. neu bei OpenCaseLaw dazugekommen. Jeder Gipfel ist ein Gerichtssitz, seine Höhe die Zahl der neuen Entscheide.\n\nDer Korpus umfasst jetzt 1’078’749 Entscheide zurück bis 1875, frei durchsuchbar, zitierbar und herunterladbar: opencaselaw.ch"
+    },
+    {
+     "lang": "fr",
+     "design": "sediment",
+     "file": "2026-w40/fr-sediment.webp",
+     "caption": "La semaine 40 de la jurisprudence suisse: 1’009 décisions ont rejoint OpenCaseLaw entre le 24.9. et le 1.10. Elles s’ajoutent à 151 ans de jurisprudence, une ligne par année.\n\nLe corpus compte désormais 1’078’749 décisions depuis 1875, libres à consulter, citer et télécharger: opencaselaw.ch"
+    },
+    {
+     "lang": "it",
+     "design": "score",
+     "file": "2026-w40/it-score.webp",
+     "caption": "La settimana 40 della giurisprudenza svizzera, scritta come una partitura: 1’009 decisioni sono entrate in OpenCaseLaw tra il 24.9. e il 1.10., cantone per cantone e notte per notte.\n\nIl corpus conta ora 1’078’749 decisioni dal 1875, da consultare, citare e scaricare liberamente: opencaselaw.ch"
+    },
+    {
+     "lang": "rm",
+     "design": "fields",
+     "file": "2026-w40/rm-fields.webp",
+     "caption": "Emna 40: 1’009 novas decisiuns da dretgiras en il corpus avert dad OpenCaseLaw, dals 24.9. fin ils 1.10.\n\nIl corpus cumpiglia ussa 1’078’749 decisiuns dapi il 1875: opencaselaw.ch"
+    },
+    {
+     "lang": "en",
+     "design": "receipt",
+     "file": "2026-w40/en-receipt.webp",
+     "caption": "Week 40 in Swiss case law, itemised: 1,009 decisions entered OpenCaseLaw between 24 Sep and 1 Oct. Price: CHF 0.00.\n\nThe corpus now holds 1,078,749 decisions back to 1875, free to search, cite and download: opencaselaw.ch"
+    }
+   ]
+  }
+ ]
+}
