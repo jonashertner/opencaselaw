@@ -1,0 +1,17 @@
+[Unit]
+Description=Daily failed-anonymization check (personal data left in newly scraped decisions; confidential report to the private repo)
+# Governance: docs/governance-and-removal-policy.md ("failed anonymization").
+# Reads only the tails of output/decisions/*.jsonl; never opens decisions.db,
+# so the 03:30–17:00 UTC build window does not bind it (CLAUDE.md invariant 9).
+# Alert-only: the check never removes, de-lists or edits a decision.
+OnFailure=ntfy-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+ExecStart=/usr/bin/python3 scripts/anonymization_check.py
+StandardOutput=append:/opt/caselaw/repo/logs/anonymization_check.log
+StandardError=append:/opt/caselaw/repo/logs/anonymization_check.log
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=900

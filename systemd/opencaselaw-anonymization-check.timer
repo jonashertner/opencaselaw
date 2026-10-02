@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily failed-anonymization check (12:45 UTC, after the citation-anomaly report has pushed)
+
+[Timer]
+# 30 min after opencaselaw-anomaly-report: both commit to the same private
+# repository, so they must not push at the same time.
+OnCalendar=*-*-* 12:45:00 UTC
+RandomizedDelaySec=120
+Persistent=true
+
+[Install]
+WantedBy=timers.target
