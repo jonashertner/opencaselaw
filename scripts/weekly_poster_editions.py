@@ -587,8 +587,11 @@ def archive_week(delta: dict, rendered: dict[str, tuple[str, Path, str]], archiv
     posters = []
     for lang, (design, png, caption) in rendered.items():
         rel = f"{slug}/{lang}-{design}.webp"
-        Image.open(png).convert("RGB").save(archive / rel, "WEBP", quality=84, method=6)
+        full = Image.open(png).convert("RGB")
+        full.save(archive / rel, "WEBP", quality=84, method=6)
         (archive / "latest" / f"{lang}.webp").write_bytes((archive / rel).read_bytes())
+        # small copy for the homepage hero, which shows all five at once
+        full.resize((360, 450), Image.LANCZOS).save(archive / "latest" / f"{lang}-s.webp", "WEBP", quality=80, method=6)
         posters.append({"lang": lang, "design": design, "file": rel, "caption": caption})
     week = {
         "week": f"{iso.year}-W{iso.week:02d}", "from": delta["from"].date().isoformat(),

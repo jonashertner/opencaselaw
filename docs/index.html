@@ -97,6 +97,18 @@ p a:hover,li a:hover{text-decoration-color:var(--shu)}
 .num-label{font-size:14px;color:var(--t2);margin:14px 0 0;max-width:46ch}
 #num-unique{color:var(--t3);margin-top:6px;font-size:12.5px;min-height:1.65em}
 .hanko-col{display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:8px}
+/* this week's five posters, top right of the hero; in the flow under the stamp on phones */
+.hero .wrap{position:relative}
+.peek{position:absolute;right:var(--gut);top:clamp(-76px,-5.4vw,-28px);display:flex;flex-direction:column;align-items:flex-end;gap:12px;text-decoration:none;color:var(--t2)}
+.peek-fan{display:flex;padding:8px 4px 0 0}
+.peek-fan img{width:clamp(66px,7.4vw,104px);height:auto;aspect-ratio:4/5;display:block;border:1px solid var(--line);background:var(--paper-2);margin-left:-24px;position:relative}
+.peek-fan img:first-child{margin-left:0}
+.peek-fan img:nth-child(1){transform:rotate(-3deg)}.peek-fan img:nth-child(2){transform:rotate(2deg)}
+.peek-fan img:nth-child(3){transform:rotate(-1.5deg)}.peek-fan img:nth-child(4){transform:rotate(2.5deg)}
+.peek-fan img:nth-child(5){transform:rotate(-2deg)}
+.peek-fan img.on{z-index:1;transform:translateY(-7px) scale(1.14)}
+.peek-cap{font-size:13.5px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.peek:hover .peek-cap,.peek:focus-visible .peek-cap{color:var(--t1);border-bottom-color:var(--shu)}
 .hanko{width:clamp(88px,9vw,108px);aspect-ratio:1;background:var(--shu);color:var(--on-shu);
   border-radius:8px;transform:rotate(-2.5deg);display:flex;flex-direction:column;align-items:center;justify-content:center;
   font-family:var(--f-mono);line-height:1.25;text-align:center;box-shadow:0 1px 0 rgba(0,0,0,.04)}
@@ -119,6 +131,8 @@ p a:hover,li a:hover{text-decoration-color:var(--shu)}
   .hero-top{grid-template-columns:1fr;gap:30px}
   .hanko-col{flex-direction:row;align-items:center;justify-content:flex-start;gap:18px}
   .hanko-cap{text-align:left;max-width:26ch}
+  .peek{position:static;align-items:flex-start;margin:30px 0 0}
+  .peek-fan img{width:62px}
 }
 
 /* ── sections: rail + content ── */
@@ -275,6 +289,16 @@ a.reg-l:hover{border-bottom-color:var(--shu);color:var(--shu)}
           <p class="hanko-cap">CC0 · <span data-t="trust_cov">all 26 cantons + federal courts</span></p>
         </div>
       </div>
+      <a class="peek" href="/posters/">
+        <span class="peek-fan" aria-hidden="true">
+          <img src="/posters/latest/de-s.webp" width="360" height="450" alt="" data-l="de">
+          <img src="/posters/latest/fr-s.webp" width="360" height="450" alt="" data-l="fr">
+          <img src="/posters/latest/it-s.webp" width="360" height="450" alt="" data-l="it">
+          <img src="/posters/latest/rm-s.webp" width="360" height="450" alt="" data-l="rm">
+          <img src="/posters/latest/en-s.webp" width="360" height="450" alt="" data-l="en">
+        </span>
+        <span class="peek-cap"><span data-t="peek">The week, drawn five ways</span> <span class="arr" aria-hidden="true">→</span></span>
+      </a>
       <h1 class="headline" data-t="hero_h1">The open record of Swiss law, <em>rebuilt every day.</em></h1>
       <p class="subline" data-t="hero_sub">Published decisions from every federal and cantonal court, plus 21,000+ federal and cantonal laws. Open data (CC0), machine-readable.</p>
       <div class="hero-actions">
@@ -467,7 +491,7 @@ var I18N={
   d_today:'neu heute',d_span:'Jahre Rechtsprechung',d_langs:'Landessprachen',
   t_connect:'Verbinden',connect_h:"Drei Wege zum Korpus.",connect_sub:"Mit Ihrer KI recherchieren, einen Rechercheablauf automatisieren oder die Daten lokal auswerten.",
   copy:'Kopieren',connect_note:'Einrichtung pro Client, die REST-API, Bulk-Download und das Word-Add-in:',connect_link:'Verbindungsanleitung →',
-  foot_browse:'Durchsuchen',foot_build:'Entwickeln',foot_trust:'Vertrauen',foot_stats:'Statistik',foot_posters:'Poster',foot_coverage:'Abdeckung',foot_scholarship:'Literatur',foot_about:'Über uns',
+  foot_browse:'Durchsuchen',foot_build:'Entwickeln',foot_trust:'Vertrauen',foot_stats:'Statistik',foot_posters:'Poster',peek:'Die Woche, fünfmal gezeichnet',foot_coverage:'Abdeckung',foot_scholarship:'Literatur',foot_about:'Über uns',
   foot_tag:'Das vollständige offene Verzeichnis des Schweizer Rechts. CC0-Datensatz, MIT-Code.',foot_legal:'Korpus CC0 · Code MIT'},
  fr:{
   access_chat_h:"Rechercher avec votre IA",access_chat_p:"Connectez un client MCP pour rechercher des décisions, consulter des passages et suivre les citations.",access_cli_h:"Automatiser la recherche",access_cli_p:"Utilisez REST ou le CLI de recherche pour vos scripts, la résolution de citations et les dossiers de sources.",access_data_h:"Télécharger le corpus",access_data_p:"Utilisez le jeu de données Parquet pour des analyses locales, des expériences de recherche et l’étude du corpus entier.",
@@ -487,7 +511,7 @@ var I18N={
   d_today:'nouveaux aujourd’hui',d_span:'ans de jurisprudence',d_langs:'langues nationales',
   t_connect:'Connexion',connect_h:"Trois accès au corpus.",connect_sub:"Rechercher avec votre IA, automatiser un travail de recherche ou télécharger les données pour une analyse locale.",
   copy:'Copier',connect_note:'Configuration par client, l’API REST, le téléchargement en masse et l’add-in Word :',connect_link:'guide de connexion →',
-  foot_browse:'Parcourir',foot_build:'Développer',foot_trust:'Confiance',foot_stats:'Statistiques',foot_posters:'Affiches',foot_coverage:'Couverture',foot_scholarship:'Doctrine',foot_about:'À propos',
+  foot_browse:'Parcourir',foot_build:'Développer',foot_trust:'Confiance',foot_stats:'Statistiques',foot_posters:'Affiches',peek:'La semaine, dessinée cinq fois',foot_coverage:'Couverture',foot_scholarship:'Doctrine',foot_about:'À propos',
   foot_tag:'Le registre ouvert complet du droit suisse. Jeu de données CC0, code MIT.',foot_legal:'Corpus CC0 · Code MIT'},
  it:{
   access_chat_h:"Ricercare con la vostra IA",access_chat_p:"Collegate un client MCP per cercare decisioni, consultare passaggi e seguire le citazioni.",access_cli_h:"Automatizzare la ricerca",access_cli_p:"Usate REST o il CLI di ricerca per script, risoluzione di citazioni e raccolte di fonti salvate.",access_data_h:"Scaricare il corpus",access_data_p:"Usate il dataset Parquet per analisi locali, esperimenti di ricerca e studi sull’intero corpus.",
@@ -507,7 +531,7 @@ var I18N={
   d_today:'nuove oggi',d_span:'anni di giurisprudenza',d_langs:'lingue nazionali',
   t_connect:'Collega',connect_h:"Tre modi di usare il corpus.",connect_sub:"Ricercate con la vostra IA, automatizzate un flusso di ricerca o scaricate i dati per analisi locali.",
   copy:'Copia',connect_note:'Configurazione per client, l’API REST, il download in blocco e l’add-in Word:',connect_link:'guida alla connessione →',
-  foot_browse:'Sfoglia',foot_build:'Sviluppa',foot_trust:'Fiducia',foot_stats:'Statistiche',foot_posters:'Manifesti',foot_coverage:'Copertura',foot_scholarship:'Dottrina',foot_about:'Chi siamo',
+  foot_browse:'Sfoglia',foot_build:'Sviluppa',foot_trust:'Fiducia',foot_stats:'Statistiche',foot_posters:'Manifesti',peek:'La settimana, disegnata cinque volte',foot_coverage:'Copertura',foot_scholarship:'Dottrina',foot_about:'Chi siamo',
   foot_tag:'Il registro aperto completo del diritto svizzero. Dataset CC0, codice MIT.',foot_legal:'Corpus CC0 · Codice MIT'},
  rm:{
   access_chat_h:"Tschertgar cun vossa IA",access_chat_p:"Connectai in client MCP per tschertgar decisiuns, consultar passadis e suandar citaziuns.",access_cli_h:"Automatisar la retschertga",access_cli_p:"Duvrai REST u il CLI da retschertga per scripts, resoluziun da citaziuns e pachets da funtaunas salvads.",access_data_h:"Telechargiar il corpus",access_data_p:"Duvrai las datas Parquet per analisas localas, experiments da tschertga e retschertga sin l’entir corpus.",
@@ -527,7 +551,7 @@ var I18N={
   d_today:'novas oz',d_span:'onns da giurisprudenza',d_langs:'linguas naziunalas',
   t_connect:'Connectar',connect_h:"Trais vias al corpus.",connect_sub:"Tschertgar cun vossa IA, automatisar ina retschertga u telechargiar las datas per analisas localas.",
   copy:'Copiar',connect_note:'Configuraziun per client, l’API REST, il download en bloc e l’add-in Word:',connect_link:'guida da connexiun →',
-  foot_browse:'Tschertgar',foot_build:'Sviluppar',foot_trust:'Confidenza',foot_stats:'Statistica',foot_posters:'Placats',foot_coverage:'Cuvertura',foot_scholarship:'Litteratura',foot_about:'Davart nus',
+  foot_browse:'Tschertgar',foot_build:'Sviluppar',foot_trust:'Confidenza',foot_stats:'Statistica',foot_posters:'Placats',peek:'L’emna, dissegnada tschintg giadas',foot_coverage:'Cuvertura',foot_scholarship:'Litteratura',foot_about:'Davart nus',
   foot_tag:'Il register avert cumplet dal dretg svizzer. Set da datas CC0, code MIT.',foot_legal:'Corpus CC0 · Code MIT'},
  en:{
   access_chat_h:"Chat with your AI",access_chat_p:"Connect an MCP client to search decisions, inspect passages and follow citations.",access_cli_h:"Automate research",access_cli_p:"Use REST or the research CLI for scripts, citation resolution and saved evidence bundles.",access_data_h:"Download the corpus",access_data_p:"Use the Parquet dataset for local analysis, retrieval experiments and corpus-scale research.",
@@ -547,7 +571,7 @@ var I18N={
   d_today:'new today',d_span:'years of case law',d_langs:'national languages',
   t_connect:'Connect',connect_h:"Three ways to use the corpus.",connect_sub:"Chat with your AI, automate a research workflow, or download the data for local analysis.",
   copy:'Copy',connect_note:'Setup for each client, the REST API, bulk download and the Word add-in:',connect_link:'connection guide →',
-  foot_browse:'Browse',foot_build:'Build',foot_trust:'Trust',foot_stats:'Statistics',foot_posters:'Posters',foot_coverage:'Coverage',foot_scholarship:'Scholarship',foot_about:'About',
+  foot_browse:'Browse',foot_build:'Build',foot_trust:'Trust',foot_stats:'Statistics',foot_posters:'Posters',peek:'The week, drawn five ways',foot_coverage:'Coverage',foot_scholarship:'Scholarship',foot_about:'About',
   foot_tag:'The complete open record of Swiss law. CC0 dataset, MIT code.',foot_legal:'Corpus CC0 · Code MIT'}
 };
 /* ── i18n extension: register of holdings (rm falls back to de via t()) ── */
@@ -561,6 +585,7 @@ if(qp&&I18N[qp]){try{localStorage.setItem('lang',qp);}catch(e){}}
 function t(k){return (I18N[curLang]||I18N.de)[k]||I18N.de[k]||k;}
 function applyI18n(){
   document.documentElement.lang=curLang;
+  document.querySelectorAll('.peek-fan img').forEach(function(i){i.classList.toggle('on',i.dataset.l===curLang);});
   document.querySelectorAll('[data-t]').forEach(function(el){
     var v=t(el.dataset.t); if(/<[a-z]/i.test(v))el.innerHTML=v; else el.textContent=v;
   });
@@ -622,7 +647,12 @@ function applyStats(s){
     if(sch)sch.textContent=fmt(s.corpus.scholarship_publications);
   }
   var delta=(s.delta&&s.delta.total)||0;
-  setT('trust-delta',fmt(delta)); setT('d-today',fmt(delta));
+  setT('trust-delta',fmt(delta));
+  // "new today" carries its own sign: +229, −2'409, or a bare 0 (never "+-")
+  var dn=document.getElementById('d-today');
+  if(dn){var box=dn.parentNode; while(box.firstChild!==dn)box.removeChild(box.firstChild);
+    if(delta)box.insertBefore(document.createTextNode(delta>0?'+':'\u2212'),dn);
+    dn.textContent=fmt(Math.abs(delta)); box.classList.toggle('pos',delta>0);}
   var seg=document.getElementById('trust-delta-seg'); if(seg)seg.style.display=(delta>0)?'':'none';
   if(s.court_count)setT('cov-courts',s.court_count);
   if(s.date_range&&s.date_range.earliest){var y=new Date().getFullYear()-parseInt(s.date_range.earliest.slice(0,4),10);setT('d-span',y);}

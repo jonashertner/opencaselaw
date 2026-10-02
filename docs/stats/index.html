@@ -644,7 +644,7 @@ OCL.init({
       // Header + hero + anatomy
       txt('asof-d', isoDate(s.generated_at));
       set('hero-n', fmt(total));
-      var d=delta.total; set('hero-delta', d? ' · <b>'+(d>0?'+':'')+fmt(d)+'</b> '+esc(t('hero_delta')) : '');
+      var d=delta.total; set('hero-delta', d? ' · <b>'+(d>0?'+':'\u2212')+fmt(Math.abs(d))+'</b> '+esc(t('hero_delta')) : '');
       set('an-records', fmt(total));
       if(uniqueOK){
         set('an-unique', fmt(unique)); set('an-unique-d', esc(T('t_unique_d',{n:fmt(s.duplicate_representations)})));
@@ -683,7 +683,7 @@ OCL.init({
       var top=(s.top_courts||byCourt.slice().sort(function(a,b){return b.count-a.count;}).slice(0,10));
       set('tbl-top','<tbody>'+top.map(function(r){return '<tr><td class="name" title="'+esc(r.court)+'">'+esc(courtName(r.court,r.canton))+' <small class="muted" style="font-family:var(--f-mono);font-size:11px">'+esc(r.court)+'</small></td><td class="n">'+fmt(r.count)+'</td></tr>';}).join('')+'</tbody>');
       var db=delta.by_court||{}; var drows=Object.keys(db).map(function(k){return {label:courtName(k,''),value:db[k]};}).filter(function(r){return r.value>0;}).sort(function(a,b){return b.value-a.value;});
-      barList('bl-delta', drows.slice(0,10)); txt('delta-s', d?('+'+fmt(d)+' · '+isoDate(delta.previous_generated_at)+' – '+isoDate(s.generated_at)):'');
+      barList('bl-delta', drows.slice(0,10)); txt('delta-s', d?((d>0?'+':'\u2212')+fmt(Math.abs(d))+' · '+isoDate(delta.previous_generated_at)+' – '+isoDate(s.generated_at)):'');
       var E=IS.echr_switzerland; set('e-total', fmt(echrTotal));
       if(E){ set('e-ch', fmt(E.total)); set('e-gc', fmt(E.grand_chamber)); txt('e-year-k', T('e_year',{y:CURYEAR})); set('e-year', fmt(E.in_2026!=null?E.in_2026:(E['in_'+CURYEAR]!=null?E['in_'+CURYEAR]:null)));
         if(E.most_recent&&E.most_recent.docket){ set('e-recent', esc(t('e_recent'))+': <a href="'+esc(E.most_recent.url||'#')+'">'+esc(E.most_recent.docket)+'</a> · '+esc(fmtDate(E.most_recent.decision_date))); } }

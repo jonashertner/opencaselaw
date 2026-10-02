@@ -122,8 +122,13 @@ def build_replacements(stats: dict) -> list[tuple[str, str, re.Pattern, str]]:
     else:
         print(f"WARNING: implausible scholarship_publications {schol} — "
               f"leaving #f-scholarship, syncing the rest", file=sys.stderr)
-    rows.append(("d-today", str(delta),
-                 text_then_close("d-today"), rf"\g<1>{delta}\g<2>"))
+    # "new today" carries its own sign (+229, −2409, bare 0); the sign sits in
+    # front of the span, so the pattern takes the whole .d-n box. A fixed "+"
+    # in the markup read "+-2409" on the night of a clean-up.
+    sign = "+" if delta > 0 else "\u2212" if delta < 0 else ""
+    rows.append(("d-today", f'{sign}<span id="d-today">{abs(delta)}',
+                 re.compile(r'(class="d-n[^"]*"[^>]*>)[^<]*(<span id="d-today">)[^<]*(</)'),
+                 rf"\g<1>{sign}\g<2>{abs(delta)}\g<3>"))
     rows.append(("stamp", gen_date,
                  text_then_close("stamp"), rf"\g<1>{gen_date}\g<2>"))
 
