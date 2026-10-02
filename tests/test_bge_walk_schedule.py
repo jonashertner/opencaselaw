@@ -16,7 +16,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import scrapers.bge as bge_mod
 from scrapers.bge import BGELeitentscheideScraper
-from run_all_scrapers import _clean_federal_run_today
+from run_all_scrapers import (
+    RETRY_ONLY_IF_EARLIER_FAILED, _clean_federal_run_today, _clean_run_today,
+)
 
 TODAY = date(2026, 9, 29)
 
@@ -139,3 +141,39 @@ def test_late_run_retries_after_timeout_or_missing_file(tmp_path):
     _federal(tmp_path, "2026-09-29T09:18:53+00:00", {"success": True, "timed_out": True})
     assert _clean_federal_run_today("bge", tmp_path, "2026-09-29") is None
     assert _clean_federal_run_today("bge", tmp_path / "nowhere", "2026-09-29") is None
+
+
+# ── the late run also skips bger after a clean 01:00 nightly run ──
+
+def _nightly(tmp_path, run_at, entry):
+    (tmp_path / "scraper_health.json").write_text(json.dumps(
+        {"run_at": run_at, "scrapers": {"bger": entry}}))
+
+
+def test_bger_is_retry_only_against_the_nightly_run():
+    assert RETRY_ONLY_IF_EARLIER_FAILED["bger"] == ("scraper_health.json", "nightly")
+    assert RETRY_ONLY_IF_EARLIER_FAILED["bge"][0] == "scraper_health_federal.json"
+
+
+def test_late_run_skips_bger_after_clean_nightly_run(tmp_path):
+    _nightly(tmp_path, "2026-10-02T01:51:10+00:00",
+             {"success": True, "timed_out": False, "error": None, "note": None})
+    assert _clean_run_today("bger", "scraper_health.json", tmp_path, "2026-10-02") == "01:51"
+
+
+def test_late_run_retries_bger_after_a_refused_nightly_run(tmp_path):
+    _nightly(tmp_path, "2026-09-30T02:05:00+00:00",
+             {"success": False, "error": "46 discovery-phase connection failures (portal unreachable)"})
+    assert _clean_run_today("bger", "scraper_health.json", tmp_path, "2026-09-30") is None
+
+
+def test_late_run_retries_bger_when_the_nightly_run_was_itself_skipped(tmp_path):
+    # tunnel down at 01:00: recorded success=True with a "skipped" note
+    _nightly(tmp_path, "2026-10-02T01:51:10+00:00",
+             {"success": True, "error": None, "note": "skipped (tunnel down at scrape time)"})
+    assert _clean_run_today("bger", "scraper_health.json", tmp_path, "2026-10-02") is None
+
+
+def test_late_run_retries_bger_when_the_nightly_run_is_from_yesterday(tmp_path):
+    _nightly(tmp_path, "2026-10-01T01:51:10+00:00", {"success": True})
+    assert _clean_run_today("bger", "scraper_health.json", tmp_path, "2026-10-02") is None

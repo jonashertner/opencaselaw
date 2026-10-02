@@ -104,16 +104,27 @@ TUNNEL_DEPENDENT: set[str] = {
 
 
 # Scrapers the 10:20 late run (--source manual) only retries: when today's
-# 09:00 federal run of the same scraper succeeded there is nothing to retry,
-# and running it again only adds load on a portal that has started refusing
-# the tunnel address in that window (bge, 2026-09-28/29).
-RETRY_ONLY_IF_FEDERAL_FAILED: set[str] = {"bge"}
+# earlier run of the same scraper succeeded there is nothing to retry, and
+# running it again only adds load on a portal that has started refusing the
+# tunnel address (bger.ch, 2026-09-28 onwards). Value = (health file of the
+# earlier run, what to call it in the note):
+#   bge   the 09:00 federal run;
+#   bger  the 01:00 nightly run (14 Neuheiten pages + 46 AZA search windows,
+#         repeated in full at 10:20). The hourly poller reads the day's
+#         Neuheiten page from 05:00 to 16:00 UTC and fetches what is new, so
+#         a second full walk the same morning finds nothing the poller does not.
+RETRY_ONLY_IF_EARLIER_FAILED: dict[str, tuple[str, str]] = {
+    "bge": ("scraper_health_federal.json", "federal"),
+    "bger": ("scraper_health.json", "nightly"),
+}
 
 
-def _clean_federal_run_today(court: str, logs_dir: Path | None = None,
-                             today: str | None = None) -> str | None:
-    """The time (HH:MM UTC) of today's successful federal run of `court`, else None."""
-    path = (logs_dir or REPO_DIR / "logs") / "scraper_health_federal.json"
+def _clean_run_today(court: str, health_file: str, logs_dir: Path | None = None,
+                     today: str | None = None) -> str | None:
+    """The time (HH:MM UTC) at which today's run recorded in `health_file`
+    finished with a clean result for `court`, else None. A run that was itself
+    skipped (tunnel down) or carries an error or note is not a clean result."""
+    path = (logs_dir or REPO_DIR / "logs") / health_file
     try:
         health = json.loads(path.read_text())
         run_at = datetime.fromisoformat(health["run_at"])
@@ -124,9 +135,15 @@ def _clean_federal_run_today(court: str, logs_dir: Path | None = None,
     run_at = run_at.astimezone(timezone.utc)
     if run_at.date().isoformat() != today:
         return None
-    if not entry.get("success") or entry.get("timed_out"):
+    if (not entry.get("success") or entry.get("timed_out")
+            or entry.get("error") or entry.get("note")):
         return None
     return run_at.strftime("%H:%M")
+
+
+def _clean_federal_run_today(court: str, logs_dir: Path | None = None,
+                             today: str | None = None) -> str | None:
+    return _clean_run_today(court, "scraper_health_federal.json", logs_dir, today)
 
 
 def _skipped_result(court: str, note: str) -> dict:
@@ -545,11 +562,12 @@ def main():
     total_start = time.time()
 
     if args.source == "manual":
-        for court in [c for c in courts if c in RETRY_ONLY_IF_FEDERAL_FAILED]:
-            clean_at = _clean_federal_run_today(court)
+        for court in [c for c in courts if c in RETRY_ONLY_IF_EARLIER_FAILED]:
+            health_file, run_name = RETRY_ONLY_IF_EARLIER_FAILED[court]
+            clean_at = _clean_run_today(court, health_file)
             if clean_at:
                 courts.remove(court)
-                note = f"skipped: today's {clean_at} UTC federal run succeeded"
+                note = f"skipped: today's {clean_at} UTC {run_name} run succeeded"
                 logger.info(f"  [SKIP] {court}: {note}")
                 results.append(_skipped_result(court, note))
 
