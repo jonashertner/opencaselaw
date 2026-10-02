@@ -102,3 +102,55 @@ def test_document_already_refetched_under_its_right_id_replaces_the_old_row(tmp_
     assert [r["decision_id"] for r in out] == ["zh_bezirksgericht_dielsdorf_AH260006"]
     assert out[0]["previous_decision_id"] == "zh_arbeitsgericht_AH260006"
     assert stats["dropped_refetched_twin"] == 1 and not new_ids
+
+
+_CAPTION = "Obergericht des Kantons Zürich\nII. Strafkammer\nUrteil vom 10. Februar 2022\nin Sachen\nA._____\n"
+
+
+def test_date_is_corrected_when_caption_and_portal_agree(tmp_path):
+    rows = [_row("zh_obergericht_SB210497", "zh_obergericht", "SB210497", 5,
+                 decision_date="2020-02-10", full_text=_CAPTION)]
+    listing = {"5": _stub(5, "zh_obergericht", decision_date="2022-02-10")}
+    (stats, notes, _), out = _run(tmp_path, rows, listing, write=True)
+    assert out[0]["decision_date"] == "2022-02-10" and stats["decision_date"] == 1
+    assert any(n.startswith("date zh_obergericht_SB210497") for n in notes)
+
+
+def test_date_is_kept_when_the_caption_supports_our_date(tmp_path):
+    rows = [_row("zh_obergericht_PS110187", "zh_obergericht", "PS110187", 6,
+                 decision_date="2022-02-10", full_text=_CAPTION)]
+    listing = {"6": _stub(6, "zh_obergericht", decision_date="2022-02-01")}
+    (stats, _, _), out = _run(tmp_path, rows, listing, write=True)
+    assert out[0]["decision_date"] == "2022-02-10" and stats["date_differs_kept"] == 1
+
+
+def test_date_quoted_in_the_reasoning_is_not_a_caption():
+    text = ("Die Einzelrichterin trat\nmit Verfügung vom 20. Juni 2013 auf das Begehren nicht ein.\n"
+            "des Urteils vom 23. Juli 2012. Unter den Positionen\n")
+    assert mig.caption_dates(text) == set()
+    assert mig.caption_dates("Beschluss und Teilurteil vom 6. Februar 2025\n") == {"2025-02-06"}
+    assert mig.caption_dates("  Beschluss vom 20.06.2013\nin Sachen") == {"2013-06-20"}
+    assert mig.caption_dates("Verfügungen vom 11. April 2025\n") == {"2025-04-11"}
+
+
+def test_delisting_removes_only_named_documents_gone_from_the_portal(tmp_path):
+    rows = [_row("zh_bezirksgericht_horgen_FE250140", "zh_bezirksgericht_horgen", "FE250140", 39650),
+            _row("zh_obergericht_X", "zh_obergericht", "X", 99)]
+    dropped: list[str] = []
+    shard = tmp_path / "zh.jsonl"
+    shard.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    out = tmp_path / "out.jsonl"
+    with open(out, "w", encoding="utf-8") as f:
+        stats, _, _ = mig.migrate(shard, {}, f, frozenset({"39650"}), dropped)
+    kept = [json.loads(ln)["decision_id"] for ln in out.read_text(encoding="utf-8").splitlines()]
+    assert kept == ["zh_obergericht_X"] and dropped == ["zh_bezirksgericht_horgen_FE250140"]
+    assert stats["delisted"] == 1
+
+
+def test_delisting_refuses_a_document_the_portal_still_lists(tmp_path):
+    import pytest
+
+    shard = tmp_path / "zh.jsonl"
+    shard.write_text(json.dumps(_row("zh_obergericht_X", "zh_obergericht", "X", 99)) + "\n", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        mig.migrate(shard, {"99": _stub(99, "zh_obergericht")}, None, frozenset({"99"}))

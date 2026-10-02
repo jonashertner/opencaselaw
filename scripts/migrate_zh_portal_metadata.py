@@ -26,10 +26,22 @@ listing, never from guesses:
      Bundesgericht, 6B_122/2024"); the value was read and thrown away. It
      becomes appeal_info where the row has none.
 
+  5. Decision date.  368 served dates differ from the portal's. The judgment's
+     own caption ("Urteil vom 10. Februar 2022") decides: in 267 it confirms
+     our date and the portal's entry is the wrong one, so nothing changes; in
+     28 it confirms the portal (typically a year off: 2020-02-10 served for a
+     2022 judgment) and the date is corrected. Where the caption gives neither
+     date, or there is none, the row is left as it is.
+
 A row is matched to its portal entry by the TYPO3 document id in external_id
 ("zh_gerichte_<doc_id>"), never by docket: one docket can hold several
 documents. Rows without that id (federation leftovers, the AGer-Z yearbooks)
-are left alone. Dates are not touched.
+are left alone.
+
+De-listing.  Rows whose document is no longer in the listing are reported
+("not on portal") and kept. --drop-docs removes the named ones, from the shard
+and from the scraper state, and refuses any document the listing still shows.
+That is a maintainer decision under docs/governance-and-removal-policy.md.
 
 Usage (on the VPS, outside the build window, after `git merge --ff-only`):
     python3 scripts/migrate_zh_portal_metadata.py --fetch-listing listing.jsonl
@@ -65,6 +77,35 @@ log = logging.getLogger("migrate_zh_portal")
 _EXT_RE = re.compile(r"^zh_gerichte_(\d+)$")
 _SRC_RE = re.compile(r"entscheidDrucken\]=(\d+)$")
 _PLACEHOLDER_REGESTE = "[PDF text extraction failed"
+
+# The caption of a Zürich ruling: "Urteil vom 10. Februar 2022",
+# "Beschluss und Teilurteil vom 6. Februar 2025", "Beschluss vom 20.06.2013".
+# Anchored to a line of its own, so a date quoted in the reasoning ("mit
+# Verfügung vom 20. Juni 2013 trat die Einzelrichterin …") is not a caption.
+_MONTHS = {"januar": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5,
+           "juni": 6, "juli": 7, "august": 8, "september": 9, "oktober": 10,
+           "november": 11, "dezember": 12}
+_CAPTION_RE = re.compile(
+    r"^[ \t]*(?:(?:Teil|Zwischen|Vor|End)?(?:[Uu]rteil|[Bb]eschluss|[Vv]erfügung(?:en)?|[Ee]ntscheid)"
+    r"(?:[ \t]+und[ \t]+)?){1,2}[ \t]+vom[ \t]+"
+    r"(\d{1,2})\.[ \t]*(?:(\d{1,2})\.|([A-Za-zä]+))[ \t]*((?:19|20)\d{2})[ \t]*$",
+    re.MULTILINE,
+)
+CAPTION_HEAD_CHARS = 4000
+
+
+def caption_dates(full_text: str | None) -> set[str]:
+    """ISO dates of the caption lines in the head of a ruling."""
+    out: set[str] = set()
+    for m in _CAPTION_RE.finditer((full_text or "")[:CAPTION_HEAD_CHARS]):
+        month = int(m.group(2)) if m.group(2) else _MONTHS.get(m.group(3).lower())
+        if not month:
+            continue
+        try:
+            out.add(date(int(m.group(4)), month, int(m.group(1))).isoformat())
+        except ValueError:
+            continue
+    return out
 
 
 def fetch_listing(out: Path, delay: float = 2.0) -> int:
@@ -159,6 +200,17 @@ def target(row: dict, stub: dict, taken: set[str]) -> tuple[dict, list[str]]:
     if stub.get("entscheidart") and not (row.get("decision_type") or "").strip():
         changes["decision_type"] = stub["entscheidart"]
         why.append("decision_type")
+
+    portal_date = stub.get("decision_date")
+    if portal_date and str(row.get("decision_date") or "")[:10] != portal_date:
+        captions = caption_dates(row.get("full_text"))
+        # Only when the ruling's caption names the portal's date and nothing
+        # else: two independent sources against the stored one.
+        if captions == {portal_date}:
+            changes["decision_date"] = portal_date
+            why.append("decision_date")
+        else:
+            why.append("date_differs_kept")
     return changes, why
 
 
@@ -169,12 +221,18 @@ def _rows(path: Path):
                 yield json.loads(line)
 
 
-def migrate(shard: Path, listing: dict[str, dict], out=None) -> tuple[Counter, list[str], list[str]]:
+def migrate(shard: Path, listing: dict[str, dict], out=None,
+            drop_docs: frozenset[str] = frozenset(),
+            dropped_ids: list[str] | None = None) -> tuple[Counter, list[str], list[str]]:
     """Stream the shard; write the migrated rows to `out` when given.
-    Returns (counters, notes, re-minted ids)."""
+    Returns (counters, notes, re-minted ids). Ids of de-listed rows are
+    appended to `dropped_ids`."""
     stats: Counter = Counter()
     notes: list[str] = []
     new_ids: list[str] = []
+    still_listed = sorted(d for d in drop_docs if d in listing)
+    if still_listed:
+        raise SystemExit(f"--drop-docs: still on the portal, refusing: {', '.join(still_listed)}")
 
     taken: set[str] = set()
     doc_of_id: dict[str, str | None] = {}
@@ -208,6 +266,12 @@ def migrate(shard: Path, listing: dict[str, dict], out=None) -> tuple[Counter, l
             stats["alias_added"] += 1
         doc = doc_id_of(row)
         stub = listing.get(doc) if doc else None
+        if doc and doc in drop_docs:
+            stats["delisted"] += 1
+            notes.append(f"drop {row['decision_id']} (doc {doc}, withdrawn at the source)")
+            if dropped_ids is not None:
+                dropped_ids.append(row["decision_id"])
+            continue
         if not doc:
             stats["no_portal_doc_id"] += 1
         elif not stub:
@@ -217,6 +281,9 @@ def migrate(shard: Path, listing: dict[str, dict], out=None) -> tuple[Counter, l
             changes, why = target(row, stub, taken)
             for w in why:
                 stats[w.split(":")[0]] += 1
+            if "decision_date" in changes:
+                notes.append(f"date {row['decision_id']}: {row.get('decision_date')} → "
+                             f"{changes['decision_date']} (caption and portal agree)")
             if "decision_id" in changes:
                 taken.add(changes["decision_id"])
                 new_ids.append(changes["decision_id"])
@@ -239,6 +306,8 @@ def main() -> int:
     ap.add_argument("--listing", help="portal listing written by --fetch-listing")
     ap.add_argument("--fetch-listing", metavar="PATH", help="walk the portal and write the listing here")
     ap.add_argument("--apply", action="store_true", help="rewrite the shard (default: dry run)")
+    ap.add_argument("--drop-docs", default="", metavar="IDS",
+                    help="comma-separated portal document ids to de-list (must be gone from the listing)")
     ap.add_argument("--verbose", action="store_true", help="print every re-filed row")
     args = ap.parse_args()
 
@@ -259,17 +328,19 @@ def main() -> int:
         log.error("listing holds fewer than 30,000 entries — refusing (incomplete fetch?)")
         return 2
 
+    drop_docs = frozenset(d.strip() for d in args.drop_docs.split(",") if d.strip())
+    dropped_ids: list[str] = []
     if not args.apply:
-        stats, notes, _ = migrate(shard, listing)
+        stats, notes, _ = migrate(shard, listing, drop_docs=drop_docs)
     else:
         fd, tmp = tempfile.mkstemp(dir=str(shard.parent), prefix=shard.name + ".", suffix=".tmp")
         with os.fdopen(fd, "w", encoding="utf-8") as out:
-            stats, notes, new_ids = migrate(shard, listing, out)
+            stats, notes, new_ids = migrate(shard, listing, out, drop_docs, dropped_ids)
 
     for k, v in sorted(stats.items()):
         log.info(f"  {k}: {v}")
     for n in notes:
-        if args.verbose or n.startswith(("blocked", "not on portal", "drop")):
+        if args.verbose or n.startswith(("blocked", "not on portal", "drop", "date")):
             log.info("  " + n)
 
     if not args.apply:
@@ -285,6 +356,16 @@ def main() -> int:
     known: set[str] = set()
     if state.exists():
         known = {ln.strip() for ln in open(state, encoding="utf-8") if ln.strip()}
+    if dropped_ids and state.exists():
+        # A de-listed id leaves the state too, so a later re-publication is
+        # discovered as new (same rule as runbooks/bger_withdrawn_decisions.md).
+        gone = set(dropped_ids)
+        kept = [ln for ln in open(state, encoding="utf-8") if ln.strip() not in gone]
+        tmp_state = state.with_name(state.name + ".tmp")
+        tmp_state.write_text("".join(kept), encoding="utf-8")
+        os.replace(tmp_state, state)
+        known -= gone
+        log.info(f"state {state}: -{len(gone)} de-listed ids")
     add = [i for i in new_ids if i not in known]
     if add:
         with open(state, "a", encoding="utf-8") as f:
