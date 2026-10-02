@@ -4,7 +4,7 @@
     {
       "court": "zh_obergericht",
       "canton": "ZH",
-      "count": 28420,
+      "count": 28535,
       "earliest": "1980-04-15",
       "latest": "2026-08-21",
       "last_scraped": "2026-10-01T01:39:49.825613+00:00",
@@ -15,7 +15,7 @@
     {
       "court": "zh_handelsgericht",
       "canton": "ZH",
-      "count": 4686,
+      "count": 4691,
       "earliest": "2001-05-21",
       "latest": "2026-09-16",
       "last_scraped": "2026-10-01T01:39:26.405600+00:00",
@@ -38,7 +38,7 @@
     {
       "court": "zh_gerichte",
       "canton": "ZH",
-      "count": 1438,
+      "count": 1316,
       "earliest": "1998-08-10",
       "latest": "2025-11-05",
       "last_scraped": "2026-02-17T04:05:39.249789+00:00",
@@ -60,7 +60,7 @@
     {
       "court": "zh_mietgericht",
       "canton": "ZH",
-      "count": 191,
+      "count": 192,
       "earliest": "2006-02-23",
       "latest": "2026-09-22",
       "last_scraped": "2026-10-02T01:35:19.320093+00:00",
@@ -71,7 +71,7 @@
     {
       "court": "zh_arbeitsgericht",
       "canton": "ZH",
-      "count": 129,
+      "count": 130,
       "earliest": "2006-09-05",
       "latest": "2026-07-14",
       "last_scraped": "2026-10-01T01:38:07.417436+00:00",
@@ -270,12 +270,12 @@
     {
       "court": "zh_obergericht",
       "canton": "ZH",
-      "count": 28420
+      "count": 28535
     },
     {
       "court": "zh_handelsgericht",
       "canton": "ZH",
-      "count": 4686
+      "count": 4691
     },
     {
       "court": "zh_kassationsgericht",
@@ -285,7 +285,7 @@
     {
       "court": "zh_gerichte",
       "canton": "ZH",
-      "count": 1438
+      "count": 1316
     },
     {
       "court": "zh_bezirksgericht_zuerich",
@@ -295,12 +295,12 @@
     {
       "court": "zh_mietgericht",
       "canton": "ZH",
-      "count": 191
+      "count": 192
     },
     {
       "court": "zh_arbeitsgericht",
       "canton": "ZH",
-      "count": 129
+      "count": 130
     },
     {
       "court": "zh_bezirksgericht_horgen",
@@ -464,7 +464,7 @@
     "2026-08": 11,
     "2026-09": 5
   },
-  "generated_at": "2026-10-02T11:05:28.598013+00:00",
+  "generated_at": "2026-10-02T11:11:09.714342+00:00",
   "corpus": {
     "federal_laws": 5,
     "federal_law_articles": 3810,
@@ -766,12 +766,12 @@
         "canton": "ZH"
       },
       {
-        "decision_id": "zh_gerichte_PQ250026",
-        "docket": "PQ250026",
-        "date": "2025-07-07",
+        "decision_id": "zh_gerichte_VR250005",
+        "docket": "VR250005",
+        "date": "2025-06-10",
         "court": "zh_gerichte",
         "language": "de",
-        "summary": "Genehmigung des Rechenschaftsberichtes in der Beistandschaft nach Art. 308 Abs. 1 und 2 ZGB",
+        "summary": "Rekurs gegen den Beschluss der Fachgruppe/Zentrale Sprachdienstleistungen vom 10. Juni 2025 (Gesch. Nr. KE250017-O)",
         "canton": "ZH"
       }
     ]
@@ -901,7 +901,9 @@
   "delta": {
     "total": -1041389,
     "by_court": {
-      "zh_mietgericht": 1
+      "zh_obergericht": 115,
+      "zh_handelsgericht": 5,
+      "zh_mietgericht": 2
     },
     "by_canton": {},
     "corpus": {
