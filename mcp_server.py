@@ -18058,7 +18058,8 @@ def _handle_strengthen(*, redacted_text: str, lang: str = "de") -> dict:
     commentary_excerpts: list[dict] = []
     for law, article in statute_hits[:2]:
         try:
-            ck = search_commentaries(query=f"Art. {article} {law}", limit=2, language=lang)
+            ck = search_commentaries(query=f"Art. {article} {law}", limit=2, language=lang,
+                                     include_cantonal=False)
         except Exception:
             continue
         for c in (ck.get("results") or [])[:2]:
@@ -20459,25 +20460,127 @@ def get_commentary(
         conn.close()
 
 
+_OK_SOURCE_LABEL = "OnlineKommentar.ch (CC-BY-4.0)"
+
+
+def _cantonal_commentary_scope(abbreviation: str | None) -> tuple[list[tuple[str, str]], bool]:
+    """Which cantonal commentaries a search_commentaries call covers, and
+    whether the federal (OnlineKommentar) side still runs.
+
+    No abbreviation: every cantonal commentary plus the federal side. A
+    cantonal form ('SH/VRG', 'VRG SH') or the bare name of a held cantonal act
+    that no federal commentary uses ('VRG', 'JG'): that commentary only. Any
+    other abbreviation ('OR'): the federal side only."""
+    if not abbreviation or not abbreviation.strip():
+        return list(_CANTONAL_COMMENTARIES), True
+    key = _cantonal_commentary_key(abbreviation, None, None)
+    if key is not None:
+        return [key], False
+    bare = abbreviation.strip().upper()
+    named = [k for k in _CANTONAL_COMMENTARIES if k[1] == bare]
+    if named and bare not in _OK_ABBR_TO_SR:
+        return named, False
+    return [], True
+
+
+def _search_cantonal_commentaries(
+    fts_query: str, keys: list[tuple[str, str]], language: str | None, limit: int,
+) -> list[dict]:
+    """search_commentaries hits from the cantonal commentaries held in the
+    scholarship corpus (one record per Kommentierung), rank-ordered, each with
+    its BM25 score so the caller can merge them with the OnlineKommentar hits.
+    [] when there is nothing to search or the scholarship DB is unavailable."""
+    if not keys or not fts_query:
+        return []
+    conn = _get_scholarship_conn()
+    if conn is None:
+        return []
+    by_prefix = {f"{_CANTONAL_COMMENTARIES[k]['source']}:{_CANTONAL_COMMENTARIES[k]['prefix']}-art-": k
+                 for k in keys}
+    sources = sorted({_CANTONAL_COMMENTARIES[k]["source"] for k in keys})
+    try:
+        sql = (
+            "SELECT p.pub_id, p.source, p.title, p.authors, p.language, p.url, "
+            "       snippet(publications_fts, -1, '>>>', '<<<', '...', 40) AS snippet, "
+            "       f.rank AS score "
+            "FROM publications_fts f JOIN publications p ON p.id = f.rowid "
+            f"WHERE f.publications_fts MATCH ? AND p.source IN ({','.join('?' * len(sources))})"
+            + (" AND p.language = ?" if language else "")
+            + " ORDER BY f.rank LIMIT ?"
+        )
+        params: list = [fts_query, *sources, *([language] if language else []), limit * 3]
+        rows = conn.execute(sql, params).fetchall()
+    except sqlite3.Error as e:
+        logger.debug("cantonal commentary search failed: %s", e)
+        return []
+    finally:
+        conn.close()
+    out: list[dict] = []
+    for r in rows:
+        pid = r["pub_id"]
+        prefix = next((p for p in by_prefix if pid.startswith(p)), None)
+        if prefix is None:
+            continue  # essays, checklists, front matter: not a Kommentierung
+        canton, law = by_prefix[prefix]
+        spec = _CANTONAL_COMMENTARIES[(canton, law)]
+        attribution = _scholarship_attribution(spec["source"]) or {}
+        out.append({
+            "abbreviation": f"{law} {canton}",
+            "sr_number": None,
+            "canton": canton,
+            "systematic_number": spec["number"],
+            "article_num": pid[len(prefix):].replace("-", " und "),
+            "title": r["title"],
+            "authors": _authors_list(r["authors"]),
+            "language": r["language"],
+            "snippet": r["snippet"],
+            "html_link": r["url"],
+            "pub_id": pid,
+            "source": attribution.get("name") or spec["source"],
+            "license": "CC-BY-SA" if spec["source"] == "shk_kommentar" else None,
+            "get": f"get_commentary(canton='{canton}', abbreviation='{law}', "
+                   f"article='{pid[len(prefix):].split('-')[0]}')",
+            "_score": r["score"],
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
 def search_commentaries(
     query: str,
     abbreviation: str | None = None,
     language: str | None = None,
     limit: int = 10,
+    include_cantonal: bool = True,
 ) -> dict:
-    """Full-text search across OnlineKommentar commentaries."""
+    """Full-text search across the article-anchored commentaries: the
+    OnlineKommentar / OpenLegalCommentary corpus and the cantonal
+    commentaries in _CANTONAL_COMMENTARIES (from the scholarship corpus)."""
+    limit = min(max(1, limit), 50)
+    raw_query = query
+    cantonal_keys, run_federal = (_cantonal_commentary_scope(abbreviation)
+                                  if include_cantonal else ([], True))
+    if not run_federal:
+        q = _sanitize_fts5(query)
+        hits = _search_cantonal_commentaries(q, cantonal_keys, language, limit)
+        relaxed = False
+        if not hits:
+            _or_q = _fts5_or_query(raw_query)
+            if _or_q and _or_q != q:
+                hits = _search_cantonal_commentaries(_or_q, cantonal_keys, language, limit)
+                relaxed = bool(hits)
+        return _commentary_search_payload(q, raw_query, [], hits, limit, relaxed)
+
     conn = _get_ok_conn()
     if conn is None:
         return {"error": "OnlineKommentar commentaries database not available."}
-
-    limit = min(max(1, limit), 50)
-    raw_query = query
 
     try:
         # Sanitize and build FTS5 query with optional filters
         query = _sanitize_fts5(query)
         if not query:
-            return {"query": query, "count": 0, "results": [], "source": "OnlineKommentar.ch (CC-BY-4.0)"}
+            return {"query": query, "count": 0, "results": [], "source": _OK_SOURCE_LABEL}
         conditions = ["commentaries_fts MATCH ?"]
         params: list = [query]
 
@@ -20497,15 +20600,17 @@ def search_commentaries(
 
         _sql = f"""SELECT c.sr_number, c.abbr, c.article_num, c.title,
                        c.authors, c.language, c.html_link,
-                       snippet(commentaries_fts, 4, '>>>', '<<<', '...', 40) AS snippet
+                       snippet(commentaries_fts, 4, '>>>', '<<<', '...', 40) AS snippet,
+                       f.rank AS score
                 FROM commentaries_fts f
                 JOIN commentaries c ON c.id = f.rowid
                 WHERE {where}
                 ORDER BY f.rank
                 LIMIT ?"""
         rows = conn.execute(_sql, params).fetchall()
+        cantonal = _search_cantonal_commentaries(query, cantonal_keys, language, limit)
         relaxed = False
-        if not rows:
+        if not rows and not cantonal:
             # ~1,170 commentaries: a strict AND over that many texts is
             # empty for most multi-term questions. Rank the sections that
             # carry any of the terms and say so; the abbreviation and
@@ -20513,7 +20618,8 @@ def search_commentaries(
             _or_q = _fts5_or_query(raw_query)
             if _or_q and _or_q != query:
                 rows = conn.execute(_sql, [_or_q, *params[1:]]).fetchall()
-                relaxed = bool(rows)
+                cantonal = _search_cantonal_commentaries(_or_q, cantonal_keys, language, limit)
+                relaxed = bool(rows or cantonal)
 
         # One commentary is indexed as several sections, so an article that
         # matches well fills the whole result page with itself: a limit-5
@@ -20537,29 +20643,64 @@ def search_commentaries(
                 "language": r["language"],
                 "snippet": r["snippet"],
                 "html_link": r["html_link"],
+                "source": _OK_SOURCE_LABEL,
+                "_score": dict(r).get("score", 0.0),
             })
             if len(results) >= limit:
                 break
 
-        out = {
-            "query": query,
-            "count": len(results),
-            "results": results,
-            "source": "OnlineKommentar.ch (CC-BY-4.0)",
-        }
-        if relaxed:
-            out["filters_relaxed"] = True
-            out["note"] = (
-                f"No commentary section contains every term of \"{raw_query}\"; "
-                "listed instead are the sections matching any of the terms, "
-                "best matches first (filters_relaxed, ranked OR)."
-            )
-        return out
+        return _commentary_search_payload(query, raw_query, results, cantonal, limit, relaxed)
     except sqlite3.Error as e:
         logger.error("OK commentary search error: %s", e)
         return {"error": f"Database error: {e}"}
     finally:
         conn.close()
+
+
+def _commentary_search_payload(
+    query: str, raw_query: str, federal: list[dict], cantonal: list[dict],
+    limit: int, relaxed: bool,
+) -> dict:
+    """One ranked list from the two commentary indexes. Both rank by FTS5
+    BM25 over a commentary's text, so the scores are merged directly (lower
+    is better); each list keeps its own order. The response names every
+    source that contributed and carries the attribution the cantonal
+    commentary's licence requires."""
+    merged: list[dict] = []
+    i = j = 0
+    while len(merged) < limit and (i < len(federal) or j < len(cantonal)):
+        take_cantonal = j < len(cantonal) and (
+            i >= len(federal) or cantonal[j]["_score"] < federal[i]["_score"])
+        if take_cantonal:
+            merged.append(cantonal[j])
+            j += 1
+        else:
+            merged.append(federal[i])
+            i += 1
+    for r in merged:
+        r.pop("_score", None)
+    labels = []
+    for r in merged:
+        if r["source"] not in labels:
+            labels.append(r["source"])
+    out = {
+        "query": query,
+        "count": len(merged),
+        "results": merged,
+        "source": "; ".join(labels) if labels else _OK_SOURCE_LABEL,
+    }
+    cantonal_sources = sorted({_CANTONAL_COMMENTARIES[(r["canton"], r["abbreviation"].split()[0])]["source"]
+                               for r in merged if r.get("canton")})
+    if cantonal_sources:
+        out["attribution"] = [_scholarship_attribution(s) for s in cantonal_sources]
+    if relaxed:
+        out["filters_relaxed"] = True
+        out["note"] = (
+            f"No commentary section contains every term of \"{raw_query}\"; "
+            "listed instead are the sections matching any of the terms, "
+            "best matches first (filters_relaxed, ranked OR)."
+        )
+    return out
 
 
 # ── Legal scholarship (OA Swiss law publications) ─────────────────────
@@ -21498,9 +21639,17 @@ def _format_search_commentaries_response(result: dict) -> str:
         author_str = f" ({authors})" if authors else ""
         text += f"**{i}. Art. {r['article_num']} {r['abbreviation']}** — {r['title']}{author_str} [{r['language']}]\n"
         text += f"   {_render_fts_snippet(r['snippet'])}\n"
+        if r.get("canton"):
+            text += f"   Source: {r.get('source')} — `{r.get('pub_id')}`; full text: {r.get('get')}\n"
         if r.get("html_link"):
-            text += f"   Link: {_md_link('OnlineKommentar', r['html_link'])}\n"
+            label = "OnlineKommentar" if not r.get("canton") else "Publisher"
+            text += f"   Link: {_md_link(label, r['html_link'])}\n"
         text += "\n"
+
+    for a in result.get("attribution") or []:
+        line = a.get("attribution") if isinstance(a, dict) else None
+        if line:
+            text += f"---\n**Attribution:** {a.get('name') or a.get('source')}\n{line}\n"
 
     return text
 
@@ -27840,13 +27989,16 @@ def _list_tools() -> list[Tool]:
             name="search_commentaries",
             title="Search commentaries",
             description=(
-                "Use this tool ONLY for article-anchored commentary from "
-                "OnlineKommentar.ch — doctrinal discussion tied to a specific "
-                "statute article. For the full OA scholarship corpus (which "
-                "includes OnlineKommentar) use search_scholarship. "
+                "Use this tool ONLY for article-anchored commentary — doctrinal "
+                "discussion tied to a specific statute article: OnlineKommentar.ch / "
+                "OpenLegalCommentary.ch (federal law) and the Kommentar zur "
+                "Schaffhauser Verwaltungsrechtspflege (Schaffhausen VRG and JG; "
+                "abbreviation 'VRG SH' / 'JG SH'). For the full OA scholarship corpus "
+                "(which includes all of these) use search_scholarship. "
                 "Searches commentary text, titles, and article numbers. "
-                "Returns ranked results with snippets, authors, and links. "
-                "Useful for finding doctrinal discussion of a legal concept across multiple laws."
+                "Returns ranked results with snippets, authors, links and each "
+                "hit's source. Useful for finding doctrinal discussion of a legal "
+                "concept across multiple laws."
             ),
             inputSchema={
                 "type": "object",
@@ -27857,7 +28009,7 @@ def _list_tools() -> list[Tool]:
                     },
                     "abbreviation": {
                         "type": "string",
-                        "description": "Filter by law abbreviation (e.g., 'OR', 'StGB').",
+                        "description": "Filter by law abbreviation (e.g., 'OR', 'StGB'; 'VRG SH' or 'JG SH' for the Schaffhausen commentary).",
                     },
                     "language": {
                         "type": "string",
@@ -32931,7 +33083,7 @@ setInterval(load, 30000);
 
     @rest_api.get("/commentaries/search", tags=["Commentaries"],
                   summary="Search commentaries",
-                  description="Search OnlineKommentar.ch scholarly commentaries on Swiss law.")
+                  description="Search the article-anchored commentaries: OnlineKommentar.ch / OpenLegalCommentary.ch and the Kommentar zur Schaffhauser Verwaltungsrechtspflege.")
     async def api_search_commentaries(
         response: Response,
         query: str = Query(None, description="Search query"),
