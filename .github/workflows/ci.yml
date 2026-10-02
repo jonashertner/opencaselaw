@@ -20,7 +20,7 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest pytest-asyncio openai anthropic google-genai openapi-spec-validator
+        run: pip install -r requirements.txt pytest pytest-asyncio openai anthropic google-genai openapi-spec-validator pillow
 
       - name: Schema consistency tests
         run: python test_schema.py
