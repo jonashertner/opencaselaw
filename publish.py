@@ -542,6 +542,10 @@ def step_2_build_fts5(
     #                  quick_publish can run DURING this window, which
     #                  adds disk contention and is the reason the
     #                  previous cap got hit.
+    # build_fts5 refreshes the public stats.json right after the swap only
+    # when asked to; this is the production build, so ask. setdefault keeps
+    # an operator's explicit OCL_EARLY_STATS_PUSH=0 in force.
+    os.environ.setdefault("OCL_EARLY_STATS_PUSH", "1")
     return run_cmd(cmd, "Build FTS5 database", dry_run,
                    timeout=timeout, stall_timeout=14400,
                    on_line=on_line)

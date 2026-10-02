@@ -201,6 +201,11 @@ def _fmt_dur(seconds: float) -> str:
     return f"{h}h {m:02d}m"
 
 
+def _early_stats_push_enabled() -> bool:
+    """True only when the caller asked for the early dashboard push (publish.py Step 2 does)."""
+    return os.environ.get("OCL_EARLY_STATS_PUSH", "0").strip().lower() in {"1", "true", "yes"}
+
+
 def _spawn_early_stats_push(swapped_db: Path) -> None:
     """Fire-and-forget: regenerate docs/stats.json + git push so the
     public dashboard reflects the freshly-swapped FTS5 DB within ~5 min
@@ -2568,8 +2573,11 @@ def build_database(
         # final Step 5/6 in publish.py still runs at the end (with full
         # graph aggregations) so this is purely an early-update; no data
         # is lost if the subprocess fails.
-        # Disable with OCL_EARLY_STATS_PUSH=0.
-        if os.environ.get("OCL_EARLY_STATS_PUSH", "1") not in {"0", "false", "no"}:
+        # Opt-in: only with OCL_EARLY_STATS_PUSH=1, which publish.py Step 2
+        # sets for the nightly. A manual or test build must not publish its
+        # own counts: on 2026-10-02 three local test builds each pushed a
+        # 37k-row stats.json to main and the live site showed that total.
+        if _early_stats_push_enabled():
             try:
                 _spawn_early_stats_push(final_db_path)
             except Exception as _e:
