@@ -564,12 +564,20 @@ def render_decision_page(
     *,
     highlight: str | None = None,
     e_focus: str | None = None,
+    resolve_reference=None,
 ) -> tuple[str, int, str | None]:
     """Render an HTML page for a single decision.
 
     Returns ``(html, status_code, redirect_location)``. ``redirect_location``
-    is non-None only for the 301 docket-redirect case below; the caller must
+    is non-None only for the 301 redirect cases below; the caller must
     send it as the ``Location`` header instead of ``html`` when present.
+
+    ``resolve_reference``: optional ``callable(str) -> decision_id | None``
+    for a path that is a written reference rather than an id ("BGE 73 II 6",
+    "4C.230/2006"). The server passes mcp_server._resolve_reference_unique,
+    the resolution behind the ``cite`` tool with every tie refused, so this
+    module needs no second copy of the docket grammar. It must return an id
+    only when exactly one decision carries the reference.
 
     Optional ``highlight``: a verbatim substring that, if found in the
     Erwägung whose ``e_number`` matches ``e_focus``, is wrapped in
@@ -632,6 +640,21 @@ def render_decision_page(
             canonical_id = docket_matches[0]["decision_id"]
             location = "/entscheid/" + urllib.parse.quote(str(canonical_id), safe="")
             return "", 301, location
+
+        # Every other spelling of a reference (BGE/ATF/DTF labels, the federal
+        # docket separators, joined dockets): the cite tool's resolution,
+        # unique matches only. Also asked when the exact docket above is
+        # shared by several rows, which may be one decision stored twice; a
+        # docket shared by different decisions stays a 404 there too.
+        if resolve_reference is not None:
+            try:
+                resolved_id = resolve_reference(decision_id)
+            except Exception:  # noqa: BLE001 — a resolver fault is a 404, not a 500
+                logger.exception("reference resolution failed for %r", decision_id)
+                resolved_id = None
+            if resolved_id and resolved_id != decision_id:
+                location = "/entscheid/" + urllib.parse.quote(str(resolved_id), safe="")
+                return "", 301, location
 
         return _render_404(decision_id), 404, None
     finally:

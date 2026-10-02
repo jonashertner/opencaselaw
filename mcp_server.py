@@ -2057,8 +2057,12 @@ QUERY_STATUTE_INVALID_LAWS = {
     "QUINQUIES",
     "SEXIES",
 }
+# ATF/DTF are the official French/Italian names of the BGE collection (#43),
+# and 'Ia'/'Ib' are real divisions (BGE 116 Ia 28) — both must count as a
+# case-number query, or the search runs the slow natural-language path on
+# them and never pins the decision itself (2026-09-22, ATF 73 II 6).
 QUERY_BGE_PATTERN = re.compile(
-    r"\bBGE\s+\d{2,3}\s+[IVX]{1,4}\s+\d{1,4}\b",
+    r"\b(?:BGE|ATF|DTF)\s+\d{2,3}\s+[IVX]{1,4}[ab]?\s+\d{1,4}\b",
     flags=re.IGNORECASE,
 )
 QUERY_BVGE_PATTERN = re.compile(
@@ -3998,6 +4002,11 @@ def _search_fts5_inner(
         inline_docket_candidates.insert(0, collapsed)
     inline_docket_results: list[dict] = []
     query_preferred_courts = _detect_query_preferred_courts(fts_query)
+    # A BGE/ATF/DTF or bare '73 II 6' reference names ONE ruling; resolve it by
+    # exact tuple through the primary key and pin it first, whatever the rest
+    # of the search returns. The raw query, not fts_query: the sanitizer may
+    # rewrite a pinpoint suffix, and the tuple parser ignores it anyway.
+    bge_pinned = _search_bge_tuple(conn, query, where, params)
 
     # Docket-style lookups should prioritize exact/near-exact docket matches.
     if is_docket_query:
@@ -4008,6 +4017,8 @@ def _search_fts5_inner(
                 conn, docket_search_query, where, params, offset + limit,
                 preferred_courts=query_preferred_courts,
             )
+            if docket_results and bge_pinned:
+                docket_results = _dedupe_results_by_decision_id(bge_pinned + docket_results)
             if docket_results:
                 if sort in ("date_desc", "date_asc"):
                     reverse = sort == "date_desc"
@@ -4032,6 +4043,10 @@ def _search_fts5_inner(
                 logger.debug("Inline docket lookup failed for %s: %s", candidate, e)
                 continue
         inline_docket_results = _dedupe_results_by_decision_id(inline_docket_results)
+    if bge_pinned:
+        # Pinned ahead of every inline-docket and full-text hit; the merge
+        # below keeps primary rows first and drops the ruling's other id.
+        inline_docket_results = _dedupe_results_by_decision_id(bge_pinned + inline_docket_results)
 
     _bm25_weights = ", ".join(
         str(SCORING_CONFIG[k]) for k in [
@@ -4803,6 +4818,73 @@ def _search_by_docket(
     return results[:limit]
 
 
+def _search_bge_tuple(
+    conn: sqlite3.Connection,
+    raw_query: str,
+    where: str,
+    params: list,
+) -> list[dict]:
+    """The decision a BGE/ATF/DTF or bare 'vol division page' reference names,
+    resolved by exact tuple through the primary key — never by text.
+
+    Volumes 1–79 (14,578 rulings) are stored as 'bge_73_II_6' with docket
+    '73_II_6', later volumes as 'bge_BGE_140_III_115' with 'BGE 140 III 115',
+    and 12,367 rulings exist under a prefixed AND a spaced id. The docket
+    fast path only re-separates the query with / _ . - and so never produced
+    the early shapes; the reference fell through to full text, which ranked
+    the decisions CITING it above the ruling itself (ATF 73 II 6, 2026-09-22).
+    Returns at most one row per tuple, preferring the prefixed id: on every
+    sampled dual ruling that copy carries the fuller text. Honors the caller's
+    WHERE filters (court, language, dates) exactly like the docket path.
+    Returns [] for anything that is not a BGE reference."""
+    ids = _bge_ref_candidates(raw_query)
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    sql = f"""
+        SELECT
+            d.decision_id,
+            d.court,
+            d.canton,
+            d.chamber,
+            d.docket_number,
+            d.decision_date,
+            d.language,
+            d.title,
+            d.regeste,
+            NULL as snippet,
+            d.source_url,
+            d.pdf_url
+        FROM decisions d
+        WHERE d.decision_id IN ({placeholders}){where}
+    """
+    try:
+        rows = conn.execute(sql, [*ids, *params]).fetchall()
+    except sqlite3.OperationalError as e:
+        logger.debug("BGE tuple lookup failed for %r: %s", raw_query, e)
+        return []
+    if not rows:
+        return []
+    rank = {did: i for i, did in enumerate(ids)}
+    rows = sorted(rows, key=lambda r: rank.get(r["decision_id"], len(ids)))
+    r = rows[0]
+    return [{
+        "decision_id": r["decision_id"],
+        "court": r["court"],
+        "canton": r["canton"],
+        "chamber": r["chamber"],
+        "docket_number": r["docket_number"],
+        "decision_date": r["decision_date"],
+        "language": r["language"],
+        "title": r["title"],
+        "regeste": _truncate(r["regeste"], MAX_SNIPPET_LEN) if r["regeste"] else None,
+        "snippet": r["snippet"],
+        "source_url": r["source_url"],
+        "pdf_url": r["pdf_url"],
+        "relevance_score": 100.0,
+    }]
+
+
 def _search_related_docket_family(
     conn: sqlite3.Connection,
     *,
@@ -5027,6 +5109,7 @@ def _dedupe_results_by_decision_id(rows: list[dict]) -> list[dict]:
     out: list[dict] = []
     seen_ids: set[str] = set()
     seen_canonical: set[str] = set()
+    seen_bge_tuples: set[str] = set()
     for row in rows:
         did = row.get("decision_id")
         if not did or did in seen_ids:
@@ -5037,9 +5120,18 @@ def _dedupe_results_by_decision_id(rows: list[dict]) -> list[dict]:
         # Skip canonical dedup for empty-docket keys (format: court||date)
         if ckey and "||" not in ckey and ckey in seen_canonical:
             continue
+        # One BGE ruling stored under two ids ('bge_BGE_112_IV_74' and
+        # 'bge_112 IV 74') is one result; the canonical key above cannot see
+        # it because the docket_number spellings differ ('BGE 112 IV 74' vs
+        # '112 IV 74'). First (highest-ranked) spelling wins.
+        tkey = _bge_tuple_key(did)
+        if tkey and tkey in seen_bge_tuples:
+            continue
         seen_ids.add(did)
         if ckey and "||" not in ckey:
             seen_canonical.add(ckey)
+        if tkey:
+            seen_bge_tuples.add(tkey)
         out.append(row)
     return out
 
@@ -6711,6 +6803,17 @@ def _bge_ref_candidates(ref: str) -> list[str]:
     return out
 
 
+def _bge_tuple_key(decision_id: str | None) -> str | None:
+    """The one key shared by every stored spelling of a BGE ruling (its
+    prefixed id, 'bge_BGE_112_IV_74'), or None for any other decision. The
+    corpus holds 12,367 BGE rulings under two ids at once (prefixed and
+    spaced, 2026-09-22); a result list must show such a ruling once."""
+    if not decision_id or not decision_id.startswith("bge_"):
+        return None
+    cands = _bge_ref_candidates(decision_id)
+    return cands[0] if cands else None
+
+
 def _docket_is_prefix_of_longer(inp: str, docket: str | None) -> bool:
     """True if `docket` is the input followed by extra digit(s) — '131 III 12' vs
     '131 III 121'. Such a LIKE '%inp%' hit is a DIFFERENT decision and must be
@@ -7087,6 +7190,139 @@ def _resolve_parsed_reference(conn, reference: str) -> str | None:
     if len(alias_ids) == 1:
         return alias_ids[0]
     return None
+
+
+def _existing_decision_ids(conn: sqlite3.Connection, candidates) -> list[str]:
+    """The candidates that are stored decision_ids, in candidate order (PK lookups)."""
+    out: list[str] = []
+    for cid in candidates:
+        row = conn.execute(
+            "SELECT decision_id FROM decisions WHERE decision_id = ?", (cid,)
+        ).fetchone()
+        if row and row[0] not in out:
+            out.append(row[0])
+    return out
+
+
+def _decision_ids_by_docket(conn: sqlite3.Connection, docket: str) -> list[str]:
+    """Every decision stored under exactly this docket_number, newest first —
+    the order _resolve_decision_id picks from (idx_decisions_docket)."""
+    return [r[0] for r in conn.execute(
+        "SELECT decision_id FROM decisions WHERE docket_number = ? "
+        "ORDER BY decision_date DESC LIMIT 8", (docket,),
+    ).fetchall()]
+
+
+def _parsed_reference_ids(conn: sqlite3.Connection, reference: str) -> tuple[list[str], bool]:
+    """_resolve_parsed_reference without its tie-break: every decision the
+    step could have picked, plus whether the step picks the first of several
+    (a BGE label, a stored docket) or resolves a unique hit only (the alias)."""
+    try:
+        parsed = reference_parser.parse_reference(reference)
+    except Exception:  # noqa: BLE001 — a parser fault must not break resolution
+        return [], True
+    if parsed.bge_label and parsed.bge_label != reference.strip():
+        ids = _existing_decision_ids(conn, _bge_ref_candidates(parsed.bge_label))
+        if ids:
+            return ids, True
+    primary = parsed.primary_docket
+    if not primary or (parsed.bge_label and parsed.bge_first):
+        return [], True
+    for variant in reference_parser.docket_variants(primary):
+        rows = conn.execute(
+            "SELECT decision_id, court, canton FROM decisions WHERE docket_number = ? "
+            "ORDER BY decision_date DESC LIMIT 8", (variant,),
+        ).fetchall()
+        if not rows:
+            continue
+        records = [dict(zip(("decision_id", "court", "canton"), tuple(r))) for r in rows]
+        if parsed.courts or parsed.canton:
+            scoped = [r["decision_id"] for r in records if parsed.in_scope(r)]
+            if scoped:
+                return scoped, True
+            continue
+        return [r["decision_id"] for r in records], True
+    return _lookup_docket_alias(conn, primary), False
+
+
+def _reference_id_tiers(conn: sqlite3.Connection, ref: str):
+    """The exact steps of _resolve_decision_id, in its order, each as
+    (every decision_id the step matches, step_picks_first). Lazy, so a hit in
+    an early step never pays for the later ones. The LIKE scan is not a step
+    here: a substring is not an identity (P1.4)."""
+    yield _existing_decision_ids(conn, _bge_ref_candidates(ref)), True
+    prev = _lookup_previous_id(conn, ref)
+    yield ([prev] if prev else []), True
+    yield _decision_ids_by_docket(conn, ref), True
+    ext = _extract_single_docket(ref)
+    yield (_decision_ids_by_docket(conn, ext) if ext and ext != ref else []), True
+    yield _parsed_reference_ids(conn, ref)
+    yield _lookup_ecthr_appno(conn, ref), False
+    yield _lookup_docket_alias(conn, ref), False
+    yield _existing_decision_ids(conn, decision_ref.resolve_decision_ref(ref)), True
+    appno = decision_ref.application_number(ref)
+    yield (_lookup_ecthr_appno(conn, appno) if appno and appno != ref else []), False
+
+
+def _one_decision(ids: list[str]) -> str | None:
+    """The id to serve when every id in ``ids`` is the SAME decision, else None.
+
+    Two spellings of one BGE (vol, division, page) tuple are one decision: the
+    direct and the es-era scrape stored 15,038 of production's 35,455 BGE
+    tuples twice ('bge_BGE_100_Ia_106' and 'bge_100 IA 106', measured
+    2026-09-22), and _bge_ref_candidates already names the preferred spelling
+    first. So are ids the representation manifest links to one canonical
+    (GE procedure/decision numbers, VD dual scrapes). The id returned is
+    always one of ``ids`` — the manifest's canonical when it is among them,
+    else the first, which is the one _resolve_decision_id picks."""
+    ids = list(dict.fromkeys(ids))
+    if len(ids) <= 1:
+        return ids[0] if ids else None
+    tuples = {tuple(_bge_ref_candidates(i)) for i in ids}
+    if len(tuples) == 1 and tuples != {()}:
+        return ids[0]
+    links = _canonical_links_for(ids) or {}
+    canonicals = {links.get(i) or i for i in ids}
+    if len(canonicals) == 1:
+        canonical = next(iter(canonicals))
+        return canonical if canonical in ids else ids[0]
+    return None
+
+
+def _resolve_reference_unique(reference: str) -> str | None:
+    """The one decision a written reference names, or None.
+
+    The resolver behind the public /entscheid/<reference> redirect. It walks
+    the same exact steps as _resolve_decision_id (the resolver behind `cite`)
+    and accepts the result under the same rule, _cite_identity, but where that
+    resolver breaks a tie by date, this one refuses: a step matching several
+    different decisions ends the walk with None, and the page 404s rather than
+    redirecting to one of them. No LIKE scan, indexed lookups only, so an
+    unknown path costs a crawler-heavy route a handful of index probes."""
+    ref = (reference or "").strip()
+    if not ref or len(ref) > 200:
+        return None
+    conn = get_db()
+    try:
+        hit = None
+        for ids, picks_first in _reference_id_tiers(conn, ref):
+            if not ids:
+                continue
+            hit = _one_decision(ids)
+            if hit or picks_first:
+                break
+        if not hit:
+            return None
+        row = conn.execute("SELECT * FROM decisions WHERE decision_id = ?", (hit,)).fetchone()
+        if not row:
+            return None
+        decision = dict(row)
+        decision["joined_dockets"] = _joined_dockets_for(conn, hit)
+    except sqlite3.OperationalError:
+        return None
+    finally:
+        conn.close()
+    return hit if _cite_identity(ref, decision) else None
 
 
 def _decision_id_variants(decision_id: str) -> list[str]:
@@ -8901,6 +9137,11 @@ def _looks_like_docket_query(query: str) -> bool:
         return False
 
     if QUERY_BGE_PATTERN.fullmatch(q):
+        return True
+    # Anything the BGE resolver parses (ATF/DTF, 'Ia' divisions, a stored id
+    # shape, a trailing pinpoint) is a case number: skip the Haiku parse and
+    # let _search_bge_tuple pin the ruling.
+    if _bge_ref_candidates(q):
         return True
     if QUERY_BVGE_PATTERN.fullmatch(q):
         return True
@@ -15854,6 +16095,15 @@ def _cite_identity(reference: str, decision: dict) -> dict | None:
             if re.sub(r"^Nr\.\s*", "", docket.strip()) == docket_ref:
                 return {"method": "exact_docket", "label": docket}
         return None
+    # The reference is a stored docket, written whole ('BRGE I Nr. 0167/2014',
+    # 'AI 12/14 - 140/2014'): the strongest docket identity there is, whatever
+    # the parser reads out of a shape it does not know (measured 2026-09-22:
+    # the exact-docket step found these rows and this rule then refused them).
+    core_key_docket = reference_parser.fold_docket(core)
+    for docket in carried:
+        if reference_parser.fold_docket(docket) == core_key_docket:
+            method = "exact_docket" if docket == decision.get("docket_number") else "exact_joined_docket"
+            return {"method": method, "label": docket}
     primary = parsed.primary_docket
     if primary is not None:
         key = reference_parser.fold_docket(primary)
@@ -33915,9 +34165,10 @@ setInterval(load, 30000);
         e_focus = request.query_params.get("e") or None
         html_content, status, redirect_location = await asyncio.to_thread(
             render_decision_page, decision_id, highlight=highlight, e_focus=e_focus,
+            resolve_reference=_resolve_reference_unique,
         )
         if redirect_location:
-            # Unique exact-docket match (P1.4) — 301 to the canonical
+            # Unique reference match (P1.4; any spelling cite resolves) — 301 to the canonical
             # /entscheid/<decision_id> URL instead of serving content at a
             # non-canonical one.
             return Response(status_code=status, headers={"Location": redirect_location})

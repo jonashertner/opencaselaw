@@ -38,6 +38,26 @@ from opencaselaw_cli.references import (docket_in_reference, docket_variants, la
     ("BVGer A-4843/2020 vom 1. April 2021", dict(dockets=["A-4843/2020"], courts={"bvger"})),
     ("Gericht BL 810 16 9 vom 10. August 2016", dict(dockets=["810 16 9"], canton="BL")),
     ("Verwaltungsgericht SG K 2015/3, K 2017/3 vom 18. November 2020", dict(dockets=["K 2015/3", "K 2017/3"], canton="SG")),
+    # the EVG single-letter chambers and the two-digit BGer chambers, in every separator
+    ("B 59/2001", dict(dockets=["B 59/2001"], long_form=False)),
+    ("B.59/2001", dict(dockets=["B.59/2001"], long_form=False)),
+    ("I 25/2005", dict(dockets=["I 25/2005"])),
+    ("Urteil des EVG M 10/2004 vom 31. August 2005, E. 2", dict(dockets=["M 10/2004"], courts={"bger", "bge"}, date="2005-08-31", pinpoint="2")),
+    ("arrêt du TFA U 100/00", dict(dockets=[], courts={"bger", "bge"}, residual="U 100/00")),
+    ("12T 3/2013", dict(dockets=["12T 3/2013"], long_form=False)),
+    ("BGer 13Y_1/2020 vom 4. Mai 2020", dict(dockets=["13Y_1/2020"], courts={"bger", "bge"})),
+    # not EVG dockets: St. Gallen writes the year first, Geneva / Vaud numbers have no slash
+    ("K 2015/3", dict(dockets=["K 2015/3"])),
+    ("P 123 1999", dict(dockets=[])),
+    # a bare N/YYYY behind a chamber-like token the parser does not know is the
+    # tail of that docket, not a Vaud or Basel-Landschaft number
+    ("X 59/2001", dict(dockets=[])),
+    ("4Z 59/2001", dict(dockets=["4Z 59/2001"])),
+    # cantonal shapes whose tail is a bare N/YYYY: the whole number is the docket
+    ("BRGE I Nr. 0167/2014", dict(dockets=["BRGE I Nr. 0167/2014"], long_form=False)),
+    ("BRKE II Nrn. 0012-0013/2015", dict(dockets=["BRKE II Nrn. 0012-0013/2015"])),
+    ("Baurekursgericht des Kantons Zürich, BRGE I Nr. 0167/2014 vom 5. Dezember 2014", dict(dockets=["BRGE I Nr. 0167/2014"], canton="ZH")),
+    ("AI 12/14 - 140/2014", dict(dockets=["AI 12/14 - 140/2014"], long_form=False)),
     ("4C.230/2006", dict(dockets=["4C.230/2006"], long_form=False)),
     ("OGer ZH, LA210005, 15.6.2021", dict(dockets=["LA210005"], date="2021-06-15")),
     ("1/2020", dict(dockets=["1/2020"], core="1/2020", long_form=False)),
@@ -62,6 +82,9 @@ def test_queries_ask_for_the_label_not_the_prose():
     assert docket_variants("4C.230/2006") == ["4C_230/2006", "4C.230/2006"] and docket_variants("LA210005") == ["LA210005"]
     assert docket_variants("HC / 2018 / 391") == ["HC / 2018 / 391", "HC/2018/391"]
     assert docket_variants("HC/2018/391") == ["HC/2018/391", "HC / 2018 / 391"]
+    assert docket_variants("B 59/2001") == ["B_59/2001", "B.59/2001", "B 59/2001"]
+    assert docket_variants("12T 3/2013") == ["12T_3/2013", "12T.3/2013", "12T 3/2013"]
+    assert docket_variants("K 2015/3") == ["K 2015/3"] and docket_variants("BRGE I Nr. 0167/2014") == ["BRGE I Nr. 0167/2014"]
 
 
 def test_label_key_folds_only_for_comparison():
@@ -69,6 +92,8 @@ def test_label_key_folds_only_for_comparison():
     assert label_key("BGE 134 III 354 ff.") == label_key("BGE 134 III 354 S. 357") == label_key("BGE 134 III 354, E. 2.1, S. 357")
     assert label_key("4A_747/2012") == label_key("4A 747/2012") == label_key("4A.747/2012")
     assert label_key("BGer 4A_747/2012 vom 5. April 2013") == label_key("BGer 4A 747/2012 vom 5. April 2013")
+    assert label_key("B 59/2001") == label_key("B_59/2001") == label_key("B.59/2001") == "b59/2001"
+    assert label_key("12T 3/2013") == label_key("12T_3/2013") and label_key("B 59/2001") != label_key("59/2001")
     assert label_key("140 III 86") != label_key("140 III 860") and label_key(None) is None
 
 
@@ -83,6 +108,11 @@ def test_docket_must_appear_whole_in_the_reference():
     # a stored docket that is only the numeric tail of the written one is not "carried"
     assert not docket_in_reference("4A_747/2012", "747/2012") and not docket_in_reference("ACJC/1234/2024", "1234/2024")
     assert not docket_in_reference("A-4843/2020", "4843/2020")
+    # the EVG and two-digit chambers compare equal across the stored separators, never to their tail
+    assert docket_in_reference("B 59/2001", "B_59/2001") and docket_in_reference("EVG B.59/2001", "B_59/2001")
+    assert docket_in_reference("12T 3/2013", "12T_3/2013") and docket_in_reference("BGer 12T_3/2013", "12T 3/2013")
+    assert not docket_in_reference("B 59/2001", "59/2001") and not docket_in_reference("12T 3/2013", "3/2013")
+    assert not docket_in_reference("X 59/2001", "59/2001")
 
 
 def test_pinpoints_accept_the_authors_spelling_and_fail_only_themselves():

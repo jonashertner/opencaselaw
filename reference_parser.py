@@ -44,8 +44,17 @@ _BGE_BARE = re.compile(r"^(?P<vol>\d{1,3})\s+(?P<part>Ia|Ib|III|II|IV|I|V)\s+(?P
 
 # Docket shapes, most specific first. Federal files (4A_747/2012) are also
 # written with a space or, before 2007, a dot (4C.230/2006); the corpus stores
-# all three, so the federal shape yields query variants.
-_FEDERAL = re.compile(r"(?<![A-Za-z0-9])(?P<ch>\d[A-Z]{1,2})[ _.](?P<n>\d{1,5})/(?P<y>\d{4})(?![0-9])")
+# all three, so the federal shape yields query variants. The chamber is one or
+# two digits and one or two letters (4A, 12T, 13Y) or, for the social-insurance
+# court merged into the BGer in 2007, a single letter (B 59/2001, I 25/2005):
+# the EVG chambers B C H I K M P U (decision_ref.EVG_CHAMBERS on the server;
+# 'K 2015/3' is a St. Gallen number, year first, and is not one of these).
+_EVG_CHAMBERS = "BCHIKMPU"
+_FEDERAL = re.compile(r"(?<![A-Za-z0-9])(?P<ch>\d{1,2}[A-Z]{1,2}|[" + _EVG_CHAMBERS + r"])[ _.](?P<n>\d{1,5})/(?P<y>\d{4})(?![0-9])")
+# A chamber-like token right before a bare 'N/YYYY': the number is the tail of
+# a docket whose chamber the parser does not know ('X 59/2001'), never a docket
+# of its own; a bare tail resolved to whichever court stores that number.
+_CHAMBER_BEFORE_TAIL = re.compile(r"(?<![A-Za-z0-9])(?:\d{1,2}[A-Za-z]{1,2}|[A-Z])[ _.]$")
 _DOCKET_SHAPES = (
     _FEDERAL,
     re.compile(r"(?<![A-Za-z0-9])([A-Z]{1,2}-\d{1,5}/\d{4})(?![0-9])"),                       # BVGer A-4843/2020
@@ -54,8 +63,11 @@ _DOCKET_SHAPES = (
     re.compile(r"(?<![A-Za-z0-9])([A-Za-z]{2,6} \d{4}(?:/\d{2,4})? Nr\. \d{1,5})(?![0-9])"),      # OW AbR 1992/93 Nr. 8, TG RBOG 2008 Nr. 10
     re.compile(r"(?<![A-Za-z0-9])([A-Za-zÀ-ÿ]{1,8} ?/ ?\d{1,6} ?/ ?\d{1,6})(?![0-9])"),          # GE/VD ACJC/123/2024, C/11532/2013, HC / 2020 / 38
     re.compile(r"(?<![A-Za-z0-9])([A-Z]{1,3} \d{4}/\d{1,4}|\d{3} \d{2} \d{1,4}|[A-Z]{2,4}\d? (?:19|20)\d{2} \d{1,4}|ZK \d{2} \d{1,4})(?![0-9])"),  # SG K 2015/3, BL 810 16 9, SZ ZK1 2023 26, BE ZK 20 1
+    re.compile(r"(?<![A-Za-z0-9])([A-Z]{2,6} [IVX]{1,4} Nrn?\. \d{1,6}(?:-\d{1,6})?/\d{4})(?![0-9])"),  # ZH Baurekursgericht BRGE I Nr. 0167/2014, BRKE II Nrn. 0012-0013/2015
+    re.compile(r"(?<![A-Za-z0-9])([A-Z]{1,4} \d{1,4}/\d{2} - \d{1,5}/\d{4})(?![0-9])"),          # VD FindInfo AI 12/14 - 140/2014
     re.compile(r"(?<![A-Za-z0-9/._-])(\d{1,5}/\d{4})(?![0-9/])"),                               # bare VD 1/2020 (last: the tail of any other shape)
 )
+_BARE_TAIL = _DOCKET_SHAPES[-1]
 # Words that precede a docket in a written reference: stripped to find a docket
 # whose shape the parser does not know.
 _COURT_WORDS = re.compile(
@@ -63,7 +75,7 @@ _COURT_WORDS = re.compile(
     r"Verwaltungsgericht\w*|Kantonsgericht\w*|Appellationsgericht\w*|Handelsgericht\w*|Bezirksgericht\w*|Bundesgericht\w*|"
     r"Bundesverwaltungsgericht\w*|Bundesstrafgericht\w*|Steuerrekursgericht\w*|Sozialversicherungsgericht\w*|Tribunal\w*|"
     r"Tribunale|Cour|Corte|Chambre|Kammer|cantonal\w*|fédéral\w*|federale|vaudois\w*|Kantons|canton|Kanton|justice|"
-    r"des|der|du|de|di|del|della|la|le|les|il|und|et|e|i\.S\.|BGer|TF|OGer|KGer|VGer|BVGer|BStGer|TAF|TPF|"
+    r"des|der|du|de|di|del|della|la|le|les|il|und|et|e|i\.S\.|BGer|TF|EVG|TFA|OGer|KGer|VGer|BVGer|BStGer|TAF|TPF|"
     r"[A-Z]{2})(?:[\s,.:]+|$))+", re.IGNORECASE)
 _DATE_PHRASE = re.compile(r"[\s,;]*(?:vom|du|del|am|le|il|of|dated|dal|vom:)?\s*(?:\d{1,2}(?:\.|er|re|º|°)?\s+[A-Za-zÀ-ÿ]+\s+\d{4}|\d{1,2}\.\d{1,2}\.\d{4})(?![\d/])")
 _COURT_CODE_CONTEXT = re.compile(
@@ -71,7 +83,8 @@ _COURT_CODE_CONTEXT = re.compile(
     r"(?:(?:des|de|du|di|del|della|Kantons|cantonal|cantonale|administratif|administrative|civile|pénale|penale|supérieur|supérieure|"
     r"des\s+avocats|of)\s+){0,2}(AG|AI|AR|BE|BL|BS|FR|GE|GL|GR|JU|LU|NE|NW|OW|SG|SH|SO|SZ|TG|TI|UR|VD|VS|ZG|ZH)(?![A-Za-z_])")
 
-_FEDERAL_COURT = re.compile(r"(?<![A-Za-z_])(?:BGer|BGE|ATF|DTF|TF|Bundesgericht(?:s|es)?|Tribunal f[ée]d[ée]ral|Tribunale federale|Federal Supreme Court)(?![A-Za-z_])")
+_FEDERAL_COURT = re.compile(r"(?<![A-Za-z_])(?:BGer|BGE|ATF|DTF|TF|Bundesgericht(?:s|es)?|Tribunal f[ée]d[ée]ral|Tribunale federale|Federal Supreme Court|"
+                            r"EVG|TFA|Eidg(?:enössisches|\.) Versicherungsgericht(?:s|es)?|Tribunal f[ée]d[ée]ral des assurances|Tribunale federale delle assicurazioni)(?![A-Za-z_])")
 _BVGER_COURT = re.compile(r"(?<![A-Za-z_])(?:BVGer|BVGE|TAF|Bundesverwaltungsgericht(?:s|es)?|Tribunal administratif f[ée]d[ée]ral|Tribunale amministrativo federale)(?![A-Za-z_])")
 _BSTGER_COURT = re.compile(r"(?<![A-Za-z_])(?:BStGer|TPF|Bundesstrafgericht(?:s|es)?|Tribunal p[ée]nal f[ée]d[ée]ral|Tribunale penale federale)(?![A-Za-z_])")
 _CANTON_CODE = re.compile(r"(?<![A-Za-z_])(AG|AI|AR|BE|BL|BS|FR|GE|GL|GR|JU|LU|NE|NW|OW|SG|SH|SO|SZ|TG|TI|UR|VD|VS|ZG|ZH)(?![A-Za-z_])")
@@ -209,6 +222,8 @@ def parse_reference(text: str) -> Reference:
     spans = []
     for shape in _DOCKET_SHAPES:
         for m in shape.finditer(scan):
+            if shape is _BARE_TAIL and _CHAMBER_BEFORE_TAIL.search(scan[:m.start()]):
+                continue
             found = (m.group(0) if shape is _FEDERAL else m.group(1)).strip()
             spans.append((m.start(), -len(found), found))
     dockets: list[str] = []
@@ -289,7 +304,7 @@ def docket_variants(docket: str) -> list[str]:
 def fold_docket(text: str) -> str:
     """Comparison form of a docket or of a reference that contains one."""
     folded = (text or "").casefold()
-    folded = re.sub(r"(\d[a-z]{1,2})[ _.](\d{1,5}/\d{4})", r"\1_\2", folded)
+    folded = re.sub(r"(?<![a-z0-9])(\d{1,2}[a-z]{1,2}|[" + _EVG_CHAMBERS.lower() + r"])[ _.](\d{1,5}/\d{4})", r"\1_\2", folded)
     folded = re.sub(r"\s*/\s*", "/", folded)
     return re.sub(r"\s+", " ", folded).strip()
 
@@ -305,6 +320,13 @@ def docket_in_reference(reference: str, docket) -> bool:
     parsed = parse_reference(reference)
     if parsed.dockets:
         return needle in {fold_docket(d) for d in parsed.dockets}
+    if _BARE_TAIL.fullmatch(needle):
+        # a bare number behind a chamber-like token ('X 59/2001') is the tail
+        # of that docket, whatever court stores the number on its own
+        for m in re.finditer(r"(?<![A-Za-z0-9_./-])" + re.escape(needle) + r"(?![A-Za-z0-9_./-])", parsed.core):
+            if not _CHAMBER_BEFORE_TAIL.search(parsed.core[:m.start()]):
+                return True
+        return False
     haystack = fold_docket(parsed.core)
     return re.search(r"(?<![a-z0-9_./-])" + re.escape(needle) + r"(?![a-z0-9_./-])", haystack) is not None
 

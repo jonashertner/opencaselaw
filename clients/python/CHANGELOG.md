@@ -3,8 +3,20 @@
 The client follows semantic versioning. The research API contract it consumes is
 versioned separately (`x-opencaselaw-contract-version` in `/api/research/openapi.json`).
 
-## Unreleased
+## 0.9.2 (unreleased)
 
+- References parsed as written now cover the EVG single-letter chambers
+  (`B 59/2001`, `I 25/2005`, `B.59/2001`: B C H I K M P U) and the two-digit
+  BGer chambers (`12T 3/2013`, `13Y_1/2020`) in every separator; they are
+  queried in the stored underscore form and compared equal to it. Before, the
+  space and dot spellings were read as the bare number (`59/2001`), which the
+  service resolved to whichever cantonal court stores that number (a
+  Basel-Landschaft ruling for `B 59/2001`, a Vaud one for `12T 3/2013`). A
+  bare number behind a chamber the parser does not know (`X 59/2001`) is no
+  longer read as a docket at all. `EVG` / `TFA` and the court's full name are
+  court words. The Zürich Baurekursgericht (`BRGE I Nr. 0167/2014`) and Vaud
+  FindInfo (`AI 12/14 - 140/2014`) numbers are read whole instead of as their
+  tail. St. Gallen's year-first `K 2015/3` is unchanged.
 - `ocl doctor` accepts either id the service may return for BGE 136 III 513
   (`bge_BGE_136_III_513` or `bge_136 III 513`), so its reference check keeps
   passing when the service drops the entscheidsuche BGE ids.
