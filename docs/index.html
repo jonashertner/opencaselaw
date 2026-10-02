@@ -100,13 +100,21 @@ p a:hover,li a:hover{text-decoration-color:var(--shu)}
 /* this week's five posters, top right of the hero; in the flow under the stamp on phones */
 .hero .wrap{position:relative}
 .peek{position:absolute;right:var(--gut);top:clamp(-76px,-5.4vw,-28px);display:flex;flex-direction:column;align-items:flex-end;gap:12px;text-decoration:none;color:var(--t2)}
-.peek-fan{display:flex;padding:8px 4px 0 0}
-.peek-fan img{width:clamp(66px,7.4vw,104px);height:auto;aspect-ratio:4/5;display:block;border:1px solid var(--line);background:var(--paper-2);margin-left:-24px;position:relative}
-.peek-fan img:first-child{margin-left:0}
-.peek-fan img:nth-child(1){transform:rotate(-3deg)}.peek-fan img:nth-child(2){transform:rotate(2deg)}
-.peek-fan img:nth-child(3){transform:rotate(-1.5deg)}.peek-fan img:nth-child(4){transform:rotate(2.5deg)}
-.peek-fan img:nth-child(5){transform:rotate(-2deg)}
-.peek-fan img.on{z-index:1;transform:translateY(-7px) scale(1.14)}
+/* a cover flow: one poster faces the visitor, the others stand turned away in depth; every few
+   seconds the next one comes forward. Without script (or with reduced motion) it is a still fan. */
+.peek-fan{--w:clamp(66px,7.4vw,104px);display:block;position:relative;width:calc(var(--w)*3.7);height:calc(var(--w)*1.48);perspective:900px}
+.peek-fan img{--d:0;--a:0;--s:0;position:absolute;left:50%;bottom:6px;width:var(--w);margin-left:calc(var(--w)/-2);height:auto;aspect-ratio:4/5;display:block;
+  border:1px solid var(--line);background:var(--paper-2);transform-origin:50% 100%;z-index:calc(5 - var(--a));
+  transform:translateX(calc(var(--d)*var(--w)*.64)) translateZ(calc(var(--a)*-52px)) rotateY(calc(var(--s)*-34deg)) scale(calc(1.15 - var(--a)*.06));
+  filter:brightness(calc(1 - var(--a)*.07));box-shadow:0 14px 26px -16px rgba(0,0,0,.45);
+  transition:transform 1.05s cubic-bezier(.2,.85,.2,1),filter 1.05s ease,opacity .32s ease}
+.peek-fan img:nth-child(1){--d:-2;--a:2;--s:1}.peek-fan img:nth-child(2){--d:-1;--a:1;--s:1}
+.peek-fan img:nth-child(4){--d:1;--a:1;--s:-1}.peek-fan img:nth-child(5){--d:2;--a:2;--s:-1}
+.js .peek-fan:not(.go) img{--d:0;--a:0;--s:0;opacity:0}  /* one stack, until the script deals it out */
+.peek-fan.deal img:nth-child(2){transition-delay:.07s}.peek-fan.deal img:nth-child(3){transition-delay:.14s}
+.peek-fan.deal img:nth-child(4){transition-delay:.21s}.peek-fan.deal img:nth-child(5){transition-delay:.28s}
+.peek-fan img.nt{transition:none}
+@media (prefers-reduced-motion:reduce){.peek-fan img{transition:none}}
 .peek-cap{font-size:13.5px;border-bottom:1px solid var(--line);padding-bottom:3px}
 .peek:hover .peek-cap,.peek:focus-visible .peek-cap{color:var(--t1);border-bottom-color:var(--shu)}
 .hanko{width:clamp(88px,9vw,108px);aspect-ratio:1;background:var(--shu);color:var(--on-shu);
@@ -132,7 +140,7 @@ p a:hover,li a:hover{text-decoration-color:var(--shu)}
   .hanko-col{flex-direction:row;align-items:center;justify-content:flex-start;gap:18px}
   .hanko-cap{text-align:left;max-width:26ch}
   .peek{position:static;align-items:flex-start;margin:30px 0 0}
-  .peek-fan img{width:62px}
+  .peek-fan{--w:64px}
 }
 
 /* ── sections: rail + content ── */
@@ -583,9 +591,35 @@ var stored=null;try{stored=localStorage.getItem('lang');}catch(e){}
 var curLang=(qp&&I18N[qp])?qp:((stored&&I18N[stored])?stored:'de');
 if(qp&&I18N[qp]){try{localStorage.setItem('lang',qp);}catch(e){}}
 function t(k){return (I18N[curLang]||I18N.de)[k]||I18N.de[k]||k;}
+// Hero posters: deal the stack out, then bring the next poster forward every few seconds.
+// The visitor's language leads; pointing at a poster brings that one forward and holds it.
+function peekInit(){
+  var fan=document.querySelector('.peek-fan'); if(!fan||fan.dataset.on)return; fan.dataset.on='1';
+  var imgs=[].slice.call(fan.querySelectorAll('img')), n=imgs.length, pos=imgs.map(function(){return 0;}), k=0, timer=null;
+  var still=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function put(el,d){el.style.setProperty('--d',d);el.style.setProperty('--a',Math.abs(d));el.style.setProperty('--s',d<0?1:d>0?-1:0);}
+  function place(next,first){
+    imgs.forEach(function(el,i){
+      var d=((i-next+n+2)%n)-2, hop=!first&&Math.abs(d-pos[i])>2; pos[i]=d;
+      if(!hop){put(el,d);return;}
+      el.style.opacity=0;  // the poster that wraps round goes behind unseen instead of sweeping across the front
+      setTimeout(function(){el.classList.add('nt');put(el,d);void el.offsetWidth;el.classList.remove('nt');el.style.opacity='';},330);
+    });
+    k=next;
+  }
+  function start(){if(still||timer)return;timer=setInterval(function(){if(!document.hidden)place((k+1)%n);},3800);}
+  function stop(){clearInterval(timer);timer=null;}
+  var lead=0; imgs.forEach(function(el,i){if(el.dataset.l===curLang)lead=i;});
+  imgs.forEach(function(el,i){el.addEventListener('pointerenter',function(){stop();if(i!==k)place(i);});});
+  fan.addEventListener('pointerleave',start);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    fan.classList.add('deal','go'); place(lead,true);
+    setTimeout(function(){fan.classList.remove('deal');start();},1500);
+  });});
+}
 function applyI18n(){
   document.documentElement.lang=curLang;
-  document.querySelectorAll('.peek-fan img').forEach(function(i){i.classList.toggle('on',i.dataset.l===curLang);});
+  peekInit();
   document.querySelectorAll('[data-t]').forEach(function(el){
     var v=t(el.dataset.t); if(/<[a-z]/i.test(v))el.innerHTML=v; else el.textContent=v;
   });
