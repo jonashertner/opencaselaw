@@ -115,7 +115,7 @@ TIER_E_GAPFILL = [
     "ZG_Verwaltungsgericht",
     "BS_Omni",
     "AG_Gerichte",
-    "TA_SST",
+    # "TA_SST" retired 2026-09-14: scrapers/ta_sst.py reads sportstribunal.ch directly.
 ]
 
 

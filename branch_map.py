@@ -81,8 +81,6 @@ COURT_BRANCH = {
     "zg_anwaltsaufsicht": OEFF,
     "be_anwaltsaufsicht": OEFF,
     "tg_anwaltskommission": OEFF,
-    "sav_kantone": OEFF,
-    "sav_international": OEFF,
     # federal regulators
     "edoeb": OEFF, "finma": OEFF, "finma_versicherungsrecht": OEFF,
     "weko": OEFF, "elcom": OEFF, "comcom": OEFF, "postcom": OEFF,

@@ -169,8 +169,6 @@ COURT_PROCEEDING = {
     "ag_aufsichtskommission": ("anwaltsaufsicht", "bgfa"),
     "zg_anwaltsaufsicht": ("anwaltsaufsicht", "bgfa"),
     "tg_anwaltskommission": ("anwaltsaufsicht", "bgfa"),
-    "sav_kantone": ("anwaltsaufsicht", "bgfa"),
-    "sav_international": ("anwaltsaufsicht", "bgfa"),
     # directorate/department recourse decisions
     "be_direktionen": ("vwv_beschwerde", "vrg_be"),
     "be_bvd": ("vwv_beschwerde", "vrg_be"),

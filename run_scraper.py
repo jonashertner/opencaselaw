@@ -213,8 +213,6 @@ SCRAPERS = {
     "hudoc_ch": ("scrapers.hudoc", "HUDOCScraper"),
     "ecthr": ("scrapers.hudoc", "HUDOCFullScraper"),
     # Attorney discipline — SAV portal
-    "sav_kantone": ("scrapers.sav_kantone", "SAVKantoneScraper"),
-    "sav_international": ("scrapers.sav_international", "SAVInternationalScraper"),
     # Attorney discipline — TG Anwaltskommission
     "tg_anwaltskommission": ("scrapers.cantonal.tg_anwaltskommission", "TGAnwaltskommissionScraper"),
     # Attorney discipline — FR Anwaltsaufsicht

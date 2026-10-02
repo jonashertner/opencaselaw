@@ -416,7 +416,7 @@ _FEDERAL_COURT_EXCLUDE = (
     'bger', 'bge', 'bvger', 'bstger', 'bpatger', 'bge_egmr', 'bge_historical',
     'finma', 'finma_versicherungsrecht', 'weko', 'edoeb', 'ubi', 'elcom',
     'postcom', 'comcom', 'ta_sst', 'emark', 'hudoc_ch', 'ch_bundesrat',
-    'ch_vb', 'sav_international', 'sav_kantone',
+    'ch_vb',
 )
 
 

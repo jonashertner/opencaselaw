@@ -454,7 +454,7 @@ _COURT_SHORT = {
     "ecthr_committee": "EGMR",
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA-VR", "weko": "WEKO",
     "edoeb": "EDÖB", "ubi": "UBI", "elcom": "ElCom", "postcom": "PostCom",
-    "comcom": "ComCom", "ta_sst": "TA-SST", "emark": "EMARK",
+    "comcom": "ComCom", "emark": "EMARK",
 }
 
 
@@ -475,6 +475,10 @@ def _short_decision_label(did: str) -> str:
         return "BGE " + rest.replace("_", " ")
     if did.startswith("BGE_"):
         return "BGE " + did[4:].replace("_", " ")
+    # Schweizer Sportgericht: the docket is the tribunal's own citation form
+    # ("SSG 2025/E/60", "TSS 2025/E/64"); no court label in front of it.
+    if did.startswith("ta_sst_"):
+        return did[len("ta_sst_"):].replace("_", "/")
     # Try the longest court-prefix match.
     for prefix in sorted(_COURT_SHORT, key=len, reverse=True):
         if did.startswith(prefix + "_"):

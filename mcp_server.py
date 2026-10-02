@@ -1733,6 +1733,7 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherungsrecht",
     "weko": "WEKO", "edoeb": "EDÖB", "ubi": "UBI",
     "elcom": "ElCom", "postcom": "PostCom", "comcom": "ComCom",
+    "ta_sst": "Schweizer Sportgericht",
     "ag_gerichte": "AG Gerichte", "ag_verwaltungsgericht": "AG Verwaltungsgericht",
     "ai_gerichte": "AI Gerichte", "ar_gerichte": "AR Gerichte",
     "be_verwaltungsgericht": "BE Verwaltungsgericht",
@@ -1775,8 +1776,6 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "zh_handelsgericht": "ZH Handelsgericht", "zh_kassationsgericht": "ZH Kassationsgericht",
     # Attorney law (Anwaltsrecht)
     "be_anwaltsaufsicht": "BE Anwaltsaufsicht",
-    "sav_kantone": "SAV Kantonale Aufsichtsentscheide",
-    "sav_international": "SAV Internationale Entscheide",
     "tg_anwaltskommission": "TG Anwaltskommission",
     "fr_anwaltsaufsicht": "FR Commission du barreau",
 }
@@ -13583,8 +13582,12 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
     # Arbeitsgericht Zürich yearbook: the docket IS the court's Zitiervorschlag
     # ("AGer-Z 2023 Nr. 7"); prefixing a court label would double the court
     # and the volume year already dates it. The judgment date, where the
-    # trailer supplied one, follows as usual.
-    if docket.startswith("AGer-Z "):
+    # trailer supplied one, follows as usual. Same for the Schweizer
+    # Sportgericht, whose dockets carry the tribunal's own abbreviation in the
+    # decision's language ("SSG 2025/E/60", "TSS 2025/E/64", "TDS 2024/E/40";
+    # "DK"/"CD" for the predecessor Disziplinarkammer) — the generic branch
+    # printed "Gericht CH SSG 2025/E/60 vom ...".
+    if docket.startswith("AGer-Z ") or court == "ta_sst":
         reliable = _citation_date_reliable(decision_date)
         date_de = _format_date_localized(decision_date, "de") if reliable else ""
         date_fr = _format_date_localized(decision_date, "fr") if reliable else ""
