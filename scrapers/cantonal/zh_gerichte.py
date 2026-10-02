@@ -39,6 +39,7 @@ import io
 import logging
 import re
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Iterator
 
 from bs4 import BeautifulSoup
@@ -293,6 +294,9 @@ def _extract_headnote(details_soup) -> str:
 # Shortest text taken as a Leitsatz (the real ones start around 40 characters).
 MIN_HEADNOTE_CHARS = 30
 
+# "<docket id>_d<YYYYMMDD>": a further ruling of a held docket on another day.
+_DATED_ID_RE = re.compile(r"_d\d{8}$")
+
 # The portal's way of saying "none".
 _NO_VALUE = {"", "-", "keine", "n/a"}
 
@@ -342,6 +346,112 @@ class ZHGerichteScraper(BaseScraper):
     def court_code(self) -> str:
         return "zh_gerichte"
 
+    # ───────────────────────────────────────────────────────────────────────
+    # Document-aware identity (2026-10-02)
+    # ───────────────────────────────────────────────────────────────────────
+    # The portal lists every document on its own: the interim order and the
+    # judgment of one case, a ruling after remand, and often the same ruling
+    # twice (an edited extract and the full text). decision_id is docket-
+    # keyed, so once a docket was held every further document under it was
+    # skipped. Checked against the whole listing on 2026-10-02: 235 documents
+    # were another ruling of a held docket on another day and were missing.
+    # Same class as BGer (e555b27f) and Tribuna (0156e2ff).
+    #
+    # Sidecar state/zh_gerichte.docids.txt, written by
+    # scripts/backfill_zh_hidden_documents.py and appended to here:
+    #     doc_id <TAB> decision_id | "-" <TAB> date <TAB> pdf_url
+    # ("-" = looked at, not stored: a duplicate listing or a second rendering.)
+    # A new document of a held docket with a date we do not hold is fetched as
+    # "<docket id>_d<YYYYMMDD>", the id build_fts5 mints for the same case; the
+    # docket number stays real. A new document of a date we do hold is another
+    # rendering of that ruling and is left alone (logged). Without the sidecar
+    # the scraper behaves exactly as before and never writes one.
+    MAX_NEW_COLLISIONS = 60     # a doc_id renumbering must not refetch the corpus
+
+    _docids: dict | None = None
+
+    def _docid_sidecar(self) -> Path:
+        return Path(self.state.state_file).with_name("zh_gerichte.docids.txt")
+
+    def _load_docids(self) -> None:
+        self._docids = None
+        self._held: dict[str, list[tuple[str, str]]] = {}
+        self._claimed: set[str] = set()
+        self._collisions = 0
+        if getattr(self, "state", None) is None:
+            return
+        side = self._docid_sidecar()
+        if not side.exists() or side.stat().st_size == 0:
+            return                                              # legacy
+        docs: dict[str, str] = {}
+        stored = 0
+        for line in side.read_text(encoding="utf-8").splitlines():
+            parts = line.split("\t")
+            if len(parts) < 2 or not parts[0]:
+                continue
+            doc, did = parts[0], parts[1]
+            day = parts[2] if len(parts) > 2 else ""
+            pdf = parts[3] if len(parts) > 3 else ""
+            if did != "-":
+                if not self.state.is_known(did):
+                    continue                                    # crash window: retried
+                stored += 1
+                self._held.setdefault(_DATED_ID_RE.sub("", did), []).append((day, pdf))
+            docs[doc] = did
+        known = self.state.count()
+        if known > 100 and stored < known // 2:
+            logger.error(f"ZH doc-id sidecar holds {stored} stored documents vs {known} "
+                         "known ids — refusing half-seeded mode, legacy")
+            self._held = {}
+            return
+        self._docids = docs
+
+    def _mark_docid(self, doc_id: str, decision_id: str, day: str, pdf_url: str) -> None:
+        if self._docids is None or not doc_id or doc_id in self._docids:
+            return                                              # legacy never writes
+        self._docids[doc_id] = decision_id
+        if decision_id != "-":
+            self._held.setdefault(_DATED_ID_RE.sub("", decision_id), []).append((day, pdf_url))
+        with open(self._docid_sidecar(), "a", encoding="utf-8") as f:
+            f.write(f"{doc_id}\t{decision_id}\t{day}\t{pdf_url}\n")
+
+    def _identity(self, stub: dict) -> str | None:
+        """decision_id to fetch this listing entry under, or None to skip it."""
+        base = stub["decision_id"]
+        if self._docids is None:
+            return None if self.state.is_known(base) else base
+        doc = str(stub.get("doc_id") or "")
+        if doc in self._docids:
+            return None
+        if not self.state.is_known(base) and base not in self._claimed:
+            self._claimed.add(base)
+            return base
+        day = stub["decision_date"].isoformat()
+        held = self._held.get(base, [])
+        if any(pdf == stub["pdf_url"] for _, pdf in held):
+            self._mark_docid(doc, "-", day, stub["pdf_url"])    # the same file listed again
+            return None
+        if not held:
+            return None             # id known from an earlier scheme, no document on file
+        if any(d == day for d, _ in held):
+            logger.info(f"ZH {stub['docket_number']}: further document {doc} of {day} under a "
+                        "held ruling of that day — another rendering, not fetched")
+            self._mark_docid(doc, "-", day, stub["pdf_url"])
+            return None
+        dated = f"{base}_d{day.replace('-', '')}"
+        if self.state.is_known(dated) or dated in self._claimed:
+            return None
+        if self._collisions >= self.MAX_NEW_COLLISIONS:
+            if self._collisions == self.MAX_NEW_COLLISIONS:
+                logger.error(f"ZH: more than {self.MAX_NEW_COLLISIONS} unknown documents under "
+                             "held dockets in one run — did the portal renumber its documents? "
+                             "Holding the rest back.")
+                self._collisions += 1
+            return None
+        self._collisions += 1
+        self._claimed.add(dated)
+        return dated
+
     def discover_new(self, since_date=None) -> Iterator[dict]:
         """
         Discover all ZH decisions via date-windowed API calls.
@@ -351,6 +461,8 @@ class ZHGerichteScraper(BaseScraper):
         """
         if since_date and isinstance(since_date, str):
             since_date = parse_date(since_date)
+
+        self._load_docids()
 
         # Determine start date
         start = since_date if since_date else EARLY_START
@@ -368,7 +480,9 @@ class ZHGerichteScraper(BaseScraper):
             try:
                 for stub in self._fetch_window("", "01.01.1980"):
                     total_found += 1
-                    if not self.state.is_known(stub["decision_id"]):
+                    did = self._identity(stub)
+                    if did is not None:
+                        stub["decision_id"] = did
                         total_new += 1
                         yield stub
             except Exception as e:
@@ -392,7 +506,9 @@ class ZHGerichteScraper(BaseScraper):
                 for stub in self._fetch_window(von_str, bis_str):
                     window_count += 1
                     total_found += 1
-                    if not self.state.is_known(stub["decision_id"]):
+                    did = self._identity(stub)
+                    if did is not None:
+                        stub["decision_id"] = did
                         window_new += 1
                         total_new += 1
                         yield stub
@@ -638,6 +754,12 @@ class ZHGerichteScraper(BaseScraper):
 
         # Weiterzug / references ("Weiterzug ans Bundesgericht, 6B_122/2024")
         appeal_info = stub.get("verweise") or None
+
+        # Recorded now, counted only once the id is in state (after the durable
+        # write), so a crash in between retries the document.
+        if getattr(self, "_docids", None) is not None:
+            self._mark_docid(str(stub["doc_id"]), stub["decision_id"],
+                             stub["decision_date"].isoformat(), pdf_url)
 
         return Decision(
             decision_id=stub["decision_id"],

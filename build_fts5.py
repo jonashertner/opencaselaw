@@ -65,6 +65,19 @@ SWAP_MIN_RETAIN_FRACTION = 0.95
 # (~4,917 rows, 0.5% of corpus) are left to the global gate by design.
 PER_COURT_MIN_RETAIN_FRACTION = 0.80
 PER_COURT_MIN_SIZE = 500
+# Courts the per-court gate does not guard. zh_gerichte is not a court: it is
+# the bucket the entscheidsuche copies of Zürich rulings fall into when no
+# court is known. Each of its rows is a copy the direct gerichte-zh.ch scrape
+# has, or will have, under the court that decided, so the bucket is meant to
+# drain (1,438 rows on 2026-10-02; the backfill of that day takes it below
+# 80% in one night). OCL_SWAP_GATE_EXEMPT adds courts for a run
+# (comma-separated) without switching the gate off for everything else.
+PER_COURT_GATE_EXEMPT = frozenset({"zh_gerichte"})
+
+
+def _per_court_gate_exempt() -> frozenset:
+    extra = os.environ.get("OCL_SWAP_GATE_EXEMPT", "")
+    return PER_COURT_GATE_EXEMPT | {c.strip() for c in extra.split(",") if c.strip()}
 
 
 def _date_inversion_guard_inline(decision_date, publication_date):
@@ -131,10 +144,16 @@ def _check_swap_per_court_gate(
         logger.warning(
             "pre-swap per-court gate OVERRIDDEN via OCL_SKIP_SWAP_GATE")
         return
+    exempt = _per_court_gate_exempt()
     for court, live_n in sorted(live_by_court.items()):
         if live_n < min_live_rows:
             continue
         new_n = new_by_court.get(court, 0)
+        if court in exempt:
+            if new_n < live_n * fraction:
+                logger.warning("pre-swap per-court gate: %s %d → %d rows, exempt",
+                               court, live_n, new_n)
+            continue
         if new_n < live_n * fraction:
             raise RuntimeError(
                 f"pre-swap per-court gate: refusing to swap — court "
@@ -682,6 +701,17 @@ _COURT_OVERLAP_GROUPS: list[set[str]] = [
     {"be_steuerrekurs", "be_verwaltungsgericht"},
 ]
 
+# Collection buckets inside an overlap group: a code that names no court.
+# When such a row and a row filed under the deciding court are the same
+# decision, the attributed row is the one to serve. "Longest wins" alone let
+# the federation copy win on a few characters of extraction difference: 125
+# Zürich rulings were served as "ZH Gerichte" with their direct row deleted
+# (measured 2026-10-02 on the production shards; the direct row had a median
+# 98% of the copy's content). A copy that is substantially fuller still wins,
+# so a truncated direct row never displaces a complete one.
+_GENERIC_BUCKET_COURTS = frozenset({"zh_gerichte"})
+ATTRIBUTED_ROW_MIN_CONTENT = 0.9
+
 # Build a lookup: court_code → frozenset of group members
 _COURT_TO_GROUP: dict[str, frozenset[str]] = {}
 for _group in _COURT_OVERLAP_GROUPS:
@@ -716,7 +746,7 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
     ).fetchall()
 
     # Group by (overlap_group_id, normalized_docket)
-    groups: dict[str, list[tuple[str, int, int]]] = defaultdict(list)
+    groups: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
     for did, court, docket, date, tlen, rlen, docket2 in rows:
         group = _COURT_TO_GROUP.get(court)
         if not group:
@@ -730,7 +760,7 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
         # Include date to avoid false matches across years
         date_compact = (date or "").replace("-", "")[:8]
         key = f"{id(group)}|{docket_norm}|{date_compact}"
-        groups[key].append((did, tlen, rlen))
+        groups[key].append((did, tlen, rlen, court))
 
     deleted = 0
     for entries in groups.values():
@@ -738,7 +768,13 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
             continue
         # Keep version with the most total content (full_text + regeste)
         entries.sort(key=lambda x: -(x[1] + x[2]))
-        for did, _, _ in entries[1:]:
+        if entries[0][3] in _GENERIC_BUCKET_COURTS:
+            floor = (entries[0][1] + entries[0][2]) * ATTRIBUTED_ROW_MIN_CONTENT
+            for i, e in enumerate(entries[1:], start=1):
+                if e[3] not in _GENERIC_BUCKET_COURTS and e[1] + e[2] >= floor:
+                    entries.insert(0, entries.pop(i))
+                    break
+        for did, _, _, _ in entries[1:]:
             conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
             deleted += 1
 
