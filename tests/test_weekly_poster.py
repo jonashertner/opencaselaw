@@ -106,3 +106,33 @@ def test_a_snapshot_from_a_development_database_is_ignored():
     dev = snap("2026-10-02T11:11:00+00:00", [("bger", "CH", 3)], total=37_360)
     good = [snap(f"2026-09-{d}T21:00:00+00:00", [("bger", "CH", 1)], total=1_078_000 + d) for d in (24, 25, 26)]
     assert wp.drop_implausible([*good, dev]) == good
+
+
+def _split(s, bger_vd, bger_lu):
+    s = {**s, "by_court": s["by_court"] + [{"court": "bger_x", "canton": "XX", "count": 0}][:0]}
+    s["federal_seats"] = {"bger": {"VD": bger_vd, "LU": bger_lu}}
+    return s
+
+
+def test_federal_supreme_court_is_split_by_seat_when_every_snapshot_carries_it():
+    base = _split(BASE, 70, 30)      # bger 100
+    cur = _split(CUR, 85, 45)        # bger 130
+    d = wp.weekly_delta([base, cur])
+    assert d["federal_split"] is True
+    assert d["by_court"]["bger@VD"] == 15 and d["by_court"]["bger@LU"] == 15
+    assert "bger" not in d["by_court"] and d["by_canton"]["CH"] == 31
+
+
+def test_no_split_when_one_snapshot_lacks_it_or_does_not_add_up():
+    d = wp.weekly_delta([BASE, _split(CUR, 85, 45)])
+    assert d["federal_split"] is False and d["by_court"]["bger"] == 30
+    d = wp.weekly_delta([_split(BASE, 70, 30), _split(CUR, 85, 44)])  # 129 != 130
+    assert d["federal_split"] is False and d["by_court"]["bger"] == 30
+
+
+def test_luzern_rulings_stand_in_luzern_on_the_map():
+    import weekly_poster_editions as ed
+
+    d = wp.weekly_delta([_split(BASE, 70, 30), _split(CUR, 85, 45)])
+    seats = ed.seat_heights(d)
+    assert seats["LU"] >= 15 and seats["VD"] >= 15 + 4  # vd_findinfo adds 4 in Lausanne

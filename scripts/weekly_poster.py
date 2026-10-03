@@ -196,13 +196,18 @@ def weekly_delta(snaps: list[dict]) -> dict:
     """
     base, cur = snaps[0], snaps[-1]
     swiss = lambda canton: canton in TILES or canton == FEDERAL  # "CE" = non-Swiss ECtHR
+    # Federal Supreme Court by seat ("bger@LU", "bger@VD") only when every snapshot in the
+    # window carries the split; mixing split and unsplit snapshots would count a whole
+    # seat's history as new.
+    split = all(_seat_split_ok(s) for s in snaps)
+    rows = lambda snap: _seat_rows(snap) if split else snap["by_court"]  # noqa: E731
     # A court can appear once per canton (ECtHR: Swiss-respondent "CH" vs other states "CE").
-    peak = {(c["court"], c["canton"]): c["count"] for c in base["by_court"] if swiss(c["canton"])}
+    peak = {(c["court"], c["canton"]): c["count"] for c in rows(base) if swiss(c["canton"])}
     by_key: dict[tuple[str, str], int] = {}
     by_day: dict[date, dict[str, int]] = {}
     for snap in snaps[1:]:
         day = by_day.setdefault(parse_ts(snap["generated_at"]).date(), {})
-        for c in snap["by_court"]:
+        for c in rows(snap):
             key = (c["court"], c["canton"])
             if not swiss(c["canton"]):
                 continue
@@ -211,7 +216,7 @@ def weekly_delta(snaps: list[dict]) -> dict:
                 peak[key] = c["count"]
                 by_key[key] = by_key.get(key, 0) + gain
                 day[c["canton"]] = day.get(c["canton"], 0) + gain
-    final = {(c["court"], c["canton"]): c["count"] for c in cur["by_court"]}
+    final = {(c["court"], c["canton"]): c["count"] for c in rows(cur)}
     by_court: dict[str, int] = {}
     by_canton: dict[str, int] = {}
     for (court, canton), n in by_key.items():
@@ -223,10 +228,33 @@ def weekly_delta(snaps: list[dict]) -> dict:
         "by_canton": by_canton,
         "by_day": by_day,
         "added": sum(by_key.values()),
+        "federal_split": split,
         "removed": sum(n - final.get(key, 0) for key, n in peak.items() if n > final.get(key, 0)),
         "from": parse_ts(base["generated_at"]),
         "to": parse_ts(cur["generated_at"]),
     }
+
+
+def _seat_split_ok(snap: dict) -> bool:
+    """The snapshot splits every court it names, and each split adds up to the court's count."""
+    seats = snap.get("federal_seats") or {}
+    if not seats:
+        return False
+    counts = {c["court"]: c["count"] for c in snap["by_court"] if c["canton"] == FEDERAL}
+    return all(court in counts and sum(split.values()) == counts[court] for court, split in seats.items())
+
+
+def _seat_rows(snap: dict) -> list[dict]:
+    """by_court with each split federal court replaced by one row per seat."""
+    seats = snap.get("federal_seats") or {}
+    out = []
+    for c in snap["by_court"]:
+        split = seats.get(c["court"]) if c["canton"] == FEDERAL else None
+        if split:
+            out += [{**c, "court": f"{c['court']}@{seat}", "count": n} for seat, n in sorted(split.items())]
+        else:
+            out.append(c)
+    return out
 
 
 def load_week(ref: str = "origin/main", end: date | None = None) -> tuple[dict, dict]:

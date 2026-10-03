@@ -197,6 +197,20 @@ def stats_total(conn) -> int:
     return conn.execute("SELECT COUNT(*) FROM decisions").fetchone()[0]
 
 
+# Federal Supreme Court rulings decided in Luzern: the two social-law divisions
+# (dockets 8C_/9C_ since 2007), the former Federal Insurance Court's single-letter
+# dockets ("I 123/04"), and BGE part V. Every other division sits in Lausanne.
+_LUZERN_SQL = ("SUM(CASE WHEN court IN ('bger', 'bge') AND (docket_number GLOB '[89]C_*' "
+               "OR docket_number GLOB '[A-Z] [0-9]*' "
+               "OR (court = 'bge' AND docket_number GLOB '* V *')) THEN 1 ELSE 0 END)")
+
+
+def _federal_seats(rows) -> dict:
+    """{court: {"LU": n, "VD": n}} for bger and bge from the by_court rows' luzern column."""
+    return {r["court"]: {"LU": r["luzern"], "VD": r["count"] - r["luzern"]}
+            for r in rows if r["court"] in ("bger", "bge") and r["canton"] == "CH"}
+
+
 def generate_stats(db_path: Path) -> dict:
     """Query the FTS5 database and return comprehensive statistics."""
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
@@ -213,7 +227,9 @@ def generate_stats(db_path: Path) -> dict:
     # Additive dual-count (never replaces `total`); {} when the sidecar is absent.
     stats.update(_representation_dual_count(db_path, conn))
 
-    # By court (with date ranges and languages)
+    # By court (with date ranges and languages). The luzern column rides on the
+    # same scan, so the per-seat split costs no extra reads.
+    has_docket = any(r[1] == "docket_number" for r in conn.execute("PRAGMA table_info(decisions)"))
     courts = conn.execute("""
         SELECT
             court,
@@ -224,11 +240,12 @@ def generate_stats(db_path: Path) -> dict:
             MAX(CASE WHEN decision_date IS NOT NULL AND decision_date != 'None'
                      AND decision_date > '1800-01-01' AND decision_date <= ? THEN decision_date END) as latest,
             MAX(scraped_at) as last_scraped,
-            GROUP_CONCAT(DISTINCT language) as languages
+            GROUP_CONCAT(DISTINCT language) as languages,
+            {luzern} as luzern
         FROM decisions
         GROUP BY court, canton
         ORDER BY count DESC
-    """, (today_iso, today_iso)).fetchall()
+    """.replace("{luzern}", _LUZERN_SQL if has_docket else "0"), (today_iso, today_iso)).fetchall()
     stats["by_court"] = [
         {
             "court": r["court"],
@@ -241,6 +258,12 @@ def generate_stats(db_path: Path) -> dict:
         }
         for r in courts
     ]
+
+    # Federal Supreme Court by seat, so the weekly poster can place new rulings
+    # where they were decided: Luzern for the social-law divisions, Lausanne for
+    # every other division. See _federal_seats.
+    if has_docket:
+        stats["federal_seats"] = _federal_seats(courts)
 
     # By canton (exclude CH — federal courts are not a canton)
     cantons = conn.execute("""

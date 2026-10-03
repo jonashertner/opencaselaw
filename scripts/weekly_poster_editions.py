@@ -41,7 +41,9 @@ SEATS = {
     "GE": ("Genève", 500, 118), "JU": ("Delémont", 593, 246),
 }
 FEDERAL_SEAT = {"bger": "VD", "bge": "VD", "bvger": "SG", "bpatger": "SG", "bstger": "TI"}  # others: Bern
-COURT_NAMES = {"bger": "BGer", "bvger": "BVGer", "bstger": "BStGer", "bpatger": "BPatGer", "bge": "BGE",
+# "bger@LU" / "bger@VD": the Federal Supreme Court split by the seat of the deciding division
+COURT_NAMES = {"bger": "BGer", "bger@VD": "BGer Lausanne", "bger@LU": "BGer Luzern",
+               "bge": "BGE", "bge@VD": "BGE Lausanne", "bge@LU": "BGE Luzern", "bvger": "BVGer", "bstger": "BStGer", "bpatger": "BPatGer", "bge": "BGE",
                "edoeb": "EDÖB"}
 REGIONS = {
     "de": ("Deutschschweiz", [k for k in wp.TILES if k not in wp.FRENCH | wp.ITALIAN]),
@@ -109,7 +111,7 @@ def seat_heights(delta: dict) -> dict[str, int]:
     """New decisions per seat: cantonal courts at the capital, federal courts where they sit."""
     seats: dict[str, int] = {}
     for (court, canton), v in delta["by_key"].items():
-        seat = FEDERAL_SEAT.get(court, "BE") if canton == FED else canton
+        seat = (court.split("@")[1] if "@" in court else FEDERAL_SEAT.get(court, "BE")) if canton == FED else canton
         seats[seat] = seats.get(seat, 0) + v
     return seats
 
@@ -125,29 +127,36 @@ LABEL_AT = {
 }
 
 
+FEDSEAT = {  # (split by seat available, not yet available)
+    "en": ('the Federal Supreme Court in Lausanne and, for its social-law divisions, in Luzern', 'the Federal Supreme Court in Lausanne, here also for its social-law divisions in Luzern'),
+    "de": ('das Bundesgericht in Lausanne und mit den sozialrechtlichen Abteilungen in Luzern', 'das Bundesgericht in Lausanne, hier auch für die sozialrechtlichen Abteilungen in Luzern'),
+    "fr": ('le Tribunal fédéral à Lausanne et, pour ses cours de droit social, à Lucerne', 'le Tribunal fédéral à Lausanne, ici aussi pour ses cours de droit social de Lucerne'),
+    "it": ('il Tribunale federale a Losanna e, per le sue corti di diritto sociale, a Lucerna', 'il Tribunale federale a Losanna, qui anche per le sue corti di diritto sociale di Lucerna'),
+}
+
 TOPO = {
     "en": {
         "title": ("Topography of a week", "in Swiss case law"), "sheet": "Sheet",
         "sub": "{n} court decisions entered the open corpus. Every summit is a court seat, and its height is the number of new decisions.",
-        "key": "Contour interval: every line doubles the count. Highest summit this week: {place}, {v}. Federal courts stand at their seats: the Federal Supreme Court in Lausanne, the Federal Administrative Court in St. Gallen, the Federal Criminal Court in Bellinzona, other federal authorities in Bern. Grey points: no new decisions this week.",
+        "key": "Contour interval: every line doubles the count. Highest summit this week: {place}, {v}. Federal courts stand at their seats: {fedseat}, the Federal Administrative Court in St. Gallen, the Federal Criminal Court in Bellinzona, other federal authorities in Bern. Grey points: no new decisions this week.",
         "foot": "{t} decisions since 1875, free to search, cite and download",
     },
     "de": {
         "title": ("Topografie einer Woche", "Schweizer Rechtsprechung"), "sheet": "Blatt",
         "sub": "{n} Entscheide sind neu im offenen Korpus. Jeder Gipfel ist ein Gerichtssitz, seine Höhe die Zahl der neuen Entscheide.",
-        "key": "Äquidistanz: Jede Höhenlinie verdoppelt die Zahl. Höchster Gipfel der Woche: {place}, {v}. Die Gerichte des Bundes stehen an ihrem Sitz: das Bundesgericht in Lausanne, das Bundesverwaltungsgericht in St. Gallen, das Bundesstrafgericht in Bellinzona, die übrigen Bundesbehörden in Bern. Graue Punkte: keine neuen Entscheide in dieser Woche.",
+        "key": "Äquidistanz: Jede Höhenlinie verdoppelt die Zahl. Höchster Gipfel der Woche: {place}, {v}. Die Gerichte des Bundes stehen an ihrem Sitz: {fedseat}, das Bundesverwaltungsgericht in St. Gallen, das Bundesstrafgericht in Bellinzona, die übrigen Bundesbehörden in Bern. Graue Punkte: keine neuen Entscheide in dieser Woche.",
         "foot": "{t} Entscheide seit 1875, frei durchsuchbar, zitierbar und herunterladbar",
     },
     "fr": {
         "title": ("Topographie d’une semaine", "de jurisprudence suisse"), "sheet": "Feuille",
         "sub": "{n} décisions ont rejoint le corpus ouvert. Chaque sommet est le siège d’un tribunal, sa hauteur le nombre de nouvelles décisions.",
-        "key": "Équidistance: chaque courbe de niveau double le nombre. Plus haut sommet de la semaine: {place}, {v}. Les tribunaux fédéraux figurent à leur siège: le Tribunal fédéral à Lausanne, le Tribunal administratif fédéral à Saint-Gall, le Tribunal pénal fédéral à Bellinzone, les autres autorités fédérales à Berne. Points gris: aucune nouvelle décision cette semaine.",
+        "key": "Équidistance: chaque courbe de niveau double le nombre. Plus haut sommet de la semaine: {place}, {v}. Les tribunaux fédéraux figurent à leur siège: {fedseat}, le Tribunal administratif fédéral à Saint-Gall, le Tribunal pénal fédéral à Bellinzone, les autres autorités fédérales à Berne. Points gris: aucune nouvelle décision cette semaine.",
         "foot": "{t} décisions depuis 1875, libres à consulter, citer et télécharger",
     },
     "it": {
         "title": ("Topografia di una settimana", "di giurisprudenza svizzera"), "sheet": "Foglio",
         "sub": "{n} decisioni sono entrate nel corpus aperto. Ogni vetta è la sede di un tribunale, la sua altezza il numero di nuove decisioni.",
-        "key": "Equidistanza: ogni curva di livello raddoppia il numero. Vetta più alta della settimana: {place}, {v}. I tribunali federali figurano nella loro sede: il Tribunale federale a Losanna, il Tribunale amministrativo federale a San Gallo, il Tribunale penale federale a Bellinzona, le altre autorità federali a Berna. Punti grigi: nessuna nuova decisione questa settimana.",
+        "key": "Equidistanza: ogni curva di livello raddoppia il numero. Vetta più alta della settimana: {place}, {v}. I tribunali federali figurano nella loro sede: {fedseat}, il Tribunale amministrativo federale a San Gallo, il Tribunale penale federale a Bellinzona, le altre autorità federali a Berna. Punti grigi: nessuna nuova decisione questa settimana.",
         "foot": "{t} decisioni dal 1875, da consultare, citare e scaricare liberamente",
     },
 }
@@ -266,7 +275,7 @@ def design_topo(delta: dict, cur: dict, lang: str = "en") -> str:
 <path d="M{x0 + mw - bar:.1f} {y0 + mh + 38}h{bar:.1f}M{x0 + mw - bar:.1f} {y0 + mh + 32}v12M{x0 + mw} {y0 + mh + 32}v12" stroke="#111" stroke-width="1.4"/>
 <text x="{x0 + mw - bar - 10:.1f}" y="{y0 + mh + 43}" class="tk" text-anchor="end" style="font-size:15px">50 km</text>
 </svg>
-<p class="key" style="top:{y0 + mh + 26}px">{esc(t['key'].format(place=SEATS[top[0]][0], v=num(top[1])))}</p>
+<p class="key" style="top:{y0 + mh + 26}px">{esc(t['key'].format(place=SEATS[top[0]][0], v=num(top[1]), fedseat=FEDSEAT[lang][0 if delta.get('federal_split') else 1]))}</p>
 <div class="ft"><b>opencaselaw.ch</b><span>{esc(t['foot'].format(t=num(cur['total'])))}</span></div>"""
     css = """
 body{background:#fff;color:#111;font-family:'IBM Plex Sans Condensed','Helvetica Neue',sans-serif}
@@ -485,7 +494,9 @@ def design_receipt(delta: dict, cur: dict) -> str:
     week, span = meta(delta)
     iso = delta["to"].isocalendar()
     ground = f"oklch(0.72 0.17 {week_hue(delta)})"
-    items = sorted(delta["by_court"].items(), key=lambda kv: (-kv[1], kv[0]))
+    seat_name = {"@LU": " (Luzern)", "@VD": " (Lausanne)"}
+    items = sorted(((c[:-3] + seat_name[c[-3:]] if c[-3:] in seat_name else c, v) for c, v in delta["by_court"].items()),
+                   key=lambda kv: (-kv[1], kv[0]))
     room, min_lh = 690, 19.5
     keep = len(items) if room / len(items) >= min_lh else int(room / min_lh) - 1
     rest = items[keep:]
