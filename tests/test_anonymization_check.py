@@ -77,8 +77,15 @@ def test_landline_and_letterhead_numbers_are_ignored():
 
 
 def test_home_address_after_a_domicile_word():
-    assert detectors(doc("domicilié chez ses parents, chemin des Tilleuls 13, 1318 Pompaples s'est rendu ")) == ["home_address"]
-    assert detectors(doc("ihren Wohnsitz per 15. November 2007 von der Musterstrasse 24, 6313 Menzingen, an ")) == ["home_address"]
+    assert detectors(doc("A.________, domicilié chez ses parents, chemin des Tilleuls 13, 1318 Pompaples s'est rendu ")) == ["home_address"]
+    assert detectors(doc("B.________ verlegte ihren Wohnsitz per 15. November 2007 von der Musterstrasse 24, 6313 Menzingen, an ")) == ["home_address"]
+
+
+def test_domicile_without_an_anonymized_party_is_review_only():
+    """Whose domicile is not certain: listed for the weekly reading, not alerted."""
+    text = doc("domicilié chez ses parents, chemin des Tilleuls 13, 1318 Pompaples s'est rendu ")
+    assert detectors(text) == []
+    assert detectors(text, tier="review") == ["home_address"]
 
 
 def test_home_address_after_an_anonymized_name():
@@ -93,6 +100,13 @@ def test_home_address_after_an_anonymized_name():
     # an office named next to an anonymized officer
     "Service des curatelles et tutelles professionnelles (SCTP), Mme B.________, chemin de Mornex 32, 1014 Lausanne. Objet ",
     "domiciliée à 1003 Lausanne, [...]; III. De nommer la Tutrice générale, chemin de Mornex 32, 1014 Lausanne, en ",
+    # back-scan 2026-10-02: bodies "domiciled" somewhere, upper-case names, sis/sise
+    "SUVA, CAISSE NATIONALE SUISSE D'ASSURANCE EN CAS D'ACCIDENTS, domicilié Fluhmattstrasse 1, 6002 LUCERNE Intimée ",
+    "Madame L______, domiciliée à Onex recourante contre SERVICE DES PRESTATIONS COMPLEMENTAIRES, sis route de Chêne 54, 1208 Genève intimé ",
+    "alle wohnhaft (...) Beschwerdeführende, gegen Staatssekretariat für Migration (SEM), Quellenweg 6, 3003 Bern, Vorinstanz. ",
+    "X______, domicilié ______, actuellement détenu à la prison de Champ-Dollon, chemin de Champ-Dollon 22, 1241 Puplinge, comparant ",
+    # the court masked the street name itself
+    "Monsieur A______, domicilié rue B______ 12, 1207 Genève, appelant d'un jugement ",
 ])
 def test_counsel_and_public_body_addresses_are_ignored(body):
     assert detectors(doc(body)) == []
@@ -110,9 +124,66 @@ def test_institutional_addresses_are_ignored():
     assert detectors(doc(body)) == []
 
 
-def test_iban_without_public_body_context():
+def test_iban_named_as_a_persons_account():
     filler = "x" * 300
-    assert detectors(doc(filler + " überwies er auf CH93 0076 2011 6238 5295 7 den Betrag. " + filler)) == ["iban"]
+    assert detectors(doc(filler + " überwies er auf sein Konto CH93 0076 2011 6238 5295 7 den Betrag. " + filler)) == ["iban"]
+    assert detectors(doc(filler + " sur le compte PostFinance ouvert au nom de B.K.________, IBAN CH93 0076 2011 6238 5295 7, dès " + filler)) == ["iban"]
+
+
+def test_iban_whose_owner_is_unclear_is_review_only():
+    filler = "x" * 300
+    text = doc(filler + " überwies er auf CH93 0076 2011 6238 5295 7 den Betrag. " + filler)
+    assert detectors(text) == []
+    assert detectors(text, tier="review") == ["iban"]
+
+
+@pytest.mark.parametrize("body", [
+    # full-corpus calibration 2026-10-05: offices', counsel's and charities' accounts
+    "auf das Konto des Justiz- und Sicherheitsdepartement Basel-Stadt (5100), Bevölkerungsdienste und Migration, 4001 Basel, IBAN: CH93 0076 2011 6238 5295 7, BIC: POFICHBEXXX ",
+    "payable sur le compte de Me Gillard CCP IBAN CH93 0076 2011 6238 5295 7, pour solde de tout compte ",
+    "qu’il versera à Médecins sans frontières Suisse, 1211 Genève 2, sur le compte IBAN CH93 0076 2011 6238 5295 7. ",
+    "le séquestre conservatoire du compte de fonctionnement IBAN CH93 0076 2011 6238 5295 7 dont Z.________ SA est titulaire ",
+])
+def test_accounts_of_offices_counsel_companies_and_charities_are_dropped(body):
+    filler = "x" * 300
+    text = doc(filler + body + filler)
+    assert detectors(text) == [] and detectors(text, tier="review") == []
+
+
+@pytest.mark.parametrize("body", [
+    "Verfahrensbeteiligte A.________, Beschwerdeführer, gegen Kommando Operationen (Kdo Op), Korpskommandant B.________, Papiermühlestrasse 20, 3003 Bern, Beschwerdegegner ",
+    "gegen B.________ in Liquidation, vormals C.________, Hauptstrasse 12, 8840 Einsiedeln, Beschwerdegegnerin ",
+    "Beco Berner Wirtschaft, z.H. Frau K.________, Laupenstrasse 22, 3011 Bern, ",
+])
+def test_addresses_of_offices_and_companies_are_dropped(body):
+    text = doc(body)
+    assert detectors(text) == [] and detectors(text, tier="review") == []
+
+
+@pytest.mark.parametrize("body", [
+    # the bench line before a Rubrum names a court, not the party
+    "Bundesrichter Zünd, Präsident, Gerichtsschreiber Feller. Verfahrensbeteiligte X.________, Weidenstrasse 12, 4054 Basel, Beschwerdeführer, ",
+    "Greffière : Mme von Zwehl. Participants à la procédure A.________, rue de la Gare 26, 1213 Onex, recourant, ",
+])
+def test_a_rubrum_address_after_the_bench_line_is_an_alert(body):
+    assert detectors(doc(body)) == ["home_address"]
+
+
+def test_a_counselling_line_is_not_a_persons_phone():
+    text = doc("hat sich bei der Beratungsstelle für gewaltausübende Personen (079 555 01 23) zu einer Beratung anzumelden ")
+    assert detectors(text) == [] and detectors(text, tier="review") == []
+
+
+def test_a_mobile_number_without_phone_context_is_review_only():
+    text = doc("die Initialen MKG und 079 555 01 23 im Inserat. ")
+    assert detectors(text) == [] and detectors(text, tier="review") == ["mobile"]
+
+
+def test_old_ahv_number_with_its_label():
+    assert detectors(doc("du compte de M. C__________, N° AVS 260.68.476.118, la somme de 35'092 fr. ")) == ["ahv"]
+    assert detectors(doc("AHV-Nr. 123.45.678.113 des Versicherten ")) == ["ahv"]
+    # without the label the same shape is any reference number
+    assert detectors(doc("Geschäft 260.68.476.118 vom ")) == []
 
 
 def test_the_cantons_own_iban_is_ignored():
@@ -128,6 +199,9 @@ def test_private_email_in_the_body():
     "A____@bluewin.ch",          # masked by the court
     "A._____@bluewin.ch",
     "xx@gmail.com",
+    "A1@gmail.com",
+    "xyz@gmail.com",             # full-corpus calibration 2026-10-05
+    "II.@hotmail.com",
     "Klägerin@gmail.com",
     "info@postcom.admin.ch",     # institutional
     "asservate@kapo.zh.ch",

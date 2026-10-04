@@ -15,18 +15,27 @@ private report repository. This script writes findings only, and commits
 exactly its own two files there (never `git add -A`), so a draft left in that
 working tree cannot ride along. tests/test_notification_drafts_guard.py
 
-Two tiers, calibrated 2026-10-02 on 11,265 decisions from 79 courts:
+Two tiers, calibrated 2026-10-02 on 11,265 recent decisions and then on the
+full corpus (1,069,118 decisions):
 
-  alert   high-precision, each one is read by a human the same day
-            ahv           AHV number with a valid EAN-13 check digit
-            mobile        Swiss mobile number (075–079) outside letterhead/footer
-            home_address  street + number + postcode after a domicile word
-                          ("wohnhaft", "domicilié", …) or an anonymized name
-            iban          checksum-valid CH IBAN with no public-body context
+  alert   clear errors only: a direct identifier of a private person the
+          decision otherwise anonymizes. Read by a human the same day.
+            ahv           AHV number with a valid EAN-13 check digit, or an
+                          old 11-digit AHV/AVS number written with its label
+            mobile        Swiss mobile number (075–079) in the body, named as
+                          someone's phone, line or connection
+            home_address  street + number + postcode directly after an
+                          anonymized name, or after a domicile word with an
+                          anonymized party just before it
+            iban          checksum-valid CH IBAN named as a person's account
             email         freemail address whose local part is not masked
-  review  low-precision list, weekly reading, never alerted
+  review  plausible but not certain, weekly reading, never alerted: the same
+          detectors without the context that makes them certain, and
             surname       "Herr/Frau/Monsieur/Madame + surname" in a decision
                           that otherwise uses anonymization placeholders
+  Contact details of authorities, insurers, companies, counsel and charities
+  are dropped, not reviewed. Calibrated 2026-10-05 by reading a random 60 of
+  the full-corpus findings: AHV and mobile 100 %, address and IBAN about 90 %.
 
 Deliberately NOT flagged (calibration noise): landlines and e-mails in
 letterheads, institutional addresses (Rechtsmittelbelehrung, Mitteilung
@@ -110,12 +119,42 @@ _PLACEHOLDER_BEFORE = re.compile(r"[A-Z](?:\.[A-Z])?\.?_{2,}\s*,\s*$")
 # Between the domicile word and the street: counsel or a public body means the
 # address is theirs ("domicilié ______, représenté par Me X, avocate, rue …").
 _NOT_A_HOME = re.compile(
-    r"(avocate?s?\b|\bMe\s|Rechtsanw|Advokat|\bavv\.|vertreten|repr[ée]sent[ée]|patrocinat|"
-    r"[Aa]mt\b|Office|Service|Secr[ée]tariat|Procura|anwaltschaft|Minist[èe]re|Tutrice|Tuteur|"
-    r"curatelles|tutelles|SCTP|Pr[ée]sident|Presidente|palazzo|[Gg]erichts?\\b|Tribunal|Corte|[Kk]asse\b|"
-    r"assurance|[Vv]ersicherung|D[ée]partement|Direktion|[Pp]olizei|police|Gemeinde|Commune|"
-    r"Comune|Kanzlei|[ÉE]tude|\bAG\b|\bSA\b|GmbH|S[àa]rl)")
+    r"(avocate?s?\b|\bMe\s|Ma[îi]tre|Rechtsanw|Advokat|\bavv\.|vertreten|repr[ée]sent|patrocinat|"
+    r"amt\b|Office|Service|sekretariat|Secr[ée]tariat|Procura|anwaltschaft|Minist[èe]re|Tutrice|"
+    r"Tuteur|curatelles|tutelles|SCTP|autorit[ée]|beh[öo]rde|KESB|Pr[ée]sident|Presidente|palazzo|"
+    r"gerichts?\b|Tribunal|Corte|kasse\b|caisse|cassa|assurance|versicherung|SUVA|\bCNA\b|"
+    r"fondation|stiftung|fondazione|institution|D[ée]partement|Direktion|polizei|police|Gemeinde|"
+    r"Commune|Comune|\bVille\b|\bStadt\b|Kanzlei|[ÉE]tude|\bAG\b|\bSA\b|GmbH|S[àa]rl|\bsise?\b|"
+    r"c/o|IV-Stelle|\bOAI\b|Bundesamt|Kanton\b|[ÉE]tat\b|h[ôo]pital|spital|clinique|klinik|"
+    r"banque|bank|d[ée]tenu|prison|Gef[äa]ngnis|Strafanstalt|[ée]tablissement)", re.I)
 _PLACEHOLDER = re.compile(r"\b[A-Z]\.(?:_{2,}|\.{3,}|[A-Z]\.(?=[\s,;)]))")
+# An anonymized person anywhere in a stretch of text ("A.________", "X._____",
+# "A______", "[...]", "B.K.").
+_ANON_NAME = re.compile(r"\b[A-Z]{1,2}(?:\.[A-Z])?\.?_{2,}|\b[A-Z]_{3,}|\[\.\.\.\]|\b[A-Z]\.[A-Z]?\.?(?=[\s,;)])")
+# Old (pre-2008) AHV/AVS numbers have no check digit worth trusting; only the
+# label makes them certain ("N° AVS 260.68.476.118", "AHV-Nr. 123.45.678.113").
+_AHV_OLD = re.compile(r"(?:AHV|AVS|AVS/AI)(?:[\s\-]?(?:Nr\.?|n[°o]\.?|num[ée]ro))?\s*:?\s*"
+                      r"(\d{3}\.\d{2}\.\d{3}\.\d{3})(?!\d)", re.I)
+# Whose details: an office, an insurer, a company, counsel or a charity.
+_NOT_A_PERSON = re.compile(
+    r"(liquidation|vormals|z\.\s?h\.|zuhanden|kommando|kommandant|armee|direkt(?:or|ion)|"
+    r"departement|département|verwaltung|administration|pouvoir judiciaire|consignation|"
+    r"tr[ée]sor|staatskasse|gerichtskasse|beratungsstelle|hotline|zentrale|permanence|"
+    r"fondation|stiftung|fondazione|caisse|kasse\b|cassa|libre passage|freiz[üu]gigkeit|"
+    r"assurance|versicherung|association|verein|m[ée]decins|croix-rouge|caritas|"
+    r"fournisseur|entreprise|firma|soci[ée]t[ée]|\bAG\b|\bSA\b|GmbH|S[àa]rl|"
+    r"\bMe\s|ma[îi]tre|rechtsanw|avocat|advokat|f[üu]rsprech|notai?r|[ÉE]tude|kanzlei|"
+    r"tribunal|gericht|office|amt\b|ufficio|police|polizei|commune|gemeinde|comune)", re.I)
+# Words that make a mobile number someone's phone.
+_PHONE_OF = re.compile(
+    r"(portable|natel|handy|mobile|cellulare|raccordement|anschluss|collegamento|ctr\b|"
+    r"t[ée]l[ée]phone|telefon|num[ée]ro|nummer|appel|anruf|sms|whatsapp|joignable|erreichbar|"
+    r"iphone|samsung|nokia|huawei)", re.I)
+# Words that make an IBAN someone's account.
+_ACCOUNT_OF = re.compile(
+    r"(au nom de|ouvert au nom|son compte|sur le compte|compte (?:postfinance|bancaire|"
+    r"personnel|commun|de|du)|ihr(?:em)? konto|sein(?:em)? konto|konto (?:des|der|von|bei)|"
+    r"lautend auf|conto (?:di|intestato)|troisi[èe]me pilier|3\. s[äa]ule)", re.I)
 _PUBLIC_BODY = re.compile(
     r"(Kanton|Canton|Staat|État|Etat|Stato|Gericht|Tribunal|Finanzverwaltung|"
     r"Gerichtskasse|Staatskasse|Amt\b|Office|Ufficio|Gemeinde|Commune|Comune|Bund\b)", re.I)
@@ -125,7 +164,7 @@ _FREEMAIL = re.compile(
     r"netplus|citycable|ticino)\.(ch|com|de|fr|it|net|me|at)$", re.I)
 # Local parts a court writes INSTEAD of the real one.
 _MASKED_LOCAL = re.compile(
-    r"(_{2,}|\.{2,}|^x+$|^y+$|^[a-z]$|^[a-z]\.$|vorname|nachname|name|pr[ée]nom|nom\b|"
+    r"(_{2,}|\.{2,}|^x+$|^y+$|^xyz$|^abc$|^[a-z]\d?$|^[a-z]{1,2}\.$|vorname|nachname|name|pr[ée]nom|nom\b|"
     r"kl[äa]ger|beklagte|beschwerdef|gesuchsteller|recourant|intim[ée]|pr[ée]venu)", re.I)
 _HONORIFIC = re.compile(
     r"\b(Herrn?|Frau|Monsieur|Madame|Mme|Signor[ae]?)\s+"
@@ -188,6 +227,22 @@ def _snippet(text: str, a: int, b: int) -> str:
     return " ".join((text[lo:a] + mask(text[a:b]) + text[b:hi]).split())
 
 
+def _whose(before: str) -> str:
+    """The words that say whose address follows: from the sentence start (or 35
+    characters) before the last anonymized name up to the address. The bench
+    line of a Rubrum ("Gerichtsschreiber Feller. Parteien X.________, …") is
+    not part of it, "Korpskommandant B.________," and "B.________ in
+    Liquidation, vormals C.________," are."""
+    names = list(_ANON_NAME.finditer(before))
+    if not names:
+        return before[-70:]
+    lo = max(0, names[-1].start() - 35)
+    stops = list(re.finditer(r"[a-zäöüéè]{3,}\.\s|:\s|\n", before[lo:names[-1].start()]))
+    if stops:
+        lo += stops[-1].end()
+    return before[lo:]
+
+
 def find_hits(text: str, judges: str = "") -> list[dict]:
     """All findings in one decision text: [{detector, tier, value, start, end}]."""
     n = len(text)
@@ -202,28 +257,49 @@ def find_hits(text: str, judges: str = "") -> list[dict]:
     for m in _AHV.finditer(text):
         if ahv_valid(m.group()):
             add("ahv", m)
+    for m in _AHV_OLD.finditer(text):
+        out.append({"detector": "ahv", "tier": "alert", "value": m.group(1),
+                    "start": m.start(1), "end": m.end(1)})
     for m in _MOBILE.finditer(text):
-        if zone(m.start(), n) == "body":
-            add("mobile", m)
+        if zone(m.start(), n) != "body":
+            continue
+        before = text[max(0, m.start() - 80):m.start()]
+        if _NOT_A_PERSON.search(before[-60:]):
+            continue                                # a counselling line, an office's number
+        around = before + text[m.end():m.end() + 60]
+        add("mobile", m, tier="alert" if _PHONE_OF.search(around) else "review")
     for m in _ADDRESS.finditer(text):
+        if "_" in m.group():
+            continue                                # "rue A______ 12": the court masked the street
         before = text[max(0, m.start() - 150):m.start()]
+        if _NOT_A_PERSON.search(_whose(before)):
+            continue                                # counsel, an office, a company
         dom = None
         for dom in _DOMICILE.finditer(before[-90:]):
             pass                                    # the last domicile word wins
         if dom is not None:
             # 60 characters ahead of the domicile word say whose domicile it is.
             if not _NOT_A_HOME.search(before[max(0, len(before) - 90 + dom.start() - 60):]):
-                add("home_address", m)
+                # Certain only when the person living there is an anonymized one.
+                add("home_address", m,
+                    tier="alert" if _ANON_NAME.search(before[-120:]) else "review")
         elif _PLACEHOLDER_BEFORE.search(before) and not _NOT_A_HOME.search(before[-80:]):
             add("home_address", m)
     for m in _IBAN.finditer(text):
         ctx = text[max(0, m.start() - 250):m.end() + 250]
-        if iban_valid(m.group()) and not _PUBLIC_BODY.search(ctx):
-            add("iban", m)
+        if not iban_valid(m.group()) or _PUBLIC_BODY.search(ctx):
+            continue
+        before = text[max(0, m.start() - 170):m.start()]
+        if _NOT_A_PERSON.search(before + text[m.end():m.end() + 40]):
+            continue                                # an office's, a company's or counsel's account
+        add("iban", m, tier="alert" if _ACCOUNT_OF.search(before[-120:]) else "review")
     for m in _EMAIL.finditer(text):
         local = m.group().split("@")[0]
         if (zone(m.start(), n) == "body" and _FREEMAIL.search(m.group())
                 and not _MASKED_LOCAL.search(local)):
+            before = text[max(0, m.start() - 80):m.start()]
+            if _NOT_A_PERSON.search(before) or re.search(r"(?i)(e-?mail|courriel|fax)\s*:\s*$", before):
+                continue                            # an office's address in a letterhead block
             add("email", m)
 
     if len(_PLACEHOLDER.findall(text)) >= 5:
