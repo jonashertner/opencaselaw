@@ -5,9 +5,30 @@
     <link>https://opencaselaw.ch/feed.xml</link>
     <description>Latest published decisions across all Swiss courts indexed by OpenCaseLaw.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sat, 03 Oct 2026 22:33:13 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 04 Oct 2026 12:48:10 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 602 2026 85 vom 2026-10-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_602%202026%2085</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Rue des Augustins 3, case postale 630, 1701 Fribourg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+602 2026 85
+Arrêt du 21 août 2026
+IIe Cour administrative
+Composition
+Président :
+…</description>
+      <pubDate>Sun, 04 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_602 2026 85</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>elcom 222-00005-T8D-Gp vom 2026-10-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/elcom_222-00005-T8D-Gp</link>
@@ -74,6 +95,34 @@ Basel-Stadt,
 Spiegelgasse 12, Postfach, 400…</description>
       <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">bs_appellationsgericht_AG.2026.613</guid>
+      <category>bs_appellationsgericht</category>
+    </item>
+    <item>
+      <title>bs_appellationsgericht AUS.2026.80 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bs_appellationsgericht_AG.2026.616</link>
+      <description>Appellationsgericht
+
+des Kantons Basel-Stadt
+
+als Verwaltungsgericht
+
+Einzelrichter für Zwangsmassnahmen im Ausländerrecht
+
+AUS.2026.80
+
+URTEIL
+
+vom 30.
+September 2026
+
+Beteiligte
+
+Migrationsamt des Kantons
+Basel-Stadt,
+
+Spiegelgasse 12, Postfach, …</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">bs_appellationsgericht_AG.2026.616</guid>
       <category>bs_appellationsgericht</category>
     </item>
     <item>
@@ -1006,56 +1055,6 @@ A…</description>
       <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ge_gerichte_ATAS_826_2026</guid>
       <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>gr_gerichte VR1 2025 60 vom 2026-09-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_VR1%202025%2060</link>
-      <description>Obergericht des Kantons Graubünden
-Dretgira superiura dal chantun Grischun
-Tribunale d'appello del Cantone dei Grigioni
-Urteil vom 22. September 2026
-mitgeteilt am 24. September 2026
-Referenz
-VR1 25 60
-Instanz
-Erste verfassungs- und verwaltungsrechtl…</description>
-      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">gr_gerichte_VR1 2025 60</guid>
-      <category>gr_gerichte</category>
-    </item>
-    <item>
-      <title>so_gerichte BKBES.2026.109 vom 2026-09-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/so_gerichte_BKBES.2026.109</link>
-      <description>Beschlussvom22. September 2026
-
-Es wirken mit:
-
-Präsident Hagmann
-
-Oberrichterin Kofmel
-
-Oberrichter Schibli
-
-Gerichtsschreiberin Ramseier
-
-In Sachen
-
-A.___,
-
-Beschwerdeführerin
-
-gegen
-
-1.Staatsanwaltschaft,
-
-Beschwerdegegnerin
-
-2.B.___,
-
-Beschuldigt…</description>
-      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">so_gerichte_BKBES.2026.109</guid>
-      <category>so_gerichte</category>
     </item>
   </channel>
 </rss>

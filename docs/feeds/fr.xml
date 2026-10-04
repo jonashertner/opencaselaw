@@ -5,9 +5,30 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sat, 03 Oct 2026 22:33:14 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 04 Oct 2026 12:48:11 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 602 2026 85 vom 2026-10-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_602%202026%2085</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Rue des Augustins 3, case postale 630, 1701 Fribourg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+602 2026 85
+Arrêt du 21 août 2026
+IIe Cour administrative
+Composition
+Président :
+…</description>
+      <pubDate>Sun, 04 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_602 2026 85</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>ge_gerichte ATAS/852/2026 vom 2026-10-01</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ATAS_852_2026</link>
@@ -1061,14 +1082,6 @@ A.___…</description>
       <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_672.2026</guid>
       <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-8927/2025 vom 2026-09-18</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-8927_2025</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-8927.2025</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>
