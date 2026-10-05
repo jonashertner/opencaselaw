@@ -5,9 +5,39 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 04 Oct 2026 12:48:11 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 05 Oct 2026 12:31:49 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 1C_492/2026 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_492_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+1C_492/2026
+
+Sentenza del 23 settembre 2026
+
+I Corte di diritto pubblico
+
+Composizione
+
+Giudici federali Haag, Presidente,
+
+Müller, Merz,
+
+Cancelliere M. Piatti.
+
+Partecipanti al …</description>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_492.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesstrafgericht RH.2026.9 vom 2026-09-21</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bstger_RH.2026.9</link>
@@ -882,22 +912,6 @@ Cancelliere Caprara.…</description>
       <pubDate>Thu, 20 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-298.2024</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>gr_gerichte VR1 2026 6 vom 2026-08-20</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_VR1%202026%206</link>
-      <description>Obergericht des Kantons Graubünden
-Dretgira superiura dal chantun Grischun
-Tribunale d'appello del Cantone dei Grigioni
-Sentenza del 20 agosto 2026
-comunicata il 25 agosto 2026
-N. d'incarto
-VR1 26 6
-Istanza
-Prima Camera di diritto costituzionale e am…</description>
-      <pubDate>Thu, 20 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">gr_gerichte_VR1 2026 6</guid>
-      <category>gr_gerichte</category>
     </item>
   </channel>
 </rss>

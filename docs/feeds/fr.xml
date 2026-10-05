@@ -5,9 +5,29 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 04 Oct 2026 12:48:11 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 05 Oct 2026 12:31:49 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fr_gerichte 603 2026 93 vom 2026-10-05</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_603%202026%2093</link>
+      <description>Tribunal cantonal TC
+Kantonsgericht KG
+Rue des Augustins 3, case postale 630, 1701 Fribourg
+T +41 26 304 15 00
+www.fr.ch/tc
+—
+Pouvoir Judiciaire PJ
+Gerichtsbehörden GB
+603 2026 93
+Arrêt du 25 août 2026
+IIIe Cour administrative
+Composition
+Présidente …</description>
+      <pubDate>Mon, 05 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">fr_gerichte_603 2026 93</guid>
+      <category>fr_gerichte</category>
+    </item>
     <item>
       <title>fr_gerichte 602 2026 85 vom 2026-10-04</title>
       <link>https://mcp.opencaselaw.ch/entscheid/fr_gerichte_602%202026%2085</link>
@@ -1051,36 +1071,6 @@ Participants à la procédure
 A.___…</description>
       <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_671.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 5A_672/2026 vom 2026-09-18</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_672_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-5A_672/2026
-
-Arrêt du 18 septembre 2026
-
-IIe Cour de droit civil
-
-Composition
-
-M. le Juge fédéral Bovey, Président.
-
-Greffière : Mme Hildbrand.
-
-Participants à la procédure
-
-A.___…</description>
-      <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_672.2026</guid>
       <category>bger</category>
     </item>
   </channel>
