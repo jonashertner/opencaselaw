@@ -58,7 +58,27 @@ def fleet(monkeypatch):
     monkeypatch.setattr(rw.time, "sleep", lambda s: None)
     monkeypatch.setattr(rw, "DRY_RUN", False)
     monkeypatch.setattr(rw, "HEALTH_WAIT", 3)
+    monkeypatch.setattr(rw, "limit_for", lambda hour: 3584)   # night unless a test says otherwise
     return state
+
+
+def test_night_threshold_low_day_threshold_high():
+    assert rw.limit_for(2, "0-6", 3584, 5120) == 3584
+    assert rw.limit_for(0, "0-6", 3584, 5120) == 3584
+    assert rw.limit_for(6, "0-6", 3584, 5120) == 5120
+    assert rw.limit_for(14, "0-6", 3584, 5120) == 5120
+    # a window that wraps past midnight
+    assert rw.limit_for(23, "22-6", 3584, 5120) == 3584
+    assert rw.limit_for(3, "22-6", 3584, 5120) == 3584
+    assert rw.limit_for(12, "22-6", 3584, 5120) == 5120
+
+
+def test_by_day_a_worker_between_the_thresholds_is_left_alone(fleet, monkeypatch):
+    monkeypatch.setattr(rw, "limit_for", lambda hour: 5120)
+    fleet["sizes"][UNITS[2]] = 4200
+    fleet["sizes"][UNITS[4]] = 6000
+    assert rw.main() == 0
+    assert fleet["restarted"] == [UNITS[4]]
 
 
 def test_restarts_the_bloated_workers_one_at_a_time(fleet):
@@ -108,4 +128,4 @@ def test_units_wire_it_up():
     # throttling anonymous memory stalls the worker instead of freeing it
     assert not any(l.startswith("MemoryHigh") for l in lines)
     # the cap must sit well above the recycle threshold
-    assert rw.RSS_MAX_MB < 8 * 1024 // 2
+    assert rw.RSS_MAX_MB < rw.RSS_DAY_MAX_MB < 8 * 1024

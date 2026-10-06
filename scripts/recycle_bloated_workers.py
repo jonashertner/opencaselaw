@@ -18,7 +18,12 @@ What it does, every run (timer: every 15 min):
 
 A worker that does not come back healthy stops the run and exits 1, so the
 unit's OnFailure alert fires. Settings (environment):
-  OCL_WORKER_RSS_MAX_MB   restart above this resident size (default 3584)
+  OCL_WORKER_RSS_MAX_MB   restart above this resident size at night (default 3584)
+  OCL_WORKER_RSS_DAY_MAX_MB  the same by day (default 5120): a restart cuts the
+                          calls running on that worker (one failed call and a
+                          few reopened streams per restart, measured 2026-10-06),
+                          so by day only a worker well past normal is restarted
+  OCL_WORKER_NIGHT_HOURS  UTC hours counted as night, "start-end" (default 0-6)
   OCL_WORKER_RECYCLE_MAX  at most this many restarts per run (default 2)
   OCL_WORKER_HEALTH_WAIT  seconds to wait for /health after a restart (30)
   OCL_WORKER_RECYCLE_DRY  "1": report what would be restarted, change nothing
@@ -33,6 +38,8 @@ import time
 import urllib.request
 
 RSS_MAX_MB = int(os.environ.get("OCL_WORKER_RSS_MAX_MB", "3584"))
+RSS_DAY_MAX_MB = int(os.environ.get("OCL_WORKER_RSS_DAY_MAX_MB", "5120"))
+NIGHT_HOURS = os.environ.get("OCL_WORKER_NIGHT_HOURS", "0-6")
 MAX_PER_RUN = int(os.environ.get("OCL_WORKER_RECYCLE_MAX", "2"))
 HEALTH_WAIT = int(os.environ.get("OCL_WORKER_HEALTH_WAIT", "30"))
 DRY_RUN = os.environ.get("OCL_WORKER_RECYCLE_DRY") == "1"
@@ -91,6 +98,15 @@ def wait_healthy(port: str, seconds: int) -> bool:
     return False
 
 
+def limit_for(hour_utc: int, night: str = NIGHT_HOURS,
+              night_mb: int = RSS_MAX_MB, day_mb: int = RSS_DAY_MAX_MB) -> int:
+    """The restart threshold for this hour: the low one at night, when a cut
+    call hurts least, the high one by day. "22-6" wraps past midnight."""
+    start, end = (int(x) for x in night.split("-", 1))
+    is_night = start <= hour_utc < end if start <= end else (hour_utc >= start or hour_utc < end)
+    return night_mb if is_night else day_mb
+
+
 def plan(sizes: dict[str, int], all_healthy: bool, limit_mb: int, max_per_run: int) -> list[str]:
     """Which workers to restart: the largest above the limit, at most
     max_per_run, and none at all while any worker is unhealthy."""
@@ -106,12 +122,13 @@ def main() -> int:
         log("no active mcp-server@ units; nothing to do")
         return 0
     sizes = {u: rss_mb(main_pid(u)) for u in units}
+    limit = limit_for(datetime.datetime.now(datetime.timezone.utc).hour)
     sick = [u for u in units if not healthy(port_of(u))]
     total = sum(sizes.values())
     log(f"{len(units)} workers, {total} MB resident, largest "
-        f"{max(sizes.values())} MB, limit {RSS_MAX_MB} MB"
+        f"{max(sizes.values())} MB, limit {limit} MB"
         + (f", unhealthy: {', '.join(sick)}" if sick else ""))
-    todo = plan(sizes, not sick, RSS_MAX_MB, MAX_PER_RUN)
+    todo = plan(sizes, not sick, limit, MAX_PER_RUN)
     if sick:
         log("a worker is unhealthy; restarting nothing this run")
         return 0
