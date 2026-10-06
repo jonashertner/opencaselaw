@@ -1,0 +1,10 @@
+[Unit]
+Description=Check MCP worker memory every 15 minutes
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=15min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

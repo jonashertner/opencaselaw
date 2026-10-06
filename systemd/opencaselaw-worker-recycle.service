@@ -1,0 +1,15 @@
+[Unit]
+Description=Restart MCP workers whose memory has grown past the limit, one at a time
+# 2026-09-30 and 2026-10-04: bloated workers (5-13 GB each) squeezed the page
+# cache, searches took 20-45 s until a rolling restart. See
+# scripts/recycle_bloated_workers.py; runbooks/worker_recycle.md.
+OnFailure=ntfy-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+ExecStart=/usr/bin/python3 /opt/caselaw/repo/scripts/recycle_bloated_workers.py
+StandardOutput=append:/opt/caselaw/repo/logs/worker_recycle.log
+StandardError=append:/opt/caselaw/repo/logs/worker_recycle.log
+# Two restarts with a 90 s stop timeout and a 30 s health wait each.
+TimeoutStartSec=6min
