@@ -1,9 +1,9 @@
 {
-  "total": 1078074,
-  "source_representations": 1078074,
+  "total": 1078139,
+  "source_representations": 1078139,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 937187,
-  "unique_decisions_lower_bound": 937137,
+  "unique_decisions": 937252,
+  "unique_decisions_lower_bound": 937202,
   "duplicate_representations": 140887,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -19,10 +19,10 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193614,
+      "count": 193679,
       "earliest": "1986-10-06",
       "latest": "2026-09-24",
-      "last_scraped": "2026-10-05T10:02:18.248566+00:00",
+      "last_scraped": "2026-10-06T10:01:47.066981+00:00",
       "languages": [
         "de",
         "fr",
@@ -1583,8 +1583,8 @@
   ],
   "federal_seats": {
     "bger": {
-      "LU": 36696,
-      "VD": 156918
+      "LU": 36705,
+      "VD": 156974
     },
     "bge": {
       "LU": 4696,
@@ -1914,9 +1914,9 @@
     }
   ],
   "by_language": {
-    "de": 505137,
-    "fr": 477837,
-    "it": 91139,
+    "de": 505156,
+    "fr": 477868,
+    "it": 91154,
     "en": 3961
   },
   "by_year": {
@@ -2069,28 +2069,28 @@
     "2021": 52892,
     "2022": 52366,
     "2023": 52219,
-    "2024": 52233,
-    "2025": 49496,
-    "2026": 25452,
+    "2024": 52241,
+    "2025": 49522,
+    "2026": 25483,
     "2027": 1
   },
   "recent_daily": {
     "2026-09-06": 1,
-    "2026-09-07": 81,
-    "2026-09-08": 88,
+    "2026-09-07": 82,
+    "2026-09-08": 90,
     "2026-09-09": 60,
-    "2026-09-10": 52,
-    "2026-09-11": 37,
-    "2026-09-14": 66,
-    "2026-09-15": 78,
-    "2026-09-16": 63,
-    "2026-09-17": 46,
-    "2026-09-18": 27,
+    "2026-09-10": 53,
+    "2026-09-11": 40,
+    "2026-09-14": 67,
+    "2026-09-15": 79,
+    "2026-09-16": 66,
+    "2026-09-17": 47,
+    "2026-09-18": 30,
     "2026-09-20": 1,
     "2026-09-21": 30,
-    "2026-09-22": 35,
+    "2026-09-22": 36,
     "2026-09-23": 12,
-    "2026-09-24": 10,
+    "2026-09-24": 11,
     "2026-09-25": 5,
     "2026-09-28": 4,
     "2026-09-29": 6,
@@ -2109,7 +2109,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 193614
+      "count": 193679
     },
     {
       "court": "ge_gerichte",
@@ -2308,11 +2308,11 @@
     "2023": -0.3,
     "2024": 0.0,
     "2025": -5.2,
-    "2026": -48.6,
+    "2026": -48.5,
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 397680,
+    "federal": 397745,
     "cantonal": 680394
   },
   "language_by_year": {
@@ -2431,22 +2431,22 @@
       "it": 2423
     },
     "2024": {
-      "de": 23515,
+      "de": 23517,
       "en": 152,
-      "fr": 26339,
-      "it": 2227
+      "fr": 26342,
+      "it": 2230
     },
     "2025": {
-      "de": 23557,
+      "de": 23567,
       "en": 180,
-      "fr": 24203,
-      "it": 1556
+      "fr": 24209,
+      "it": 1566
     },
     "2026": {
-      "de": 13322,
+      "de": 13329,
       "en": 117,
-      "fr": 11097,
-      "it": 916
+      "fr": 11119,
+      "it": 918
     }
   },
   "by_month": {
@@ -2461,34 +2461,34 @@
     "2024-06": 4836,
     "2024-07": 4012,
     "2024-08": 3969,
-    "2024-09": 4242,
-    "2024-10": 4504,
+    "2024-09": 4243,
+    "2024-10": 4509,
     "2024-11": 4572,
-    "2024-12": 4342,
-    "2025-01": 4298,
+    "2024-12": 4344,
+    "2025-01": 4302,
     "2025-02": 4164,
-    "2025-03": 4344,
-    "2025-04": 4014,
-    "2025-05": 4266,
-    "2025-06": 4660,
+    "2025-03": 4346,
+    "2025-04": 4019,
+    "2025-05": 4269,
+    "2025-06": 4661,
     "2025-07": 3849,
     "2025-08": 3782,
-    "2025-09": 4349,
-    "2025-10": 4234,
-    "2025-11": 3940,
-    "2025-12": 3596,
-    "2026-01": 2992,
-    "2026-02": 3681,
+    "2025-09": 4350,
+    "2025-10": 4237,
+    "2025-11": 3941,
+    "2025-12": 3602,
+    "2026-01": 2999,
+    "2026-02": 3682,
     "2026-03": 3698,
     "2026-04": 3020,
     "2026-05": 2847,
     "2026-06": 3296,
     "2026-07": 2541,
-    "2026-08": 2290,
-    "2026-09": 1080,
+    "2026-08": 2294,
+    "2026-09": 1099,
     "2026-10": 4
   },
-  "generated_at": "2026-10-06T14:54:54.617323+00:00",
+  "generated_at": "2026-10-06T23:30:40.885190+00:00",
   "scraper_health": {
     "run_at": "2026-10-06T01:50:25.954770+00:00",
     "run_duration_s": 2964.7,
@@ -3475,9 +3475,9 @@
         "duration_s": 145.1,
         "error": null,
         "note": null,
-        "state_count": 36370,
-        "jsonl_size_mb": 1042.0,
-        "jsonl_mtime": "2026-10-06T01:35:06.189474+00:00"
+        "state_count": 36572,
+        "jsonl_size_mb": 1052.5,
+        "jsonl_mtime": "2026-10-06T16:05:12.653179+00:00"
       },
       "zh_steuerrekursgericht": {
         "success": true,
@@ -3710,19 +3710,19 @@
       "chapter": 11,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10061065,
-    "statute_edges": 12783113
+    "citation_edges": 10063084,
+    "statute_edges": 12785036
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "BGE 125 V 351",
-      "citation_count": 78815,
+      "citation_count": 78818,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 195956
+      "ref_count": 195980
     },
     "oldest_decision": {
       "docket": "1_I_26",
@@ -3734,17 +3734,17 @@
       "de_pct": 47.0,
       "fr_pct": 44.5,
       "it_pct": 8.5,
-      "total": 1074040
+      "total": 1074178
     },
     "regeste_coverage": {
       "pct": 38.2,
-      "with_regeste": 411888,
-      "total": 1078001
+      "with_regeste": 411893,
+      "total": 1078139
     },
     "graph_size": {
-      "decision_edges": 11070834,
-      "statute_edges": 12783113,
-      "total": 23853947
+      "decision_edges": 11104014,
+      "statute_edges": 12785036,
+      "total": 23889050
     },
     "echr_switzerland": {
       "total": 1527,
@@ -3761,13 +3761,13 @@
     "top_5_decisions": [
       {
         "docket": "BGE 125 V 351",
-        "citation_count": 78815,
+        "citation_count": 78818,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
       },
       {
         "docket": "125 V 351",
-        "citation_count": 76339,
+        "citation_count": 76350,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
@@ -3779,7 +3779,7 @@
       },
       {
         "docket": "BGE 134 V 231",
-        "citation_count": 39713,
+        "citation_count": 39720,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_134_V_231"
       },
@@ -3794,37 +3794,37 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 195956
+        "ref_count": 195980
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 120677
+        "ref_count": 120703
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109092
+        "ref_count": 109131
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97940
+        "ref_count": 97956
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 60824
+        "ref_count": 60828
       }
     ],
     "materialien_coverage": {
-      "total_documents": 6193,
-      "paragraphs": 427564,
+      "total_documents": 6196,
+      "paragraphs": 428661,
       "article_links": 20610,
       "by_language": {
-        "de": 2064,
-        "fr": 2065,
-        "it": 2064
+        "de": 2065,
+        "fr": 2066,
+        "it": 2065
       },
       "year_range": {
         "from": 1999,
@@ -3909,7 +3909,7 @@
         "earliest": "1908-11-08",
         "latest": "2026-10-01",
         "span_years": 118,
-        "decision_count": 170932
+        "decision_count": 170970
       }
     ]
   },
@@ -4514,8 +4514,9 @@
     }
   ],
   "delta": {
-    "total": 73,
+    "total": 138,
     "by_court": {
+      "bger": 23,
       "ge_gerichte": 38,
       "bvger": 9,
       "ti_gerichte": 2,
@@ -4544,7 +4545,10 @@
       "ZG": 4,
       "JU": 4
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 2019,
+      "statute_edges": 1923
+    },
     "previous_generated_at": "2026-10-05T21:16:42.429595+00:00"
   }
 }
