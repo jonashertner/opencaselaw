@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 05 Oct 2026 12:31:49 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 06 Oct 2026 14:50:16 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -107,6 +107,23 @@ Anschlussberufungsbe…</description>
       <category>so_gerichte</category>
     </item>
     <item>
+      <title>gr_gerichte VR2 2026 42 vom 2026-09-25</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_VR2%202026%2042</link>
+      <description>Obergericht des Kantons Graubünden
+Dretgira superiura dal chantun Grischun
+Tribunale d'appello del Cantone dei Grigioni
+Urteil vom 25. September 2026
+mitgeteilt am 28. September 2026
+Referenz
+VR2 26 42
+Instanz
+Zweite verwaltungsrechtliche Kammer
+Bese…</description>
+      <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">gr_gerichte_VR2 2026 42</guid>
+      <category>gr_gerichte</category>
+    </item>
+    <item>
       <title>so_gerichte BKBES.2026.92 vom 2026-09-25</title>
       <link>https://mcp.opencaselaw.ch/entscheid/so_gerichte_BKBES.2026.92</link>
       <description>Beschlussvom25. September 2026
@@ -200,11 +217,27 @@ Verfahrensbeteiligt…</description>
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht A-8683/2025 vom 2026-09-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-8683_2025</link>
+      <description>Staatshaftung (Bund)</description>
+      <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-8683.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht E-5656/2026 vom 2026-09-24</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5656_2026</link>
       <description>Vollzug der Wegweisung (Wiedererwägung)</description>
       <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5656.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-5985/2026 vom 2026-09-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5985_2026</link>
+      <description>Asyl und Wegweisung (beschleunigtes Verfahren)</description>
+      <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5985.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -237,6 +270,55 @@ Urte…</description>
       <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">fr_gerichte_602 2025 79</guid>
       <category>fr_gerichte</category>
+    </item>
+    <item>
+      <title>gr_gerichte VR1 2026 40 vom 2026-09-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_VR1%202026%2040</link>
+      <description>Obergericht des Kantons Graubünden
+Dretgira superiura dal chantun Grischun
+Tribunale d'appello del Cantone dei Grigioni
+Urteil vom 24. September 2026
+mitgeteilt am 28. September 2026
+Referenz
+VR1 26 40
+Instanz
+Erste verfassungs- und verwaltungsrechtl…</description>
+      <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">gr_gerichte_VR1 2026 40</guid>
+      <category>gr_gerichte</category>
+    </item>
+    <item>
+      <title>ag_strafgericht SBK.2026.229 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ag_strafgericht_SBK.2026.229</link>
+      <description>Obergericht
+Beschwerdekammer in Strafsachen
+SBK.2026.229
+(STA.2024.3698)
+Art. 380
+Entscheid vom 23. September 2026
+Besetzung Oberrichter Richli, Präsident
+Oberrichterin Schär
+Oberrichterin Merkofer
+Gerichtsschreiberin Dos Santos Teodoro
+Beschwerde- A…</description>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ag_strafgericht_SBK.2026.229</guid>
+      <category>ag_strafgericht</category>
+    </item>
+    <item>
+      <title>be_verwaltungsgericht 200 2025 335 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/be_verwaltungsgericht_200%202025%20335</link>
+      <description>IV 200 2025 335
+FRC/GET/SSM
+Verwaltungsgericht des Kantons Bern
+Sozialversicherungsrechtliche Abteilung
+Urteil vom 23. September 2026
+Verwaltungsrichterin Frey, Kammerpräsidentin
+Verwaltungsrichter Ackermann, Verwaltungsrichterin Mauerhofer
+Gerichtss…</description>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">be_verwaltungsgericht_200 2025 335</guid>
+      <category>be_verwaltungsgericht</category>
     </item>
     <item>
       <title>Bundesgericht 7B_1013/2026 vom 2026-09-23</title>
@@ -326,6 +408,14 @@ A.…</description>
       <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_965.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht B-3462/2025 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-3462_2025</link>
+      <description>Absolute Ausschlussgründe</description>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-3462.2025</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht D-6015/2026 vom 2026-09-23</title>
@@ -537,6 +627,14 @@ Ge…</description>
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht B-1017/2024 vom 2026-09-22</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-1017_2024</link>
+      <description>Widerspruchssachen</description>
+      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-1017.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht B-3282/2025 vom 2026-09-22</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-3282_2025</link>
       <description>Chemikalien (Übriges)</description>
@@ -558,6 +656,14 @@ Ge…</description>
       <description>Eingliederungsmassnahmen</description>
       <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-5359.2023</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-3712/2022 vom 2026-09-22</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-3712_2022</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-3712.2022</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -767,170 +873,6 @@ vertreten durch MLaw…</description>
       <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-6413.2024</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-7993/2025 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-7993_2025</link>
-      <description>Verweigerung vorübergehender Schutz</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-7993.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>gr_gerichte SBK 2026 16 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_SBK%202026%2016</link>
-      <description>Obergericht des Kantons Graubünden
-Dretgira superiura dal chantun Grischun
-Tribunale d'appello del Cantone dei Grigioni
-Entscheid vom 21. September 2026
-mitgeteilt am 21. September 2026
-Referenz
-SBK 26 16
-Instanz
-Schuldbetreibungs- und Konkurskammer
-…</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">gr_gerichte_SBK 2026 16</guid>
-      <category>gr_gerichte</category>
-    </item>
-    <item>
-      <title>gr_gerichte SBK 2026 91 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_SBK%202026%2091</link>
-      <description>Obergericht des Kantons Graubünden
-Dretgira superiura dal chantun Grischun
-Tribunale d'appello del Cantone dei Grigioni
-Entscheid vom 21. September 2026
-mitgeteilt am 21. September 2026
-Referenz
-SBK 26 91
-Instanz
-Schuldbetreibungs- und Konkurskammer
-…</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">gr_gerichte_SBK 2026 91</guid>
-      <category>gr_gerichte</category>
-    </item>
-    <item>
-      <title>gr_gerichte ZR2 2026 35 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_ZR2%202026%2035</link>
-      <description>Obergericht des Kantons Graubünden
-Dretgira superiura dal chantun Grischun
-Tribunale d'appello del Cantone dei Grigioni
-Entscheid vom 21. September 2026
-mitgeteilt am 22. September 2026
-Referenz
-ZR2 26 35
-Instanz
-Zweite zivilrechtliche Kammer
-Besetzu…</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">gr_gerichte_ZR2 2026 35</guid>
-      <category>gr_gerichte</category>
-    </item>
-    <item>
-      <title>zg_verwaltungsgericht S 2025 33 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/zg_verwaltungsgericht_S%202025%2033</link>
-      <description>VERWALTUNGSGERICHT DES KANTONS ZUG
-SOZIALVERSICHERUNGSRECHTLICHE KAMMER
-Mitwirkende Richter: lic. iur. Adrian Willimann, Vorsitz
-lic. iur. Sarah Schneider und lic. iur. Judith Fischer
-Gerichtsschreiberin: MLaw Jeannine Suter
-U R T E I L vom 23. Juni …</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">zg_verwaltungsgericht_S 2025 33</guid>
-      <category>zg_verwaltungsgericht</category>
-    </item>
-    <item>
-      <title>gr_gerichte SBK 2026 88 vom 2026-09-20</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/gr_gerichte_SBK%202026%2088</link>
-      <description>Obergericht des Kantons Graubünden
-Dretgira superiura dal chantun Grischun
-Tribunale d'appello del Cantone dei Grigioni
-Entscheid vom 21. September 2026
-mitgeteilt am 21. September 2026
-Referenz
-SBK 26 88
-Instanz
-Schuldbetreibungs- und Konkurskammer
-…</description>
-      <pubDate>Sun, 20 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">gr_gerichte_SBK 2026 88</guid>
-      <category>gr_gerichte</category>
-    </item>
-    <item>
-      <title>ag_strafgericht SBK.2026.197 vom 2026-09-18</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ag_strafgericht_SBK.2026.197</link>
-      <description>Obergericht
-Beschwerdekammer in Strafsachen
-SBK.2026.197
-(STA.2026.3189)
-Art. 375
-Entscheid vom 18. September 2026
-Besetzung Oberrichter Richli, Präsident
-Oberrichterin Massari
-Oberrichterin Schär
-Gerichtsschreiber Huber
-Beschwerde- A._____,
-führer […</description>
-      <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ag_strafgericht_SBK.2026.197</guid>
-      <category>ag_strafgericht</category>
-    </item>
-    <item>
-      <title>Bundesgericht 2C_429/2026 vom 2026-09-18</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_2C_429_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-2C_429/2026
-
-Urteil vom 18. September 2026
-
-II. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Aubry Girardin, Präsidentin,
-
-Gerichtsschreiberin Ivanov.
-
-Verfahrensbe…</description>
-      <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:2C_429.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 2C_475/2026 vom 2026-09-18</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_2C_475_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-2C_475/2026
-
-Urteil vom 18. September 2026
-
-II. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Aubry Girardin, Präsidentin,
-
-Gerichtsschreiberin Ivanov.
-
-Verfahrensbe…</description>
-      <pubDate>Fri, 18 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:2C_475.2026</guid>
-      <category>bger</category>
     </item>
   </channel>
 </rss>

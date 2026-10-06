@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 05 Oct 2026 12:31:49 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 06 Oct 2026 14:50:16 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -37,6 +37,14 @@ Partecipanti al …</description>
       <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_492.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesstrafgericht BG.2026.74 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bstger_BG.2026.74</link>
+      <description>Confltti in materia di foro (art. 40 cpv. 2 CPP)</description>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BStGer:2026:BG.2026.74</guid>
+      <category>bstger</category>
     </item>
     <item>
       <title>Bundesstrafgericht RH.2026.9 vom 2026-09-21</title>
@@ -98,6 +106,36 @@ Partecipanti al procedimento
 A.…</description>
       <pubDate>Tue, 15 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_718.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 5A_797/2026 vom 2026-09-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_797_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+5A_797/2026
+
+Sentenza del 15 settembre 2026
+
+II Corte di diritto civile
+
+Composizione
+
+Giudice federale Bovey, Presidente,
+
+Cancelliera Antonini.
+
+Partecipanti al procedimento
+
+A.…</description>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_797.2026</guid>
       <category>bger</category>
     </item>
     <item>
@@ -876,42 +914,6 @@ A.___…</description>
       <pubDate>Fri, 21 Aug 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BStGer:2026:BV.2026.10</guid>
       <category>bstger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_219/2026 vom 2026-08-20</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_219_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_219/2026
-
-Sentenza del 20 agosto 2026
-
-II Corte di diritto penale
-
-Composizione
-
-Giudici federali Abrecht, Presidente,
-
-van de Graaf, Koch, Kölz, Hofmann,
-
-Cancelliere Caprara.…</description>
-      <pubDate>Thu, 20 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_219.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-298/2024 vom 2026-08-20</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-298_2024</link>
-      <description>Asilo ed allontanamento</description>
-      <pubDate>Thu, 20 Aug 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-298.2024</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>
