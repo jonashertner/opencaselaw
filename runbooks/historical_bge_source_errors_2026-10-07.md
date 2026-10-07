@@ -235,6 +235,39 @@ Rollback: the run only adds rows with new ids. Remove the 230 `bge_historical_*`
 page is >= 1000 from the shard and from `state/bge_historical.jsonl`; existing rows are never
 touched.
 
+## Coordination check (2026-10-07, 22:40 UTC)
+
+**Other sessions on this repository.** None of them works on the same files except the
+segmentation branch.
+
+| session | branch | state | overlap with this branch |
+|---|---|---|---|
+| Historical BGE/SG twins (original + validation) | `claude/historical-bge-sg-twins-2026-10-07` = `claude/bge-sg-twins-validation-ios81l` (`a7e23576`) | idle, waiting for review and the server go-ahead | `mcp_server.py`, `pyproject.toml`, `scrapers/bge_historical.py` |
+| Fix stale structure.parquet export | `claude/funny-hawking-7xp27x` | idle, waiting for design decisions | none (own proposal, script, test) |
+| Remove stale root-level parquet files on HF | `claude/eloquent-tesla-333wvz` | idle, waiting for approval | none (own runbook, script, test) |
+
+**Combining with the segmentation branch.**
+
+- A dry-run merge (`git merge-tree`) of this branch with `a7e23576` is clean.
+- On the merged tree plus `...segment-page-jump.patch`, `make test` passes (4,437 passed,
+  26 skipped).
+- Suggested order: merge the segmentation branch with the patch, then this branch. Either
+  order merges cleanly.
+
+**CI.** `.github/workflows/ci.yml` runs only on pushes to `main` and on pull requests, so
+neither branch has a GitHub CI run yet. A pull request would give one. The last 20 runs on
+`main` are green.
+
+**Production, read-only:**
+
+- `/health`: ok, 1,078,321 decisions, `db_generation` 2026-10-07 17:15 UTC.
+- Today's full publish (timer 03:30 UTC) swapped about 18:00 and finalized 18:31 UTC
+  (commits `379b29ea`, `b0e3857e`). The incremental publish timer runs Mon-Sat 20:00 UTC.
+- Shard repairs and the letter-coded scraper run belong after the incremental publish and
+  well before 03:30 UTC.
+- Deploying the serving change (`source_defects`) is a server deploy through
+  `scripts/agent_safe_deploy.py`; it needs no build.
+
 ## Handling
 
 Nothing is applied to production yet. The serving change and the segmenter patch below are
