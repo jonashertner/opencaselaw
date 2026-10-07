@@ -67,7 +67,9 @@ WEAK_HEADER_RE = re.compile(
 
 # A header names the parties or the date within its first lines. Requiring one
 # of them keeps an Erwägung that happens to open "1. Urteil ..." out.
-_PARTIES = (r"\bi\s*\.\s*S\s*\.|\bin\s+Sachen\b|\bdans\s+la\s*,?\s*cause\b"
+# "i. S." loses its first period to OCR ("16. Entscheid vom as. April 1937 i S.
+# Schweiz.", BGE 63 III 57).
+_PARTIES = (r"\bi\s*\.?\s*S\s*\.|\bin\s+Sachen\b|\bdans\s+la\s*,?\s*cause\b"
             r"|\ben\s+la\s+cause\b|\bnella\s+ca\w{2,4}\b|\bin\s+causa\b")
 _HEADER_CONFIRM_RE = re.compile(
     _PARTIES + r"|\bgegen\b|\bcontre\b|\bcontro\b|\b(?:vom|du|del|dell['’])\s*\d{1,2}",
@@ -194,15 +196,46 @@ def segment(text: str, page: int) -> Segment | None:
         return None
     start, serial = headers[own].pos, headers[own].serial
     on_page_end = next((pos for pos, n in marks if n > page), None)
+    has_own_page = any(n == page for _, n in marks)
     end = len(text)
     for h in headers[own + 1:]:
-        if not serial < h.serial <= serial + 3:
+        later_page = on_page_end is not None and h.pos >= on_page_end
+        if not (serial < h.serial <= serial + 3
+                # OCR dropped a digit of the own serial ("2. Urteil der 11.
+                # Zivilabteilung" for No 22, BGE 79 II 137): a full ruling
+                # header on a later page still ends the ruling
+                or (h.strong and h.serial > serial and later_page)):
             continue        # an Erwägung number or a citation, not the next ruling
-        if on_page_end is not None and h.pos < on_page_end and any(n == page for _, n in marks):
+        if on_page_end is not None and not later_page and has_own_page:
             continue        # a second ruling on the reference page shares its number
         end = h.pos
         break
+    nxt = _next_serial_line(text, start, serial)
+    if nxt is not None and nxt < end and (on_page_end is None or nxt >= on_page_end or not has_own_page):
+        end = nxt
     return Segment(start=start, end=end, serial=serial, header=header_block(text, start))
+
+
+def _next_serial_line(text: str, start: int, serial: int) -> int | None:
+    """Offset of the next ruling's heading when OCR garbled both its ruling noun
+    and its month ("13. Ardt du 4 aoftt 1949 dans la cause Hausmann.", after
+    No 12 = BGE 75 III 44): the line opens with the serial number that follows
+    the own one, names a year and the parties on its first two lines."""
+    own_years = {int(y) for y in re.findall(r"\b(1[89]\d\d)\b", header_block(text, start))}
+    if not own_years:
+        return None
+    # "13. -" opens an Erwägung, never a ruling; the year must be the own
+    # ruling's or a neighbouring one (a numbered paragraph citing another
+    # ruling "vom ... 1938 i. S. X" does not pass).
+    pat = re.compile(
+        rf"(?m)^[ \t]*{serial + 1}[ \t]*[.,][ \t]*(?![-\u2013\u2014])\S[^\n]{{0,120}}?\b(1[89]\d\d)\b"
+    )
+    for m in pat.finditer(text, start + 1):
+        if not any(abs(int(m.group(1)) - y) <= 1 for y in own_years):
+            continue
+        if _PARTIES_RE.search(text[m.start():m.start() + 200]):
+            return m.start()
+    return None
 
 
 def own_text(text: str, page: int) -> tuple[str, Segment | None]:

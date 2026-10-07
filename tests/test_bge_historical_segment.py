@@ -155,6 +155,36 @@ def test_a_stored_date_survives_when_the_header_shows_its_day_and_year():
     assert not script._header_holds("22. Auszug vom 3. Juni 1952 i. S. Fyg.", "1951-07-17")
 
 
+def test_a_header_whose_i_s_lost_a_period_is_still_a_header():
+    # BGE 63 III 57: "16. Entscheid vom as. April 1937 i S. Schweiz. ..."
+    text = ("57\nSchuldbetreibungs- und Konkursrecht. N° 16.\n"
+            "16. Entscheid vom as. April 1937 i S. Schweiz. Volksbank.\nArt. 93 SchKG.\n"
+            "A. - Die Beschwerdeführerin ...\n58\nDie Schuldbetreibungs- und Konkurskammer zieht in Erwägung:\n"
+            "1. - Nach der Rechtsprechung ...\n17. Entscheid vom 20. Mai 1937 i. S. Ackermann.\n")
+    s = seg.segment(text, 57)
+    assert s is not None and s.serial == 16
+    assert "Ackermann" not in text[s.start:s.end]
+    assert seg.header_date(s.header, 63) is None        # "as." is no day
+
+
+def test_a_next_ruling_ends_the_text_even_when_ocr_garbled_its_serial_or_its_heading():
+    # BGE 79 II 137: No 22 was read as "2."; No 23 still ends it.
+    text = ("136\nObligationenrecht. N° 21.\n... schliesst die Klage aus.\n137\n"
+            "2. Urteil der 11. Zivilabteilung vom 2. Juli 1953 i. S. Schaad gegen Meier.\n"
+            "Art. 41 OR.\nA. - Der Kläger ...\n138\n1. - Die Berufung ist ...\n"
+            "139\n23. Auszug aus dem Urteil der I. Zivilabteilung vom 22. April 1953 i. S. X gegen Y.\n")
+    s = seg.segment(text, 137)
+    assert s is not None and text[s.end:].startswith("23. Auszug")
+    assert seg.header_date(s.header, 79) == date(1953, 7, 2)
+    # BGE 75 III 44: "13. Ardt du 4 aoftt 1949 dans la cause Hausmann." after No 12.
+    text = ("44\n12. Entscheid vom 10. Juni 1949 i. S. Schlachtviehversicherungskasse.\n"
+            "Art. 92 SchKG.\n13. - Ein Erwägungsabsatz vom 3. März 1949 ohne Parteien.\n"
+            "45\nDie Kammer zieht in Erwägung ...\n50\n"
+            "13. Ardt du 4 aoftt 1949 dans la cause Hausmann.\nArt. 93 LP.\n")
+    s = seg.segment(text, 44)
+    assert s is not None and text[s.end:].startswith("13. Ardt")
+
+
 def test_volume_and_page():
     assert seg.volume_and_page("78_IV_83") == (78, 83)
     assert seg.volume_and_page("bge_historical_45_III_126") == (45, 126)
