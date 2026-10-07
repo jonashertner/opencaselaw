@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Tue, 06 Oct 2026 14:50:16 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 07 Oct 2026 18:02:11 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -71,6 +71,14 @@ Arrêt du 1er oc…</description>
       <pubDate>Thu, 01 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ge_gerichte_ATAS_852_2026</guid>
       <category>ge_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-1330/2021 vom 2026-09-29</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-1330_2021</link>
+      <description>Asile et renvoi</description>
+      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-1330.2021</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>ge_gerichte ATAS/836/2026 vom 2026-09-29</title>
@@ -296,6 +304,14 @@ Arrêt du 28 septe…</description>
       <category>ge_gerichte</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht F-6806/2026 vom 2026-09-25</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6806_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6806.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>ge_gerichte ATAS/828/2026 vom 2026-09-25</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ATAS_828_2026</link>
       <description>Siégeant : Eleanor 
@@ -382,6 +398,17 @@ A______
       <category>ge_gerichte</category>
     </item>
     <item>
+      <title>ne_gerichte CDP.2025.393 vom 2026-09-25</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ne_gerichte_CDP.2025.393</link>
+      <description>A.A.________,
+né en 1993, rouleur auprès de B.________ SA, est à ce titre assuré contre le
+risque daccidents professionnels et non professionnels auprès de la Caisse
+nationale suisse dassurance en cas daccidents (ci-après : CNA). Par déclaratio…</description>
+      <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ne_gerichte_CDP.2025.393</guid>
+      <category>ne_gerichte</category>
+    </item>
+    <item>
       <title>Bundesgericht 5A_891/2026 vom 2026-09-24</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_891_2026</link>
       <description>Bundesgericht
@@ -412,6 +439,22 @@ A._____…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht E-4842/2025 vom 2026-09-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-4842_2025</link>
+      <description>Asile et renvoi</description>
+      <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-4842.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-9267/2025 vom 2026-09-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-9267_2025</link>
+      <description>Asile et renvoi</description>
+      <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-9267.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>ge_gerichte ATAS/827/2026 vom 2026-09-24</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ATAS_827_2026</link>
       <description>Siégeant : Blaise PAGAN, président 
@@ -438,6 +481,14 @@ repré…</description>
       <pubDate>Thu, 24 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ge_gerichte_ATAS_827_2026</guid>
       <category>ge_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-4621/2026 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-4621_2026</link>
+      <description>Fonds de garantie</description>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-4621.2026</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>ge_gerichte ATAS/832/2026 vom 2026-09-23</title>
@@ -890,6 +941,26 @@ Plainte 17 LP (A/2421/2025-CS) formée …</description>
       <category>ge_gerichte</category>
     </item>
     <item>
+      <title>ju_gerichte CC 2026 99 vom 2026-09-22</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ju_gerichte_CC%202026%2099</link>
+      <description>RÉPUBLIQUE ET CANTON DU JURA
+TRIBUNAL CANTONAL
+COUR CIVILE
+CC 2026 115 116
+Présidente : Nathalie Brahier
+Greffière : Julie Comte
+DÉCISION DU 22 SEPTEMBRE 2026
+en la cause civile liée entre
+A.________,
+requérant,
+et
+B.________ SA, .________,
+- représe…</description>
+      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ju_gerichte_CC 2026 99</guid>
+      <category>ju_gerichte</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht A-7433/2024 vom 2026-09-21</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-7433_2024</link>
       <description>Taxe sur la valeur ajoutée</description>
@@ -944,102 +1015,6 @@ Plainte 17 LP (A/2421/2025-CS) formée …</description>
       <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5698.2026</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-2308/2025 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-2308_2025</link>
-      <description>Annulation de la naturalisation facilitée</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-2308.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-4409/2024 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-4409_2024</link>
-      <description>Visa national</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-4409.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-6014/2026 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6014_2026</link>
-      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6014.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-6487/2026 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6487_2026</link>
-      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6487.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>ge_gerichte ATAS/816/2026 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ATAS_816_2026</link>
-      <description>Siégeant : Justine BALZLI, présidente 
- 
- 
- 
- 
-RÉPUBLIQUE ET 
- 
-CANTON DE GEN ÈVE 
-POUVOIR JUDICIAIRE 
- 
-A/4493/2025 
-ATAS/816/2026 
-COUR DE JUSTICE 
-Chambre des assurances sociales 
-Arrêt du 21 septembre 2026 
-Chambre 16 
- 
-En la cause 
-A______ 
- 
-r…</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ATAS_816_2026</guid>
-      <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>ju_gerichte ADM 2026 30 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ju_gerichte_ADM%202026%2030</link>
-      <description>RÉPUBLIQUE ET CANTON DU JURA
-TRIBUNAL CANTONAL
-COUR ADMINISTRATIVE
-ADM 2026 30
-Présidente : Sylviane Liniger Odiet
-Juges : Carine Guenat et Lisiane Poupon
-Greffière e.o. : Océane Migliore
-ARRET DU 17 SEPTEMBRE 2026
-en la cause liée entre
-A.________,
-…</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ju_gerichte_ADM 2026 30</guid>
-      <category>ju_gerichte</category>
-    </item>
-    <item>
-      <title>ju_gerichte ASS 2025 133 vom 2026-09-21</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ju_gerichte_ASS%202025%20133</link>
-      <description>RÉPUBLIQUE ET CANTON DU JURA
-TRIBUNAL CANTONAL
-COUR DES ASSURANCES
-PC 2025 133
-AJ 2026 103
-Présidente : Carine Guenat
-Greffière e.o. : Océane Migliore
-DÉCISION DU 21 SEPTEMBRE 2026
-en la cause liée entre
-A.________, résident à l’EMS B.________,
-- rep…</description>
-      <pubDate>Mon, 21 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ju_gerichte_ASS 2025 133</guid>
-      <category>ju_gerichte</category>
     </item>
   </channel>
 </rss>
