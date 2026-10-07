@@ -298,20 +298,28 @@ neither can change without the other.
 - **withhold** (52 I ×6, 39 I 469, 22 I 12): the row is served with metadata and a note, no
   text and no regeste. Its date falls back to the volume placeholder: the stored dates of
   39 I 469 and 22 I 12 came from the foreign text, and the canonical-identity date is
-  overridden too. Its statutes are dropped, because they were extracted from that text.
-- **truncate** (71 II 223): the text is served up to its own last page (5,729 characters).
-  This applies only while the stored text has the SHA-256 the cut was verified on, so the
-  entry lapses by itself once the text is re-segmented.
+  overridden too. Its statutes, cited decisions and outgoing citation edges are dropped,
+  because they were extracted from that text. Incoming edges stay: they cite this reference.
+- **truncate** (71 II 223): the text is served up to its own last page (5,729 characters),
+  and search hits whose snippet comes from the appended pages are dropped. Both apply only
+  while the stored text has the SHA-256 the cut was verified on, so they lapse by themselves
+  once the text is re-segmented. Its structure and outgoing citations stay withheld until
+  the entry is removed, so the old structure is never served before the structure DB is
+  rebuilt.
 
 **Hooks:**
 
 - `get_decision_by_id`, used by the `get_decision`, `get_decisions` and `fetch` tools and by
   REST `/decisions/{id}`.
 - `_get_decision_strict`, used by the claim and quotation checks.
-- `_fetch_structure_row` and `_fetch_structure_paragraphs`: structure is withheld for all
-  nine rows. For 71 II 223 the live structure is Erwägungen 4-7 of 77 II 154.
-- `search_fts5`, which also covers vector and deep-research search: hits on withheld rows are
-  dropped.
+- `_fetch_structure_row`, `_fetch_structure_paragraphs`, `_compute_pinpoint` and
+  `find_relevant_erwaegung`: structure is withheld for all nine rows. For 71 II 223 the live
+  structure is Erwägungen 4-7 of 77 II 154.
+- `search_fts5`, which also covers vector and deep-research search: hits on withheld rows
+  are dropped. A page that lost a hit is refilled from a slightly larger query, and `total`
+  stays the index's count, so paging is not cut short.
+- `find_leading_cases` and its FTS fallback drop withheld rows.
+- `find_citations` serves no outgoing edges for listed rows; `get_decision` counts none.
 - `cite`. On a hit it gives `source_defect`, `text_available: false` and no
   `rule_statement`. On a miss it gives `not_found_reason: "source_defect"` and no close
   matches.
@@ -323,18 +331,35 @@ neither can change without the other.
 - 71 II 223 serves 5,727 characters, with no Frigaliment text;
 - 52 I 14 and 65 I 8 are unchanged.
 
+**Code review (2026-10-07).** An independent review of the branch found ten points. Fixed:
+
+- the pinpoint and relevant-Erwägung paths;
+- outgoing citations;
+- the 71 II 223 search snippets;
+- leading cases;
+- paging;
+- the order of the `cite` check;
+- two audit-script points.
+
+Not fixed, with reasons:
+
+- **A pinpoint page inside a defective reference** (`cite("BGE 52 I 12")`): the
+  containing-ruling suggestion does not match historical dockets today (`52_I_8`), so cite
+  answers a plain not-found. If pinpoint resolution is extended to that form, it must consult
+  `source_defects` first.
+- **Trend counts** (`analyze_legal_trend`) still count the withheld rows: at most nine rows
+  among a million, no text shown.
+- **Language:** the `language` field of a withheld row is the one detected from the other
+  ruling's text.
+
 **Residual, until the shard repair:**
 
-- A search can still return 71 II 223 on terms of the appended pages. The snippet then comes
-  from 77 II 154, while `get_decision` serves the cut text.
 - The dataset export and the static pages carry the stored text.
-- Tools that list ids without text (`find_leading_cases`, `find_citations`) still list the
-  withheld rows. Opening one gives the note.
 - A `.docx`/`.pdf` export of a withheld row carries the citation and metadata only, without
   the note.
 
-Take an entry off the list when its source is fixed and re-scraped. The truncate entry
-retires itself when the text changes.
+Take an entry off the list when its source is fixed and re-scraped, and the truncate entry
+once the repaired text has been served and the structure rebuilt.
 
 ### Built: segmenter rule, as a patch for the segmentation branch
 
@@ -350,11 +375,39 @@ the own header.
 - A second new test checks that an OCR'd page run that comes back is not cut.
 - The two ruff findings in that test file already exist on the branch.
 
+### Built: shard repair `scripts/repair_bge_historical_sources.py` (proposal; not run)
+
+It applies the list to a shard. **Dry run by default.** `--apply` writes atomically and puts
+every removed or changed row, as it was, into `<shard>.source-repair-<date>.jsonl`. A second
+run changes nothing, and rows of other courts are never touched.
+
+- **withhold:** the row is removed from the shard. Its id stays in
+  `state/bge_historical.jsonl`, so the same defective document is not fetched again. The
+  reference leaves `decisions.db`, the dataset, the graph and the structure DB at the next
+  full build, and `source_defects` keeps answering for it.
+- **truncate:** the row is cut to the ruling's own pages (only while it is the verified
+  text), its `cited_decisions` is recomputed, and a `source_repair` stamp is added.
+
+**Dry runs:**
+
+- Published text: 9 rows changed (8 removed, 71 II 223 cut), 14,569 untouched.
+- March text: 8 removed; 71 II 223 left alone, because it held the servat HTML then.
+
+If the server shard looks like March, the PDF text of 71 II 223 comes from an `es_*` shard
+through the build's text-upgrade. Run the repair on that shard as well:
+
+```bash
+python3 scripts/repair_bge_historical_sources.py output/decisions/bge_historical.jsonl
+for f in $(grep -lE '["_](52_I_(1|8|23|39|149|230)|39_I_469|22_I_12|71_II_223)"' output/decisions/es_*.jsonl); do
+  python3 scripts/repair_bge_historical_sources.py "$f"; done
+# read the dry-run lines, then the same commands with --apply (copy the shards first)
+```
+
 ### Still proposals
 
-**A (52 I ×6) and C (39 I 469): shard repair.** At the next segmentation window, remove the
-foreign text with an undo file. The row then leaves `decisions.db`, the dataset, the graph
-and the structure DB, and the serving list keeps answering for the reference.
+**A (52 I ×6) and C (39 I 469): shard repair.** Run the script above at the next
+segmentation window. That window falls after the incremental publish and well before
+03:30 UTC.
 
 Not recommended:
 

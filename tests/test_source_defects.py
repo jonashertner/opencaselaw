@@ -168,3 +168,91 @@ def test_fetch_shim_says_what_is_missing(served, monkeypatch):
     out = m._deep_research_fetch("bge_52_I_8")
     assert out["text"].startswith("[Source defect: ") and "65 I 8" in out["text"]
     assert out["metadata"]["source_defect"]["kind"] == "foreign_volume"
+
+
+# ── review fixes (2026-10-07): citations, snippets, paging, other paths ─────
+
+def test_withheld_and_truncated_rows_carry_no_outgoing_citations(monkeypatch):
+    out = sd.apply({"decision_id": "bge_52_I_8", "full_text": FOREIGN, "cited_decisions": '["RO 59 I 179"]'})
+    assert out["cited_decisions"] is None
+    text = "Own ruling text. " * 30 + "\n154\n" + "Other ruling. " * 30
+    entry = sd.SourceDefect(reference="71 II 223", kind="foreign_pages_appended", action="truncate",
+                            holds="71 II 223 + 77 II 154", copy_of="bge_77_II_154", note="n",
+                            text_sha256=hashlib.sha256(text.encode()).hexdigest(),
+                            keep_chars=text.index("\n154\n"))
+    monkeypatch.setitem(sd._BY_PARTS, (71, "II", 223), entry)
+    cut = sd.apply({"decision_id": "bge_71_II_223", "full_text": text, "cited_decisions": '["BGE 77 II 1"]'})
+    assert cut["cited_decisions"] is None and "Other ruling" not in cut["full_text"]
+
+
+def test_snippet_in():
+    own = "Das Stillschweigen der Beklagten auf das Schreiben begründet die Vermutung."
+    assert sd.snippet_in("...das <mark>Stillschweigen</mark> der Beklagten auf das Schreiben...", own)
+    assert not sd.snippet_in("...Haftung für <mark>Zwischenspediteure</mark> nach Art. 101 OR...", own)
+    assert sd.snippet_in("", own) and sd.snippet_in(None, own) and sd.snippet_in("<mark>kurz</mark>", own)
+
+
+def test_a_truncated_row_is_found_only_on_its_own_text(monkeypatch):
+    own = "Das Stillschweigen der Beklagten auf das Schreiben begründet die Vermutung. " * 3
+    text = own + "\n154\nHaftung für Zwischenspediteure nach Art. 101 OR, Frigaliment. " * 3
+    entry = sd.SourceDefect(reference="71 II 223", kind="foreign_pages_appended", action="truncate",
+                            holds="71 II 223 + 77 II 154", copy_of="bge_77_II_154", note="n",
+                            text_sha256=hashlib.sha256(text.encode()).hexdigest(), keep_chars=len(own))
+    monkeypatch.setitem(sd._BY_PARTS, (71, "II", 223), entry)
+    hits = [{"decision_id": "bge_71_II_223", "snippet": "...Haftung für <mark>Zwischenspediteure</mark> nach Art. 101 OR..."},
+            {"decision_id": "bge_71_II_223", "snippet": "...<mark>Stillschweigen</mark> der Beklagten auf das Schreiben..."}]
+    kept, dropped = sd.filter_hits(hits, lambda did: text)
+    assert dropped == 1 and kept == [hits[1]]
+    # once the stored text changed (re-segmented), nothing is dropped any more
+    assert sd.filter_hits(hits, lambda did: own)[1] == 0
+
+
+def test_search_refills_a_page_that_lost_a_withheld_hit(served, monkeypatch):
+    pool = [{"decision_id": d, "snippet": ""} for d in
+            ("bge_52_I_14", "bge_52_I_8", "bge_52_I_27", "bge_52_I_34", "bge_52_I_44")]
+    calls = []
+
+    def _inner(conn, query, court, canton, language, date_from, date_to, chamber,
+               decision_type, legal_area, limit, offset, **kw):
+        calls.append((limit, offset))
+        return [dict(r) for r in pool[offset:offset + limit]], 50
+
+    monkeypatch.setattr(m, "_search_fts5_inner", _inner)
+    monkeypatch.setattr(m, "_SEARCH_RESULT_CACHE_LIMIT_GATE", 0)
+    rows, total = m.search_fts5(query="Registersachen", limit=3)
+    assert [r["decision_id"] for r in rows] == ["bge_52_I_14", "bge_52_I_27", "bge_52_I_34"]
+    assert total == 50 and calls == [(3, 0), (4, 0)]   # a full page, the same total on every page
+
+
+def test_pinpoint_and_relevant_erwaegung_never_read_a_defect_structure(monkeypatch):
+    def boom():
+        raise AssertionError("structure DB must not be read for a source defect")
+    monkeypatch.setattr(m, "_get_structure_conn", boom)
+    assert m._compute_pinpoint("bge_52_I_8", "nulla poena sine lege") is None
+    monkeypatch.setattr(m, "_resolve_decision_id", lambda x: x)
+    out = m._handle_find_relevant_erwaegung(decision_id="bge_71_II_223", claim="Bestätigungsschreiben")
+    assert out["no_match"] is True and out["matches"] == []
+    assert out["source_defect"]["kind"] == "foreign_pages_appended"
+
+
+def test_find_citations_keeps_incoming_and_drops_outgoing(monkeypatch):
+    class _Conn:
+        def close(self):
+            pass
+    monkeypatch.setattr(m, "_resolve_decision_id", lambda x: x)
+    monkeypatch.setattr(m, "_get_graph_conn", lambda: _Conn())
+    monkeypatch.setattr(m, "_count_citations_filtered", lambda did, min_confidence: (3, 5))
+
+    def no_outgoing(*a, **k):
+        raise AssertionError("outgoing edges of a source defect must not be read")
+    monkeypatch.setattr(m, "_find_outgoing_citations", no_outgoing)
+    monkeypatch.setattr(m, "_find_incoming_citations", lambda did, **k: [{"source_decision_id": "bger_1P.152_2002"}])
+    out = m.find_citations(decision_id="bge_52_I_149")
+    assert out["outgoing"] == [] and out["outgoing_total"] == 0
+    assert out["incoming_total"] == 3 and out["incoming"][0]["source_decision_id"] == "bger_1P.152_2002"
+    assert out["source_defect"]["source_holds"] == "65 I 149"
+
+
+def test_leading_case_fallback_drops_withheld_rows(monkeypatch):
+    assert sd.filter_hits([{"decision_id": "bge_52_I_149"}, {"decision_id": "bge_95_I_366"}])[0] == [
+        {"decision_id": "bge_95_I_366"}]

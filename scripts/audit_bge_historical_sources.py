@@ -24,8 +24,11 @@ Checks, per row of the input (only references of volumes 1-79):
                (sampled 8-word shingles; a later ruling quoting an earlier one
                shares a few sentences, a misfiled scan shares pages).
   page_jump    after the reference page, the printed page numbers restart well
-               below it and run on (two or more consecutive page lines):
-               pages of another volume appended to the range.
+               below it (page 10 or later), run on for three or more page lines
+               and never come back: pages of another volume appended to the
+               range. Two foreign pages alone are not flagged (OCR'd page runs
+               and lists look the same); the shared_text check still catches
+               them when the other copy is in the input.
   html_label   a DFR HTML page whose own title names another reference.
 
 Read-only: reads a JSONL shard (output/decisions/bge_historical.jsonl, or the
@@ -171,9 +174,9 @@ def audit(rows: list[dict]) -> list[tuple[str, str, str, str]]:
             keep.append(row)
     out: list[tuple[str, str, str, str]] = []
 
+    keys = [text_key(row.get("full_text") or "") for row in keep]
     groups: dict[str, list[int]] = defaultdict(list)
-    for i, row in enumerate(keep):
-        k = text_key(row.get("full_text") or "")
+    for i, k in enumerate(keys):
         if k:
             groups[k].append(i)
     for members in groups.values():
@@ -200,7 +203,7 @@ def audit(rows: list[dict]) -> list[tuple[str, str, str, str]]:
         small = min(len(shingles[a]), len(shingles[b]))
         if n < MIN_SHARED or not small or n / small < MIN_SHARED_FRACTION:
             continue
-        if text_key(keep[a].get("full_text") or "") == text_key(keep[b].get("full_text") or ""):
+        if keys[a] is not None and keys[a] == keys[b]:
             continue        # already reported as same_text
         out.append(("shared_text", keep[a]["decision_id"], keep[b]["decision_id"],
                     f"{n} shared of {len(shingles[a])}/{len(shingles[b])} sampled shingles"))

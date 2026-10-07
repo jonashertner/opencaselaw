@@ -14,10 +14,14 @@ the other ruling's text, and never with considerations extracted from it:
              are emptied, the date falls back to the volume placeholder, the
              structure (Sachverhalt/Erwägungen) and search hits are withheld.
   truncate   the stored text is the ruling's own up to a point, then another
-             ruling's pages: the text is cut there, but only while it is the
-             text the cut was verified on (SHA-256 of full_text). After a
-             re-segmentation the entry lapses by itself. The structure, which
-             was extracted from the whole text, is withheld.
+             ruling's pages: the text is cut there, and search hits on the
+             appended pages are dropped, but only while the stored text is the
+             one the cut was verified on (SHA-256 of full_text); after a
+             re-segmentation the cut lapses by itself. The structure and the
+             outgoing citations, extracted from the whole text, stay withheld
+             until the entry is removed: lifting them on the hash alone could
+             serve the old structure before the structure DB is rebuilt from
+             the repaired text.
 
 The list is the serving-side answer until the shard repair removes the foreign
 text (see the runbook); it keeps answering for the reference after that, so a
@@ -158,6 +162,32 @@ def _sha256(text: str) -> str:
     return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
 
+def own_text(defect: SourceDefect, stored_text: str | None) -> str | None:
+    """The ruling's own text for a truncate entry; None when the stored text is
+    no longer the one the cut was verified on (the entry has lapsed)."""
+    text = stored_text or ""
+    if (defect.action != "truncate" or defect.keep_chars is None
+            or defect.text_sha256 is None or _sha256(text) != defect.text_sha256):
+        return None
+    return text[:defect.keep_chars].rstrip()
+
+
+_MARK_RE = re.compile(r"</?mark>")
+
+
+def _squash(text: str) -> str:
+    return re.sub(r"\s+", " ", text or "").strip()
+
+
+def snippet_in(snippet: str | None, text: str) -> bool:
+    """True when a search snippet ('<mark>' highlights, '...' elisions) comes
+    from ``text``: its longest fragment occurs there. A snippet with no
+    fragment of 20 characters says nothing either way and counts as in."""
+    frags = [_squash(f).casefold() for f in _MARK_RE.sub("", snippet or "").split("...")]
+    frags = [f for f in frags if len(f) >= 20]
+    return not frags or max(frags, key=len) in _squash(text).casefold()
+
+
 def apply(row: dict) -> dict:
     """The row as it may be served: unchanged when not listed (same object);
     otherwise a copy with the text withheld or cut and a `source_defect` entry.
@@ -171,16 +201,19 @@ def apply(row: dict) -> dict:
         return row
     if d.action == "truncate":
         text = row.get("full_text") or ""
-        if d.text_sha256 is None or d.keep_chars is None or _sha256(text) != d.text_sha256:
+        own = own_text(d, text)
+        if own is None:
             return row
         out = dict(row)
-        out["full_text"] = text[:d.keep_chars].rstrip()
+        out["full_text"] = own
+        out["cited_decisions"] = None   # extracted from the whole text, appended pages included
         out["source_defect"] = {**d.as_dict(), "chars_withheld": len(text) - len(out["full_text"])}
         out["text_available"] = True
         return out
     out = dict(row)
     out["full_text"] = ""
     out["regeste"] = None
+    out["cited_decisions"] = None       # the other ruling's citations
     out["decision_date"] = d.placeholder_date
     out.pop("date_provenance", None)
     out["source_defect"] = d.as_dict()
@@ -188,8 +221,22 @@ def apply(row: dict) -> dict:
     return out
 
 
-def filter_hits(rows: list[dict]) -> tuple[list[dict], int]:
-    """Search hits without the references whose text is withheld, and how many
-    were dropped."""
-    kept = [r for r in rows if not withholds_text(r.get("decision_id"))]
+def filter_hits(rows: list[dict], stored_text=None) -> tuple[list[dict], int]:
+    """The search hits that may be shown, and how many were dropped: none of a
+    withheld reference; of a truncated one only those whose snippet lies in the
+    ruling's own text. ``stored_text(decision_id)`` gives the stored full_text
+    and is called for truncate entries only; without it they are kept."""
+    kept: list[dict] = []
+    for r in rows:
+        d = lookup(r.get("decision_id"))
+        if d is None:
+            kept.append(r)
+            continue
+        if d.action == "withhold":
+            continue
+        if stored_text is not None:
+            own = own_text(d, stored_text(r.get("decision_id")))
+            if own is not None and not snippet_in(r.get("snippet"), own):
+                continue        # matched on the appended pages
+        kept.append(r)
     return kept, len(rows) - len(kept)

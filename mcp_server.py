@@ -3790,10 +3790,26 @@ def search_fts5(
             marked_for_publication=marked_for_publication,
             meta=inner_meta,
         )
-        # A hit on a source-defect reference matched another ruling's text.
-        results, _dropped = source_defects.filter_hits(results)
+        # A hit on a source-defect reference matched another ruling's text
+        # (source_defects.py). When hits are dropped, refill the page from a
+        # slightly larger query: a short page reads as the last one. `total`
+        # stays the index's (approximate) count, so it is the same on every page.
+        def _stored_text(did):
+            row = conn.execute(
+                "SELECT full_text FROM decisions WHERE decision_id = ?", (did,)
+            ).fetchone()
+            return row[0] if row else ""
+        kept, _dropped = source_defects.filter_hits(results, _stored_text)
         if _dropped:
-            total = max(0, total - _dropped)
+            more, _ = _search_fts5_inner(
+                conn, query, court, canton, language,
+                date_from, date_to, chamber, decision_type, legal_area,
+                limit + _dropped, offset, sort=sort,
+                marked_for_publication=marked_for_publication,
+                meta={},
+            )
+            kept = source_defects.filter_hits(more, _stored_text)[0][:limit]
+        results = kept
         # Surface the BGE-bound flag on each result (BGer Neuheiten "*" =
         # "für die Publikation vorgesehen"). Single guarded lookup — the column
         # exists only after a post-schema-change rebuild; pre-rebuild → omitted.
@@ -9940,9 +9956,15 @@ def find_citations(
     incoming_total, outgoing_total = _count_citations_filtered(
         decision_id, min_confidence=min_confidence,
     )
+    # A source defect's outgoing edges were extracted from another ruling's
+    # text (source_defects.py); the incoming ones cite this reference itself.
+    _defect = source_defects.lookup(decision_id)
+    if _defect:
+        result["source_defect"] = _defect.as_dict()
+        outgoing_total = 0
 
     if direction in ("both", "outgoing"):
-        rows = _find_outgoing_citations(
+        rows = [] if _defect else _find_outgoing_citations(
             decision_id, min_confidence=min_confidence, limit=limit, offset=offset,
         )
         result["outgoing"] = rows
@@ -10637,6 +10659,9 @@ def _find_leading_cases(
                 "(filters_relaxed, ranked OR). Treat them as nearest neighbours, "
                 "not as authority on the whole query."
             )
+    # A source defect matched on another ruling's text or statutes (source_defects.py).
+    if isinstance(out.get("results"), list):
+        out["results"] = source_defects.filter_hits(out["results"])[0]
     return out
 
 
@@ -14630,6 +14655,8 @@ def _compute_pinpoint(
     claim = claim.strip()
     if len(claim) < 3 or not decision_id:
         return None
+    if source_defects.withholds_structure(decision_id):
+        return None         # its Erwägungen came from another ruling's text
 
     # A pasted document used as a claim is
     # useless as a phrase and pathological as an OR chain. Condense long
@@ -15099,6 +15126,18 @@ def _handle_find_relevant_erwaegung(
     resolved = _resolve_decision_id(decision_id.strip())
     if not resolved:
         return {"error": f"Decision not found: {decision_id!r}"}
+    _defect = source_defects.lookup(resolved)
+    if _defect:
+        # Its indexed Erwägungen came from another ruling's text (source_defects.py).
+        return {
+            "decision_id": resolved,
+            "claim": claim,
+            "matches": [],
+            "no_match": True,
+            "source_defect": _defect.as_dict(),
+            "_note": (f"{_defect.note} No Erwägung of this decision can be pinpointed "
+                      "from this server; do not guess a pinpoint number."),
+        }
 
     conn = _get_structure_conn()
     if not conn:
@@ -16198,6 +16237,23 @@ def _handle_cite(
         # FTS only for non-docket references.
         close_matches: list[dict] = []
         bge_parsed = _parse_bge_ref_text(ref)
+        _defect = source_defects.lookup(ref) or (
+            source_defects.lookup_parts(*bge_parsed) if bge_parsed is not None else None)
+        if _defect:
+            # Withheld on purpose (source_defects.py): the reference is real but
+            # its source holds another ruling. Say so, and suggest nothing — a
+            # neighbouring ruling is not the one cited.
+            return {
+                "exists": False,
+                "queried": ref,
+                "resolved_id": resolved_id,
+                "close_matches": [],
+                "not_found_reason": "source_defect",
+                "reason": _defect.note,
+                "source_defect": _defect.as_dict(),
+                "_note": (f"Reference not served: {_defect.note} Do not present its text "
+                          "or holding as verified."),
+            }
         if proposal is not None:
             _pc = _build_citation_strings(proposal)
             close_matches.append({
@@ -16242,23 +16298,6 @@ def _handle_cite(
                 close_matches.append(item)
         except Exception:
             pass
-        _defect = source_defects.lookup(ref) or (
-            source_defects.lookup_parts(*bge_parsed) if bge_parsed is not None else None)
-        if _defect:
-            # Withheld on purpose (source_defects.py): the reference is real but
-            # its source holds another ruling. Say so, and suggest nothing — a
-            # neighbouring ruling is not the one cited.
-            return {
-                "exists": False,
-                "queried": ref,
-                "resolved_id": resolved_id,
-                "close_matches": [],
-                "not_found_reason": "source_defect",
-                "reason": _defect.note,
-                "source_defect": _defect.as_dict(),
-                "_note": (f"Reference not served: {_defect.note} Do not present its text "
-                          "or holding as verified."),
-            }
         _missing = {
             "exists": False,
             "queried": ref,
@@ -19700,7 +19739,7 @@ def _find_leading_cases_by_fts_fallback(query: str, limit: int) -> list[dict]:
                 "citation_count": 0,
                 "regeste": (row["regeste"] or "")[:300],
             })
-        return result
+        return source_defects.filter_hits(result)[0]
     except Exception as e:
         logger.debug("FTS fallback for doctrine concept path failed: %s", e)
         return []
@@ -29919,6 +29958,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 text += f"\n**Citations:** {', '.join(_cited)}\n"
             # Add citation graph counts
             incoming, outgoing = _count_citations(result["decision_id"])
+            if result.get("source_defect"):
+                outgoing = 0    # extracted from another ruling's text
             if incoming > 0 or outgoing > 0:
                 text += f"\n**Citation graph:** Cited by {incoming} decisions | Cites {outgoing} decisions\n"
             try:
