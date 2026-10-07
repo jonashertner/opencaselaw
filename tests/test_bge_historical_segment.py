@@ -450,3 +450,36 @@ def test_scraper_stores_the_own_ruling_with_its_header_date(monkeypatch):
     assert d.full_text.startswith("22. Auszug aus dem Urteil des Kassationshofes")
     assert "Friedlin" not in d.full_text
     assert d.decision_date == date(1952, 6, 3)
+
+
+# BGE 71 II 223 (abridged OCR): the DFR PDF carries pp. 154-161 of 77 II after
+# its own pp. 223-225; No 32 there has a lower serial than No 49 here.
+HABEGGER = (
+    "IV. OBLIGATIONENRECHT \nDROIT DES OBLIGA1'IONS \n49. Auszug AUS dem Urteil der J. ZivUabteUung \n"
+    "\"OIU 2G. ScptcmlJer IM5 1. S. Jos. Habeuger G.Ill.b.ll. \ngegen \\V. Kulm und Sohn. \n"
+    "Bedeutung eines Bestätigungsschreibens im kaufmännischen Verkehr ... als deren Annahme \n"
+    "16 \nAS 11 H _ \n224 \nObligatiollenreoht. N° 49. \n"
+    "zu betrachten (BGE 30 II 301, 38 II 587, 40 II 138) ...\n"
+    "gegen wurde er seines Amtes enthoben. Mit Rücksicht auf \n.D~t: \nT 7-.lL. /l S '1 \n"
+    "154 \nObligationencecht. N° 32. \n32. Auszug aus dem Urteil der I. Zivilabteilung \n"
+    "vom 20. Februar 1951 i. S. Frank A.-G. gegen FrigaJiment GmbH. \nSpeditionsvertrag ...\n"
+    "Obligationencecht. N° 32. \n155 \nnicht richtig aus ...\n"
+    "156 \nObligatiollenrecht. N° 32. \nten a ...\n"
+    "Obligationenrecht. N° 32. \n157 \nGeschäftsverkehrs mit der Beklagten ...\n"
+)
+
+
+def test_pages_of_another_volume_appended_end_the_ruling():
+    s = seg.segment(HABEGGER, 223)
+    assert s is not None and s.serial == 49
+    own = HABEGGER[s.start:s.end]
+    assert "Mit Rücksicht auf" in own
+    assert "Frigal" not in own and "FrigaJ" not in own and "\n154 \n" not in own
+
+
+def test_ocr_of_a_page_run_that_comes_back_is_not_a_jump():
+    # "452/453/454" read as "152/153/154", then the own pages again.
+    text = ("450\n12. Urteil vom 3. Juni 1952\ni. S. A. gegen B.\nText.\n451\nText.\n152\nText.\n"
+            "153\nText.\n154\nText.\n455\nSchluss.\n")
+    s = seg.segment(text, 450)
+    assert s is not None and s.serial == 12 and s.end == len(text)

@@ -341,7 +341,44 @@ def segment(text: str, page: int) -> Segment | None:
     if nxt is not None and nxt < end and (on_page_end is None or nxt >= on_page_end or own_top is None
                                           or nxt - own_top > _PAGE_CHARS_MAX):
         end = nxt
+    jump = _foreign_pages_start(text, start, page)
+    if jump is not None and jump < end:
+        end = jump
     return Segment(start=start, end=end, serial=serial, header=header_block(text, start))
+
+
+# Pages of another volume appended to the range: after the own header the
+# printed page numbers restart well below the reference page, run on there and
+# never come back. The DFR PDF of BGE 71 II 223 carries 77 II 154-161 after its
+# own pp. 223-225 ("224", then "154", "155", "156", "157", "159", "161"); No 32
+# of 77 II has a lower serial than No 49, so the serial rules cannot see it.
+# Measured on the 14,578 published rows (runbooks/historical_bge_source_errors_
+# 2026-10-07.md): this row only. OCR of a run that comes back to the own pages
+# ("450 / 451 / 152 / 153 / 454"), lists ("6 / 7 / 8") and two-line runs are not
+# a jump.
+_JUMP_MIN_BELOW = 5
+_JUMP_FLOOR = 10
+_JUMP_RUN = 3
+_OWN_RANGE_PAGES = 200
+
+
+def _foreign_pages_start(text: str, start: int, page: int) -> int | None:
+    """Offset of the first page line of appended foreign pages after ``start``,
+    or None."""
+    marks = [(m.start(), int(m.group(1))) for m in _PAGE_LINE_RE.finditer(text, start)]
+    for i, (pos, n) in enumerate(marks):
+        if not _JUMP_FLOOR <= n <= page - _JUMP_MIN_BELOW:
+            continue
+        run = [n]
+        for _, k in marks[i + 1:]:
+            if run[-1] < k <= run[-1] + 2:
+                run.append(k)
+            else:
+                break
+        back = any(page - 1 <= k <= page + _OWN_RANGE_PAGES for _, k in marks[i + 1:])
+        if len(run) >= _JUMP_RUN and not back:
+            return pos
+    return None
 
 
 def _next_serial_line(text: str, start: int, serial: int) -> int | None:
