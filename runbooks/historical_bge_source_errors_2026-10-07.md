@@ -183,7 +183,57 @@ same form as the existing rows. Four decoded references checked on the scans:
 - `c1023H01` = pp. 1700-1702, a ruling of 1897.
 
 Above page 999 these volumes hold their civil-law part (running heads "B." / "C. Civilrechtspflege").
-This is a scraper change, so proposal only.
+
+### Patch (branch `claude/modest-dirac-r3nqvk`; proposal, not run in production)
+
+`scrapers/bge_historical.py`: `DECISION_CODE_RE` takes `[A-J]\d{2}` as a page code, and
+`decode_page()` turns `C39` into 1239. Nothing else changes: ids, dockets and titles keep the
+`V_P_PAGE` / "BGE V P PAGE" form. Offline tests are in
+`tests/test_bge_historical_letter_pages.py`.
+
+**Measured offline** (no production state touched):
+
+- **Discovery** over the eight DFR index pages saved on 2026-10-07, with every published id
+  counted as known: 230 new stubs, none colliding with a published id. By volume: 23 I 128,
+  22 I 47, 21 I 32, 20 I 21, 25 II 2. Pages run from 1000 to 1981. The other 161 new stubs
+  the dry run lists are the known scan-only rulings, which production skips through its gap
+  cache, so the change adds exactly the 230.
+- **Fetch** (`fetch_decision`) on the five downloaded PDFs (20 I 1000, 21 I 1235, 22 I 1355,
+  23 I 1319, 23 I 1701): each row is built with its four-digit page (`bge_historical_21_I_1235`,
+  "BGE 21 I 1235").
+- **With the segmentation branch:** the patch applies cleanly on
+  `claude/historical-bge-sg-twins-2026-10-07`, and the tests pass together (37). Four of the
+  five rows then get their own header date (1894-11-10, 1895-12-30, 1896-10-03, 1897-11-10).
+- **Fraktur caveat:** 23 I 1701 has a Fraktur text layer read as Antiqua ("ba~er erft mit tlem
+  ..."), so it keeps the volume placeholder and is detected as French. Existing rows of these
+  volumes have the same fault; this adds no new kind of problem.
+
+**Rollout proposal** (after review; outside the build window):
+
+1. Merge the segmentation branch first, so the new rows are cut and dated by their own header.
+2. Staging run, with production state and coverage left untouched:
+
+   ```bash
+   mkdir -p /tmp/bgeh-stage/state /tmp/bgeh-stage/out
+   cp state/bge_historical.jsonl /tmp/bgeh-stage/state/
+   SWISS_CASELAW_COVERAGE_DB=/tmp/bgeh-stage/coverage.db \
+     python3 run_scraper.py bge_historical --state /tmp/bgeh-stage/state \
+       --output /tmp/bgeh-stage/out --max 10
+   python3 scripts/audit_bge_historical_sources.py /tmp/bgeh-stage/out/decisions/bge_historical.jsonl
+   ```
+
+   Expected: 10 rows, all with pages >= 1000. Read about five on the scans. The audit should
+   report nothing new for them.
+3. Production run: `python3 run_scraper.py bge_historical`. That is about 230 PDF downloads
+   at the scraper's 1.5 s delay, roughly 15-30 min and well inside the 7,200 s budget. Then a
+   full build; `quick_publish` does not pick up the new rows.
+4. Then re-run the audit, on the shard and on the built rows. 22 I 1012 now gets its own row
+   from `c1022A12.pdf`. The `source_defects` entry for 22 I 12 stays until 22 I 12 is
+   re-fetched from `c1022012.pdf`.
+
+Rollback: the run only adds rows with new ids. Remove the 230 `bge_historical_*` rows whose
+page is >= 1000 from the shard and from `state/bge_historical.jsonl`; existing rows are never
+touched.
 
 ## Handling
 
@@ -305,8 +355,8 @@ Recommended order:
 2. Review and deploy the serving list. It needs no rebuild and protects readers at once.
 3. Review and merge the segmentation branch with the page-jump patch. Then, in one
    maintenance window: segment, remove the foreign texts, and re-fetch 22 I 12 from the PDF.
-4. Then the letter-coded pages: about 230 new rows, additive. They go through the merged
-   segmenter. Verify about ten decoded references on the scans first.
+4. Then the letter-coded pages: the patch is ready (see "Side finding"). 230 new rows,
+   additive; they go through the merged segmenter. Do the staging run first.
 5. Run the audit after every `bge_historical` re-scrape. A finding not in the TSV goes to a
    scan check, then onto the list.
 
