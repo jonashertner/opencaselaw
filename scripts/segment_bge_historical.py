@@ -21,7 +21,8 @@ What it does per row (bge_historical_segment.segment, see there for the rules):
     text's SHA-256.
   * decision_date: the date written in the own header, volume-gated
     (method "own_header"). When the header carries no readable date, a date a
-    text pass put there is only kept if the header block holds it; otherwise
+    text pass put there is only kept if the header block holds it (day, year
+    and any readable month) and it lies in the volume window; otherwise
     the row goes back to the 1 January volume placeholder ("placeholder"), which
     the API flags date_is_estimated — an honest estimate beats a neighbour's
     date. Rows whose header cannot be placed keep their text and date.
@@ -89,7 +90,8 @@ def decide(obj: dict) -> dict:
     hd = seg.header_date(s.header, volume)
     if hd is not None:
         new_date, method = hd.isoformat(), "own_header"
-    elif old and not old.endswith("-01-01") and _header_holds(s.header, old):
+    elif (old and not old.endswith("-01-01") and _in_volume_window(old, volume)
+          and _header_holds(s.header, old)):
         new_date, method = old, "keep"
     else:
         new_date, method = _placeholder(volume), "placeholder"
@@ -97,6 +99,15 @@ def decide(obj: dict) -> dict:
     if new_date != old:
         out["decision_date"] = new_date
     return out
+
+
+def _in_volume_window(iso: str, volume: int) -> bool:
+    """The volume gate of scrapers.bge.header_date_plausible: a stored date read
+    from an OCR year ("vom 16. Juli 1991" in volume 47 = 1921) is not kept."""
+    from scrapers.bge import BGE_HEADER_LAG_YEARS
+
+    year = volume + BGE_VOLUME_EPOCH
+    return iso[:4].isdigit() and year - BGE_HEADER_LAG_YEARS <= int(iso[:4]) <= year + 1
 
 
 def _header_holds(header: str, iso: str) -> bool:
@@ -107,9 +118,17 @@ def _header_holds(header: str, iso: str) -> bool:
 
     from models import parse_date
 
-    d = parse_date(seg.normalise_header_date(header))
+    header = seg.normalise_header_date(header)
+    if seg.glued_day(header, int(iso[8:10])):
+        return False        # "!3 aprile": the day lost a digit to OCR
+    d = parse_date(header)
     if d is not None:
         return d.isoformat() == iso
+    # A readable month must be the stored one: "vom 12~ Dezember 1928" holds
+    # the day and the year of a stored 1928-10-12, not its month (BGE 54 II 464).
+    months = seg.header_months(header)
+    if months and int(iso[5:7]) not in months:
+        return False
     year, day = iso[:4], str(int(iso[8:10]))
     return bool(re.search(rf"\b{year}\b", header) and re.search(rf"(?<!\d){day}\b", header))
 

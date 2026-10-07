@@ -153,6 +153,18 @@ def test_a_stored_date_survives_when_the_header_shows_its_day_and_year():
     assert script._header_holds("8. Arret du 8 ferner 1933 dans la cause Jenny.", "1933-02-08")
     assert not script._header_holds("8. Arret du S ferner 1933 dans la cause Jenny.", "1931-06-19")
     assert not script._header_holds("22. Auszug vom 3. Juni 1952 i. S. Fyg.", "1951-07-17")
+    # a readable month must be the stored one (BGE 54 II 464: 12 December, not October)
+    assert not script._header_holds("86. Urteil der I. Zivila.bteUung vom 12~ Dezember 1928 i. S. "
+                                    "J. Wyler gegen Eheleute Stalder.", "1928-10-12")
+    # and the noise-glued day is not the stored day either
+    assert not script._header_holds("22. Sentenza !3 aprile 1914 nella causa Brunschwyler.", "1914-04-03")
+
+
+def test_a_stored_date_with_an_ocr_year_is_not_kept():
+    # BGE 47 I 242 was stored as 16 July 1991 from "vom 16. Juli 1991" (1921)
+    text = "36. Urteil vom 16. Juli 1991 i. S. Stutz gegen Z\u00fcrich Regierungsrat.\nArt. 4 BV.\n"
+    d = script.decide(_row("bge_historical_47_I_242", "47_I_242", "1991-07-16", text))
+    assert d["_date_method"] == "placeholder" and d["decision_date"] == "1921-01-01"
 
 
 def test_a_header_whose_i_s_lost_a_period_is_still_a_header():
@@ -191,6 +203,151 @@ def test_volume_and_page():
     assert seg.volume_and_page("bge_116_Ia_28") is None       # volume 116: not historical
     assert seg.volume_and_page("bger_4A_231_2014") is None
 
+
+
+# ── validation on the published rows (2026-10-07) ────────────────────────────
+# 14,578 rows of the published dataset, read against the DFR scans: the cases
+# below placed, cut or dated a neighbour's ruling before these rules.
+
+def _page(n: int) -> str:
+    """About one page of body text without page numbers (2,000 characters)."""
+    return "Ein Absatz der Begründung ohne Seitenzahl, wie er im Band steht.\n" * (n * 31)
+
+
+# BGE 14 I 479: the right-hand page is read header first; the scan has No 73
+# (Godat c. Hoffmann) at the top of page 479, No 74 on a later page.
+GODAT = (
+    "478 \nB. Civilrechtspflege. \nne~men. ~ei bierer @)ad)lage ift ben 3ntereffen beg Stiiuferg \n"
+    + _page(1)
+    + "73. Arret du 21 Septembre 1888 dans la cause Godat \ncontre Hotfmann. \n479 \n"
+    "Les conseils des parties reprennent les conclusions formu-\n"
+    "lees devant la derniere instance cantonale.\n" + _page(3)
+    + "74. Arret du 31 Aout 1888 dans la cause Rody \ncontre Savoy. \n"
+    "Le recourant a conelu, a l'audi'ence de ce jour.\n"
+)
+
+
+def test_a_right_hand_page_read_header_first_keeps_its_own_ruling():
+    s = seg.segment(GODAT, 479)
+    assert s is not None and s.serial == 73
+    assert GODAT[s.start:].startswith("73. Arret du 21 Septembre 1888")
+    assert GODAT[s.end:].startswith("74. Arret")
+    assert seg.header_date(s.header, 14) == date(1888, 9, 21)
+
+
+def test_a_header_that_ends_a_page_stays_on_that_page():
+    # BGE 4 I 60: No 16 begins two lines above page 61, whose number follows.
+    text = ("Aranno e reietto in via d\u00b7ordine.\n2. Bundesgerichtliehe Kompetenz in Civilsachen.\n"
+            "Competence du Tribunal federal en matiere civile.\n"
+            "16. Arret du 29 Mars 1878 dans la cause Bonvin.\n"
+            "Par exploit notifie le 18 Octobre 1877, l'Etat du Valais a\n"
+            "invite Charles-Marie Bonvin fils, a Sion, a 1ui payer dans le\n"
+            "I. Organisation der Bundesrechtspflege. N\u00b0 16.\n61\n"
+            "terme Mgalla somme de 4158 fr., avec interet des le 1er Juin\n")
+    s = seg.segment(text, 60)
+    assert s is not None and s.serial == 16
+    assert seg.header_date(s.header, 4) == date(1878, 3, 29)
+
+
+def test_a_header_more_than_a_page_past_the_reference_page_is_not_its_own():
+    # BGE 44 III 163: only page 162 is numbered; No 45 stands 7,000 characters on.
+    text = ("162 \nEntscheidungen der Schuldbetreibungs-\n" + _page(3)
+            + "45. Beschluss vom G. November 1918 i. S. Schrimll. \n"
+            "Stellung des Bundesgerichtes in Pfandstundungssachen.\n")
+    assert seg.segment(text, 163) is None
+
+
+def test_two_headers_without_the_reference_page_number_are_not_guessed():
+    # BGE 57 III 19: page 19's number is lost; No 6 can begin on page 18.
+    text = ("18 \nSchuldbetreibungs- und Konkursrecht. N\u00b0 5.\n... der Rekurs wird abgewiesen.\n"
+            "6. Entscheid vom 19. Janu&r 1931 i. S. Mattes.\nArt. 92 SchKG.\n" + _page(1)
+            + "7. Entscheid vom 22. Januar 1931 i. S. Huber.\nArt. 93 SchKG.\n")
+    assert seg.segment(text, 19) is None
+
+
+def test_a_next_ruling_more_than_a_page_on_ends_the_ruling():
+    # BGE 40 III 332: pages 333 and 334 lost their numbers; No 60 stands
+    # 5,300 characters on, just before page 335, and ends No 59.
+    text = ("332 \nEntscheidungen der Schuldbetreibungs-\n"
+            "59. Entscheid vom 15. September 1914 i. S. Sigg. \n"
+            "Widerspruchsverfahren. Anwendbarkeit von Art. 109 SchKG.\n" + _page(3)
+            + "60. Entscheid vom 30. September 1914 i. S. Forster, \nAltorfer & Oie und Genossen.\n"
+            "335\nDer Rekurs wird abgewiesen.\n")
+    s = seg.segment(text, 332)
+    assert s is not None and s.serial == 59
+    assert text[s.end:].startswith("60. Entscheid")
+
+
+# BGE 47 III 116: OCR garbled No 35's heading ("Besohluss", "1Sa1"); No 36 is
+# on page 117. Taking No 36 dated the row 30 July 1921 and dropped No 35.
+BUERER = (
+    "116 \nSanierung von Hotelunternehmungen. N0 35. \n"
+    "35. Auszug aus dem Besohluss vom aa. September 1Sa1 \ni. S. B\u00fcrer. \n"
+    "Die Ausdehnung des Pfandnachlassverfahrens auf andere \n"
+    "als zum Fortbetrieb des Hotelgewerbes notwendige Grundst\u00fccke ...\n"
+    "OFDAG Offset-, Formular- und Fotodruck AG 3000 Bem \n"
+    "A. Schuldhetreihungs- und KonkursrechL. \nPoursuite et faiIliLe. \n"
+    "36. Arret du 30 juillet 1921 dans la cause Flotron et. oonsorts. \n"
+    "Art. 19 LP. La dccision du commissaire au sursis ...\n"
+)
+
+
+def test_a_garbled_own_heading_is_never_replaced_by_the_next_ruling():
+    assert seg.segment(BUERER, 116) is None
+    # BGE 45 I 54: "7. Auszug aus d.em Urteil vom 9. Kai 1919 i. S. Biklin" before No 8
+    text = ("54\nStaatsrecht.\n7. Auszug aus d.em Urteil vom 9. Kai 1919 i. S. Biklin\n"
+            "gegen St. Gallen.\nAnerkennung eines Bergregals.\n... stand.\n"
+            "Gewaltentrennung. N\u00b0 8.\n8. Urteil vom 17. F.bruar 1919\n"
+            "i. S. Fischer und D\u00fcrrenmatt gegen Bern.\n55\nLegitimation ...\n")
+    assert seg.segment(text, 54) is None
+    # BGE 1 I 520: No 141 is Fraktur read as Antiqua, only its number and year
+    # survive; No 142 begins on page 521 (BGE 1 I 521)
+    text = ("520 \nB. Civilreehtspflege. \n141. mef~lu\u00fc Uom 9. ,sufi 1875 in Sa~en ma~V!i. \n"
+            ":l)emtta~ ~at bag munbeggeti~t \nedannt: \n"
+            "142. Arret dit 24 septembre 1875, dans la cattse de la Muni- \ncipalite de Sion.\n")
+    assert seg.segment(text, 520) is None
+    # a date opening a line is no heading: "28. November 1916 aufgehoben ..."
+    text = ("181\nObligationenrecht. N\u00b0 29.\n... das Urteil vom \n"
+            "28. November 1916 aufgehoben und die Klage in der H\u00f6he gutgeheissen.\n"
+            "29. Urteil der II. Zivilabteilung vom 8. M\u00e4rz 1917 i. S. Meier gegen Huber.\n")
+    s = seg.segment(text, 181)
+    assert s is not None and s.serial == 29
+
+
+def test_ocr_spellings_of_the_ruling_noun_and_of_cause():
+    # BGE 31 I 33: the OCR of volumes 30-39 opens the text with "Arteil".
+    text = ("6. Arteil vom 2. Februar 1905\nin Sachen Zuppinger gegen Regierungsrat Z\u00fcrich.\n"
+            "Internationale Doppelbesteuerung.\nA. Der Rekurrent ...\n")
+    s = seg.segment(text, 33)
+    assert s is not None and (s.start, s.end) == (0, len(text))
+    assert seg.header_date(s.header, 31) == date(1905, 2, 2)
+    # volumes 40-64: a stray mark or a misread first letter before the noun,
+    # "vom" glued to it (BGE 40 I 116), "Arrit" (41 I 384); never "Vorteil"
+    assert [h.serial for h in seg.ruling_headers(
+        "13. T1rteilvom 12. M\u00e4rz 1914 i. S. Politische Gemeinde St. Gallen.\n")] == [13]
+    assert seg.header_date("13. T1rteilvom 12. M\u00e4rz 1914 i. S. Politische Gemeinde.", 40) == date(1914, 3, 12)
+    assert [h.serial for h in seg.ruling_headers(
+        "28. 'Urteil der I. Zivila.btenung vom 27. Februa.r 1915 \ni. S. Z\u00fcrioh.\n")] == [28]
+    assert [h.serial for h in seg.ruling_headers(
+        "55. Arrit du 24 decembre 1915 \ndans Ia cause J. Brann & eie contre Geneve.\n")] == [55]
+    assert seg.ruling_headers("3. Vorteil vom 3. Mai 1915 i. S. X gegen Y.\n") == []
+    # BGE 62 II 193: "dans la causa Eichoz contra Bava.ud." names the parties
+    text = ("49. Arret d.e 1a IIe Beetien eime d.u 19 juin 1936 \n"
+            "dans la causa Eichoz contra Bava.ud. \nLe deces de l'enfant ...\n")
+    assert [h.serial for h in seg.ruling_headers(text)] == [49]
+
+
+def test_a_day_glued_to_ocr_noise_gives_no_date():
+    # DFR scans: 2 April (BGE 40 II 109), 22 October (40 III 355), 17 December (1 I 159)
+    assert seg.header_date("22. Sentenza !3 aprile 1914 della na Sezione civile nella causa "
+                           "S. A. Brunschw)'ler.", 40) is None
+    assert seg.header_date("64. Sentenza. a2 ottobre 1914 nella causa Raineri.", 40) is None
+    assert seg.header_date("41. Arret du 1.7 decembre 1875 dans la cause Giroud.", 1) is None
+    assert seg.header_date("12. Urteil vom a2. januar 1914 i. S.Luzern gegen St. Gallen.", 40) is None
+    # not noise: a hearing range, the Italian elision, a two-digit day
+    assert seg.header_date("109. Urtheil vom 1./2. Dezember 1882 in Sachen Meier.", 8) == date(1882, 12, 2)
+    assert seg.header_date("56. Sentenza dell'8 luglio 1882 nella causa Rossi.", 8) == date(1882, 7, 8)
+    assert seg.header_date("105. Sentenza. deI :30 dicembre 1905 nella causa Bianchi.", 31) == date(1905, 12, 30)
 
 # ── the shard repair ─────────────────────────────────────────────────────────
 
