@@ -107,8 +107,30 @@ Data:
 - **Serial outliers:** 2 I 23, 25 I 34, 36 I 160, 47 II 99.
 
 **March text.** Same findings, except 71 II 223. In March it held the servat HTML (4,117
-characters, the complete No 49); the PDF text with 77 II 154 replaced it later, although
-`source_url` still names the HTML. Which job swapped the source is open.
+characters, the complete No 49). The PDF text with 77 II 154 replaced it later, while
+`source_url` and `scraped_at` (2026-03-03) stayed the same.
+
+**How the swap most likely happened.** `build_fts5.insert_decision` processes direct shards
+first and `es_*` shards after them. On a collision with the same canonical key it keeps the
+stored row's metadata but swaps in the incoming `full_text` when that text is more than
+twice as long and at least 1,000 characters longer: the "text-upgrade" step, added for the
+truncated Ticino texts. 71 II 223 qualifies (4,117 → 21,582) if any `es_*` shard carries
+the PDF text under the same id. Entscheidsuche has a DFR spider (`CH_UNIBE`,
+`scripts/source_coverage_audit.py`).
+
+Check on the VPS (read-only):
+
+```bash
+grep -l '71_II_223' output/decisions/es_*.jsonl
+journalctl -u <build unit> | grep 'text-upgrade: .*71_II_223'
+```
+
+If confirmed, the text-upgrade can bring any defective entscheidsuche copy into a historical
+BGE row, without changing its metadata. The shard audit cannot see that, so also run
+`scripts/audit_bge_historical_sources.py` on the built rows (an export of `decisions.db`, or
+the published `data/bge.parquet` volume 1-79 rows as JSONL), not only on
+`output/decisions/bge_historical.jsonl`. Retiring that es feed for `bge_historical`, or
+excluding volumes 1-79 from the text-upgrade, is a `build_fts5` change: proposal only.
 
 **Residual risk.** A scan from another volume can still slip through if four things hold at once:
 
@@ -153,7 +175,15 @@ index entries are skipped: 20 I (21), 21 I (32), 22 I (47), 23 I (128) and 25 II
 published row has a page ≥ 1000. `c1022012.html` (class D) is the same scheme miscoded on the
 DFR side. DFR has no part II before volume 24 (the corpus agrees: volumes 1-23 hold only
 part I, paginated through the whole volume), so 23 I 1955 is page 1955 of volume 23, in the
-same form as the existing rows. This is a scraper change, so proposal only.
+same form as the existing rows. Four decoded references checked on the scans:
+
+- `c1020A00` = pp. 1000/1001, "C. Civilrechtspflege", No 151 of 1894;
+- `c1021C35` = pp. 1234/1235, No 159 of 1895;
+- `c1022D55` opens on p. 1354 (running head "B. Civilrechtspflege"), a ruling of 1896;
+- `c1023H01` = pp. 1700-1702, a ruling of 1897.
+
+Above page 999 these volumes hold their civil-law part (running heads "B." / "C. Civilrechtspflege").
+This is a scraper change, so proposal only.
 
 ## Handling
 
