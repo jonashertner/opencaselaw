@@ -197,6 +197,27 @@ def test_a_next_ruling_ends_the_text_even_when_ocr_garbled_its_serial_or_its_hea
     assert s is not None and text[s.end:].startswith("13. Ardt")
 
 
+def test_the_date_line_of_the_own_header_is_never_the_next_ruling():
+    # BGE 52 I 54: the header's second line opens with "10.", the day; without
+    # page numbers it ended the ruling after its first line.
+    text = ("9. Auszug aus dem Urteil des Kassa.tionshofes vom\n"
+            "10. M\u00e4rz 1926 i. S. Bundesanwa.ltschaft gegen Stettler.\n"
+            "Patenttaxengesetz: Art. 1 Abs. 1.\nA. - Der Angeklagte ...\n"
+            "Demnach erkennt der Kassationshof:\nDie Beschwerde wird abgewiesen.\n")
+    s = seg.segment(text, 54)
+    assert s is not None and (s.start, s.end) == (0, len(text))
+    assert seg.header_date(s.header, 52) == date(1926, 3, 10)
+
+
+def test_a_header_year_the_volume_cannot_hold_is_ocr():
+    # DFR scans: "21. Dezember 1915" read as 1916 (BGE 41 II 739, volume 1915);
+    # "11. Oktober 1928" read as 1925 (54 III 268, volume 1928)
+    assert seg.header_date("97. Urteil dar IL ZivUabteilung vom 2l Dezember 1916 i. S. Wegmann.", 41) is None
+    assert seg.header_date("62. Entscheid vom 11. Oktober 1925 i. S. Robert Aebi & Oie A.-G.", 54) is None
+    # a ruling of the year before is a late publication (4 I 147, volume 1878)
+    assert seg.header_date("30. Urtheil vom 22. Februar 1877 in Sachen Roget und Comp.", 4) == date(1877, 2, 22)
+
+
 def test_volume_and_page():
     assert seg.volume_and_page("78_IV_83") == (78, 83)
     assert seg.volume_and_page("bge_historical_45_III_126") == (45, 126)

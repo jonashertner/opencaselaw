@@ -102,12 +102,10 @@ def decide(obj: dict) -> dict:
 
 
 def _in_volume_window(iso: str, volume: int) -> bool:
-    """The volume gate of scrapers.bge.header_date_plausible: a stored date read
-    from an OCR year ("vom 16. Juli 1991" in volume 47 = 1921) is not kept."""
-    from scrapers.bge import BGE_HEADER_LAG_YEARS
-
-    year = volume + BGE_VOLUME_EPOCH
-    return iso[:4].isdigit() and year - BGE_HEADER_LAG_YEARS <= int(iso[:4]) <= year + 1
+    """The volume gate of the own-header dates (seg.historical_year_plausible):
+    a stored date read from an OCR year ("vom 16. Juli 1991" in volume 47 =
+    1921) is not kept."""
+    return iso[:4].isdigit() and seg.historical_year_plausible(int(iso[:4]), volume)
 
 
 def _header_holds(header: str, iso: str) -> bool:

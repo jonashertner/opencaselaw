@@ -31,7 +31,8 @@ Conservative by construction:
     two candidates without the reference page's number, or a heading numbered
     one less on the reference page (the own heading, garbled), leave the text
     whole rather than take the next ruling;
-  * a day number with OCR noise glued to it gives no date (glued_day).
+  * a day number with OCR noise glued to it gives no date (glued_day), nor
+    does a year the volume cannot hold (historical_year_plausible).
 Validated on the 14,578 published rows and 48 rows read against the DFR scans
 (runbooks/historical_bge_and_sg_twins_2026-10-07.md, "Validation").
 
@@ -168,6 +169,16 @@ def page_marks(text: str, first_page: int) -> list[tuple[int, int]]:
             marks.append((m.start(), n))
             last = n
     return marks
+
+
+def _header_block_end(text: str, start: int) -> int:
+    """Offset just past the own header's lines, as header_block reads them."""
+    pos = start
+    for i, line in enumerate(text[start:start + _HEADER_SPAN].split("\n")[:4]):
+        pos += len(line) + 1
+        if re.search(r"\.\s*$", line):
+            break
+    return min(pos, len(text))
 
 
 def header_block(text: str, start: int) -> str:
@@ -343,11 +354,16 @@ def _next_serial_line(text: str, start: int, serial: int) -> int | None:
         return None
     # "13. -" opens an Erwägung, never a ruling; the year must be the own
     # ruling's or a neighbouring one (a numbered paragraph citing another
-    # ruling "vom ... 1938 i. S. X" does not pass).
+    # ruling "vom ... 1938 i. S. X" does not pass). A number followed by a
+    # month is a date, and the own header's lines are never the next ruling:
+    # "9. Auszug aus dem Urteil des Kassationshofes vom / 10. März 1926 i. S.
+    # Bundesanwaltschaft gegen Stettler." (BGE 52 I 54) is one header.
     pat = re.compile(
-        rf"(?m)^[ \t]*{serial + 1}[ \t]*[.,][ \t]*(?![-\u2013\u2014])\S[^\n]{{0,120}}?\b(1[89]\d\d)\b"
+        rf"(?m)^[ \t]*{serial + 1}[ \t]*[.,][ \t]*(?![-\u2013\u2014])(?!(?:{_MONTHS})\b)"
+        rf"\S[^\n]{{0,120}}?\b(1[89]\d\d)\b",
+        re.IGNORECASE,
     )
-    for m in pat.finditer(text, start + 1):
+    for m in pat.finditer(text, max(start + 1, _header_block_end(text, start))):
         if not any(abs(int(m.group(1)) - y) <= 1 for y in own_years):
             continue
         if _PARTIES_RE.search(text[m.start():m.start() + 200]):
@@ -430,9 +446,26 @@ def glued_day(header: str, day: int) -> bool:
     return False
 
 
+# Volume N of volumes 1-79 holds the rulings of year N + 1874 and a few late
+# ones of the year before. A header year outside that is OCR: of the published
+# own-header dates, 8,246 fall in the volume year and 23 in the year before
+# (4 of 4 checked on the scans genuine, e.g. 22 February 1877 in BGE 4 I 147);
+# the 71 a year after and the 19 three years before were misread ("21.
+# Dezember 1915" printed, "1916" read, BGE 41 II 739; 1928 read as 1925, BGE
+# 54 III 268; 12 of 12 checked on the scans). The window of scrapers.bge
+# (volume year - 3 .. + 1) is kept for the later volumes.
+HISTORICAL_LAG_YEARS = 1
+
+
+def historical_year_plausible(year: int, volume: int) -> bool:
+    """A ruling year that volume ``volume`` (1-79) can hold."""
+    volume_year = volume + 1874
+    return volume_year - HISTORICAL_LAG_YEARS <= year <= volume_year
+
+
 def header_date(header: str, volume: int) -> date | None:
     """The ruling date written in the own header, gated by the volume year
-    (scrapers.bge.parse_urteilskopf: volume year - 3 .. volume year + 1).
+    (volume year - 1 .. volume year, historical_year_plausible).
     None when the day number is OCR-damaged (glued_day): no date rather than a
     wrong one."""
     from models import parse_date
@@ -448,6 +481,8 @@ def header_date(header: str, volume: int) -> date | None:
         if not header_date_plausible(d, volume_year):
             d = None
     if d is not None and glued_day(header, d.day):
+        return None
+    if d is not None and not historical_year_plausible(d.year, volume):
         return None
     return d
 

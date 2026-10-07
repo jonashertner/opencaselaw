@@ -84,10 +84,12 @@ parquet files; see "Validation"; the server shard should land between the two co
 | `outcome:own_header_not_placed` | 3,907 | 3,652 |
 | `text_cut` (`cut_before` / `cut_after`) | 6,359 (6,331 / 3,822) | 6,609 (6,581 / 4,030) |
 | `chars_removed` | 15.8 M of 195.9 M | 17.1 M of 206.1 M |
-| `date:own_header` | 8,179 | 8,360 |
-| `date:placeholder` | 2,492 | 2,558 |
+| `date:own_header` | 8,093 | 8,269 |
+| `date:placeholder` | 2,578 | 2,649 |
 | `date:keep` | 0 | 8 |
-| `date_changed` | 5,983 | 3,309 |
+| `date_changed` | 5,967 | 3,317 |
+| `rows_changed` | 9,085 | 7,280 |
+| second run after `--apply`: `rows_changed` | 1 (BGE 79 III 159, see below) | 0 |
 
 Stop and look before `--apply` if `outcome:placed` is far outside 10,600-11,000 or `date:keep`
 exceeds a few dozen. Every `date:placeholder` row had an unreadable header date (OCR noise in the
@@ -217,8 +219,8 @@ confirmed headers of `bge_historical_segment.ruling_headers` (rules of `d364e0b`
 before or after their own ruling and are cut.
 
 **Defects found in the branch as received (`d364e0b`) and fixed** (each with an offline test
-in `tests/test_bge_historical_segment.py`; nine tests fail on `d364e0b`: eight new ones and
-the extended `keep` test; the ninth new one pins the limit of rule 1 and passes on both). In the
+in `tests/test_bge_historical_segment.py`; eleven tests fail on `d364e0b`: ten new ones and
+the extended `keep` test; one new test pins the limit of rule 1 and passes on both). In the
 48-row sample, 7 rows got a wrong date or a neighbour's ruling from `d364e0b`; with the final
 rules none does (they are correct, or left whole / on the placeholder):
 
@@ -255,6 +257,32 @@ rules none does (they are correct, or left whole / on the placeholder):
    dates often wrong: BGE 38 II 745 stored 1912-07-10, scan 18. Oktober 1912; 28 II 1 stored
    1901-10-04, scan 22. Januar 1902); "'Urteil", "T1rteilvom", "Orteil", "Arrit"/"Arrät" in
    volumes 31-64; "dans la causa / cattse / canse / eause" as parties.
+8. The next-ruling line search read the own header's date line as the next ruling: "9.
+   Auszug aus dem Urteil des Kassationshofes vom / 10. März 1926 i. S. ..." (BGE 52 I 54)
+   was cut after its first line whenever the reference page's number was missing, and BGE
+   55 I 79 lost the end of its Dispositiv at "14. Dezember 1928 richtet, ...". The search now
+   starts after the own header's lines and skips a number followed by a month. Found by
+   running the repair twice: the second run cut 52 I 54 again (the first had the page
+   number); after the fix a second run changes nothing on the current text.
+9. Header years one after the volume year or three before it are OCR: 8 of 8 and 4 of 4
+   checked on the scans were misread ("21. Dezember 1915" read as 1916, BGE 41 II 739;
+   1928 as 1925, 54 III 268; 1908 as 1905, 34 I 334), while 4 of 4 dates of the year before
+   were genuine late publications (22 February 1877 in BGE 4 I 147). Own-header dates of
+   volumes 1-79 are now accepted only in the volume year and the year before
+   (`historical_year_plausible`); 91 dates go to the placeholder. Two of them print the
+   later year on the scan too (BGE 1 I 13: "19. Februar 1876"; 16 I 838: "12. Dezember
+   1891") and look like further DFR links to the next volume's page.
+
+**Checks over the whole set (current text).** End cuts: of 4,030 rows cut at their end, 3,125
+can be checked against the next row of the same volume part; 3,111 end exactly at that row's
+serial, 6 at a ruling without a row of its own, 8 differ because the next row's serial is
+OCR'd or because the row keeps an extra unrecognised ruling (cut too little); none cuts into
+its own ruling. Dates: 24 randomly drawn own-header dates and 19 off-year ones were compared
+with the header crop of the scan: after rule 9, no wrong day, month or year among them.
+Idempotency: `--apply` then a second dry run changes 0 rows on the current text; on the March
+text it changes 1 (BGE 79 III 159, whose March text lacks two pages, so No 37 looked like a
+second ruling of page 159 on the first run; the second run cuts it, which is right: No 37 is
+BGE 79 III 162).
 
 **Final dry-run figures** are the table under "Steps on the VPS". Placement by volume band
 (current text): 1-9 71 %, 10-29 87 %, 30-39 91 %, 40-64 67 %, 65-79 66 %. Outliers (current
