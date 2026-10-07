@@ -199,7 +199,7 @@ def _capture(monkeypatch, tmp_path):
     monkeypatch.setattr(publish, "_notify", lambda *a, **k: notes.append(a))
     monkeypatch.setattr(publish, "_clear_checkpoint", lambda: events.__setitem__("clear", events["clear"] + 1))
     monkeypatch.setattr(publish, "_save_checkpoint", lambda *a, **k: events.__setitem__("save", events["save"] + 1))
-    monkeypatch.setattr(publish, "_load_checkpoint", lambda: None)
+    monkeypatch.setattr(publish, "_load_checkpoint", lambda *a, **k: None)
     monkeypatch.setattr(publish, "_append_run_record", lambda rec: None)
     monkeypatch.setattr(publish, "STEPS", [("5b", "Generate RSS Feeds", _fake_ok_step)])
     return notes, events

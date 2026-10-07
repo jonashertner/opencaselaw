@@ -91,8 +91,16 @@ def _save_checkpoint(step_num, results: dict):
     }))
 
 
-def _load_checkpoint() -> dict | None:
+def _load_checkpoint(resume_requested: bool = False) -> dict | None:
     """Load checkpoint from prior crashed run (if any).
+
+    A checkpoint whose database rebuild (step 2) completed is honoured only
+    when the run asks for it (``--resume``). 2026-10-07: Tuesday's build ended
+    at 23:41 UTC with only the early stats step red; the 03:30 timer run found
+    the checkpoint ten minutes before it expired, "resumed", reran that one
+    step and skipped the rebuild, so a day of scraped decisions, a
+    migration and two de-listings did not reach the site. A scheduled run
+    starts fresh unless the rebuild itself is what failed.
 
     TTL is 4h (was 12h). The daily timer fires every ~24h, so a 12h TTL
     leaves a wide window where yesterday's checkpoint can be re-used by
@@ -106,6 +114,12 @@ def _load_checkpoint() -> dict | None:
             data = json.loads(CHECKPOINT_PATH.read_text())
             age_hours = (datetime.now(timezone.utc) - datetime.fromisoformat(data["timestamp"])).total_seconds() / 3600
             if age_hours < 4:
+                if not resume_requested and data.get("results", {}).get("2") is True:
+                    logging.getLogger("publish").info(
+                        "  Ignoring checkpoint from %s: its database rebuild (step 2) "
+                        "completed, so this run starts fresh (--resume continues it)",
+                        data.get("timestamp"))
+                    return None
                 return data
         except Exception:
             pass
@@ -1863,7 +1877,7 @@ STEP_TO_DAG_TARGET: dict[int | str, str] = {
 
 # Steps whose outright failure is logged FAILED but must not exit 1 / turn the
 # systemd unit red. Rationale per step sits with NON_FATAL_STEPS in main().
-_NON_FATAL_STEPS = frozenset({"2e", "5d", "5e", "2g", "2c", "5b", "3b"})
+_NON_FATAL_STEPS = frozenset({"2e", "5d", "5e", "2g", "2c", "5b", "3b", "5a"})
 
 
 STEPS = [
@@ -2017,7 +2031,7 @@ def _run_via_dag(args, manual_step_mode: bool) -> int:
         # explicitly wants to run that one step regardless).
         if manual_step_mode:
             return None
-        cp = _load_checkpoint()
+        cp = _load_checkpoint(getattr(args, "resume", False))
         if not cp:
             return None
         # cp["results"] is keyed by step (str numbers like "2", "5c"); the
@@ -2114,6 +2128,12 @@ def main():
         help="Stop after FTS5 build + early stats push (skip graph, Parquet, HF upload). "
              "The site shows today's date in ~3.5h instead of ~6h."
     )
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Continue a checkpoint whose database rebuild (step 2) completed. "
+             "Without it such a checkpoint is ignored; one whose rebuild failed "
+             "is always resumed."
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -2181,7 +2201,7 @@ def main():
         "type": "run_start", "run_id": run_id,
         "full_rebuild": bool(args.full_rebuild), "dry_run": bool(args.dry_run),
         "steps_requested": [str(n) for n, _, _ in STEPS],
-        "resumed_from_checkpoint": bool(_load_checkpoint()),
+        "resumed_from_checkpoint": bool(_load_checkpoint(args.resume)),
         # A `--step N` run is one step, not a publish: consumers of this file
         # (runtime trends, freshness probes) filter on it.
         "manual_step": str(args.step) if manual_step_mode else None,
@@ -2220,6 +2240,10 @@ def main():
     # 5b (rss_feeds) added 2026-09-04: convenience artifact, stale feeds keep
     # being served on a miss (see step_5b_generate_feeds). The DAG marks
     # rss_feeds non_fatal too — keep in sync.
+    # 5a (early stats.json) added 2026-10-07, like 5e: a dashboard artifact;
+    # the previous stats.json stays served and 5e regenerates it after the
+    # graph. Its 3600 s timeout under load turned a shipped run red and left
+    # the checkpoint that made the next 03:30 run skip the rebuild.
     NON_FATAL_STEPS = _NON_FATAL_STEPS
     # Steps after the fast tier — skipped with --fast-only
     SLOW_STEPS = {"2d", "2e", "2b", "2c", "2f", "2g", 3, 4, 5, 6}
@@ -2241,7 +2265,7 @@ def main():
         )
 
     # Resume from checkpoint if prior run crashed
-    checkpoint = _load_checkpoint() if not manual_step_mode else None
+    checkpoint = _load_checkpoint(args.resume) if not manual_step_mode else None
     if checkpoint:
         logger.info(f"  Resuming from checkpoint (last completed: step {checkpoint['last_completed_step']})")
         for k, v in checkpoint["results"].items():
