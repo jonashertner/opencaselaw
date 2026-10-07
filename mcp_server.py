@@ -238,6 +238,7 @@ import appeal_refs  # noqa: E402  (the court's appeal note, read from json_data)
 import docket_aliases  # noqa: E402  (joined-docket resolution, issue #41)
 import reference_parser
 import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; honest not-found reasons)
+import source_defects  # references whose stored text is another ruling's
 import ecthr_docket  # noqa: E402  (shared ECtHR docket display form)
 
 # Set to True when running with --remote (SSE transport).
@@ -3789,6 +3790,10 @@ def search_fts5(
             marked_for_publication=marked_for_publication,
             meta=inner_meta,
         )
+        # A hit on a source-defect reference matched another ruling's text.
+        results, _dropped = source_defects.filter_hits(results)
+        if _dropped:
+            total = max(0, total - _dropped)
         # Surface the BGE-bound flag on each result (BGer Neuheiten "*" =
         # "für die Publikation vorgesehen"). Single guarded lookup — the column
         # exists only after a post-schema-change rebuild; pre-rebuild → omitted.
@@ -9819,6 +9824,11 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             result["publication_date_provenance"] = ci.get("publication_date_provenance")
         if ci.get("canonical_key"):
             result["canonical_key"] = ci["canonical_key"]  # internal logical-decision key
+    # A reference whose stored text is another ruling's (source_defects.py,
+    # verified on the source scans) is served without that text, on its volume
+    # placeholder date, with a note — after the sidecar, whose date came from
+    # the same foreign text.
+    result = source_defects.apply(result)
     _dd = result.get("decision_date") or ""
     _prov = result.get("date_provenance")
     result["date_is_estimated"] = bool(
@@ -9860,7 +9870,8 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     result["court_name"] = _get_court_display_name(court)
     result["court_level"] = _get_court_level(court)
 
-    statutes_map = _batch_fetch_statutes([did], limit_per=8)
+    # The statutes were extracted from the stored text: none for a source defect.
+    statutes_map = {} if result.get("source_defect") else _batch_fetch_statutes([did], limit_per=8)
     statutes = statutes_map.get(did, [])
     if statutes:
         result["statutes"] = statutes
@@ -13045,6 +13056,8 @@ def _structure_id_candidates(decision_id: str) -> list[str]:
 
 def _fetch_structure_row(decision_id: str) -> dict | None:
     """Look up the structure-DB row for a decision_id, with id-variant fallback."""
+    if source_defects.withholds_structure(decision_id):
+        return None         # extracted from another ruling's text
     conn = _get_structure_conn()
     if not conn:
         return None
@@ -13063,6 +13076,8 @@ def _fetch_structure_row(decision_id: str) -> dict | None:
 
 def _fetch_structure_paragraphs(decision_id: str) -> list[dict]:
     """Return ordered Erwägungen-paragraphs for a decision_id."""
+    if source_defects.withholds_structure(decision_id):
+        return []           # extracted from another ruling's text
     conn = _get_structure_conn()
     if not conn:
         return []
@@ -13837,6 +13852,8 @@ def _handle_get_decisions(
             meta.append(f"language: {result['language']}")
         if meta:
             parts.append(" · ".join(meta))
+        if result.get("source_defect"):
+            parts.append(f"⚠️ **Source defect.** {result['source_defect']['note']}")
         if result.get("title"):
             parts.append(f"**{result['title']}**")
         parts.append(
@@ -13867,6 +13884,10 @@ def _handle_get_decisions(
     if missing:
         header += ("\n\nNot found: " + ", ".join(missing) +
                    " — check the id, or use search_decisions to locate them.")
+        for _mid in missing:
+            _defect = source_defects.lookup(_mid)
+            if _defect:
+                header += f"\n\n⚠️ {_mid}: {_defect.note}"
     if not full_text and blocks:
         header += ("\n\nRegeste + metadata only. Re-call with full_text=true "
                    "(short id list) or get_decision for one complete judgment.")
@@ -16221,6 +16242,23 @@ def _handle_cite(
                 close_matches.append(item)
         except Exception:
             pass
+        _defect = source_defects.lookup(ref) or (
+            source_defects.lookup_parts(*bge_parsed) if bge_parsed is not None else None)
+        if _defect:
+            # Withheld on purpose (source_defects.py): the reference is real but
+            # its source holds another ruling. Say so, and suggest nothing — a
+            # neighbouring ruling is not the one cited.
+            return {
+                "exists": False,
+                "queried": ref,
+                "resolved_id": resolved_id,
+                "close_matches": [],
+                "not_found_reason": "source_defect",
+                "reason": _defect.note,
+                "source_defect": _defect.as_dict(),
+                "_note": (f"Reference not served: {_defect.note} Do not present its text "
+                          "or holding as verified."),
+            }
         _missing = {
             "exists": False,
             "queried": ref,
@@ -16310,6 +16348,17 @@ def _handle_cite(
             "excerpt — do not paraphrase inside quotation marks)."
         ),
     }
+    if decision.get("source_defect"):
+        # The stored source holds another ruling (source_defects.py): the
+        # reference stands, its content does not come from this server.
+        result["source_defect"] = decision["source_defect"]
+        result["text_available"] = decision.get("text_available", True)
+        if decision.get("text_available") is False:
+            result["rule_statement"] = None
+            result["_note"] = (
+                f"{decision['source_defect']['note']} citation_string is the reference as "
+                "published; use it only for what you have verified from another source."
+            )
     if decision.get("decision_id") and decision.get("decision_id") != ref:
         result["resolved_from"] = ref
     if pin_verdict is not None:
@@ -16817,7 +16866,7 @@ def _get_decision_strict(decision_id: str) -> dict | None:
             "full_text, regeste, language FROM decisions WHERE decision_id = ?",
             (decision_id,),
         ).fetchone()
-        return dict(row) if row else None
+        return source_defects.apply(dict(row)) if row else None
     finally:
         conn.close()
 
@@ -28822,6 +28871,10 @@ def _deep_research_fetch(doc_id: str) -> dict:
     title = f"{label} — {dec['title']}" if dec.get("title") else label
     url = cit.get("canonical_url") or _canonical_decision_url(canonical)
     full = dec.get("full_text") or ""
+    if dec.get("source_defect"):
+        # The client reads `text` as THE document: say what is missing and why.
+        _note = f"[Source defect: {dec['source_defect']['note']}]"
+        full = f"{full}\n\n{_note}" if full else _note
     total_chars = len(full)
     truncated = total_chars > _FETCH_TEXT_CAP
     if truncated:
@@ -28850,6 +28903,7 @@ def _deep_research_fetch(doc_id: str) -> dict:
         "url": url,
         "metadata": {
             **({"copyright": _ECHR_ATTRIBUTION} if _echr else {}),
+            **({"source_defect": dec["source_defect"]} if dec.get("source_defect") else {}),
             "court": dec.get("court"),
             "decision_date": dec.get("decision_date"),
             "docket_number": dec.get("docket_number"),
@@ -29721,6 +29775,15 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                     result = _overlay_row
                     _fresh_publication = True
             if not result:
+                # A reference whose source holds another ruling (source_defects.py)
+                # is withheld on purpose: say why, not just "not found".
+                _defect = source_defects.lookup(_did_arg)
+                if _defect:
+                    return _research_tool_result(
+                        f"Decision not found: {_did_arg}\n\n{_defect.note}",
+                        {"error": f"Decision not found: {_did_arg}",
+                         "source_defect": _defect.as_dict()},
+                    )
                 # A federal-looking docket the coverage notes explain (pre-2000
                 # BGer shape: never published online; pre-2007 EVG shape: backlog
                 # only partly ingested; or a shape ambiguous with a cantonal
@@ -29780,6 +29843,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                     f"citation-graph links, cross-references and structured Erwägungen "
                     f"are not yet available for this decision.\n"
                 )
+            if result.get("source_defect"):
+                text += f"\n> ⚠️ **Source defect.** {result['source_defect']['note']}\n"
             if result.get("chamber"):
                 text += f"\n**Chamber:** {result['chamber']}\n"
             if result.get("title"):
@@ -32542,7 +32607,10 @@ setInterval(load, 30000);
                 result = overlay
                 fresh_publication = True
         if not result:
-            raise HTTPException(status_code=404, detail=f"Decision not found: {decision_id}")
+            _defect = source_defects.lookup(decision_id)
+            raise HTTPException(status_code=404, detail=(
+                f"Decision not found: {decision_id}. {_defect.note}" if _defect
+                else f"Decision not found: {decision_id}"))
         result = copy.deepcopy(result)
         if not full_text:
             result.pop("full_text", None)

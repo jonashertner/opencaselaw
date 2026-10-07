@@ -155,79 +155,130 @@ DFR side. DFR has no part II before volume 24 (the corpus agrees: volumes 1-23 h
 part I, paginated through the whole volume), so 23 I 1955 is page 1955 of volume 23, in the
 same form as the existing rows. This is a scraper change, so proposal only.
 
-## Handling (proposal; nothing applied)
+## Handling
+
+Nothing is applied to production yet. The serving change and the segmenter patch below are
+on branch `claude/modest-dirac-r3nqvk`, for review.
 
 **Constraint.** `build_fts5._remove_stubs` deletes every row whose `full_text` and `regeste`
 are both shorter than 10 characters. Historical rows have no regeste. Emptying a text in the
 shard therefore removes the row, and with it the reference, at the next full build.
 
-**A (52 I x6) and C (39 I 469): never plain removal.** On a miss, `cite()` suggests the
-ruling whose page range contains the queried page, with `match_reason:
-"queried_page_within_this_decision"` (`mcp_server._bge_containing_decision`). Once
-`bge_52_I_149` is gone, `cite("BGE 52 I 149")` would tell the caller to re-cite BGE 52 I 145,
-a different ruling. That is as harmful as the current wrong text, and less visible.
+**Removal on its own is safe today, but uninformative.** On a miss, `cite()` suggests the
+ruling whose page range contains the queried page (`mcp_server._bge_containing_decision`).
+That lookup matches dockets of the form `52 I 149`, while historical rows store `52_I_149`.
+Live, `cite("BGE 52 I 151")` answers `exists=false` with no suggestion. A removed row would
+therefore not be redirected to a neighbour; the caller only gets "the citation is wrong or
+not indexed". Two consequences:
 
-Recommended, in two steps:
+- The serving list below says why the text is missing instead.
+- If pinpoint resolution is ever extended to the underscore form, it must consult
+  `source_defects` first.
 
-1. **API first (no rebuild).** Add a short reviewed list of known source defects (these seven
-   ids, from the TSV), read by `mcp_server`:
-   - On a hit (`get_decision`, `cite`, `get_erwaegung`, structure tools), return metadata and
-     a note, without the foreign text. Example note: "the DFR source document for BGE 52 I 8
-     is a scan of BGE 65 I 8; the text of BGE 52 I 8 is not available".
-   - On a miss, give the same note and no containing-decision suggestion. This follows the
-     existing `decision_ref.unavailable_reason` pattern (structured, honest absence).
-   - Search drops these ids from its results.
+### Built: serving list `source_defects.py` (branch `claude/modest-dirac-r3nqvk`)
 
-   The change is small and reversible: take an entry off the list. It protects readers from
-   the next deploy on.
-2. **Shard at the next segmentation window.** Remove the foreign text (the row then leaves
-   `decisions.db` via `_remove_stubs`, together with the dataset, graph and structure copies),
-   with an undo file. The API list keeps answering for the reference. For 39 I 469 this also
-   ends No 87's date on it.
+A reviewed list of the nine rows. `tests/test_source_defects.py` pins it to the TSV, so
+neither can change without the other.
+
+**Kinds of entry:**
+
+- **withhold** (52 I ×6, 39 I 469, 22 I 12): the row is served with metadata and a note, no
+  text and no regeste. Its date falls back to the volume placeholder: the stored dates of
+  39 I 469 and 22 I 12 came from the foreign text, and the canonical-identity date is
+  overridden too. Its statutes are dropped, because they were extracted from that text.
+- **truncate** (71 II 223): the text is served up to its own last page (5,729 characters).
+  This applies only while the stored text has the SHA-256 the cut was verified on, so the
+  entry lapses by itself once the text is re-segmented.
+
+**Hooks:**
+
+- `get_decision_by_id`, used by the `get_decision`, `get_decisions` and `fetch` tools and by
+  REST `/decisions/{id}`.
+- `_get_decision_strict`, used by the claim and quotation checks.
+- `_fetch_structure_row` and `_fetch_structure_paragraphs`: structure is withheld for all
+  nine rows. For 71 II 223 the live structure is Erwägungen 4-7 of 77 II 154.
+- `search_fts5`, which also covers vector and deep-research search: hits on withheld rows are
+  dropped.
+- `cite`. On a hit it gives `source_defect`, `text_available: false` and no
+  `rule_statement`. On a miss it gives `not_found_reason: "source_defect"` and no close
+  matches.
+- The `get_decision` / `get_decisions` text and the REST 404 detail carry the note.
+
+**Checked on the real rows** (published texts in a throwaway `decisions.db`):
+
+- the six withheld rows serve no text and placeholder dates;
+- 71 II 223 serves 5,727 characters, with no Frigaliment text;
+- 52 I 14 and 65 I 8 are unchanged.
+
+**Residual, until the shard repair:**
+
+- A search can still return 71 II 223 on terms of the appended pages. The snippet then comes
+  from 77 II 154, while `get_decision` serves the cut text.
+- The dataset export and the static pages carry the stored text.
+- Tools that list ids without text (`find_leading_cases`, `find_citations`) still list the
+  withheld rows. Opening one gives the note.
+- A `.docx`/`.pdf` export of a withheld row carries the citation and metadata only, without
+  the note.
+
+Take an entry off the list when its source is fixed and re-scraped. The truncate entry
+retires itself when the text changes.
+
+### Built: segmenter rule, as a patch for the segmentation branch
+
+`historical_bge_source_errors_2026-10-07.segment-page-jump.patch` (`git am` onto
+`claude/historical-bge-sg-twins-2026-10-07`; it applies cleanly to `a7e23576`). A ruling
+also ends where the printed page numbers restart well below the reference page, run on for
+three page lines and never come back. That is the audit's `page_jump` rule, starting after
+the own header.
+
+- On the 14,578 published rows it changes 71 II 223 only (cut at 5,754 of 21,582
+  characters). The March text is unchanged.
+- That branch's tests pass (29). The new 71 II 223 test fails without the rule.
+- A second new test checks that an OCR'd page run that comes back is not cut.
+- The two ruff findings in that test file already exist on the branch.
+
+### Still proposals
+
+**A (52 I ×6) and C (39 I 469): shard repair.** At the next segmentation window, remove the
+foreign text with an undo file. The row then leaves `decisions.db`, the dataset, the graph
+and the structure DB, and the serving list keeps answering for the reference.
 
 Not recommended:
 
-- removal without the API list (the containing-decision redirect above);
 - an alias 52 I x → 65 I x, which would assert that BGE 52 I 8 *is* the Neef ruling;
-- a flag without suppression, which leaves the wrong text in search and in quotations;
-- a text-less row kept in `decisions.db`, which needs `build_fts5` and schema work for what the
-  API list already gives.
+- a text-less row kept in `decisions.db`, which needs `build_fts5` and schema work for what
+  the serving list already gives.
 
-**B (71 II 223): end the own ruling at a page jump.** Extend
-`bge_historical_segment.segment` so the ruling ends at a page jump (the audit's `page_jump`
-rule, one hit in 14,578 rows), with this row as the offline test. Add it to the segmentation
-branch before that branch's `--apply`, so the shard is rewritten once. Ending at No 50
-additionally needs No 50's header to be recognised.
-
-Not recommended: restoring the servat HTML text served until March. A job unknown so far
-replaced it with the PDF text and would likely do so again. Find that job either way, since
-it can bring a defective PDF in elsewhere.
+**B (71 II 223): apply the segmenter patch with the segmentation branch.** That way the shard
+is rewritten once. Not recommended: restoring the servat HTML text served until March. A job
+unknown so far replaced it with the PDF text and would likely do so again. Find that job
+either way, since it can bring a defective PDF in elsewhere.
 
 **D (22 I 12): re-fetch from the PDF.** Re-fetch `https://www.fallrecht.ch/c1022012.pdf`
-through the scraper's PDF path and replace the text and the date. The current text is
-BGE 22 I 1012 and belongs in a new row from `c1022A12.pdf`, which arrives with the side-finding
-fix. Scraper rule: when a DFR HTML page's title names another reference, take the PDF of
-the same code.
+through the scraper's PDF path and replace the text and the date, then take the entry off the
+list. The current text is BGE 22 I 1012 and belongs in a new row from `c1022A12.pdf`, which
+arrives with the side-finding fix. Scraper rule: when a DFR HTML page's title names another
+reference, take the PDF of the same code.
 
-**Report to DFR (outward-facing; the owner decides).**
+**Report to DFR (outward-facing; the owner sends it).**
 
 - the six 52 I PDFs that hold 65 I scans;
 - `c1039469.pdf` = `c1039483.pdf`;
 - 77 II 154-161 appended to `c2071223.pdf`;
 - `c1022012.html` = 22 I 1012.
 
+Ask DFR for scans of the real rulings.
+
 Recommended order:
 
 1. Report to DFR now; it is the only source of the real 52 I and 39 I 469 rulings.
-2. Next deploy: the API defect list. It covers A and C, D until its re-fetch, and B as a cut
-   at the first foreign page until the segmenter cut. Guard the B entry by the row's
-   `content_hash`, so it lapses when the text changes.
-3. Review and merge the segmentation branch with the page-jump rule. Then, in one maintenance
-   window: segment, remove the foreign texts, and re-fetch 22 I 12 from the PDF.
+2. Review and deploy the serving list. It needs no rebuild and protects readers at once.
+3. Review and merge the segmentation branch with the page-jump patch. Then, in one
+   maintenance window: segment, remove the foreign texts, and re-fetch 22 I 12 from the PDF.
 4. Then the letter-coded pages: about 230 new rows, additive. They go through the merged
    segmenter. Verify about ten decoded references on the scans first.
 5. Run the audit after every `bge_historical` re-scrape. A finding not in the TSV goes to a
-   scan check, then onto the defect list.
+   scan check, then onto the list.
 
 The repairs touch the shard, so they run outside the build window with an undo file, like
 `scripts/segment_bge_historical.py`.
