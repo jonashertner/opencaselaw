@@ -73,7 +73,7 @@ def test_dry_run_writes_nothing(tmp_path, entries):
     before = p.read_bytes()
     stats = rec.run(p, apply=False, entries=entries)
     assert stats["replaced:partial"] == 1 and stats["rows_changed"] == 5   # four rows added
-    assert p.read_bytes() == before and not list(tmp_path.glob("*.recovery-*"))
+    assert p.read_bytes() == before and not list(tmp_path.glob("*.undo-recovery-*"))
 
 
 def test_apply_replaces_adds_keeps_an_undo_file_and_is_idempotent(tmp_path, entries):
@@ -99,7 +99,8 @@ def test_apply_replaces_adds_keeps_an_undo_file_and_is_idempotent(tmp_path, entr
     assert new["source_recovery"]["text_sha256"] == e["text_sha256"]
     assert out["bge_historical_52_I_23"]["source_recovery"]["pages_missing"] == [24, 25]
     assert out["bge_historical_52_I_23"]["decision_date"] == "1926-02-26"
-    undo = next(tmp_path.glob("bge_historical.jsonl.recovery-*.jsonl"))
+    undo = next(tmp_path.glob("bge_historical.jsonl.undo-recovery-*.jsonl.bak"))
+    assert list(tmp_path.glob("*.jsonl")) == [p]   # the build ingests every *.jsonl beside the shard
     assert sorted(json.loads(x)["decision_id"] for x in undo.read_text(encoding="utf-8").splitlines()) == [
         "bge_historical_22_I_12", "bge_historical_39_I_469"]
     again = rec.run(p, apply=True, entries=entries)

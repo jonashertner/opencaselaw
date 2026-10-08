@@ -26,7 +26,8 @@ apply_bge_historical_recoveries.py).
 
 Streaming, temp file + atomic replace, DRY RUN by default, idempotent (a second
 run changes nothing). --apply writes every removed or changed row, as it was, to
-<shard>.source-repair-<UTC date>.jsonl beside the shard (undo file). Run outside
+<shard>.undo-source-repair-<UTC date>.jsonl.bak beside the shard (undo file;
+never named *.jsonl, which the build would ingest as a shard). Run outside
 the build window (the shard is the build's input); the next full build serves
 the result.
 
@@ -93,7 +94,7 @@ def run(path: Path, apply: bool) -> Counter:
     stats: Counter = Counter()
     now = datetime.now(timezone.utc)
     stamp = now.isoformat(timespec="seconds")
-    undo_path = path.with_name(f"{path.name}.source-repair-{now.date().isoformat()}.jsonl")
+    undo_path = path.with_name(f"{path.name}.undo-source-repair-{now.date().isoformat()}.jsonl.bak")
     fout = undo = None
     tmp_path = None
     if apply:

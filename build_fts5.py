@@ -2127,6 +2127,15 @@ def import_jsonl(
     # order (use only as an emergency revert).
     _direct_first = os.environ.get("BUILD_FTS5_DIRECT_FIRST", "1") not in ("0", "false", "no")
     _all_files = sorted(jsonl_dir.glob("*.jsonl"))
+    # A shard is <name>.jsonl with no other dot in the name. Undo files and
+    # sidecars written beside a shard end in .jsonl too
+    # (bge_historical.jsonl.presegment-<date>.jsonl, bs_gerichte.refetch.jsonl);
+    # read as shards, INSERT OR IGNORE puts removed rows back and the
+    # text-upgrade path in insert_decision puts an old text over a repaired one.
+    _not_shards = [f for f in _all_files if "." in f.name[: -len(".jsonl")]]
+    for f in _not_shards:
+        logger.warning(f"  {f.name}: not a shard name (a dot before .jsonl), not imported")
+    _all_files = [f for f in _all_files if f not in _not_shards]
     if _direct_first:
         _direct_shards = [f for f in _all_files if not f.name.startswith("es_")]
         _es_shards = [f for f in _all_files if f.name.startswith("es_")]
