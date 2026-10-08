@@ -194,7 +194,8 @@ is therefore the shard-era one, with `bge_historical_*` ids, while the Sunday pa
 export is current, with `bge_*` ids. This is the id mismatch in finding 2. The proposed fix
 (not in this branch, schema change to the sidecar): store the four has-section flags as
 small columns at extraction time, or index them as expressions, so the export no longer
-walks the text overflow pages.
+walks the text overflow pages. (Update 2026-10-08: implemented with three stored flags plus
+a covering index, read index-only; see `docs/proposals/structure-export-small-columns.md`.)
 
 Proposed (needs approval, writes to the public HF repo): delete the 99 stale root-level
 parquet files in one commit, **by an explicit list of their 99 paths**, and say so in the

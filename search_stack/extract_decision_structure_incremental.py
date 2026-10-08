@@ -45,6 +45,8 @@ if str(REPO_ROOT) not in sys.path:
 from search_stack.extract_decision_structure import (  # noqa: E402
     SCHEMA,
     extract,
+    paragraph_count,
+    paragraph_rows,
 )
 
 
@@ -333,6 +335,9 @@ def _delete_for_decisions(conn: sqlite3.Connection, ids: set[str]) -> None:
             "DELETE FROM erwaegungen_paragraph WHERE decision_id = ?", (did,),
         )
         cur.execute(
+            "DELETE FROM erwaegungen_unnumbered WHERE decision_id = ?", (did,),
+        )
+        cur.execute(
             "DELETE FROM structure WHERE decision_id = ?", (did,),
         )
         cur.execute(
@@ -355,6 +360,7 @@ def _apply_one(
     if len(ft) < 500:
         return None
     s = extract(ft, row.get("language", "de"), did)
+    numbered, unnumbered = paragraph_rows(s.erwaegungen_paragraphs)
 
     # Upsert into structure
     conn.execute(
@@ -363,8 +369,9 @@ def _apply_one(
         (decision_id, court, canton, language, decision_date, regeste,
          sachverhalt, sachverhalt_method,
          erwaegungen, erwaegungen_method, erwaegungen_paragraph_count,
-         dispositiv, dispositiv_method, dispositiv_orders, extracted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         dispositiv, dispositiv_method, dispositiv_orders, extracted_at,
+         has_sachverhalt, has_erwaegungen, has_dispositiv)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(decision_id) DO UPDATE SET
             court = excluded.court,
             canton = excluded.canton,
@@ -379,7 +386,10 @@ def _apply_one(
             dispositiv = excluded.dispositiv,
             dispositiv_method = excluded.dispositiv_method,
             dispositiv_orders = excluded.dispositiv_orders,
-            extracted_at = excluded.extracted_at
+            extracted_at = excluded.extracted_at,
+            has_sachverhalt = excluded.has_sachverhalt,
+            has_erwaegungen = excluded.has_erwaegungen,
+            has_dispositiv = excluded.has_dispositiv
         """,
         (
             did, row.get("court"), row.get("canton"),
@@ -387,30 +397,35 @@ def _apply_one(
             row.get("regeste") or None,
             s.sachverhalt, s.sachverhalt_method,
             s.erwaegungen, s.erwaegungen_method,
-            len(s.erwaegungen_paragraphs),
+            paragraph_count(numbered, unnumbered),
             s.dispositiv, s.dispositiv_method,
             json.dumps(s.dispositiv_orders, ensure_ascii=False)
             if s.dispositiv_orders else None,
             now,
+            int(bool(s.sachverhalt)), int(bool(s.erwaegungen)), int(bool(s.dispositiv)),
         ),
     )
 
     # Replace this decision's paragraphs (delete then insert; trigger
-    # keeps FTS5 in sync). Skip the synthetic depth=0 fallback.
-    # Use INSERT OR REPLACE to match extract_decision_structure.py's
-    # full-builder semantics — the extractor can emit two paragraphs
-    # with the same e_number for a single decision when the regex
-    # backtracks across nested numbering (e.g., "2." inside an
-    # "Erwägung 2"). The full builder silently last-wins on those;
-    # the incremental builder was crashing with UNIQUE constraint
-    # violations on the first-real-run today 2026-05-18 16:51 UTC
-    # (decision_structure_incremental.py:273).
+    # keeps FTS5 in sync). paragraph_rows() already applied the full
+    # builder's last-wins rule to repeated e_numbers — the extractor can
+    # emit two paragraphs with the same e_number when the regex backtracks
+    # across nested numbering (e.g., "2." inside an "Erwägung 2"); the
+    # incremental builder once crashed on that with a UNIQUE violation
+    # (2026-05-18) — and set the unnumbered depth=0 fallback aside for
+    # erwaegungen_unnumbered. INSERT OR REPLACE stays as a belt-and-braces.
     conn.execute(
         "DELETE FROM erwaegungen_paragraph WHERE decision_id = ?", (did,),
     )
-    for p in s.erwaegungen_paragraphs:
-        if p.get("depth", 0) == 0:
-            continue
+    conn.execute(
+        "DELETE FROM erwaegungen_unnumbered WHERE decision_id = ?", (did,),
+    )
+    if unnumbered:
+        conn.execute(
+            "INSERT INTO erwaegungen_unnumbered (decision_id, text) VALUES (?, ?)",
+            (did, unnumbered),
+        )
+    for p in numbered:
         conn.execute(
             """
             INSERT OR REPLACE INTO erwaegungen_paragraph

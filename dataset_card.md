@@ -257,6 +257,15 @@ The Parquet files use a 34-field schema. The 24 columns available in the FTS5 se
 
 Full 34-field Parquet export schema: [`export_parquet.py`](https://github.com/jonashertner/opencaselaw/blob/main/export_parquet.py)
 
+### `structure/` files
+
+- `structure/structure.parquet`: one row per decision whose sections were extracted, ordered by `decision_id`. It carries `court` and `language`; the flags `has_sachverhalt`, `has_erwaegungen` and `has_dispositiv`; the extraction method of each section; and `erwaegungen_paragraph_count`, which is the number of rows `erwaegungen_paragraphs.parquet` holds for that decision.
+- `structure/erwaegungen_paragraphs.parquet` (refreshed weekly): one row per Erwägung, with `decision_id`, `e_number` (`1`, `1.1`, `2a`, `3c/aa`, …), `depth`, `parent` and the verbatim `text`. If a decision's Erwägungen carry no numbers, its reasoning appears as a single row with `e_number` `"0"` and `depth` 0. That number is not in the decision, so it cannot be cited as a pinpoint; filter on `depth >= 1` to keep only numbered Erwägungen.
+
+## Changelog
+
+- **October 2026, `structure/`.** `structure.parquet` is written every night again; it had not been updated since 10 September 2026. Its historical BGE rows now use the same `bge_*` ids as `erwaegungen_paragraphs.parquet`, where the old file had `bge_historical_*`. `erwaegungen_paragraph_count` now equals the rows of the paragraph file. Unnumbered Erwägungen are exported as `e_number` `"0"`. These changes apply from the first export after the structure rebuild planned for the night of 10–11 October 2026. Details: [docs/MIGRATIONS.md](https://github.com/jonashertner/opencaselaw/blob/main/docs/MIGRATIONS.md).
+
 ## Court Coverage
 
 ### Federal Courts (20)

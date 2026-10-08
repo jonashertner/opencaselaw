@@ -3,34 +3,36 @@
 
 Why: since step 2g builds decision_structure.db from served text, the
 ``structure`` rows carry the full Sachverhalt / Erwägungen / Dispositiv, and
-the nightly metadata export (``export_parquet._STRUCTURE_META_COLS``) projects
-over its budget and keeps the last good structure.parquet — the 2026-09-10
-shard-era file was re-uploaded unchanged for four weeks. This script shows
-*why* from first principles and compares the proposed storage layouts
-(docs/proposals/structure-export-small-columns.md).
+the pre-2026-10-08 metadata export (``export_parquet._STRUCTURE_META_COLS``)
+projected over its budget and kept the last good structure.parquet — the
+2026-09-10 shard-era file was re-uploaded unchanged for four weeks. This
+script shows *why* from first principles and compares the storage layouts
+(docs/proposals/structure-export-small-columns.md); the one shipped is the
+production ``SCHEMA`` read index-only (``_STRUCTURE_META_COLS_INDEXED``).
 
 SQLite stores a row as one record — header, then the column bodies in
 declaration order — and spills whatever does not fit on the leaf page into a
 linked chain of overflow pages. Reading a column that sits behind a large
-text column means walking that chain page by page. In ``structure`` the
-columns the export needs (the three ``*_method`` columns,
+text column means walking that chain page by page. In the old ``structure``
+layout the columns the export needs (the three ``*_method`` columns,
 ``erwaegungen_paragraph_count``) all sit behind the text, and the has-section
-flags are computed from the text itself, so the export reads ~every page of
+flags were computed from the text itself, so the export read ~every page of
 the table.
 
 Two modes, both offline:
 
   synthetic (default): builds sidecars of ``--rows`` decisions in a temp dir
-    with the production ``SCHEMA`` (and the proposed variants of it) and
-    measures, per layout, the bytes the export query reads (Linux
-    /proc/self/io; None elsewhere), the wall time on a warm OS cache, the
-    query plan, and the export's own probe projection. Nothing outside the
-    temp dir is touched.
+    — the pre-2026-10-08 layout (frozen below), its variants, and the
+    production ``SCHEMA`` — and measures, per layout, the bytes the export
+    query reads (Linux /proc/self/io; None elsewhere), the wall time on a
+    warm OS cache, the query plan, and the export's own table probe. Nothing
+    outside the temp dir is touched.
 
   --structure-db PATH: read-only (``mode=ro&immutable=1``) look at a real
-    sidecar — column order, whether the proposed columns/index exist, the
-    query plans and the export probe's projection (the same 16x50-row probe
-    the export runs). It never scans the table.
+    sidecar — column order, whether the flag columns / export index exist,
+    which read the export will take, the query plans and the table probe's
+    projection (the same 16x50-row probe the old path runs). It never scans
+    the table.
 
     python3 scripts/measure_structure_export_cost.py [--rows 5000] [--json]
     python3 scripts/measure_structure_export_cost.py --structure-db output/decision_structure.db
@@ -59,25 +61,40 @@ from search_stack.extract_decision_structure import SCHEMA  # noqa: E402
 # decisions"); only used to scale per-row figures, never as a measurement.
 PRODUCTION_ROWS = 1_070_000
 
-# --- the proposal, as DDL + query (docs/proposals/structure-export-small-columns.md)
+# --- layouts ------------------------------------------------------------------
+# The structure table as it was until 2026-10-08, frozen here so the baseline
+# stays measurable after the schema moved on.
+LEGACY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS structure (
+    decision_id          TEXT PRIMARY KEY,
+    court                TEXT,
+    canton               TEXT,
+    language             TEXT,
+    decision_date        TEXT,
+    regeste              TEXT,
+    sachverhalt          TEXT,
+    sachverhalt_method   TEXT,
+    erwaegungen          TEXT,
+    erwaegungen_method   TEXT,
+    erwaegungen_paragraph_count INTEGER,
+    dispositiv           TEXT,
+    dispositiv_method    TEXT,
+    dispositiv_orders    TEXT,
+    extracted_at         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_court ON structure(court);
+CREATE INDEX IF NOT EXISTS idx_method ON structure(dispositiv_method);
+"""
 _FLAG_COLUMNS = (
     "    has_sachverhalt      INTEGER NOT NULL",
     "    has_erwaegungen      INTEGER NOT NULL",
     "    has_dispositiv       INTEGER NOT NULL",
 )
 PROPOSED_COLUMNS = ",\n".join(_FLAG_COLUMNS) + "\n"
-PROPOSED_INDEX = (
-    "CREATE INDEX IF NOT EXISTS idx_structure_export ON structure("
-    "decision_id, court, language, has_sachverhalt, has_erwaegungen, has_dispositiv, "
-    "sachverhalt_method, erwaegungen_method, dispositiv_method, "
-    "erwaegungen_paragraph_count);"
-)
-PROPOSED_META_COLS = (
-    "decision_id, court, language, has_sachverhalt, has_erwaegungen, has_dispositiv, "
-    "sachverhalt_method, erwaegungen_method, dispositiv_method, "
-    "CAST(erwaegungen_paragraph_count AS INTEGER)"
-)
-# The alternative the brief also names: no new columns, an index on the
+PROPOSED_META_COLS = ep._STRUCTURE_META_COLS_INDEXED
+assert f"INDEX IF NOT EXISTS {ep._STRUCTURE_EXPORT_INDEX}" in SCHEMA, \
+    "the production SCHEMA lost the export index: update this script"
+# The alternative the brief also named: no new columns, an index on the
 # export's own expressions. Works on SQLite >= 3.41-ish (indexed-expression
 # substitution) but is invisible in the plan ("USING INDEX", not "COVERING")
 # and silently breaks if the export's expression text drifts from the DDL.
@@ -92,15 +109,15 @@ EXPRESSION_INDEX = (
 )
 
 _LAST_COLUMN = "    extracted_at         TEXT\n);"
-assert _LAST_COLUMN in SCHEMA, "structure DDL changed: update this script"
-APPENDED_SCHEMA = SCHEMA.replace(_LAST_COLUMN, "    extracted_at         TEXT,\n" + PROPOSED_COLUMNS + ");")
+APPENDED_SCHEMA = LEGACY_SCHEMA.replace(
+    _LAST_COLUMN, "    extracted_at         TEXT,\n" + PROPOSED_COLUMNS + ");")
 
 
 def _reordered_schema() -> str:
     """Small columns first (the in-row alternative to an index)."""
     small = ("    sachverhalt_method   TEXT,\n", "    erwaegungen_method   TEXT,\n",
              "    erwaegungen_paragraph_count INTEGER,\n", "    dispositiv_method    TEXT,\n")
-    out = SCHEMA
+    out = LEGACY_SCHEMA
     for line in small:
         assert line in out, f"structure DDL changed: {line.strip()}"
         out = out.replace(line, "")
@@ -238,8 +255,9 @@ def measure(path: Path, select_cols: str, label: str, indexed_by: str | None = N
         "projected_bytes_at_production_rows": (int(read / n * scale_rows)
                                                if (read is not None and n) else None),
         "elapsed_s": round(elapsed, 4),
-        # the export probe ignores INDEXED BY: it reads rowid windows of the
-        # TABLE, so on the indexed layout it still prices the overflow walk
+        # the table probe ignores INDEXED BY: it reads rowid windows of the
+        # TABLE, so on the indexed layout it still prices the overflow walk —
+        # which is why the export skips it on the index-only path
         "export_probe_projection_s": round(projected, 3),
         "file_bytes": path.stat().st_size,
     }
@@ -247,40 +265,40 @@ def measure(path: Path, select_cols: str, label: str, indexed_by: str | None = N
 
 def run_synthetic(rows: int, workdir: Path, scale_rows: int) -> dict:
     workdir.mkdir(parents=True, exist_ok=True)
-    current = workdir / "current.db"
+    legacy = workdir / "legacy.db"
     appended = workdir / "appended_no_index.db"
-    proposed = workdir / "proposed.db"
+    shipped = workdir / "production_schema.db"
     reordered = workdir / "reordered.db"
-    expr = workdir / "current_expr_index.db"
-    build_sidecar(current, SCHEMA, rows)
+    expr = workdir / "legacy_expr_index.db"
+    build_sidecar(legacy, LEGACY_SCHEMA, rows)
     build_sidecar(appended, APPENDED_SCHEMA, rows)
-    build_sidecar(proposed, APPENDED_SCHEMA, rows, PROPOSED_INDEX)
+    build_sidecar(shipped, SCHEMA, rows)
     build_sidecar(reordered, _reordered_schema(), rows)
-    shutil.copy2(current, expr)
+    shutil.copy2(legacy, expr)
     c = sqlite3.connect(expr)
     c.executescript(EXPRESSION_INDEX)
     c.close()
 
     results = [
-        measure(current, ep._STRUCTURE_META_COLS, "current schema, current export query",
+        measure(legacy, ep._STRUCTURE_META_COLS, "pre-2026-10-08 schema and query",
                 scale_rows=scale_rows),
-        measure(current, "decision_id, court, language", "current schema, leading columns only (floor)",
+        measure(legacy, "decision_id, court, language", "old schema, leading columns only (floor)",
                 scale_rows=scale_rows),
         measure(appended, PROPOSED_META_COLS, "flag columns appended, no index",
                 scale_rows=scale_rows),
         measure(reordered, PROPOSED_META_COLS, "small columns moved before the text, no index",
                 scale_rows=scale_rows),
-        measure(expr, ep._STRUCTURE_META_COLS, "current schema + expression index",
+        measure(expr, ep._STRUCTURE_META_COLS, "old schema + expression index",
                 indexed_by="idx_structure_export_expr", scale_rows=scale_rows),
-        measure(proposed, PROPOSED_META_COLS, "PROPOSED: flag columns + covering index",
-                indexed_by="idx_structure_export", scale_rows=scale_rows),
+        measure(shipped, PROPOSED_META_COLS, "SHIPPED: flag columns + covering index",
+                indexed_by=ep._STRUCTURE_EXPORT_INDEX, scale_rows=scale_rows),
     ]
     return {
         "mode": "synthetic",
         "rows": rows,
         "sqlite_version": sqlite3.sqlite_version,
         "scale_rows": scale_rows,
-        "pages": {"current": page_breakdown(current), "proposed": page_breakdown(proposed)},
+        "pages": {"legacy": page_breakdown(legacy), "shipped": page_breakdown(shipped)},
         "results": results,
     }
 
@@ -300,10 +318,11 @@ def run_real(path: Path) -> dict:
             "file_bytes": path.stat().st_size,
             "structure_columns_in_record_order": cols,
             "max_rowid": max_rowid,
-            "has_proposed_columns": all(c in cols for c in
-                                        ("has_sachverhalt", "has_erwaegungen", "has_dispositiv")),
-            "has_proposed_index": "idx_structure_export" in idx,
-            "plan_current_query": query_plan(
+            "has_flag_columns": all(c in cols for c in
+                                    ("has_sachverhalt", "has_erwaegungen", "has_dispositiv")),
+            "has_export_index": ep._STRUCTURE_EXPORT_INDEX in idx,
+            "export_reads_index_only": ep._structure_meta_source(conn)[1] is not None,
+            "plan_table_scan_query": query_plan(
                 conn, f"SELECT {ep._STRUCTURE_META_COLS} FROM structure"),
         }
         t0 = time.perf_counter()
@@ -331,9 +350,10 @@ def run_real(path: Path) -> dict:
             out["sampled_rows"] = n
             out["sampled_text_bytes_per_row"] = round(text / n, 1) if n else None
             out["projected_text_bytes_walked"] = int(text / n * max_rowid) if n else None
-        if out["has_proposed_columns"] and out["has_proposed_index"]:
-            out["plan_proposed_query"] = query_plan(
-                conn, f"SELECT {PROPOSED_META_COLS} FROM structure INDEXED BY idx_structure_export")
+        if out["has_flag_columns"] and out["has_export_index"]:
+            out["plan_index_only_query"] = query_plan(
+                conn, f"SELECT {PROPOSED_META_COLS} FROM structure "
+                      f"INDEXED BY {ep._STRUCTURE_EXPORT_INDEX}")
     finally:
         conn.close()
     return out

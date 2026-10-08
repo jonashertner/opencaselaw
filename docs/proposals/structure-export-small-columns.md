@@ -1,9 +1,11 @@
 # Proposal: let the `structure.parquet` export read small columns only
 
-**Status:** proposed, not implemented. Changes the `decision_structure.db`
-schema (`search_stack/extract_decision_structure*.py` is `proposal_only` in
-`ops/autonomy-policy.json`) and the nightly export (`export_parquet.py`, publish
-step 3). Needs explicit owner approval.
+**Status:** approved by the owner on 2026-10-08 and implemented on the
+branch `claude/funny-hawking-7xp27x`, with the decisions recorded under
+"Decisions" below. The PR stays unmerged until review. It changes the
+`decision_structure.db` schema (`search_stack/extract_decision_structure*.py`
+is `proposal_only` in `ops/autonomy-policy.json`) and the nightly export
+(`export_parquet.py`, publish step 3).
 **Raised:** 2026-10-07.
 **Evidence (offline, in this repo):** `scripts/measure_structure_export_cost.py`,
 `tests/test_structure_export_id_parity.py`.
@@ -284,7 +286,59 @@ would only use it if a 3 h bootstrap cannot be scheduled soon.
   a `plan_proposed_query` containing `COVERING INDEX`. This mode never scans
   the table; it reads only the probe's 800 sample rows.
 
-## Open questions for the owner
+## Decisions (2026-10-08)
+
+1. **No `has_regeste`.** Three section flags only. Whether a decision has a
+   regeste is already in `data/`, and a fourth public column would be a
+   permanent schema commitment that adds no information.
+2. **`erwaegungen_paragraph_count` = the rows `erwaegungen_paragraphs.parquet`
+   holds for the decision** (`paragraph_rows` / `paragraph_count` in
+   `extract_decision_structure.py`):
+   - Repeated e_numbers count once; the later body wins, as INSERT OR REPLACE
+     always did.
+   - The uncounted paragraph is **real Erwägung text**: the extractor's
+     e_number "0" fallback holds the whole reasoning when there are no
+     numbered markers (an "Aus den Erwägungen" body, for example). So it is
+     exported, as e_number "0", rather than dropped. It is empty only when a
+     historical BGE's next-ruling cut (#130) lands at the start of the
+     Erwägungen; that case is neither stored nor counted.
+   - The owner decided the "0" rows go **into the exported paragraph file
+     only**. They live in a new sidecar table, `erwaegungen_unnumbered`, and
+     never in `erwaegungen_paragraph`, so `get_erwaegung`, `cite()` pinpoints,
+     the paragraph FTS and the step-2g coverage gate never see an
+     "Erwägung 0". The Sunday paragraph export appends them to the same atomic
+     file, probed under the same budget.
+   - Cost: this table duplicates the Erwägungen of unnumbered decisions,
+     which the old sidecar stored only in `structure.erwaegungen`. Its size is
+     unmeasured, since there is no production access from here; see the
+     migration check below.
+   - Changelog: `dataset_card.md` (new Changelog section) and
+     `docs/MIGRATIONS.md`.
+3. **Rebuild on the night of Saturday 10 to Sunday 11 October**, away from the
+   weekday step-2g run. `main`'s #130 already changes the extractor version
+   hash, so the sidecar bootstraps once on 2026-10-08 regardless. This change
+   alters the hash again and bootstraps again when it lands, which is why it
+   should merge on the weekend.
+4. **Skipped-export alert.** A fourth signal in
+   `scripts/check_output_freshness.py`, which already runs on its own timer
+   and pages through ntfy:
+   - It pages when `structure/structure.parquet` is older than
+     `--max-age-hours` (36 h), or `erwaegungen_paragraphs.parquet` older than
+     `--weekly-max-age-hours` (8.5 days).
+   - It quotes the skip reason from `export_status.json`.
+   - No systemd unit changes. Expect it to page until the first export after
+     the rebuild, because the file really is four weeks stale.
+
+### Migration check for decision 2
+
+The rebuild writes `erwaegungen_unnumbered` from scratch. `_refuse_without_space`
+sizes its free-space guard from the *old* sidecar (×1.2), so it does not
+account for the new table. After the swap, measure the table read-only with
+`SELECT count(*), sum(length(CAST(text AS BLOB))) FROM erwaegungen_unnumbered`;
+this reads only that table's pages. Compare the result with the volume's free
+space.
+
+## Open questions for the owner (answered above)
 
 1. The brief mentions "four has-section flags", but `STRUCTURE_META_SCHEMA`
    has three (`has_sachverhalt`, `has_erwaegungen`, `has_dispositiv`). A

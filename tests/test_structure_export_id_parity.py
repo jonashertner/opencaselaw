@@ -1,24 +1,32 @@
 """structure.parquet and erwaegungen_paragraphs.parquet must describe the same
-decisions, and the metadata export must be able to finish on a served-text
-sidecar.
+decisions, and the metadata export must finish on a served-text sidecar.
 
 2026-10-07: on Hugging Face, structure/structure.parquet was last written
 2026-09-10 and still keyed the 14,578 historical BGE rows as
 ``bge_historical_*`` while erwaegungen_paragraphs.parquet (2026-10-04) keyed
 them as ``bge_*``. Since step 2g builds the sidecar from served text, the
 ``structure`` rows carry the full section text and every column the metadata
-export needs sits behind it; the export projects over its budget and
-``_bounded_stream`` keeps the last good — stale — file. Proposed fix:
-docs/proposals/structure-export-small-columns.md.
+export needed sat behind it; the export projected over its budget and
+``_bounded_stream`` kept the last good — stale — file. Fix (2026-10-08):
+stored has-section flags + idx_structure_export, read index-only
+(docs/proposals/structure-export-small-columns.md).
 
-The fixture sidecar here is written by the production step-2g writer
-(``build_structure_incremental`` over a decisions.db), not by hand.
+Also pinned here: ``erwaegungen_paragraph_count`` equals the rows the
+paragraph file holds for the decision, and Erwägungen without numbered
+markers are exported whole as e_number "0" — from ``erwaegungen_unnumbered``,
+never from ``erwaegungen_paragraph`` (pinpoints, FTS, coverage gate).
+
+The fixture sidecars are written by the production writers (step 2g's
+``build_structure_incremental`` over a decisions.db, and the shard fallback
+``build_db``), not by hand.
 """
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import sys
+from collections import Counter
 from operator import itemgetter
 from pathlib import Path
 
@@ -30,7 +38,13 @@ if str(REPO) not in sys.path:
 
 pa = pytest.importorskip("pyarrow")
 pq = pytest.importorskip("pyarrow.parquet")
+import export_parquet as ep  # noqa: E402
 from export_parquet import STRUCTURE_META_SCHEMA, export_decision_structure  # noqa: E402
+from search_stack.extract_decision_structure import (  # noqa: E402
+    build_db,
+    paragraph_count,
+    paragraph_rows,
+)
 from search_stack.extract_decision_structure_incremental import (  # noqa: E402
     build_structure_incremental,
 )
@@ -67,13 +81,24 @@ def _federal_text(seed: str, court_word: str = "Bundesgericht") -> str:
             "2. Die Gerichtskosten werden der Beschwerdeführerin auferlegt.\n")
 
 
+def _unnumbered_text(seed: str) -> str:
+    """BGE excerpt style: 'Aus den Erwägungen' with no numbered markers, so
+    the extractor keeps the reasoning whole (its e_number "0" fallback)."""
+    return ("Sachverhalt:\n\nA.- " + _para(seed, 2500) + "\n\n"
+            "Aus den Erwägungen:\n\n" + _para(seed, 9000) + "\n\n"
+            "Demnach erkennt das Bundesgericht:\n\n"
+            "1. Die Beschwerde wird abgewiesen.\n")
+
+
 # Historical BGE served as bge_* (the ids the stale file carried as
-# bge_historical_*), current BGE, BGer, BVGer, and a cantonal decision whose
-# text has no section markers (a structure row with no paragraphs).
+# bge_historical_*), current BGE, BGer, BVGer, a BGE excerpt whose
+# Erwägungen carry no numbers, and a cantonal decision whose text has no
+# section markers (a structure row with no paragraphs).
 DECISIONS = [
     ("bge_101_Ia_1", "bge", "CH", "1975-01-29", _federal_text("101 Ia 1")),
     ("bge_102_II_100", "bge", "CH", "1976-05-04", _federal_text("102 II 100")),
     ("bge_150_III_12", "bge", "CH", "2024-01-10", _federal_text("150 III 12")),
+    ("bge_140_III_200", "bge", "CH", "2014-03-03", _unnumbered_text("140 III 200")),
     ("bger_4A_100_2024", "bger", "CH", "2024-06-12", _federal_text("4A_100/2024")),
     ("bvger_A-1234_2023", "bvger", "CH", "2023-11-02",
      _federal_text("A-1234/2023", "Bundesverwaltungsgericht")),
@@ -81,15 +106,17 @@ DECISIONS = [
      "Das Obergericht des Kantons Zürich zieht in Betracht, dass die Eingabe "
      "verspätet ist und nicht darauf einzutreten ist. " * 10),
 ]
+UNNUMBERED_ID = "bge_140_III_200"
+NO_SECTIONS_ID = "zh_obergericht_LB230001"
 STALE_IDS = ["bge_historical_101_Ia_1", "bge_historical_102_II_100"]
 
 
-def _decisions_db(path: Path) -> Path:
+def _decisions_db(path: Path, decisions=DECISIONS) -> Path:
     conn = sqlite3.connect(path)
     conn.execute("CREATE TABLE decisions (decision_id TEXT PRIMARY KEY, court TEXT, "
                  "canton TEXT, language TEXT, decision_date TEXT, full_text TEXT, "
                  "regeste TEXT)")
-    conn.executemany("INSERT INTO decisions VALUES (?, ?, ?, 'de', ?, ?, NULL)", DECISIONS)
+    conn.executemany("INSERT INTO decisions VALUES (?, ?, ?, 'de', ?, ?, NULL)", decisions)
     conn.commit()
     conn.close()
     return path
@@ -102,6 +129,10 @@ def sidecar(tmp_path) -> Path:
                                 structure_db=tmp_path / "absent.db",
                                 output_path=out, force_full=True)
     return out
+
+
+def _ro(db: Path) -> sqlite3.Connection:
+    return sqlite3.connect(f"file:{db}?mode=ro&immutable=1", uri=True)
 
 
 def _write_stale_structure_parquet(path: Path) -> None:
@@ -117,53 +148,213 @@ def _write_stale_structure_parquet(path: Path) -> None:
     }, schema=STRUCTURE_META_SCHEMA), path)
 
 
+def _export_both(sidecar: Path, out: Path) -> tuple[dict, list[dict], list[dict]]:
+    counts = export_decision_structure(sidecar, out, include_paragraphs=True)
+    meta = pq.read_table(out / "structure" / "structure.parquet").to_pylist()
+    paras = pq.read_table(out / "structure" / "erwaegungen_paragraphs.parquet").to_pylist()
+    return counts, meta, paras
+
+
 # ── 1. the export finishes and both files key the same decisions ───────
 
 def test_structure_export_finishes_with_the_paragraph_export_ids(sidecar, tmp_path):
     out = tmp_path / "dataset"
-    meta_path = out / "structure" / "structure.parquet"
-    para_path = out / "structure" / "erwaegungen_paragraphs.parquet"
-    _write_stale_structure_parquet(meta_path)
+    _write_stale_structure_parquet(out / "structure" / "structure.parquet")
 
-    counts = export_decision_structure(sidecar, out, include_paragraphs=True)
+    counts, meta, paras = _export_both(sidecar, out)
 
-    conn = sqlite3.connect(f"file:{sidecar}?mode=ro&immutable=1", uri=True)
+    conn = _ro(sidecar)
     try:
         sidecar_ids = {r[0] for r in conn.execute("SELECT decision_id FROM structure")}
-        n_paragraphs = conn.execute(
-            "SELECT count(*) FROM erwaegungen_paragraph WHERE text IS NOT NULL AND text != ''"
-        ).fetchone()[0]
+        n_rows = conn.execute(
+            "SELECT (SELECT count(*) FROM erwaegungen_paragraph WHERE text != '') "
+            "+ (SELECT count(*) FROM erwaegungen_unnumbered WHERE text != '')").fetchone()[0]
     finally:
         conn.close()
     assert sidecar_ids == {d[0] for d in DECISIONS}
     # finished: both files written this run, nothing skipped, nothing kept
-    assert counts == {"structure": len(DECISIONS), "erwaegungen_paragraphs": n_paragraphs}
+    assert counts == {"structure": len(DECISIONS), "erwaegungen_paragraphs": n_rows}
     status = json.loads((out / "structure" / "export_status.json").read_text())
     assert status["counts"] == counts
     assert not list((out / "structure").glob("*.tmp"))
 
-    meta = pq.read_table(meta_path).to_pylist()
-    para_ids = set(pq.read_table(para_path, columns=["decision_id"]).column(0).to_pylist())
     meta_ids = {r["decision_id"] for r in meta}
-
+    para_ids = {r["decision_id"] for r in paras}
     assert len(meta) == len(meta_ids)                        # one row per decision
     assert meta_ids == sidecar_ids                           # the stale file was replaced
     assert not meta_ids & set(STALE_IDS)
     assert para_ids <= meta_ids, f"paragraphs without a structure row: {para_ids - meta_ids}"
-    # every decision in this fixture with Erwägungen has numbered ones, so the
-    # two exports must name exactly the same decisions
+    # every decision with Erwägungen has paragraph rows — numbered, or the
+    # unnumbered "0" — so the two exports name exactly the same decisions
     assert para_ids == {r["decision_id"] for r in meta if r["has_erwaegungen"]}
-    assert "zh_obergericht_LB230001" in meta_ids - para_ids  # structure row, no paragraphs
+    assert meta_ids - para_ids == {NO_SECTIONS_ID}
 
 
-# ── 2. the metadata export must not read the section text ──────────────
+def test_paragraph_count_equals_the_rows_the_paragraph_file_holds(sidecar, tmp_path):
+    _, meta, paras = _export_both(sidecar, tmp_path / "o")
+    rows = Counter(r["decision_id"] for r in paras)
+    assert {r["decision_id"]: r["erwaegungen_paragraph_count"] for r in meta} == {
+        r["decision_id"]: rows.get(r["decision_id"], 0) for r in meta}
+    assert rows[UNNUMBERED_ID] == 1 and rows["bger_4A_100_2024"] == 4
+
+
+def test_unnumbered_erwaegungen_are_exported_as_e0_but_not_served_as_paragraphs(
+        sidecar, tmp_path):
+    _, meta, paras = _export_both(sidecar, tmp_path / "o")
+    zero = [r for r in paras if r["decision_id"] == UNNUMBERED_ID]
+    assert [(r["e_number"], r["depth"], r["parent"]) for r in zero] == [("0", 0, None)]
+    assert zero[0]["text"].startswith("Die Vorinstanz hat im Verfahren 140 III 200")
+    assert len(zero[0]["text"]) > 8000                      # the whole reasoning, not a stub
+    assert not [r for r in paras if r["e_number"] == "0" and r["decision_id"] != UNNUMBERED_ID]
+    conn = _ro(sidecar)
+    try:
+        # the sidecar's paragraph table — get_erwaegung, pinpoints, FTS, the
+        # coverage gate — never holds an "Erwägung 0"
+        assert conn.execute("SELECT count(*) FROM erwaegungen_paragraph "
+                            "WHERE e_number = '0' OR depth = 0").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM erwaegungen_paragraph WHERE decision_id = ?",
+                            (UNNUMBERED_ID,)).fetchone()[0] == 0
+        stored = conn.execute("SELECT text FROM erwaegungen_unnumbered WHERE decision_id = ?",
+                              (UNNUMBERED_ID,)).fetchone()[0]
+    finally:
+        conn.close()
+    assert stored == zero[0]["text"]
+
+
+def test_paragraph_rows_counts_what_lands_in_the_file():
+    numbered, unnumbered = paragraph_rows([
+        {"e_number": "1", "depth": 1, "parent": None, "text": "erste Fassung"},
+        {"e_number": "2", "depth": 1, "parent": None, "text": "zwei"},
+        {"e_number": "1", "depth": 1, "parent": None, "text": "zweite Fassung"},
+    ])
+    # a repeated e_number keeps the later body and moves last (INSERT OR REPLACE)
+    assert [(p["e_number"], p["text"]) for p in numbered] == [("2", "zwei"), ("1", "zweite Fassung")]
+    assert unnumbered is None and paragraph_count(numbered, unnumbered) == 2
+
+    numbered, unnumbered = paragraph_rows(
+        [{"e_number": "0", "depth": 0, "parent": None, "text": "  Aus den Erwägungen ...  "}])
+    assert numbered == [] and unnumbered == "Aus den Erwägungen ..."
+    assert paragraph_count(numbered, unnumbered) == 1
+    # an empty fallback (a historical BGE whose cut lands at the start) is a
+    # placeholder: not stored, not counted
+    numbered, unnumbered = paragraph_rows(
+        [{"e_number": "0", "depth": 0, "parent": None, "text": " \n "}])
+    assert unnumbered is None and paragraph_count(numbered, unnumbered) == 0
+
+
+def test_incremental_run_keeps_unnumbered_rows_in_step(sidecar, tmp_path):
+    """A decision that gains numbered Erwägungen drops its "0" row; a retired
+    decision takes its "0" row with it."""
+    other = ("bge_141_II_5", "bge", "CH", "2015-01-01", _unnumbered_text("141 II 5"))
+    changed = [d if d[0] != UNNUMBERED_ID else d[:4] + (_federal_text("140 III 200"),)
+               for d in DECISIONS] + [other]
+    db1 = _decisions_db(tmp_path / "d1.db", DECISIONS + [other])
+    first = tmp_path / "first.db"
+    build_structure_incremental(decisions_db=db1, structure_db=tmp_path / "absent.db",
+                                output_path=first, force_full=True)
+    conn = _ro(first)
+    assert {r[0] for r in conn.execute("SELECT decision_id FROM erwaegungen_unnumbered")} == {
+        UNNUMBERED_ID, other[0]}
+    conn.close()
+
+    db2 = _decisions_db(tmp_path / "d2.db", [d for d in changed if d[0] != other[0]])
+    second = tmp_path / "second.db"
+    stats = build_structure_incremental(decisions_db=db2, structure_db=first,
+                                        output_path=second)
+    assert stats["mode"] == "incremental"
+    assert stats["counts"] == {"new": 0, "changed": 1, "deleted": 1}
+    conn = _ro(second)
+    try:
+        assert conn.execute("SELECT count(*) FROM erwaegungen_unnumbered").fetchone()[0] == 0
+        assert conn.execute("SELECT has_erwaegungen, erwaegungen_paragraph_count FROM structure "
+                            "WHERE decision_id = ?", (UNNUMBERED_ID,)).fetchone() == (1, 4)
+        assert conn.execute("SELECT count(*) FROM structure WHERE decision_id = ?",
+                            (other[0],)).fetchone()[0] == 0
+    finally:
+        conn.close()
+
+
+def test_shard_builder_writes_what_the_served_text_builder_writes(sidecar, tmp_path):
+    """The shard fallback (build_db) and step 2g must agree on the flags, the
+    count and the unnumbered rows, or a fallback night changes the dataset."""
+    shard = tmp_path / "decisions" / "fixture.jsonl"
+    shard.parent.mkdir()
+    shard.write_text("".join(json.dumps(
+        {"decision_id": d, "court": c, "canton": k, "language": "de", "decision_date": dt,
+         "full_text": t}, ensure_ascii=False) + "\n" for d, c, k, dt, t in DECISIONS))
+    shard_db = tmp_path / "shard.db"
+    build_db([shard], shard_db)
+
+    def snapshot(db):
+        conn = _ro(db)
+        try:
+            return (
+                conn.execute("SELECT decision_id, has_sachverhalt, has_erwaegungen, has_dispositiv, "
+                             "erwaegungen_paragraph_count FROM structure ORDER BY 1").fetchall(),
+                conn.execute("SELECT decision_id, e_number, text FROM erwaegungen_paragraph "
+                             "ORDER BY 1, 2").fetchall(),
+                conn.execute("SELECT decision_id, text FROM erwaegungen_unnumbered ORDER BY 1")
+                .fetchall())
+        finally:
+            conn.close()
+    assert snapshot(shard_db) == snapshot(sidecar)
+
+
+# ── 2. which read the export takes ─────────────────────────────────────
+
+def test_export_reads_through_the_covering_index(sidecar, tmp_path, caplog):
+    conn = _ro(sidecar)
+    try:
+        assert ep._structure_meta_source(conn) == (ep._STRUCTURE_META_COLS_INDEXED,
+                                                   "idx_structure_export")
+    finally:
+        conn.close()
+    with caplog.at_level(logging.INFO, logger="export_parquet"):
+        export_decision_structure(sidecar, tmp_path / "o")
+    assert "index-only via idx_structure_export" in caplog.text
+
+
+def test_older_or_uncovered_sidecars_keep_the_table_scan(tmp_path, caplog):
+    legacy = tmp_path / "legacy.db"
+    conn = sqlite3.connect(legacy)
+    conn.executescript(
+        "CREATE TABLE structure (decision_id TEXT PRIMARY KEY, court TEXT, language TEXT, "
+        "sachverhalt TEXT, sachverhalt_method TEXT, erwaegungen TEXT, erwaegungen_method TEXT, "
+        "erwaegungen_paragraph_count INTEGER, dispositiv TEXT, dispositiv_method TEXT);"
+        "INSERT INTO structure VALUES ('bger_1', 'bger', 'de', 'S', 'a', 'E', 'a', 1, 'D', 'a');")
+    conn.commit()
+    assert ep._structure_meta_source(conn) == (ep._STRUCTURE_META_COLS, None)
+    # an index of that name that does not cover the export is not trusted
+    conn.execute("CREATE INDEX idx_structure_export ON structure(decision_id)")
+    conn.commit()
+    with caplog.at_level(logging.WARNING, logger="export_parquet"):
+        assert ep._structure_meta_source(conn) == (ep._STRUCTURE_META_COLS, None)
+    conn.close()
+    assert "does not cover the export" in caplog.text
+    assert export_decision_structure(legacy, tmp_path / "o") == {"structure": 1}
+
+
+def test_an_empty_indexed_sidecar_keeps_the_last_good_file(sidecar, tmp_path):
+    out = tmp_path / "o"
+    assert export_decision_structure(sidecar, out) == {"structure": len(DECISIONS)}
+    good = out / "structure" / "structure.parquet"
+    ino = good.stat().st_ino
+    conn = sqlite3.connect(sidecar)
+    conn.execute("DELETE FROM structure")
+    conn.commit()
+    conn.close()
+    assert export_decision_structure(sidecar, out) == {
+        "structure_skipped": "structure is empty; last good file kept"}
+    assert good.stat().st_ino == ino
+
+
+# ── 3. the metadata export must not read the section text ──────────────
 #
 # Deterministic, platform-independent stand-in for "the export reads only
 # small columns": zero every overflow page of the ``structure`` table, so any
 # read that walks a section-text chain fails with SQLITE_CORRUPT, while a
 # read that stays on leaf/index pages is unaffected. On the production
-# sidecar that walk is the ~52 GB / ~27 min that keeps structure.parquet
-# frozen.
+# sidecar that walk is the ~52 GB / ~27 min that froze structure.parquet.
 
 def _varint(buf: bytes, i: int) -> tuple[int, int]:
     v = 0
@@ -189,7 +380,7 @@ def _overflow_chains(db: Path, table: str) -> list[list[int]]:
     usable = page_size - data[20]
     max_local = usable - 35
     min_local = (usable - 12) * 32 // 255 - 23
-    conn = sqlite3.connect(f"file:{db}?mode=ro&immutable=1", uri=True)
+    conn = _ro(db)
     try:
         root = conn.execute("SELECT rootpage FROM sqlite_master WHERE type = 'table' "
                             "AND name = ?", (table,)).fetchone()[0]
@@ -238,12 +429,11 @@ def _zero_pages(db: Path, pages: list[int]) -> None:
 
 def test_overflow_chain_walker_matches_sqlite(sidecar):
     chains = _overflow_chains(sidecar, "structure")
-    structured = len(DECISIONS) - 1          # the cantonal row has no sections
-    assert len(chains) == structured
+    assert len(chains) == len(DECISIONS) - 1     # the cantonal row has no sections
     # >= 2 pages per chain: a zeroed first page then ends the chain early,
     # which SQLite reports as corruption instead of returning NUL bytes
     assert all(len(c) >= 2 for c in chains)
-    conn = sqlite3.connect(f"file:{sidecar}?mode=ro&immutable=1", uri=True)
+    conn = _ro(sidecar)
     try:
         dbstat = {r[0] for r in conn.execute(
             "SELECT pageno FROM dbstat WHERE name = 'structure' AND pagetype = 'overflow'")}
@@ -258,20 +448,24 @@ class ReadsSectionText(AssertionError):
     """The metadata export walked a section-text overflow chain."""
 
 
-@pytest.mark.xfail(
-    raises=ReadsSectionText, strict=True,
-    reason="proposal docs/proposals/structure-export-small-columns.md not implemented: "
-           "the metadata export (and its probe) still read every row's section text. "
-           "When this XPASSes, the fix has landed: drop this marker.")
 def test_metadata_export_reads_no_section_text(sidecar, tmp_path):
-    reference = export_decision_structure(sidecar, tmp_path / "ref")
-    expected = pq.read_table(tmp_path / "ref" / "structure" / "structure.parquet").to_pylist()
+    # what the pre-2026-10-08 export computed from the text itself, read from
+    # the table: the stored flags must mean exactly that
+    conn = _ro(sidecar)
+    try:
+        legacy = [dict(zip(STRUCTURE_META_SCHEMA.names, r, strict=True)) for r in conn.execute(
+            f"SELECT {ep._STRUCTURE_META_COLS} FROM structure NOT INDEXED")]
+    finally:
+        conn.close()
+    for r in legacy:
+        for k in ("has_sachverhalt", "has_erwaegungen", "has_dispositiv"):
+            r[k] = bool(r[k])
 
     _zero_pages(sidecar, [n for c in _overflow_chains(sidecar, "structure") for n in c])
-    conn = sqlite3.connect(f"file:{sidecar}?mode=ro&immutable=1", uri=True)
+    conn = _ro(sidecar)
     try:
-        # read from the table itself (NOT INDEXED: an index may cover these
-        # columns), the corruption is real for anything behind the text ...
+        # read from the table itself (NOT INDEXED: the export index covers
+        # these columns), the corruption is real for anything behind the text ...
         with pytest.raises(sqlite3.DatabaseError, match="malformed"):
             conn.execute("SELECT erwaegungen_method FROM structure NOT INDEXED").fetchall()
         # ... and invisible to the columns in front of it
@@ -286,8 +480,8 @@ def test_metadata_export_reads_no_section_text(sidecar, tmp_path):
         if "malformed" in str(e):
             raise ReadsSectionText(str(e)) from e
         raise
-    assert counts == reference == {"structure": len(DECISIONS)}
+    assert counts == {"structure": len(DECISIONS)}
     got = pq.read_table(tmp_path / "o" / "structure" / "structure.parquet").to_pylist()
-    # row order may follow the index rather than rowid
-    assert (sorted(got, key=itemgetter("decision_id"))
-            == sorted(expected, key=itemgetter("decision_id")))
+    # row order follows the index (decision_id), not rowid
+    assert [r["decision_id"] for r in got] == sorted(r["decision_id"] for r in got)
+    assert got == sorted(legacy, key=itemgetter("decision_id"))
