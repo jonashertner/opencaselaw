@@ -163,3 +163,25 @@ def test_not_enough_free_space_keeps_the_current_sidecar(tmp_path, monkeypatch):
     monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: usage(100, 100, 0))
     assert publish.step_2g_build_decision_structure() is False
     assert calls == [] and fallback == []
+
+
+def test_the_extractors_working_copy_counts_as_free_space(tmp_path, monkeypatch):
+    """A bootstrap killed by the step timeout leaves its working copy beside
+    the step's tmp; the next run resumes it, so step 2g must not refuse the
+    run for lack of space those bytes already provide."""
+    from search_stack.extract_decision_structure_incremental import working_copy
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"])
+    need = int((out / "decision_structure.db").stat().st_size * 1.2)
+    wc = working_copy(out / "decision_structure.db.tmp")
+    assert wc.name == ".decision_structure.db.tmp.tmp"
+    wc.write_bytes(b"\0" * need)
+    import collections
+    usage = collections.namedtuple("usage", "total used free")
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: usage(100, 100, 0))
+    assert publish.step_2g_build_decision_structure() is True
+    assert "extract_decision_structure_incremental.py" in calls[0][0][1] and not fallback
+
+    calls.clear()
+    wc.write_bytes(b"\0" * (need - 1))
+    assert publish.step_2g_build_decision_structure() is False
+    assert calls == []

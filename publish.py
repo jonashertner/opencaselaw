@@ -754,9 +754,21 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
     if live_real.exists():
         free = shutil.disk_usage(live_real.parent).free
         need = int(live_real.stat().st_size * 1.2)
-        if free < need:
-            logger.error(f"  {live_real.parent} has {free / 1e9:.1f} GB free, the sidecar rebuild "
-                         f"needs ~{need / 1e9:.1f} GB; keeping the current sidecar")
+        # A bootstrap killed by the step timeout leaves its working copy beside
+        # `tmp` for the next run to resume; the extractor reuses those bytes
+        # (or deletes them first), so they count as available. Without this
+        # credit a resumable bootstrap never resumes on a volume with less
+        # than 1.2 x the sidecar to spare (review finding 2026-09-08).
+        try:
+            from search_stack.extract_decision_structure_incremental import reclaimable_bytes
+            reusable = reclaimable_bytes(tmp)
+        except Exception as e:  # noqa: BLE001 — the credit is an optimisation, never a failure
+            logger.warning(f"  could not measure the extractor's working copy ({e}); not crediting it")
+            reusable = 0
+        if free + reusable < need:
+            logger.error(f"  {live_real.parent} has {free / 1e9:.1f} GB free"
+                         + (f" (+{reusable / 1e9:.1f} GB in the extractor's working copy)" if reusable else "")
+                         + f", the sidecar rebuild needs ~{need / 1e9:.1f} GB; keeping the current sidecar")
             return False
     if os.environ.get("OCL_STRUCTURE_FORCE_FULL") == "1":
         logger.warning("  OCL_STRUCTURE_FORCE_FULL=1 is set: full re-extraction of every decision "

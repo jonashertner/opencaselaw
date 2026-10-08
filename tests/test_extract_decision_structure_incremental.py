@@ -592,3 +592,41 @@ def test_extractor_refuses_to_write_where_the_sidecar_does_not_fit(tmp_path: Pat
     with pytest.raises(SystemExit, match="refusing to write there"):
         build_structure_incremental(decisions_db=db, structure_db=live, output_path=out, force_full=True)
     assert not out.parent.exists() or not any(out.parent.iterdir())
+
+
+def test_a_killed_bootstrap_resumes_when_its_working_copy_makes_the_room(
+        tmp_path: Path, monkeypatch) -> None:
+    """A bootstrap killed by the step's wall clock leaves its working copy to
+    resume. Those bytes are reused, so the free-space check counts them: before
+    2026-10-08 it demanded 1.2 x the sidecar on top of the partial copy and a
+    killed bootstrap on a tight volume never resumed."""
+    import collections
+    import shutil
+    db = _make_decisions_db(tmp_path / "src", BASE_ROWS)
+    live = tmp_path / "live.db"
+    build_structure_incremental(decisions_db=db, structure_db=live, output_path=live, force_full=True)
+
+    out = (tmp_path / "out.db").resolve()
+    wc = _mod.working_copy(out)
+    shutil.copy(live, wc)                    # what a killed bootstrap leaves behind
+    conn = sqlite3.connect(wc)
+    conn.execute("INSERT INTO meta(key, value) VALUES ('bootstrap_in_progress', '1') "
+                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+    conn.commit()
+    conn.close()
+    reusable = _mod.reclaimable_bytes(out)
+    need = int(live.stat().st_size * 1.2)
+    assert 0 < reusable < need
+    usage = collections.namedtuple("usage", "total used free")
+
+    # one byte short even with the credit: refused, the working copy is kept
+    monkeypatch.setattr(_mod.shutil, "disk_usage", lambda p: usage(0, 0, need - reusable - 1))
+    with pytest.raises(SystemExit, match=r"\(\+0\.0 GB in \.out\.db\.tmp\)"):
+        build_structure_incremental(decisions_db=db, structure_db=live, output_path=out, force_full=True)
+    assert wc.exists() and not out.exists()
+
+    # free space alone is short of 1.2 x the sidecar, free + working copy is not
+    monkeypatch.setattr(_mod.shutil, "disk_usage", lambda p: usage(0, 0, need - reusable))
+    stats = build_structure_incremental(decisions_db=db, structure_db=live, output_path=out, force_full=True)
+    assert stats["mode"] == "full_bootstrap" and stats["resumed"] is True
+    assert out.exists() and not wc.exists()

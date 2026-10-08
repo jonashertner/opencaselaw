@@ -338,6 +338,14 @@ account for the new table. After the swap, measure the table read-only with
 this reads only that table's pages. Compare the result with the volume's free
 space.
 
+**Resuming a killed rebuild (fixed 2026-10-08, same PR).** If the step's wall
+clock kills the rebuild, it leaves a working copy to resume. Both free-space
+checks used to ignore that copy and demanded 1.2× the sidecar on top of it:
+`publish.py` step 2g and `_refuse_without_space`. On a tight volume, the
+resume was therefore refused and the old sidecar stayed. Both checks now
+count the working copy's bytes as available (`reclaimable_bytes`), because a
+run either reuses them or deletes them first.
+
 ## Open questions for the owner (answered above)
 
 1. The brief mentions "four has-section flags", but `STRUCTURE_META_SCHEMA`
