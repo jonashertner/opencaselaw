@@ -140,3 +140,54 @@ def test_volume_gate_constants_match_the_scraper():
     from scrapers import bge as scraper
     assert bci.BGE_VOLUME_EPOCH == scraper.BGE_VOLUME_EPOCH
     assert bci.BGE_HEADER_LAG_YEARS == scraper.BGE_HEADER_LAG_YEARS
+
+
+# ── volumes 1-79: only the ruling's own header dates it (report 2026-10-07) ──
+# The DFR text of BGE 78 IV 83 opens with the last page of No 21, which quotes a
+# letter "vom 17. Juli 1951"; the ruling's own header says "vom 3. Juni 1952".
+# Both dates pass the one-year volume window, so the window alone cannot tell.
+
+_FYG = ("82\nStrafgesetzbuch. No 21.\nauch im Brief vom 17. Juli 1951 hat das Mädchen\n"
+        "nichts anderes geschrieben.\nStrafgesetzbuch. No 22.\n83\n"
+        "22. Auszug aus dem Urteil des Kassationshofes vom 3. Juni 1952\ni. S. Fyg gegen Born.\n"
+        "Friedrich Fyg sah am Nachmittag des 25. November\n1951 eine fremde Katze.\n"
+        "84\nStrafgesetzbuch. No 23.\n23. Auszug aus dem Urteil des Kassationshofes vom 30. 1fai 1952\n"
+        "i. S. Staatsanwaltschaft des Kantons Aargau gegen Friedlin.\nA. -\n"
+        "Margrith Friedlin und ihr am 6. Juli 1948 geborenes Kind klagten\n")
+_FRIEDLIN = _FYG[_FYG.index("84\n"):]
+
+
+def test_historical_bge_takes_the_own_header_date_not_the_neighbours(tmp_path):
+    c = _gate_db(tmp_path / "d.db", [
+        ("bge_78_IV_83", "bge", "78_IV_83", "1952-01-01", None, _FYG),
+        # own header date unreadable ("30. 1fai 1952"): the body date of the
+        # facts (6 July 1948) must not stand in for it
+        ("bge_78_IV_84", "bge", "78_IV_84", "1952-01-01", None, _FRIEDLIN),
+    ])
+    bci.apply_to_db(c, max_date="2026-10-07")
+    g = lambda did: c.execute("SELECT decision_date, date_provenance FROM decisions "
+                              "WHERE decision_id=?", (did,)).fetchone()
+    assert g("bge_78_IV_83") == ("1952-06-03", "extracted_from_text")
+    assert g("bge_78_IV_84") == ("1952-01-01", "volume_synthetic")
+
+
+def test_the_sidecar_writer_applies_the_same_checks(tmp_path):
+    src = tmp_path / "src.db"
+    c = sqlite3.connect(src)
+    c.execute("CREATE TABLE decisions(decision_id TEXT PRIMARY KEY, court TEXT, decision_date TEXT, "
+              "publication_date TEXT, docket_number TEXT, full_text TEXT)")
+    c.executemany("INSERT INTO decisions VALUES(?,?,?,?,?,?)", [
+        ("bge_78_IV_83", "bge", "1952-01-01", None, "78_IV_83", _FYG),
+        ("bge_78_IV_84", "bge", "1952-01-01", None, "78_IV_84", _FRIEDLIN),
+        ("bge_1_I_396", "bge", "1875-01-01", None, "1_I_396",
+         "396 A. Staatsrechtliche Entscheidungen. Urteil vom 15. März 2020 in Sachen X"),
+    ])
+    c.commit(); c.close()
+    out = tmp_path / "ci.db"
+    bci.run_write(str(src), str(out), max_year=2026)
+    o = sqlite3.connect(out)
+    g = lambda did: o.execute("SELECT decision_date, decision_date_provenance, ecli FROM "
+                              "canonical_identity WHERE decision_id=?", (did,)).fetchone()
+    assert g("bge_78_IV_83") == ("1952-06-03", "extracted_from_text", "ECLI:CH:BGER:1952:78_IV_83")
+    assert g("bge_78_IV_84")[:2] == (None, "volume_synthetic")
+    assert g("bge_1_I_396")[:2] == (None, "volume_synthetic")
