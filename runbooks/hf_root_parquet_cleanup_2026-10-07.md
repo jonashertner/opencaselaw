@@ -6,8 +6,8 @@ public dataset and needs the repo owner's explicit approval. Guard added:
 `tests/test_check_hf_unmanaged_parquet.py`).
 
 Follow-up to `runbooks/historical_bge_and_sg_twins_2026-10-07.md`, section "Dataset (findings
-4 and 6)". That runbook is on branch `claude/historical-bge-sg-twins-2026-10-07` and is not
-yet on `main`, so the list lives here.
+4 and 6)". That runbook reached `main` in jonashertner/opencaselaw#130; the list and the
+deletion plan live here.
 
 ## Evidence (read-only, 2026-10-07)
 
@@ -179,6 +179,8 @@ Fixing this changes a public path that `publish_delta.py` says external consumer
 
 ## Note for the twins runbook
 
-When `claude/historical-bge-sg-twins-2026-10-07` is merged, replace its "Proposed (needs
-approval ...)" paragraph in "Dataset" with a pointer to this runbook. Its
-`delete_files(..., delete_patterns=["*.parquet"])` would empty the dataset; see above.
+On `main` (since jonashertner/opencaselaw#130), the "Proposed (needs approval ...)" paragraph
+in its "Dataset" section still gives `delete_files(..., delete_patterns=["*.parquet"])`. That
+command would empty the dataset (see above): **do not follow it.** jonashertner/opencaselaw#133
+replaces the paragraph with the explicit-list method and a pointer here. It was still open and
+not merged on 2026-10-08.
