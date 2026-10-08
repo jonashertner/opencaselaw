@@ -1,7 +1,7 @@
 {
 "schema": "opencaselaw.stats_history.v1",
 "note": "One point per day, taken from the committed docs/stats.json of that day. Seeded from git history on 2026-09-17; a nightly appender is proposed (see docs/proposals/stats-dashboard.md). null = not computed that day.",
-"generated_at": "2026-10-08T02:28:36+00:00",
+"generated_at": "2026-10-08T14:55:13+00:00",
 "series": [
 {
 "date": "2026-05-01",
@@ -2046,9 +2046,9 @@
 },
 {
 "date": "2026-10-08",
-"total": 1078321,
-"unique": 937434,
-"duplicates": 140887,
+"total": 1078583,
+"unique": 937695,
+"duplicates": 140888,
 "courts": 124,
 "federal_laws": 5543,
 "cantonal_laws": 15616,

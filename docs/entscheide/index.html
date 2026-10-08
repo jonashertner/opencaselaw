@@ -4,34 +4,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="google-site-verification" content="5eTv5mgNKw8M8vENzS4KPG4aJKYm_zKZJhL3TbQpOGs">
-<title>Decisions — 1,050,000+ Swiss court decisions · OpenCaseLaw</title>
-<meta name="description" content="Searchable full-text dataset of every published Swiss court decision: Federal Supreme Court, Federal Administrative Court, regulators and all 26 cantons. Per-court coverage, daily rebuild, access via MCP, HuggingFace or REST API.">
+<title>Schweizer Gerichtsentscheide — OpenCaseLaw</title>
+<meta name="description" content="Der grösste offene Datensatz Schweizer Gerichtsentscheide aller Bundesgerichte und 26 Kantone — plus direkter Zugriff auf ~5’000 Bundesgesetze und 26’000+ kantonale Erlasse.">
 <meta name="author" content="Jonas Hertner">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/entscheide/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/entscheide/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/entscheide/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/entscheide/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/entscheide/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/entscheide/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/entscheide/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/entscheide/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/entscheide/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/entscheide/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/entscheide/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/entscheide/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://opencaselaw.ch/entscheide/">
-<meta property="og:title" content="Swiss Case Law Open Dataset — 1,050,000+ Court Decisions">
-<meta property="og:description" content="OpenCaseLaw publishes 1,050,000+ Swiss federal, cantonal, and regulatory decisions with full text, structured metadata, and 9.65 million extracted case-citation references (8.09 M resolved).">
+<meta property="og:title" content="Schweizer Gerichtsentscheide — OpenCaseLaw">
+<meta property="og:description" content="Der grösste offene Datensatz Schweizer Gerichtsentscheide aller Bundesgerichte und 26 Kantone — plus direkter Zugriff auf ~5’000 Bundesgesetze und 26’000+ kantonale Erlasse.">
 <meta property="og:image" content="https://opencaselaw.ch/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="OpenCaseLaw.ch — Swiss Court Decisions Open Dataset">
 <meta property="og:site_name" content="OpenCaseLaw.ch">
-<meta property="og:locale" content="en_CH">
-<meta property="og:locale:alternate" content="de_CH">
+<meta property="og:locale" content="de_CH">
 <meta property="og:locale:alternate" content="fr_CH">
 <meta property="og:locale:alternate" content="it_CH">
+<meta property="og:locale:alternate" content="rm_CH">
+<meta property="og:locale:alternate" content="en_CH">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Swiss Case Law Open Dataset — 1,050,000+ Court Decisions">
-<meta name="twitter:description" content="1,050,000+ Swiss federal, cantonal, and regulatory decisions with full text and 9.65 million extracted case-citation references (8.09 M resolved).">
+<meta name="twitter:title" content="Schweizer Gerichtsentscheide — OpenCaseLaw">
+<meta name="twitter:description" content="Der grösste offene Datensatz Schweizer Gerichtsentscheide aller Bundesgerichte und 26 Kantone — plus direkter Zugriff auf ~5’000 Bundesgesetze und 26’000+ kantonale Erlasse.">
 <meta name="twitter:image" content="https://opencaselaw.ch/og-image.png">
 <meta name="twitter:image:alt" content="OpenCaseLaw.ch — Swiss Court Decisions Open Dataset">
 <script type="application/ld+json">
@@ -325,32 +326,32 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">Browse · Decisions</b></p>
-      <h1 class="page-h1" data-t="h1">Swiss court decisions</h1>
-      <p class="page-lead" data-t="subtitle">The largest open dataset of Swiss court decisions from all federal courts and 26 cantons — plus direct access to 5,516 federal laws and 15,722 cantonal enactments. Search instantly with AI or download the full dataset.</p>
+      <p class="page-kicker"><b data-t="kicker">Stöbern · Entscheide</b></p>
+      <h1 class="page-h1" data-t="h1">Schweizer Gerichtsentscheide</h1>
+      <p class="page-lead" data-t="subtitle">Der grösste offene Datensatz Schweizer Gerichtsentscheide aller Bundesgerichte und 26 Kantone — plus direkter Zugriff auf ~5’000 Bundesgesetze und 26’000+ kantonale Erlasse. Sofort mit KI durchsuchen oder den gesamten Datensatz herunterladen.</p>
     </div>
   </section>
 
   <section class="wrap" style="padding-bottom:clamp(64px,9vw,112px)">
     <!-- Dashboard section nav — sticky, scroll-spy tracks active -->
     <nav class="anchor-nav" aria-label="Dashboard sections">
-      <a href="#kpis" data-t="nav_overview">Overview</a>
-      <a href="#sec-access" data-t="nav_access">Access</a>
-      <a href="#sec-coverage" data-t="nav_coverage">Coverage</a>
-      <a href="#sec-fed" data-t="nav_federal">Federal</a>
-      <a href="#sec-can" data-t="nav_cantonal">Cantonal</a>
-      <a href="#sec-cantons" data-t="nav_cantons">Cantons</a>
-      <a href="#sec-tree" data-t="nav_browse">Browse</a>
+      <a href="#kpis" data-t="nav_overview">Übersicht</a>
+      <a href="#sec-access" data-t="nav_access">Zugang</a>
+      <a href="#sec-coverage" data-t="nav_coverage">Abdeckung</a>
+      <a href="#sec-fed" data-t="nav_federal">Bund</a>
+      <a href="#sec-can" data-t="nav_cantonal">Kantonal</a>
+      <a href="#sec-cantons" data-t="nav_cantons">Kantone</a>
+      <a href="#sec-tree" data-t="nav_browse">Durchsuchen</a>
     </nav>
 
     <div class="kpis" id="kpis">
-      <div class="ld" style="flex:1"><span class="sp"></span> <span data-t="loading">Loading</span></div>
+      <div class="ld" style="flex:1"><span class="sp"></span> <span data-t="loading">Laden</span></div>
     </div>
 
     <!-- Last Updated -->
@@ -359,21 +360,21 @@
     <!-- Legislation banner -->
     <div class="leg-banner">
       <div class="leg-banner-head">
-        <h3 data-t="leg_title">Federal &amp; Cantonal Legislation</h3>
-        <span class="leg-badge" data-t="leg_badge">via MCP</span>
+        <h3 data-t="leg_title">Bundes- und kantonale Gesetze</h3>
+        <span class="leg-badge" data-t="leg_badge">per MCP</span>
       </div>
-      <p data-t="leg_desc">Fedlex SPARQL endpoint mirrored monthly and indexed in SQLite (FTS5): 5,516 federal laws, ~133,468 articles in DE/FR/IT, full amendment history. Cantonal legislation locally mirrored from LexFind (~30,000 acts, monthly refresh, live API as fallback). Article lookup in &lt;1 ms.</p>
+      <p data-t="leg_desc">Fedlex-SPARQL-Endpunkt monatlich gespiegelt und in SQLite (FTS5) indexiert: ~5’000 Bundesgesetze, 125’000+ Artikel in DE/FR/IT, vollständige Änderungshistorie. Kantonale Gesetzgebung lokal gespiegelt aus LexFind (~30’000 Erlasse, monatlich refreshed, Live-API als Fallback). Artikel-Lookup in &lt;1 ms.</p>
       <div class="leg-examples">
         <div class="leg-ex">
-          <span class="leg-ex-label" data-t="leg_ex_label_law">Federal law (local)</span>
+          <span class="leg-ex-label" data-t="leg_ex_label_law">Bundesgesetz (lokal)</span>
           <code>get_law("OR", article="41")</code>
         </div>
         <div class="leg-ex">
-          <span class="leg-ex-label" data-t="leg_ex_label_cantonal">Cantonal (Portale + LexFind)</span>
+          <span class="leg-ex-label" data-t="leg_ex_label_cantonal">Kantonal (Portale + LexFind)</span>
           <code>search_legislation("Mietrecht", canton="ZH")</code>
         </div>
         <div class="leg-ex">
-          <span class="leg-ex-label" data-t="leg_ex_label_browse">Recent amendments</span>
+          <span class="leg-ex-label" data-t="leg_ex_label_browse">Aktuelle Änderungen</span>
           <code>browse_legislation_changes(canton="CH")</code>
         </div>
       </div>
@@ -382,7 +383,7 @@
     <!-- Access the Data -->
     <details class="section-card" id="sec-access" open>
       <summary class="section-summary">
-        <h2 data-t="access">Access the Data</h2>
+        <h2 data-t="access">Datenzugang</h2>
         <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
       <div class="section-body">
@@ -390,13 +391,13 @@
         <div class="access-featured">
           <h3>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M8 8l1.5 1.5M14.5 8l-1 1" stroke-linecap="round"/></svg>
-            <span data-t="access_featured_title">Search with AI</span>
+            <span data-t="access_featured_title">Mit KI durchsuchen</span>
           </h3>
-          <p data-t="access_featured_desc">Search over 1,050,000 Swiss court decisions in natural language. Find relevant cases, trace citations between decisions, analyze legal trends, and draft research memos.</p>
+          <p data-t="access_featured_desc">Über 1’050’000+ Schweizer Gerichtsentscheide in natürlicher Sprache durchsuchen. Relevante Urteile finden, Zitationen zwischen Entscheiden nachverfolgen, Rechtsprechungstrends analysieren und Recherche-Notizen erstellen.</p>
           <div class="setup-paths">
             <div class="setup-path">
-              <div class="setup-path-label"><span class="rec" data-t="access_remote_label">Remote (recommended)</span></div>
-              <div class="setup-steps"><span data-t="access_remote_desc">Instant, always current. No download needed.</span></div>
+              <div class="setup-path-label"><span class="rec" data-t="access_remote_label">Remote (empfohlen)</span></div>
+              <div class="setup-steps"><span data-t="access_remote_desc">Sofort verfügbar, immer aktuell. Kein Download nötig.</span></div>
               <div class="setup-steps" style="margin-top:10px">
                 <strong data-t="access_setup_desktop">Claude Desktop</strong><br>
                 <span style="color:var(--t2);font-size:12px">Settings → Connectors → Add →</span><br>
@@ -410,7 +411,7 @@
               </div>
               <div class="setup-steps" style="margin-top:10px">
                 <strong>ChatGPT</strong> <span style="color:var(--t2);font-size:12px">(Pro/Team/Enterprise)</span><br>
-                <span style="color:var(--t2);font-size:12px" data-t="access_chatgpt_steps">Settings → Apps → Advanced settings → enable Developer mode → Create app → name "Swiss Caselaw", paste URL below, auth: None. In chat: + → Developer mode → select app. Recommended with GPT-5.3 (GPT-5.4 does not currently support MCP tool invocation).</span><br>
+                <span style="color:var(--t2);font-size:12px" data-t="access_chatgpt_steps">Settings → Apps → Advanced settings → Developer mode aktivieren → Create app → Name "Swiss Caselaw", URL unten einfügen, Auth: None. Im Chat: + → Developer mode → App wählen. Empfohlen mit GPT-5.3 (GPT-5.4 unterstützt MCP-Tool-Aufrufe derzeit nicht).</span><br>
                 <code>https://mcp.opencaselaw.ch/sse</code>
               </div>
               <div class="setup-steps" style="margin-top:10px">
@@ -422,31 +423,29 @@
     }
 }}</code>
               </div>
-              <div class="plan-note" data-t="access_plan_note">Claude: Pro, Max, Team, or Enterprise (Desktop) / any plan (Code). ChatGPT: Plus, Pro, Team, Enterprise, or Edu. Gemini CLI: free.</div>
+              <div class="plan-note" data-t="access_plan_note">Claude: Pro, Max, Team oder Enterprise (Desktop) / jeder Plan (Code). ChatGPT: Plus, Pro, Team, Enterprise oder Edu. Gemini CLI: kostenlos.</div>
             </div>
             <div class="setup-path">
-              <div class="setup-path-label" data-t="access_local_label">Local (offline)</div>
-              <div class="setup-steps"><span data-t="access_local_desc">Full control, works offline. ~65 GB disk, 30&ndash;60 min setup.</span></div>
+              <div class="setup-path-label" data-t="access_local_label">Lokal (offline)</div>
+              <div class="setup-steps"><span data-t="access_local_desc">Volle Kontrolle, offline verfügbar. ~65 GB Speicher, 30–60 Min. Einrichtung.</span></div>
               <div class="setup-steps" style="margin-top:10px">
-                <span style="color:var(--t2);font-size:12px" data-t="access_local_clone">Clone → install → register with any MCP client</span><br>
-                <a href="https://github.com/jonashertner/opencaselaw#option-b-local-server-offline-access" style="font-size:12px;color:var(--red);text-decoration:underline;text-underline-offset:3px" data-t="access_local_setup">Full setup guide →</a>
+                <span style="color:var(--t2);font-size:12px" data-t="access_local_clone">Klonen → installieren → mit beliebigem MCP-Client registrieren</span><br>
+                <a href="https://github.com/jonashertner/opencaselaw#option-b-local-server-offline-access" style="font-size:12px;color:var(--red);text-decoration:underline;text-underline-offset:3px" data-t="access_local_setup">Vollständige Einrichtung →</a>
               </div>
-              <div class="setup-steps" style="margin-top:10px;font-size:12px;color:var(--t3)" data-t="access_local_note">
-                Works with any MCP client. Local mode includes database update tools.
-              </div>
+              <div class="setup-steps" style="margin-top:10px;font-size:12px;color:var(--t3)" data-t="access_local_note">Kompatibel mit jedem MCP-Client. Lokaler Modus enthält Datenbank-Update-Tools.</div>
             </div>
           </div>
           <div class="example-prompts">
-            <h5 data-t="examples_heading">What you can do after connecting:</h5>
+            <h5 data-t="examples_heading">Was nach der Verbindung möglich ist:</h5>
             <ul class="prompt-list">
-              <li data-t="cap_search">Search decisions in natural language — by keyword, topic, statute, or legal concept</li>
-              <li data-t="cap_lookup">Look up any decision by docket number — with full text and metadata</li>
-              <li data-t="cap_laws">Retrieve the current text of 5,516 federal laws (~133,468 articles, DE/FR/IT) — and search 15,722 cantonal enactments</li>
-              <li data-t="cap_stats">View statistics and coverage across all federal and cantonal courts</li>
-              <li data-t="cap_leading">Find leading cases for any law or legal area, ranked by citation count</li>
-              <li data-t="cap_citations">Trace citation networks — see what a decision cites and what cites it</li>
-              <li data-t="cap_trends">Analyze how jurisprudence on a topic has evolved year by year</li>
-              <li data-t="cap_research">Draft research memos from case facts — with relevant case law and statutes</li>
+              <li data-t="cap_search">Entscheide in natürlicher Sprache suchen — nach Stichwort, Thema, Gesetzesartikel oder Rechtskonzept</li>
+              <li data-t="cap_lookup">Jeden Entscheid per Dossiernummer abrufen — mit Volltext und Metadaten</li>
+              <li data-t="cap_laws">Aktuellen Text von ~5’000 Bundesgesetzen (125’000+ Artikel, DE/FR/IT) direkt abrufen — und 26’000+ kantonale Erlasse durchsuchen</li>
+              <li data-t="cap_stats">Statistiken und Abdeckung aller Bundes- und Kantonsgerichte einsehen</li>
+              <li data-t="cap_leading">Leitentscheide zu jedem Gesetz oder Rechtsgebiet finden, nach Zitationshäufigkeit geordnet</li>
+              <li data-t="cap_citations">Zitationsnetzwerke nachverfolgen — sehen, was ein Entscheid zitiert und was ihn zitiert</li>
+              <li data-t="cap_trends">Analysieren, wie sich die Rechtsprechung zu einem Thema über die Jahre entwickelt hat</li>
+              <li data-t="cap_research">Recherche-Notizen aus Sachverhalt erstellen — mit passender Rechtsprechung und Gesetzesartikeln</li>
             </ul>
           </div>
         </div>
@@ -457,7 +456,7 @@
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               <span data-t="quick_download">Download</span>
             </h3>
-            <p data-t="access_hf_desc">Download the full dataset as Parquet files</p>
+            <p data-t="access_hf_desc">Gesamter Datensatz als Parquet-Dateien herunterladen</p>
             <code>from datasets import load_dataset
 ds = load_dataset("voilaj/swiss-caselaw")</code>
           </div>
@@ -466,7 +465,7 @@ ds = load_dataset("voilaj/swiss-caselaw")</code>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
               REST API
             </h3>
-            <p data-t="access_api_desc">Query via HuggingFace Datasets Server API</p>
+            <p data-t="access_api_desc">Abfragen via HuggingFace Datasets Server API</p>
             <code>GET /rows?dataset=voilaj/swiss-caselaw
   &config=default&split=train
   &offset=0&length=10</code>
@@ -476,7 +475,7 @@ ds = load_dataset("voilaj/swiss-caselaw")</code>
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               Web UI
             </h3>
-            <p data-t="access_webui_desc">Local chat interface — ask questions in natural language, get answers with cited decisions. Runs on your machine with Claude, OpenAI, Gemini, or local models via Ollama (no API key needed).</p>
+            <p data-t="access_webui_desc">Lokale Chat-Oberfläche — Fragen in natürlicher Sprache stellen, Antworten mit zitierten Entscheiden erhalten. Läuft lokal mit Claude, OpenAI, Gemini oder lokalen Modellen via Ollama (kein API-Schlüssel nötig).</p>
             <code>git clone github.com/jonashertner/opencaselaw
 cd caselaw-repo-1
 ./scripts/run_web_local.sh</code>
@@ -488,17 +487,17 @@ cd caselaw-repo-1
     <!-- Coverage (charts) -->
     <details class="section-card" id="sec-coverage" open>
       <summary class="section-summary">
-        <h2 data-t="nav_coverage">Coverage</h2>
+        <h2 data-t="nav_coverage">Abdeckung</h2>
         <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
       <div class="section-body">
         <div class="chart-row" id="charts">
           <div class="chart-card">
-            <h3 data-t="chart_timeline">Decisions per Year</h3>
+            <h3 data-t="chart_timeline">Entscheide pro Jahr</h3>
             <div class="chart-canvas"><canvas id="c-timeline" height="220"></canvas></div>
           </div>
           <div class="chart-card">
-            <h3 data-t="chart_languages">Language Distribution</h3>
+            <h3 data-t="chart_languages">Sprachverteilung</h3>
             <div class="lang-chart-wrap">
               <div class="chart-canvas" style="max-width:180px"><canvas id="c-lang" height="180"></canvas></div>
               <div class="lang-legend" id="lang-legend"></div>
@@ -511,17 +510,17 @@ cd caselaw-repo-1
     <!-- Federal courts -->
     <details class="section-card hid" id="sec-fed">
       <summary class="section-summary">
-        <h2 data-t="federal">Federal Courts</h2>
+        <h2 data-t="federal">Bund</h2>
         <span class="badge" id="fed-n"></span>
         <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
       <div class="section-body">
         <div class="tw">
           <table class="ct" id="t-fed"><thead><tr>
-            <th data-k="name" data-t="th_court">Court</th>
-            <th data-k="count" data-t="th_decisions">Decisions</th>
-            <th data-k="last_scraped" class="hide-m" data-t="th_updated">New Data</th>
-            <th data-k="languages" data-t="th_languages">Languages</th>
+            <th data-k="name" data-t="th_court">Gericht</th>
+            <th data-k="count" data-t="th_decisions">Entscheide</th>
+            <th data-k="last_scraped" class="hide-m" data-t="th_updated">Neue Daten</th>
+            <th data-k="languages" data-t="th_languages">Sprachen</th>
           </tr></thead><tbody></tbody></table>
         </div>
       </div>
@@ -530,7 +529,7 @@ cd caselaw-repo-1
     <!-- Cantonal courts -->
     <details class="section-card hid" id="sec-can">
       <summary class="section-summary">
-        <h2 data-t="cantonal">Cantonal Courts</h2>
+        <h2 data-t="cantonal">Kantone</h2>
         <span class="badge" id="can-n"></span>
         <button class="csv-btn" id="csv-can" data-t="csv_export">CSV</button>
         <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -542,10 +541,10 @@ cd caselaw-repo-1
       </div>
       <div class="tw">
         <table class="ct" id="t-can"><thead><tr>
-          <th data-k="name" data-t="th_court">Court</th>
-          <th data-k="canton" data-t="th_canton">Canton</th>
-          <th data-k="count" data-t="th_decisions">Decisions</th>
-          <th data-k="last_scraped" class="hide-m" data-t="th_updated">New Data</th>
+          <th data-k="name" data-t="th_court">Gericht</th>
+          <th data-k="canton" data-t="th_canton">Kanton</th>
+          <th data-k="count" data-t="th_decisions">Entscheide</th>
+          <th data-k="last_scraped" class="hide-m" data-t="th_updated">Neue Daten</th>
         </tr></thead><tbody></tbody></table>
       </div>
       </div>
@@ -554,7 +553,7 @@ cd caselaw-repo-1
     <!-- Canton grid -->
     <details class="section-card hid" id="sec-cantons">
       <summary class="section-summary">
-        <h2 data-t="cantons">Cantons</h2>
+        <h2 data-t="cantons">Kantone</h2>
         <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
       <div class="section-body">
@@ -565,7 +564,7 @@ cd caselaw-repo-1
     <!-- Tree browser -->
     <details class="section-card hid" id="sec-tree">
       <summary class="section-summary">
-        <h2 data-t="browse">Browse</h2>
+        <h2 data-t="browse">Durchsuchen</h2>
         <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
       <div class="section-body">
@@ -576,7 +575,7 @@ cd caselaw-repo-1
     <!-- Scraper Health (collapsible) -->
     <details class="health-card hid" id="sec-health">
       <summary class="health-summary">
-        <h3 data-t="health_title">Scraper Health</h3>
+        <h3 data-t="health_title">Scraper-Status</h3>
         <span class="health-status" id="health-summary-status"></span>
         <svg class="chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
@@ -585,13 +584,13 @@ cd caselaw-repo-1
         <div class="disk-bar hid" id="disk-bar"></div>
         <div class="tw">
           <table class="ct" id="t-health"><thead><tr>
-            <th data-k="name" data-t="th_court">Court</th>
+            <th data-k="name" data-t="th_court">Gericht</th>
             <th data-k="status" data-t="th_status">Status</th>
-            <th data-k="new_count" data-t="th_new">New</th>
-            <th data-k="duration_s" data-t="th_duration">Duration</th>
-            <th data-k="state_count" class="hide-m" data-t="th_state">Total Known</th>
+            <th data-k="new_count" data-t="th_new">Neu</th>
+            <th data-k="duration_s" data-t="th_duration">Dauer</th>
+            <th data-k="state_count" class="hide-m" data-t="th_state">Bekannt</th>
             <th data-k="jsonl_size_mb" class="hide-m" data-t="th_jsonl_size">JSONL</th>
-            <th data-k="jsonl_mtime" class="hide-m" data-t="th_last_data">Last Data</th>
+            <th data-k="jsonl_mtime" class="hide-m" data-t="th_last_data">Letzte Daten</th>
           </tr></thead><tbody></tbody></table>
         </div>
       </div>
@@ -601,7 +600,7 @@ cd caselaw-repo-1
 
 <div data-foot></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coverage — OpenCaseLaw</title>
-<meta name="description" content="Per-source scraper health and known coverage gaps for the OpenCaseLaw Swiss legal corpus. Refreshed nightly by the publish pipeline.">
+<title>Abdeckung — OpenCaseLaw</title>
+<meta name="description" content="Scraper-Gesundheit pro Quelle für den Schweizer Rechtskorpus von OpenCaseLaw, nächtlich aktualisiert durch die Publikations-Pipeline (03:00 UTC).">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/coverage/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/coverage/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/coverage/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/coverage/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/coverage/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/coverage/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/coverage/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/coverage/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/coverage/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/coverage/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/coverage/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/coverage/">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,48 +81,48 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">Operational</b> · <span data-t="kicker_sub">scrapers</span></p>
-      <h1 class="page-h1" data-t="h1">Coverage</h1>
-      <p class="page-lead" data-t="lead">Per-source scraper health for the OpenCaseLaw Swiss legal corpus, refreshed nightly by the publish pipeline (03:00&nbsp;UTC). The table below shows every active scraper, the decisions it added in the last run, the total it holds, and — where the source portal exposes it — a comparison against the portal's published count so any gap is visible.</p>
+      <p class="page-kicker"><b data-t="kicker">Operativ</b> · <span data-t="kicker_sub">Scraper</span></p>
+      <h1 class="page-h1" data-t="h1">Abdeckung</h1>
+      <p class="page-lead" data-t="lead">Scraper-Gesundheit pro Quelle für den Schweizer Rechtskorpus von OpenCaseLaw, nächtlich aktualisiert durch die Publikations-Pipeline (03:00 UTC). Die Tabelle unten zeigt jeden aktiven Scraper, die im letzten Lauf hinzugefügten Entscheide, den von uns gehaltenen Gesamtbestand und — sofern das Quellportal sie ausweist — einen Vergleich mit der publizierten Anzahl des Portals, damit jede Lücke sichtbar ist.</p>
     </div>
   </section>
 
   <section class="wrap" style="padding-bottom:clamp(64px,9vw,112px)">
 
     <div class="stats" id="summary">
-      <div class="stat"><div class="stat-n runat" id="stat-runat"><span class="skel"></span></div><div class="stat-l" data-t="stat_lastRun">Last run</div></div>
-      <div class="stat"><div class="stat-n ok" id="stat-ok"><span class="skel"></span></div><div class="stat-l" data-t="stat_healthy">Healthy</div></div>
-      <div class="stat"><div class="stat-n warn" id="stat-zero"><span class="skel"></span></div><div class="stat-l" data-t="stat_noNew">No new docs</div></div>
-      <div class="stat"><div class="stat-n err" id="stat-err"><span class="skel"></span></div><div class="stat-l" data-t="stat_failing">Failing</div></div>
-      <div class="stat"><div class="stat-n" id="stat-total"><span class="skel"></span></div><div class="stat-l" data-t="stat_totalDecisions">Total decisions</div></div>
+      <div class="stat"><div class="stat-n runat" id="stat-runat"><span class="skel"></span></div><div class="stat-l" data-t="stat_lastRun">Letzter Lauf</div></div>
+      <div class="stat"><div class="stat-n ok" id="stat-ok"><span class="skel"></span></div><div class="stat-l" data-t="stat_healthy">Gesund</div></div>
+      <div class="stat"><div class="stat-n warn" id="stat-zero"><span class="skel"></span></div><div class="stat-l" data-t="stat_noNew">Keine neuen Dok.</div></div>
+      <div class="stat"><div class="stat-n err" id="stat-err"><span class="skel"></span></div><div class="stat-l" data-t="stat_failing">Fehlerhaft</div></div>
+      <div class="stat"><div class="stat-n" id="stat-total"><span class="skel"></span></div><div class="stat-l" data-t="stat_totalDecisions">Entscheide total</div></div>
     </div>
 
     <div class="controls">
       <input class="filter" type="search" id="filter" autocomplete="off" aria-label="Filter by source key" placeholder="Filter — bger, zh, ti…" data-t-ph="filter_ph">
       <div class="tabs" role="group" aria-label="Filter by status">
-        <button data-filter="all" class="on" type="button" data-t="f_all">All</button>
-        <button data-filter="ok" type="button" data-t="f_healthy">Healthy</button>
-        <button data-filter="zero" type="button" data-t="f_noNew">No new</button>
-        <button data-filter="err" type="button" data-t="f_failing">Failing</button>
+        <button data-filter="all" class="on" type="button" data-t="f_all">Alle</button>
+        <button data-filter="ok" type="button" data-t="f_healthy">Gesund</button>
+        <button data-filter="zero" type="button" data-t="f_noNew">Keine neuen</button>
+        <button data-filter="err" type="button" data-t="f_failing">Fehlerhaft</button>
       </div>
     </div>
 
     <table class="tbl" id="scrapers">
       <thead>
         <tr>
-          <th data-t="th_source">Source</th>
+          <th data-t="th_source">Quelle</th>
           <th data-t="th_status">Status</th>
-          <th class="n" data-t="th_lastRun">+ last run</th>
-          <th class="n" data-t="th_totalOurs">Total ours</th>
+          <th class="n" data-t="th_lastRun">+ letzter Lauf</th>
+          <th class="n" data-t="th_totalOurs">Total bei uns</th>
           <th class="n col-portal" data-t="th_portal">Portal</th>
-          <th class="n" data-t="th_gap">Gap</th>
-          <th class="n col-duration" data-t="th_duration">Duration</th>
+          <th class="n" data-t="th_gap">Lücke</th>
+          <th class="n col-duration" data-t="th_duration">Dauer</th>
         </tr>
       </thead>
       <tbody id="rows">
@@ -136,16 +136,16 @@
 
     <!-- ───────────────── Supplementary frozen archives ───────────────── -->
     <section style="margin-top:clamp(56px,8vw,88px);border-top:1px solid var(--line);padding-top:clamp(40px,6vw,64px)">
-      <p class="sec-tag"><span class="n">§</span> <span data-t="arch_tag">Frozen archives</span></p>
-      <h2 class="sec-h" data-t="arch_h">Supplementary frozen archives</h2>
+      <p class="sec-tag"><span class="n">§</span> <span data-t="arch_tag">Eingefrorene Archive</span></p>
+      <h2 class="sec-h" data-t="arch_h">Ergänzende eingefrorene Archive</h2>
       <p class="page-lead" data-t-html="arch_lead" style="margin-top:14px">Beyond the live scrapers above, the corpus also incorporates seven <strong>frozen archives</strong> sourced via <a href="https://entscheidsuche.ch/" rel="noopener">entscheidsuche.ch</a> — an independent open-access aggregator that mirrors many Swiss court portals. We re-ingest entscheidsuche's JSON archives once a week (Sunday 22:00 UTC) as a completeness backstop; the last six runs added <strong>zero new decisions</strong> because the upstream portals these shards reflect are no longer producing new content or have been replaced. The records are preserved as historical snapshots inside our corpus.</p>
 
       <table class="tbl">
         <thead>
           <tr>
             <th data-t="arch_th_shard">Shard</th>
-            <th class="n" data-t="arch_th_records">Records</th>
-            <th data-t="arch_th_upstream">Upstream status</th>
+            <th class="n" data-t="arch_th_records">Datensätze</th>
+            <th data-t="arch_th_upstream">Status der Quelle</th>
           </tr>
         </thead>
         <tbody>
@@ -172,17 +172,17 @@
           <tr>
             <td class="name"><code>be_bvd</code></td>
             <td class="n">2,094</td>
-            <td data-t="arch_be_bvd">BE Behörden-Verwaltungs-Direktion. Administrative tribunal; no live portal endpoint.</td>
+            <td data-t="arch_be_bvd">BE Behörden-Verwaltungs-Direktion. Verwaltungsgericht; kein Live-Portal-Endpunkt.</td>
           </tr>
           <tr>
             <td class="name"><code>be_weitere</code></td>
             <td class="n">840</td>
-            <td data-t="arch_be_weitere">BE miscellaneous administrative bodies.</td>
+            <td data-t="arch_be_weitere">BE verschiedene Verwaltungsstellen.</td>
           </tr>
           <tr>
             <td class="name"><code>be_steuerrekurs</code></td>
             <td class="n">343</td>
-            <td data-t="arch_be_steuerrekurs">Steuerrekurskommission BE. Direct scraper exists; upstream portal database disconnected since February 2026, returns 0 results. We are tracking the issue with the canton.</td>
+            <td data-t="arch_be_steuerrekurs">Steuerrekurskommission BE. Direkter Scraper vorhanden; die Datenbank des Quellportals ist seit Februar 2026 getrennt und liefert 0 Ergebnisse. Wir verfolgen das Problem mit dem Kanton.</td>
           </tr>
         </tbody>
       </table>
@@ -194,7 +194,7 @@
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

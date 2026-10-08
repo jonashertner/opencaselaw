@@ -28,10 +28,14 @@
       foot_tag:'The complete open record of Swiss case law. CC0 dataset, MIT code.',foot_legal:'Corpus CC0 · Code MIT'}
   };
   var LANGS = ['de','fr','it','rm','en'];
+  // A page written out in one language (/citecheck/fr/, scripts/build_page_languages.mjs) is that
+  // language; elsewhere ?lang=, then the last choice, then German.
+  var pinned = document.documentElement.getAttribute('data-ocl-lang');
   var qp = new URLSearchParams(location.search).get('lang');
   var stored = null; try { stored = localStorage.getItem('lang'); } catch (e) {}
-  var lang = (qp && SHARED[qp]) ? qp : ((stored && SHARED[stored]) ? stored : 'de');
-  if (qp && SHARED[qp]) { try { localStorage.setItem('lang', qp); } catch (e) {} }
+  var chosen = (pinned && SHARED[pinned]) ? pinned : (qp && SHARED[qp]) ? qp : null;
+  var lang = chosen || ((stored && SHARED[stored]) ? stored : 'de');
+  if (chosen) { try { localStorage.setItem('lang', chosen); } catch (e) {} }
 
   var DICT = {};
   function setDict(extra) { LANGS.forEach(function (l) { DICT[l] = Object.assign({}, SHARED[l] || {}, (extra && extra[l]) || {}); }); }
@@ -98,9 +102,19 @@
     swap('[data-nav]', navHTML(active));
     swap('[data-foot]', footHTML());
     var lw = document.getElementById('langs');
+    // Each language is a page of its own where the page names one (hreflang); German, the
+    // page itself, carries ?lang=de so the choice sticks. Otherwise the page is re-rendered by ?lang=.
     if (lw) lw.innerHTML = PAGE_LANGS.map(function (l) {
-      var u = new URLSearchParams(location.search); u.set('lang', l);
-      return '<a href="?' + u.toString() + '" class="' + (l === lang ? 'on' : '') + '" hreflang="' + l + '">' + l + '</a>';
+      var alt = document.querySelector('link[rel="alternate"][hreflang="' + l + '"]');
+      var href;
+      if (alt) {
+        var a = new URL(alt.getAttribute('href'), location.href);
+        href = a.pathname + (a.search || (l === 'de' ? '?lang=de' : '')) + location.hash;
+      } else {
+        var u = new URLSearchParams(location.search); u.set('lang', l);
+        href = '?' + u.toString();
+      }
+      return '<a href="' + esc(href) + '" class="' + (l === lang ? 'on' : '') + '" hreflang="' + l + '">' + l + '</a>';
     }).join('');
   }
   function reveal() {
