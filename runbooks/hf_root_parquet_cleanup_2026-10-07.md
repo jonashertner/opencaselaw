@@ -230,8 +230,6 @@ After B, the config can stay as it is.
 
 ## Note for the twins runbook
 
-On `main` (since jonashertner/opencaselaw#130), the "Proposed (needs approval ...)" paragraph
-in its "Dataset" section still gives `delete_files(..., delete_patterns=["*.parquet"])`. That
-command would empty the dataset (see above): **do not follow it.** jonashertner/opencaselaw#133
-replaces the paragraph with the explicit-list method and a pointer here. It was still open and
-not merged on 2026-10-08.
+Its "Dataset" paragraph first proposed `delete_files(..., delete_patterns=["*.parquet"])`,
+which would have emptied the dataset (see above). jonashertner/opencaselaw#133 (merged
+2026-10-08) replaced it with the explicit-list method and a pointer here.
