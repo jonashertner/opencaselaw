@@ -2,15 +2,15 @@
   "total": 1078583,
   "source_representations": 1078583,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 937696,
-  "unique_decisions_lower_bound": 937646,
-  "duplicate_representations": 140887,
+  "unique_decisions": 937695,
+  "unique_decisions_lower_bound": 937645,
+  "duplicate_representations": 140888,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
     "ch_vb": 2422,
     "edoeb": 549,
     "ge_gerichte": 76637,
-    "nw_gerichte": 484,
+    "nw_gerichte": 485,
     "sh_obergericht": 689,
     "ur_gerichte": 193,
     "vd_findinfo": 59913
@@ -2488,7 +2488,7 @@
     "2026-09": 1245,
     "2026-10": 26
   },
-  "generated_at": "2026-10-08T13:48:44.408336+00:00",
+  "generated_at": "2026-10-08T13:48:44.423675+00:00",
   "scraper_health": {
     "run_at": "2026-10-08T01:59:20.099178+00:00",
     "run_duration_s": 3498.9,
