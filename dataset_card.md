@@ -27,7 +27,10 @@ configs:
   - config_name: default
     data_files:
       - split: train
-        path: data/*.parquet
+        # Court files only: data/delta-YYYY-MM-DD.parquet (ends in a digit) has
+        # other columns, and load_dataset fails on a split whose files differ.
+        # scripts/check_hf_unmanaged_parquet.py checks that this reads every court.
+        path: "data/*[!0-9].parquet"
 ---
 
 # Swiss Case Law Dataset
@@ -318,6 +321,10 @@ Decisions appearing in multiple sources are deduplicated by `decision_id` (a det
 ## Update Frequency
 
 The dataset is updated daily via automated pipeline. New decisions are scraped, deduplicated, exported to Parquet, and uploaded to HuggingFace.
+
+## Changelog
+
+- 2026-10-08: The default configuration now reads the court files only (`data/*[!0-9].parquet`). Before, `data/*.parquet` also matched the daily `data/delta-YYYY-MM-DD.parquet`, whose columns differ from the court files, so `load_dataset("voilaj/swiss-caselaw")` failed with a cast error ("column names don't match"). The daily deltas remain available under `artifacts/parquet/deltas/`, listed in `artifacts/manifest.json`.
 
 ## Legal Basis
 
