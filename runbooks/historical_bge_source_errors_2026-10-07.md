@@ -433,24 +433,63 @@ list. The current text is BGE 22 I 1012 and belongs in a new row from `c1022A12.
 arrives with the side-finding fix. Scraper rule: when a DFR HTML page's title names another
 reference, take the PDF of the same code.
 
-**Report to DFR (outward-facing; the owner sends it).**
+**Report to DFR: not sent.** The owner decided on 2026-10-08 not to write to DFR. For the
+record, the report would name: the six 52 I PDFs that hold 65 I scans; `c1039469.pdf` =
+`c1039483.pdf`; 77 II 154-161 appended to `c2071223.pdf`; `c1022012.html` = 22 I 1012.
+Without it, the real rulings come from the neighbouring scans (next section) or not at all.
 
-- the six 52 I PDFs that hold 65 I scans;
-- `c1039469.pdf` = `c1039483.pdf`;
-- 77 II 154-161 appended to `c2071223.pdf`;
-- `c1022012.html` = 22 I 1012.
+### Recovery from neighbouring scans (checked 2026-10-08)
 
-Ask DFR for scans of the real rulings.
+DFR scans are two-page spreads cut at whole pages. The scan of a ruling therefore usually
+also holds the last page of the ruling before it and the first page of the ruling after it,
+and so do the corpus rows made from it. Five of the eight withheld rulings are wholly or
+partly in such neighbouring scans. Checked on the rendered spreads (not only the text layer)
+and on the dataset rows of 2026-10-07. The headers are as printed on the scans:
 
-Recommended order:
+| Reference | Ruling (header on the scan) | Pages, and the scan holding them | Coverage |
+|---|---|---|---|
+| 22 I 12 | No 4, Urteil vom 25. März 1896 in Sachen Fietz und Leuthold | pp. 12-17, its own scan `c1022012.pdf`; the text layer has it | complete |
+| 39 I 469 | No 83, Arrêt du 11 septembre 1913 dans la cause Giroud | p. 469: last spread of `c1039465.pdf`; pp. 470-471: first spread of `c1039471.pdf` | complete. Neither text layer has it: OCR (a test OCR here read "1943" for a printed 1913 in the facts) |
+| 52 I 23 | No 4, Urteil vom 26. Februar 1926 i. S. Walz gegen Luzern | p. 23: last spread of `c1052014.pdf` (row 52 I 14); p. 26: first spread of `c1052027.pdf` (row 52 I 27) | header, regeste, facts, start of the reasons, end; pp. 24-25 missing |
+| 52 I 39 | No 7, Urteil vom 26. März 1926 i. S. Dällenbach gegen Staatsanwaltschaft und Obergericht des Kantons Aargau | p. 39: last spread of `c1052034.pdf` (row 52 I 34); p. 44: first spread of `c1052044.pdf` (row 52 I 44) | header, regeste, end of the reasons, Dispositiv; pp. 40-43 missing |
+| 52 I 149 | No 22, Auszug aus dem Urteil vom 5. März 1926 i. S. Rosenthal und Schilling gegen Regierungsrat Thurgau | p. 149: last spread of `c1052145.pdf` (row 52 I 145) | header, regeste, start of the facts; pp. 150-153 missing |
+| 52 I 8 | No 2; its header page is not held | p. 14: first spread of `c1052014.pdf` (row 52 I 14) | last page only: end of the reasons, Dispositiv; no date, no parties |
+| 52 I 1 | No 1 | none: the next scan, 52 I 8, is itself a 65 I scan | nothing |
+| 52 I 230 | — | none: `c1052227.pdf` ends on p. 229, `c1052238.pdf` starts with its own ruling | nothing |
 
-1. Report to DFR now; it is the only source of the real 52 I and 39 I 469 rulings.
-2. Review and deploy the serving list. It needs no rebuild and protects readers at once.
-3. Review and merge the segmentation branch with the page-jump patch. Then, in one
-   maintenance window: segment, remove the foreign texts, and re-fetch 22 I 12 from the PDF.
-4. Then the letter-coded pages: the patch is ready (see "Side finding"). 230 new rows,
+The 52 I pages are in the current rows' text (text layer, no OCR). The segmentation repair
+cuts exactly these pages out of the neighbouring rows, so a recovery must read them from the
+shard before the segmentation `--apply`, or from its undo file.
+
+Proposal (not built):
+
+- A recovery script reads the listed pages from the named neighbour rows, or OCRs them from
+  the named scans on the VPS with the scraper's Fraktur model (39 I 469). It writes the
+  ruling's row with the date and title from its header, the regeste from its header block, a
+  visible gap marker between pages that do not follow each other, and
+  `text_completeness` (`complete` / `partial`), `pages_held`, `pages_missing` and
+  `recovered_from` (the scan URLs). No hand edits: OCR errors stay as in every other OCR row.
+- `source_defects`: 22 I 12 and 39 I 469 leave the list once their recovered rows are built.
+  52 I 23, 39 and 149 get a `partial` action: text, regeste and date served, with a note
+  naming the missing pages; structure, pinpoints and outgoing citations stay withheld.
+  52 I 1, 8 and 230 stay withheld. A single last page of reasons, with no facts, date or
+  parties, misleads more than it helps.
+- Each recovered page gets the same scan check as above; the tests use offline fixtures.
+
+What stays missing (52 I 1 and 230 entirely; pp. 9-13, 24-25, 40-43, 150-153) exists only in
+the printed volume BGE 52 I and in DFR's own files.
+
+### Recommended order
+
+1. Review and deploy the serving list. It needs no rebuild and protects readers at once.
+2. Review and merge the segmentation branch with the page-jump patch.
+3. Build the recovery (previous section) before the segmentation runs: the 52 I pages it
+   needs leave the neighbouring rows when the shard is segmented.
+4. In one maintenance window: recover, segment, remove the foreign texts, re-fetch 22 I 12
+   from the PDF.
+5. Then the letter-coded pages: the patch is ready (see "Side finding"). 230 new rows,
    additive; they go through the merged segmenter. Do the staging run first.
-5. Run the audit after every `bge_historical` re-scrape. A finding not in the TSV goes to a
+6. Run the audit after every `bge_historical` re-scrape. A finding not in the TSV goes to a
    scan check, then onto the list.
 
 The repairs touch the shard, so they run outside the build window with an undo file, like
