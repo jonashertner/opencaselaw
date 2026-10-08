@@ -65,7 +65,12 @@ commit `f7d5c459`, 2026-10-06) and the API, and found six things. All six were c
 
 Prerequisite: `make test` and `make verify-offline` pass, and the deploy has gone through
 `scripts/agent_safe_deploy.py` / the normal deploy. Before each `--apply`, take a copy of
-the shard (the BGE script also writes an undo file).
+the shard (the BGE script also writes an undo file,
+`bge_historical.jsonl.undo-presegment-<date>.jsonl.bak`). Never leave a copy or undo file
+whose name ends in `.jsonl` in `output/decisions/`: `build_fts5.py` ingests every
+`output/decisions/*.jsonl` as a shard. Until 2026-10-09 the script named the undo file
+`bge_historical.jsonl.presegment-<date>.jsonl`; the 2026-10-08 copy was moved to
+`/mnt/HC_Volume_104655575/backups/shard-repair-20261008/`.
 
 ```bash
 # 1. dry runs: read the counts and the examples before applying
