@@ -197,9 +197,14 @@ small columns at extraction time, or index them as expressions, so the export no
 walks the text overflow pages.
 
 Proposed (needs approval, writes to the public HF repo): delete the 99 stale root-level
-parquet files in one commit (`HfApi.delete_files(..., delete_patterns=["*.parquet"])` scoped
-to the root, never `data/`, `graph/`, `structure/` or `artifacts/`), and say so in the dataset
-card's changelog. Until then every root file is a March 2026 snapshot.
+parquet files in one commit, **by an explicit list of their 99 paths**, and say so in the
+dataset card's changelog the same day. **Never** use
+`HfApi.delete_files(..., delete_patterns=["*.parquet"])`: the patterns match from the repo
+root and `*` crosses folders, so it would also delete `data/`, `graph/`, `structure/` and 216
+files under `artifacts/` (440 files, simulated against the dataset head on 2026-10-07). The
+list, a dry run pinned to the dataset head, and the order of steps are in
+`runbooks/hf_root_parquet_cleanup_2026-10-07.md` (branch `claude/eloquent-tesla-333wvz`).
+Until then every root file is a March 2026 snapshot.
 
 ## Validation 2026-10-07 (published data, DFR scans, live API)
 
