@@ -9971,7 +9971,21 @@ def find_citations(
     # text (source_defects.py); the incoming ones cite this reference itself.
     _defect = source_defects.lookup(decision_id)
     if _defect:
-        result["source_defect"] = _defect.as_dict()
+        # A recovered reference gets its recovery note; its outgoing edges stay
+        # withheld (the graph may still hold the ones from the other text).
+        _stored = None
+        if _defect.recovered_sha256:
+            try:
+                _c = get_db()
+                try:
+                    _r = _c.execute("SELECT full_text FROM decisions WHERE decision_id = ?",
+                                    (decision_id,)).fetchone()
+                    _stored = _r[0] if _r else None
+                finally:
+                    _c.close()
+            except Exception:  # noqa: BLE001 — the note falls back to the defect's own
+                _stored = None
+        result["source_defect"] = source_defects.served_dict(_defect, _stored)
         outgoing_total = 0
 
     if direction in ("both", "outgoing"):

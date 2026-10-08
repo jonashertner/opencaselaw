@@ -6,19 +6,24 @@
    ========================================================================= */
 (function () {
   var SHARED = {
-    de:{skip:'Zum Inhalt springen',nav_search:'Suche',nav_courts:'Gerichte',nav_laws:'Gesetze',nav_connect:'Verbinden →',nav_quality:'Qualität',
+    de:{foot_mcp:'MCP-Server',foot_cli:'Recherche-CLI',foot_word:'Word-Add-in (Recherche)',foot_citecheck:'citecheck (Prüfung in Word)',foot_integrity:'Integrität',foot_standards:'Standards',foot_methodology:'Methodik',
+      skip:'Zum Inhalt springen',nav_search:'Suche',nav_courts:'Gerichte',nav_laws:'Gesetze',nav_connect:'Verbinden →',nav_quality:'Qualität',
       foot_browse:'Durchsuchen',foot_build:'Entwickeln',foot_trust:'Vertrauen',foot_coverage:'Abdeckung',foot_stats:'Statistik',foot_posters:'Poster',foot_scholarship:'Literatur',foot_about:'Über uns',
       foot_tag:'Das vollständige offene Verzeichnis der Schweizer Rechtsprechung. CC0-Datensatz, MIT-Code.',foot_legal:'Korpus CC0 · Code MIT'},
-    fr:{skip:'Aller au contenu',nav_search:'Recherche',nav_courts:'Tribunaux',nav_laws:'Lois',nav_connect:'Connexion →',nav_quality:'Qualité',
+    fr:{foot_mcp:'Serveur MCP',foot_cli:'CLI de recherche',foot_word:'Complément Word (recherche)',foot_citecheck:'citecheck (contrôle dans Word)',foot_integrity:'Intégrité',foot_standards:'Normes',foot_methodology:'Méthodologie',
+      skip:'Aller au contenu',nav_search:'Recherche',nav_courts:'Tribunaux',nav_laws:'Lois',nav_connect:'Connexion →',nav_quality:'Qualité',
       foot_browse:'Parcourir',foot_build:'Développer',foot_trust:'Confiance',foot_coverage:'Couverture',foot_stats:'Statistiques',foot_posters:'Affiches',foot_scholarship:'Doctrine',foot_about:'À propos',
       foot_tag:'Le registre ouvert complet de la jurisprudence suisse. Jeu de données CC0, code MIT.',foot_legal:'Corpus CC0 · Code MIT'},
-    it:{skip:'Vai al contenuto',nav_search:'Ricerca',nav_courts:'Tribunali',nav_laws:'Leggi',nav_connect:'Collega →',nav_quality:'Qualità',
+    it:{foot_mcp:'Server MCP',foot_cli:'CLI di ricerca',foot_word:'Componente Word (ricerca)',foot_citecheck:'citecheck (controllo in Word)',foot_integrity:'Integrità',foot_standards:'Standard',foot_methodology:'Metodologia',
+      skip:'Vai al contenuto',nav_search:'Ricerca',nav_courts:'Tribunali',nav_laws:'Leggi',nav_connect:'Collega →',nav_quality:'Qualità',
       foot_browse:'Sfoglia',foot_build:'Sviluppa',foot_trust:'Fiducia',foot_coverage:'Copertura',foot_stats:'Statistiche',foot_posters:'Manifesti',foot_scholarship:'Dottrina',foot_about:'Chi siamo',
       foot_tag:'Il registro aperto completo della giurisprudenza svizzera. Dataset CC0, codice MIT.',foot_legal:'Corpus CC0 · Codice MIT'},
-    rm:{skip:'Ir al cuntegn',nav_search:'Tschertga',nav_courts:'Dretgiras',nav_laws:'Leschas',nav_connect:'Connectar →',nav_quality:'Qualitad',
+    rm:{foot_mcp:'Server MCP',foot_cli:'CLI da retschertga',foot_word:'Add-in Word (retschertga)',foot_citecheck:'citecheck (controlla en Word)',foot_integrity:'Integritad',foot_standards:'Standards',foot_methodology:'Metodologia',
+      skip:'Ir al cuntegn',nav_search:'Tschertga',nav_courts:'Dretgiras',nav_laws:'Leschas',nav_connect:'Connectar →',nav_quality:'Qualitad',
       foot_browse:'Tschertgar',foot_build:'Sviluppar',foot_trust:'Confidenza',foot_coverage:'Cuvertura',foot_stats:'Statistica',foot_posters:'Placats',foot_scholarship:'Litteratura',foot_about:'Davart nus',
       foot_tag:'Il register avert cumplet da la giurisprudenza svizra. Set da datas CC0, code MIT.',foot_legal:'Corpus CC0 · Code MIT'},
-    en:{skip:'Skip to content',nav_search:'Search',nav_courts:'Courts',nav_laws:'Laws',nav_connect:'Connect →',nav_quality:'Quality',
+    en:{foot_mcp:'MCP server',foot_cli:'Research CLI',foot_word:'Word add-in (research)',foot_citecheck:'citecheck (checks in Word)',foot_integrity:'Integrity',foot_standards:'Standards',foot_methodology:'Methodology',
+      skip:'Skip to content',nav_search:'Search',nav_courts:'Courts',nav_laws:'Laws',nav_connect:'Connect →',nav_quality:'Quality',
       foot_browse:'Browse',foot_build:'Build',foot_trust:'Trust',foot_coverage:'Coverage',foot_stats:'Statistics',foot_posters:'Posters',foot_scholarship:'Scholarship',foot_about:'About',
       foot_tag:'The complete open record of Swiss case law. CC0 dataset, MIT code.',foot_legal:'Corpus CC0 · Code MIT'}
   };
@@ -62,17 +67,17 @@
         '<li><a href="/stats/" data-t="foot_stats">Statistics</a></li>' +
         '<li><a href="/posters/" data-t="foot_posters">Posters</a></li></ul></div>' +
       '<div><h4 data-t="foot_build">Build</h4><ul>' +
-        '<li><a href="/mcp/">MCP server</a></li>' +
+        '<li><a href="/mcp/" data-t="foot_mcp">MCP server</a></li>' +
         '<li><a href="/api/">REST API</a></li>' +
-        '<li><a href="/cli/">Research CLI</a></li>' +
-        '<li><a href="https://word.opencaselaw.ch/">Word add-in</a></li>' +
-        '<li><a href="/citecheck/">citecheck</a></li>' +
+        '<li><a href="/cli/" data-t="foot_cli">Research CLI</a></li>' +
+        '<li><a href="https://word.opencaselaw.ch/" data-t="foot_word">Word add-in (research)</a></li>' +
+        '<li><a href="/citecheck/" data-t="foot_citecheck">citecheck (checks in Word)</a></li>' +
         '<li><a href="https://huggingface.co/datasets/voilaj/swiss-caselaw" rel="noopener">HuggingFace</a></li></ul></div>' +
       '<div><h4 data-t="foot_trust">Trust</h4><ul>' +
-        '<li><a href="/integrity/">Integrity</a></li>' +
-        '<li><a href="/standards/">Standards</a></li>' +
+        '<li><a href="/integrity/" data-t="foot_integrity">Integrity</a></li>' +
+        '<li><a href="/standards/" data-t="foot_standards">Standards</a></li>' +
         '<li><a href="/quality.html" data-t="nav_quality">Quality</a></li>' +
-        '<li><a href="/methodology.html">Methodology</a></li>' +
+        '<li><a href="/methodology.html" data-t="foot_methodology">Methodology</a></li>' +
         '<li><a href="/ueber/" data-t="foot_about">About</a></li></ul></div>' +
       '</div><p class="foot-legal">© 2026 Jonas Hertner / OpenCaseLaw · <span data-t="foot_legal"></span></p></div></footer>';
   }
@@ -88,11 +93,12 @@
     var box = document.createElement('div'); box.innerHTML = html;
     ph.replaceWith(box.firstElementChild);
   }
+  var PAGE_LANGS = LANGS;
   function renderChrome(active) {
     swap('[data-nav]', navHTML(active));
     swap('[data-foot]', footHTML());
     var lw = document.getElementById('langs');
-    if (lw) lw.innerHTML = LANGS.map(function (l) {
+    if (lw) lw.innerHTML = PAGE_LANGS.map(function (l) {
       var u = new URLSearchParams(location.search); u.set('lang', l);
       return '<a href="?' + u.toString() + '" class="' + (l === lang ? 'on' : '') + '" hreflang="' + l + '">' + l + '</a>';
     }).join('');
@@ -109,7 +115,13 @@
     lang: lang, t: t, fmt: fmt, esc: esc, applyI18n: applyI18n,
     init: function (opts) {
       opts = opts || {};
-      if (opts.i18n) setDict(opts.i18n);
+      if (opts.i18n) {
+        setDict(opts.i18n);
+        // A page written in fewer languages offers only those; asked for another, it is
+        // shown and tagged in German rather than German text under another language's tag.
+        PAGE_LANGS = LANGS.filter(function (l) { return opts.i18n[l]; });
+        if (PAGE_LANGS.indexOf(lang) < 0) { lang = 'de'; window.OCL.lang = lang; }
+      }
       renderChrome(opts.active);
       applyI18n();
       reveal();
