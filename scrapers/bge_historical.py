@@ -11,6 +11,7 @@ Architecture:
 - Individual decisions as HTML: servat.unibe.ch/dfr/c{SVVVPPP}.html
   or as PDF: www.fallrecht.ch/c{SVVVPPP}.pdf
   where S = section (1-5), VVV = volume (zero-padded), PPP+ = page
+  (from page 1000 on a letter gives the hundreds: c1021C39 = BGE 21 I 1239)
 - Decision code example: c1001003 = section 1 (I), volume 001, page 003 = BGE 1 I 3
 - Sections: 1=I (public law), 2=II (civil), 3=III (debt/bankruptcy),
   4=IV (criminal), 5=V (social insurance)
@@ -55,9 +56,21 @@ SECTION_MAP = {
     "5": "V",    # Sozialversicherungsrecht
 }
 
-# Match decision code in href: c{section 1 digit}{volume 3 digits}{page 3+ digits}
-# Examples: c1001003 = BGE 1 I 3, c2045123 = BGE 45 II 123
-DECISION_CODE_RE = re.compile(r"c([1-5])(\d{3})(\d{3,})")
+# Match decision code in href: c{section 1 digit}{volume 3 digits}{page}
+# Examples: c1001003 = BGE 1 I 3, c2045123 = BGE 45 II 123.
+# A page from 1000 on carries a letter for its hundreds (A = 10 ... J = 19):
+# c1020A00 = BGE 20 I 1000, c1021C39 = BGE 21 I 1239, c1023J55 = BGE 23 I 1955.
+# The digit-only pattern skipped all 230 of them (20 I, 21 I, 22 I, 23 I, 25 II),
+# so no page above 999 was ever scraped; four were checked on the scans
+# (runbooks/historical_bge_source_errors_2026-10-07.md).
+DECISION_CODE_RE = re.compile(r"c([1-5])(\d{3})([A-J]\d{2}|\d{3,})")
+
+
+def decode_page(code: str) -> int:
+    """The page number of a DFR page code: '003' -> 3, 'C39' -> 1239."""
+    if code[:1].isalpha():
+        return (ord(code[0]) - ord("A") + 10) * 100 + int(code[1:])
+    return int(code)
 
 # Volume year lookup (approximate: BGE 1 = 1875, BGE 79 = 1953)
 VOLUME_YEAR = {v: 1874 + v for v in range(1, 80)}
@@ -202,7 +215,7 @@ class BGEHistoricalScraper(BaseScraper):
 
                 sect_num = m.group(1)
                 vol = int(m.group(2))
-                page = int(m.group(3))
+                page = decode_page(m.group(3))
 
                 # Only historical volumes (1-79)
                 if vol < 1 or vol > 79:

@@ -184,19 +184,19 @@ same form as the existing rows. Four decoded references checked on the scans:
 
 Above page 999 these volumes hold their civil-law part (running heads "B." / "C. Civilrechtspflege").
 
-### Patch `historical_bge_source_errors_2026-10-07.letter-pages.patch` (proposal, not run in production)
+### Scraper change (PR after jonashertner/opencaselaw#131; not run in production)
 
 `scrapers/bge_historical.py`: `DECISION_CODE_RE` takes `[A-J]\d{2}` as a page code, and
 `decode_page()` turns `C39` into 1239. Nothing else changes: ids, dockets and titles keep the
-`V_P_PAGE` / "BGE V P PAGE" form. Offline tests: `tests/test_bge_historical_letter_pages.py`,
-in the patch.
+`V_P_PAGE` / "BGE V P PAGE" form. Offline tests: `tests/test_bge_historical_letter_pages.py`.
 
-It is a patch file, not part of this branch's code: `bge_historical` runs every night in
-`run_all_scrapers.py` (`opencaselaw-scrape.timer`, 01:00 UTC; not in `SKIP_BY_DEFAULT`), so
-merging the change and deploying would fetch the 230 pages at the next 01:00 run, before the
-segmenter and without the staging run below. Apply it (`git apply`) on top of the merged
-segmentation branch, in its own PR. It applies cleanly on `main` and on the segmentation
-branch.
+Merging it is the rollout: `bge_historical` runs every night in `run_all_scrapers.py`
+(`opencaselaw-scrape.timer`, 01:00 UTC; not in `SKIP_BY_DEFAULT`), so the first night after
+the server pulls `main` fetches the 230 pages and the next full build publishes them. Merge
+only once that is wanted; the staging run below can go first. Re-checked on `main` with the
+merged segmenter (2026-10-08): 20 I 1000, 21 I 1235, 22 I 1355 and 23 I 1319 come out cut to
+their own ruling and dated by their header (1894-11-10, 1895-12-30, 1896-10-03, 1897-11-10);
+23 I 1701 keeps the volume placeholder (Fraktur caveat below).
 
 **Measured offline** (no production state touched):
 
@@ -535,8 +535,9 @@ the printed volume BGE 52 I and in DFR's own files.
    then regenerate the canonical-identity sidecar (segmentation runbook, step 4).
 4. Check the five through the API, then change their `source_defects` entries (previous
    section).
-5. Then the letter-coded pages: the patch is ready (see "Side finding"). 230 new rows,
-   additive; they go through the merged segmenter. Do the staging run first.
+5. Then the letter-coded pages (see "Side finding"): merging the scraper change is the
+   rollout, at the next 01:00 UTC scrape. 230 new rows, additive, cut and dated by the
+   merged segmenter. A staging run on the server can go first.
 6. Run the audit after every `bge_historical` re-scrape. A finding not in the TSV goes to a
    scan check, then onto the list.
 
