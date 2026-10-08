@@ -36,6 +36,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
+# Run as a script (publish.py's shard path) the repo root is not on sys.path;
+# bge_historical_segment lives there.
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 logger = logging.getLogger("extract_decision_structure")
 
 
@@ -303,17 +309,35 @@ def _validate_erw_sequence(markers: list[tuple[int, int, str]]) -> list[tuple[in
     return best
 
 
-def parse_erwaegungen_paragraphs(erw_text: str) -> list[dict]:
-    """Parse Erwägungen into list of {e_number, depth, parent, text}."""
+def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False) -> list[dict]:
+    """Parse Erwägungen into list of {e_number, depth, parent, text}.
+
+    ``ruling_bounds`` (historical BGE, volumes 1-79): the text may run into the
+    next ruling of the volume ("23. Auszug aus dem Urteil des Kassationshofes
+    vom 30. Mai 1952 i. S. ..."). Such a heading is never an Erwägung number —
+    BGE 78 IV 83 served No 23's head as its "Erwägung 23" — and no paragraph
+    runs past it."""
     if not erw_text:
         return []
-    valid = _validate_erw_sequence(_erw_candidates(erw_text))
+    candidates = _erw_candidates(erw_text)
+    bounds: list[int] = []
+    if ruling_bounds:
+        from bge_historical_segment import ruling_headers
+        bounds = [h.pos for h in ruling_headers(erw_text)]
+        if bounds:
+            def _line_start(pos: int) -> int:
+                return erw_text.rfind("\n", 0, pos) + 1
+            heads = {_line_start(b) for b in bounds}
+            candidates = [c for c in candidates if _line_start(c[0]) not in heads]
+    valid = _validate_erw_sequence(candidates)
     if not valid:
         # Fallback: whole text as single anonymous paragraph
-        return [{"e_number": "0", "depth": 0, "parent": None, "text": erw_text.strip()}]
+        body = erw_text[:bounds[0]] if bounds else erw_text
+        return [{"e_number": "0", "depth": 0, "parent": None, "text": body.strip()}]
     paragraphs = []
     for i, (m_start, m_end, e_num) in enumerate(valid):
         next_start = valid[i + 1][0] if i + 1 < len(valid) else len(erw_text)
+        next_start = min([next_start] + [b for b in bounds if b > m_start])
         body = erw_text[m_end:next_start].strip()
         if not body:
             continue
@@ -461,6 +485,16 @@ def is_ecthr_decision(decision_id: str) -> bool:
     return (decision_id or "").startswith(_ECTHR_COURT_PREFIXES)
 
 
+def _historical_bge_page(decision_id: str) -> int | None:
+    """The reference page of a BGE of volumes 1-79 (served 'bge_78_IV_83' or
+    scraper 'bge_historical_78_IV_83'), else None."""
+    if not (decision_id or "").startswith("bge_"):
+        return None
+    from bge_historical_segment import volume_and_page
+    vp = volume_and_page(decision_id)
+    return vp[1] if vp else None
+
+
 def extract(full_text: str, language: str = "de", decision_id: str = "") -> DecisionStructure:
     out = DecisionStructure(decision_id=decision_id, language=language)
     if is_ecthr_decision(decision_id):
@@ -471,6 +505,14 @@ def extract(full_text: str, language: str = "de", decision_id: str = "") -> Deci
     text = full_text or ""
     if not text:
         return out
+    # Volumes 1-79 of the BGE come as the page range a ruling is printed on;
+    # its neighbours' facts and reasoning are not its structure (BGE 78 IV 83
+    # was given No 23's facts and serial number). A shard repaired by
+    # scripts/segment_bge_historical.py is already cut: then this is a no-op.
+    historical = _historical_bge_page(decision_id)
+    if historical is not None:
+        from bge_historical_segment import own_text
+        text, _ = own_text(text, historical)
 
     disp_start, disp_end, disp_method = _find(text, DISPOSITIV_PATTERNS, lang)
     if disp_start is not None:
@@ -546,7 +588,8 @@ def extract(full_text: str, language: str = "de", decision_id: str = "") -> Deci
 
     # Sub-parse Erwägungen into numbered paragraphs (the actual citable units)
     if out.erwaegungen:
-        out.erwaegungen_paragraphs = parse_erwaegungen_paragraphs(out.erwaegungen)
+        out.erwaegungen_paragraphs = parse_erwaegungen_paragraphs(
+            out.erwaegungen, ruling_bounds=historical is not None)
 
     return out
 

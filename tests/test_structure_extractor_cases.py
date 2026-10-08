@@ -48,3 +48,47 @@ def test_a_stray_letter_in_prose_does_not_split_a_paragraph():
 def test_regular_shapes_are_unchanged():
     text = "Sachverhalt\n\nA. ...\n\nErwägungen\n\n1. Die Beschwerde ...\n\n2. Streitig ist ...\n\n2.1 Nach Art. 336 OR ...\n\n2.2 Die Vorinstanz ...\n\n3. Die Beschwerde ist abzuweisen.\n\nDemnach erkennt das Bundesgericht:\n\n1. Die Beschwerde wird abgewiesen.\n"
     assert numbers(text) == ["1", "2", "2.1", "2.2", "3"]
+
+
+# ── historical BGE (volumes 1-79): the page range runs into the next ruling ──
+# BGE 78 IV 83 (Fyg gegen Born) has no numbered Erwägungen, only "Aus den
+# Erwägungen :". Its text ran on into No 23, so the extractor served No 23's
+# serial number as "Erwägung 23" with Friedlin's text, and No 23's lettered
+# facts as the Sachverhalt (user report 2026-10-07).
+
+_FYG_PAGES = (
+    "82\nStrafgesetzbuch. No 21.\nauch im Brief vom 17. Juli 1951 hat das Mädchen\n"
+    "nichts anderes geschrieben.\nStrafgesetzbuch. No 22.\n83\n"
+    "22. Auszug aus dem Urteil des Kassationshofes vom 3. Juni 1952\ni. S. Fyg gegen Born.\n"
+    "Art. 57 Abs. 1 OR, Art. 32, 145 StGB. Sachbeschädigung durch Abschuss einer Katze.\n"
+    "Friedrich Fyg sah am Nachmittag des 25. November 1951 eine fremde Katze.\n"
+    "Aus den Erwägungen :\nDer Beschwerdeführer beruft sich auf Art. 57 OR, wonach der Besitzer\n"
+    "eines Grundstückes berechtigt ist, Dritten angehörige Tiere zu töten.\n"
+    "Diese Bestimmung trifft jedoch schon deshalb nicht zu.\n"
+    "84\nStrafgesetzbuch. No 23.\njede Vorstellung bei Born zu unterlassen.\n"
+    "23. Auszug aus dem Urteil des Kassationshofes vom 30. 1fai 1952\n"
+    "i. S. Staatsanwaltschaft des Kantons Aargau gegen Friedlin.\n"
+    "Art. 148 StGB trifft auf den sog. Prozessbetrug nicht zu.\nA. -\n"
+    "Margrith Friedlin und ihr am 6. Juli 1948 geborenes Kind klagten.\nB. -\n"
+    "Am 29. Januar 1952 sprach das Kriminalgericht Margrith Friedlin frei.\n"
+)
+
+
+def test_historical_bge_structure_stays_inside_its_own_ruling():
+    for did in ("bge_78_IV_83", "bge_historical_78_IV_83"):
+        s = extract(_FYG_PAGES, "de", did)
+        assert s.erwaegungen_method == "ranked_de_BGE_aus_den"
+        assert s.erwaegungen.startswith("Der Beschwerdeführer beruft sich auf Art. 57 OR")
+        assert "Friedlin" not in s.erwaegungen
+        assert "Friedlin" not in (s.sachverhalt or "")
+        assert [p["e_number"] for p in s.erwaegungen_paragraphs if p["depth"] >= 1] == []
+
+
+def test_a_ruling_heading_is_never_an_erwaegung_and_ends_the_paragraph_before_it():
+    erw = ("1. Der Beschwerdeführer beruft sich auf Art. 57 OR.\n\n"
+           "2. Diese Bestimmung trifft nicht zu.\n"
+           "23. Auszug aus dem Urteil des Kassationshofes vom 30. Mai 1952\n"
+           "i. S. Staatsanwaltschaft des Kantons Aargau gegen Friedlin.\nA. -\nMargrith Friedlin ...\n")
+    paras = parse_erwaegungen_paragraphs(erw, ruling_bounds=True)
+    assert [p["e_number"] for p in paras] == ["1", "2"]
+    assert "Friedlin" not in paras[-1]["text"]

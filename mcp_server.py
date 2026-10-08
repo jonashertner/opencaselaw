@@ -6804,7 +6804,10 @@ def _bge_ref_candidates(ref: str) -> list[str]:
     # "mkg_MKGE_16_Nr_1") still fail that regex and yield [] exactly as before,
     # and the expansion stays keyed on the exact (vol, division, page) tuple,
     # so widening the input cannot resolve to a different decision.
-    r = re.sub(r"^bge_(?:BGE_)?", "", r, flags=re.IGNORECASE).replace("_", " ")
+    # "bge_historical_78_IV_83" is the scraper's id for volumes 1-79, which the
+    # build serves as "bge_78_IV_83" (build_fts5.ID_PREFIX_REMAP); a dataset or
+    # structure-parquet consumer holds the scraper form (user report 2026-10-07).
+    r = re.sub(r"^bge_(?:BGE_|historical_)?", "", r, flags=re.IGNORECASE).replace("_", " ")
     # Division = roman numeral + optional 'a'/'b' suffix (BGE 116 Ia 28). Roman
     # part upper-cased, suffix lower-cased, to match the stored 'Ia'/'III' form.
     m = re.match(r"(?:(?:BGE|ATF|DTF)\s+)?(\d+)\s+([IVX]+)([ab]?)\s+(\d+)\s*$",
@@ -9829,7 +9832,15 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     # date_is_estimated flag lets consumers tell a real date from a placeholder.
     # Never overrides a real (source_metadata) date — the sidecar holds no entry
     # for those. Degrades gracefully when the sidecar is absent.
+    # The sidecar is written by hand (backfill_canonical_identity --write), so it
+    # can outlive a shard repair: BGE 78 IV 83 kept a body-text date of No 21
+    # (1951-07-17) after its row was given the header date. A sidecar date that
+    # disagrees with a real row date is stale, and so is its date-bearing key.
     ci = _canonical_for(result.get("decision_id"))
+    _row_dd = str(result.get("decision_date") or "")[:10]
+    if ci and _row_dd and not _row_dd.endswith("-01-01") \
+            and str(ci.get("decision_date") or "")[:10] != _row_dd:
+        ci = None
     if ci:
         if ci.get("decision_date") and ci.get("decision_date_provenance") == "extracted_from_text":
             result["decision_date"] = ci["decision_date"]

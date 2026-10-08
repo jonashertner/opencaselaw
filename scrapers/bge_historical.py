@@ -30,6 +30,7 @@ from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup
 
 from base_scraper import BaseScraper
+from bge_historical_segment import header_date, own_text
 from models import (
     Decision,
     detect_language,
@@ -307,8 +308,18 @@ class BGEHistoricalScraper(BaseScraper):
             return None
 
         full_text = self.clean_text(full_text)
-        lang = detect_language(full_text)
+        # The document is the page range the ruling is printed on: cut it to
+        # the ruling's own header and the next ruling's header, and take the
+        # date from that header (bge_historical_segment; report 2026-10-07).
+        # A text whose own header cannot be placed is kept whole, on the
+        # volume-year placeholder.
+        full_text, own = own_text(full_text, stub["page"])
         decision_date = date(stub["year"], 1, 1)
+        if own is not None:
+            decision_date = header_date(own.header, stub["volume"]) or decision_date
+        else:
+            logger.debug(f"[bge_historical] {docket}: own header not placed, text kept whole")
+        lang = detect_language(full_text)
 
         section_areas = {
             "I": "Öffentliches Recht",

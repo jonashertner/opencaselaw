@@ -105,6 +105,16 @@ COURTS_PUBLICATION_DATE_AS_DECISION = {
 }
 
 
+# Shards this pass is known to damage: it reads the first "Urteil/Entscheid
+# vom <date>" of the text, which in these is a lower court's, an appeal's or a
+# neighbouring ruling's date. Their dates were restored from the rulings' own
+# headers (restore_bge_dates_from_urteilskopf.py, segment_bge_historical.py,
+# restore_sg_dates.py); a rerun would undo that (user report 2026-10-07).
+NEVER_REPAIR_SHARDS = frozenset({
+    "bge", "es_bge", "bge_historical", "sg_publikationen", "es_sg_gerichte",
+})
+
+
 def repair_jsonl(
     jsonl_path: Path,
     dry_run: bool = False,
@@ -276,6 +286,11 @@ def main():
 
     results = []
 
+    if args.court and args.court in NEVER_REPAIR_SHARDS:
+        log.error("Refusing %s: its dates come from the rulings' own headers; "
+                  "this pass would replace them with body-text dates.", args.court)
+        sys.exit(1)
+
     if args.court:
         jsonl = args.decisions_dir / f"{args.court}.jsonl"
         if not jsonl.exists():
@@ -293,6 +308,9 @@ def main():
         for jsonl in jsonl_files:
             # Skip temp files from ongoing repairs
             if jsonl.stem.startswith("tmp"):
+                continue
+            if jsonl.stem in NEVER_REPAIR_SHARDS:
+                log.info("  Skipping %s (dates restored from the rulings' own headers)", jsonl.stem)
                 continue
             log.info("  Processing %s...", jsonl.stem)
             r = repair_jsonl(jsonl, dry_run=args.dry_run,
