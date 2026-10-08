@@ -25,7 +25,7 @@ MODULE_NEVER_CRITICAL = True  # WARNING-only — never blocks publish
 
 MAX_SAMPLES = 50
 SUSPICIOUS_FRACTION_WARN = 0.05  # > 5% suspicious → fire WARNING
-MODEL = os.environ.get("OCL_QC_LLM_MODEL", "claude-haiku-4-5-20251001")
+MODEL = os.environ.get("OCL_QC_LLM_MODEL", "claude-haiku-5-5")
 
 PROMPT_TEMPLATE = """You are auditing a Swiss court decision for ingestion quality.
 
@@ -70,9 +70,14 @@ def _ask_judge(decision: dict) -> dict | None:
         return None
     client = Anthropic()
     try:
+        # Haiku 4.5 rejects `effort`; Haiku 5.5 would think by default.
+        extra = ({} if MODEL.startswith("claude-haiku-4") else
+                 {"thinking": {"type": "disabled"},
+                  "output_config": {"effort": "low"}})
         msg = client.messages.create(
             model=MODEL,
-            max_tokens=300,
+            max_tokens=400,
+            **extra,
             messages=[{
                 "role": "user",
                 "content": PROMPT_TEMPLATE.format(
@@ -81,7 +86,7 @@ def _ask_judge(decision: dict) -> dict | None:
                 ),
             }],
         )
-        body = msg.content[0].text if msg.content else ""
+        body = next((b.text for b in msg.content if b.type == "text"), "")
     except Exception:
         return None
     m = re.search(r"\{[^{}]*\}", body, re.DOTALL)

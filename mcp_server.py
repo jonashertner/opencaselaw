@@ -376,8 +376,42 @@ _LLM_PRICING = {
     "claude-sonnet-4-6-1m":       (6.00, 22.50),
     "claude-haiku-4-5":           (1.00, 5.00),
     "claude-haiku-4-5-20251001":  (1.00, 5.00),
+    # Haiku 5.5 has two rate cards: $0.10/$0.50 for prompts up to 100K
+    # tokens, $0.50/$2.50 above. Every Haiku prompt here is a few thousand
+    # tokens at most, so only the lower card applies.
+    "claude-haiku-5-5":           (0.10, 0.50),
     "claude-opus-4-7":            (5.00, 25.00),
 }
+
+# Model for the short, latency-bound Haiku calls (query parse, expansion,
+# rerank). OCL_HAIKU_MODEL=claude-haiku-4-5-20251001 rolls back.
+HAIKU_MODEL = os.environ.get("OCL_HAIKU_MODEL", "claude-haiku-5-5")
+
+
+def _haiku_request_fields() -> dict:
+    """Request fields that keep Haiku 5.5 on the old latency profile.
+
+    Haiku 5.5 runs adaptive thinking unless told otherwise, which would
+    eat the 2-3 s budgets these calls run under and the small max_tokens
+    caps. Thinking off is accepted at effort low/medium/high. Haiku 4.5
+    rejects `effort`, so nothing is added when rolled back to it.
+    """
+    if HAIKU_MODEL.startswith("claude-haiku-4"):
+        return {}
+    return {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}
+
+
+def _messages_text(resp_json: dict) -> str:
+    """First text block of a Messages API response, by type, not position.
+
+    A response can lead with a thinking block, and a refusal
+    (stop_reason "refusal") can carry no text at all; both yield "" here
+    rather than an IndexError/KeyError.
+    """
+    for block in resp_json.get("content") or []:
+        if block.get("type") == "text":
+            return block.get("text", "")
+    return ""
 
 
 def _llm_usage_log(*, model: str, feature: str, response_json: dict | None,
@@ -1172,6 +1206,12 @@ STRUCTURED_PARSE_PROMPT = (
     "StPO, ZPO, SchKG, BV, AIG, IRSG, AsylG, BGG, VwVG, EMRK (CEDH), SVG, UVG, KVG, AHVG, IVG, etc.\n"
     "- Even for semantic queries without 'Art.', infer the most relevant statute provisions.\n"
     "- If unsure about a BGE, omit it from leading_bge rather than guessing.\n"
+    # Haiku 5.5 answered ~5% of odd inputs in prose without this line
+    # (2026-10-07, 300 traced queries); a JSON schema fixes it too but
+    # pushed p95 past the 3 s client timeout.
+    "- Whatever the input (a bare number, a docket number, a date, a list of "
+    "citations), reply with the JSON object and nothing else; leave fields "
+    "empty where nothing applies. Never answer in prose.\n"
     "- Output ONLY valid JSON, no markdown fences, no explanation.\n"
     "Examples:\n"
     '  "Hundebiss" -> {"statutes":["OR 56"],"doctrine":"Tierhalterhaftung",'
@@ -1229,8 +1269,9 @@ def _parse_query_structured(query: str) -> dict:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-haiku-4-5-20251001",
-                    "max_tokens": 300,
+                    "model": HAIKU_MODEL,
+                    "max_tokens": 400,
+                    **_haiku_request_fields(),
                     # DO NOT add prompt caching here. Tried and reverted
                     # 2026-08-24, measured in production: 12 consecutive
                     # calls, zero cache reads.
@@ -1243,15 +1284,19 @@ def _parse_query_structured(query: str) -> dict:
                     # no error, just cache_creation_input_tokens: 0.
                     # Caching would need either a 4x longer prompt (absurd)
                     # or a different model (defeats the point of Haiku).
+                    # UPDATE 2026-10-07: Haiku 5.5's minimum is 512, so
+                    # this prompt is now cacheable. Not enabled yet; if
+                    # tried, confirm cache_read_input_tokens > 0 in
+                    # production as above.
                     "system": STRUCTURED_PARSE_PROMPT,
                     "messages": [{"role": "user", "content": query}],
                 },
             )
             resp.raise_for_status()
             _resp_json = resp.json()
-            _llm_usage_log(model="claude-haiku-4-5-20251001",
+            _llm_usage_log(model=HAIKU_MODEL,
                             feature="query_parse", response_json=_resp_json)
-            text = _resp_json["content"][0]["text"].strip()
+            text = _messages_text(_resp_json).strip()
             # Strip markdown fences if present
             if text.startswith("```"):
                 text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
@@ -2116,17 +2161,18 @@ def _expand_query_with_llm(query: str) -> list[str]:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-haiku-4-5-20251001",
-                    "max_tokens": 150,
+                    "model": HAIKU_MODEL,
+                    "max_tokens": 200,
+                    **_haiku_request_fields(),
                     "system": EXPANSION_SYSTEM_PROMPT,
                     "messages": [{"role": "user", "content": query}],
                 },
             )
             resp.raise_for_status()
             _resp_json = resp.json()
-            _llm_usage_log(model="claude-haiku-4-5-20251001",
+            _llm_usage_log(model=HAIKU_MODEL,
                             feature="query_expansion", response_json=_resp_json)
-            text = _resp_json["content"][0]["text"]
+            text = _messages_text(_resp_json)
             terms = [t.strip() for t in text.strip().split("\n") if t.strip()]
             terms = terms[:6]
             _LLM_EXPANSION_CACHE.set(cache_key, terms)
@@ -9420,17 +9466,18 @@ def _apply_llm_rerank(
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-haiku-4-5-20251001",
-                    "max_tokens": 400,
+                    "model": HAIKU_MODEL,
+                    "max_tokens": 520,
+                    **_haiku_request_fields(),
                     "system": LLM_RERANK_PROMPT,
                     "messages": [{"role": "user", "content": user_msg}],
                 },
             )
             resp.raise_for_status()
             _resp_json = resp.json()
-            _llm_usage_log(model="claude-haiku-4-5-20251001",
+            _llm_usage_log(model=HAIKU_MODEL,
                             feature="search_rerank", response_json=_resp_json)
-            text = _resp_json["content"][0]["text"].strip()
+            text = _messages_text(_resp_json).strip()
 
             # Parse JSON array of decision_ids
             if text.startswith("```"):
@@ -9490,7 +9537,7 @@ def _apply_llm_rerank(
         "candidates": top_n,
         "candidate_ids": [r["decision_id"] for _s, _b, _i, r in rerank_subset],
         "llm_order": [d for d in ranked_ids if isinstance(d, str)][:top_n],
-        "judge": {"model": "claude-haiku-4-5-20251001",
+        "judge": {"model": HAIKU_MODEL,
                   "prompt_v": _RERANK_PROMPT_V},
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
