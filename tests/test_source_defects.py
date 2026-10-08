@@ -256,3 +256,103 @@ def test_find_citations_keeps_incoming_and_drops_outgoing(monkeypatch):
 def test_leading_case_fallback_drops_withheld_rows(monkeypatch):
     assert sd.filter_hits([{"decision_id": "bge_52_I_149"}, {"decision_id": "bge_95_I_366"}])[0] == [
         {"decision_id": "bge_95_I_366"}]
+
+
+# ── recovered rulings (2026-10-08): served once the stored text is the recovered one ─
+
+RECOVERED = REPO / "runbooks" / "historical_bge_recovered_2026-10-08"
+
+
+def _recovered_text(name: str) -> str:
+    return (RECOVERED / name).read_text(encoding="utf-8").removesuffix("\n")
+
+
+def test_recovery_hashes_are_the_manifest_texts():
+    import json
+
+    manifest = json.loads((RECOVERED / "manifest.json").read_text(encoding="utf-8"))
+    by_ref = {e["reference"]: e for e in manifest["recoveries"]}
+    recovered = {d.reference: d for d in sd.DEFECTS if d.recovered}
+    assert sorted(recovered) == sorted(by_ref)
+    for ref, d in recovered.items():
+        e = by_ref[ref]
+        assert d.action == "withhold" and d.recovered == e["completeness"]
+        assert d.recovered_sha256 == e["text_sha256"] == hashlib.sha256(
+            _recovered_text(e["file"]).encode("utf-8")).hexdigest()
+        if e["pages_missing"]:
+            assert f"Pages {e['pages_missing'][0]}-{e['pages_missing'][-1]} are missing" in d.recovered_note
+
+
+def test_a_recovered_text_is_served_with_its_note():
+    text = _recovered_text("52_I_23.txt")
+    row = {"decision_id": "bge_52_I_23", "court": "bge", "docket_number": "52_I_23",
+           "full_text": text, "decision_date": "1926-02-26", "regeste": "r"}
+    out = sd.apply(row)
+    assert out is not row and out["full_text"] == text
+    assert out["decision_date"] == "1926-02-26" and out["regeste"] == "r"
+    assert out["text_available"] is True
+    assert out["source_defect"]["recovered"] == "partial"
+    assert out["source_defect"]["source_holds"] == "65 I 23"
+    assert "Pages 24-25 are missing" in out["source_defect"]["note"]
+    # any other text under the reference is still withheld, and so is the structure
+    still = sd.apply({**row, "full_text": text + " "})
+    assert still["full_text"] == "" and still["text_available"] is False
+    assert sd.withholds_structure("bge_52_I_23")
+
+
+def test_the_ocr_recovery_says_so():
+    out = sd.apply({"decision_id": "bge_39_I_469", "court": "bge",
+                    "full_text": _recovered_text("39_I_469.txt")})
+    assert out["text_available"] is True and out["source_defect"]["recovered"] == "complete"
+    note = out["source_defect"]["note"]
+    assert "OCR" in note and "not proofread" in note and "c1039465.pdf" in note
+
+
+def test_search_hits_on_a_recovered_reference_need_its_recovered_text():
+    text = _recovered_text("22_I_12.txt")
+    hits = [{"decision_id": "bge_22_I_12", "snippet": ""}]
+    assert sd.filter_hits(hits) == ([], 1)                         # no stored text to check
+    assert sd.filter_hits(hits, lambda did: FOREIGN) == ([], 1)    # still the other ruling's
+    assert sd.filter_hits(hits, lambda did: text) == (hits, 0)
+
+
+def test_get_decision_and_cite_serve_a_recovered_row(served, monkeypatch):
+    text = _recovered_text("52_I_39.txt")
+    c = sqlite3.connect(served)
+    c.execute("INSERT INTO decisions VALUES('bge_52_I_39','bge','CH','52_I_39','1926-03-26',NULL,'de',"
+              "'BGE 52 I 39',NULL,?,NULL)", (text,))
+    c.commit()
+    c.close()
+    out = m.get_decision_by_id("bge_52_I_39")
+    assert out["full_text"] == text and out["text_available"] is True
+    assert out["decision_date"] == "1926-03-26"
+    assert out["source_defect"]["recovered"] == "partial"
+    for name in ("_capture_event", "_record_tool_call", "_record_tool_outcome", "_record_query"):
+        monkeypatch.setattr(m, name, lambda *a, **k: None, raising=False)
+    cited = m._handle_cite(reference="BGE 52 I 39")
+    assert cited["exists"] is True and cited["text_available"] is True
+    assert cited["source_defect"]["recovered"] == "partial"
+
+
+def test_find_citations_gives_a_recovered_reference_its_recovery_note(served, monkeypatch):
+    text = _recovered_text("52_I_149.txt")
+    c = sqlite3.connect(served)
+    c.execute("INSERT INTO decisions VALUES('bge_52_I_149','bge','CH','52_I_149','1926-03-05',NULL,'de',"
+              "'BGE 52 I 149',NULL,?,NULL)", (text,))
+    c.commit()
+    c.close()
+
+    class _Conn:
+        def close(self):
+            pass
+    monkeypatch.setattr(m, "_resolve_decision_id", lambda x: x)
+    monkeypatch.setattr(m, "_get_graph_conn", lambda: _Conn())
+    monkeypatch.setattr(m, "_count_citations_filtered", lambda did, min_confidence: (3, 5))
+
+    def no_outgoing(*a, **k):
+        raise AssertionError("outgoing edges of a source defect must not be read")
+    monkeypatch.setattr(m, "_find_outgoing_citations", no_outgoing)
+    monkeypatch.setattr(m, "_find_incoming_citations", lambda did, **k: [])
+    out = m.find_citations(decision_id="bge_52_I_149")
+    assert out["outgoing"] == [] and out["source_defect"]["recovered"] == "partial"
+    assert "Pages 150-153 are missing" in out["source_defect"]["note"]
