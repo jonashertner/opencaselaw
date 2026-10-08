@@ -72,6 +72,10 @@ def _placeholder(volume: int) -> str:
 def decide(obj: dict) -> dict:
     """The new field values for one row ({} when nothing changes) plus a
     '_why' entry naming the outcome, for the statistics."""
+    if obj.get("source_recovery"):
+        # already the ruling's own text, recovered from its neighbours' scans
+        # (apply_bge_historical_recoveries.py); its gap markers are not headers
+        return {"_why": "recovered"}
     vp = seg.volume_and_page(obj.get("docket_number")) or seg.volume_and_page(obj.get("decision_id"))
     if vp is None:
         return {"_why": "unparsed_reference"}

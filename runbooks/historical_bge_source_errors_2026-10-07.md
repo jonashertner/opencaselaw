@@ -465,36 +465,76 @@ and on the dataset rows of 2026-10-07. The headers are as printed on the scans:
 | 52 I 1 | No 1 | none: the next scan, 52 I 8, is itself a 65 I scan | nothing |
 | 52 I 230 | — | none: `c1052227.pdf` ends on p. 229, `c1052238.pdf` starts with its own ruling | nothing |
 
-The 52 I pages are in the current rows' text (text layer, no OCR). The segmentation repair
-cuts exactly these pages out of the neighbouring rows, so a recovery must read them from the
-shard before the segmentation `--apply`, or from its undo file.
+The 52 I pages are in the current rows' text (text layer, no OCR); the segmentation repair
+cuts exactly these pages out of the neighbouring rows. The texts were therefore taken now and
+kept in the repo.
 
-Proposal (not built):
+### Built: recovered texts and `scripts/apply_bge_historical_recoveries.py` (not run)
 
-- A recovery script reads the listed pages from the named neighbour rows, or OCRs them from
-  the named scans on the VPS with the scraper's Fraktur model (39 I 469). It writes the
-  ruling's row with the date and title from its header, the regeste from its header block, a
-  visible gap marker between pages that do not follow each other, and
-  `text_completeness` (`complete` / `partial`), `pages_held`, `pages_missing` and
-  `recovered_from` (the scan URLs). No hand edits: OCR errors stay as in every other OCR row.
-- `source_defects`: 22 I 12 and 39 I 469 leave the list once their recovered rows are built.
-  52 I 23, 39 and 149 get a `partial` action: text, regeste and date served, with a note
-  naming the missing pages; structure, pinpoints and outgoing citations stay withheld.
-  52 I 1, 8 and 230 stay withheld. A single last page of reasons, with no facts, date or
-  parties, misleads more than it helps.
-- Each recovered page gets the same scan check as above; the tests use offline fixtures.
+`runbooks/historical_bge_recovered_2026-10-08/`: one text per recovered ruling,
+`manifest.json` (ruling, date and where it was read, pages held and missing, sources, method,
+SHA-256 of each text and of the three scans), and `build.py`, which made them:
+
+- 52 I 23, 39, 149: the parts `bge_historical_segment.segment` cuts off the neighbouring rows,
+  joined, with `[Pages 24-25 are missing from the source.]` where pages are missing. 52 I 23
+  and 149 take their date from the scan image: the text layer garbles the month.
+- 39 I 469: OCR of the page crops, Tesseract model `fra`. The scraper's Fraktur model read the
+  headnote's "Art. 69 ch. 3 LP" as "Art. 89 ch. 8"; `fra` reads it right but misreads other
+  figures ("14 mars 1943" for 1913, "31 juillet 1918"), and both read "art. 482" for 182.
+  The text is not proofread: no hand edits. A served note must say it was read by OCR.
+- 22 I 12: the scraper's PDF path on `c1022012.pdf`.
+
+`scripts/apply_bge_historical_recoveries.py` replaces (or adds) the five rows of the
+`bge_historical` shard with rows built as the scraper builds them, stamped `source_recovery`.
+Dry run by default, undo file, idempotent; it refuses a text whose SHA-256 is not the
+manifest's. `segment_bge_historical.py` and `repair_bge_historical_sources.py` leave stamped
+rows alone. Measured on the published rows (13 rows: the five, their neighbours, 52 I 8): 5
+replaced; then the segmentation skips the 5 and cuts the 6 neighbours, and the repair keeps
+the 5 and removes 52 I 8.
+
+**The `es_*` repair is required.** The build swaps a row's text for a much longer copy with
+the same canonical key ("How the swap most likely happened"). The recovered 52 I texts are
+short (52 I 39: 982 characters); an entscheidsuche copy holding the 65 I text would replace
+them. Run `repair_bge_historical_sources.py` on every `es_*.jsonl` that carries a listed row.
+
+**Serving stays withheld until a second change.** `source_defects.py` still withholds all
+five. After the build serves the recovered texts (check them through the API), change the
+entries: 22 I 12 and 39 I 469 leave the list (39 I 469 with a note that its text was read by
+OCR); 52 I 23, 39 and 149 get a `partial` action: text and date served with a note naming the
+missing pages, structure, pinpoints and outgoing citations withheld, and only while the
+stored text is the recovered one (its SHA-256 in the manifest). 52 I 1, 8 and 230 stay
+withheld: a single last page of reasons, with no facts, date or parties, misleads more than
+it helps.
 
 What stays missing (52 I 1 and 230 entirely; pp. 9-13, 24-25, 40-43, 150-153) exists only in
 the printed volume BGE 52 I and in DFR's own files.
 
 ### Recommended order
 
-1. Review and deploy the serving list. It needs no rebuild and protects readers at once.
-2. Review and merge the segmentation branch with the page-jump rule (one PR).
-3. Build the recovery (previous section) before the segmentation runs: the 52 I pages it
-   needs leave the neighbouring rows when the shard is segmented.
-4. In one maintenance window: recover, segment, remove the foreign texts, re-fetch 22 I 12
-   from the PDF.
+1. Done: the serving list, jonashertner/opencaselaw#129 (merged 2026-10-08; live after the
+   server's next pull and worker restart).
+2. Done: the segmentation branch with the page-jump rule, jonashertner/opencaselaw#130
+   (merged 2026-10-08).
+3. In one maintenance window (after the full publish, before the 01:00 UTC scrape; check
+   `systemctl is-active opencaselaw-publish.service opencaselaw-scrape.service`), copy the
+   shards, then dry run each step and `--apply` it:
+
+   ```bash
+   S=output/decisions
+   python3 scripts/apply_bge_historical_recoveries.py $S/bge_historical.jsonl
+   python3 scripts/segment_bge_historical.py $S/bge_historical.jsonl --examples 40
+   python3 scripts/restore_sg_dates.py $S/sg_publikationen.jsonl --examples 40
+   python3 scripts/restore_sg_dates.py $S/es_sg_gerichte.jsonl --examples 40
+   python3 scripts/repair_bge_historical_sources.py $S/bge_historical.jsonl
+   for f in $(grep -l -E '["_](52_I_(1|8|23|39|149|230)|39_I_469|22_I_12|71_II_223)"' $S/es_*.jsonl); do
+     python3 scripts/repair_bge_historical_sources.py "$f"; done
+   ```
+
+   Expected: recoveries 5 replaced; segmentation as in its runbook, plus 5
+   `outcome:recovered`; repair 5 `kept:recovered`. The next full build serves the result;
+   then regenerate the canonical-identity sidecar (segmentation runbook, step 4).
+4. Check the five through the API, then change their `source_defects` entries (previous
+   section).
 5. Then the letter-coded pages: the patch is ready (see "Side finding"). 230 new rows,
    additive; they go through the merged segmenter. Do the staging run first.
 6. Run the audit after every `bge_historical` re-scrape. A finding not in the TSV goes to a

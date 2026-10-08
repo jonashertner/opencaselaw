@@ -20,7 +20,9 @@ the dataset export, the citation graph and the structure DB:
 Run it on output/decisions/bge_historical.jsonl and on every es_*.jsonl shard
 that carries one of the listed rows (the build's text-upgrade can bring an
 entscheidsuche copy of a row back in; see the runbook). Rows of other courts are
-never touched, whatever their docket looks like.
+never touched, whatever their docket looks like, nor rows stamped
+`source_recovery` (the ruling's own text, written by
+apply_bge_historical_recoveries.py).
 
 Streaming, temp file + atomic replace, DRY RUN by default, idempotent (a second
 run changes nothing). --apply writes every removed or changed row, as it was, to
@@ -66,6 +68,9 @@ def decide(obj: dict) -> tuple[str, dict | None]:
     d = defect_for(obj)
     if d is None:
         return "untouched", obj
+    if obj.get("source_recovery"):
+        # the ruling's own text, recovered (apply_bge_historical_recoveries.py)
+        return "kept:recovered", obj
     if d.action == "withhold":
         return f"removed:{d.kind}", None
     text = obj.get("full_text") or ""

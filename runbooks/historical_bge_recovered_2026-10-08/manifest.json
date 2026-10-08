@@ -1,0 +1,166 @@
+{
+  "about": "Rulings withheld by source_defects.py, recovered from DFR material already at hand. Made by build.py on 2026-10-08; applied to the shard by scripts/apply_bge_historical_recoveries.py. Runbook: runbooks/historical_bge_source_errors_2026-10-07.md.",
+  "scan_sha256": {
+    "https://www.fallrecht.ch/c1022012.pdf": "4f844a0ba416320938087e1333dccd479b65f9f914b9acad1cda4dec8eb609e1",
+    "https://www.fallrecht.ch/c1039465.pdf": "4e5b7e765ba7fdcb7b6c7967c35d7bce5c0efa5f62c0f451a16d9c40c151aff5",
+    "https://www.fallrecht.ch/c1039471.pdf": "bb223c847fcf6ae39ea372a5a94b9b0ed9d3517323a49e7b5868a4409256155c"
+  },
+  "recoveries": [
+    {
+      "reference": "52 I 23",
+      "docket_number": "52_I_23",
+      "file": "52_I_23.txt",
+      "ruling": "No 4, Urteil vom 26. Februar 1926 i. S. Walz gegen Luzern",
+      "decision_date": "1926-02-26",
+      "date_source": "own header, read on the scan image (the text layer reads the month as \"FebruM'\")",
+      "completeness": "partial",
+      "pages_held": [
+        23,
+        26,
+        27
+      ],
+      "pages_missing": [
+        24,
+        25
+      ],
+      "source_url": "https://www.fallrecht.ch/c1052014.pdf",
+      "sources": [
+        {
+          "pages": "23",
+          "scan": "https://www.fallrecht.ch/c1052014.pdf",
+          "via": "row bge_historical_52_I_14: the part after its own ruling (No 3)"
+        },
+        {
+          "pages": "26-27",
+          "scan": "https://www.fallrecht.ch/c1052027.pdf",
+          "via": "row bge_historical_52_I_27: the part before its own ruling (No 5), up to No 5's section heading"
+        }
+      ],
+      "method": "DFR text layer (published rows of 2026-10-07), cut with bge_historical_segment.segment",
+      "text_sha256": "06d30dfce56498e1387505e1c8d28461de703b114b96d45a8f9cbda2a615c5f9",
+      "language": "de",
+      "chars": 3674
+    },
+    {
+      "reference": "52 I 39",
+      "docket_number": "52_I_39",
+      "file": "52_I_39.txt",
+      "ruling": "No 7, Urteil vom 26. März 1926 i. S. Dällenbach gegen Staatsanwaltschaft und Obergericht des Kantons Aargau",
+      "decision_date": "1926-03-26",
+      "date_source": "own header (text layer), checked on the scan image",
+      "completeness": "partial",
+      "pages_held": [
+        39,
+        44
+      ],
+      "pages_missing": [
+        40,
+        41,
+        42,
+        43
+      ],
+      "source_url": "https://www.fallrecht.ch/c1052034.pdf",
+      "sources": [
+        {
+          "pages": "39",
+          "scan": "https://www.fallrecht.ch/c1052034.pdf",
+          "via": "row bge_historical_52_I_34: the part after its own ruling (No 6)"
+        },
+        {
+          "pages": "44",
+          "scan": "https://www.fallrecht.ch/c1052044.pdf",
+          "via": "row bge_historical_52_I_44: the part before its own ruling (No 8), up to No 8's section heading"
+        }
+      ],
+      "method": "DFR text layer (published rows of 2026-10-07), cut with bge_historical_segment.segment",
+      "text_sha256": "357aafe639db2f344fd8cca580e07379651f0951e5e328ed3415b9f298e1d419",
+      "language": "de",
+      "chars": 982
+    },
+    {
+      "reference": "52 I 149",
+      "docket_number": "52_I_149",
+      "file": "52_I_149.txt",
+      "ruling": "No 22, Auszug aus dem Urteil vom 5. März 1926 i. S. Rosenthal und Schilling gegen Regierungsrat Thurgau",
+      "decision_date": "1926-03-05",
+      "date_source": "own header, read on the scan image (the text layer reads the month as \"Mä.rz\")",
+      "completeness": "partial",
+      "pages_held": [
+        149
+      ],
+      "pages_missing": [
+        150,
+        151,
+        152,
+        153
+      ],
+      "source_url": "https://www.fallrecht.ch/c1052145.pdf",
+      "sources": [
+        {
+          "pages": "149",
+          "scan": "https://www.fallrecht.ch/c1052145.pdf",
+          "via": "row bge_historical_52_I_145: the part after its own ruling (No 21)"
+        }
+      ],
+      "method": "DFR text layer (published rows of 2026-10-07), cut with bge_historical_segment.segment",
+      "text_sha256": "9e3d377548ba1985eb9a5c6a7352827b5e238118ed459155953a2268048d8164",
+      "language": "de",
+      "chars": 1577
+    },
+    {
+      "reference": "39 I 469",
+      "docket_number": "39_I_469",
+      "file": "39_I_469.txt",
+      "ruling": "No 83, Arrêt du 11 septembre 1913 dans la cause Giroud",
+      "decision_date": "1913-09-11",
+      "date_source": "own header (OCR), checked on the scan image",
+      "completeness": "complete",
+      "pages_held": [
+        469,
+        470,
+        471
+      ],
+      "pages_missing": [],
+      "source_url": "https://www.fallrecht.ch/c1039465.pdf",
+      "sources": [
+        {
+          "pages": "469",
+          "scan": "https://www.fallrecht.ch/c1039465.pdf",
+          "via": "last spread, right page, from No 83's header"
+        },
+        {
+          "pages": "470-471",
+          "scan": "https://www.fallrecht.ch/c1039471.pdf",
+          "via": "first spread, up to No 84's header"
+        }
+      ],
+      "method": "OCR of the scan images (neither text layer holds No 83): Tesseract 5.3.4, model fra, 400 dpi, one page per crop, --psm 4. Not proofread: figures may be misread (p. 469 reads \"1943\" where the scan prints 1913).",
+      "text_sha256": "2f6bfe360cafbade849812d0136a68bfd95c951e025f73cc8e1d7069acdec789",
+      "language": "fr",
+      "chars": 4002
+    },
+    {
+      "reference": "22 I 12",
+      "docket_number": "22_I_12",
+      "file": "22_I_12.txt",
+      "ruling": "No 4, Urteil vom 25. März 1896 in Sachen Fietz und Leuthold",
+      "decision_date": "1896-03-25",
+      "date_source": "own header (text layer), checked on the scan image",
+      "completeness": "complete",
+      "pages_held": null,
+      "pages_missing": [],
+      "source_url": "https://www.fallrecht.ch/c1022012.pdf",
+      "sources": [
+        {
+          "pages": "the whole ruling",
+          "scan": "https://www.fallrecht.ch/c1022012.pdf",
+          "via": "its own scan; the DFR index linked c1022012.html, which holds 22 I 1012"
+        }
+      ],
+      "method": "DFR text layer, read through the scraper's PDF path (_extract_pdf_text, clean_text, bge_historical_segment.own_text)",
+      "text_sha256": "764d6a72075ab35c32aa4b0c547fd08c4f715863b569ce91831bb72e8096cd1b",
+      "language": "de",
+      "chars": 7760
+    }
+  ]
+}
