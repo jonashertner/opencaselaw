@@ -19,6 +19,11 @@ freshness is logged, not paged, to avoid transient-failure false alarms):
      erwaegungen_paragraphs.parquet weekly), with the skip reason from
      structure/export_status.json                                    [Step 3]
 
+Plus one layout check of the HF repo, paged separately (own state file,
+default priority): parquet files outside the published prefixes, and a card
+config that reads a non-court file or skips a court
+(scripts/check_hf_unmanaged_parquet.py).
+
 Run on its OWN timer (e.g. every 6h), separate from the publish unit, so it
 fires even when the publish never runs. Best-effort, never raises.
 
@@ -153,6 +158,27 @@ def check_structure_exports(now: datetime, dataset_dir: Path, nightly_budget: fl
     return alerts
 
 
+def check_hf_layout() -> list[str] | None:
+    """Parquet files outside the published prefixes of the HF repo, and a card
+    config that reads a non-court file or skips a court (see
+    scripts/check_hf_unmanaged_parquet.py). [] if clean; None if the check
+    itself failed (transient — logged, not paged, and no all-clear either)."""
+    try:
+        if str(REPO) not in sys.path:
+            sys.path.insert(0, str(REPO))
+        from scripts.check_hf_unmanaged_parquet import (
+            HF_REPO_ID,
+            fetch_remote_card,
+            layout_findings,
+            list_remote_files,
+        )
+        sha, paths = list_remote_files(HF_REPO_ID, "main")
+        return [f"HF {sha[:8]}: {x}" for x in layout_findings(paths, fetch_remote_card(HF_REPO_ID, sha))]
+    except Exception as e:  # noqa: BLE001 — best-effort
+        print(f"hf layout check skipped: {e}", file=sys.stderr)
+        return None
+
+
 def post_ntfy(body: str, title: str, priority: str = "high") -> bool:
     try:
         req = urllib.request.Request(
@@ -175,10 +201,18 @@ def _digest(alerts: list[str]) -> str:
     return hashlib.sha256("\n".join(sorted(alerts)).encode("utf-8", errors="replace")).hexdigest()
 
 
-def maybe_dispatch(alerts: list[str], now: datetime, state_dir: Path, renag_hours: float) -> str:
-    """Dedup-on-change + daily re-nag while still stale; one all-clear on recovery."""
+def maybe_dispatch(alerts: list[str], now: datetime, state_dir: Path, renag_hours: float, *,
+                   state_name: str = "output_freshness_last_dispatched.json",
+                   title: str = "opencaselaw OUTPUTS STALE",
+                   header: str = ("stale OUTPUT signal(s) — the publish may be silently frozen "
+                                  "(HF mirror / dashboard / git push not updated)"),
+                   recovered: tuple[str, str] = ("All pipeline outputs are fresh again.",
+                                                 "opencaselaw outputs recovered"),
+                   priority: str = "high") -> str:
+    """Dedup-on-change + daily re-nag while still stale; one all-clear on recovery.
+    The keyword arguments give a second alert family its own state and wording."""
     state_dir.mkdir(parents=True, exist_ok=True)
-    sf = state_dir / "output_freshness_last_dispatched.json"
+    sf = state_dir / state_name
     prev: dict = {}
     if sf.exists():
         try:
@@ -188,8 +222,7 @@ def maybe_dispatch(alerts: list[str], now: datetime, state_dir: Path, renag_hour
 
     if not alerts:
         if prev.get("digest"):
-            post_ntfy("All pipeline outputs are fresh again.",
-                      "opencaselaw outputs recovered", priority="default")
+            post_ntfy(recovered[0], recovered[1], priority="default")
             try:
                 sf.unlink()
             except OSError:
@@ -202,9 +235,8 @@ def maybe_dispatch(alerts: list[str], now: datetime, state_dir: Path, renag_hour
     renag = last_dt is not None and _age_h(last_dt, now) >= renag_hours
     if digest == prev.get("digest") and not renag:
         return "unchanged"
-    body = (f"{len(alerts)} stale OUTPUT signal(s) — the publish may be silently "
-            f"frozen (HF mirror / dashboard / git push not updated):\n\n" + "\n".join(alerts))
-    if not post_ntfy(body, f"opencaselaw OUTPUTS STALE ({len(alerts)})", priority="high"):
+    body = f"{len(alerts)} {header}:\n\n" + "\n".join(alerts)
+    if not post_ntfy(body, f"{title} ({len(alerts)})", priority=priority):
         return "post-failed"
     try:
         sf.write_text(json.dumps({"digest": digest, "dispatched_at": now.isoformat(),
@@ -251,6 +283,20 @@ def main() -> int:
 
     if not a.no_ntfy:
         print(f"ntfy: {maybe_dispatch(alerts, now, Path(a.state_dir), a.renag_hours)}")
+
+    # Separate family: not staleness, and not urgent at night. Same dedup + daily re-nag.
+    layout = check_hf_layout()
+    for x in layout or []:
+        print("  " + x)
+    if layout is not None and not a.no_ntfy:
+        r = maybe_dispatch(
+            layout, now, Path(a.state_dir), a.renag_hours,
+            state_name="hf_layout_last_dispatched.json",
+            title="opencaselaw HF dataset layout",
+            header="problem(s) in the HF dataset layout (runbooks/hf_root_parquet_cleanup_2026-10-07.md)",
+            recovered=("The HF dataset layout is clean again.", "opencaselaw HF layout recovered"),
+            priority="default")
+        print(f"ntfy (hf layout): {r}")
     return 0
 
 

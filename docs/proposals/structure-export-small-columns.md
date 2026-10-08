@@ -312,7 +312,7 @@ would only use it if a 3 h bootstrap cannot be scheduled soon.
      which the old sidecar stored only in `structure.erwaegungen`. Its size is
      unmeasured, since there is no production access from here; see the
      migration check below.
-   - Changelog: `dataset_card.md` (new Changelog section) and
+   - Changelog: `dataset_card.md` (Changelog section) and
      `docs/MIGRATIONS.md`.
 3. **Rebuild on the night of Saturday 10 to Sunday 11 October**, away from the
    weekday step-2g run. `main`'s #130 already changes the extractor version
