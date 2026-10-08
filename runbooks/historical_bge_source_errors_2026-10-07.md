@@ -497,14 +497,16 @@ the same canonical key ("How the swap most likely happened"). The recovered 52 I
 short (52 I 39: 982 characters); an entscheidsuche copy holding the 65 I text would replace
 them. Run `repair_bge_historical_sources.py` on every `es_*.jsonl` that carries a listed row.
 
-**Serving stays withheld until a second change.** `source_defects.py` still withholds all
-five. After the build serves the recovered texts (check them through the API), change the
-entries: 22 I 12 and 39 I 469 leave the list (39 I 469 with a note that its text was read by
-OCR); 52 I 23, 39 and 149 get a `partial` action: text and date served with a note naming the
-missing pages, structure, pinpoints and outgoing citations withheld, and only while the
-stored text is the recovered one (its SHA-256 in the manifest). 52 I 1, 8 and 230 stay
-withheld: a single last page of reasons, with no facts, date or parties, misleads more than
-it helps.
+**Serving follows the data (built 2026-10-08).** The five `source_defects` entries carry the
+SHA-256 of their recovered text (the manifest's; the build's `_clean_text` leaves all five
+unchanged, measured). While the stored text is exactly that text, the server serves it: the
+row keeps its own date and regeste, and `source_defect` carries a recovery note naming the
+pages held and missing (52 I 23, 39, 149: partial) or the OCR and the scans to check figures
+against (39 I 469). Search hits count only on the recovered text. Any other stored text is
+withheld as before, so nothing changes until the shard repair and a build have stored the
+recovered text. The structure and the outgoing citations stay withheld for these references.
+52 I 1, 8 and 230 stay withheld: a single last page of reasons, with no facts, date or
+parties, misleads more than it helps.
 
 What stays missing (52 I 1 and 230 entirely; pp. 9-13, 24-25, 40-43, 150-153) exists only in
 the printed volume BGE 52 I and in DFR's own files.
@@ -533,8 +535,8 @@ the printed volume BGE 52 I and in DFR's own files.
    Expected: recoveries 5 replaced; segmentation as in its runbook, plus 5
    `outcome:recovered`; repair 5 `kept:recovered`. The next full build serves the result;
    then regenerate the canonical-identity sidecar (segmentation runbook, step 4).
-4. Check the five through the API, then change their `source_defects` entries (previous
-   section).
+4. Check the five through the API after the build: the gated entries serve them from then
+   on (previous section).
 5. Then the letter-coded pages (see "Side finding"): merging the scraper change is the
    rollout, at the next 01:00 UTC scrape. 230 new rows, additive, cut and dated by the
    merged segmenter. A staging run on the server can go first.

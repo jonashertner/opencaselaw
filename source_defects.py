@@ -28,6 +28,15 @@ text (see the runbook); it keeps answering for the reference after that, so a
 lookup tells why the text is missing instead of a bare not-found. Take an entry
 out when its source is fixed and re-scraped.
 
+Recovered rulings (runbooks/historical_bge_recovered_2026-10-08/): a withheld
+entry may carry the SHA-256 of the ruling's own text, recovered from DFR
+material at hand. While the stored text is exactly that text, the row is served
+with it and a note saying where it comes from and which pages are missing;
+otherwise the entry withholds as before. The gate makes the switch follow the
+data: nothing changes until the shard repair has written the recovered text
+and a build has stored it. The structure and the outgoing citations stay
+withheld for these references.
+
 Pure: no I/O.
 """
 from __future__ import annotations
@@ -51,6 +60,9 @@ class SourceDefect:
     note: str
     text_sha256: str | None = None   # truncate: the stored text the cut was verified on
     keep_chars: int | None = None    # truncate: the ruling's own text is full_text[:keep_chars]
+    recovered: str | None = None             # withhold: "complete" | "partial" recovered own text
+    recovered_sha256: str | None = None      # withhold: SHA-256 of that text (the manifest's)
+    recovered_note: str | None = None        # withhold: the note served with it
 
     @property
     def volume(self) -> int:
@@ -68,22 +80,41 @@ class SourceDefect:
         return out
 
 
-def _foreign_volume(ref: str, holds: str, copy_of: str) -> SourceDefect:
+def _foreign_volume(ref: str, holds: str, copy_of: str, **recovery) -> SourceDefect:
     return SourceDefect(
         reference=ref, kind="foreign_volume", action="withhold", holds=holds, copy_of=copy_of,
         note=(f"The DFR source document filed under BGE {ref} is a scan of BGE {holds} (1939), "
               f"not of BGE {ref}. Its text is withheld here: the text, holding and considerations "
               f"of BGE {ref} are not available on this server, and its date is not established. "
               f"Do not describe the content of BGE {ref} from this server."),
+        **recovery,
     )
+
+
+def _partial(ref: str, holds: str, held: str, missing: str, sha: str) -> dict:
+    """Recovery fields for a 52 I ruling recovered in part from its neighbours' scans."""
+    return {
+        "recovered": "partial", "recovered_sha256": sha,
+        "recovered_note": (
+            f"The DFR source document filed under BGE {ref} is a scan of BGE {holds} (1939). "
+            f"The text served here is BGE {ref}'s own, recovered from the neighbouring rulings' "
+            f"DFR scans: {held}. {missing} missing from every source at hand and "
+            f"marked in the text. The extracted considerations are not served for this reference."),
+    }
 
 
 DEFECTS: tuple[SourceDefect, ...] = (
     _foreign_volume("52 I 1", "65 I 1", "bge_65_I_1"),
     _foreign_volume("52 I 8", "65 I 8", "bge_65_I_8"),
-    _foreign_volume("52 I 23", "65 I 23", "bge_65_I_23"),
-    _foreign_volume("52 I 39", "65 I 39", "bge_65_I_39"),
-    _foreign_volume("52 I 149", "65 I 149", "bge_65_I_149"),
+    _foreign_volume("52 I 23", "65 I 23", "bge_65_I_23", **_partial(
+        "52 I 23", "65 I 23", "pages 23 and 26-27 of the volume", "Pages 24-25 are",
+        "06d30dfce56498e1387505e1c8d28461de703b114b96d45a8f9cbda2a615c5f9")),
+    _foreign_volume("52 I 39", "65 I 39", "bge_65_I_39", **_partial(
+        "52 I 39", "65 I 39", "pages 39 and 44 of the volume", "Pages 40-43 are",
+        "357aafe639db2f344fd8cca580e07379651f0951e5e328ed3415b9f298e1d419")),
+    _foreign_volume("52 I 149", "65 I 149", "bge_65_I_149", **_partial(
+        "52 I 149", "65 I 149", "page 149 of the volume, its first page", "Pages 150-153 are",
+        "9e3d377548ba1985eb9a5c6a7352827b5e238118ed459155953a2268048d8164")),
     _foreign_volume("52 I 230", "65 I 230", "bge_65_I_230"),
     SourceDefect(
         reference="39 I 469", kind="other_pages", action="withhold", holds="39 I 483",
@@ -92,6 +123,15 @@ DEFECTS: tuple[SourceDefect, ...] = (
               "volume, i.e. BGE 39 I 483, not BGE 39 I 469. Its text and date are withheld here: "
               "the text, holding and considerations of BGE 39 I 469 are not available on this "
               "server. Do not describe the content of BGE 39 I 469 from this server."),
+        recovered="complete",
+        recovered_sha256="2f6bfe360cafbade849812d0136a68bfd95c951e025f73cc8e1d7069acdec789",
+        recovered_note=("The DFR source document filed under BGE 39 I 469 shows pages 482-483 of "
+                        "the volume (BGE 39 I 483). The text served here is BGE 39 I 469's own, "
+                        "pages 469-471, read by OCR from the neighbouring DFR scans "
+                        "https://www.fallrecht.ch/c1039465.pdf and "
+                        "https://www.fallrecht.ch/c1039471.pdf. It is not proofread: figures may "
+                        "be misread, so check them against those scans before relying on them. "
+                        "The extracted considerations are not served for this reference."),
     ),
     SourceDefect(
         reference="22 I 12", kind="other_reference", action="withhold", holds="22 I 1012",
@@ -101,6 +141,12 @@ DEFECTS: tuple[SourceDefect, ...] = (
               "(https://www.fallrecht.ch/c1022012.pdf); BGE 22 I 1012 as "
               "https://www.fallrecht.ch/c1022A12.pdf. Do not describe the content of "
               "BGE 22 I 12 from this server."),
+        recovered="complete",
+        recovered_sha256="764d6a72075ab35c32aa4b0c547fd08c4f715863b569ce91831bb72e8096cd1b",
+        recovered_note=("The DFR page indexed for BGE 22 I 12 holds BGE 22 I 1012. The text served "
+                        "here is BGE 22 I 12's own, read from its DFR scan "
+                        "(https://www.fallrecht.ch/c1022012.pdf). The extracted considerations "
+                        "are not served for this reference."),
     ),
     SourceDefect(
         reference="71 II 223", kind="foreign_pages_appended", action="truncate",
@@ -162,6 +208,19 @@ def _sha256(text: str) -> str:
     return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
 
+def recovered_in(defect: SourceDefect, stored_text: str | None) -> bool:
+    """True when the stored text is the ruling's own, recovered text."""
+    return bool(defect.recovered_sha256) and _sha256(stored_text or "") == defect.recovered_sha256
+
+
+def served_dict(defect: SourceDefect, stored_text: str | None) -> dict:
+    """The `source_defect` entry served for a reference with this stored text:
+    the recovery note while it is the recovered text, else the defect's own."""
+    if recovered_in(defect, stored_text):
+        return {**defect.as_dict(), "recovered": defect.recovered, "note": defect.recovered_note}
+    return defect.as_dict()
+
+
 def own_text(defect: SourceDefect, stored_text: str | None) -> str | None:
     """The ruling's own text for a truncate entry; None when the stored text is
     no longer the one the cut was verified on (the entry has lapsed)."""
@@ -191,14 +250,21 @@ def snippet_in(snippet: str | None, text: str) -> bool:
 def apply(row: dict) -> dict:
     """The row as it may be served: unchanged when not listed (same object);
     otherwise a copy with the text withheld or cut and a `source_defect` entry.
-    A truncate entry whose verified text no longer matches leaves the row as it
-    is (the text changed, e.g. after re-segmentation)."""
+    A withheld reference whose stored text is its recovered own text is served
+    with it, `source_defect` carrying the recovery note. A truncate entry whose
+    verified text no longer matches leaves the row as it is (the text changed,
+    e.g. after re-segmentation)."""
     court = row.get("court")
     if court not in (None, "bge", "bge_historical"):
         return row          # another court's docket may look like '52 I 8'
     d = lookup(row.get("decision_id")) or (lookup(row.get("docket_number")) if court else None)
     if d is None:
         return row
+    if recovered_in(d, row.get("full_text")):
+        out = dict(row)
+        out["source_defect"] = served_dict(d, row.get("full_text"))
+        out["text_available"] = True
+        return out
     if d.action == "truncate":
         text = row.get("full_text") or ""
         own = own_text(d, text)
@@ -222,10 +288,11 @@ def apply(row: dict) -> dict:
 
 
 def filter_hits(rows: list[dict], stored_text=None) -> tuple[list[dict], int]:
-    """The search hits that may be shown, and how many were dropped: none of a
-    withheld reference; of a truncated one only those whose snippet lies in the
-    ruling's own text. ``stored_text(decision_id)`` gives the stored full_text
-    and is called for truncate entries only; without it they are kept."""
+    """The search hits that may be shown, and how many were dropped: of a
+    withheld reference only those on its recovered text; of a truncated one only
+    those whose snippet lies in the ruling's own text. ``stored_text(decision_id)``
+    gives the stored full_text; without it, withheld references' hits are dropped
+    and truncated ones' kept."""
     kept: list[dict] = []
     for r in rows:
         d = lookup(r.get("decision_id"))
@@ -233,6 +300,8 @@ def filter_hits(rows: list[dict], stored_text=None) -> tuple[list[dict], int]:
             kept.append(r)
             continue
         if d.action == "withhold":
+            if stored_text is not None and recovered_in(d, stored_text(r.get("decision_id"))):
+                kept.append(r)          # the ruling's own, recovered text
             continue
         if stored_text is not None:
             own = own_text(d, stored_text(r.get("decision_id")))
