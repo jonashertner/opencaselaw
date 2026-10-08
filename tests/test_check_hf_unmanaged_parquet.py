@@ -96,3 +96,79 @@ def test_cli_listing_failure_is_exit_2(monkeypatch, capsys):
     monkeypatch.setattr(guard, "list_remote_files", boom)
     assert guard.main([]) == 2
     assert "listing voilaj/swiss-caselaw@main failed" in capsys.readouterr().err
+
+
+# ── the card's default load_dataset config ────────────────────────────────
+
+OLD_CARD = """---
+license: cc0-1.0
+configs:
+  - config_name: default
+    data_files:
+      - split: train
+        path: data/*.parquet
+---
+
+# Swiss Case Law Dataset
+"""
+
+
+def test_card_default_patterns_forms():
+    assert guard.card_default_patterns(OLD_CARD) == ["data/*.parquet"]
+    assert guard.card_default_patterns(guard.CARD_PATH.read_text(encoding="utf-8")) == [
+        "data/*[!0-9].parquet"]
+    as_str = "---\nconfigs:\n  - config_name: default\n    data_files: data/a*.parquet\n---\n"
+    assert guard.card_default_patterns(as_str) == ["data/a*.parquet"]
+    as_lists = ("---\nconfigs:\n  - config_name: other\n    data_files: x/*.parquet\n"
+                "  - config_name: default\n    data_files:\n      - split: train\n"
+                "        path: [data/a*.parquet, data/b*.parquet]\n---\n")
+    assert guard.card_default_patterns(as_lists) == ["data/a*.parquet", "data/b*.parquet"]
+    assert guard.card_default_patterns("# no front matter\n") == []
+
+
+def test_old_pattern_reads_the_delta_new_one_only_courts():
+    listing = ["data/bge.parquet", "data/zh_mietgericht.parquet",
+               "data/delta-2026-10-08.parquet", "data/daily/2026-10-08.parquet",
+               "artifacts/parquet/deltas/2026-10-08.parquet"]
+    assert guard.card_config_gaps(listing, ["data/*.parquet"]) == {
+        "courts_not_loaded": [], "non_courts_loaded": ["data/delta-2026-10-08.parquet"]}
+    assert guard.card_config_gaps(listing, ["data/*[!0-9].parquet"]) == {
+        "courts_not_loaded": [], "non_courts_loaded": []}
+    # the pattern's one blind spot is caught, not hidden: a court ending in a digit
+    assert guard.card_config_gaps(["data/zh_kreis2.parquet"], ["data/*[!0-9].parquet"]) == {
+        "courts_not_loaded": ["data/zh_kreis2.parquet"], "non_courts_loaded": []}
+
+
+def test_card_reads_every_court_of_the_committed_stats():
+    # docs/stats.json is refreshed nightly; a court code ending in a digit would
+    # be skipped by data/*[!0-9].parquet, so it fails here before it ships.
+    courts = json.loads((REPO / "docs" / "stats.json").read_text(encoding="utf-8"))["by_court"]
+    assert len(courts) > 100
+    patterns = guard.card_default_patterns(guard.CARD_PATH.read_text(encoding="utf-8"))
+    listing = [f"data/{c}.parquet" for c in courts] + ["data/delta-2026-10-08.parquet"]
+    assert guard.card_config_gaps(listing, patterns) == {
+        "courts_not_loaded": [], "non_courts_loaded": []}
+
+
+def test_layout_findings_lines():
+    listing = ["bge.parquet", "data/bge.parquet", "data/delta-2026-10-08.parquet"]
+    old = guard.layout_findings(listing, OLD_CARD)
+    assert len(old) == 2
+    assert old[0].startswith("1 parquet file(s) outside data/")
+    assert "also reads data/delta-2026-10-08.parquet" in old[1]
+    new = guard.layout_findings(listing[1:], guard.CARD_PATH.read_text(encoding="utf-8"))
+    assert new == []
+    assert guard.layout_findings(listing[1:], "# no front matter\n") == [
+        "dataset card has no default config data_files"]
+
+
+def test_cli_reports_an_old_card(tmp_path, capsys):
+    listing = tmp_path / "files.txt"
+    listing.write_text("data/bge.parquet\ndata/delta-2026-10-08.parquet\n", encoding="utf-8")
+    card = tmp_path / "README.md"
+    card.write_text(OLD_CARD, encoding="utf-8")
+    assert guard.main(["--files-from", str(listing), "--card", str(card), "--json"]) == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["card"]["non_courts_loaded"] == ["data/delta-2026-10-08.parquet"]
+    assert out["unmanaged_parquet"] == []
+    assert guard.main(["--files-from", str(listing)]) == 0  # the repo's card

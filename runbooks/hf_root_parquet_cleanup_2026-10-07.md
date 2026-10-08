@@ -1,9 +1,12 @@
 # Hugging Face dataset: stale root-level parquet files (2026-10-07)
 
-**Status.** 99 stale files confirmed and listed. Deletion **deferred**: it writes to the
-public dataset and needs the repo owner's explicit approval. Guard added:
-`scripts/check_hf_unmanaged_parquet.py` (read-only, offline test
-`tests/test_check_hf_unmanaged_parquet.py`).
+**Status (2026-10-08).**
+
+| item | state |
+|---|---|
+| 99 stale root files | listed (`hf_root_parquet_cleanup_2026-10-07.files.tsv`). Deletion **ready, not run**: it needs a write token for `voilaj/swiss-caselaw`, which only the owner holds. Exact steps below. |
+| `load_dataset` broken by `data/delta-*.parquet` | **fixed in this branch** (card config); takes effect with the first nightly card upload after merge. Removing the delta from `data/` is a proposal. |
+| guard | `scripts/check_hf_unmanaged_parquet.py`, wired into the existing 6-hourly `check_output_freshness` run (own ntfy alert family). No systemd change. |
 
 Follow-up to `runbooks/historical_bge_and_sg_twins_2026-10-07.md`, section "Dataset (findings
 4 and 6)". That runbook reached `main` in jonashertner/opencaselaw#130; the list and the
@@ -47,7 +50,8 @@ the problem is staleness only, not licence exposure.
 
 Nothing in this repo points at the root files. A grep for `swiss-caselaw/<name>.parquet` and
 `resolve/main/<name>.parquet` outside `data/`, `graph/`, `structure/` and `artifacts/` finds
-nothing. The dataset card's `load_dataset` config reads `data/*.parquet`. The MCP bootstrap
+nothing. The dataset card's `load_dataset` config read `data/*.parquet` (court files only since
+this branch, see below). The MCP bootstrap
 downloads only `data/` (`mcp_server.py`, `f.startswith("data/")`).
 
 The full list, with size, row count, last commit and current counterpart:
@@ -65,28 +69,32 @@ No publisher writes to or prunes the repo root:
 - The verification pack goes to `artifacts/verification_pack/`, and `pipeline.py` writes to
   `data/daily/`.
 
-## Proposed deletion (NOT run; needs the owner's approval)
+## Deletion (ready; to be run by the owner)
 
-**Do not use `HfApi.delete_files(..., delete_patterns=["*.parquet"])`**, as proposed in the
-twins runbook. `delete_files` always matches from the repo root, and `fnmatch`'s `*`
+**Do not use `HfApi.delete_files(..., delete_patterns=["*.parquet"])`**, as the twins
+runbook proposed. `delete_files` always matches from the repo root, and `fnmatch`'s `*`
 crosses `/`. Simulated with `huggingface_hub` 2.1.1 against the 2026-10-07 listing, that
 pattern matches **440** files: the 99 root files plus all of `data/` (121), `graph/` (2),
 `structure/` (2) and 216 parquet files under `artifacts/`. Delete by an explicit path list
 only.
 
-One Hub commit holds exactly the 99 documented paths, plus the dataset card with the
-changelog line. `parent_commit` makes the commit fail if the repo moved after it was listed;
-in that case, list again and re-run. Run from the repo root, outside the nightly build window,
-with a write token in `HF_TOKEN` (never echo it):
+**Who runs it.** Someone with a write token for `voilaj/swiss-caselaw`: the owner, or the
+publish host's token. The cloud sessions that prepared this have none (the Hub answered them
+unauthenticated). Run it outside the nightly build window, from a checkout of `main` once this
+branch is merged, with the token in `HF_TOKEN` (never echo it).
+
+**Step 1: delete.** One Hub commit holds exactly the 99 documented paths. `parent_commit`
+makes it fail if the repo moved after the listing; then simply run it again. `DRY_RUN = True`
+prints the plan and changes nothing (verified on 2026-10-08 at `f57a5b42`).
 
 ```bash
 python3 - <<'EOF'
 import csv, sys
 sys.path.insert(0, ".")
-from huggingface_hub import HfApi, CommitOperationAdd, CommitOperationDelete
+from huggingface_hub import HfApi, CommitOperationDelete
 from scripts.check_hf_unmanaged_parquet import HF_REPO_ID, MANAGED_PREFIXES, unmanaged_parquet
 
-DRY_RUN = True  # set False only after the owner has approved
+DRY_RUN = True  # set False to delete
 api = HfApi()
 head = api.dataset_info(HF_REPO_ID).sha
 found = unmanaged_parquet(api.list_repo_files(HF_REPO_ID, repo_type="dataset", revision=head))
@@ -95,87 +103,130 @@ with open("runbooks/hf_root_parquet_cleanup_2026-10-07.files.tsv", encoding="utf
 assert found == documented, sorted(set(found) ^ set(documented))
 assert len(found) == 99 and all("/" not in p for p in found)
 assert not any(p.startswith(MANAGED_PREFIXES) for p in found)
-assert "Removed 99 parquet files" in open("dataset_card.md", encoding="utf-8").read()
-ops = [CommitOperationDelete(path_in_repo=p) for p in found]
-ops.append(CommitOperationAdd(path_in_repo="README.md", path_or_fileobj="dataset_card.md"))
-print(f"head {head[:8]}: delete {len(found)} root parquet files ({found[0]} .. {found[-1]}), update README.md")
+print(f"head {head[:8]}: delete {len(found)} root parquet files ({found[0]} .. {found[-1]})")
 if not DRY_RUN:
     info = api.create_commit(
-        repo_id=HF_REPO_ID, repo_type="dataset", operations=ops, parent_commit=head,
+        repo_id=HF_REPO_ID, repo_type="dataset", parent_commit=head,
+        operations=[CommitOperationDelete(path_in_repo=p) for p in found],
         commit_message="Remove 99 stale root-level parquet files (manual uploads of March 2026)",
         commit_description="Current files are under data/. See runbooks/hf_root_parquet_cleanup_2026-10-07.md",
     )
     print(info.commit_url)
 EOF
-python3 scripts/check_hf_unmanaged_parquet.py   # afterwards: exit 0, "0 parquet file(s) outside ..."
+python3 scripts/check_hf_unmanaged_parquet.py   # afterwards: "0 parquet file(s) outside ..."
 ```
 
-**Dataset card changelog line.** The card has no changelog section. Add one after "## Update
-Frequency", dated with the day of the deletion:
+**Step 2: changelog, the same day, only after step 1 succeeded.** Add this entry to the
+"## Changelog" section of `dataset_card.md` (the section exists since this branch), commit it
+to `main`. The nightly publish uploads the card as the Hub `README.md`, so do not commit it
+before the deletion:
 
 ```markdown
-## Changelog
-
-- YYYY-MM-DD: Removed 99 parquet files from the repository root, left over from manual uploads on 2026-03-03 and 2026-03-14. They were never part of the `load_dataset` configuration (`data/*.parquet`), but direct downloads of them returned the March 2026 corpus. Current files are under `data/`; the old ones remain available at revision `b4746827`.
+- YYYY-MM-DD: Removed 99 parquet files from the repository root, left over from manual uploads on 2026-03-03 and 2026-03-14. They were never part of the `load_dataset` configuration, but direct downloads of them returned the March 2026 corpus. Current files are under `data/`; the old ones remain available at revision `b4746827`.
 ```
 
-The line is **not** committed with this change. `publish.py` step 4 uploads `dataset_card.md`
-as the Hub's `README.md` every night, so committing it before the deletion would announce a
-deletion that has not happened. Sequence on the day:
-
-1. Commit the card line to `main` and deploy it to the VPS.
-2. Run the snippet above with `DRY_RUN = False`; it uploads the same card in the same commit.
-3. Run the guard and expect exit 0.
-
-If step 2 does not run, revert the card line before the nightly publish.
-
 **Effect and rollback.** Afterwards, a direct download of a root URL returns 404 instead of
-March data. That is the intended outcome: a loud failure instead of silently stale data.
-External scripts that hard-coded root URLs will break; nothing in this repo does. The files
-stay in the repo history and can be fetched with `hf_hub_download(..., revision="b4746827")`,
-or re-uploaded if needed. Do not squash the history to reclaim the 6.95 GB.
+March data: a loud failure instead of silently stale data. External scripts that hard-coded
+root URLs will break; nothing in this repo does. The files stay in the repo history
+(`hf_hub_download(..., revision="b4746827")`) and can be re-uploaded if needed. Do not squash
+the history to reclaim the 6.95 GB.
 
 ## Guard
 
 ```bash
-python3 scripts/check_hf_unmanaged_parquet.py            # list; exit 1 if any, 0 if none, 2 if the listing failed
-python3 scripts/check_hf_unmanaged_parquet.py --details  # + size and last commit per file
+python3 scripts/check_hf_unmanaged_parquet.py            # exit 1 on a finding, 0 clean, 2 listing failed
+python3 scripts/check_hf_unmanaged_parquet.py --details  # + size and last commit per stale file
 python3 scripts/check_hf_unmanaged_parquet.py --json
+python3 scripts/check_hf_unmanaged_parquet.py --card dataset_card.md   # check the local card instead of the Hub's README
 python3 scripts/check_hf_unmanaged_parquet.py --files-from list.txt   # offline
 ```
 
-On 2026-10-07 it reported exactly the 99 files of the TSV (exit 1). The managed prefixes are
-`data/`, `graph/`, `structure/` and `artifacts/`. A new publisher path outside them shows up
-as a finding, which fails safe. The offline test pins two things: the prefixes never cover
-the root, and the documented deletion list holds root-level parquet files only.
+Two checks:
 
-Not wired into anything yet. Two options, both proposal-only under `AGENTS.md`:
+1. Parquet files outside `data/`, `graph/`, `structure/` and `artifacts/`. A new publisher
+   path outside them shows up as a finding, which fails safe.
+2. The card's default config, as the Hub serves it (`README.md` at the listed revision): it
+   must read every court file directly under `data/` and nothing else.
 
-- `publish.py` step 4: after the `data/` upload, run `unmanaged_parquet()` on
-  `api.list_repo_files(...)` and log a warning. It must not block, because the upload has
-  already succeeded.
-- The `check_output_freshness` timer (`systemd/**`): run the guard and page through ntfy on
-  exit 1.
+On 2026-10-08 (`f57a5b42`) it reports the 99 files of the TSV and the live config reading
+`data/delta-2026-10-08.parquet`. With this branch's card (`--card dataset_card.md`) the second
+finding is gone.
 
-## Found in passing (not changed here)
+**Monitoring.** `scripts/check_output_freshness.py` runs the same checks
+(`check_hf_layout`) on its existing timer (`opencaselaw-output-freshness.timer`, every 6 h; three
+Hub API calls per run). Findings go out as their own ntfy family, "opencaselaw
+HF dataset layout": default priority, own state file
+(`state/hf_layout_last_dispatched.json`), the same de-duplication, a daily re-nag while
+unresolved, and one all-clear. The freshness page keeps its wording and state.
 
-**`load_dataset("voilaj/swiss-caselaw")` fails while a daily delta sits under `data/`.**
-`publish_delta.py` writes `data/delta-{date}.parquet` with 15 columns. Only 8 of them match
-the 41 columns of the court files (it has `id`, `docket`, `content_text`, ...; it lacks
-`decision_id`, `full_text`, ...). The card's default config reads `data/*.parquet`, so it
-includes the delta.
+A failed listing is logged, not paged, and sends no all-clear either (an armed alert stays
+armed). Logging rather than paging is the script's convention for every signal, to avoid
+paging on transient Hub errors. A Hub outage long enough to matter also stops the
+mirror's `lastModified`, which the freshness signal pages on.
 
-Reproduced on 2026-10-07 with `datasets` and `data_files=["data/gr_gerichte.parquet",
-"data/delta-2026-10-06.parquet"]` at `f7d5c459`: `DatasetGenerationError`, cast error
-"column names don't match". The full set was not run (6.9 GB).
+**Expect after deploy:** one layout page right away and one a day until the deletion is done.
+The delta line clears with the first nightly card upload after merge.
 
-Separately, all 138 rows of `delta-2026-10-06` are also in that night's court files. Step 7
-runs after step 4 on the same `decisions.db`, so even a schema-matched delta would
-double-count the latest day's rows. Step 4 prunes the delta the next night (its
-`delete_patterns`), and step 7 adds a new one.
+## `data/delta-*.parquet` and `load_dataset`
 
-Fixing this changes a public path that `publish_delta.py` says external consumers use
-("zero consumer breakage"). That is a decision for the owner; see the follow-up task.
+### Finding (verified 2026-10-07/08)
+
+`load_dataset("voilaj/swiss-caselaw")`, the call the card recommends, fails while a daily
+delta sits under `data/`.
+
+- `publish_delta.py` writes `data/delta-{date}.parquet` with `BASE_COLS`: 15 string
+  columns, of which 8 match the court files' 41 (`DECISION_SCHEMA`). It has `id`, `docket`,
+  `content_text`, ...; it lacks `decision_id`, `full_text`, ....
+- The card's config `data/*.parquet` reads it. `datasets` refuses a split whose files have
+  different columns ("column names don't match").
+- Reproduced end to end on 2026-10-08: a local copy of the repo layout with the published
+  `data/gr_gerichte.parquet`, `data/ag_strafgericht.parquet` and
+  `data/delta-2026-10-08.parquet`. With the old card, `load_dataset` raises
+  `DatasetGenerationError`; with this branch's card it loads 18,036 rows, 41 columns.
+- Since when: the Hub history has 228 "daily delta" commits since 2026-02-08, and step 4 prunes
+  the previous delta each night, so `data/` holds one delta almost all the time. Probably
+  broken for about eight months, but not proven day by day.
+- Nobody reported it: no GitHub issue, and the Hub's only discussion is the parquet bot's.
+- All 120 court files share one schema (footers read on 2026-10-08), so the delta is the only
+  file in the way.
+- The delta's rows are also in the court files of the same night: all 138 rows of
+  `delta-2026-10-06`. Step 7 runs after step 4 on the same `decisions.db`. So even a delta with
+  the right columns would double-count the latest day.
+
+### What "outside users rely on that path" amounts to
+
+`publish_delta.py` says it keeps the old private pipeline's paths for external consumers. For
+`data/delta-{date}.parquet` specifically:
+
+- It lives about a day: step 4's `delete_patterns` prunes it each night.
+- `artifacts/manifest.json` does not list it; it lists 217 entries under
+  `artifacts/parquet/deltas/`.
+- No doc in this repo mentions it.
+- The same rows are in `artifacts/parquet/deltas/{date}.parquet`, written with
+  `DECISION_SCHEMA` (`_export_parquet_base_schema`), and in the court files.
+
+A consumer would have to poll the dated URL every day. That cannot be ruled out: the Hub gives
+no per-file download counts.
+
+### Options
+
+| option | fixes `load_dataset` | delta consumers | state |
+|---|---|---|---|
+| A. card config reads court files only: `data/*[!0-9].parquet` (delta names end in a digit, court codes never do) | yes; verified end to end and against the live listing | unaffected | **done in this branch** |
+| B. stop writing `data/delta-*` in `publish_delta.py` (drop the `BASE_COLS` export and its upload); step 4 prunes the last one the next night | yes, and `data/*.parquet` would be correct again by construction | a daily poller of `data/delta-{date}.parquet` gets 404; the same rows stay in `artifacts/parquet/deltas/` | **proposal** (pipeline publish path, public path) |
+| C. move the delta to its own folder with its own card config | yes | the dated URL changes anyway (same breakage as B); a one-day config has little value | not recommended |
+| D. write `data/delta-*` with `DECISION_SCHEMA` | yes | every column name a consumer reads changes; the latest day's rows load twice | not recommended |
+
+A's one weakness is naming: a court code ending in a digit would be skipped silently.
+Two checks close it:
+
+- the offline test `test_card_reads_every_court_of_the_committed_stats` checks every court
+  code in `docs/stats.json` (refreshed nightly), so it fails `make test`;
+- the guard's card check reports any court file the live config skips.
+
+**Recommendation.** Merge A now. Do B once the owner is satisfied that nobody polls
+`data/delta-{date}.parquet`; add a changelog line pointing to `artifacts/parquet/deltas/`.
+After B, the config can stay as it is.
 
 ## Note for the twins runbook
 
