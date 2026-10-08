@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Research paper — OpenCaseLaw</title>
-<meta name="description" content="OpenCaseLaw: an open corpus and retrieval stack for Swiss case law. 972,000+ decisions, 6.5M citation edges, multilingual benchmark, MIT-licensed. arXiv preprint, March 2026.">
+<title>Forschungsartikel — OpenCaseLaw</title>
+<meta name="description" content="OpenCaseLaw: ein offener Korpus und eine Suchplattform für die Schweizer Rechtsprechung. Über 972'000 Entscheide, 6,5 Mio. Zitierkanten, mehrsprachiger Benchmark, MIT-Lizenz. arXiv-Preprint, März 2026.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/paper/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/paper/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/paper/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/paper/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/paper/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/paper/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/paper/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/paper/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/paper/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/paper/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/paper/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/paper/">
-<meta property="og:title" content="OpenCaseLaw — research paper · March 2026">
-<meta property="og:description" content="An open corpus and retrieval stack for Swiss case law. 972,000+ decisions, 6.5M citation edges, multilingual benchmark, MIT-licensed.">
+<meta property="og:title" content="Forschungsartikel — OpenCaseLaw">
+<meta property="og:description" content="OpenCaseLaw: ein offener Korpus und eine Suchplattform für die Schweizer Rechtsprechung. Über 972'000 Entscheide, 6,5 Mio. Zitierkanten, mehrsprachiger Benchmark, MIT-Lizenz. arXiv-Preprint, März 2026.">
 <meta property="og:image" content="https://opencaselaw.ch/og-image.png">
 <meta property="og:url" content="https://opencaselaw.ch/paper/">
 <meta property="og:type" content="article">
@@ -51,46 +51,46 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap-prose">
-      <p class="page-kicker"><b data-t="kicker">Research preprint · March 2026</b></p>
-      <h1 class="page-h1" data-t="h1">OpenCaseLaw: An Open Dataset and Search Platform for Swiss Court Decisions</h1>
+      <p class="page-kicker"><b data-t="kicker">Forschungspreprint · März 2026</b></p>
+      <h1 class="page-h1" data-t="h1">OpenCaseLaw: Ein offener Datensatz und eine Suchplattform für Schweizer Gerichtsentscheide</h1>
       <div class="paper-meta">
         <span class="who">Jonas Hertner</span>
-        <span class="pill" data-t="pill_arxiv">arXiv preprint</span>
-        <span class="pill" data-t="pill_ver">v1 · March 20, 2026</span>
-        <span class="pill" data-t="pill_lic">MIT (code) · CC0 (data)</span>
+        <span class="pill" data-t="pill_arxiv">arXiv-Preprint</span>
+        <span class="pill" data-t="pill_ver">v1 · 20. März 2026</span>
+        <span class="pill" data-t="pill_lic">MIT (Code) · CC0 (Daten)</span>
       </div>
       <div class="page-actions">
-        <a href="opencaselaw-arxiv-final.pdf" class="btn btn-primary" data-t="cta_final">Download PDF (final)</a>
-        <a href="opencaselaw-arxiv-submission.pdf" class="btn btn-ghost" data-t="cta_sub">arXiv submission PDF</a>
-        <a href="https://github.com/jonashertner/opencaselaw" class="btn btn-ghost" rel="noopener" target="_blank" data-t="cta_code">Source code (MIT)</a>
-        <a href="https://huggingface.co/datasets/voilaj/swiss-caselaw" class="btn btn-ghost" rel="noopener" target="_blank" data-t="cta_data">Dataset (CC0)</a>
+        <a href="opencaselaw-arxiv-final.pdf" class="btn btn-primary" data-t="cta_final">PDF herunterladen (final)</a>
+        <a href="opencaselaw-arxiv-submission.pdf" class="btn btn-ghost" data-t="cta_sub">arXiv-Einreichungs-PDF</a>
+        <a href="https://github.com/jonashertner/opencaselaw" class="btn btn-ghost" rel="noopener" target="_blank" data-t="cta_code">Quellcode (MIT)</a>
+        <a href="https://huggingface.co/datasets/voilaj/swiss-caselaw" class="btn btn-ghost" rel="noopener" target="_blank" data-t="cta_data">Datensatz (CC0)</a>
       </div>
     </div>
   </section>
 
   <section class="wrap-prose" style="padding-bottom:clamp(64px,9vw,112px)">
     <div class="prose">
-      <h2 data-t="h_abstract">Abstract</h2>
-      <p class="abstract" data-t="abstract">We present OpenCaseLaw, an open corpus and retrieval stack for Swiss case law. In the repository snapshot generated on March&nbsp;20, 2026, the dataset contains 962,724 decisions from 102 federal, cantonal, and regulatory courts or public bodies, covering all 26 cantons and the period 1875–2026. The current snapshot contains 448,461 German decisions (46.6&thinsp;%), 434,663 French decisions (45.1&thinsp;%), and 79,600 Italian decisions (8.3&thinsp;%); the export schema also reserves a Romansh language code. OpenCaseLaw releases a 34-field Parquet export together with tooling to build a local SQLite&nbsp;FTS5 index and reference database; in the March&nbsp;20, 2026 graph build, that database contains 8.76&nbsp;million extracted case-citation references, 6.42&nbsp;million resolved in-corpus decision links, and 11.23&nbsp;million decision-statute links. We describe the collection, normalization, deduplication, export, and retrieval pipeline, and release a multilingual benchmark harness with 100 tagged evaluation queries plus a release-matched offline baseline report. The code is MIT-licensed, and each record links back to the decision as published by the originating court or public body.</p>
+      <h2 data-t="h_abstract">Zusammenfassung</h2>
+      <p class="abstract" data-t="abstract">Wir präsentieren OpenCaseLaw, einen offenen Korpus und Retrieval-Stack für die Schweizer Rechtsprechung. Im am 20. März 2026 erzeugten Repository-Snapshot enthält der Datensatz 962’724 Entscheide von 102 eidgenössischen, kantonalen und regulatorischen Gerichten oder öffentlichen Stellen, deckt alle 26 Kantone und den Zeitraum 1875–2026 ab. Der aktuelle Snapshot enthält 448’461 deutschsprachige Entscheide (46,6 %), 434’663 französischsprachige (45,1 %) und 79’600 italienischsprachige (8,3 %); das Exportschema reserviert zudem einen rätoromanischen Sprachcode. OpenCaseLaw veröffentlicht einen 34-Feld-Parquet-Export samt Werkzeugen, um lokal einen SQLite-FTS5-Index und eine Referenzdatenbank aufzubauen; im Graph-Build vom 20. März 2026 enthält diese Datenbank 8,76 Millionen extrahierte Fallzitate, 6,42 Millionen aufgelöste korpusinterne Entscheid-Verknüpfungen und 11,23 Millionen Entscheid-Gesetz-Verknüpfungen. Wir beschreiben die Pipeline aus Sammlung, Normalisierung, Deduplizierung, Export und Retrieval und veröffentlichen ein mehrsprachiges Benchmark-Harness mit 100 getaggten Evaluationsanfragen sowie einen release-konformen Offline-Baseline-Bericht. Der Code ist MIT-lizenziert, und jeder Datensatz verlinkt zurück auf den Entscheid, wie er vom Ursprungsgericht oder der öffentlichen Stelle publiziert wurde.</p>
 
-      <h2 data-t="h_contrib">Contributions</h2>
+      <h2 data-t="h_contrib">Beiträge</h2>
       <ul>
-        <li data-t="contrib_corpus"><strong>Open corpus.</strong> 971,992 published Swiss court decisions (snapshot 2026-05-13) across 121 federal, regulatory, international, and cantonal courts. Released as a 34-field Parquet export under CC0 — the largest open dataset of Swiss case law.</li>
-        <li data-t="contrib_stack"><strong>Open retrieval stack.</strong> SQLite FTS5 index + atomic-rebuild pipeline. BM25 + RRF + structured-LLM parse + Haiku reranking. Frozen offline baseline (March 19, 2026) at MRR&nbsp;0.470, online with LLM at 0.647 — both reproducible from <code>benchmarks/</code>.</li>
-        <li data-t="contrib_graph"><strong>Citation graph.</strong> 8.76&nbsp;M extracted case-citation references; 6.42&nbsp;M resolved to in-corpus decisions (73.8&thinsp;% link rate). 11.23&nbsp;M extracted decision-statute links across 281&nbsp;K distinct provisions.</li>
-        <li data-t="contrib_mcp"><strong>Open MCP surface.</strong> 29 specialised tools at <code>mcp.opencaselaw.ch</code> — search, citation graph, statute lookup, doctrine timelines, multilingual commentary, exam-question generation. Free, no API keys, OpenAPI 3.0.3.</li>
-        <li data-t="contrib_bench"><strong>Multilingual benchmark.</strong> 100 tagged queries (74&nbsp;de · 16&nbsp;fr · 7&nbsp;it · 3 cross-lingual) across 15 legal domains, citation-graph verified. Plus a 50-question cross-lingual leading-case retrieval set with parallel DE/FR/IT phrasings.</li>
-        <li data-t="contrib_quality"><strong>Quality framework.</strong> 4-layer dataset quality framework — 61 dataset checks + 46 pytest checks + L4 production smoke + Step&nbsp;6c gate that blocks <code>git&nbsp;push</code> on critical regressions. Public dashboard at <a href="/quality.html">opencaselaw.ch/quality.html</a>.</li>
+        <li data-t="contrib_corpus"><strong>Offener Korpus.</strong> 971’992 publizierte Schweizer Gerichtsentscheide (Snapshot 2026-05-13) über 121 eidgenössische, regulatorische, internationale und kantonale Gerichte. Veröffentlicht als 34-Feld-Parquet-Export unter CC0 — der grösste offene Datensatz der Schweizer Rechtsprechung.</li>
+        <li data-t="contrib_stack"><strong>Offener Retrieval-Stack.</strong> SQLite-FTS5-Index + Pipeline mit atomarem Neuaufbau. BM25 + RRF + strukturiertes LLM-Parsing + Haiku-Reranking. Eingefrorene Offline-Baseline (19. März 2026) bei MRR&nbsp;0,470, online mit LLM bei 0,647 — beide reproduzierbar aus <code>benchmarks/</code>.</li>
+        <li data-t="contrib_graph"><strong>Zitationsgraph.</strong> 8,76&nbsp;Mio. extrahierte Fallzitate; 6,42&nbsp;Mio. auf korpusinterne Entscheide aufgelöst (73,8&thinsp;% Verknüpfungsrate). 11,23&nbsp;Mio. extrahierte Entscheid-Gesetz-Verknüpfungen über 281&nbsp;Tsd. verschiedene Bestimmungen.</li>
+        <li data-t="contrib_mcp"><strong>Offene MCP-Schnittstelle.</strong> 29 spezialisierte Tools unter <code>mcp.opencaselaw.ch</code> — Suche, Zitationsgraph, Gesetzesabfrage, Doktrin-Zeitlinien, mehrsprachige Kommentare, Prüfungsfragen-Generierung. Kostenlos, keine API-Schlüssel, OpenAPI 3.0.3.</li>
+        <li data-t="contrib_bench"><strong>Mehrsprachiges Benchmark.</strong> 100 getaggte Anfragen (74&nbsp;de · 16&nbsp;fr · 7&nbsp;it · 3 sprachübergreifend) über 15 Rechtsgebiete, zitationsgraph-verifiziert. Plus ein 50-Fragen-Set zur sprachübergreifenden Leitentscheid-Suche mit parallelen DE/FR/IT-Formulierungen.</li>
+        <li data-t="contrib_quality"><strong>Qualitätsrahmen.</strong> 4-Schichten-Datenqualitätsrahmen — 61 Datensatzprüfungen + 46 Pytest-Prüfungen + L4-Produktions-Smoke-Test + Step&nbsp;6c-Gate, das <code>git&nbsp;push</code> bei kritischen Regressionen blockiert. Öffentliches Dashboard unter <a href="/quality.html">opencaselaw.ch/quality.html</a>.</li>
       </ul>
 
-      <h2 data-t="h_cite">Cite</h2>
-      <p data-t="cite_intro">Until the paper appears on arXiv, please cite as:</p>
+      <h2 data-t="h_cite">Zitieren</h2>
+      <p data-t="cite_intro">Bis das Paper auf arXiv erscheint, bitte zitieren als:</p>
       <pre class="cite-block" id="cite-block">@misc{hertner2026opencaselaw,
   author       = {Hertner, Jonas},
   title        = {OpenCaseLaw: An Open Dataset and Search Platform for Swiss Court Decisions},
@@ -100,52 +100,52 @@
   note         = {Snapshot 2026-05-13: 971,992 decisions; live corpus ~972,000+}
 }</pre>
 
-      <h2 data-t="h_materials">Materials</h2>
+      <h2 data-t="h_materials">Materialien</h2>
     </div>
     <div class="dl-grid">
       <a class="dl-card" href="opencaselaw-arxiv-final.pdf">
         <div class="name">paper.pdf</div>
-        <div class="meta" data-t="m_final_meta">PDF · final draft · ~20 pp</div>
-        <div class="desc" data-t="m_final_desc">The full paper, internal cold-read pass complete.</div>
+        <div class="meta" data-t="m_final_meta">PDF · finaler Entwurf · ~20 S.</div>
+        <div class="desc" data-t="m_final_desc">Das vollständige Paper, interner Cold-Read-Durchgang abgeschlossen.</div>
       </a>
       <a class="dl-card" href="opencaselaw-arxiv-submission.pdf">
         <div class="name">submission.pdf</div>
-        <div class="meta" data-t="m_sub_meta">PDF · arXiv-ready</div>
-        <div class="desc" data-t="m_sub_desc">Submission-formatted PDF (NeurIPS D&amp;B template).</div>
+        <div class="meta" data-t="m_sub_meta">PDF · arXiv-bereit</div>
+        <div class="desc" data-t="m_sub_desc">Einreichungs-formatiertes PDF (NeurIPS-D&amp;B-Vorlage).</div>
       </a>
       <a class="dl-card" href="opencaselaw-arxiv-submission.tar.gz">
         <div class="name">source.tar.gz</div>
-        <div class="meta" data-t="m_src_meta">LaTeX source · figures · BibTeX</div>
-        <div class="desc" data-t="m_src_desc">Full reproducible source bundle.</div>
+        <div class="meta" data-t="m_src_meta">LaTeX-Quelle · Abbildungen · BibTeX</div>
+        <div class="desc" data-t="m_src_desc">Vollständiges, reproduzierbares Quellbündel.</div>
       </a>
       <a class="dl-card" href="opencaselaw-arxiv-final.md">
         <div class="name">paper.md</div>
-        <div class="meta" data-t="m_md_meta">Markdown render</div>
-        <div class="desc" data-t="m_md_desc">Plain-text version for diffing &amp; web reading.</div>
+        <div class="meta" data-t="m_md_meta">Markdown-Render</div>
+        <div class="desc" data-t="m_md_desc">Plaintext-Version zum Diffen &amp; Web-Lesen.</div>
       </a>
       <a class="dl-card" href="https://github.com/jonashertner/opencaselaw" rel="noopener" target="_blank">
         <div class="name">github.com/jonashertner/opencaselaw</div>
-        <div class="meta" data-t="m_gh_meta">Source code · MIT</div>
-        <div class="desc" data-t="m_gh_desc">All scrapers, retrieval stack, MCP server, build pipeline.</div>
+        <div class="meta" data-t="m_gh_meta">Quellcode · MIT</div>
+        <div class="desc" data-t="m_gh_desc">Alle Scraper, Retrieval-Stack, MCP-Server, Build-Pipeline.</div>
       </a>
       <a class="dl-card" href="https://huggingface.co/datasets/voilaj/swiss-caselaw" rel="noopener" target="_blank">
         <div class="name">voilaj/swiss-caselaw</div>
         <div class="meta" data-t="m_hf_meta">Hugging Face · CC0 · ~7 GB Parquet</div>
-        <div class="desc" data-t="m_hf_desc">Daily-refreshed Parquet export of the full corpus.</div>
+        <div class="desc" data-t="m_hf_desc">Täglich aktualisierter Parquet-Export des gesamten Korpus.</div>
       </a>
     </div>
     <div class="prose">
-      <h2 data-t="h_repro">Reproducibility</h2>
-      <p data-t="repro">Every numerical claim in the paper resolves to a commit-pinned artifact in the public repository. The 100-question multilingual benchmark lives at <code>benchmarks/swiss_legal_rag_bench/v1.jsonl</code> with the 50-question cross-lingual companion at <code>benchmarks/swiss_legal_rag_bench/cross_lingual_v1.jsonl</code>. Frozen offline retrieval results are pinned at <code>benchmarks/search_benchmark_2026-03-19_offline_full.json</code>. The dataset quality framework lives in <code>quality/</code>; its public dashboard is at <a href="/quality.html">/quality.html</a>.</p>
+      <h2 data-t="h_repro">Reproduzierbarkeit</h2>
+      <p data-t="repro">Jede numerische Aussage im Paper lässt sich auf ein commit-fixiertes Artefakt im öffentlichen Repository zurückführen. Das 100-Fragen-Mehrsprachen-Benchmark liegt unter <code>benchmarks/swiss_legal_rag_bench/v1.jsonl</code> mit dem 50-Fragen-Pendant für sprachübergreifende Suche unter <code>benchmarks/swiss_legal_rag_bench/cross_lingual_v1.jsonl</code>. Eingefrorene Offline-Retrieval-Resultate sind fixiert unter <code>benchmarks/search_benchmark_2026-03-19_offline_full.json</code>. Der Datenqualitätsrahmen liegt in <code>quality/</code>; sein öffentliches Dashboard unter <a href="/quality.html">/quality.html</a>.</p>
 
-      <h2 data-t="h_contact">Contact</h2>
-      <p data-t="contact">Questions, collaboration, peer review, citation chains: <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>. Issue tracker: <a href="https://github.com/jonashertner/opencaselaw/issues" rel="noopener" target="_blank">GitHub issues</a>.</p>
+      <h2 data-t="h_contact">Kontakt</h2>
+      <p data-t="contact">Fragen, Zusammenarbeit, Peer-Review, Zitationsketten: <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>. Issue-Tracker: <a href="https://github.com/jonashertner/opencaselaw/issues" rel="noopener" target="_blank">GitHub Issues</a>.</p>
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

@@ -4,22 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="google-site-verification" content="5eTv5mgNKw8M8vENzS4KPG4aJKYm_zKZJhL3TbQpOGs">
-<title>Gesetze — Bundes- und kantonale Gesetzgebung · OpenCaseLaw</title>
-<meta name="description" content="Direkter Zugriff auf ~5'000 Schweizer Bundesgesetze (~133'468 Artikel in DE/FR/IT) und 15'722 kantonale Erlasse über MCP. Fedlex-SPARQL-Spiegel und LexFind-Integration. Artikel-Lookup, föderierte Volltextsuche, Änderungsverlauf.">
+<title>Schweizer Bundes- und kantonale Gesetzgebung — OpenCaseLaw</title>
+<meta name="description" content="~5’000 Schweizer Bundesgesetze (125’000+ Artikel in drei Amtssprachen, vollständige Änderungshistorie) aus dem Fedlex-SPARQL-Endpunkt, monatlich lokal gespiegelt.">
 <meta name="author" content="Jonas Hertner">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/gesetze/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/gesetze/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/gesetze/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/gesetze/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/gesetze/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/gesetze/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/gesetze/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/gesetze/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/gesetze/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/gesetze/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/gesetze/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/gesetze/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://opencaselaw.ch/gesetze/">
-<meta property="og:title" content="Gesetze — Bundes- und kantonale Gesetzgebung · OpenCaseLaw">
-<meta property="og:description" content="Direkter Zugriff auf ~5'000 Schweizer Bundesgesetze (~133'468 Artikel in DE/FR/IT) und 15'722 kantonale Erlasse über MCP. Fedlex-SPARQL-Spiegel und LexFind-Integration.">
+<meta property="og:title" content="Schweizer Bundes- und kantonale Gesetzgebung — OpenCaseLaw">
+<meta property="og:description" content="~5’000 Schweizer Bundesgesetze (125’000+ Artikel in drei Amtssprachen, vollständige Änderungshistorie) aus dem Fedlex-SPARQL-Endpunkt, monatlich lokal gespiegelt.">
 <meta property="og:image" content="https://opencaselaw.ch/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -28,10 +28,11 @@
 <meta property="og:locale" content="de_CH">
 <meta property="og:locale:alternate" content="fr_CH">
 <meta property="og:locale:alternate" content="it_CH">
+<meta property="og:locale:alternate" content="rm_CH">
 <meta property="og:locale:alternate" content="en_CH">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Gesetze — Bundes- und kantonale Gesetzgebung · OpenCaseLaw">
-<meta name="twitter:description" content="~5'000 Schweizer Bundesgesetze (~133'468 Artikel, DE/FR/IT) und 15'722 kantonale Erlasse über MCP. Fedlex-SPARQL-Spiegel und LexFind-Integration.">
+<meta name="twitter:title" content="Schweizer Bundes- und kantonale Gesetzgebung — OpenCaseLaw">
+<meta name="twitter:description" content="~5’000 Schweizer Bundesgesetze (125’000+ Artikel in drei Amtssprachen, vollständige Änderungshistorie) aus dem Fedlex-SPARQL-Endpunkt, monatlich lokal gespiegelt.">
 <meta name="twitter:image" content="https://opencaselaw.ch/og-image.png">
 <meta name="twitter:image:alt" content="OpenCaseLaw.ch — Swiss Court Decisions Open Dataset">
 <script type="application/ld+json">
@@ -137,19 +138,19 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">Look up · Federal + cantonal</b></p>
+      <p class="page-kicker"><b data-t="kicker">Nachschlagen · Bund + Kantone</b></p>
       <h1 class="page-h1" data-t="gesetze_h1">Schweizer Bundes- und kantonale Gesetzgebung</h1>
-      <p class="page-lead" data-t="gesetze_sub">Direkter Zugriff auf den aktuellen Text von ~5'000 Schweizer Bundesgesetzen (~133'468 Artikel in DE/FR/IT) sowie auf 15'722 kantonale und interkantonale Erlasse. Über das Model Context Protocol (MCP) für LLM-Agenten erreichbar.</p>
+      <p class="page-lead" data-t="gesetze_sub">~5’000 Schweizer Bundesgesetze (125’000+ Artikel in drei Amtssprachen, vollständige Änderungshistorie) aus dem Fedlex-SPARQL-Endpunkt, monatlich lokal gespiegelt. 26’000+ kantonale und interkantonale Erlasse, lokal aus LexFind gespiegelt, monatlich refreshed. Stateless MCP-Calls für Artikel-Lookup, Volltextsuche, Versionsgeschichte und Änderungsverlauf.</p>
 
       <nav class="ptoc" aria-label="On this page">
-        <span class="ptoc-label" data-t="page_toc">On this page</span>
-        <a href="#gesetze-federal" data-t="gesetze_federal_heading">Bundesgesetze</a>
+        <span class="ptoc-label" data-t="page_toc">Auf dieser Seite</span>
+        <a href="#gesetze-federal" data-t="gesetze_federal_heading">Bundesgesetze — Fedlex-SPARQL-Spiegel</a>
         <a href="#gesetze-cantonal" data-t="toc_cantonal">Kantonale Erlasse</a>
         <a href="#gesetze-changes" data-t="gesetze_changes_heading">Aktuelle Änderungen</a>
         <a href="#gesetze-why" data-t="toc_why">Technischer Hintergrund</a>
@@ -160,9 +161,9 @@
   <!-- §01 Federal laws -->
   <section id="gesetze-federal" class="lsec">
     <div class="wrap">
-      <p class="sec-tag"><span class="n">§01</span> <span data-t="toc_federal_tag">Federal</span></p>
+      <p class="sec-tag"><span class="n">§01</span> <span data-t="toc_federal_tag">Bund</span></p>
       <h2 class="sec-h" data-t="gesetze_federal_heading">Bundesgesetze — Fedlex-SPARQL-Spiegel</h2>
-      <p class="lsec-intro" data-t="gesetze_fedlex_intro"></p>
+      <p class="lsec-intro" data-t="gesetze_fedlex_intro">Der <a href="https://fedlex.data.admin.ch/sparqlendpoint">Fedlex-SPARQL-Endpunkt</a> (<code>fedlex.data.admin.ch/sparqlendpoint</code>) wird monatlich abgefragt und die ~5’000 Schweizer Bundesgesetze werden als SQLite-FTS5-Index lokal gespiegelt. Artikel-Lookups laufen unter 1 ms, Volltextsuche mit BM25-Ranking.</p>
 
       <div class="facts">
         <div class="fact"><b>~5'000</b><span data-t="fact_federal_laws">Bundesgesetze</span></div>
@@ -183,7 +184,7 @@
       <div class="tool">
         <p class="tool-k" data-t="tool_label_lookup">Artikel-Lookup</p>
         <div class="copy-wrap"><pre><code>get_law(abbreviation="OR", article="41", language="de")</code></pre></div>
-        <p class="tool-p" data-t="gesetze_lookup_desc"></p>
+        <p class="tool-p" data-t="gesetze_lookup_desc">Liefert Art. 41 OR (ausservertragliche Haftung) mit Absätzen, Querverweisen und Metadaten aus dem lokalen FTS5-Index. Parameter <code>language</code> akzeptiert <code>de</code>, <code>fr</code>, <code>it</code>.</p>
       </div>
     </div>
   </section>
@@ -191,9 +192,9 @@
   <!-- §02 Cantonal legislation -->
   <section id="gesetze-cantonal" class="lsec">
     <div class="wrap">
-      <p class="sec-tag"><span class="n">§02</span> <span data-t="toc_cantonal_tag">Cantonal</span></p>
+      <p class="sec-tag"><span class="n">§02</span> <span data-t="toc_cantonal_tag">Kantonal</span></p>
       <h2 class="sec-h" data-t="gesetze_cantonal_heading">Kantonale Erlasse — direkter Portal-Spiegel + LexFind-Fallback</h2>
-      <p class="lsec-intro" data-t="gesetze_cantonal_intro"></p>
+      <p class="lsec-intro" data-t="gesetze_cantonal_intro">Die kantonale Gesetzgebung kommt aus zwei Quellen. <strong>Primär</strong>: 22 Kantone werden direkt aus ihren offiziellen Gesetzessammlungen gespiegelt — über die LexWork- und SIL-Plattformen, mit denen die Kantone selbst publizieren. Die Inhalte werden als HTML geparst (keine PDF-Extraktion, kein OCR) und ergeben saubere Artikel-Daten. <strong>Fallback</strong>: für die übrigen 4 Kantone — JU, SZ, UR, VD — (sowie für Erlasse, die nicht im direkten Spiegel landen) extrahiert OpenCaseLaw die PDFs von <a href="https://www.lexfind.ch">lexfind.ch</a> mit PyMuPDF. Beides landet in <code>cantonal_laws.db</code> (15’722 Erlasse / 353’437 Artikel) und wird per SQLite-FTS5 mit der Bundesrechts-Tabelle föderiert.</p>
 
       <div class="facts">
         <div class="fact"><b>15&rsquo;722</b><span data-t="fact_cantonal_acts">Erlasse</span></div>
@@ -202,24 +203,24 @@
         <div class="fact"><b data-t="fact_monthly_v">monatlich</b><span data-t="fact_monthly_l">aktualisiert</span></div>
       </div>
 
-      <p class="lsec-intro" data-t="gesetze_cantonal_note" style="font-size:14px;margin-top:24px"></p>
+      <p class="lsec-intro" data-t="gesetze_cantonal_note" style="font-size:14px;margin-top:24px">Für Anfragen an Erlasse, die noch nicht lokal gespiegelt sind — etwa ganz neu publizierte Fassungen zwischen zwei Refresh-Zyklen — fallen die MCP-Tools transparent auf die LexFind-Live-API zurück und cachen die Antwort persistent (SQLite, gestaffelte TTLs: Suche 24 h, SR-Auflösung 30 d, Volltext 7 d). Die <code>search_legislation</code>-Suche nutzt zusätzlich den LexFind-Katalog (33’000+ Texte inkl. Verordnungen und interkantonaler Vereinbarungen).</p>
 
       <div class="tool">
         <p class="tool-k" data-t="tool_label_search">Volltextsuche (föderiert)</p>
         <div class="copy-wrap"><pre><code>search_laws(query="Mietrecht", canton="ZH")</code></pre></div>
-        <p class="tool-p" data-t="gesetze_cantonal_search"></p>
+        <p class="tool-p" data-t="gesetze_cantonal_search"><code>search_laws</code> durchsucht den lokalen Spiegel sowohl bundes- als auch kantonalseitig und interleaved die Treffer. Ohne <code>canton</code>-Filter werden Bundes- und Kantonstreffer alternierend zurückgegeben; mit Filter wird auf den jeweiligen Rechtskreis beschränkt.</p>
       </div>
 
       <div class="tool">
         <p class="tool-k" data-t="tool_label_get">Artikel-Lookup kantonal</p>
         <div class="copy-wrap"><pre><code>get_law(canton="ZH", sr_number="554.5", article="1")</code></pre></div>
-        <p class="tool-p" data-t="gesetze_cantonal_get"></p>
+        <p class="tool-p" data-t="gesetze_cantonal_get">Liefert Art. 1 des Zürcher Hundegesetzes aus <code>cantonal_laws.db</code>. Die <code>canton</code>-Parameter akzeptieren alle 26 Kantons-Codes (ZH, BE, LU, …, GE, JU).</p>
       </div>
 
       <div class="tool">
         <p class="tool-k" data-t="tool_label_nl">Natural-Language-Anfrage in einem Call</p>
         <div class="copy-wrap"><pre><code>search_legislation(query="Hundegesetz", canton="BE", fetch_top_n_texts=2)</code></pre></div>
-        <p class="tool-p" data-t="gesetze_cantonal_nl"></p>
+        <p class="tool-p" data-t="gesetze_cantonal_nl">Mit <code>fetch_top_n_texts=N</code> werden die Top-N-Treffer direkt mit Volltext und segmentierten Artikeln angereichert — LLMs können Fragen wie „Was sagt das Berner Hundegesetz zum Haltungsverbot?“ in einem einzigen Tool-Call beantworten.</p>
       </div>
     </div>
   </section>
@@ -227,9 +228,9 @@
   <!-- §03 Recent changes -->
   <section id="gesetze-changes" class="lsec">
     <div class="wrap">
-      <p class="sec-tag"><span class="n">§03</span> <span data-t="toc_changes_tag">Changes</span></p>
+      <p class="sec-tag"><span class="n">§03</span> <span data-t="toc_changes_tag">Änderungen</span></p>
       <h2 class="sec-h" data-t="gesetze_changes_heading">Aktuelle Änderungen</h2>
-      <p class="lsec-intro" data-t="gesetze_changes_desc"></p>
+      <p class="lsec-intro" data-t="gesetze_changes_desc">Für jede Jurisdiktion können die zuletzt erfolgten Gesetzesänderungen abgefragt werden — neue Erlasse, Revisionen und Aufhebungen mit Datum, Typ und Link zur offiziellen Publikation.</p>
 
       <div class="tool">
         <p class="tool-k" data-t="tool_label_changes">browse_legislation_changes</p>
@@ -241,19 +242,19 @@
   <!-- §04 Technical background -->
   <section id="gesetze-why" class="lsec" style="padding-bottom:clamp(64px,9vw,112px)">
     <div class="wrap">
-      <p class="sec-tag"><span class="n">§04</span> <span data-t="toc_why_tag">Background</span></p>
+      <p class="sec-tag"><span class="n">§04</span> <span data-t="toc_why_tag">Hintergrund</span></p>
       <h2 class="sec-h" data-t="gesetze_bg_heading">Technischer Hintergrund</h2>
       <div style="margin-top:18px">
-        <p class="bgp" data-t="gesetze_bg_fedlex"></p>
-        <p class="bgp" data-t="gesetze_bg_lexfind"></p>
-        <p class="bgp" data-t="gesetze_bg_graph"></p>
+        <p class="bgp" data-t="gesetze_bg_fedlex">Fedlex exponiert zwei maschinenlesbare Schnittstellen: einen SPARQL-Endpunkt (RDF, ELI-URIs) und XML-Downloads einzelner Erlasse. Beide setzen erhebliche Vorarbeit voraus, bevor ein Abruf wie „Art. 41 OR auf Deutsch“ möglich ist. Der lokale Spiegel materialisiert ~5’500 Bundesgesetze (~133’468 Artikel) in einer FTS5-Tabelle über (Gesetz, Artikel, Sprache), was Artikel-Lookups auf Submillisekunden-Latenz bringt.</p>
+        <p class="bgp" data-t="gesetze_bg_lexfind">LexFind stellt eine JSON-API für die Live-Discovery über alle 26 kantonalen Sammlungen plus die federalen bereit (33’000+ Texte inkl. Verordnungen und interkantonaler Vereinbarungen). OpenCaseLaw nutzt LexFind in zwei Rollen: (1) als <strong>PDF-Fallback-Quelle</strong> für die 4 Kantone (JU, SZ, UR, VD), deren Portale wir noch nicht direkt scrapen — die PDFs werden mit PyMuPDF extrahiert und in Artikel segmentiert; (2) als <strong>Discovery-Katalog</strong> für die <code>search_legislation</code>-Tool-Familie. Für die anderen 22 Kantone gehen wir direkt an die offiziellen Portale (LexWork + SIL).</p>
+        <p class="bgp" data-t="gesetze_bg_graph">Im Zitationsgraph sind 11,3 Mio Verweise auf Gesetzesartikel gespeichert; jede Referenz lässt sich gegen den aktuellen konsolidierten Text auflösen. Ein Entscheid, der Art. 12 BGFA zitiert, führt per <code>get_law("BGFA", article="12")</code> direkt zum Artikel in allen drei Amtssprachen.</p>
       </div>
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'laws',

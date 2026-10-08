@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenCaseLaw for Microsoft 365 Copilot — OpenCaseLaw</title>
-<meta name="description" content="An agent for Microsoft 365 Copilot Chat: Swiss case law and legislation with verbatim quotations and links. No Copilot Studio licence needed. Free, open source.">
+<title>OpenCaseLaw für Microsoft 365 Copilot — OpenCaseLaw</title>
+<meta name="description" content="Ein Agent für Microsoft 365 Copilot Chat: Schweizer Rechtsprechung und Gesetzgebung mit wörtlichen Zitaten und Links. Ohne Copilot-Studio-Lizenz. Kostenlos, Open Source.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/copilot/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/copilot/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/copilot/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/copilot/?lang=it">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/copilot/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/copilot/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/copilot/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/copilot/it/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/copilot/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/copilot/">
 <link rel="icon" href="/favicon.svg">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://opencaselaw.ch/copilot/">
-<meta property="og:title" content="OpenCaseLaw for Microsoft 365 Copilot">
-<meta property="og:description" content="Swiss case law and legislation in Copilot Chat. No Copilot Studio licence needed.">
+<meta property="og:title" content="OpenCaseLaw für Microsoft 365 Copilot — OpenCaseLaw">
+<meta property="og:description" content="Ein Agent für Microsoft 365 Copilot Chat: Schweizer Rechtsprechung und Gesetzgebung mit wörtlichen Zitaten und Links. Ohne Copilot-Studio-Lizenz. Kostenlos, Open Source.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -37,58 +37,58 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
       <p class="page-kicker"><b data-t="kicker">OpenCaseLaw · Microsoft 365 Copilot</b></p>
-      <h1 class="page-h1" data-t="h1">Swiss case law and legislation in Microsoft 365 Copilot. No Copilot Studio licence needed.</h1>
-      <p class="page-lead" data-t="lead">An agent that your IT uploads once. Everyone it is assigned to can then add OpenCaseLaw in Copilot Chat and get answers with verbatim quotations of statutes and links to the decisions. Free, open source (MIT).</p>
+      <h1 class="page-h1" data-t="h1">Schweizer Rechtsprechung und Gesetzgebung in Microsoft 365 Copilot. Ohne Copilot-Studio-Lizenz.</h1>
+      <p class="page-lead" data-t="lead">Ein Agent, den Ihre IT einmal hochlädt. Alle, denen er zugewiesen ist, können OpenCaseLaw danach in Copilot Chat hinzufügen und erhalten Antworten mit wörtlichen Gesetzeszitaten und Links zu den Entscheiden. Kostenlos, Open Source (MIT).</p>
       <div class="cc-cta">
-        <a class="btn btn-primary" href="opencaselaw-copilot-agent.zip" download data-t="cta_zip">Download the package (zip)</a>
-        <a class="btn btn-ghost" href="OpenCaseLaw-Copilot-guide-installation.pdf" data-t="cta_guide">Installation guide (PDF, French)</a>
-        <a class="btn btn-ghost" href="https://github.com/jonashertner/opencaselaw/tree/main/tools/copilot-agent" rel="noopener" target="_blank" data-t="cta_source">Source code</a>
+        <a class="btn btn-primary" href="opencaselaw-copilot-agent.zip" download data-t="cta_zip">Paket herunterladen (zip)</a>
+        <a class="btn btn-ghost" href="OpenCaseLaw-Copilot-guide-installation.pdf" data-t="cta_guide">Installationsanleitung (PDF, Französisch)</a>
+        <a class="btn btn-ghost" href="https://github.com/jonashertner/opencaselaw/tree/main/tools/copilot-agent" rel="noopener" target="_blank" data-t="cta_source">Quellcode</a>
       </div>
-      <p class="cc-note" data-t="note">Version 1.1.1 · tested in Microsoft 365 Copilot Chat (Basic)</p>
+      <p class="cc-note" data-t="note">Version 1.1.1 · getestet in Microsoft 365 Copilot Chat (Basic)</p>
     </div>
   </section>
 
   <section class="wrap" style="padding-bottom:clamp(64px,9vw,112px)">
     <div class="prose">
 
-      <h2 style="margin-top:0" data-t="lic_h">Licence and cost</h2>
-      <p data-t="lic_p">The agent is a declarative agent with one action: it calls the public OpenCaseLaw server. Microsoft lists custom actions in declarative agents as available in Copilot Chat without usage-based billing (<a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/prerequisites#agent-capabilities-and-licensing-models" rel="noopener">Agent capabilities and licensing models</a>). It needs no Copilot Studio licence, no Copilot credits and no Microsoft 365 Copilot licence. It reads no data of your organisation.</p>
+      <h2 style="margin-top:0" data-t="lic_h">Lizenz und Kosten</h2>
+      <p data-t="lic_p">Der Agent ist ein deklarativer Agent mit einer Aktion: Er fragt den öffentlichen OpenCaseLaw-Server ab. Microsoft führt benutzerdefinierte Aktionen in deklarativen Agenten als in Copilot Chat ohne nutzungsabhängige Abrechnung verfügbar (<a href="https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/prerequisites#agent-capabilities-and-licensing-models" rel="noopener">Agent capabilities and licensing models</a>). Er braucht keine Copilot-Studio-Lizenz, keine Copilot-Credits und keine Microsoft-365-Copilot-Lizenz. Er liest keine Daten Ihrer Organisation.</p>
 
-      <h2 data-t="it_h">For IT: install</h2>
+      <h2 data-t="it_h">Für die IT: Installation</h2>
       <ol class="steps">
-        <li data-t="it_1">Teams admin center &gt; <b>Teams apps &gt; Manage apps &gt; Actions &gt; Upload new app</b>, choose the zip. The first time this page is used in a tenant, Microsoft can take up to 30 minutes to enable it.</li>
-        <li data-t="it_2">Under <b>Available to</b>, choose who may use the agent (default: the whole organisation).</li>
-        <li data-t="it_3">Users open Copilot Chat, <b>Agents &gt; more agents</b>, search <b>OpenCaseLaw</b> (built by your organisation) and click <b>Add</b>.</li>
-        <li data-t="it_4">On the first question, Copilot asks once for permission to connect to OpenCaseLaw. After that it searches without asking.</li>
+        <li data-t="it_1">Teams Admin Center &gt; <b>Teams apps &gt; Manage apps &gt; Actions &gt; Upload new app</b>, das Zip auswählen. Wird diese Seite in einem Tenant zum ersten Mal benutzt, kann Microsoft bis zu 30 Minuten brauchen, um sie freizuschalten.</li>
+        <li data-t="it_2">Unter <b>Available to</b> festlegen, wer den Agenten nutzen darf (Standard: die ganze Organisation).</li>
+        <li data-t="it_3">Die Nutzerinnen und Nutzer öffnen Copilot Chat, <b>Agents &gt; Weitere Agents</b>, suchen <b>OpenCaseLaw</b> (von Ihrer Organisation erstellt) und klicken auf <b>Hinzufügen</b>.</li>
+        <li data-t="it_4">Bei der ersten Frage fragt Copilot einmal, ob er sich mit OpenCaseLaw verbinden darf. Danach sucht er ohne Rückfrage.</li>
       </ol>
 
-      <h2 data-t="in_h">What is in the package</h2>
-      <p data-t="in_p">An app manifest, the agent's instructions (including the citation rules), 24 read-only research tools of the OpenCaseLaw server and two icons. Readable JSON files, no program code. The AI-backed tools of OpenCaseLaw are left out.</p>
+      <h2 data-t="in_h">Was im Paket ist</h2>
+      <p data-t="in_p">Ein App-Manifest, die Anweisungen des Agenten (einschliesslich der Zitierregeln), 24 nur lesende Recherchewerkzeuge des OpenCaseLaw-Servers und zwei Icons. Lesbare JSON-Dateien, kein Programmcode. Die KI-gestützten Werkzeuge von OpenCaseLaw sind nicht dabei.</p>
 
-      <h2 data-t="data_h">What is sent where</h2>
-      <p data-t="data_p">Copilot sends the search terms (legal concepts, article numbers, decision references) from Microsoft's cloud to mcp.opencaselaw.ch, without any user identity or token; OpenCaseLaw sees Microsoft's IP addresses, not the users'. The agent's queries are not kept: no archive, no model training, only technical logs. The agent is instructed not to pass on names or other personal details. What OpenCaseLaw logs and keeps is described in the <a href="/datenschutz/">privacy policy</a>.</p>
+      <h2 data-t="data_h">Was wohin gesendet wird</h2>
+      <p data-t="data_p">Copilot sendet die Suchbegriffe (Rechtsbegriffe, Artikelnummern, Entscheidverweise) aus der Microsoft-Cloud an mcp.opencaselaw.ch, ohne Benutzeridentität oder Token; OpenCaseLaw sieht die IP-Adressen von Microsoft, nicht die der Nutzenden. Die Anfragen des Agenten werden nicht aufbewahrt: kein Archiv, kein Modelltraining, nur technische Logs. Der Agent ist angewiesen, keine Namen oder anderen Personendaten weiterzugeben. Was OpenCaseLaw protokolliert und aufbewahrt, steht in der <a href="/datenschutz/">Datenschutzerklärung</a>.</p>
 
-      <h2 data-t="not_h">Limits</h2>
+      <h2 data-t="not_h">Grenzen</h2>
       <ul>
-        <li data-t="not_1">A research aid, not legal advice. Check every source before relying on it.</li>
-        <li data-t="not_2">Federal Council messages (Botschaften) before 2003 are not yet in the corpus.</li>
+        <li data-t="not_1">Eine Recherchehilfe, keine Rechtsberatung. Prüfen Sie jede Quelle, bevor Sie sich darauf stützen.</li>
+        <li data-t="not_2">Botschaften des Bundesrats vor 2003 sind noch nicht im Korpus.</li>
       </ul>
 
-      <h2 data-t="fb_h">Feedback</h2>
-      <p data-t="fb_p">Questions and problems: team@jonashertner.com or <a href="https://github.com/jonashertner/opencaselaw/issues" rel="noopener">GitHub</a>.</p>
+      <h2 data-t="fb_h">Rückmeldungen</h2>
+      <p data-t="fb_p">Fragen und Probleme: team@jonashertner.com oder <a href="https://github.com/jonashertner/opencaselaw/issues" rel="noopener">GitHub</a>.</p>
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

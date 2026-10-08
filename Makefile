@@ -135,6 +135,13 @@ test-addin:
 	fi
 
 .PHONY: test-addin
+
+# Each opencaselaw.ch page in each of its languages as plain HTML (docs/<page>/<lang>/),
+# from the German page and its dictionary; run after editing a page. The tests fail until you do.
+site-languages:  ## write the per-language copies of the docs/ pages and the sitemap
+	@node scripts/build_page_languages.mjs
+
+.PHONY: site-languages
 .PHONY: paper
 paper:
 	@cd $(PAPER_DIR) && tectonic paper.tex 2>&1 | tail -3

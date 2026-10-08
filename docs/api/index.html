@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>REST API — OpenCaseLaw</title>
-<meta name="description" content="Public research HTTP endpoints for Swiss case law. Search, retrieve sources and automate workflows with REST or the research CLI.">
+<title>REST-API — OpenCaseLaw</title>
+<meta name="description" content="Öffentliche HTTP-Endpunkte für die Recherche in der Schweizer Rechtsprechung: suchen, Quellen abrufen und Abläufe automatisieren, per REST oder mit der Recherche-CLI.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/api/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/api/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/api/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/api/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/api/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/api/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/api/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/api/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/api/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/api/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/api/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/api/">
 <link rel="icon" href="/favicon.svg">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://opencaselaw.ch/api/">
-<meta property="og:title" content="REST API — OpenCaseLaw">
-<meta property="og:description" content="Public research endpoints for Swiss case law search, source retrieval and reusable workflows.">
+<meta property="og:title" content="REST-API — OpenCaseLaw">
+<meta property="og:description" content="Öffentliche HTTP-Endpunkte für die Recherche in der Schweizer Rechtsprechung: suchen, Quellen abrufen und Abläufe automatisieren, per REST oder mit der Recherche-CLI.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -84,18 +84,18 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">REST API · OpenAPI 3.0.3</b></p>
-      <h1 class="page-h1" data-t="h1">Call the OpenCaseLaw corpus from any language</h1>
-      <p class="page-lead" data-t="lead">Public research HTTP endpoints for search, citation graphs, statutes and exports. These research endpoints are free, require no API key and support CORS. They use the same backend as MCP and the web search. The full application specification also contains other features.</p>
+      <p class="page-kicker"><b data-t="kicker">REST-API · OpenAPI 3.0.3</b></p>
+      <h1 class="page-h1" data-t="h1">Den OpenCaseLaw-Korpus aus jeder Programmiersprache abfragen</h1>
+      <p class="page-lead" data-t="lead">Öffentliche Forschungsendpunkte für Suche, Zitationsgraph, Gesetze und Exporte. Diese Endpunkte sind kostenlos, benötigen keinen API-Schlüssel und unterstützen CORS. Sie nutzen dasselbe Backend wie MCP und die Websuche. Die vollständige Anwendungsspezifikation enthält weitere Funktionen.</p>
       <div class="api-cta">
-        <a class="btn btn-primary" href="https://mcp.opencaselaw.ch/api/docs" rel="noopener" target="_blank" data-t="cta_swagger">Open Swagger UI</a>
-        <a class="btn btn-ghost" href="https://mcp.opencaselaw.ch/api/openapi.json" rel="noopener" target="_blank" data-t="cta_spec">openapi.json (raw spec)</a>
+        <a class="btn btn-primary" href="https://mcp.opencaselaw.ch/api/docs" rel="noopener" target="_blank" data-t="cta_swagger">Swagger UI öffnen</a>
+        <a class="btn btn-ghost" href="https://mcp.opencaselaw.ch/api/openapi.json" rel="noopener" target="_blank" data-t="cta_spec">openapi.json (Rohspezifikation)</a>
         <a class="btn btn-ghost" href="https://mcp.opencaselaw.ch/health" rel="noopener" target="_blank">/health</a>
       </div>
     </div>
@@ -104,17 +104,17 @@
   <section class="wrap" style="padding-bottom:clamp(64px,9vw,112px)">
     <div class="prose">
 
-      <h2 id="cli" data-t="cli_h">Automate research from a terminal</h2>
-      <p data-t="cli_p">Install the lightweight client with pipx or uv. Save bounded search results, retrieve exact passages, resolve citation lists and preserve evidence bundles. The client is published on PyPI as opencaselaw-cli.</p>
+      <h2 id="cli" data-t="cli_h">Recherche im Terminal automatisieren</h2>
+      <p data-t="cli_p">Installieren Sie den schlanken Client mit pipx oder uv. Speichern Sie begrenzte Suchergebnisse, rufen Sie genaue Erwägungen ab, lösen Sie Zitationslisten auf und sichern Sie Quellenpakete. Der Client ist auf PyPI als opencaselaw-cli veröffentlicht.</p>
       <pre class="code">pipx install opencaselaw-cli   # or: uv tool install opencaselaw-cli
 ocl --help
 ocl bundle create 'missbräuchliche Kündigung Rachekündigung' \
   --max-results 5 --law OR:336 --out research-bundle</pre>
-      <p><a href="/cli/" data-t="cli_link">CLI guide: pipelines, bundles and citation resolution →</a></p>
+      <p><a href="/cli/" data-t="cli_link">CLI-Anleitung: Pipelines, Quellenpakete und Zitationsauflösung →</a></p>
 
-      <h2 data-t="qs_search_h">Quickstart — search the corpus</h2>
+      <h2 data-t="qs_search_h">Schnellstart — den Korpus durchsuchen</h2>
       <pre class="code">curl -s "https://mcp.opencaselaw.ch/api/decisions?q=Mietrecht+K%C3%BCndigung&amp;limit=5"</pre>
-      <p class="returns" data-t="returns">Returns:</p>
+      <p class="returns" data-t="returns">Antwort:</p>
       <pre class="response">{
   "total": 1006,
   "total_is_lower_bound": false,
@@ -128,9 +128,9 @@ ocl bundle create 'missbräuchliche Kündigung Rachekündigung' \
   ],
   "limit": 5, "offset": 0, "has_more": true, "next_offset": 5
 }</pre>
-      <p data-t="qs_search_note">Read <code>total_is_lower_bound</code> before treating <code>total</code> as exact. Follow <code>next_offset</code> while <code>has_more</code> is true. A relevance query can exhaust its bounded candidate pool before all matches are returned: <code>has_more: false</code> is not proof of exhaustive research. Filters narrow the selection; for corpus-scale analysis, use the <a href="https://huggingface.co/datasets/voilaj/swiss-caselaw">Parquet download</a>.</p>
+      <p data-t="qs_search_note">Prüfen Sie <code>total_is_lower_bound</code>, bevor Sie <code>total</code> als exakt behandeln. Folgen Sie <code>next_offset</code>, solange <code>has_more</code> wahr ist. Eine Relevanzsuche kann ihren begrenzten Kandidatenbestand ausschöpfen, bevor alle Treffer zurückgegeben werden: <code>has_more: false</code> belegt keine vollständige Recherche. Filter grenzen die Auswahl ein; für Analysen des gesamten Korpus nutzen Sie den <a href="https://huggingface.co/datasets/voilaj/swiss-caselaw">Parquet-Download</a>.</p>
 
-      <h2 data-t="qs_law_h">Quickstart — look up an article</h2>
+      <h2 data-t="qs_law_h">Schnellstart — einen Artikel nachschlagen</h2>
       <pre class="code">curl -s "https://mcp.opencaselaw.ch/api/laws/OR?article=41"</pre>
       <pre class="response">{
   "sr_number": "220",
@@ -144,91 +144,91 @@ ocl bundle create 'missbräuchliche Kündigung Rachekündigung' \
   ]
 }</pre>
 
-      <p data-t="qs_law_alias">Names are matched in DE/FR/IT, case-insensitively and with or without dots and spaces (<code>Cst</code>, <code>OPP2</code>, <code>o.p.p. 2</code>); treaties by common name (<code>IPBPR</code>, <code>KRK</code>, <code>CISG</code>) and former names (<code>OG</code> → BGG, with a note) resolve through the CC0 table <a href="law_aliases.json">law_aliases.json</a>; cantonal acts take their canton in either order: <code>/api/laws/StG/ZH</code>.</p>
+      <p data-t="qs_law_alias">Bezeichnungen werden in DE/FR/IT erkannt, unabhängig von Gross-/Kleinschreibung, Punkten und Leerzeichen (<code>Cst</code>, <code>OPP2</code>, <code>o.p.p. 2</code>); Staatsverträge unter ihrem gebräuchlichen Namen (<code>IPBPR</code>, <code>KRK</code>, <code>CISG</code>) und frühere Bezeichnungen (<code>OG</code> → BGG, mit Hinweis) werden über die CC0-Tabelle <a href="law_aliases.json">law_aliases.json</a> aufgelöst; kantonale Erlasse tragen ihren Kanton in beliebiger Reihenfolge: <code>/api/laws/StG/ZH</code>.</p>
 
-      <h2 data-t="params_h">Common parameters</h2>
+      <h2 data-t="params_h">Gängige Parameter</h2>
       <table class="params">
         <thead>
-          <tr><th data-t="th_param">Param</th><th data-t="th_usedby">Used by</th><th data-t="th_notes">Notes</th></tr>
+          <tr><th data-t="th_param">Parameter</th><th data-t="th_usedby">Verwendet von</th><th data-t="th_notes">Hinweise</th></tr>
         </thead>
         <tbody>
-          <tr><td class="name">q</td><td class="req" data-t="p_q_used">all search endpoints</td><td data-t="p_q_notes">Free-text query; <code>query</code> and <code>q</code> are accepted on decision search. Supports Boolean operators (AND, OR, NOT), exact phrases, docket numbers and BGE references. Relevance results form a bounded candidate pool; check pagination and lower-bound metadata.</td></tr>
-          <tr><td class="name">query</td><td class="req" data-t="p_query_used">all search endpoints</td><td data-t="p_query_notes">Free-text query. On <code>/decisions</code>, a non-empty <code>query</code> takes precedence over <code>q</code>. See each endpoint for accepted parameters.</td></tr>
-          <tr><td class="name">limit</td><td class="req" data-t="p_limit_used">everywhere</td><td data-t="p_limit_notes">Defaults and maxima depend on the endpoint. Decision search can reduce response detail or page size. Use the returned count and continuation fields, not the requested limit, to drive pagination.</td></tr>
-          <tr><td class="name">offset</td><td class="req">/decisions · /citations/{decision_id}</td><td data-t="p_offset_notes">Pagination offset where supported. Follow the returned <code>next_offset</code>; citation lists expose continuation for each direction.</td></tr>
-          <tr><td class="name">language</td><td class="req">/decisions</td><td data-t="p_language_notes"><code>de</code> / <code>fr</code> / <code>it</code>. Filters by decision language.</td></tr>
-          <tr><td class="name">canton</td><td class="req">/decisions · /laws/search</td><td data-t="p_canton_notes">Two-letter cantonal code (ZH, BE, …) or <code>CH</code> for federal.</td></tr>
-          <tr><td class="name">court</td><td class="req">/decisions</td><td data-t="p_court_notes">Court key (bger, bvger, ge_gerichte, …). See <a href="/courts/">/courts</a>.</td></tr>
-          <tr><td class="name">jurisdiction</td><td class="req">/laws/search</td><td data-t="p_level_notes"><code>all</code>, <code>federal</code> or <code>cantonal</code>.</td></tr>
-          <tr><td class="name">article</td><td class="req">/laws/{abbreviation}</td><td data-t="p_article_notes">Article number (e.g. <code>41</code>, <code>266l</code>).</td></tr>
+          <tr><td class="name">q</td><td class="req" data-t="p_q_used">alle Suchendpunkte</td><td data-t="p_q_notes">Freitextabfrage; die Entscheidsuche akzeptiert <code>query</code> und <code>q</code>. Unterstützt boolesche Operatoren (AND, OR, NOT), exakte Phrasen, Aktenzeichen und BGE-Referenzen. Relevanzergebnisse bilden einen begrenzten Kandidatenbestand; prüfen Sie Paginierung und Untergrenzenangaben.</td></tr>
+          <tr><td class="name">query</td><td class="req" data-t="p_query_used">alle Suchendpunkte</td><td data-t="p_query_notes">Freitextabfrage. Bei <code>/decisions</code> hat ein nicht leeres <code>query</code> Vorrang vor <code>q</code>. Akzeptierte Parameter stehen beim jeweiligen Endpunkt.</td></tr>
+          <tr><td class="name">limit</td><td class="req" data-t="p_limit_used">überall</td><td data-t="p_limit_notes">Standardwerte und Höchstwerte hängen vom Endpunkt ab. Die Entscheidsuche kann Detailgrad oder Seitengrösse reduzieren. Steuern Sie die Paginierung mit der zurückgegebenen Anzahl und den Fortsetzungsfeldern, nicht mit dem angeforderten Limit.</td></tr>
+          <tr><td class="name">offset</td><td class="req">/decisions · /citations/{decision_id}</td><td data-t="p_offset_notes">Paginierungsversatz, soweit unterstützt. Folgen Sie <code>next_offset</code>; Zitationslisten weisen die Fortsetzung je Richtung aus.</td></tr>
+          <tr><td class="name">language</td><td class="req">/decisions</td><td data-t="p_language_notes"><code>de</code> / <code>fr</code> / <code>it</code>. Filtert nach Entscheidsprache.</td></tr>
+          <tr><td class="name">canton</td><td class="req">/decisions · /laws/search</td><td data-t="p_canton_notes">Zweibuchstabiger Kantonscode (ZH, BE, …) oder <code>CH</code> für Bund.</td></tr>
+          <tr><td class="name">court</td><td class="req">/decisions</td><td data-t="p_court_notes">Gerichtsschlüssel (bger, bvger, ge_gerichte, …). Siehe <a href="/courts/">/courts</a>.</td></tr>
+          <tr><td class="name">jurisdiction</td><td class="req">/laws/search</td><td data-t="p_level_notes"><code>all</code>, <code>federal</code> oder <code>cantonal</code>.</td></tr>
+          <tr><td class="name">article</td><td class="req">/laws/{abbreviation}</td><td data-t="p_article_notes">Artikelnummer (z. B. <code>41</code>, <code>266l</code>).</td></tr>
         </tbody>
       </table>
 
-      <h2 data-t="endpoints_h">Endpoint reference</h2>
+      <h2 data-t="endpoints_h">Endpunkt-Referenz</h2>
 
-      <div class="group-head" data-t="grp_decisions">Decisions</div>
+      <div class="group-head" data-t="grp_decisions">Entscheide</div>
       <ul class="endpoint-list">
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions</span><span class="desc" data-t="e_decisions">Search decisions. Returns paginated results with citation strings + canonical URLs.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}</span><span class="desc" data-t="e_decision_one">Fetch a single decision with full text.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.docx</span><span class="desc" data-t="e_export_docx">Export as Word document (citation, regeste, structured Erwägungen).</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.bib</span><span class="desc" data-t="e_export_bib">BibTeX entry for LaTeX bibliographies.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.ris</span><span class="desc" data-t="e_export_ris">RIS record for Zotero / EndNote / Mendeley.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.pdf</span><span class="desc" data-t="e_export_pdf">PDF re-render of the decision.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/case-brief/{case}</span><span class="desc" data-t="e_case_brief">Structured brief: facts · reasoning · statutes · authority · related.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/structure/{decision_id}</span><span class="desc" data-t="e_structure">Sachverhalt + Erwägungen-paragraphs + Dispositiv + Regeste.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/erwaegung/{decision_id}/{e_number}</span><span class="desc" data-t="e_erwaegung">Verbatim Schweizer Citation-Einheit (e.g. <code>2.3</code>).</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/regeste/{decision_id}</span><span class="desc" data-t="e_regeste">Official BGer / BVGer head-note text.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions</span><span class="desc" data-t="e_decisions">Entscheide durchsuchen. Liefert paginierte Ergebnisse mit Zitierstrings + kanonischen URLs.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}</span><span class="desc" data-t="e_decision_one">Einen einzelnen Entscheid mit Volltext abrufen.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.docx</span><span class="desc" data-t="e_export_docx">Als Word-Dokument exportieren (Zitat, Regeste, strukturierte Erwägungen).</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.bib</span><span class="desc" data-t="e_export_bib">BibTeX-Eintrag für LaTeX-Bibliografien.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.ris</span><span class="desc" data-t="e_export_ris">RIS-Datensatz für Zotero / EndNote / Mendeley.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/decisions/{decision_id}/export.pdf</span><span class="desc" data-t="e_export_pdf">PDF-Neurendering des Entscheids.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/case-brief/{case}</span><span class="desc" data-t="e_case_brief">Strukturierter Brief: Sachverhalt · Begründung · Gesetze · Autorität · Verwandtes.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/structure/{decision_id}</span><span class="desc" data-t="e_structure">Sachverhalt + Erwägungen-Absätze + Dispositiv + Regeste.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/erwaegung/{decision_id}/{e_number}</span><span class="desc" data-t="e_erwaegung">Wortgetreue Schweizer Citation-Einheit (z. B. <code>2.3</code>).</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/regeste/{decision_id}</span><span class="desc" data-t="e_regeste">Offizieller BGer-/BVGer-Regestentext.</span></li>
       </ul>
 
-      <div class="group-head" data-t="grp_citation">Citation graph</div>
+      <div class="group-head" data-t="grp_citation">Zitationsgraph</div>
       <ul class="endpoint-list">
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/citations/{decision_id}</span><span class="desc" data-t="e_citations">Both directions: what this cites + what cites it.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/appeal-chain/{decision_id}</span><span class="desc" data-t="e_appeal">Procedural history through the instances.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/leading-cases</span><span class="desc" data-t="e_leading">Authority-ranked decisions for a statute / topic.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/cite</span><span class="desc" data-t="e_cite">Build a server-formatted citation string.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/citations/{decision_id}</span><span class="desc" data-t="e_citations">Beide Richtungen: was zitiert wird + was zitiert.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/appeal-chain/{decision_id}</span><span class="desc" data-t="e_appeal">Verfahrensgeschichte durch die Instanzen.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/leading-cases</span><span class="desc" data-t="e_leading">Autoritätssortierte Entscheide zu einem Gesetz / Thema.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/cite</span><span class="desc" data-t="e_cite">Einen serverformatierten Zitierstring erstellen.</span></li>
       </ul>
 
-      <div class="group-head" data-t="grp_statutes">Statutes &amp; doctrine</div>
+      <div class="group-head" data-t="grp_statutes">Gesetze &amp; Doktrin</div>
       <ul class="endpoint-list">
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/laws/search</span><span class="desc" data-t="e_laws_search">Federated FTS5 over federal + cantonal articles. Returns snippets.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/laws/{abbreviation}</span><span class="desc" data-t="e_laws_one">Single article by abbreviation (OR, ZGB, StGB, …).</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/legislation/search</span><span class="desc" data-t="e_leg_search">LexFind catalog search (33,000+ federal + cantonal acts).</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/legislation/{lexfind_id}</span><span class="desc" data-t="e_leg_one">Single legislation record.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/legislation/changes</span><span class="desc" data-t="e_leg_changes">Recent &amp; upcoming federal-law amendments.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/doctrine</span><span class="desc" data-t="e_doctrine">Statute text + ranked BGEs + doctrine timeline + commentary excerpt.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/materialien</span><span class="desc" data-t="e_materialien">Federal Council Botschaften — legislative intent.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/materialien/{law_code}</span><span class="desc" data-t="e_materialien_one">Materialien for a specific law.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/amendment-ref</span><span class="desc" data-t="e_amendment">Resolve "Art. X (revised version Y)" patterns.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/laws/search</span><span class="desc" data-t="e_laws_search">Föderierte FTS5 über Bundes- + Kantonsartikel. Liefert Snippets.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/laws/{abbreviation}</span><span class="desc" data-t="e_laws_one">Einzelartikel nach Abkürzung (OR, ZGB, StGB, …).</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/legislation/search</span><span class="desc" data-t="e_leg_search">LexFind-Katalogsuche (33 000+ Bundes- + Kantonserlasse).</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/legislation/{lexfind_id}</span><span class="desc" data-t="e_leg_one">Einzelner Gesetzgebungsdatensatz.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/legislation/changes</span><span class="desc" data-t="e_leg_changes">Aktuelle &amp; bevorstehende Änderungen des Bundesrechts.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/doctrine</span><span class="desc" data-t="e_doctrine">Gesetzestext + sortierte BGE + Doktrin-Zeitleiste + Kommentarauszug.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/materialien</span><span class="desc" data-t="e_materialien">Botschaften des Bundesrats — gesetzgeberische Absicht.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/materialien/{law_code}</span><span class="desc" data-t="e_materialien_one">Materialien zu einem bestimmten Gesetz.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/amendment-ref</span><span class="desc" data-t="e_amendment">Muster "Art. X (Fassung Y)" auflösen.</span></li>
       </ul>
 
-      <div class="group-head" data-t="grp_commentary">Commentary &amp; teaching</div>
+      <div class="group-head" data-t="grp_commentary">Kommentar &amp; Lehre</div>
       <ul class="endpoint-list">
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/commentaries/search</span><span class="desc" data-t="e_comm_search">Search OnlineKommentar + OpenLegalCommentary excerpts.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/commentaries/{abbreviation}</span><span class="desc" data-t="e_comm_one">Commentary index for a law (OR, ZGB, …).</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/exam-question</span><span class="desc" data-t="e_exam">Real BGE fact pattern as Fallbearbeitung with hidden analysis.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/mock-decision</span><span class="desc" data-t="e_mock">Research-only mock decision from facts + caselaw + statutes.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/commentaries/search</span><span class="desc" data-t="e_comm_search">OnlineKommentar- + OpenLegalCommentary-Auszüge durchsuchen.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/commentaries/{abbreviation}</span><span class="desc" data-t="e_comm_one">Kommentarindex zu einem Gesetz (OR, ZGB, …).</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/exam-question</span><span class="desc" data-t="e_exam">Echtes BGE-Sachverhaltsmuster als Fallbearbeitung mit verborgener Analyse.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/mock-decision</span><span class="desc" data-t="e_mock">Forschungs-Musterentscheid aus Sachverhalt + Rechtsprechung + Gesetzen.</span></li>
       </ul>
 
-      <div class="group-head" data-t="grp_verify">Verification &amp; introspection</div>
+      <div class="group-head" data-t="grp_verify">Verifikation &amp; Introspektion</div>
       <ul class="endpoint-list">
-        <li class="endpoint"><span class="method">POST</span><span class="path">/api/attest</span><span class="desc" data-t="e_attest">Audit a draft response — verifies every BGE / Art. / quoted string against the corpus before it leaves the server. Certifies the draft's own citations, quotations and statute references; it does not certify that no relevant authority is missing.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/courts</span><span class="desc" data-t="e_courts">List all 121 courts (federal, regulatory, international, cantonal).</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/statistics</span><span class="desc" data-t="e_stats">Aggregate stats — corpus, citation graph, statutes, languages.</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/scraper-health</span><span class="desc" data-t="e_health">Per-source last-run status (drives <a href="/coverage/">/coverage</a>).</span></li>
-        <li class="endpoint"><span class="method">GET</span><span class="path">/api/atom/{court}.xml</span><span class="desc" data-t="e_atom">Atom feed — newest 50 decisions per court.</span></li>
+        <li class="endpoint"><span class="method">POST</span><span class="path">/api/attest</span><span class="desc" data-t="e_attest">Einen Antwortentwurf prüfen — verifiziert jeden BGE / Art. / zitierten String gegen den Korpus, bevor er den Server verlässt. Bescheinigt die eigenen Zitate, Zitatstellen und Gesetzesverweise des Entwurfs; bescheinigt nicht, dass keine einschlägige Autorität fehlt.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/courts</span><span class="desc" data-t="e_courts">Alle 121 Gerichte auflisten (Bund, Regulierung, international, kantonal).</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/statistics</span><span class="desc" data-t="e_stats">Aggregierte Statistiken — Korpus, Zitationsgraph, Gesetze, Sprachen.</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/scraper-health</span><span class="desc" data-t="e_health">Letzter Laufstatus pro Quelle (treibt <a href="/coverage/">/coverage</a>).</span></li>
+        <li class="endpoint"><span class="method">GET</span><span class="path">/api/atom/{court}.xml</span><span class="desc" data-t="e_atom">Atom-Feed — neueste 50 Entscheide pro Gericht.</span></li>
       </ul>
 
-      <p data-t="schema_note">The <a href="https://mcp.opencaselaw.ch/api/openapi.json">application specification</a> describes the deployed routes; response schema coverage varies. This source version adds a typed public research subset at <code>/api/research/openapi.json</code>. It becomes available only after deployment; see the <a href="https://github.com/jonashertner/opencaselaw/blob/main/docs/research-cli.md#research-api-contract">contract notes</a>.</p>
+      <p data-t="schema_note">Die <a href="https://mcp.opencaselaw.ch/api/openapi.json">Anwendungsspezifikation</a> beschreibt die bereitgestellten Routen; Antwortschemata sind unterschiedlich vollständig. Diese Quellversion ergänzt eine typisierte öffentliche Forschungsspezifikation unter <code>/api/research/openapi.json</code>. Sie ist erst nach der Bereitstellung verfügbar; siehe <a href="https://github.com/jonashertner/opencaselaw/blob/main/docs/research-cli.md#research-api-contract">Vertragshinweise</a>.</p>
 
-      <h2 data-t="rate_h">Rate limits</h2>
-      <p data-t="rate_p">Soft-limited at the nginx layer to protect the upstream workers. Pace your batch jobs at ≤ 5 requests/second per IP. If you need higher throughput, run the stack locally — full instructions in <a href="https://github.com/jonashertner/opencaselaw#1-search-with-ai" rel="noopener" target="_blank">README</a> (~65 GB disk, ~30 min setup).</p>
+      <h2 data-t="rate_h">Ratenbegrenzung</h2>
+      <p data-t="rate_p">Auf der nginx-Ebene weich begrenzt, um die Upstream-Worker zu schützen. Takten Sie Batch-Jobs auf ≤ 5 Anfragen/Sekunde pro IP. Bei höherem Durchsatz den Stack lokal betreiben — vollständige Anleitung im <a href="https://github.com/jonashertner/opencaselaw#1-search-with-ai" rel="noopener" target="_blank">README</a> (~65 GB Speicher, ~30 Min. Einrichtung).</p>
 
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

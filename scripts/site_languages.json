@@ -1,0 +1,137 @@
+{
+  "_comment": "Titles and descriptions of the pages whose headline does not make a good title, per language. Every other page takes '<headline> — OpenCaseLaw' and its lead paragraph. Read by scripts/build_page_languages.mjs.",
+  "/mcp/": {
+    "title": {
+      "de": "MCP-Server — Claude, ChatGPT, Cursor, Gemini · OpenCaseLaw",
+      "fr": "Serveur MCP — Claude, ChatGPT, Cursor, Gemini · OpenCaseLaw",
+      "it": "Server MCP — Claude, ChatGPT, Cursor, Gemini · OpenCaseLaw",
+      "rm": "Server MCP — Claude, ChatGPT, Cursor, Gemini · OpenCaseLaw",
+      "en": "MCP server — Claude, ChatGPT, Cursor, Gemini · OpenCaseLaw"
+    },
+    "description": {
+      "de": "OpenCaseLaw betreibt einen öffentlichen MCP-Server mit 42 Werkzeugen für die Schweizer Rechtsrecherche. Anleitungen für Claude.ai, Claude Code, ChatGPT, Cursor, Gemini CLI und Microsoft Copilot Studio. Ohne API-Schlüssel, nur lesend, täglich aktualisiert.",
+      "fr": "OpenCaseLaw exploite un serveur MCP public avec 42 outils pour la recherche juridique suisse. Guides pour Claude.ai, Claude Code, ChatGPT, Cursor, Gemini CLI et Microsoft Copilot Studio. Sans clé API, en lecture seule, mis à jour chaque jour.",
+      "it": "OpenCaseLaw gestisce un server MCP pubblico con 42 strumenti per la ricerca giuridica svizzera. Guide per Claude.ai, Claude Code, ChatGPT, Cursor, Gemini CLI e Microsoft Copilot Studio. Senza chiavi API, in sola lettura, aggiornato ogni giorno.",
+      "rm": "OpenCaseLaw maina in server MCP public cun 42 utensils per la retschertga giuridica svizra. Instrucziuns per Claude.ai, Claude Code, ChatGPT, Cursor, Gemini CLI e Microsoft Copilot Studio. Senza clavs API, mo per leger, actualisà mintga di.",
+      "en": "OpenCaseLaw runs a public MCP server with 42 tools for Swiss legal research. Setup guides for Claude.ai, Claude Code, ChatGPT, Cursor, Gemini CLI and Microsoft Copilot Studio. No API keys, read-only, updated daily."
+    }
+  },
+  "/word/": {
+    "title": {
+      "de": "OpenCaseLaw für Microsoft Word — Schweizer Rechtsprechung in jedem Dokument",
+      "fr": "OpenCaseLaw pour Microsoft Word — la jurisprudence suisse dans chaque document",
+      "it": "OpenCaseLaw per Microsoft Word — la giurisprudenza svizzera in ogni documento",
+      "rm": "OpenCaseLaw per Microsoft Word — la giurisprudenza svizra en mintga document",
+      "en": "OpenCaseLaw for Microsoft Word — Swiss case law in every document"
+    }
+  },
+  "/api/": {
+    "title": {
+      "de": "REST-API — OpenCaseLaw",
+      "fr": "API REST — OpenCaseLaw",
+      "it": "API REST — OpenCaseLaw",
+      "rm": "API REST — OpenCaseLaw",
+      "en": "REST API — OpenCaseLaw"
+    },
+    "description": {
+      "de": "Öffentliche HTTP-Endpunkte für die Recherche in der Schweizer Rechtsprechung: suchen, Quellen abrufen und Abläufe automatisieren, per REST oder mit der Recherche-CLI.",
+      "fr": "Points d’accès HTTP publics pour la recherche dans la jurisprudence suisse : rechercher, récupérer les sources et automatiser des tâches, par REST ou avec la CLI de recherche.",
+      "it": "Endpoint HTTP pubblici per la ricerca nella giurisprudenza svizzera: cercare, recuperare le fonti e automatizzare i processi, via REST o con la CLI di ricerca.",
+      "rm": "Endpoints HTTP publics per la retschertga en la giurisprudenza svizra: tschertgar, consultar las funtaunas ed automatisar process, via REST u cun la CLI da retschertga.",
+      "en": "Public research HTTP endpoints for Swiss case law. Search, retrieve sources and automate workflows with REST or the research CLI."
+    }
+  },
+  "/cli/": {
+    "title": {
+      "de": "Recherche-CLI — OpenCaseLaw",
+      "fr": "CLI de recherche — OpenCaseLaw",
+      "it": "CLI di ricerca — OpenCaseLaw",
+      "rm": "CLI da retschertga — OpenCaseLaw",
+      "en": "Research CLI — OpenCaseLaw"
+    },
+    "description": {
+      "de": "ocl: die Zitate eines Entwurfs prüfen und die Belege hinter einem Memo sichern, auf der Kommandozeile. Client ohne Abhängigkeiten für die Recherche-API von OpenCaseLaw; lesbarer Text im Terminal, JSON in der Pipeline.",
+      "fr": "ocl : contrôler les citations d’un projet et conserver les preuves d’une note, en ligne de commande. Client sans dépendances pour l’API de recherche d’OpenCaseLaw ; texte lisible dans le terminal, JSON dans un pipeline.",
+      "it": "ocl: verificare le citazioni di una bozza e conservare le prove di un promemoria, dalla riga di comando. Client senza dipendenze per l’API di ricerca di OpenCaseLaw; testo leggibile nel terminale, JSON in una pipeline.",
+      "rm": "ocl: controllar las citaziuns d’in sboz e segirar ils cumprovs d’in memo, a la lingia da cumonds. Client senza dependenzas per l’API da retschertga dad OpenCaseLaw; text legibel en il terminal, JSON en ina pipeline.",
+      "en": "ocl: check the citations in a draft and keep the evidence behind a memo from the command line. Dependency-free client for the OpenCaseLaw research API; readable text at a terminal, JSON when piped."
+    }
+  },
+  "/copilot/": {
+    "title": {
+      "de": "OpenCaseLaw für Microsoft 365 Copilot — OpenCaseLaw",
+      "fr": "OpenCaseLaw pour Microsoft 365 Copilot — OpenCaseLaw",
+      "it": "OpenCaseLaw per Microsoft 365 Copilot — OpenCaseLaw",
+      "en": "OpenCaseLaw for Microsoft 365 Copilot — OpenCaseLaw"
+    },
+    "description": {
+      "de": "Ein Agent für Microsoft 365 Copilot Chat: Schweizer Rechtsprechung und Gesetzgebung mit wörtlichen Zitaten und Links. Ohne Copilot-Studio-Lizenz. Kostenlos, Open Source.",
+      "fr": "Un agent pour Microsoft 365 Copilot Chat : jurisprudence et législation suisses avec citations littérales et liens. Sans licence Copilot Studio. Gratuit, open source.",
+      "it": "Un agente per Microsoft 365 Copilot Chat: giurisprudenza e legislazione svizzere con citazioni testuali e link. Senza licenza Copilot Studio. Gratuito, open source.",
+      "en": "An agent for Microsoft 365 Copilot Chat: Swiss case law and legislation with verbatim quotations and links. No Copilot Studio licence needed. Free, open source."
+    }
+  },
+  "/courts/local/": {
+    "title": {
+      "de": "Zitatprüfung für Eingaben und Urteilsentwürfe — OpenCaseLaw",
+      "fr": "Contrôle des citations dans les mémoires et projets de jugement — OpenCaseLaw",
+      "it": "Verifica delle citazioni negli atti e nei progetti di sentenza — OpenCaseLaw",
+      "en": "Citation check for submissions and draft judgments — OpenCaseLaw"
+    },
+    "description": {
+      "de": "Lokale Zitatprüfung für Eingaben der Parteien und Urteilsentwürfe: PDF oder Word-Datei rein, Bericht raus, nichts verlässt das Gericht. Offene Daten, offener Code, Datenhoheit beim Gericht.",
+      "fr": "Contrôle local des citations dans les mémoires des parties et les projets de jugement : un PDF ou un fichier Word entre, un rapport sort, rien ne quitte le tribunal. Données ouvertes, code ouvert, le tribunal garde la maîtrise de ses données.",
+      "it": "Verifica locale delle citazioni negli atti delle parti e nei progetti di sentenza: entra un PDF o un file Word, esce un rapporto, nulla lascia il tribunale. Dati aperti, codice aperto, il tribunale resta padrone dei suoi dati.",
+      "en": "Local citation check for parties’ submissions and draft judgments: a PDF or Word file in, a report out, nothing leaves the court. Open data, open code, the court keeps control of its data."
+    }
+  },
+  "/paper/": {
+    "title": {
+      "de": "Forschungsartikel — OpenCaseLaw",
+      "fr": "Article de recherche — OpenCaseLaw",
+      "it": "Articolo di ricerca — OpenCaseLaw",
+      "rm": "Artitgel da perscrutaziun — OpenCaseLaw",
+      "en": "Research paper — OpenCaseLaw"
+    },
+    "description": {
+      "de": "OpenCaseLaw: ein offener Korpus und eine Suchplattform für die Schweizer Rechtsprechung. Über 972'000 Entscheide, 6,5 Mio. Zitierkanten, mehrsprachiger Benchmark, MIT-Lizenz. arXiv-Preprint, März 2026.",
+      "fr": "OpenCaseLaw : un corpus ouvert et une plateforme de recherche pour la jurisprudence suisse. Plus de 972 000 décisions, 6,5 millions de liens de citation, benchmark multilingue, licence MIT. Prépublication arXiv, mars 2026.",
+      "it": "OpenCaseLaw: un corpus aperto e una piattaforma di ricerca per la giurisprudenza svizzera. Oltre 972 000 decisioni, 6,5 milioni di collegamenti di citazione, benchmark multilingue, licenza MIT. Preprint arXiv, marzo 2026.",
+      "rm": "OpenCaseLaw: in corpus avert ed ina plattafurma da retschertga per la giurisprudenza svizra. Passa 972 000 decisiuns, 6,5 milliuns colliaziuns da citaziun, benchmark plurilingual, licenza MIT. Preprint arXiv, mars 2026.",
+      "en": "OpenCaseLaw: an open corpus and retrieval stack for Swiss case law. 972,000+ decisions, 6.5M citation edges, multilingual benchmark, MIT-licensed. arXiv preprint, March 2026."
+    }
+  },
+  "/methodology.html": {
+    "title": {
+      "de": "Methodik — OpenCaseLaw",
+      "fr": "Méthodologie — OpenCaseLaw",
+      "it": "Metodologia — OpenCaseLaw",
+      "rm": "Metodologia — OpenCaseLaw",
+      "en": "Methodology — OpenCaseLaw"
+    },
+    "description": {
+      "de": "Wie OpenCaseLaw Schweizer Gerichtsentscheide sucht, gewichtet und prüft. Jede Zahl, jedes Gewicht, jeder Schwellenwert und jede verworfene Technik offengelegt.",
+      "fr": "Comment OpenCaseLaw recherche, classe et vérifie les décisions judiciaires suisses. Chaque chiffre, pondération, seuil et technique écartée est documenté.",
+      "it": "Come OpenCaseLaw cerca, ordina e verifica le decisioni giudiziarie svizzere. Ogni numero, peso, soglia e tecnica scartata è documentato.",
+      "rm": "Co OpenCaseLaw tschertga, classifitgescha e verifitgescha decisiuns giudizialas svizras. Mintga cifra, mintga pais, mintga limita e mintga tecnica refusada è documentada.",
+      "en": "How OpenCaseLaw searches, ranks and verifies Swiss court decisions. Every number, weight, threshold and rejected technique on the record."
+    }
+  },
+  "/quality.html": {
+    "description": {
+      "de": "Live-Bericht zur Datenqualität des OpenCaseLaw-Korpus. Bei jeder nächtlichen Veröffentlichung aktualisiert; kritische Rückschritte halten die Pipeline an.",
+      "fr": "Rapport en direct sur la qualité des données du corpus OpenCaseLaw. Mis à jour à chaque publication nocturne ; les régressions critiques arrêtent la chaîne de traitement.",
+      "it": "Rapporto in tempo reale sulla qualità dei dati del corpus OpenCaseLaw. Aggiornato a ogni pubblicazione notturna; le regressioni critiche fermano la pipeline.",
+      "rm": "Rapport live davart la qualitad da las datas dal corpus OpenCaseLaw. Actualisà a mintga publicaziun nocturna; regressiuns criticas ferman la pipeline.",
+      "en": "Live data-quality report for the OpenCaseLaw corpus. Updated on every nightly publish; gates the pipeline on critical regressions."
+    }
+  },
+  "/citecheck/": {
+    "description": {
+      "de": "Word-Add-in mit zwei Prüfungen: ob zitierte Gerichtsentscheide existieren und die Erwägung haben, und was in der zu veröffentlichenden Fassung eine Person erkennbar macht. Das Dokument bleibt auf dem Computer. Open Source.",
+      "fr": "Complément Word avec deux contrôles : les décisions citées existent-elles et ont-elles le considérant cité, et qu’est-ce qui, dans la version à publier, permet d’identifier une personne. Le document reste sur l’ordinateur. Open source.",
+      "it": "Componente Word con due controlli: le decisioni citate esistono e hanno il considerando citato, e che cosa, nella versione da pubblicare, rende identificabile una persona. Il documento resta sul computer. Open source.",
+      "en": "Word add-in with two checks: whether the cited court decisions exist and have the cited Erwägung, and what in the version to be published could identify a person. The document stays on the computer. Open source."
+    }
+  }
+}

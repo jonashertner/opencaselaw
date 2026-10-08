@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fair-use policy — OpenCaseLaw</title>
-<meta name="description" content="Fair-use guidance and quota policy for the public OpenCaseLaw MCP / REST API. Commercial integrators welcome — please coordinate volume.">
+<title>Fair-Use-Richtlinie — OpenCaseLaw</title>
+<meta name="description" content="OpenCaseLaw ist freie öffentliche Infrastruktur für die Schweizer Rechtsrecherche. Es gibt keine API-Schlüssel, keine Anmeldung und keine Bezahlschranke.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
-<link rel="canonical" href="https://opencaselaw.ch/fair-use">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/fair-use?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/fair-use?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/fair-use?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/fair-use?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/fair-use?lang=en">
-<link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/fair-use">
+<link rel="canonical" href="https://opencaselaw.ch/fair-use.html">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/fair-use.html">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/fr/fair-use.html">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/it/fair-use.html">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/rm/fair-use.html">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/en/fair-use.html">
+<link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/fair-use.html">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,76 +29,76 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap-prose">
-      <p class="page-kicker"><b data-t="kicker">Policy</b> · <span data-t="kicker2">API usage</span></p>
-      <h1 class="page-h1" data-t="h1">Fair-use policy</h1>
-      <p class="page-lead" data-t="lead">OpenCaseLaw is free public infrastructure for Swiss legal research. There are no API keys, no sign-up and no paywall. Researchers, journalists, educators, individual lawyers and AI clients are welcome to use the endpoints freely. This page documents the rate guidance for commercial integrators whose volume could otherwise destabilise the service.</p>
+      <p class="page-kicker"><b data-t="kicker">Richtlinie</b> · <span data-t="kicker2">API-Nutzung</span></p>
+      <h1 class="page-h1" data-t="h1">Fair-Use-Richtlinie</h1>
+      <p class="page-lead" data-t="lead">OpenCaseLaw ist freie öffentliche Infrastruktur für die Schweizer Rechtsrecherche. Es gibt keine API-Schlüssel, keine Anmeldung und keine Bezahlschranke. Forschende, Journalistinnen, Lehrende, einzelne Anwältinnen und Anwälte sowie KI-Clients dürfen die Endpunkte frei nutzen. Diese Seite dokumentiert die Mengenrichtlinie für kommerzielle Integratoren, deren Volumen den Dienst andernfalls destabilisieren könnte.</p>
     </div>
   </section>
 
   <section class="wrap-prose" style="padding-bottom:clamp(64px,9vw,112px)">
     <div class="prose">
 
-      <p class="note" data-t="short"><strong>Short version.</strong> Honest use needs no coordination. If your product is going to fire one of the LLM-backed endpoints (<code>/attest</code>, <code>/verify-claim</code>, <code>/mock-decision</code>, <code>/exam-question</code>, <code>/doctrine</code>, <code>/trends</code>) more than ~200 times per day per IP, please reach out at <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> so we can give you a higher quota.</p>
+      <p class="note" data-t="short"><strong>Kurzfassung.</strong> Ehrliche Nutzung braucht keine Absprache. Wenn Ihr Produkt einen der LLM-gestützten Endpunkte (<code>/attest</code>, <code>/verify-claim</code>, <code>/mock-decision</code>, <code>/exam-question</code>, <code>/doctrine</code>, <code>/trends</code>) mehr als ~200-mal pro Tag und IP aufruft, melden Sie sich bitte unter <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>, damit wir Ihnen ein höheres Kontingent geben können.</p>
 
-      <h2 data-t="h_why">Why these endpoints have quotas</h2>
-      <p data-t="why_1">A subset of the public tools fan out to Claude (Anthropic) under the hood — typically Sonnet-4.6, which costs OpenCaseLaw on the order of $0.05–$0.50 per call depending on document size. A commercial integrator embedding one of these tools in an inner product loop can easily generate tens of thousands of calls per day, costing the project thousands of dollars per day with no awareness on their end. The quotas exist so that this never happens by accident.</p>
-      <p data-t="why_2">The non-LLM tools (full-text search, citation graph traversal, statute lookup, scholarship retrieval, decision metadata, structured Erwägung extraction, etc.) are <strong>not quota'd</strong>. They run against local SQLite indices and cost ~nothing per call. Use freely.</p>
+      <h2 data-t="h_why">Warum diese Endpunkte Kontingente haben</h2>
+      <p data-t="why_1">Ein Teil der öffentlichen Tools greift im Hintergrund auf Claude (Anthropic) zu — typischerweise Sonnet-4.6, was OpenCaseLaw je nach Dokumentgrösse rund $0.05–$0.50 pro Aufruf kostet. Ein kommerzieller Integrator, der eines dieser Tools in eine innere Produktschleife einbettet, kann leicht Zehntausende Aufrufe pro Tag erzeugen und das Projekt so mit Tausenden Dollar pro Tag belasten, ohne es selbst zu merken. Die Kontingente sorgen dafür, dass dies nie versehentlich geschieht.</p>
+      <p data-t="why_2">Die Nicht-LLM-Tools (Volltextsuche, Zitationsgraph-Traversierung, Gesetzesabfrage, Abruf von Lehrmeinungen, Entscheid-Metadaten, strukturierte Erwägungsextraktion usw.) sind <strong>nicht kontingentiert</strong>. Sie laufen gegen lokale SQLite-Indizes und kosten ~nichts pro Aufruf. Frei nutzbar.</p>
 
-      <h2 data-t="h_table">Quota table (free / unauthenticated tier)</h2>
-      <p data-t="table_intro">Per IP per day, resetting at 00:00 UTC:</p>
+      <h2 data-t="h_table">Kontingenttabelle (kostenlose / nicht authentifizierte Stufe)</h2>
+      <p data-t="table_intro">Pro IP und Tag, Rücksetzung um 00:00 UTC:</p>
       <table class="tbl">
         <thead><tr>
-          <th data-t="col_endpoint">Endpoint</th>
-          <th data-t="col_tool">Tool name</th>
-          <th class="n" data-t="col_calls">Calls / day / IP</th>
+          <th data-t="col_endpoint">Endpunkt</th>
+          <th data-t="col_tool">Tool-Name</th>
+          <th class="n" data-t="col_calls">Aufrufe / Tag / IP</th>
         </tr></thead>
         <tbody id="quota-rows"></tbody>
       </table>
-      <p data-t="table_429">When the daily quota is exceeded, the endpoint returns <code>HTTP 429 Too Many Requests</code> with a JSON body documenting the limit and the seconds remaining until reset. The <code>Retry-After</code> response header carries the same value.</p>
-      <p data-t="table_nginx">All other endpoints have only nginx rate limiting (30 req/s per IP on <code>/api/*</code>, 10 req/s on <code>/sse</code>, burst 50).</p>
+      <p data-t="table_429">Wird das Tageskontingent überschritten, antwortet der Endpunkt mit <code>HTTP 429 Too Many Requests</code> und einem JSON-Body, der das Limit und die Sekunden bis zur Rücksetzung dokumentiert. Der Antwort-Header <code>Retry-After</code> trägt denselben Wert.</p>
+      <p data-t="table_nginx">Alle übrigen Endpunkte haben nur ein nginx-Rate-Limiting (30 Req/s pro IP auf <code>/api/*</code>, 10 Req/s auf <code>/sse</code>, Burst 50).</p>
 
-      <h2 data-t="h_higher">Higher quotas for commercial use</h2>
-      <p data-t="higher_1">If your product or research project needs more headroom on the LLM-backed endpoints, email <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> with:</p>
+      <h2 data-t="h_higher">Höhere Kontingente für kommerzielle Nutzung</h2>
+      <p data-t="higher_1">Wenn Ihr Produkt oder Forschungsprojekt mehr Spielraum bei den LLM-gestützten Endpunkten braucht, schreiben Sie an <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> mit:</p>
       <ul>
-        <li data-t="higher_li1">A short description of what you're building.</li>
-        <li data-t="higher_li2">Your expected daily volume per endpoint.</li>
-        <li data-t="higher_li3">The IPs or IP ranges from which requests will originate (so we can confirm the right caller is using the issued key).</li>
+        <li data-t="higher_li1">einer kurzen Beschreibung dessen, was Sie bauen.</li>
+        <li data-t="higher_li2">Ihrem erwarteten Tagesvolumen pro Endpunkt.</li>
+        <li data-t="higher_li3">den IPs oder IP-Bereichen, von denen die Anfragen ausgehen (damit wir bestätigen können, dass der richtige Aufrufer den ausgestellten Schlüssel verwendet).</li>
       </ul>
-      <p data-t="higher_2">We mint an <code>X-OCL-Key</code> for you, which carries a quota multiplier (typically 10× for organic integrations like cantonal-government adopters, up to 100× for paid commercial use). Send the key as the <code>X-OCL-Key</code> header on each request:</p>
+      <p data-t="higher_2">Wir stellen Ihnen einen <code>X-OCL-Key</code> aus, der einen Kontingent-Multiplikator trägt (typischerweise 10× für organische Integrationen wie kantonale Behörden, bis zu 100× für bezahlte kommerzielle Nutzung). Senden Sie den Schlüssel als Header <code>X-OCL-Key</code> bei jeder Anfrage:</p>
       <pre class="pre"><code>curl -H "X-OCL-Key: ocl_xxxxxxxx..." \
      -H "Content-Type: application/json" \
      -d '{"draft_text": "..."}' \
      https://mcp.opencaselaw.ch/api/attest</code></pre>
-      <p data-t="higher_3">Paid commercial tiers are billed via Stripe at cost-recovery rates that map roughly to our actual Anthropic API spend per call. There is no margin layered on top — the project is non-profit.</p>
+      <p data-t="higher_3">Bezahlte kommerzielle Stufen werden über Stripe zu kostendeckenden Tarifen abgerechnet, die ungefähr unseren tatsächlichen Anthropic-API-Kosten pro Aufruf entsprechen. Es wird keine Marge aufgeschlagen — das Projekt ist nicht gewinnorientiert.</p>
 
-      <h2 data-t="h_word">Word add-in users</h2>
-      <p data-t="word_1">The Pro tier of the <a href="/word/">OpenCaseLaw Word add-in</a> (CHF 5/month) includes 25 AI-tool calls per day shared across the four Pro features (Verify, Strengthen, Find Support, Reflect). That quota is enforced inside the billing path and is independent of the fair-use policy above; Pro users do not need an X-OCL-Key for the Word add-in.</p>
+      <h2 data-t="h_word">Nutzende des Word-Add-ins</h2>
+      <p data-t="word_1">Die Pro-Stufe des <a href="/word/">OpenCaseLaw-Word-Add-ins</a> (CHF 5/Monat) umfasst 25 KI-Tool-Aufrufe pro Tag, geteilt über die vier Pro-Funktionen (Verify, Strengthen, Find Support, Reflect). Dieses Kontingent wird im Abrechnungspfad durchgesetzt und ist unabhängig von der obigen Fair-Use-Richtlinie; Pro-Nutzende brauchen für das Word-Add-in keinen X-OCL-Key.</p>
 
-      <h2 data-t="h_monitor">What we monitor</h2>
+      <h2 data-t="h_monitor">Was wir überwachen</h2>
       <ul>
-        <li data-t="monitor_li1">Aggregate Anthropic API spend, with daily alerts when burn is unusual.</li>
-        <li data-t="monitor_li2">Per-IP quota counters (<code>output/quota.db</code>), with audit trail of exceeded-quota events.</li>
-        <li data-t="monitor_li3">Per-tool error rates and timing distributions.</li>
+        <li data-t="monitor_li1">Aggregierte Anthropic-API-Kosten, mit täglichen Warnungen bei ungewöhnlichem Verbrauch.</li>
+        <li data-t="monitor_li2">Kontingentzähler pro IP (<code>output/quota.db</code>), mit Audit-Trail überschrittener Kontingente.</li>
+        <li data-t="monitor_li3">Fehlerraten und Zeitverteilungen pro Tool.</li>
       </ul>
-      <p data-t="monitor_p">We do <strong>not</strong> log raw queries or response bodies — see the <a href="/datenschutz/">privacy policy</a> for the differential-privacy rollup we publish in lieu of access logs.</p>
+      <p data-t="monitor_p">Wir protokollieren <strong>keine</strong> Roh-Anfragen oder Antwort-Inhalte — siehe die <a href="/datenschutz/">Datenschutzrichtlinie</a> für die differentiell-private Aggregation, die wir anstelle von Zugriffsprotokollen veröffentlichen.</p>
 
-      <h2 data-t="h_mistake">If you hit a quota and you shouldn't have</h2>
-      <p data-t="mistake_p">Honest mistakes happen — caches cold, retries amplified, a benchmark run that escaped the dev box. Email <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> with the timestamp + endpoint and we'll reset the counter and discuss what your real volume looks like. We'd rather unblock you than have you silently fail.</p>
+      <h2 data-t="h_mistake">Wenn Sie ein Kontingent treffen, das Sie nicht hätten treffen sollen</h2>
+      <p data-t="mistake_p">Ehrliche Fehler passieren — kalte Caches, verstärkte Retries, ein Benchmark-Lauf, der der Dev-Box entkommen ist. Schreiben Sie an <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> mit Zeitstempel + Endpunkt, und wir setzen den Zähler zurück und besprechen, wie Ihr reales Volumen aussieht. Wir entsperren Sie lieber, als dass Sie still scheitern.</p>
 
-      <p class="note" data-t="closing">This policy is intentionally lightweight and revisable. If you see a way it's failing legitimate users, please tell us. The corpus stays CC0; the code stays MIT; the API stays free for the use cases that motivated this project (research, education, individual practice).</p>
+      <p class="note" data-t="closing">Diese Richtlinie ist bewusst schlank und revidierbar. Wenn Sie sehen, wo sie legitime Nutzende benachteiligt, sagen Sie es uns bitte. Der Korpus bleibt CC0; der Code bleibt MIT; die API bleibt frei für die Anwendungsfälle, die dieses Projekt motiviert haben (Forschung, Bildung, individuelle Praxis).</p>
 
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

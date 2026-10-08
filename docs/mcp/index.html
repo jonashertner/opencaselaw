@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MCP server — Claude, ChatGPT, Cursor, Gemini · OpenCaseLaw</title>
-<meta name="description" content="OpenCaseLaw runs a public MCP server with 42 tools for Swiss legal research. Setup guides for Claude.ai, Claude Code, ChatGPT, Cursor, Gemini CLI and Microsoft Copilot Studio. No API keys, read-only, updated daily.">
+<title>MCP-Server — Claude, ChatGPT, Cursor, Gemini · OpenCaseLaw</title>
+<meta name="description" content="OpenCaseLaw betreibt einen öffentlichen MCP-Server mit 42 Werkzeugen für die Schweizer Rechtsrecherche. Anleitungen für Claude.ai, Claude Code, ChatGPT, Cursor, Gemini CLI und Microsoft Copilot Studio. Ohne API-Schlüssel, nur lesend, täglich aktualisiert.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/mcp/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/mcp/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/mcp/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/mcp/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/mcp/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/mcp/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/mcp/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/mcp/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/mcp/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/mcp/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/mcp/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/mcp/">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -88,21 +88,21 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">AI · MCP server</b></p>
-      <h1 class="page-h1" data-t="mcp_h1">Connect AI agents</h1>
-      <p class="page-lead" data-t="mcp_sub">OpenCaseLaw's public MCP server gives language models direct access to 1,050,000+ Swiss court decisions, the citation graph, federal laws and cantonal acts. 42 specialized tools, no sign-up, no API keys.</p>
+      <p class="page-kicker"><b data-t="kicker">KI · MCP-Server</b></p>
+      <h1 class="page-h1" data-t="mcp_h1">KI-Agenten verbinden</h1>
+      <p class="page-lead" data-t="mcp_sub">Der öffentliche MCP-Server von OpenCaseLaw gibt Sprachmodellen direkten Zugriff auf 1’050’000+ Schweizer Gerichtsentscheide, den Zitationsgraph, Bundesgesetze und kantonale Erlasse. 42 spezialisierte Tools, keine Anmeldung, keine API-Keys.</p>
       <nav class="toc" aria-label="On this page">
-        <span class="toc-label" data-t="page_toc">On this page</span>
-        <a href="#modes" data-t="mcp_toc_modes">Operating modes</a>
-        <a href="#setup" data-t="mcp_toc_setup">Setup</a>
+        <span class="toc-label" data-t="page_toc">Auf dieser Seite</span>
+        <a href="#modes" data-t="mcp_toc_modes">Betriebsmodi</a>
+        <a href="#setup" data-t="mcp_toc_setup">Einrichtung</a>
         <a href="#tools" data-t="mcp_toc_tools">Tools</a>
-        <a href="#tech" data-t="mcp_toc_tech">Technical</a>
+        <a href="#tech" data-t="mcp_toc_tech">Technisches</a>
       </nav>
     </div>
   </section>
@@ -111,31 +111,31 @@
 
     <!-- ── Operating modes ─────────────────────────────────────── -->
     <div id="modes">
-      <p class="sec-tag"><span class="n">§01</span> <span data-t="mcp_toc_modes">Operating modes</span></p>
-      <h2 class="sec-h" data-t="mcp_modes_heading">Two operating modes</h2>
+      <p class="sec-tag"><span class="n">§01</span> <span data-t="mcp_toc_modes">Betriebsmodi</span></p>
+      <h2 class="sec-h" data-t="mcp_modes_heading">Zwei Betriebsmodi</h2>
       <div class="modes">
         <div class="mode">
-          <p class="mode-head"><strong>Remote</strong> <span class="badge rec" data-t="mcp_badge_recommended">recommended</span></p>
-          <p data-t="mcp_remote_desc">Immediately available, always up to date. No download required. Server endpoint:</p>
+          <p class="mode-head"><strong>Remote</strong> <span class="badge rec" data-t="mcp_badge_recommended">empfohlen</span></p>
+          <p data-t="mcp_remote_desc">Sofort verfügbar, immer aktuell. Kein Download nötig. Server-Endpunkt:</p>
           <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
         </div>
         <div class="mode">
-          <p class="mode-head"><strong data-t="mcp_mode_local_label">Local</strong> <span class="badge">offline</span></p>
-          <p data-t="mcp_local_desc">Full control, works offline. ~65 GB storage, one-time setup approx. 30-60 minutes. See <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.</p>
+          <p class="mode-head"><strong data-t="mcp_mode_local_label">Lokal</strong> <span class="badge">offline</span></p>
+          <p data-t="mcp_local_desc">Volle Kontrolle, funktioniert offline. ~65 GB Speicher, einmalige Einrichtung ca. 30–60 Minuten. Siehe <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.</p>
         </div>
       </div>
     </div>
 
     <!-- ── Setup per client ────────────────────────────────────── -->
     <div id="setup" class="blk">
-      <p class="sec-tag"><span class="n">§02</span> <span data-t="mcp_toc_setup">Setup</span></p>
-      <h2 class="sec-h" data-t="mcp_setup_heading">Setup per client</h2>
-      <p class="lead-note" data-t="mcp_setup_intro">Endpoint <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (recommended) and SSE · no authentication · tools are read-only.</p>
+      <p class="sec-tag"><span class="n">§02</span> <span data-t="mcp_toc_setup">Einrichtung</span></p>
+      <h2 class="sec-h" data-t="mcp_setup_heading">Einrichtung nach Client</h2>
+      <p class="lead-note" data-t="mcp_setup_intro">Endpunkt <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (empfohlen) und SSE · keine Authentifizierung · Werkzeuge sind nur-lesend.</p>
 
       <div class="setup">
         <div class="setup-block">
           <h3>Claude.ai (Web) &amp; Claude Desktop</h3>
-          <p data-t="mcp_claudeai_step"><strong>Customize</strong> (Anpassen · Personnaliser · Personalizza) → <strong>Connectors</strong> → "+" → "Add custom connector" → paste the URL. Or direct: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Available on Free (max. 1 connector), Pro, Max, Team, Enterprise. On Team/Enterprise the Owner must first enable it via <em>Organization Settings → Connectors → Add → Custom → Web</em>.</p>
+          <p data-t="mcp_claudeai_step"><strong>Customize</strong> (Anpassen · Personnaliser · Personalizza) → <strong>Connectors</strong> → „+" → „Add custom connector" → URL einfügen. Alternativ direkt: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Verfügbar in Free (max. 1 Connector), Pro, Max, Team, Enterprise. Bei Team/Enterprise muss zuerst der Owner unter <em>Organization Settings → Connectors → Add → Custom → Web</em> freischalten.</p>
           <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
         </div>
 
@@ -146,13 +146,13 @@
 
         <div class="setup-block">
           <h3>ChatGPT (Business / Enterprise / Edu)</h3>
-          <p data-t="mcp_chatgpt_step">Settings → Connectors → "Create" (if needed: Advanced settings → enable Developer mode). Name "Swiss Caselaw" and paste the URL, auth: None. ChatGPT Web on Business / Enterprise / Edu only; the model must support MCP tool calls.</p>
+          <p data-t="mcp_chatgpt_step">Settings → Connectors → „Create" (ggf. Advanced settings → Developer mode aktivieren). Name „Swiss Caselaw" + URL einfügen, Auth: None. Nur ChatGPT-Web auf Business / Enterprise / Edu; Modell muss MCP-Tool-Calls unterstützen.</p>
           <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
         </div>
 
         <div class="setup-block">
           <h3>Cursor</h3>
-          <p data-t="mcp_cursor_step">Settings → Features → MCP → "+ Add new MCP server", or in <code>~/.cursor/mcp.json</code>:</p>
+          <p data-t="mcp_cursor_step">Settings → Features → MCP → „+ Add new MCP server", oder in <code>~/.cursor/mcp.json</code>:</p>
           <div class="codewrap"><pre class="code">{
   "mcpServers": {
     "swiss-caselaw": {
@@ -164,19 +164,19 @@
 
         <div class="setup-block">
           <h3>Gemini CLI</h3>
-          <p data-t="mcp_gemini_step">CLI command or <code>~/.gemini/settings.json</code>. The web app gemini.google.com does not currently support custom MCP servers — only Gemini CLI, Gemini Enterprise, Android Studio and Firebase Studio do.</p>
+          <p data-t="mcp_gemini_step">CLI-Befehl oder <code>~/.gemini/settings.json</code>. Die Web-App gemini.google.com unterstützt aktuell keine eigenen MCP-Server — nur Gemini CLI, Gemini Enterprise, Android Studio und Firebase Studio.</p>
           <div class="codewrap"><pre class="code wrap">gemini mcp add --transport http swiss-caselaw https://mcp.opencaselaw.ch</pre></div>
         </div>
 
         <div class="setup-block">
           <h3>Microsoft Copilot Studio</h3>
-          <p data-t="mcp_copilot_step">Agent → Tools → Add a tool → New tool → "Model Context Protocol". Server name "Swiss Caselaw" and URL, auth: None. Streamable HTTP only (SSE no longer supported since August 2025).</p>
+          <p data-t="mcp_copilot_step">Agent → Tools → Add a tool → New tool → „Model Context Protocol". Server-Name „Swiss Caselaw" + URL eintragen, Auth: None. Nur Streamable HTTP (SSE seit August 2025 nicht mehr unterstützt).</p>
           <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
         </div>
 
         <div class="setup-block">
-          <h3 data-t="mcp_other_heading">Other MCP clients</h3>
-          <p data-t="mcp_other_step">Works with any MCP-capable client (Continue, Zed, Cody, Windsurf, …) over Streamable HTTP at <code>https://mcp.opencaselaw.ch</code>. SSE is also reachable at <code>/sse</code> but is deprecated by the MCP spec.</p>
+          <h3 data-t="mcp_other_heading">Andere MCP-Clients</h3>
+          <p data-t="mcp_other_step">Funktioniert mit jedem MCP-fähigen Client (Continue, Zed, Cody, Windsurf, …) über Streamable HTTP an <code>https://mcp.opencaselaw.ch</code>. SSE ist ebenfalls unter <code>/sse</code> erreichbar, aber MCP-spec-seitig veraltet.</p>
         </div>
       </div>
     </div>
@@ -184,12 +184,12 @@
     <!-- ── Tool catalogue ──────────────────────────────────────── -->
     <div id="tools" class="blk">
       <p class="sec-tag"><span class="n">§03</span> <span data-t="mcp_toc_tools">Tools</span></p>
-      <h2 class="sec-h" data-t="mcp_tools_heading">42 public tools at a glance (+ 2 local admin tools)</h2>
-      <p class="page-lead" style="margin-top:14px;font-size:16px" data-t="mcp_tools_desc">Each tool is optimised for a specific research use case. Full schemas via the MCP protocol <code>tools/list</code>, grouped here by function.</p>
+      <h2 class="sec-h" data-t="mcp_tools_heading">42 öffentliche Tools (+ 2 lokale Admin-Tools)</h2>
+      <p class="page-lead" style="margin-top:14px;font-size:16px" data-t="mcp_tools_desc">Jedes Tool ist für einen spezifischen Rechercheanwendungsfall optimiert. Volle Schemas via MCP-Protokoll-<code>tools/list</code>, hier gruppiert nach Funktion.</p>
 
       <div class="toolgrid">
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_search">Search &amp; retrieve decisions</p>
+          <p class="toolcard-k" data-t="mcp_grp_search">Entscheide suchen &amp; abrufen</p>
           <ul>
             <li>search_decisions</li>
             <li>get_decision</li>
@@ -200,7 +200,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_structure">Decision structure (federal)</p>
+          <p class="toolcard-k" data-t="mcp_grp_structure">Entscheidstruktur (Bund)</p>
           <ul>
             <li>get_decision_structure</li>
             <li>get_erwaegung</li>
@@ -209,7 +209,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_citation">Citation graph</p>
+          <p class="toolcard-k" data-t="mcp_grp_citation">Zitationsgraph</p>
           <ul>
             <li>find_citations</li>
             <li>find_appeal_chain</li>
@@ -218,7 +218,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_statutes">Statute text</p>
+          <p class="toolcard-k" data-t="mcp_grp_statutes">Gesetzestext</p>
           <ul>
             <li>get_law</li>
             <li>search_laws</li>
@@ -230,7 +230,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_doctrine">Doctrine &amp; commentary</p>
+          <p class="toolcard-k" data-t="mcp_grp_doctrine">Doktrin &amp; Kommentare</p>
           <ul>
             <li>get_doctrine</li>
             <li>get_commentary</li>
@@ -238,7 +238,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_scholarship">Legal scholarship (open access)</p>
+          <p class="toolcard-k" data-t="mcp_grp_scholarship">Rechtswissenschaft (Open Access)</p>
           <ul>
             <li>search_scholarship</li>
             <li>get_scholarship</li>
@@ -249,7 +249,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_materials">Preparatory materials (dispatches)</p>
+          <p class="toolcard-k" data-t="mcp_grp_materials">Materialien (Botschaften)</p>
           <ul>
             <li>get_materialien</li>
             <li>search_materialien</li>
@@ -257,7 +257,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_verify">Verification &amp; citation</p>
+          <p class="toolcard-k" data-t="mcp_grp_verify">Verifikation &amp; Zitation</p>
           <ul>
             <li>check_claim_support</li>
             <li>attest_response</li>
@@ -265,28 +265,28 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_practice">Administrative practice (federal)</p>
+          <p class="toolcard-k" data-t="mcp_grp_practice">Verwaltungspraxis (Bund)</p>
           <ul>
             <li>search_practice</li>
             <li>get_practice</li>
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_drafting">Drafting &amp; study</p>
+          <p class="toolcard-k" data-t="mcp_grp_drafting">Drafting &amp; Studium</p>
           <ul>
             <li>generate_exam_question</li>
             <li>draft_mock_decision</li>
           </ul>
         </div>
         <div class="toolcard muted">
-          <p class="toolcard-k" data-t="mcp_grp_openai">ChatGPT Deep Research (aliases)</p>
+          <p class="toolcard-k" data-t="mcp_grp_openai">ChatGPT Deep Research (Aliase)</p>
           <ul>
             <li>search</li>
             <li>fetch</li>
           </ul>
         </div>
         <div class="toolcard muted">
-          <p class="toolcard-k" data-t="mcp_grp_local">Local mode (maintenance)</p>
+          <p class="toolcard-k" data-t="mcp_grp_local">Lokal-Modus (Wartung)</p>
           <ul>
             <li>update_database</li>
             <li>check_update_status</li>
@@ -297,14 +297,14 @@
 
     <!-- ── Technical ───────────────────────────────────────────── -->
     <div id="tech" class="blk">
-      <p class="sec-tag"><span class="n">§04</span> <span data-t="mcp_toc_tech">Technical</span></p>
-      <h2 class="sec-h" data-t="mcp_tech_heading">Technical details</h2>
+      <p class="sec-tag"><span class="n">§04</span> <span data-t="mcp_toc_tech">Technisches</span></p>
+      <h2 class="sec-h" data-t="mcp_tech_heading">Technisches</h2>
       <ul class="tech-list">
-        <li data-t="mcp_tech_transport">Transport: Server-Sent Events (SSE) + Streamable HTTP, compatible with every common MCP client</li>
-        <li data-t="mcp_tech_tls">TLS via Let's Encrypt, nginx rate limiting, health endpoint: <a href="https://mcp.opencaselaw.ch/health">/health</a></li>
-        <li data-t="mcp_tech_workers">4× uvicorn workers behind a load balancer, automatic failover</li>
-        <li data-t="mcp_tech_backend">Backend: 1,050,000+ decisions in SQLite FTS5 with BM25+RRF ranking, citation graph of 8.9M edges (8.3M resolved)</li>
-        <li data-t="mcp_tech_data">Data from public sources (federal courts, cantonal courts, Fedlex, LexFind), updated daily</li>
+        <li data-t="mcp_tech_transport">Transport: Server-Sent Events (SSE) + Streamable HTTP, kompatibel mit allen gängigen MCP-Clients</li>
+        <li data-t="mcp_tech_tls">TLS via Let's Encrypt, nginx Rate-Limiting, Health-Endpoint: <a href="https://mcp.opencaselaw.ch/health">/health</a></li>
+        <li data-t="mcp_tech_workers">4× uvicorn-Worker hinter Load-Balancer, automatisches Failover</li>
+        <li data-t="mcp_tech_backend">Backend: 990'000+ Entscheide in SQLite FTS5 mit BM25+RRF-Ranking, Graph-DB mit 8,9 Mio Zitationskanten (8,3 Mio aufgelöst)</li>
+        <li data-t="mcp_tech_data">Daten aus öffentlichen Quellen (Bundesgerichte, kantonale Gerichte, Fedlex, LexFind), täglich aktualisiert</li>
       </ul>
       <p class="lead-note" id="ts" style="margin-top:28px"></p>
     </div>
@@ -313,7 +313,7 @@
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'mcp',

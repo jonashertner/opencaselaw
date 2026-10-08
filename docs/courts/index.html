@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Courts &amp; authorities — OpenCaseLaw</title>
-<meta name="description" content="Every Swiss federal, regulatory, international and cantonal court and authority in the OpenCaseLaw corpus. Per-court decision counts, date ranges and languages. Updated daily.">
+<title>Gerichte &amp; Behörden — OpenCaseLaw</title>
+<meta name="description" content="Alle Schweizer Bundes-, Regulierungs-, internationalen und kantonalen Gerichte und Behörden, deren publizierte Entscheide der Korpus indexiert — direkt von jeder offiziellen Quelle gescrapt und …">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/courts/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/courts/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/courts/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/courts/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/courts/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/courts/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/courts/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/courts/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/courts/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/courts/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/courts/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/courts/">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,15 +51,15 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="c_kick">Coverage</b></p>
-      <h1 class="page-h1" data-t="c_h1">Courts &amp; authorities</h1>
-      <p class="page-lead" id="lede" data-t="c_lede">Every Swiss federal, regulatory, international and cantonal court and authority whose published decisions the corpus indexes — scraped directly from each official source and rebuilt nightly.</p>
+      <p class="page-kicker"><b data-t="c_kick">Abdeckung</b></p>
+      <h1 class="page-h1" data-t="c_h1">Gerichte &amp; Behörden</h1>
+      <p class="page-lead" id="lede" data-t="c_lede">Alle Schweizer Bundes-, Regulierungs-, internationalen und kantonalen Gerichte und Behörden, deren publizierte Entscheide der Korpus indexiert — direkt von jeder offiziellen Quelle gescrapt und nächtlich neu aufgebaut.</p>
       <p class="note" style="margin-top:18px"><a href="/courts/local/" data-t="c_local_link">Zitatprüfung für Eingaben und Urteilsentwürfe, vollständig lokal →</a> <span data-t="c_local_p">Ein Programm auf den Geräten des Gerichts prüft die Zitierungen einer Eingabe oder eines Entwurfs gegen diesen Korpus. Nichts verlässt das Gericht.</span></p>
     </div>
   </section>
@@ -68,20 +68,20 @@
     <div class="controls">
       <input class="filter" type="search" id="filter" autocomplete="off" aria-label="Filter courts" placeholder="Filter — zh, bger, finma…" data-t-ph="c_filter">
       <div class="tabs" role="group" aria-label="Court group">
-        <button data-group="all" class="on" type="button" data-t="c_all">All</button>
-        <button data-group="federal" type="button" data-t="c_federal">Federal</button>
-        <button data-group="regulatory" type="button" data-t="c_regulatory">Regulatory</button>
+        <button data-group="all" class="on" type="button" data-t="c_all">Alle</button>
+        <button data-group="federal" type="button" data-t="c_federal">Bund</button>
+        <button data-group="regulatory" type="button" data-t="c_regulatory">Regulierung</button>
         <button data-group="international" type="button" data-t="c_international">International</button>
-        <button data-group="cantonal" type="button" data-t="c_cantonal">Cantonal</button>
+        <button data-group="cantonal" type="button" data-t="c_cantonal">Kantonal</button>
       </div>
     </div>
-    <div class="summary" id="summary" data-t="loading">Loading…</div>
+    <div class="summary" id="summary" data-t="loading">Wird geladen…</div>
     <div id="sections"></div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'courts',

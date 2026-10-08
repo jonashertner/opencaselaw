@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Swiss laws — federal + cantonal — OpenCaseLaw</title>
-<meta name="description" content="Search the full text of 5,510 Swiss federal laws (Fedlex mirror) plus 15,722 cantonal acts. Article-level snippets with one-click direct link. Free, no account, no API key.">
+<title>Bundes- und kantonale Gesetze — OpenCaseLaw</title>
+<meta name="description" content="Volltext von 5'510 Bundesgesetzen (Spiegel von Fedlex SPARQL) plus 15'722 kantonale Erlasse (LexWork direkt + LexFind-Fallback). Artikelweise Suche mit Snippets.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/laws/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/laws/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/laws/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/laws/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/laws/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/laws/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/laws/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/laws/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/laws/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/laws/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/laws/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/laws/">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -103,15 +103,15 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="l_kick">Look up</b></p>
-      <h1 class="page-h1" data-t="l_h1">Federal &amp; cantonal laws</h1>
-      <p class="page-lead" data-t="l_lede">Full text of 5,510 federal laws (mirrored from Fedlex SPARQL) plus 15,722 cantonal acts (LexWork direct + LexFind fallback). Article-level search with snippets. Look up any article by abbreviation + number. Free, no account, no API key.</p>
+      <p class="page-kicker"><b data-t="l_kick">Nachschlagen · Bund + Kantone</b></p>
+      <h1 class="page-h1" data-t="l_h1">Bundes- und kantonale Gesetze</h1>
+      <p class="page-lead" data-t="l_lede">Volltext von 5'510 Bundesgesetzen (Spiegel von Fedlex SPARQL) plus 15'722 kantonale Erlasse (LexWork direkt + LexFind-Fallback). Artikelweise Suche mit Snippets. Jeden Artikel über Abkürzung + Nummer nachschlagen. Frei, ohne Anmeldung, ohne API-Key.</p>
     </div>
   </section>
 
@@ -119,13 +119,13 @@
     <form class="laws-form" id="form" role="search" aria-label="Search Swiss laws">
       <input class="laws-input" type="search" id="q" name="q"
              autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search query">
-      <button type="submit" class="btn btn-primary" data-t="l_submit">Search</button>
+      <button type="submit" class="btn btn-primary" data-t="l_submit">Suchen</button>
     </form>
 
     <div class="laws-filters" id="filters" role="group" aria-label="Law level" hidden>
-      <button data-filter="" class="on" type="button" data-t="l_allLevels">All levels</button>
-      <button data-filter="federal" type="button" data-t="l_federalOnly">Federal only</button>
-      <button data-filter="cantonal" type="button" data-t="l_cantonalOnly">Cantonal only</button>
+      <button data-filter="" class="on" type="button" data-t="l_allLevels">Alle Ebenen</button>
+      <button data-filter="federal" type="button" data-t="l_federalOnly">Nur Bund</button>
+      <button data-filter="cantonal" type="button" data-t="l_cantonalOnly">Nur Kantone</button>
     </div>
 
     <div class="laws-meta" id="meta" hidden></div>
@@ -133,30 +133,26 @@
 
     <!-- Article lookup — when no search query, this is the primary action -->
     <div class="article-lookup" id="article-lookup">
-      <h2 data-t="l_lookupHeading">Look up an article directly</h2>
-      <p class="desc" data-t="l_lookupDesc">Enter the law's standard abbreviation (OR, ZGB, STGB, STPO, ZPO, BV, …) and an article number. Returns the verbatim text from the local Fedlex mirror in &lt;1 ms.</p>
+      <h2 data-t="l_lookupHeading">Artikel direkt nachschlagen</h2>
+      <p class="desc" data-t="l_lookupDesc">Geben Sie die übliche Abkürzung des Gesetzes ein (OR, ZGB, STGB, STPO, ZPO, BV, …) sowie eine Artikelnummer. Liefert den wörtlichen Text aus dem lokalen Fedlex-Spiegel in &lt;1 ms.</p>
       <form class="article-form" id="article-form">
         <input type="text" class="law" id="article-law" placeholder="OR" aria-label="Law abbreviation" required>
         <input type="text" class="art" id="article-num" placeholder="41" aria-label="Article number" required>
-        <button type="submit" class="btn btn-ghost btn-sm" data-t="l_lookupSubmit">Show article</button>
+        <button type="submit" class="btn btn-ghost btn-sm" data-t="l_lookupSubmit">Artikel anzeigen</button>
       </form>
       <div id="article-result" style="margin-top:18px"></div>
     </div>
 
     <!-- Quick-access grid -->
-    <div class="quick-head"><h2 data-t="l_quickHeading">Most-searched federal laws</h2><span class="meta" data-t="l_quickHint">click to look up Art. 1</span></div>
+    <div class="quick-head"><h2 data-t="l_quickHeading">Meistgesuchte Bundesgesetze</h2><span class="meta" data-t="l_quickHint">klicken, um Art. 1 nachzuschlagen</span></div>
     <div class="quickgrid" id="quickgrid"></div>
 
-    <p class="footnote" id="footnote" data-t="l_footnote">
-      Need cantonal coverage detail? See <a href="/coverage/">/coverage</a> for per-portal scraper health.
-      Looking for legislative materials (Botschaften, parliamentary debates)?
-      Use <a href="https://mcp.opencaselaw.ch/api/docs"><code>get_materialien</code></a> via the MCP server or REST API.
-    </p>
+    <p class="footnote" id="footnote" data-t="l_footnote">Brauchen Sie Details zur kantonalen Abdeckung? Siehe <a href="/coverage/">/coverage</a> für die Scraper-Gesundheit pro Portal. Suchen Sie nach Gesetzgebungsmaterialien (Botschaften, Parlamentsdebatten)? Nutzen Sie <a href="https://mcp.opencaselaw.ch/api/docs"><code>get_materialien</code></a> über den MCP-Server oder die REST-API.</p>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'laws',

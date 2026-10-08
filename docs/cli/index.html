@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Research CLI — OpenCaseLaw</title>
-<meta name="description" content="ocl: check the citations in a draft and keep the evidence behind a memo from the command line. Dependency-free client for the OpenCaseLaw research API; readable text at a terminal, JSON when piped.">
+<title>Recherche-CLI — OpenCaseLaw</title>
+<meta name="description" content="ocl: die Zitate eines Entwurfs prüfen und die Belege hinter einem Memo sichern, auf der Kommandozeile. Client ohne Abhängigkeiten für die Recherche-API von OpenCaseLaw; lesbarer Text im Terminal, JSON in der Pipeline.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/cli/">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/cli/?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/cli/?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/cli/?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/cli/?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/cli/?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/cli/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/cli/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/cli/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/cli/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/cli/en/">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/cli/">
 <link rel="icon" href="/favicon.svg">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://opencaselaw.ch/cli/">
-<meta property="og:title" content="Research CLI — OpenCaseLaw">
-<meta property="og:description" content="Check citations and keep evidence from the command line. Readable at a terminal, JSON for scripts and agents.">
+<meta property="og:title" content="Recherche-CLI — OpenCaseLaw">
+<meta property="og:description" content="ocl: die Zitate eines Entwurfs prüfen und die Belege hinter einem Memo sichern, auf der Kommandozeile. Client ohne Abhängigkeiten für die Recherche-API von OpenCaseLaw; lesbarer Text im Terminal, JSON in der Pipeline.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -84,18 +84,18 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">Research CLI · ocl</b></p>
-      <h1 class="page-h1" data-t="h1">Check citations and keep evidence from the command line</h1>
-      <p class="page-lead" data-t="lead"></p>
+      <p class="page-kicker"><b data-t="kicker">Recherche-CLI · ocl</b></p>
+      <h1 class="page-h1" data-t="h1">Zitate prüfen und Belege sichern, direkt aus dem Terminal</h1>
+      <p class="page-lead" data-t="lead"><code>ocl</code> ist ein kleiner Client ohne Abhängigkeiten für die OpenCaseLaw-Recherche-API. Er dient einer Anwältin am Terminal ebenso wie einem KI-Agenten im Skript: lesbarer Text am Bildschirm, JSON in der Pipe. Alles, was er zeigt, kommt unverändert vom Dienst: Kennungen, Zitierstrings, Erwägungstext.</p>
       <div class="api-cta">
-        <a class="btn btn-primary" href="https://github.com/jonashertner/opencaselaw/blob/main/docs/research-cli.md" rel="noopener" target="_blank" data-t="cta_guide">Full guide on GitHub</a>
-        <a class="btn btn-ghost" href="https://github.com/jonashertner/opencaselaw/tree/main/clients/python" rel="noopener" target="_blank" data-t="cta_source">Source: clients/python</a>
+        <a class="btn btn-primary" href="https://github.com/jonashertner/opencaselaw/blob/main/docs/research-cli.md" rel="noopener" target="_blank" data-t="cta_guide">Vollständige Anleitung auf GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/jonashertner/opencaselaw/tree/main/clients/python" rel="noopener" target="_blank" data-t="cta_source">Quellcode: clients/python</a>
       </div>
     </div>
   </section>
@@ -103,14 +103,14 @@
   <section class="wrap" style="padding-bottom:clamp(64px,9vw,112px)">
     <div class="prose">
 
-      <h2 id="install" data-t="install_h">Install</h2>
-      <p data-t="install_p"></p>
+      <h2 id="install" data-t="install_h">Installation</h2>
+      <p data-t="install_p">Python 3.10 oder neuer. Von PyPI als Werkzeug mit <code>pipx</code> oder <code>uv</code> installieren; beide erstellen die isolierte Umgebung, die aktuelle Python-Installationen verlangen. <code>ocl doctor</code> prüft Verbindung, Server und Client.</p>
       <pre class="code">pipx install opencaselaw-cli        # or: uv tool install opencaselaw-cli
 ocl --help</pre>
-      <p data-t="install_note"></p>
+      <p data-t="install_note">Ohne pipx oder uv eine virtuelle Umgebung verwenden: <code>python3 -m venv .venv &amp;&amp; .venv/bin/pip install opencaselaw-cli</code>, dann <code>.venv/bin/ocl</code> ausführen. Aktualisieren mit <code>pipx upgrade opencaselaw-cli</code> (oder <code>uv tool upgrade opencaselaw-cli</code>).</p>
 
-      <h2 id="citations" data-t="job1_h">1. Check the citations in a draft</h2>
-      <p data-t="job1_p"></p>
+      <h2 id="citations" data-t="job1_h">1. Die Zitate eines Entwurfs prüfen</h2>
+      <p data-t="job1_p">Die Referenzen aus dem Entwurf in eine Datei schreiben, eine pro Zeile, oder als JSON-Zeilen, wenn eine Referenz eine Erwägung nennt. Jede kommt als resolved, missing oder ambiguous zurück, mit dem gefundenen Entscheid; eine genannte Erwägung gilt nur als resolved, wenn sie im Index existiert.</p>
       <pre class="code">cat &gt; references.jsonl &lt;&lt;'JSONL'
 {"reference":"BGE 136 III 513","pinpoint":"2.3"}
 {"reference":"4A_747/2012"}
@@ -118,7 +118,7 @@ ocl --help</pre>
 {"reference":"BGE 140 III 86","pinpoint":"2.3"}
 JSONL
 ocl citations resolve --input references.jsonl</pre>
-      <p class="returns" data-t="output_label">At a terminal this prints:</p>
+      <p class="returns" data-t="output_label">Am Terminal erscheint:</p>
       <pre class="response">resolved              BGE 136 III 513  bge_BGE_136_III_513  E. 2.3 retrieved
 resolved              4A_747/2012      bger_4A_747_2012     BGer 4A_747/2012 vom 5. April 2013
 missing               BGE 999 III 1                         not in the corpus
@@ -126,13 +126,13 @@ pinpoint_unavailable  BGE 140 III 86   bge_BGE_140_III_86   E. 2.3 not in the in
 
 partial: 2 resolved, 1 missing, 1 pinpoint_unavailable.
 Existence and pinpoints only; no assessment of legal support.</pre>
-      <p data-t="job1_note"></p>
+      <p data-t="job1_note">Der Exit-Code ist 4, weil nicht alles aufgelöst wurde. Was die Prüfung nicht tut: Sie sagt nie, dass ein Entscheid Ihre These stützt, noch gilt oder auf Ihren Sachverhalt passt. Diese Lektüre bleibt Ihre Aufgabe.</p>
 
-      <h2 id="evidence" data-t="job2_h">2. Keep the evidence behind a memo</h2>
-      <p data-t="job2_p"></p>
+      <h2 id="evidence" data-t="job2_h">2. Die Belege hinter einer Notiz aufbewahren</h2>
+      <p data-t="job2_p">Ein Befehl führt die Suche aus und speichert die ausgewählten Entscheide, die genannten Erwägungen und die genannten Gesetzesartikel in einen Ordner: Volltexte wie geliefert, ein lesbares <code>INDEX.md</code> und ein <code>manifest.json</code> mit jeder Anfrage, jedem Zeitstempel, jeder Quellenadresse und jedem Datei-Hash. Gespeicherte Dateien werden nie überschrieben; <code>--resume</code> beendet einen unterbrochenen Lauf.</p>
       <pre class="code">ocl bundle create 'Rachekündigung Art. 336 OR' --max-results 10 --passage 2 \
   --law OR:336 --out rachekuendigung-2026-09</pre>
-      <p class="returns" data-t="folder_label">The folder is readable without any tool:</p>
+      <p class="returns" data-t="folder_label">Der Ordner ist ohne Werkzeug lesbar:</p>
       <pre class="response">rachekuendigung-2026-09/
   INDEX.md                                    what was saved, in plain language
   manifest.json                               every request, timestamp, hash, source link
@@ -140,63 +140,63 @@ Existence and pinpoints only; no assessment of legal support.</pre>
   passages/bge_BGE_136_III_513_2-ff487655.txt E. 2, verbatim
   laws/OR_336-812a5382.json                   Art. 336 OR, consolidation date, Fedlex link
   search/page-0000-1850ce82.json              the search page the selection came from</pre>
-      <p data-t="job2_note"></p>
+      <p data-t="job2_note">Ein Paket ist <code>complete</code>, wenn jedes verlangte Element gespeichert wurde, sonst <code>partial</code> mit jedem fehlgeschlagenen Element, etwa einem kantonalen Entscheid ohne nummerierte Erwägungen. Es bewahrt, was der Dienst an jenem Tag geliefert hat; der Korpus wird jede Nacht neu aufgebaut, dieselbe Abfrage kann nächsten Monat andere Entscheide auswählen.</p>
 
-      <h2 id="results" data-t="results_h">What the results mean</h2>
+      <h2 id="results" data-t="results_h">Was die Ergebnisse bedeuten</h2>
       <ul>
-        <li data-t="r1"></li>
-        <li data-t="r2"></li>
-        <li data-t="r3"></li>
-        <li data-t="r4"></li>
-        <li data-t="r5"></li>
-        <li data-t="r6"></li>
-        <li data-t="r7"></li>
-        <li data-t="r8"></li>
+        <li data-t="r1"><code>resolved</code>: Der Entscheid existiert im Korpus. Mit Erwägungsangabe existiert die genannte Erwägung, und ihr Text steht in der Zeile.</li>
+        <li data-t="r2"><code>pinpoint_unavailable</code>: Der Entscheid existiert; die nummerierte Erwägung ist nicht im Strukturindex. Bei einer Buchstaben-Untererwägung (E. 2a, E. 3c/aa) wird die übergeordnete Nummer geliefert (<code>parent_retrieved</code>); den Buchstaben darin suchen.</li>
+        <li data-t="r3"><code>missing</code>: Kein Entscheid mit diesem Zitat oder dieser Verfahrensnummer. Ein falsches Zitat oder eine Lücke in der Abdeckung, nie ein Beweis, dass ein Zitat erfunden wurde.</li>
+        <li data-t="r4"><code>ambiguous</code>: Mehr als ein Entscheid trägt diese Bezeichnung (Verfahrensnummern werden von verschiedenen Gerichten wiederverwendet). Eine <code>decision_id</code> wählen.</li>
+        <li data-t="r5"><code>unrecognized</code>: Der vom Dienst vorgeschlagene Entscheid trägt keine Bezeichnung, die in der Referenz steht; der Vorschlag steht unter <code>service_candidate</code>, nie in <code>decision_id</code>. <code>resolution_incomplete</code>, <code>error</code>: Identität nicht feststellbar oder Anfrage gescheitert. Nichts wird geraten.</li>
+        <li data-t="r6"><code>total_is_lower_bound: true</code> bedeutet «mindestens so viele». Eine Textsuche wird über einen begrenzten Kandidatenbestand gerankt; <code>has_more: false</code> beweist nie, dass jeder relevante Entscheid gesehen wurde.</li>
+        <li data-t="r7">Exit-Codes: 0 vollständig, 2 ungültige Eingabe, 3 Dienst oder Netz gescheitert, 4 teilweise oder ungelöst (auch: ein Entscheid oder eine Erwägung, die der Dienst nicht hat). Skripte verzweigen darauf, ohne Prosa zu parsen.</li>
+        <li data-t="r8"><code>discrepancy</code>: Der Entscheid wurde identifiziert, aber das Datum oder die neben dem BGE-Zitat geschriebene Verfahrensnummer widerspricht dem Datensatz; <code>discrepancies</code> nennt jede Abweichung.</li>
       </ul>
 
-      <h2 id="recipes" data-t="recipes_h">Recipes</h2>
-      <p data-t="rc1"></p>
+      <h2 id="recipes" data-t="recipes_h">Rezepte</h2>
+      <p data-t="rc1">Suchen, dann die Volltexte holen, in einer Pipeline:</p>
       <pre class="code">ocl decisions search 'Rachekündigung Art. 336 OR' --max-results 5 --format jsonl |
   ocl decisions get --stdin --format jsonl &gt; decisions.jsonl</pre>
-      <p data-t="rc2"></p>
+      <p data-t="rc2">Alles, was ein Gericht in einem Zeitraum entschieden hat. Ohne Suchtext zählen die Filter eine exakte Menge seitenweise auf:</p>
       <pre class="code">ocl decisions search --court bge --date-from 2026-01-01 --date-to 2026-06-30 \
   --sort date_desc --max-results 500 --format jsonl &gt; bge-2026-h1.jsonl</pre>
-      <p data-t="rc3"></p>
+      <p data-t="rc3">Eine Erwägung wörtlich zitieren, mit dem passenden Zitierstring:</p>
       <pre class="code">ocl decisions passage bge_BGE_136_III_513 2.3
 ocl cite 'BGE 136 III 513' --pinpoint 2.3 --language fr</pre>
-      <p data-t="rc4"></p>
+      <p data-t="rc4">Ein Gesetz, wie es an einem Datum galt:</p>
       <pre class="code">ocl laws get OR --article 41 --as-of 2015-01-01</pre>
-      <p data-t="rc5"></p>
+      <p data-t="rc5">Wer einen Leitentscheid zitiert:</p>
       <pre class="code">ocl citations list bge_BGE_140_III_86 --direction incoming --limit 50</pre>
-      <p data-t="rc_agents"></p>
+      <p data-t="rc_agents">Coding-Agenten wie Claude Code oder Codex führen dieselben Befehle in einer Shell aus und lesen das JSON; die Belege bleiben in Dateien, die Sie prüfen können, statt im Gedächtnis des Modells.</p>
 
-      <h2 id="agents" data-t="agents_h">For agents</h2>
-      <p data-t="agents_p"></p>
+      <h2 id="agents" data-t="agents_h">Für Agenten</h2>
+      <p data-t="agents_p">Ein Agent braucht vier Dinge: eine Installation ohne Rückfragen, Ausgaben, die er parsen kann, Verdikte, auf die er verzweigen kann, und Regeln, die er sich nicht wegreden kann. <code>ocl</code> liefert alle vier: JSON, sobald die Ausgabe in eine Pipe geht; Exit-Codes, die das Ergebnis tragen (0 alles aufgelöst, 2 ungültige Eingabe, 3 Dienst oder Netz, 4 etwas hat sich nicht aufgelöst); <code>--cache</code>, damit Wiederholungen innerhalb einer Datenbank-Generation nichts kosten; und drei mitgelieferte Skills (Zitatprüfung, Recherche, Beleg-Ordner). <code>ocl tool call</code> erreicht jedes Recherche-Werkzeug des Dienstes.</p>
       <pre class="code">ocl agent-guide                  # the contract on one page: JSON, exit codes, statuses, rules
 ocl skills install --claude      # citation-check, research, evidence-bundle into ~/.claude/skills
 ocl tool list                    # every research tool of the service
 ocl tool call find_leading_cases query='Rachekündigung Art. 336 OR' limit=5
 ocl quotes check --input quotes.jsonl --format jsonl
 ocl citations resolve --input refs.jsonl --format jsonl --cache ~/.cache/ocl</pre>
-      <p data-t="agents_note"></p>
+      <p data-t="agents_note">Die Regeln sind nicht verhandelbar: Zitatstrings und Zitate kommen unverändert vom Dienst; ein <code>close_match</code> oder <code>service_candidate</code> ist Information für die Autorin, nie ein Ersatz; das Werkzeug stellt Existenz und Wortlaut fest, nicht die rechtliche Tragweite. <code>opencaselaw_cli.api</code> bietet dasselbe als Bibliothek.</p>
 
-      <h2 id="fits" data-t="fits_h">Where it fits</h2>
+      <h2 id="fits" data-t="fits_h">Wo es hingehört</h2>
       <ul>
-        <li data-t="fit_chat"></li>
-        <li data-t="fit_scripts"></li>
-        <li data-t="fit_data"></li>
+        <li data-t="fit_chat">Gespräch: Claude, ChatGPT oder einen anderen MCP-Client mit <code>mcp.opencaselaw.ch</code> verbinden (<a href="/mcp/">Einrichtung pro Client</a>).</li>
+        <li data-t="fit_scripts">Skripte, Notebooks und Agenten: <code>ocl</code> oder direkt die <a href="/api/">REST-API</a>. Gleiche Datensätze, gleiche Grenzen.</li>
+        <li data-t="fit_data">Analysen über den ganzen Korpus: der <a href="https://huggingface.co/datasets/voilaj/swiss-caselaw" rel="noopener">Parquet-Datensatz</a>.</li>
       </ul>
 
-      <h2 id="limits" data-t="limits_h">Limits</h2>
-      <p data-t="limits_p"></p>
-      <p data-t="guide_p"></p>
+      <h2 id="limits" data-t="limits_h">Grenzen</h2>
+      <p data-t="limits_p">Eine Textsuche wird als eine einzige gerankte Anfrage mit höchstens 800 Ergebnissen gesendet; reine Filtersuchen werden seitenweise geholt. Breite Abfragen können die Zeitgrenze überschreiten und werden als Fehler gemeldet, nicht als leeres Ergebnis. Kantonale Gesetze werden als <code>--law ZH/StG:1</code> angesprochen. Abfragen gehen an den gehosteten Dienst und unterstehen der <a href="/datenschutz/">Datenschutzerklärung</a>; <code>--base-url</code> verweist auf einen separat betriebenen Server.</p>
+      <p data-t="guide_p">Die vollständige Anleitung mit den Referenzteilen (Suche und Abruf, Pakete, Zitatauflösung, API-Vertrag) steht auf GitHub: <a href="https://github.com/jonashertner/opencaselaw/blob/main/docs/research-cli.md">docs/research-cli.md</a>.</p>
 
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

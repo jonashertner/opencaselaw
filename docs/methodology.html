@@ -1,24 +1,24 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="auto">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Methodology | OpenCaseLaw</title>
-<meta name="description" content="How OpenCaseLaw searches, ranks and verifies Swiss court decisions. Every number, weight, threshold and rejected technique on the record.">
+<title>Methodik — OpenCaseLaw</title>
+<meta name="description" content="Wie OpenCaseLaw Schweizer Gerichtsentscheide sucht, gewichtet und prüft. Jede Zahl, jedes Gewicht, jeder Schwellenwert und jede verworfene Technik offengelegt.">
 <meta name="google-site-verification" content="5eTv5mgNKw8M8vENzS4KPG4aJKYm_zKZJhL3TbQpOGs">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/methodology.html">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/methodology.html?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/methodology.html?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/methodology.html?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/methodology.html?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/methodology.html?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/methodology.html">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/fr/methodology.html">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/it/methodology.html">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/rm/methodology.html">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/en/methodology.html">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/methodology.html">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Methodology — OpenCaseLaw">
-<meta property="og:description" content="The search, ranking and citation-resolution pipeline behind OpenCaseLaw, with every weight and threshold on the record.">
+<meta property="og:title" content="Methodik — OpenCaseLaw">
+<meta property="og:description" content="Wie OpenCaseLaw Schweizer Gerichtsentscheide sucht, gewichtet und prüft. Jede Zahl, jedes Gewicht, jeder Schwellenwert und jede verworfene Technik offengelegt.">
 <meta property="og:url" content="https://opencaselaw.ch/methodology.html">
 <meta property="og:site_name" content="OpenCaseLaw.ch">
 <meta property="og:image" content="https://opencaselaw.ch/og-image.png">
@@ -72,29 +72,29 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap-prose">
       <p class="page-kicker"><b data-t="hero.eyebrow">Engineering · transparent</b></p>
-      <h1 class="page-h1" data-t="hero.h1">Methodology</h1>
-      <p class="page-lead" data-t="hero.lede"></p>
+      <h1 class="page-h1" data-t="hero.h1">Methodik</h1>
+      <p class="page-lead" data-t="hero.lede">Wie OpenCaseLaw Schweizer Gerichtsentscheide findet, gewichtet und verifiziert — durchgängig, mit jeder Gewichtung und jedem Schwellenwert offengelegt. Diese Seite ist die massgebliche Referenz; was Sie anderswo lesen, sollte mit dem hier Festgehaltenen übereinstimmen — andernfalls gilt der Code.</p>
 
       <nav class="toc" aria-label="Contents">
         <p class="toc-k">Contents</p>
         <ol>
-          <li><a href="#corpus" data-t="toc.corpus"></a></li>
-          <li><a href="#index" data-t="toc.index"></a></li>
-          <li><a href="#query" data-t="toc.query"></a></li>
-          <li><a href="#retrieval" data-t="toc.retrieval"></a></li>
-          <li><a href="#rerank" data-t="toc.rerank"></a></li>
-          <li><a href="#pinpoint" data-t="toc.pinpoint"></a></li>
-          <li><a href="#graph" data-t="toc.graph"></a></li>
-          <li><a href="#qc" data-t="toc.qc"></a></li>
-          <li><a href="#rejected" data-t="toc.rejected"></a></li>
-          <li><a href="#open" data-t="toc.open"></a></li>
+          <li><a href="#corpus" data-t="toc.corpus">1. Korpus &amp; Aktualisierung</a></li>
+          <li><a href="#index" data-t="toc.index">2. Volltextindex</a></li>
+          <li><a href="#query" data-t="toc.query">3. Anfrageverständnis</a></li>
+          <li><a href="#retrieval" data-t="toc.retrieval">4. Abruf &amp; Fusion</a></li>
+          <li><a href="#rerank" data-t="toc.rerank">5. Neugewichtung</a></li>
+          <li><a href="#pinpoint" data-t="toc.pinpoint">6. Punktgenaue Fundstellen</a></li>
+          <li><a href="#graph" data-t="toc.graph">7. Zitationsgraph</a></li>
+          <li><a href="#qc" data-t="toc.qc">8. Qualitätssicherung</a></li>
+          <li><a href="#rejected" data-t="toc.rejected">9. Getestet und verworfen</a></li>
+          <li><a href="#open" data-t="toc.open">10. Offener Zugang</a></li>
         </ol>
       </nav>
     </div>
@@ -104,161 +104,161 @@
     <div class="prose">
 
       <!-- 1 -->
-      <h2 id="corpus" data-t="s1.h2"></h2>
-      <p data-t="s1.p1"></p>
-      <p data-t="s1.p2"></p>
+      <h2 id="corpus" data-t="s1.h2">1. Korpus &amp; Aktualisierung</h2>
+      <p data-t="s1.p1">Das Korpus umfasst <strong>1’050’000+</strong> publizierte Schweizer Entscheide aus <strong>118 Gerichten</strong>, in drei Sprachen (DE 499’642; FR 459’825; IT 90’776), mit einem Zeitraum von <strong>1875 – 2026</strong>. Acht Bundesgerichte (BGer 192’049; BVGer 108’135; BGE 50’459; dazu BStGer, BPatGer, MKG und weitere), 26 kantonale Gerichtsbarkeiten sowie EMRK-Schweiz (~2’800 Entscheide aus BGE-Übersetzungen, HUDOC, Kammer/Grosse Kammer/Ausschuss).</p>
+      <p data-t="s1.p2">Jeder Entscheid wird von seiner Primärquelle bezogen — wo verfügbar vom eigenen Publikationsportal des Gerichts (alle 26 Kantone direkt abgerufen über LexWork / SIL / ZH OpenData / TI RL, mit LexFind-PDF-Rückfalloption, die in 4 Kantonen fehlende Erlasse ergänzt), für Bundesaktualisierungen vom offiziellen Such-Back-End des BGer. <strong>40 von 51 entscheidsuche.ch-Shards werden durch unsere eigenen direkten Scraper gespiegelt</strong>; entscheidsuche-Daten setzen sich bei der Deduplikation nur dort durch, wo wir kein eigenes Live-Äquivalent haben. Die verbleibenden sieben entscheidsuche-exklusiven Shards (≈142’000 Datensätze: <code>vd_findinfo</code>, <code>vd_omni</code>, <code>ch_vb</code>, <code>sg_gerichte</code>, <code>be_bvd</code>, <code>be_weitere</code>, <code>be_steuerrekurs</code>) sind <strong>eingefrorene historische Archive</strong> — ihre vorgelagerten Portale wurden stillgelegt, ersetzt oder vorübergehend getrennt. Wir lesen entscheidsuche wöchentlich als Vollständigkeits-Absicherung neu ein; die letzten sechs Wochenläufe ergaben null neue Entscheide. Siehe <a href="/coverage/#archives">Abdeckung → ergänzende Archive</a> für die vollständige Aufschlüsselung. Die Pipeline aktualisiert sich nach drei Zeitplänen:</p>
       <ul>
-        <li data-t="s1.li1"></li>
-        <li data-t="s1.li2"></li>
-        <li data-t="s1.li3"></li>
+        <li data-t="s1.li1"><strong>Alle 15 Minuten</strong> werktags von 05:00–16:00 UTC — der BGer-Poller publiziert neue Bundesentscheide inkrementell in die Live-Datenbank, innerhalb weniger Minuten nach ihrer gerichtsseitigen Freigabe.</li>
+        <li data-t="s1.li2"><strong>Täglich 01:00 UTC</strong> — jeder aktive kantonale Scraper läuft; eine Soft-Fail-Politik knüpft an die 5 kritischen Bundes-Scraper und einen Fehlerquoten-Schwellenwert von 15 % über die übrigen an.</li>
+        <li data-t="s1.li3"><strong>Täglich 03:30 UTC</strong> — vollständiger FTS5-Neuaufbau, Neuaufbau des Zitationsgraphen, Qualitäts-Gate, Statistik-Aktualisierung, atomarer Austausch ohne Ausfallzeit. Die Worker bedienen weiterhin die bisherige Datenbank, bis die neue integritätsgeprüft ist.</li>
       </ul>
-      <p data-t="s1.p3"></p>
+      <p data-t="s1.p3">Das vollständige Korpus wird zudem als Parquet auf Hugging Face publiziert (<a href="https://huggingface.co/datasets/voilaj/swiss-caselaw">voilaj/swiss-caselaw</a>) unter CC0; das tägliche Delta wird automatisch angehängt.</p>
 
       <!-- 2 -->
-      <h2 id="index" data-t="s2.h2"></h2>
-      <p data-t="s2.p1"></p>
+      <h2 id="index" data-t="s2.h2">2. Volltextindex</h2>
+      <p data-t="s2.p1">SQLite FTS5 mit dem Tokenizer <code>unicode61 remove_diacritics 2</code>. Die Entscheidtabelle speist den Index über diese Spalten, mit spaltenweisen BM25-Gewichten, die empirisch gegen ein Golden Set mit 100 Anfragen abgestimmt wurden:</p>
       <table class="tbl">
-        <thead><tr><th data-t="s2.th1"></th><th class="w" data-t="s2.th2"></th><th data-t="s2.th3"></th></tr></thead>
+        <thead><tr><th data-t="s2.th1">Spalte</th><th class="w" data-t="s2.th2">BM25-Gewicht</th><th data-t="s2.th3">Begründung</th></tr></thead>
         <tbody>
-          <tr><td><span class="strat">title</span></td><td class="w">6.0</td><td data-t="s2.r1"></td></tr>
-          <tr><td><span class="strat">regeste</span></td><td class="w">5.5</td><td data-t="s2.r2"></td></tr>
-          <tr><td><span class="strat">docket_number</span></td><td class="w">2.0</td><td data-t="s2.r3"></td></tr>
-          <tr><td><span class="strat">full_text</span></td><td class="w">1.2</td><td data-t="s2.r4"></td></tr>
-          <tr><td><span class="strat">court / canton / language / decision_id</span></td><td class="w">0.8</td><td data-t="s2.r5"></td></tr>
+          <tr><td><span class="strat">title</span></td><td class="w">6.0</td><td data-t="s2.r1">Höchstes Signal — knapp, bewusst.</td></tr>
+          <tr><td><span class="strat">regeste</span></td><td class="w">5.5</td><td data-t="s2.r2">Thematische Zusammenfassung des Gerichts selbst.</td></tr>
+          <tr><td><span class="strat">docket_number</span></td><td class="w">2.0</td><td data-t="s2.r3">Für die exakte Wiederauffindung über die Aktennummer.</td></tr>
+          <tr><td><span class="strat">full_text</span></td><td class="w">1.2</td><td data-t="s2.r4">Lang, verrauscht — Anker, nicht Treiber.</td></tr>
+          <tr><td><span class="strat">court / canton / language / decision_id</span></td><td class="w">0.8</td><td data-t="s2.r5">Metadaten, kein Inhalt.</td></tr>
         </tbody>
       </table>
-      <p data-t="s2.p2"></p>
-      <p class="source-ref" data-t="s2.ref"></p>
+      <p data-t="s2.p2">Der Index wird atomar neu aufgebaut: <code>build_fts5.py</code> schreibt nach <code>decisions.db.tmp</code> und ersetzt die Datei dann per <code>os.replace()</code>. Worker, die den SQLite-URI <code>?immutable=1</code> verwenden, behalten ihre offenen Datei-Handles auf dem alten Inode, bis sie sich erneut verbinden — der Austausch bleibt für aktive Leser unsichtbar.</p>
+      <p class="source-ref" data-t="s2.ref"><code>build_fts5.py</code> · BM25-Gewichte konfiguriert in <code>mcp_server.py</code> um die Zeilen 431–442 · diakritischer Tokenizer in <code>decision_structure.db</code> für die absatzweise Suche gespiegelt.</p>
 
       <!-- 3 -->
-      <h2 id="query" data-t="s3.h2"></h2>
-      <p data-t="s3.p1"></p>
-      <p data-t="s3.p2"></p>
-      <p data-t="s3.p3"></p>
+      <h2 id="query" data-t="s3.h2">3. Anfrageverständnis</h2>
+      <p data-t="s3.p1">Eine natürlichsprachliche Anfrage erreicht FTS5 nie unbearbeitet. Zuerst durchläuft sie eine Bereinigung (<code>_sanitize_fts5</code>): Apostrophe, Bindestriche und Punkte ohne Wortzeichen werden zu Leerzeichen reduziert; reservierte Tokens (AND, OR, NOT, NEAR) bleiben nur erhalten, wenn sie auf beiden Seiten Operanden haben; das einzelne schweizerisch-juristische Token „OR“ (Abkürzung für Obligationenrecht) wird stets erzwungen in Anführungszeichen gesetzt, da es sonst als Boolescher Operator interpretiert würde.</p>
+      <p data-t="s3.p2">Parallel dazu wird die Anfrage an <strong>Claude Haiku 4.5</strong> geleitet, für eine strukturierte 2-Sekunden-Analyse: Gesetzesverweise, Lehrbegriffe in DE/FR/IT, Erwähnungen massgebender BGE, Synonyme und der Rechtsbereich werden als deterministisches JSON extrahiert. Die Ausgabe wird nach der kleingeschriebenen Anfrage für die Dauer der Sitzung zwischengespeichert.</p>
+      <p data-t="s3.p3">Drei Normalisierungen machen das schweizerische Rechtsvokabular über seine stilistischen, orthografischen und sprachübergreifenden Varianten hinweg durchsuchbar:</p>
       <ul>
-        <li data-t="s3.li1"></li>
-        <li data-t="s3.li2"></li>
-        <li data-t="s3.li3"></li>
+        <li data-t="s3.li1"><strong>Diakritik-unempfindliche Tokenisierung.</strong> Der FTS5-Tokenizer <code>unicode61 remove_diacritics 2</code> entfernt Diakritika auf der Index- wie auf der Anfrageseite — so treffen „Prüfung“, „PRÜFUNG“ und eine Anfrage nach „Prufung“ alle dieselbe Trefferliste.</li>
+        <li data-t="s3.li2"><strong>Umlaut-Schreibweisen-Zusammenführung.</strong> Die diakritiklose Schreibweise <code>ae/oe/ue</code> (verbreitet in älteren Urteilen und in jeder Vor-Unicode-Umgebung) wird zu <code>a/o/u</code> reduziert, was der Tokenizer dann mit den diakritikbefreiten <code>ä/ö/ü</code> vereinheitlicht. So findet „Pruefung“ auch „Prüfung“.</li>
+        <li data-t="s3.li3"><strong>LLM-Synonymerweiterung.</strong> Die strukturierte Analyse von Claude Haiku erzeugt 2–4 alternative Rechtsbegriffe in DE/FR/IT <em>pro Anfrage</em>, spontan — nicht aus einer statischen Tabelle. So wird „qualité pour recourir“ mit „Beschwerdebefugnis“ / „Beschwerdelegitimation“ / „legittimazione“ verknüpft, selbst wenn Ihre Anfrage nur einen davon enthielt.</li>
       </ul>
 
       <!-- 4 -->
-      <h2 id="retrieval" data-t="s4.h2"></h2>
-      <p data-t="s4.p1"></p>
+      <h2 id="retrieval" data-t="s4.h2">4. Abruf &amp; Fusion</h2>
+      <p data-t="s4.p1">Die Anfrage fächert sich in <strong>10–12 Strategien</strong> auf, die als unabhängige FTS5-/Graph-Abfragen laufen. Jede Strategie trägt ein Strategiegewicht; der Rang-1-Treffer einer Strategie und der Rang-1-Treffer einer anderen werden mittels <strong>Reciprocal Rank Fusion</strong> fusioniert (RRF-Rangkonstante = 60).</p>
       <table class="tbl">
-        <thead><tr><th data-t="s4.th1"></th><th class="w" data-t="s4.th2"></th><th data-t="s4.th3"></th></tr></thead>
+        <thead><tr><th data-t="s4.th1">Strategie</th><th class="w" data-t="s4.th2">Gewicht</th><th data-t="s4.th3">Wirkung</th></tr></thead>
         <tbody>
-          <tr><td><span class="strat">nl_and</span></td><td class="w">1.8</td><td data-t="s4.r1"></td></tr>
-          <tr><td><span class="strat">raw</span></td><td class="w">1.5</td><td data-t="s4.r2"></td></tr>
-          <tr><td><span class="strat">regeste_focus</span></td><td class="w">1.4</td><td data-t="s4.r3"></td></tr>
-          <tr><td><span class="strat">nl_or</span></td><td class="w">1.2</td><td data-t="s4.r4"></td></tr>
-          <tr><td><span class="strat">structured_doctrine</span></td><td class="w">1.1–3.5</td><td data-t="s4.r5"></td></tr>
-          <tr><td><span class="strat">quoted_explicit</span></td><td class="w">1.1</td><td data-t="s4.r6"></td></tr>
-          <tr><td><span class="strat">nl_or_expanded</span></td><td class="w">1.0</td><td data-t="s4.r7"></td></tr>
-          <tr><td><span class="strat">title_focus</span></td><td class="w">0.95</td><td data-t="s4.r8"></td></tr>
-          <tr><td><span class="strat">doctrine_regeste / doctrine_title</span></td><td class="w">2.5 / 1.6</td><td data-t="s4.r9"></td></tr>
+          <tr><td><span class="strat">nl_and</span></td><td class="w">1.8</td><td data-t="s4.r1">Natürlichsprachliches AND über die Begriffe.</td></tr>
+          <tr><td><span class="strat">raw</span></td><td class="w">1.5</td><td data-t="s4.r2">Anfrage wortwörtlich.</td></tr>
+          <tr><td><span class="strat">regeste_focus</span></td><td class="w">1.4</td><td data-t="s4.r3">Beschränkt auf die Regeste-Spalte.</td></tr>
+          <tr><td><span class="strat">nl_or</span></td><td class="w">1.2</td><td data-t="s4.r4">OR-Rückfalloption (kostenbewusster früher Abbruch).</td></tr>
+          <tr><td><span class="strat">structured_doctrine</span></td><td class="w">1.1–3.5</td><td data-t="s4.r5">Lehrbegriffe aus der Haiku-Analyse.</td></tr>
+          <tr><td><span class="strat">quoted_explicit</span></td><td class="w">1.1</td><td data-t="s4.r6">Phrasentreffer, wenn Anführungszeichen erkannt werden.</td></tr>
+          <tr><td><span class="strat">nl_or_expanded</span></td><td class="w">1.0</td><td data-t="s4.r7">OR + Synonym-/Umlaut-/Kompositum-Erweiterung.</td></tr>
+          <tr><td><span class="strat">title_focus</span></td><td class="w">0.95</td><td data-t="s4.r8">Auf die Titelspalte beschränkter Treffer.</td></tr>
+          <tr><td><span class="strat">doctrine_regeste / doctrine_title</span></td><td class="w">2.5 / 1.6</td><td data-t="s4.r9">Strategien zur Begriffsübersetzung.</td></tr>
         </tbody>
       </table>
-      <p data-t="s4.p2"></p>
+      <p data-t="s4.p2">Über FTS5 hinaus erhält derselbe RRF-Pool auch:</p>
       <ul>
-        <li data-t="s4.li1"></li>
-        <li data-t="s4.li2"></li>
-        <li data-t="s4.li3"></li>
+        <li data-t="s4.li1"><strong>Kandidaten aus dem Gesetzesgraphen</strong> — Entscheide, die mit den aus der Anfrage geparsten Gesetzesartikeln verknüpft sind, eingespeist als parallele Rangliste.</li>
+        <li data-t="s4.li2"><strong>Direkte BGE-Nachschlagungen</strong> — wenn die Anfrage (oder ihre Analyse) einen bestimmten BGE-Verweis nennt, wird dieser Entscheid fest an die Spitze gesetzt.</li>
+        <li data-t="s4.li3"><strong>Aktennummer-Treffer</strong> — Zeichenketten wie <code>6B_1234/2025</code> werden an eine exakte Aktennummer-Nachschlagung geleitet, was den Grossteil der Pipeline überspringt.</li>
       </ul>
-      <p data-t="s4.p3"></p>
+      <p data-t="s4.p3">Der fusionierte Kandidatenpool wird dynamisch dimensioniert (standardmässig ~300–400 für eine Top-50-Anfrage) und vor Beginn der Neugewichtung auf <strong>2’500</strong> Zeilen begrenzt.</p>
 
       <!-- 5 -->
-      <h2 id="rerank" data-t="s5.h2"></h2>
-      <p data-t="s5.p1"></p>
+      <h2 id="rerank" data-t="s5.h2">5. Neugewichtung</h2>
+      <p data-t="s5.p1">Jeder Kandidat erhält einen Vektor von Signalen; der Endwert ist eine lineare Kombination, abgestimmt gegen das Golden Set. Signalgewichte (<code>_rerank_rows</code>):</p>
       <table class="tbl">
-        <thead><tr><th data-t="s5.th1"></th><th class="w" data-t="s5.th2"></th><th data-t="s5.th3"></th></tr></thead>
+        <thead><tr><th data-t="s5.th1">Signal</th><th class="w" data-t="s5.th2">Gewicht</th><th data-t="s5.th3">Obergrenzen / Anmerkungen</th></tr></thead>
         <tbody>
-          <tr><td data-t="s5.c1"></td><td class="w">32.0</td><td data-t="s5.r1"></td></tr>
-          <tr><td data-t="s5.c2"></td><td class="w">6.0 / 2.0</td><td data-t="s5.r2"></td></tr>
-          <tr><td data-t="s5.c3"></td><td class="w">3.0</td><td data-t="s5.r3"></td></tr>
-          <tr><td data-t="s5.c4"></td><td class="w">3.0</td><td data-t="s5.r4"></td></tr>
-          <tr><td data-t="s5.c5"></td><td class="w">3.5 · 0.5 · 2.0</td><td data-t="s5.r5"></td></tr>
-          <tr><td data-t="s5.c6"></td><td class="w">2.4 · 0.30 · 1.2</td><td data-t="s5.r6"></td></tr>
-          <tr><td data-t="s5.c7"></td><td class="w">0.03 · 1.0</td><td data-t="s5.r7"></td></tr>
-          <tr><td data-t="s5.c8"></td><td class="w">+2.0</td><td data-t="s5.r8"></td></tr>
-          <tr><td data-t="s5.c9"></td><td class="w">1.5 / 0.8</td><td data-t="s5.r9"></td></tr>
-          <tr><td data-t="s5.c10"></td><td class="w">±0.2 – +1.7</td><td data-t="s5.r10"></td></tr>
+          <tr><td data-t="s5.c1">RRF-Wert</td><td class="w">32.0</td><td data-t="s5.r1">Aggregat aller Strategie-Ränge.</td></tr>
+          <tr><td data-t="s5.c2">Aktennummer exakt / partiell</td><td class="w">6.0 / 2.0</td><td data-t="s5.r2">Treffer auf Zeichenketten-Ebene der Aktennummer.</td></tr>
+          <tr><td data-t="s5.c3">Titelabdeckung</td><td class="w">3.0</td><td data-t="s5.r3">Anteil der Anliegen-Tokens im Titel.</td></tr>
+          <tr><td data-t="s5.c4">Regeste-Abdeckung</td><td class="w">3.0</td><td data-t="s5.r4">Dasselbe, gegen die Regeste.</td></tr>
+          <tr><td data-t="s5.c5">Gesetzeserwähnungen</td><td class="w">3.5 · 0.5 · 2.0</td><td data-t="s5.r5">Verknüpfungen von Entscheid zu Artikel.</td></tr>
+          <tr><td data-t="s5.c6">Zitationstreffer</td><td class="w">2.4 · 0.30 · 1.2</td><td data-t="s5.r6">Ergebnisübergreifende Zitationsnachweise.</td></tr>
+          <tr><td data-t="s5.c7">Autorität (eingehende Zitationen)</td><td class="w">0.03 · 1.0</td><td data-t="s5.r7">Warum ein Leitentscheid aufsteigt.</td></tr>
+          <tr><td data-t="s5.c8">Sprachübereinstimmung</td><td class="w">+2.0</td><td data-t="s5.r8">Wenn die Sprache des Ergebnisses der Anfrage entspricht.</td></tr>
+          <tr><td data-t="s5.c9">Erweiterte Abdeckung</td><td class="w">1.5 / 0.8</td><td data-t="s5.r9">Gutschrift für Synonym- + Kompositum-Treffer.</td></tr>
+          <tr><td data-t="s5.c10">Gerichtsbereichs-Heuristiken</td><td class="w">±0.2 – +1.7</td><td data-t="s5.r10">BVGer-Asyl- + BGer-Höchstgerichts-Gewichtung bei passender Absicht.</td></tr>
         </tbody>
       </table>
-      <p data-t="s5.p2"></p>
+      <p data-t="s5.p2">Nach dem linearen Scorer wird bei Bedarf ein <strong>LLM-Neugewichtungsdurchlauf</strong> ausgelöst:</p>
       <ul>
-        <li data-t="s5.li1"></li>
-        <li data-t="s5.li2"></li>
-        <li data-t="s5.li3"></li>
+        <li data-t="s5.li1">Modell: Claude Haiku 4.5; Top-N: 15; Timeout: 3 s; Gewicht: 3.0 mit linearem Abfall <code>w × max(0, 1 − Rang/15)</code>.</li>
+        <li data-t="s5.li2">Ein <strong>Konfidenz-Gate</strong> überspringt den Aufruf vollständig, wenn der lexikalische Top-1-Wert bereits ≥ 2× dem Top-2-Wert entspricht (die Antwort ist eindeutig; die Neugewichtung ist reiner Kostenaufwand).</li>
+        <li data-t="s5.li3">Der Durchlauf wird zudem bei Aktennummer-Anfragen übersprungen (ein exakter Treffer braucht kein LLM).</li>
       </ul>
-      <div class="note" data-t="s5.callout"></div>
+      <div class="note" data-t="s5.callout"><strong>Gemessene Wirkung.</strong> Auf dem eingefrorenen Golden Set mit 100 Anfragen (74 DE, 16 FR, 7 IT) gegen 1’078’177 Entscheide liefert lexikalisch+RRF allein <strong>MRR@10 = 0.470</strong>, <strong>Hit@1 = 0.33</strong>, <strong>Recall@10 = 0.496</strong>. Mit aktivierter Haiku-Neugewichtung bewegt sich derselbe Online-Benchmark auf <strong>MRR@10 ≈ 0.647</strong> und <strong>Hit@1 ≈ 0.57</strong> — eine Steigerung um +37 % / +73 %, zum Preis eines zusätzlichen Haiku-Aufrufs bei Anfragen, die das Konfidenz-Gate nicht erfüllen.</div>
 
       <!-- 6 -->
-      <h2 id="pinpoint"><span data-t="s6.h2"></span> <span class="tag tag-active" data-t="s6.tag"></span></h2>
-      <p data-t="s6.p1"></p>
+      <h2 id="pinpoint"><span data-t="s6.h2">6. Punktgenaue Fundstellen</span> <span class="tag tag-active" data-t="s6.tag">live · Mai 2026</span></h2>
+      <p data-t="s6.p1">Jedes der fünf besten Suchergebnisse und jedes der drei besten Leitentscheid-Ergebnisse trägt ein <code>pinpoint</code>-Feld, das die für die Anfrage relevanteste Erwägung (Absatz mit der rechtlichen Entscheidung) benennt. Der Resolver läuft über einen entscheidweisen FTS5-Absatzindex in <code>decision_structure.db</code> (≈8,8 Mio. Absätze über 807’000 Entscheide). Das zweistufige Design:</p>
       <ol>
-        <li data-t="s6.li1"></li>
-        <li data-t="s6.li2"></li>
+        <li data-t="s6.li1"><strong>Phrasen-Durchlauf.</strong> Das Anliegen wird als exakte FTS5-Phrase ausgeführt — hohe Präzision, wenn die Formulierung des Nutzers jener des Gerichts entspricht.</li>
+        <li data-t="s6.li2"><strong>Bag-of-Words-OR-Durchlauf.</strong> Liefert die Phrase nichts, werden dieselben Tokens als OR-Anfrage abgefeuert, für breiteren Abruf.</li>
       </ol>
-      <p data-t="s6.p2"></p>
+      <p data-t="s6.p2">Ein Konfidenz-Scorer (<code>_score_pinpoint_confidence</code>) kombiniert drei unabhängige Signale, um das Ergebnis zu kennzeichnen:</p>
       <ul>
-        <li data-t="s6.li3"></li>
-        <li data-t="s6.li4"></li>
-        <li data-t="s6.li5"></li>
+        <li data-t="s6.li3"><strong>BM25-Abstand.</strong> Rang-1-Wert über Rang-2; ein Verhältnis &gt; 1,5 ergibt „hoch“, &gt; 1,2 ergibt „mittel“.</li>
+        <li data-t="s6.li4"><strong>Absolute Stärke.</strong> Bei Einzelzeilen-Treffern ohne Rang-2 zum Vergleich: absoluter |BM25| &gt; 2,0 für „hoch“, &gt; 1,0 für „mittel“. Eine frühere Version dieses Zweigs verwendete für Einzelzeilen-Treffer einen Sentinel-Wert von 999,0, der dünne Treffer stillschweigend auf „hoch“ hochstufte; das war der im Mai 2026 behobene Fehler der falschen Konfidenz.</li>
+        <li data-t="s6.li5"><strong>Token-Abdeckung.</strong> Eindeutige Anliegen-Tokens (&gt; 2 Zeichen, mit ~70 herausgefilterten generischen Stoppwörtern des schweizerischen Rechtsdiskurses), die im getroffenen Absatz erscheinen. Mehr-Token-Anliegen mit &lt; 50 % Abdeckung werden gänzlich unterdrückt; &lt; 70 % wird auf „mittel“ begrenzt.</li>
       </ul>
-      <p data-t="s6.p3"></p>
-      <p data-t="s6.p4"></p>
+      <p data-t="s6.p3"><strong>Semantische Rettung</strong> <span class="tag tag-pilot">Infrastruktur ausgerollt · Korpus ~33 % kodiert</span> greift, wenn der lexikalische Durchlauf nichts liefert. Das Anliegen wird mit <code>sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2</code> kodiert (117 Mio. Parameter, 384-dimensionale normierte Vektoren, mehrsprachig DE/FR/IT/RM plus 47 weitere); die Kosinus-Ähnlichkeit wird über die &lt; 300 Absatz-Einbettungen des Entscheids berechnet; ein Treffer erscheint mit „hoch“, wenn Kosinus ≥ 0,70, mit „mittel“ bei ≥ 0,55, sonst keiner. Ein <strong>Hybridmodus</strong>, der nach Abschluss der Kodierung aktiviert wird, lässt beide Signale laufen und behandelt <em>Übereinstimmung</em> auf derselben Erwägung als signalübergreifenden Nachweis — die Konfidenz wird auf „hoch“ angehoben, <code>source: "hybrid_agreement"</code>.</p>
+      <p data-t="s6.p4">Die Pinpoint-URL ist so aufgebaut, dass der Browser automatisch zum getroffenen Absatz scrollt und ihn hervorhebt: <code>?highlight=&lt;wortwörtlicher Satz&gt;&amp;e=2.3#e-2-3</code>. Der Abfrageparameter steuert eine serverseitige Hervorhebung; das Hash-Fragment löst das native Auto-Scrollen des Browsers aus.</p>
 
       <!-- 7 -->
-      <h2 id="graph" data-t="s7.h2"></h2>
-      <p data-t="s7.p1"></p>
-      <p data-t="s7.p2"></p>
+      <h2 id="graph" data-t="s7.h2">7. Zitationsgraph</h2>
+      <p data-t="s7.p1">Der Text jedes Entscheids wird auf Zitationen anderer Entscheide geparst (BGE-Verweise, BGer-Aktennummern, BVGer-Verweise). Die Rohschicht enthält 8,65 Mio. Kanten; der Resolver hebt <strong>8,09 Mio.</strong> davon (<strong>92,9 %</strong>) auf kanonische Entscheid-IDs an. Die verbleibenden 7 % sind reale Entscheide, die wir noch nicht halten (ältere BGE vor 1875, zurückgezogene Gerichtspublikationen, OCR-beschädigte Verweise).</p>
+      <p data-t="s7.p2">Die Auflösung läuft als vier kaskadierte Durchläufe:</p>
       <ol>
-        <li data-t="s7.li1"></li>
-        <li data-t="s7.li2"></li>
-        <li data-t="s7.li3"></li>
-        <li data-t="s7.li4"></li>
+        <li data-t="s7.li1"><strong>Standard-Aktennummer-Join.</strong> Normalisierte Aktennummer der Zitation = normalisierte Aktennummer des Ziels. Bewältigt über 80 % der Kanten.</li>
+        <li data-t="s7.li2"><strong>BGE-Präfix bidirektional.</strong> Findet Treffer, unabhängig davon, ob die Zitation das Präfix <code>BGE </code> enthält oder nicht, wobei das Ziel in beiderlei Form gespeichert sein kann. Diese eine Korrektur im März 2026 verdreifachte die BGE-Auflösung nahezu.</li>
+        <li data-t="s7.li3"><strong>Blosse BGE-Aktennummern.</strong> Ziele, die <code>Band Abteilung Seite</code> entsprechen, werden als blosse BGE-Verweise behandelt und mit <code>BGE </code> versehen.</li>
+        <li data-t="s7.li4"><strong>Pin-Cite-Auflösung.</strong> Enthält eine Zitation eine Seitenzahl, die in unseren Zielen nicht vorhanden ist (z. B. <code>BGE 125 V 352</code>, wo die erste Seite 351 ist), suchen wir die grösste erste Seite ≤ 352 innerhalb derselben (Band, Abteilung) und innerhalb von 30 Seiten. Die Konfidenz wird um 0,10 herabgesetzt, um die Schlussfolgerung widerzuspiegeln.</li>
       </ol>
-      <p data-t="s7.p3"></p>
+      <p data-t="s7.p3">Meistzitierte Autorität (live aus <code>reference_graph.db</code> am 2026-05-11 berechnet): <strong>BGE 125 V 351 mit 85’108 eingehenden Zitationen</strong>, gefolgt von BGE 134 V 231 und BGE 122 V 157, jeweils in der Grössenordnung von Zehntausenden. Diese Zählwerte fliessen als <em>Autoritäts</em>-Signal in die Such-Neugewichtung zurück (Gewicht 0,03 pro Zitation, begrenzt auf 1,0) — weshalb klassische Leitentscheide nach oben steigen, selbst wenn ihre sprachlichen Treffer nicht stärker sind als die anderer Kandidaten.</p>
 
       <!-- 8 -->
-      <h2 id="qc" data-t="s8.h2"></h2>
-      <p data-t="s8.p1"></p>
+      <h2 id="qc" data-t="s8.h2">8. Qualitätssicherung</h2>
+      <p data-t="s8.p1">Jede nächtliche Veröffentlichung wird durch ein 4-schichtiges QS-Rahmenwerk abgesichert. L4 (das Veröffentlichungs-Gate, das die KRITISCHE Teilmenge von L1 ausführt) ist die harte Sperre: schlägt es fehl, wird der Austausch verweigert und die Nutzer behalten das Korpus von gestern, bis das Problem untersucht ist. Die anderen Schichten sind kontinuierliche Absicherungen — L2 läuft bei jedem Commit in CI, L3 alle 5 Minuten auf dem Live-Server.</p>
       <ul>
-        <li data-t="s8.li1"></li>
-        <li data-t="s8.li2"></li>
-        <li data-t="s8.li3"></li>
-        <li data-t="s8.li4"></li>
+        <li data-t="s8.li1"><strong>L1 — Datensatzprüfungen (63 über 20 Module).</strong> Drift pro Gericht, Duplikaterkennung, Kurztext-/OCR-Erkennung, Auflösungsrate des Zitationsgraphen, Abdeckung der Gesetzesverknüpfungen, Datum-/Aktennummer-Plausibilität, Zählung fehlender Felder sowie LLM-Stichprobenprüfung an einer rotierenden Auswahl.</li>
+        <li data-t="s8.li2"><strong>L2 — pytest-Suite (derzeit 516 bestanden).</strong> Unit-Tests decken jedes Parsing-, Dedup- und Ranking-Primitiv ab; neue Regressionen landen als neue Tests nach dem Muster „Vorfall → Regressionstest“.</li>
+        <li data-t="s8.li3"><strong>L3 — Smoke-Test (alle 5 Minuten).</strong> Produktions-Gesundheitssonde: <code>/health</code>, eine Anker-Entscheidseite und die PDF-Export-Pipeline. Drei aufeinanderfolgende Fehlschläge eskalieren zu einem INVESTIGATE-Alarm.</li>
+        <li data-t="s8.li4"><strong>L4 — Veröffentlichungs-Gate.</strong> Von den L1-Prüfungen müssen die als KRITISCH gekennzeichneten bestehen, bevor das neue Korpus committet und gepusht wird; schlägt eine fehl, verweigert die Veröffentlichung den Austausch und die Daten von gestern bleiben live. Das Dashboard unter <a href="/quality.html">/quality.html</a> zeigt den letzten Status und den Verlauf jeder Prüfung.</li>
       </ul>
-      <p data-t="s8.p2"></p>
+      <p data-t="s8.p2">Über die QS hinaus durchlaufen entscheidzitierende LLM-Workflows ein <strong>fünfgleisiges Abschluss-Audit</strong> (<code>attest_response</code>), das vier Halluzinationsklassen abfängt — erfundene Zitation, erfundenes Zitat, erfundener Gesetzestext, erfundenes Datum — sowie einen optionalen fünften Grounding-Richter, der prüft, ob die Aussage, die das LLM einem zitierten Absatz zugeordnet hat, durch den Text dieses Absatzes tatsächlich gestützt wird.</p>
 
       <!-- 9 -->
-      <h2 id="rejected" data-t="s9.h2"></h2>
-      <p data-t="s9.p1"></p>
+      <h2 id="rejected" data-t="s9.h2">9. Getestet und verworfen</h2>
+      <p data-t="s9.p1">Technische Entscheidungen werden vertrauenswürdiger, wenn die Sackgassen sichtbar sind. Die folgenden Techniken wurden auf demselben Golden Set gemessen wie der Rest und haben ihren Platz nicht verdient:</p>
       <ul>
-        <li data-t="s9.li1"></li>
-        <li data-t="s9.li2"></li>
-        <li data-t="s9.li3"></li>
-        <li data-t="s9.li4"></li>
+        <li data-t="s9.li1"><strong>Cross-Encoder-Neugewichtung</strong> (<code>cross-encoder/mmarco-mMiniLMv2-L12-H384-v1</code> als gegenwärtiger Platzhalter) <span class="tag tag-rejected">verworfen</span> Mehrsprachige Cross-Encoder, die auf generischem Web-QA trainiert wurden, liessen sich auf dem Golden Set nicht sauber auf das schweizerische Rechtsvokabular übertragen — sie schadeten dem MRR, statt zu helfen. Der Helfer steckt noch im Code hinter <code>_apply_cross_encoder_boosts</code> für künftige Fine-Tuning-Experimente, wird aber in der Produktion nicht aufgerufen.</li>
+        <li data-t="s9.li2"><strong>Vorgefertigte BGE-M3-Dichtevektoren</strong> <span class="tag tag-rejected">verworfen</span> Das Korpus kodiert, Vektor-RRF als vierte Strategie ergänzt. Keine Verbesserung gegenüber BM25 + RRF + Haiku bei keinerlei Vektorgewicht. Die <code>vectors.db</code> wurde im März 2026 entfernt. Die diese Woche ausgelieferten absatzweisen semantischen Einbettungen sind ein eigener, engerer Eingriff — sie bewerten nur innerhalb der Absätze eines einzelnen Entscheids, wo BM25 wohlbekannte Grenzen hat.</li>
+        <li data-t="s9.li3"><strong>Grösseres Haiku-Top-N</strong> <span class="tag tag-rejected">verworfen</span> Das Neugewichten der Top-30, Top-50 statt der Top-15 brachte keinen MRR-Gewinn und einen linearen Kostenanstieg. Top-15 ist der empirische optimale Punkt für die konfidenzgesteuerte Neugewichtung.</li>
+        <li data-t="s9.li4"><strong>Grösserer Kandidatenpool</strong> <span class="tag tag-rejected">verworfen</span> Die Vergrösserung des Pools über ~400 Kandidaten (bei Standard-Anfragen) bewegte den Recall nicht nennenswert; die Kombination aus FTS5 + RRF bringt die richtigen Kandidaten bereits innerhalb der ersten paar Hundert Treffer zum Vorschein. Die Grenze von 2’500 bleibt als Sicherheitsobergrenze bestehen.</li>
       </ul>
 
       <!-- 10 -->
-      <h2 id="open" data-t="s10.h2"></h2>
-      <p data-t="s10.p1"></p>
-      <p data-t="s10.p2"></p>
+      <h2 id="open" data-t="s10.h2">10. Offener Zugang</h2>
+      <p data-t="s10.p1">Das Korpus ist CC0 (Widmung an die Gemeinfreiheit). Der Code steht unter MIT, gehostet auf <a href="https://github.com/jonashertner/opencaselaw">github.com/jonashertner/opencaselaw</a> — jede Gewichtung, jeder Schwellenwert und jede Heuristik dieser Seite ist im Quellcode überprüfbar. Keine Konten, keine Cookies; was der Server erfasst, einschliesslich Suchanfragen, und wie lange, ist in der Datenschutzerklärung dokumentiert: <a href="/datenschutz/">/datenschutz/</a>.</p>
+      <p data-t="s10.p2">Programmatischer Zugang:</p>
       <ul>
-        <li data-t="s10.li1"></li>
-        <li data-t="s10.li2"></li>
-        <li data-t="s10.li3"></li>
-        <li data-t="s10.li4"></li>
+        <li data-t="s10.li1"><strong>REST-API.</strong> <a href="https://mcp.opencaselaw.ch/docs">mcp.opencaselaw.ch/docs</a> — OpenAPI 3.0.3 mit 47 Endpunkten (Suche, Abruf, Leitentscheide, Trends, Zitationsgraph, Erlasse, Kommentare, Botschaft, Exporte, punktgenaue Fundstellen, Attestierung).</li>
+        <li data-t="s10.li2"><strong>MCP-Server.</strong> <a href="https://mcp.opencaselaw.ch/sse">mcp.opencaselaw.ch/sse</a> — Server-Sent-Events-Transport, der 38 Tools bereitstellt. Angebunden von Claude, ChatGPT (OpenAI MCP), Cursor, Microsoft Copilot Studio, Perplexity und weiteren.</li>
+        <li data-t="s10.li3"><strong>Hugging-Face-Datensatz.</strong> <a href="https://huggingface.co/datasets/voilaj/swiss-caselaw">voilaj/swiss-caselaw</a> — Parquet-Shards, täglich als Delta publiziert.</li>
+        <li data-t="s10.li4"><strong>Word-Add-in.</strong> <a href="https://opencaselaw.ch/word/">opencaselaw.ch/word/</a> — Office-Add-in für Microsoft Word; bietet denselben Such- und Pinpoint-Stack innerhalb des Dokuments.</li>
       </ul>
-      <p class="colophon" data-t="s10.foot"></p>
+      <p class="colophon" data-t="s10.foot">Diese Seite spiegelt das Live-System wider. Falls Sie eine Abweichung zwischen dem hier Beschriebenen und dem entdecken, was der Quellcode aussagt, gilt der Quellcode — <a href="https://github.com/jonashertner/opencaselaw/issues/new">eröffnen Sie ein Issue</a>, und wir korrigieren eines von beiden.</p>
 
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 var I18N_METHODOLOGY = {
     "de":{

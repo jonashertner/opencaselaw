@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="google-site-verification" content="5eTv5mgNKw8M8vENzS4KPG4aJKYm_zKZJhL3TbQpOGs">
-<title>Data quality — OpenCaseLaw</title>
-<meta name="description" content="Live data-quality report for the OpenCaseLaw corpus. Updated on every nightly publish; gates the pipeline on critical regressions.">
+<title>Datenqualität — OpenCaseLaw</title>
+<meta name="description" content="Live-Bericht zur Datenqualität des OpenCaseLaw-Korpus. Bei jeder nächtlichen Veröffentlichung aktualisiert; kritische Rückschritte halten die Pipeline an.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/quality.html">
-<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/quality.html?lang=de">
-<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/quality.html?lang=fr">
-<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/quality.html?lang=it">
-<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/quality.html?lang=rm">
-<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/quality.html?lang=en">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/quality.html">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/fr/quality.html">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/it/quality.html">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/rm/quality.html">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/en/quality.html">
 <link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/quality.html">
 <link rel="icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,34 +98,34 @@
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">Operational · live</b></p>
-      <h1 class="page-h1" data-t="h1">Data quality</h1>
+      <p class="page-kicker"><b data-t="kicker">Operativ · live</b></p>
+      <h1 class="page-h1" data-t="h1">Datenqualität</h1>
       <p class="page-lead" id="lede">
         Every nightly publish runs <span id="check-count">…</span>
-        <span data-t="lede_body">integrity, schema and content checks against the full corpus before users see new data. A critical regression blocks the publish; users keep the previous successful corpus until investigation. The badge below distinguishes publish safe (today's data is live), publish blocked (gate fired today, refused to push), and quality report stale (gate has not run recently — corpus is correct but ageing).</span>
-        <a href="https://github.com/jonashertner/opencaselaw/blob/main/quality/checks" data-t="methodology">Methodology</a>.
+        <span data-t="lede_body">Integritäts-, Schema- und Inhaltsprüfungen gegen den vollständigen Korpus, bevor Nutzer neue Daten sehen. Eine kritische Regression blockiert den Publish; Nutzer behalten den letzten erfolgreichen Korpus bis zur Abklärung. Das Abzeichen unten unterscheidet Publish sicher (heutige Daten sind live), Publish blockiert (Gate hat heute ausgelöst, Push verweigert) und Qualitätsbericht veraltet (Gate ist kürzlich nicht gelaufen — Korpus ist korrekt, aber alternd).</span>
+        <a href="https://github.com/jonashertner/opencaselaw/blob/main/quality/checks" data-t="methodology">Methodik</a>.
       </p>
 
       <div class="banner" role="status">
         <span class="banner-ic" aria-hidden="true">⚙</span>
         <div>
-          <strong data-t="banner_h">Database actively being improved to handle a growing number of requests.</strong>
-          <span data-t="banner_body">The MCP workers at</span>
+          <strong data-t="banner_h">Datenbank wird aktiv verbessert, um eine wachsende Zahl von Anfragen zu bewältigen.</strong>
+          <span data-t="banner_body">Die MCP-Worker auf</span>
           <a href="https://mcp.opencaselaw.ch">mcp.opencaselaw.ch</a>
-          <span data-t="banner_body2">continue to function — search, citation graph, statute lookup and case briefs all serve the last successful build while we catch up.</span>
+          <span data-t="banner_body2">funktionieren weiter — Suche, Zitationsgraph, Gesetzessuche und Fallbriefe liefern alle den letzten erfolgreichen Build, während wir aufholen.</span>
         </div>
       </div>
 
       <div id="gate" class="gate">
         <div class="gate-row">
           <span class="gate-dot"></span>
-          <span id="gate-text" data-t="loading">Loading…</span>
+          <span id="gate-text" data-t="loading">Wird geladen…</span>
         </div>
         <div id="gate-sub" class="gate-sub"></div>
       </div>
@@ -136,19 +136,19 @@
     <div class="stats" id="summary">
       <div class="stat">
         <div class="stat-n" id="num-total">—</div>
-        <div class="stat-l" data-t="s_total">Total checks</div>
+        <div class="stat-l" data-t="s_total">Prüfungen gesamt</div>
       </div>
       <div class="stat">
         <div class="stat-n" id="num-passed">—</div>
-        <div class="stat-l" data-t="s_passed">Passed</div>
+        <div class="stat-l" data-t="s_passed">Bestanden</div>
       </div>
       <div class="stat">
         <div class="stat-n" id="num-crit">—</div>
-        <div class="stat-l" data-t="s_crit">Critical (blocks publish)</div>
+        <div class="stat-l" data-t="s_crit">Kritisch (blockiert Publish)</div>
       </div>
       <div class="stat">
         <div class="stat-n" id="num-warn">—</div>
-        <div class="stat-l" data-t="s_warn">Warnings (alert)</div>
+        <div class="stat-l" data-t="s_warn">Warnungen (Alarm)</div>
       </div>
     </div>
 
@@ -157,13 +157,13 @@
 
     <div class="report-meta">
       <p>
-        <span data-t="meta_run">Last run</span> <span id="ts">—</span>,
-        <span data-t="meta_took">took</span> <span id="dur">—</span>.
-        <span data-t="meta_db">Source DB</span> <span id="db">—</span>.
+        <span data-t="meta_run">Letzter Lauf</span> <span id="ts">—</span>,
+        <span data-t="meta_took">Dauer</span> <span id="dur">—</span>.
+        <span data-t="meta_db">Quell-DB</span> <span id="db">—</span>.
       </p>
       <p>
         <span data-t="meta_json">JSON:</span> <a href="quality.json">quality.json</a>.
-        <span data-t="meta_source">Source:</span>
+        <span data-t="meta_source">Quelle:</span>
         <a href="https://github.com/jonashertner/opencaselaw/tree/main/quality">github.com/jonashertner/opencaselaw/quality</a>.
       </p>
     </div>
@@ -171,7 +171,7 @@
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=3"></script>
+<script src="/static/js/site.js?v=4"></script>
 <script>
 OCL.init({
   active:'',

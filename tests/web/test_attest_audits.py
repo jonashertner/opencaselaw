@@ -870,8 +870,13 @@ def test_certification_boundary_is_stated_everywhere(m, monkeypatch, tmp_path):
         res = m._handle_attest_response(draft_text=draft)
         assert "does not certify that no relevant authority is missing" in res["_note"]
     from pathlib import Path
-    html = (Path(__file__).resolve().parents[2] / "docs" / "api" / "index.html").read_text(encoding="utf-8")
-    assert html.count("does not certify that no relevant authority is missing") == 2  # HTML + en
+    docs = Path(__file__).resolve().parents[2] / "docs" / "api"
+    html = (docs / "index.html").read_text(encoding="utf-8")
+    # the page as served is German (HTML + de dictionary); the English copy is /api/en/
+    assert html.count("does not certify that no relevant authority is missing") == 1  # en dictionary
+    assert html.count("bescheinigt nicht, dass keine einschlägige Autorität fehlt") == 2
+    english = (docs / "en" / "index.html").read_text(encoding="utf-8")
+    assert english.count("does not certify that no relevant authority is missing") == 2  # HTML + en
     for needle in ("bescheinigt nicht, dass keine einschlägige Autorität fehlt",
                    "ne certifie pas qu\\'aucune autorité pertinente ne manque",
                    "non certifica che non manchi alcuna autorità rilevante",
