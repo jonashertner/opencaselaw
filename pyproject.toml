@@ -108,6 +108,7 @@ py-modules = [
     "research_contracts",
     "run_scraper",
     "seo_pages",
+    "source_defects",
     "stripe_billing",
     "widget_runtime",
 ]
