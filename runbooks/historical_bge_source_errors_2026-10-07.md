@@ -263,8 +263,15 @@ neither branch has a GitHub CI run yet. A pull request would give one. The last 
 - `/health`: ok, 1,078,321 decisions, `db_generation` 2026-10-07 17:15 UTC.
 - Today's full publish (timer 03:30 UTC) swapped about 18:00 and finalized 18:31 UTC
   (commits `379b29ea`, `b0e3857e`). The incremental publish timer runs Mon-Sat 20:00 UTC.
-- Shard repairs and the letter-coded scraper run belong after the incremental publish and
-  well before 03:30 UTC.
+- Shard repairs and the letter-coded scraper run go after the full publish has finished
+  and must be done before the next one starts at 03:30 UTC. Check
+  `systemctl is-active opencaselaw-publish.service` (inactive), not only the absence of
+  `/tmp/opencaselaw-publish.lock`: `publish.py` releases the lock at the DB swap, and later
+  steps still read the shards. The incremental publish (20:00 UTC; it ended about 02:28 UTC
+  on 2026-10-08) reads `decisions.db`, not the shards (its production `ExecStart` has no
+  `--structure-from-shards`), so it does not race a shard repair. No scraper may append to
+  the shard being repaired while the repair runs: the atomic replace would drop the lines it
+  appended.
 - Deploying the serving change (`source_defects`) is a server deploy through
   `scripts/agent_safe_deploy.py`; it needs no build.
 
@@ -406,8 +413,8 @@ for f in $(grep -lE '["_](52_I_(1|8|23|39|149|230)|39_I_469|22_I_12|71_II_223)"'
 ### Still proposals
 
 **A (52 I ×6) and C (39 I 469): shard repair.** Run the script above at the next
-segmentation window. That window falls after the incremental publish and well before
-03:30 UTC.
+segmentation window: after the full publish has finished, done before 03:30 UTC (see
+"Coordination check").
 
 Not recommended:
 
