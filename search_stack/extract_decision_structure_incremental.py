@@ -72,6 +72,8 @@ from search_stack.extractor_version import effective_version as _eff_ver  # noqa
 EFFECTIVE_EXTRACTOR_VERSION = _eff_ver(
     EXTRACTOR_VERSION,
     Path(__file__).parent / "extract_decision_structure.py",
+    # extract() cuts BGE volumes 1-79 to their own ruling with it
+    REPO_ROOT / "bge_historical_segment.py",
 )
 
 # Schema additions on top of the existing decision_structure schema. The

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>citecheck — Zitate prüfen in Word — OpenCaseLaw</title>
-<meta name="description" content="Word-Add-in: prüft, ob die zitierten Gerichtsentscheide in einem Entwurf existieren und die zitierte Erwägung haben. Der Text bleibt auf dem Computer. Open Source.">
+<title data-t="doc_title">citecheck — Zitate und Anonymisierung prüfen in Word — OpenCaseLaw</title>
+<meta name="description" content="Word-Add-in mit zwei Prüfungen: ob zitierte Gerichtsentscheide existieren und die Erwägung haben, und was in der zu veröffentlichenden Fassung eine Person erkennbar macht. Das Dokument bleibt auf dem Computer. Open Source.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/citecheck/">
@@ -16,8 +16,8 @@
 <link rel="icon" href="/favicon.svg">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://opencaselaw.ch/citecheck/">
-<meta property="og:title" content="citecheck — Zitatprüfung in Word">
-<meta property="og:description" content="Prüft in Word, ob zitierte Gerichtsentscheide existieren. Der Text bleibt auf dem Computer.">
+<meta property="og:title" content="citecheck — Zitate und Anonymisierung prüfen in Word">
+<meta property="og:description" content="Prüft in Word die Zitate von Gerichtsentscheiden und die Anonymisierung vor der Veröffentlichung. Das Dokument bleibt auf dem Computer.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -80,24 +80,25 @@
     .arrow svg{transform:rotate(90deg);width:22px;height:22px}
     .two{grid-template-columns:1fr}
   }
+  .cc-tag{display:inline-block;font:600 12px/1.6 var(--f-mono);color:#a86400;border:1px solid currentColor;border-radius:999px;padding:0 8px;margin-left:8px;vertical-align:4px}
 </style>
 </head>
 <body>
-<a href="#main" class="skip" data-t="skip">Skip to content</a>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
 <div data-nav></div>
 
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">citecheck · Word add-in</b></p>
-      <h1 class="page-h1" data-t="h1">Checks the case citations in a draft. In Word. The text stays on your computer.</h1>
-      <p class="page-lead" data-t="lead">citecheck finds every reference to a court decision in the open document and checks it against a list of 1,081,116 Swiss decisions: does the decision exist, does it have the cited Erwägung, are page and date right. Free, open source (MIT).</p>
+      <p class="page-kicker"><b data-t="kicker">citecheck · Word-Add-in</b></p>
+      <h1 class="page-h1" data-t="h1">Zwei Prüfungen für Gerichtsentscheide, in Word. Das Dokument bleibt auf Ihrem Computer.</h1>
+      <p class="page-lead" data-t="lead">citecheck prüft jeden Verweis auf einen Gerichtsentscheid gegen eine Liste von über einer Million Schweizer Entscheiden und zeigt, was in der zu veröffentlichenden Fassung eine Person erkennbar macht. Kostenlos, Open Source (MIT).</p>
       <div class="cc-cta">
-        <a class="btn btn-primary" href="#install" data-t="cta_install">Install</a>
-        <a class="btn btn-ghost" href="#data" data-t="cta_data">What is sent where</a>
-        <a class="btn btn-ghost" href="https://github.com/jonashertner/citecheck" rel="noopener" target="_blank" data-t="cta_source">Source code</a>
+        <a class="btn btn-primary" href="#install" data-t="cta_install">Installieren</a>
+        <a class="btn btn-ghost" href="#data" data-t="cta_data">Was wohin gesendet wird</a>
+        <a class="btn btn-ghost" href="https://github.com/jonashertner/citecheck" rel="noopener" target="_blank" data-t="cta_source">Quellcode</a>
       </div>
-      <p class="cc-note" data-t="note">Test version · Microsoft 365 or Office 2021 and later</p>
+      <p class="cc-note" data-t="note">Version 1.1 · Anonymisierungsprüfung als Vorschau · Microsoft 365 oder Office 2021 und neuer</p>
     </div>
   </section>
 
@@ -106,148 +107,173 @@
 
       <div class="two">
         <div>
-          <h2 style="margin-top:0" data-t="what_h">What it does</h2>
+          <h2 style="margin-top:0" data-t="what_h">Zitate prüfen</h2>
           <ul>
-            <li data-t="what_1">Finds BGE/ATF/DTF citations and file numbers of the federal and cantonal courts in the text and the footnotes.</li>
-            <li data-t="what_2">Checks each one: is the decision in the list, does it have the cited Erwägung (E. 2.3, consid. 4), is the cited page inside the decision, is the date right.</li>
-            <li data-t="what_3">For a citation that is not in the list, shows similar ones: a number one character apart with the same date, or the BGE that contains the cited page.</li>
-            <li data-t="what_4">Each result links to the decision on opencaselaw.ch. "Show in the draft" selects the citation in the document. If you want, it adds a Word comment.</li>
+            <li data-t="what_1">Findet BGE/ATF/DTF-Zitate und Dossiernummern der eidgenössischen und kantonalen Gerichte im Text und in den Fussnoten.</li>
+            <li data-t="what_2">Prüft jedes Zitat: Steht der Entscheid in der Liste, hat er die zitierte Erwägung (E. 2.3, consid. 4), liegt die zitierte Seite im Entscheid, stimmt das Datum.</li>
+            <li data-t="what_3">Bei einem Zitat, das nicht in der Liste steht, zeigt es ähnliche: eine Nummer, die sich um ein Zeichen unterscheidet und dasselbe Datum hat, oder den BGE, in dem die zitierte Seite liegt.</li>
+            <li data-t="what_4">Jedes Ergebnis verlinkt auf den Entscheid auf opencaselaw.ch. «Im Entwurf zeigen» markiert das Zitat im Dokument. Auf Wunsch setzt es einen Word-Kommentar.</li>
           </ul>
-          <h3 data-t="not_h">What it does not do</h3>
+          <h3 data-t="not_h">Was es nicht tut</h3>
           <ul>
-            <li data-t="not_1">It does not check whether the decision says what the draft claims.</li>
-            <li data-t="not_2">"Not in the list" does not mean the decision does not exist. Unpublished and very recent decisions are not in the list. The pane shows what the list has for that court.</li>
-            <li data-t="not_3">Erwägung numbers are known for about 80% of the decisions. For the rest, the pane says the Erwägung cannot be checked.</li>
-            <li data-t="not_4">It does not change the text.</li>
+            <li data-t="not_1">Es prüft nicht, ob der Entscheid das sagt, was der Entwurf behauptet.</li>
+            <li data-t="not_2">«Nicht in der Liste» heisst nicht, dass es den Entscheid nicht gibt. Unveröffentlichte und sehr neue Entscheide stehen nicht in der Liste. Das Fenster zeigt, was die Liste für dieses Gericht enthält.</li>
+            <li data-t="not_3">Erwägungsnummern sind für rund 80% der Entscheide bekannt. Bei den übrigen sagt das Fenster, dass die Erwägung nicht prüfbar ist.</li>
+            <li data-t="not_4">Es ändert den Text nicht.</li>
           </ul>
         </div>
         <div>
-          <img class="shot" src="pane.png" alt="The citecheck pane after a check">
-          <p class="cc-note" data-t="shot_cap">The pane after a check. German, French, Italian, English.</p>
+          <img class="shot" src="pane.png" alt="Das citecheck-Fenster nach einer Prüfung" data-t-alt="shot_alt">
+          <p class="cc-note" data-t="shot_cap">Das Fenster nach einer Prüfung. Deutsch, Französisch, Italienisch, Englisch.</p>
         </div>
       </div>
 
-      <h2 id="install" data-t="install_h">Install</h2>
-      <p data-t="install_p">Download one file and upload it in Word. No installer, no admin rights.</p>
-      <p><a class="btn btn-primary" href="https://mcp.opencaselaw.ch/citecheck/manifest.xml" download="citecheck-manifest.xml" data-t="dl">Download citecheck-manifest.xml</a></p>
+      <div class="two" style="margin-top:clamp(44px,6vw,72px)">
+        <div>
+          <h2 style="margin-top:0" data-t="an_h">Anonymisierung prüfen <span class="cc-tag">Vorschau</span></h2>
+          <ul>
+            <li data-t="an_1">Liest alles, was die Datei enthält: den Text, Fussnoten, Kopf- und Fusszeilen, und was beim Lesen nicht zu sehen ist: Kommentare und ihre Verfasser, gelöschten Text in Änderungen, ausgeblendeten Text, Feldfunktionen, Bildbeschreibungen, Dokumenteigenschaften, Daten von Fachanwendungen, den Dateinamen.</li>
+            <li data-t="an_2">Jedes Wort und jede Zahl ist entweder erklärt oder wird gezeigt. Erklärt ist, was in veröffentlichten Entscheiden üblich und kein Name ist, was das Urteil selbst öffentlich macht (Gericht, Vertretung, zitierte Lehre und Rechtsprechung) und jeder Platzhalter. Kennnummern werden immer gezeigt: AHV-Nummern (mit Prüfziffer), IBAN, Telefonnummern, E-Mail-Adressen, Adressen, Kontrollschilder, Parzellen, Geburtsdaten und weitere.</li>
+            <li data-t="an_3">Sie kreuzen an, was ersetzt werden soll. Eine Person erhält einen Buchstaben, wie immer ihr Name geschrieben ist (Müller, Müllers, MÜLLER). Passt ein Name zu mehreren Personen, etwa «Müller» bei zwei Müller, wählen Sie den Buchstaben, auch Stelle für Stelle. <b>Anonymisierte Kopie erstellen</b> schreibt eine neue Datei: die angekreuzten Stellen ersetzt, Änderungen angenommen, Kommentare, ausgeblendeter Text und Eigenschaften entfernt. Die Kopie wird erneut geprüft, bevor sie sich öffnet. Ihre Fassung bleibt unverändert.</li>
+          </ul>
+          <h3 data-t="an_not_h">Was es nicht tut</h3>
+          <ul>
+            <li data-t="an_not_1">Es beurteilt nicht, ob mehrere übliche Angaben zusammen (Alter, Ort, Beruf) eine Person erkennbar machen.</li>
+            <li data-t="an_not_2">Wo ein Nachname auch ein gewöhnliches Wort ist (Frei, Sommer, Weiss), kann es die beiden nicht immer unterscheiden. Text in Bildern liest es nicht.</li>
+            <li data-t="an_not_3">Es entscheidet nichts. Was es zeigt, beurteilen Sie.</li>
+          </ul>
+          <p data-t="an_fig">Gemessen an 5'724 veröffentlichten, anonymisierten Entscheiden, die es nie gesehen hat: Jede Kennnummer oder Adresse neben einem Platzhalter wird gezeigt; ein an einer Stelle übersehener Name in 96 bis 97 % der Fälle; ein Entscheid zeigt im Median 6 (deutsch) oder 4 (französisch) Stellen zum Ansehen. <a href="https://github.com/jonashertner/citecheck/blob/main/docs/benchmark-anonymization.md" rel="noopener">Messbericht</a>.</p>
+        </div>
+        <div>
+          <img class="shot" src="pane-anon.png" alt="Das citecheck-Fenster im Modus Anonymisierung nach einer Prüfung" data-t-alt="an_alt">
+          <p class="cc-note" data-t="an_cap">Das Fenster nach einer Prüfung: eine Adresse, eine AHV-Nummer und ein einmal übersehener Name (auch in einem Kommentar); zwei angekreuzt, mit ihrem Platzhalter.</p>
+        </div>
+      </div>
+
+      <h2 id="install" data-t="install_h">Installieren</h2>
+      <p data-t="install_p">Eine Datei herunterladen und in Word hochladen. Kein Installationsprogramm, keine Administratorrechte.</p>
+      <p><a class="btn btn-primary" href="https://mcp.opencaselaw.ch/citecheck/manifest.xml" download="citecheck-manifest.xml" data-t="dl">citecheck-manifest.xml herunterladen</a></p>
+      <p data-t="upd_p"><b>Vor Oktober 2026 installiert?</b> Die Anonymisierung ist schon im Fenster: oben umschalten (Word dafür einmal neu starten). Für die eigene Schaltfläche im Menüband die Datei neu herunterladen und die alte ersetzen.</p>
 
       <div style="position:relative">
         <input class="tab-in" type="radio" name="t" id="t-win" checked>
         <input class="tab-in" type="radio" name="t" id="t-web">
         <input class="tab-in" type="radio" name="t" id="t-mac">
         <div class="tabs">
-          <label for="t-win" data-t="tab_win">Word for Windows</label>
-          <label for="t-web" data-t="tab_web">Word in the browser</label>
-          <label for="t-mac" data-t="tab_mac">Word for Mac</label>
+          <label for="t-win" data-t="tab_win">Word für Windows</label>
+          <label for="t-web" data-t="tab_web">Word im Browser</label>
+          <label for="t-mac" data-t="tab_mac">Word für Mac</label>
         </div>
         <div class="panel" id="p-win">
-          <p class="intro" data-t="win_intro">Word for Windows installs an add-in from a file only through a shared folder (steps below, about five minutes). Quicker: the same file in <b>Word in the browser</b> (next tab), or the pane without Word (see Use).</p>
+          <p class="intro" data-t="win_intro">Word für Windows installiert ein Add-in aus einer Datei nur über einen freigegebenen Ordner (Schritte unten, etwa fünf Minuten). Schneller: dieselbe Datei in <b>Word im Browser</b> (nächster Reiter) oder das Fenster ohne Word (siehe Verwenden).</p>
           <ol class="steps">
-            <li data-t="win_1">Make a folder, for example <code>C:\citecheck</code>, and put the file in it. Right-click the folder, <b>Properties</b>, tab <b>Sharing</b>, <b>Share</b>, <b>Share</b>. Note the network path shown, for example <code>\\YOUR-PC\citecheck</code>.</li>
-            <li data-t="win_2">In Word: <b>File</b>, <b>Options</b>, <b>Trust Center</b>, <b>Trust Center Settings</b>, <b>Trusted Add-in Catalogs</b>. Paste the network path under <b>Catalog Url</b>, <b>Add catalog</b>, tick <b>Show in Menu</b>, <b>OK</b>, <b>OK</b>. Restart Word.</li>
-            <li data-t="win_3"><b>Home</b>, <b>Add-ins</b>, <b>Advanced</b> (older versions: <b>Insert</b>, <b>My Add-ins</b>). Tab <b>Shared Folder</b>, select citecheck, <b>Add</b>.</li>
-            <li data-t="win_4">The pane opens. Next time: tab <b>Review</b>, button <b>Check cites</b>.</li>
+            <li data-t="win_1">Einen Ordner anlegen, zum Beispiel <code>C:\citecheck</code>, und die Datei hineinlegen. Rechtsklick auf den Ordner, <b>Eigenschaften</b>, Registerkarte <b>Freigabe</b>, <b>Freigeben</b>, <b>Freigeben</b>. Den angezeigten Netzwerkpfad notieren, zum Beispiel <code>\\IHR-PC\citecheck</code>.</li>
+            <li data-t="win_2">In Word: <b>Datei</b>, <b>Optionen</b>, <b>Trust Center</b>, <b>Einstellungen für das Trust Center</b>, <b>Kataloge vertrauenswürdiger Add-Ins</b>. Den Netzwerkpfad bei <b>Katalog-URL</b> einfügen, <b>Katalog hinzufügen</b>, <b>Im Menü anzeigen</b> ankreuzen, <b>OK</b>, <b>OK</b>. Word neu starten.</li>
+            <li data-t="win_3"><b>Start</b>, <b>Add-Ins</b>, <b>Erweitert</b> (ältere Versionen: <b>Einfügen</b>, <b>Meine Add-Ins</b>). Registerkarte <b>Freigegebener Ordner</b>, citecheck auswählen, <b>Hinzufügen</b>.</li>
+            <li data-t="win_4">Das Fenster öffnet sich. Beim nächsten Mal: Registerkarte <b>Überprüfen</b>, Schaltflächen <b>Zitate prüfen</b> und <b>Anonymisierung prüfen</b>.</li>
           </ol>
-          <p class="hint" data-t="win_hint">Some Microsoft 365 versions of Word also show <b>Upload My Add-in</b> under <b>My Add-ins</b>; if yours does, upload the file there instead. If sharing a folder is not allowed, your IT can add the same file in the Microsoft 365 admin center (Integrated apps, Upload custom apps) or put the add-in on the intranet: <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">instructions for IT</a>.</p>
+          <p class="hint" data-t="win_hint">Manche Microsoft-365-Versionen von Word zeigen unter <b>Meine Add-Ins</b> auch <b>Mein Add-In hochladen</b>; dann die Datei dort hochladen, das geht schneller. Ist das Freigeben von Ordnern nicht erlaubt, kann Ihre IT dieselbe Datei im Microsoft 365 Admin Center hinzufügen (Integrierte Apps, Benutzerdefinierte Apps hochladen) oder das Add-in ins Intranet stellen: <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">Anleitung für die IT</a>.</p>
         </div>
         <div class="panel" id="p-web">
           <ol class="steps">
-            <li data-t="web_1">Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b> (newer versions: <b>Home</b>, <b>Add-ins</b>, <b>More Settings</b>).</li>
-            <li data-t="web_2"><b>My Add-ins</b>, <b>Manage My Add-ins</b>, <b>Upload My Add-in</b>, select the file, <b>Upload</b>.</li>
+            <li data-t="web_1">Das Dokument in Word auf office.com öffnen. <b>Einfügen</b>, <b>Add-Ins</b> (neuere Versionen: <b>Start</b>, <b>Add-Ins</b>, <b>Weitere Einstellungen</b>).</li>
+            <li data-t="web_2"><b>Meine Add-Ins</b>, <b>Meine Add-Ins verwalten</b>, <b>Mein Add-In hochladen</b>, die Datei auswählen, <b>Hochladen</b>.</li>
           </ol>
-          <p class="hint" data-t="web_hint">Word in the browser keeps the add-in in this browser only. In another browser, or after clearing the browser's data, upload the file again.</p>
+          <p class="hint" data-t="web_hint">Word im Browser merkt sich das Add-in nur in diesem Browser. In einem anderen Browser oder nach dem Löschen der Browserdaten die Datei erneut hochladen.</p>
         </div>
         <div class="panel" id="p-mac">
           <ol class="steps">
-            <li data-t="mac_1">Quit Word.</li>
-            <li data-t="mac_2">In the Finder: <b>Go</b>, <b>Go to Folder…</b>, paste <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Create the folder <code>wef</code> if it is missing.</li>
-            <li data-t="mac_3">Put the file in that folder.</li>
-            <li data-t="mac_4">Start Word. <b>Home</b>, <b>Add-ins</b>, <b>Developer Add-ins</b>, citecheck.</li>
+            <li data-t="mac_1">Word beenden.</li>
+            <li data-t="mac_2">Im Finder: <b>Gehe zu</b>, <b>Gehe zum Ordner …</b>, einfügen: <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code>. Den Ordner <code>wef</code> anlegen, falls er fehlt.</li>
+            <li data-t="mac_3">Die Datei in diesen Ordner legen.</li>
+            <li data-t="mac_4">Word starten. <b>Start</b>, <b>Add-ins</b>, <b>Entwickler-Add-ins</b>, citecheck.</li>
           </ol>
         </div>
       </div>
 
-      <h3 data-t="use_h">Use</h3>
+      <h3 data-t="use_h">Verwenden</h3>
       <ol>
-        <li data-t="use_1">Open the draft, press <strong>Check the draft</strong>. The first time, the list is downloaded (17 MB). After that only when a newer list exists; this is checked before every run.</li>
-        <li data-t="use_2">One line per citation: found, differs, not in the list, not checked. Click a line for details.</li>
-        <li data-t="use_3">Without Word: <a href="https://jonashertner.github.io/citecheck/taskpane.html" rel="noopener">open the pane in a browser</a> and drop the .docx on it. The file is read in the browser, not uploaded.</li>
+        <li data-t="use_1">Entwurf öffnen, <strong>Entwurf prüfen</strong> drücken. Beim ersten Mal wird die Liste heruntergeladen (17 MB). Danach nur, wenn es eine neuere Liste gibt; das wird vor jeder Prüfung nachgefragt.</li>
+        <li data-t="use_2">Eine Zeile pro Zitat: gefunden, weicht ab, nicht in der Liste, nicht geprüft. Zeile anklicken für Details.</li>
+        <li data-t="use_4">Anonymisierung: die zu veröffentlichende Fassung öffnen, oben im Fenster <b>Anonymisierung</b> wählen (oder die Schaltfläche im Menüband), <b>Fassung prüfen</b>, ankreuzen, <b>Anonymisierte Kopie erstellen</b>. Beim ersten Mal wird die Wortliste geladen (2,4 MB).</li>
+        <li data-t="use_3">Ohne Word: <a href="https://jonashertner.github.io/citecheck/taskpane.html?lang=de" rel="noopener">das Fenster im Browser öffnen</a> und die .docx hineinziehen. Die Datei wird im Browser gelesen, nicht hochgeladen.</li>
       </ol>
 
-      <h2 id="data" data-t="data_h">What is sent where</h2>
-      <p data-t="data_p">The add-in downloads files. It does not upload anything.</p>
+      <h2 id="data" data-t="data_h">Was wohin gesendet wird</h2>
+      <p data-t="data_p">Das Add-in lädt Dateien herunter. Es lädt nichts hoch.</p>
 
       <div class="flow-key">
-        <span><i style="background:#1e7a4f"></i><span data-t="key_stay">stays on your computer</span></span>
-        <span><i style="background:var(--red)"></i><span data-t="key_pub">public file, the same for everyone</span></span>
+        <span><i style="background:#1e7a4f"></i><span data-t="key_stay">bleibt auf Ihrem Computer</span></span>
+        <span><i style="background:var(--red)"></i><span data-t="key_pub">öffentliche Datei, für alle gleich</span></span>
       </div>
       <div class="flow">
         <div class="place">
-          <h3 data-t="pl2_h">Web server of the add-in</h3>
-          <p data-t="pl2_p">jonashertner.github.io. Serves files only. A court can put the same files on its own server.</p>
+          <h3 data-t="pl2_h">Webserver des Add-ins</h3>
+          <p data-t="pl2_p">jonashertner.github.io. Liefert nur Dateien aus. Ein Gericht kann dieselben Dateien auf den eigenen Server legen.</p>
           <ul>
-            <li class="pub" data-t="pl2_1">the add-in (page, script, style)</li>
-            <li class="pub" data-t="pl2_2">the list: court, date, number and Erwägung numbers of each decision. No text of any decision.</li>
-            <li data-t="pl2_3">sees: the pane was opened, the list was downloaded. Not the document.</li>
+            <li class="pub" data-t="pl2_1">das Add-in (Seite, Skript, Stil)</li>
+            <li class="pub" data-t="pl2_2">die Liste: Gericht, Datum, Nummer und Erwägungsnummern jedes Entscheids. Kein Text eines Entscheids.</li>
+            <li class="pub" data-t="pl2_4">die Wortliste der Anonymisierungsprüfung: Wörter, die in veröffentlichten Entscheiden üblich sind. Keine Namen, kein Text eines Entscheids.</li>
+            <li data-t="pl2_3">sieht: Das Fenster wurde geöffnet, die Liste heruntergeladen. Nicht das Dokument.</li>
           </ul>
         </div>
         <div class="arrow">
-          <span class="in"><svg viewBox="0 0 64 22" aria-hidden="true"><path d="M2 11h44"/><path d="M40 4l7 7-7 7"/></svg><span data-t="ar2">download</span></span>
-          <span class="out"><svg class="no" viewBox="0 0 64 22" aria-hidden="true"><path d="M62 11H22"/><path d="M28 4l-7 7 7 7"/><path d="M4 3l10 16M14 3L4 19"/></svg><span data-t="ar1">no upload</span></span>
+          <span class="in"><svg viewBox="0 0 64 22" aria-hidden="true"><path d="M2 11h44"/><path d="M40 4l7 7-7 7"/></svg><span data-t="ar2">Download</span></span>
+          <span class="out"><svg class="no" viewBox="0 0 64 22" aria-hidden="true"><path d="M62 11H22"/><path d="M28 4l-7 7 7 7"/><path d="M4 3l10 16M14 3L4 19"/></svg><span data-t="ar1">kein Upload</span></span>
         </div>
         <div class="place here">
-          <h3 data-t="pl1_h">Your computer</h3>
-          <p data-t="pl1_p">The add-in runs inside Word. It reads the document and compares the citations with the list. Everything happens here.</p>
+          <h3 data-t="pl1_h">Ihr Computer</h3>
+          <p data-t="pl1_p">Das Add-in läuft in Word. Es liest das Dokument und vergleicht die Zitate mit der Liste. Alles passiert hier.</p>
           <ul>
-            <li class="stay" data-t="pl1_1">the document</li>
-            <li class="stay" data-t="pl1_2">the citations found in it</li>
-            <li class="stay" data-t="pl1_3">the results, the comments</li>
-            <li class="pub" data-t="pl1_4">a copy of the list, for the next run</li>
+            <li class="stay" data-t="pl1_1">das Dokument</li>
+            <li class="stay" data-t="pl1_2">die darin gefundenen Zitate und Stellen</li>
+            <li class="stay" data-t="pl1_3">die Ergebnisse, die Kommentare, die anonymisierte Kopie</li>
+            <li class="pub" data-t="pl1_4">eine Kopie der Listen, für die nächste Prüfung</li>
           </ul>
         </div>
         <div class="arrow">
-          <span class="in"><svg viewBox="0 0 64 22" aria-hidden="true"><path d="M62 11H18"/><path d="M24 4l-7 7 7 7"/></svg><span data-t="ar3">download</span></span>
-          <span class="out"><svg class="no" viewBox="0 0 64 22" aria-hidden="true"><path d="M2 11h40"/><path d="M36 4l7 7-7 7"/><path d="M50 3l10 16M60 3L50 19"/></svg><span data-t="ar1">no upload</span></span>
+          <span class="in"><svg viewBox="0 0 64 22" aria-hidden="true"><path d="M62 11H18"/><path d="M24 4l-7 7 7 7"/></svg><span data-t="ar3">Download</span></span>
+          <span class="out"><svg class="no" viewBox="0 0 64 22" aria-hidden="true"><path d="M2 11h40"/><path d="M36 4l7 7-7 7"/><path d="M50 3l10 16M60 3L50 19"/></svg><span data-t="ar1">kein Upload</span></span>
         </div>
         <div class="place">
           <h3 data-t="pl3_h">Microsoft</h3>
-          <p data-t="pl3_p">Word loads the file office.js from appsforoffice.microsoft.com. Every Word add-in needs it.</p>
+          <p data-t="pl3_p">Word lädt die Datei office.js von appsforoffice.microsoft.com. Jedes Word-Add-in braucht sie.</p>
           <ul>
-            <li data-t="pl3_1">sees: an add-in was opened. Not which document.</li>
+            <li data-t="pl3_1">sieht: Ein Add-in wurde geöffnet. Nicht welches Dokument.</li>
           </ul>
         </div>
       </div>
-      <p data-t="data_link"><strong>Exception:</strong> when you click "open decision", your browser opens that decision's page on opencaselaw.ch. That is a normal link. opencaselaw.ch sees that the page was opened, not the document.</p>
+      <p data-t="data_link"><strong>Ausnahme:</strong> Wenn Sie auf «Entscheid öffnen» klicken, öffnet Ihr Browser die Seite dieses Entscheids auf opencaselaw.ch. Das ist ein normaler Link. opencaselaw.ch sieht, dass die Seite geöffnet wurde, nicht das Dokument.</p>
 
       <div class="verify">
-        <p data-t="enf_1">The add-in's page contains a rule for the browser (Content-Security-Policy) that allows connections to its own web server only. Word's built-in browser blocks every other connection. The code has one place that downloads, nothing that uploads. A test in the source code fails if this changes.</p>
-        <p data-t="enf_2">To check it yourself: open the pane with the browser's developer tools and watch the Network tab during a run. Details: <a href="https://github.com/jonashertner/citecheck/blob/main/SECURITY.md" rel="noopener">SECURITY.md</a>.</p>
+        <p data-t="enf_1">Die Seite des Add-ins enthält eine Regel für den Browser (Content-Security-Policy), die nur Verbindungen zum eigenen Webserver erlaubt. Der in Word eingebaute Browser blockiert jede andere Verbindung. Der Code hat eine Stelle, die herunterlädt, und keine, die hochlädt. Ein Test im Quellcode schlägt fehl, wenn sich das ändert.</p>
+        <p data-t="enf_2">Selbst prüfen: das Fenster mit den Entwicklerwerkzeugen des Browsers öffnen und während einer Prüfung den Netzwerk-Tab beobachten. Details: <a href="https://github.com/jonashertner/citecheck/blob/main/SECURITY.md" rel="noopener">SECURITY.md</a>.</p>
       </div>
 
-      <h2 data-t="court_h">For the IT of a court</h2>
-      <p data-t="court_p">The add-in is a folder of files and one manifest. Copy the folder to an internal web server, put the list next to it, generate the manifest for that address, distribute it via the Microsoft 365 admin center. The computers then contact only the internal server and Microsoft. <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">Instructions</a>.</p>
+      <h2 data-t="court_h">Für die IT eines Gerichts</h2>
+      <p data-t="court_p">Das Add-in ist ein Ordner mit Dateien und ein Manifest. Den Ordner auf einen internen Webserver kopieren, die Liste daneben legen, das Manifest für diese Adresse erzeugen, über das Microsoft 365 Admin Center verteilen. Die Computer kontaktieren dann nur den internen Server und Microsoft. <a href="https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md" rel="noopener">Anleitung</a>.</p>
 
-      <h2 data-t="fb_h">Feedback</h2>
-      <p data-t="fb_p">This is a test version. If a result is wrong, send the citation as written and the message from the pane: <a href="https://github.com/jonashertner/citecheck/issues" rel="noopener">GitHub</a> or e-mail. Which courts and years are in the list: <a href="/coverage/">coverage</a>.</p>
+      <h2 data-t="fb_h">Rückmeldungen</h2>
+      <p data-t="fb_p">Zur Zitatprüfung: Wenn ein Ergebnis falsch ist, das Zitat, wie es geschrieben steht, und die Meldung des Fensters senden. Zur Anonymisierung (Vorschau): bitte keine Inhalte aus Dokumenten senden, sondern beschreiben, welche Art Stelle übersehen oder zu Unrecht gezeigt wurde (zum Beispiel «Name nach Bindestrich», «Adresse eines Spitals»). <a href="https://github.com/jonashertner/citecheck/issues" rel="noopener">GitHub</a> oder E-Mail. Welche Gerichte und Jahre in der Liste sind: <a href="/coverage/">Abdeckung</a>.</p>
     </div>
   </section>
 </main>
 
 <div data-foot></div>
-<script src="/static/js/site.js?v=2"></script>
+<script src="/static/js/site.js?v=3"></script>
 <script>
 OCL.init({
   active:'',
   i18n:{
     "de": {
       "kicker": "citecheck · Word-Add-in",
-      "h1": "Prüft die Zitate von Gerichtsentscheiden in einem Entwurf. In Word. Der Text bleibt auf Ihrem Computer.",
-      "lead": "citecheck findet jeden Verweis auf einen Gerichtsentscheid im geöffneten Dokument und prüft ihn gegen eine Liste von 1'081'116 Schweizer Entscheiden: Gibt es den Entscheid, hat er die zitierte Erwägung, stimmen Seite und Datum. Kostenlos, Open Source (MIT).",
+      "h1": "Zwei Prüfungen für Gerichtsentscheide, in Word. Das Dokument bleibt auf Ihrem Computer.",
+      "lead": "citecheck prüft jeden Verweis auf einen Gerichtsentscheid gegen eine Liste von über einer Million Schweizer Entscheiden und zeigt, was in der zu veröffentlichenden Fassung eine Person erkennbar macht. Kostenlos, Open Source (MIT).",
       "cta_install": "Installieren",
       "cta_data": "Was wohin gesendet wird",
       "cta_source": "Quellcode",
-      "note": "Testversion · Microsoft 365 oder Office 2021 und neuer",
-      "what_h": "Was es tut",
+      "note": "Version 1.1 · Anonymisierungsprüfung als Vorschau · Microsoft 365 oder Office 2021 und neuer",
+      "what_h": "Zitate prüfen",
       "what_1": "Findet BGE/ATF/DTF-Zitate und Dossiernummern der eidgenössischen und kantonalen Gerichte im Text und in den Fussnoten.",
       "what_2": "Prüft jedes Zitat: Steht der Entscheid in der Liste, hat er die zitierte Erwägung (E. 2.3, consid. 4), liegt die zitierte Seite im Entscheid, stimmt das Datum.",
       "what_3": "Bei einem Zitat, das nicht in der Liste steht, zeigt es ähnliche: eine Nummer, die sich um ein Zeichen unterscheidet und dasselbe Datum hat, oder den BGE, in dem die zitierte Seite liegt.",
@@ -258,6 +284,19 @@ OCL.init({
       "not_3": "Erwägungsnummern sind für rund 80% der Entscheide bekannt. Bei den übrigen sagt das Fenster, dass die Erwägung nicht prüfbar ist.",
       "not_4": "Es ändert den Text nicht.",
       "shot_cap": "Das Fenster nach einer Prüfung. Deutsch, Französisch, Italienisch, Englisch.",
+      "an_h": "Anonymisierung prüfen <span class=\"cc-tag\">Vorschau</span>",
+      "an_1": "Liest alles, was die Datei enthält: den Text, Fussnoten, Kopf- und Fusszeilen, und was beim Lesen nicht zu sehen ist: Kommentare und ihre Verfasser, gelöschten Text in Änderungen, ausgeblendeten Text, Feldfunktionen, Bildbeschreibungen, Dokumenteigenschaften, Daten von Fachanwendungen, den Dateinamen.",
+      "an_2": "Jedes Wort und jede Zahl ist entweder erklärt oder wird gezeigt. Erklärt ist, was in veröffentlichten Entscheiden üblich und kein Name ist, was das Urteil selbst öffentlich macht (Gericht, Vertretung, zitierte Lehre und Rechtsprechung) und jeder Platzhalter. Kennnummern werden immer gezeigt: AHV-Nummern (mit Prüfziffer), IBAN, Telefonnummern, E-Mail-Adressen, Adressen, Kontrollschilder, Parzellen, Geburtsdaten und weitere.",
+      "an_3": "Sie kreuzen an, was ersetzt werden soll. Eine Person erhält einen Buchstaben, wie immer ihr Name geschrieben ist (Müller, Müllers, MÜLLER). Passt ein Name zu mehreren Personen, etwa «Müller» bei zwei Müller, wählen Sie den Buchstaben, auch Stelle für Stelle. <b>Anonymisierte Kopie erstellen</b> schreibt eine neue Datei: die angekreuzten Stellen ersetzt, Änderungen angenommen, Kommentare, ausgeblendeter Text und Eigenschaften entfernt. Die Kopie wird erneut geprüft, bevor sie sich öffnet. Ihre Fassung bleibt unverändert.",
+      "an_not_h": "Was es nicht tut",
+      "an_not_1": "Es beurteilt nicht, ob mehrere übliche Angaben zusammen (Alter, Ort, Beruf) eine Person erkennbar machen.",
+      "an_not_2": "Wo ein Nachname auch ein gewöhnliches Wort ist (Frei, Sommer, Weiss), kann es die beiden nicht immer unterscheiden. Text in Bildern liest es nicht.",
+      "an_not_3": "Es entscheidet nichts. Was es zeigt, beurteilen Sie.",
+      "an_fig": "Gemessen an 5'724 veröffentlichten, anonymisierten Entscheiden, die es nie gesehen hat: Jede Kennnummer oder Adresse neben einem Platzhalter wird gezeigt; ein an einer Stelle übersehener Name in 96 bis 97 % der Fälle; ein Entscheid zeigt im Median 6 (deutsch) oder 4 (französisch) Stellen zum Ansehen. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/benchmark-anonymization.md\" rel=\"noopener\">Messbericht</a>.",
+      "an_cap": "Das Fenster nach einer Prüfung: eine Adresse, eine AHV-Nummer und ein einmal übersehener Name (auch in einem Kommentar); zwei angekreuzt, mit ihrem Platzhalter.",
+      "upd_p": "<b>Vor Oktober 2026 installiert?</b> Die Anonymisierung ist schon im Fenster: oben umschalten (Word dafür einmal neu starten). Für die eigene Schaltfläche im Menüband die Datei neu herunterladen und die alte ersetzen.",
+      "use_4": "Anonymisierung: die zu veröffentlichende Fassung öffnen, oben im Fenster <b>Anonymisierung</b> wählen (oder die Schaltfläche im Menüband), <b>Fassung prüfen</b>, ankreuzen, <b>Anonymisierte Kopie erstellen</b>. Beim ersten Mal wird die Wortliste geladen (2,4 MB).",
+      "pl2_4": "die Wortliste der Anonymisierungsprüfung: Wörter, die in veröffentlichten Entscheiden üblich sind. Keine Namen, kein Text eines Entscheids.",
       "install_h": "Installieren",
       "install_p": "Eine Datei herunterladen und in Word hochladen. Kein Installationsprogramm, keine Administratorrechte.",
       "dl": "citecheck-manifest.xml herunterladen",
@@ -268,7 +307,7 @@ OCL.init({
       "win_1": "Einen Ordner anlegen, zum Beispiel <code>C:\\citecheck</code>, und die Datei hineinlegen. Rechtsklick auf den Ordner, <b>Eigenschaften</b>, Registerkarte <b>Freigabe</b>, <b>Freigeben</b>, <b>Freigeben</b>. Den angezeigten Netzwerkpfad notieren, zum Beispiel <code>\\\\IHR-PC\\citecheck</code>.",
       "win_2": "In Word: <b>Datei</b>, <b>Optionen</b>, <b>Trust Center</b>, <b>Einstellungen für das Trust Center</b>, <b>Kataloge vertrauenswürdiger Add-Ins</b>. Den Netzwerkpfad bei <b>Katalog-URL</b> einfügen, <b>Katalog hinzufügen</b>, <b>Im Menü anzeigen</b> ankreuzen, <b>OK</b>, <b>OK</b>. Word neu starten.",
       "win_3": "<b>Start</b>, <b>Add-Ins</b>, <b>Erweitert</b> (ältere Versionen: <b>Einfügen</b>, <b>Meine Add-Ins</b>). Registerkarte <b>Freigegebener Ordner</b>, citecheck auswählen, <b>Hinzufügen</b>.",
-      "win_4": "Das Fenster öffnet sich. Beim nächsten Mal: Registerkarte <b>Überprüfen</b>, Schaltfläche <b>Zitate prüfen</b>.",
+      "win_4": "Das Fenster öffnet sich. Beim nächsten Mal: Registerkarte <b>Überprüfen</b>, Schaltflächen <b>Zitate prüfen</b> und <b>Anonymisierung prüfen</b>.",
       "win_hint": "Manche Microsoft-365-Versionen von Word zeigen unter <b>Meine Add-Ins</b> auch <b>Mein Add-In hochladen</b>; dann die Datei dort hochladen, das geht schneller. Ist das Freigeben von Ordnern nicht erlaubt, kann Ihre IT dieselbe Datei im Microsoft 365 Admin Center hinzufügen (Integrierte Apps, Benutzerdefinierte Apps hochladen) oder das Add-in ins Intranet stellen: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Anleitung für die IT</a>.",
       "web_1": "Das Dokument in Word auf office.com öffnen. <b>Einfügen</b>, <b>Add-Ins</b> (neuere Versionen: <b>Start</b>, <b>Add-Ins</b>, <b>Weitere Einstellungen</b>).",
       "web_2": "<b>Meine Add-Ins</b>, <b>Meine Add-Ins verwalten</b>, <b>Mein Add-In hochladen</b>, die Datei auswählen, <b>Hochladen</b>.",
@@ -280,7 +319,7 @@ OCL.init({
       "use_h": "Verwenden",
       "use_1": "Entwurf öffnen, <strong>Entwurf prüfen</strong> drücken. Beim ersten Mal wird die Liste heruntergeladen (17 MB). Danach nur, wenn es eine neuere Liste gibt; das wird vor jeder Prüfung nachgefragt.",
       "use_2": "Eine Zeile pro Zitat: gefunden, weicht ab, nicht in der Liste, nicht geprüft. Zeile anklicken für Details.",
-      "use_3": "Ohne Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">das Fenster im Browser öffnen</a> und die .docx hineinziehen. Die Datei wird im Browser gelesen, nicht hochgeladen.",
+      "use_3": "Ohne Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html?lang=de\" rel=\"noopener\">das Fenster im Browser öffnen</a> und die .docx hineinziehen. Die Datei wird im Browser gelesen, nicht hochgeladen.",
       "data_h": "Was wohin gesendet wird",
       "data_p": "Das Add-in lädt Dateien herunter. Es lädt nichts hoch.",
       "key_stay": "bleibt auf Ihrem Computer",
@@ -296,9 +335,9 @@ OCL.init({
       "pl1_h": "Ihr Computer",
       "pl1_p": "Das Add-in läuft in Word. Es liest das Dokument und vergleicht die Zitate mit der Liste. Alles passiert hier.",
       "pl1_1": "das Dokument",
-      "pl1_2": "die darin gefundenen Zitate",
-      "pl1_3": "die Ergebnisse, die Kommentare",
-      "pl1_4": "eine Kopie der Liste, für die nächste Prüfung",
+      "pl1_2": "die darin gefundenen Zitate und Stellen",
+      "pl1_3": "die Ergebnisse, die Kommentare, die anonymisierte Kopie",
+      "pl1_4": "eine Kopie der Listen, für die nächste Prüfung",
       "pl3_h": "Microsoft",
       "pl3_p": "Word lädt die Datei office.js von appsforoffice.microsoft.com. Jedes Word-Add-in braucht sie.",
       "pl3_1": "sieht: Ein Add-in wurde geöffnet. Nicht welches Dokument.",
@@ -308,17 +347,20 @@ OCL.init({
       "court_h": "Für die IT eines Gerichts",
       "court_p": "Das Add-in ist ein Ordner mit Dateien und ein Manifest. Den Ordner auf einen internen Webserver kopieren, die Liste daneben legen, das Manifest für diese Adresse erzeugen, über das Microsoft 365 Admin Center verteilen. Die Computer kontaktieren dann nur den internen Server und Microsoft. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Anleitung</a>.",
       "fb_h": "Rückmeldungen",
-      "fb_p": "Dies ist eine Testversion. Wenn ein Ergebnis falsch ist, bitte das Zitat, wie es geschrieben steht, und die Meldung des Fensters senden: <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> oder E-Mail. Welche Gerichte und Jahre in der Liste sind: <a href=\"/coverage/\">Abdeckung</a>."
+      "fb_p": "Zur Zitatprüfung: Wenn ein Ergebnis falsch ist, das Zitat, wie es geschrieben steht, und die Meldung des Fensters senden. Zur Anonymisierung (Vorschau): bitte keine Inhalte aus Dokumenten senden, sondern beschreiben, welche Art Stelle übersehen oder zu Unrecht gezeigt wurde (zum Beispiel «Name nach Bindestrich», «Adresse eines Spitals»). <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> oder E-Mail. Welche Gerichte und Jahre in der Liste sind: <a href=\"/coverage/\">Abdeckung</a>.",
+      "doc_title": "citecheck — Zitate und Anonymisierung prüfen in Word — OpenCaseLaw",
+      "shot_alt": "Das citecheck-Fenster nach einer Prüfung",
+      "an_alt": "Das citecheck-Fenster im Modus Anonymisierung nach einer Prüfung"
     },
     "fr": {
       "kicker": "citecheck · complément Word",
-      "h1": "Contrôle les citations de décisions judiciaires dans un projet. Dans Word. Le texte reste sur votre ordinateur.",
-      "lead": "citecheck trouve chaque renvoi à une décision judiciaire dans le document ouvert et le contrôle à l'aide d'une liste de 1 081 116 décisions suisses: la décision existe-t-elle, a-t-elle le considérant cité, la page et la date sont-elles justes. Gratuit, open source (MIT).",
+      "h1": "Deux contrôles pour les décisions judiciaires, dans Word. Le document reste sur votre ordinateur.",
+      "lead": "citecheck contrôle chaque renvoi à une décision judiciaire à l'aide d'une liste de plus d'un million de décisions suisses et montre ce qui, dans la version à publier, permet d'identifier une personne. Gratuit, open source (MIT).",
       "cta_install": "Installer",
       "cta_data": "Ce qui est envoyé où",
       "cta_source": "Code source",
-      "note": "Version test · Microsoft 365 ou Office 2021 et plus récent",
-      "what_h": "Ce qu'il fait",
+      "note": "Version 1.1 · contrôle de l'anonymisation en aperçu · Microsoft 365 ou Office 2021 et plus récent",
+      "what_h": "Contrôler les citations",
       "what_1": "Trouve les citations ATF/BGE/DTF et les numéros de dossier des tribunaux fédéraux et cantonaux dans le texte et les notes de bas de page.",
       "what_2": "Contrôle chaque citation: la décision est-elle dans la liste, a-t-elle le considérant cité (consid. 4, E. 2.3), la page citée est-elle dans la décision, la date est-elle juste.",
       "what_3": "Pour une citation absente de la liste, montre des citations proches: un numéro qui diffère d'un caractère et porte la même date, ou l'ATF qui contient la page citée.",
@@ -329,6 +371,19 @@ OCL.init({
       "not_3": "Les numéros de considérants sont connus pour environ 80% des décisions. Pour les autres, le volet indique que le considérant ne peut pas être contrôlé.",
       "not_4": "Il ne modifie pas le texte.",
       "shot_cap": "Le volet après un contrôle. Allemand, français, italien, anglais.",
+      "an_h": "Contrôler l'anonymisation <span class=\"cc-tag\">aperçu</span>",
+      "an_1": "Lit tout ce que contient le fichier: le texte, les notes, les en-têtes et pieds de page, et ce qu'on ne voit pas en lisant: les commentaires et leurs auteurs, le texte supprimé dans les modifications, le texte masqué, les codes de champ, les descriptions d'images, les propriétés du document, les données d'applications métier, le nom du fichier.",
+      "an_2": "Chaque mot et chaque nombre est soit expliqué, soit montré. Est expliqué ce qui est courant dans les décisions publiées et n'est pas un nom, ce que l'arrêt rend lui-même public (tribunal, mandataires, doctrine et jurisprudence citées) et chaque espace réservé. Les numéros d'identification sont toujours montrés: numéros AVS (chiffre de contrôle vérifié), IBAN, numéros de téléphone, adresses e-mail, adresses, plaques, parcelles, dates de naissance et d'autres.",
+      "an_3": "Vous cochez ce qui doit être remplacé. Une personne reçoit une lettre, quelle que soit l'écriture de son nom (Müller, Müllers, MÜLLER). Si un nom peut désigner plusieurs personnes, par exemple «Müller» quand il y a deux Müller, vous choisissez la lettre, au besoin passage par passage. <b>Créer une copie anonymisée</b> écrit un nouveau fichier: les passages cochés remplacés, les modifications acceptées, les commentaires, le texte masqué et les propriétés supprimés. La copie est contrôlée à nouveau avant de s'ouvrir. Votre version reste inchangée.",
+      "an_not_h": "Ce qu'il ne fait pas",
+      "an_not_1": "Il ne juge pas si plusieurs indications courantes ensemble (âge, lieu, profession) permettent d'identifier une personne.",
+      "an_not_2": "Lorsqu'un nom de famille est aussi un mot courant (Frei, Sommer, Weiss), il ne peut pas toujours distinguer les deux. Il ne lit pas le texte des images.",
+      "an_not_3": "Il ne décide rien. Ce qu'il montre, c'est vous qui le jugez.",
+      "an_fig": "Mesuré sur 5 724 décisions publiées et anonymisées qu'il n'avait jamais vues: tout numéro d'identification ou adresse placé à côté d'un espace réservé est montré; un nom oublié à un endroit l'est dans 96 à 97 % des cas; une décision montre en médiane 6 (allemand) ou 4 (français) passages à examiner. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/benchmark-anonymization.md\" rel=\"noopener\">Rapport de mesure</a>.",
+      "an_cap": "Le volet après un contrôle: une adresse, un numéro AVS et un nom oublié une fois (aussi dans un commentaire); deux cochés, avec leur espace réservé.",
+      "upd_p": "<b>Installé avant octobre 2026?</b> L'anonymisation est déjà dans le volet: changer en haut (redémarrer Word une fois). Pour son propre bouton dans le ruban, télécharger à nouveau le fichier et remplacer l'ancien.",
+      "use_4": "Anonymisation: ouvrir la version à publier, choisir <b>Anonymisation</b> en haut du volet (ou le bouton du ruban), <b>Contrôler la version</b>, cocher, <b>Créer une copie anonymisée</b>. La première fois, la liste de mots est téléchargée (2,4 Mo).",
+      "pl2_4": "la liste de mots du contrôle de l'anonymisation: mots courants dans les décisions publiées. Aucun nom, aucun texte de décision.",
       "install_h": "Installer",
       "install_p": "Télécharger un fichier et le charger dans Word. Pas de programme d'installation, pas de droits d'administrateur.",
       "dl": "Télécharger citecheck-manifest.xml",
@@ -339,7 +394,7 @@ OCL.init({
       "win_1": "Créer un dossier, par exemple <code>C:\\citecheck</code>, et y déposer le fichier. Clic droit sur le dossier, <b>Propriétés</b>, onglet <b>Partage</b>, <b>Partager</b>, <b>Partager</b>. Noter le chemin réseau affiché, par exemple <code>\\\\VOTRE-PC\\citecheck</code>.",
       "win_2": "Dans Word: <b>Fichier</b>, <b>Options</b>, <b>Centre de gestion de la confidentialité</b>, <b>Paramètres du Centre de gestion de la confidentialité</b>, <b>Catalogues de compléments approuvés</b>. Coller le chemin réseau sous <b>URL du catalogue</b>, <b>Ajouter un catalogue</b>, cocher <b>Afficher dans le menu</b>, <b>OK</b>, <b>OK</b>. Redémarrer Word.",
       "win_3": "<b>Accueil</b>, <b>Compléments</b>, <b>Avancé</b> (anciennes versions: <b>Insertion</b>, <b>Mes compléments</b>). Onglet <b>Dossier partagé</b>, sélectionner citecheck, <b>Ajouter</b>.",
-      "win_4": "Le volet s'ouvre. La prochaine fois: onglet <b>Révision</b>, bouton <b>Contrôler les citations</b>.",
+      "win_4": "Le volet s'ouvre. La prochaine fois: onglet <b>Révision</b>, boutons <b>Contrôler les citations</b> et <b>Contrôler l'anonymisation</b>.",
       "win_hint": "Certaines versions Microsoft 365 de Word affichent aussi <b>Charger mon complément</b> sous <b>Mes compléments</b>; dans ce cas, charger le fichier là, c'est plus rapide. Si le partage de dossiers n'est pas autorisé, votre informatique peut ajouter le même fichier dans le centre d'administration Microsoft 365 (Applications intégrées, Charger des applications personnalisées) ou mettre le complément sur l'intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">instructions pour l'informatique</a>.",
       "web_1": "Ouvrir le document dans Word sur office.com. <b>Insertion</b>, <b>Compléments</b> (versions récentes: <b>Accueil</b>, <b>Compléments</b>, <b>Plus de paramètres</b>).",
       "web_2": "<b>Mes compléments</b>, <b>Gérer mes compléments</b>, <b>Charger mon complément</b>, sélectionner le fichier, <b>Charger</b>.",
@@ -351,7 +406,7 @@ OCL.init({
       "use_h": "Utiliser",
       "use_1": "Ouvrir le projet, appuyer sur <strong>Contrôler le projet</strong>. La première fois, la liste est téléchargée (17 Mo). Ensuite seulement s'il existe une liste plus récente; c'est vérifié avant chaque contrôle.",
       "use_2": "Une ligne par citation: trouvée, divergente, absente de la liste, non contrôlée. Cliquer sur une ligne pour les détails.",
-      "use_3": "Sans Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">ouvrir le volet dans un navigateur</a> et y déposer le .docx. Le fichier est lu dans le navigateur, pas téléversé.",
+      "use_3": "Sans Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html?lang=fr\" rel=\"noopener\">ouvrir le volet dans un navigateur</a> et y déposer le .docx. Le fichier est lu dans le navigateur, pas téléversé.",
       "data_h": "Ce qui est envoyé où",
       "data_p": "Le complément télécharge des fichiers. Il ne téléverse rien.",
       "key_stay": "reste sur votre ordinateur",
@@ -367,9 +422,9 @@ OCL.init({
       "pl1_h": "Votre ordinateur",
       "pl1_p": "Le complément s'exécute dans Word. Il lit le document et compare les citations avec la liste. Tout se passe ici.",
       "pl1_1": "le document",
-      "pl1_2": "les citations qui y sont trouvées",
-      "pl1_3": "les résultats, les commentaires",
-      "pl1_4": "une copie de la liste, pour le prochain contrôle",
+      "pl1_2": "les citations et passages qui y sont trouvés",
+      "pl1_3": "les résultats, les commentaires, la copie anonymisée",
+      "pl1_4": "une copie des listes, pour le prochain contrôle",
       "pl3_h": "Microsoft",
       "pl3_p": "Word charge le fichier office.js depuis appsforoffice.microsoft.com. Tout complément Word en a besoin.",
       "pl3_1": "voit: un complément a été ouvert. Pas quel document.",
@@ -379,17 +434,20 @@ OCL.init({
       "court_h": "Pour l'informatique d'un tribunal",
       "court_p": "Le complément est un dossier de fichiers et un manifeste. Copier le dossier sur un serveur web interne, mettre la liste à côté, générer le manifeste pour cette adresse, le distribuer via le centre d'administration Microsoft 365. Les ordinateurs ne contactent alors que le serveur interne et Microsoft. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Instructions</a>.",
       "fb_h": "Retours",
-      "fb_p": "Ceci est une version test. Si un résultat est faux, envoyer la citation telle qu'elle est écrite et le message du volet: <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> ou courriel. Quels tribunaux et quelles années sont dans la liste: <a href=\"/coverage/\">couverture</a>."
+      "fb_p": "Contrôle des citations: si un résultat est faux, envoyer la citation telle qu'elle est écrite et le message du volet. Anonymisation (aperçu): n'envoyer aucun contenu de documents, mais décrire quel genre de passage a été manqué ou montré à tort (par exemple «nom après un trait d'union», «adresse d'un hôpital»). <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> ou courriel. Quels tribunaux et quelles années sont dans la liste: <a href=\"/coverage/\">couverture</a>.",
+      "doc_title": "citecheck — Contrôler citations et anonymisation dans Word — OpenCaseLaw",
+      "shot_alt": "Le volet citecheck après un contrôle",
+      "an_alt": "Le volet citecheck en mode anonymisation après un contrôle"
     },
     "it": {
       "kicker": "citecheck · componente Word",
-      "h1": "Controlla le citazioni di decisioni giudiziarie in un progetto. In Word. Il testo resta sul vostro computer.",
-      "lead": "citecheck trova ogni rinvio a una decisione giudiziaria nel documento aperto e lo controlla con una lista di 1 081 116 decisioni svizzere: la decisione esiste, ha il considerando citato, pagina e data sono giuste. Gratuito, open source (MIT).",
+      "h1": "Due controlli per le decisioni giudiziarie, in Word. Il documento resta sul vostro computer.",
+      "lead": "citecheck controlla ogni rinvio a una decisione giudiziaria con una lista di oltre un milione di decisioni svizzere e mostra ciò che nella versione da pubblicare rende identificabile una persona. Gratuito, open source (MIT).",
       "cta_install": "Installare",
       "cta_data": "Che cosa viene inviato dove",
       "cta_source": "Codice sorgente",
-      "note": "Versione di prova · Microsoft 365 o Office 2021 e successivi",
-      "what_h": "Che cosa fa",
+      "note": "Versione 1.1 · controllo dell'anonimizzazione in anteprima · Microsoft 365 o Office 2021 e successivi",
+      "what_h": "Controllare le citazioni",
       "what_1": "Trova le citazioni DTF/BGE/ATF e i numeri d'incarto dei tribunali federali e cantonali nel testo e nelle note a piè di pagina.",
       "what_2": "Controlla ogni citazione: la decisione è nella lista, ha il considerando citato (consid. 4, E. 2.3), la pagina citata è nella decisione, la data è giusta.",
       "what_3": "Per una citazione non nella lista mostra citazioni simili: un numero che differisce di un carattere con la stessa data, o la DTF che contiene la pagina citata.",
@@ -400,6 +458,19 @@ OCL.init({
       "not_3": "I numeri dei considerandi sono noti per circa l'80% delle decisioni. Per le altre il riquadro indica che il considerando non è controllabile.",
       "not_4": "Non modifica il testo.",
       "shot_cap": "Il riquadro dopo un controllo. Tedesco, francese, italiano, inglese.",
+      "an_h": "Controllare l'anonimizzazione <span class=\"cc-tag\">anteprima</span>",
+      "an_1": "Legge tutto ciò che il file contiene: il testo, le note, intestazioni e piè di pagina, e ciò che leggendo non si vede: commenti e loro autori, testo eliminato nelle revisioni, testo nascosto, codici di campo, descrizioni delle immagini, proprietà del documento, dati di applicazioni specialistiche, il nome del file.",
+      "an_2": "Ogni parola e ogni numero è spiegato oppure mostrato. È spiegato ciò che è usuale nelle decisioni pubblicate e non è un nome, ciò che la sentenza stessa rende pubblico (tribunale, patrocinatori, dottrina e giurisprudenza citate) e ogni segnaposto. I numeri d'identificazione sono sempre mostrati: numeri AVS (cifra di controllo verificata), IBAN, numeri di telefono, indirizzi e-mail, indirizzi, targhe, particelle, date di nascita e altri.",
+      "an_3": "Lei seleziona ciò che va sostituito. Una persona riceve una lettera, comunque sia scritto il suo nome (Müller, Müllers, MÜLLER). Se un nome può indicare più persone, ad esempio «Müller» quando ci sono due Müller, Lei sceglie la lettera, se necessario passaggio per passaggio. <b>Creare una copia anonimizzata</b> scrive un nuovo file: i passaggi selezionati sostituiti, le revisioni accettate, commenti, testo nascosto e proprietà rimossi. La copia viene controllata di nuovo prima di aprirsi. La Sua versione resta invariata.",
+      "an_not_h": "Che cosa non fa",
+      "an_not_1": "Non valuta se più indicazioni usuali insieme (età, luogo, professione) rendono identificabile una persona.",
+      "an_not_2": "Dove un cognome è anche una parola comune (Frei, Sommer, Weiss), non sempre distingue i due. Non legge il testo nelle immagini.",
+      "an_not_3": "Non decide nulla. Ciò che mostra, lo valuta Lei.",
+      "an_fig": "Misurato su 5 724 decisioni pubblicate e anonimizzate mai viste prima: ogni numero d'identificazione o indirizzo accanto a un segnaposto è mostrato; un nome mancato in un punto lo è dal 96 al 97 % dei casi; una decisione mostra in mediana 6 (tedesco) o 4 (francese) passaggi da esaminare. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/benchmark-anonymization.md\" rel=\"noopener\">Rapporto di misura</a>.",
+      "an_cap": "Il riquadro dopo un controllo: un indirizzo, un numero AVS e un nome mancato una volta (anche in un commento); due selezionati, con il loro segnaposto.",
+      "upd_p": "<b>Installato prima di ottobre 2026?</b> L'anonimizzazione è già nel riquadro: cambiare in alto (riavviare Word una volta). Per il suo pulsante nella barra multifunzione, scaricare di nuovo il file e sostituire quello vecchio.",
+      "use_4": "Anonimizzazione: aprire la versione da pubblicare, scegliere <b>Anonimizzazione</b> in alto nel riquadro (o il pulsante nella barra), <b>Controllare la versione</b>, selezionare, <b>Creare una copia anonimizzata</b>. La prima volta viene caricato l'elenco di parole (2,4 MB).",
+      "pl2_4": "l'elenco di parole del controllo dell'anonimizzazione: parole usuali nelle decisioni pubblicate. Nessun nome, nessun testo di decisione.",
       "install_h": "Installare",
       "install_p": "Scaricare un file e caricarlo in Word. Nessun programma d'installazione, nessun diritto di amministratore.",
       "dl": "Scaricare citecheck-manifest.xml",
@@ -410,7 +481,7 @@ OCL.init({
       "win_1": "Creare una cartella, per esempio <code>C:\\citecheck</code>, e mettervi il file. Clic destro sulla cartella, <b>Proprietà</b>, scheda <b>Condivisione</b>, <b>Condividi</b>, <b>Condividi</b>. Annotare il percorso di rete indicato, per esempio <code>\\\\NOME-PC\\citecheck</code>.",
       "win_2": "In Word: <b>File</b>, <b>Opzioni</b>, <b>Centro protezione</b>, <b>Impostazioni Centro protezione</b>, <b>Cataloghi di componenti aggiuntivi attendibili</b>. Incollare il percorso di rete in <b>URL catalogo</b>, <b>Aggiungi catalogo</b>, spuntare <b>Mostra nel menu</b>, <b>OK</b>, <b>OK</b>. Riavviare Word.",
       "win_3": "<b>Home</b>, <b>Componenti aggiuntivi</b>, <b>Avanzate</b> (versioni precedenti: <b>Inserisci</b>, <b>I miei componenti aggiuntivi</b>). Scheda <b>Cartella condivisa</b>, selezionare citecheck, <b>Aggiungi</b>.",
-      "win_4": "Il riquadro si apre. La prossima volta: scheda <b>Revisione</b>, pulsante <b>Controllare le citazioni</b>.",
+      "win_4": "Il riquadro si apre. La prossima volta: scheda <b>Revisione</b>, pulsanti <b>Controllare le citazioni</b> e <b>Controllare l'anonimizzazione</b>.",
       "win_hint": "Alcune versioni Microsoft 365 di Word mostrano anche <b>Carica il mio componente aggiuntivo</b> sotto <b>I miei componenti aggiuntivi</b>; in tal caso caricare lì il file, è più rapido. Se la condivisione di cartelle non è consentita, l'informatica può aggiungere lo stesso file nell'interfaccia di amministrazione di Microsoft 365 (App integrate, Carica app personalizzate) o mettere il componente nella intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">istruzioni per l'informatica</a>.",
       "web_1": "Aprire il documento in Word su office.com. <b>Inserisci</b>, <b>Componenti aggiuntivi</b> (versioni recenti: <b>Home</b>, <b>Componenti aggiuntivi</b>, <b>Altre impostazioni</b>).",
       "web_2": "<b>I miei componenti aggiuntivi</b>, <b>Gestisci i miei componenti aggiuntivi</b>, <b>Carica il mio componente aggiuntivo</b>, selezionare il file, <b>Carica</b>.",
@@ -422,7 +493,7 @@ OCL.init({
       "use_h": "Usare",
       "use_1": "Aprire il progetto, premere <strong>Controllare il progetto</strong>. La prima volta la lista viene scaricata (17 MB). Poi solo se esiste una lista più recente; viene verificato prima di ogni controllo.",
       "use_2": "Una riga per citazione: trovata, divergente, non nella lista, non controllata. Fare clic su una riga per i dettagli.",
-      "use_3": "Senza Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">aprire il riquadro in un browser</a> e trascinarvi il .docx. Il file viene letto nel browser, non caricato.",
+      "use_3": "Senza Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html?lang=it\" rel=\"noopener\">aprire il riquadro in un browser</a> e trascinarvi il .docx. Il file viene letto nel browser, non caricato.",
       "data_h": "Che cosa viene inviato dove",
       "data_p": "Il componente scarica file. Non carica nulla.",
       "key_stay": "resta sul vostro computer",
@@ -438,9 +509,9 @@ OCL.init({
       "pl1_h": "Il vostro computer",
       "pl1_p": "Il componente gira in Word. Legge il documento e confronta le citazioni con la lista. Tutto avviene qui.",
       "pl1_1": "il documento",
-      "pl1_2": "le citazioni trovate",
-      "pl1_3": "i risultati, i commenti",
-      "pl1_4": "una copia della lista, per il prossimo controllo",
+      "pl1_2": "le citazioni e i passaggi trovati",
+      "pl1_3": "i risultati, i commenti, la copia anonimizzata",
+      "pl1_4": "una copia delle liste, per il prossimo controllo",
       "pl3_h": "Microsoft",
       "pl3_p": "Word carica il file office.js da appsforoffice.microsoft.com. Ogni componente Word ne ha bisogno.",
       "pl3_1": "vede: un componente è stato aperto. Non quale documento.",
@@ -450,17 +521,20 @@ OCL.init({
       "court_h": "Per l'informatica di un tribunale",
       "court_p": "Il componente è una cartella di file e un manifesto. Copiare la cartella su un server web interno, mettere la lista accanto, generare il manifesto per quell'indirizzo, distribuirlo tramite l'interfaccia di amministrazione di Microsoft 365. I computer contattano allora solo il server interno e Microsoft. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Istruzioni</a>.",
       "fb_h": "Riscontri",
-      "fb_p": "Questa è una versione di prova. Se un risultato è sbagliato, inviare la citazione come è scritta e il messaggio del riquadro: <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> o e-mail. Quali tribunali e anni sono nella lista: <a href=\"/coverage/\">copertura</a>."
+      "fb_p": "Controllo delle citazioni: se un risultato è sbagliato, inviare la citazione come è scritta e il messaggio del riquadro. Anonimizzazione (anteprima): non inviare contenuti di documenti, ma descrivere quale tipo di passaggio è stato mancato o mostrato a torto (per esempio «nome dopo un trattino», «indirizzo di un ospedale»). <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> o e-mail. Quali tribunali e anni sono nella lista: <a href=\"/coverage/\">copertura</a>.",
+      "doc_title": "citecheck — Verificare citazioni e anonimizzazione in Word — OpenCaseLaw",
+      "shot_alt": "Il riquadro citecheck dopo una verifica",
+      "an_alt": "Il riquadro citecheck in modalità anonimizzazione dopo una verifica"
     },
     "en": {
       "kicker": "citecheck · Word add-in",
-      "h1": "Checks the case citations in a draft. In Word. The text stays on your computer.",
-      "lead": "citecheck finds every reference to a court decision in the open document and checks it against a list of 1,081,116 Swiss decisions: does the decision exist, does it have the cited Erwägung, are page and date right. Free, open source (MIT).",
+      "h1": "Two checks for court decisions, in Word. The document stays on your computer.",
+      "lead": "citecheck checks every reference to a court decision against a list of over a million Swiss decisions, and shows what in the version to be published could identify a person. Free, open source (MIT).",
       "cta_install": "Install",
       "cta_data": "What is sent where",
       "cta_source": "Source code",
-      "note": "Test version · Microsoft 365 or Office 2021 and later",
-      "what_h": "What it does",
+      "note": "Version 1.1 · anonymisation check as a preview · Microsoft 365 or Office 2021 and later",
+      "what_h": "Check cites",
       "what_1": "Finds BGE/ATF/DTF citations and file numbers of the federal and cantonal courts in the text and the footnotes.",
       "what_2": "Checks each one: is the decision in the list, does it have the cited Erwägung (E. 2.3, consid. 4), is the cited page inside the decision, is the date right.",
       "what_3": "For a citation that is not in the list, shows similar ones: a number one character apart with the same date, or the BGE that contains the cited page.",
@@ -471,6 +545,19 @@ OCL.init({
       "not_3": "Erwägung numbers are known for about 80% of the decisions. For the rest, the pane says the Erwägung cannot be checked.",
       "not_4": "It does not change the text.",
       "shot_cap": "The pane after a check. German, French, Italian, English.",
+      "an_h": "Check anonymisation <span class=\"cc-tag\">preview</span>",
+      "an_1": "Reads everything the file carries: the text, footnotes, headers and footers, and what a reader does not see: comments and their authors, tracked deletions, hidden text, field codes, image descriptions, document properties, data that case-management systems leave in the file, the file name.",
+      "an_2": "Every word and number is either explained or shown. Explained is what is usual in published rulings and not a name, what the ruling itself makes public (court, counsel, cited literature and case law) and every placeholder. Identification numbers are always shown: AHV numbers (check digit verified), IBAN, phone numbers, e-mail addresses, addresses, number plates, land parcels, dates of birth and more.",
+      "an_3": "You tick what to replace. A person gets one letter however the name is written (Müller, Müllers, MÜLLER). Where a name fits more than one person, such as “Müller” with two Müllers, you choose the letter, place by place if need be. <b>Create anonymised copy</b> writes a new file: the ticked places replaced, tracked changes accepted, comments, hidden text and properties removed. The copy is checked again before it opens. Your version stays as it is.",
+      "an_not_h": "What it does not do",
+      "an_not_1": "It does not judge whether several usual facts together (age, place, occupation) identify a person.",
+      "an_not_2": "Where a surname is also an ordinary word (Frei, Sommer, Weiss), it cannot always tell the two apart. It does not read text in images.",
+      "an_not_3": "It decides nothing. What it shows, you judge.",
+      "an_fig": "Measured on 5,724 published, anonymised rulings it had never seen: every identification number or address put next to a placeholder is shown; a name missed in one place is shown in 96 to 97% of cases; a ruling shows a median of 6 (German) or 4 (French) places to look at. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/benchmark-anonymization.md\" rel=\"noopener\">Benchmark report</a>.",
+      "an_cap": "The pane after a check: an address, an AHV number and a name missed once (also in a comment); two ticked, with their placeholders.",
+      "upd_p": "<b>Installed before October 2026?</b> The anonymisation check is already in the pane: switch at the top (restart Word once). For its own button on the ribbon, download the file again and replace the old one.",
+      "use_4": "Anonymisation: open the version to be published, switch to <b>Anonymisierung</b> at the top of the pane (or use the ribbon button), <b>Check this version</b>, tick, <b>Create anonymised copy</b>. The first time, the word list is downloaded (2.4 MB).",
+      "pl2_4": "the word list for the anonymisation check: words that are common in published rulings. No names, no text of any decision.",
       "install_h": "Install",
       "install_p": "Download one file and upload it in Word. No installer, no admin rights.",
       "dl": "Download citecheck-manifest.xml",
@@ -481,7 +568,7 @@ OCL.init({
       "win_1": "Make a folder, for example <code>C:\\citecheck</code>, and put the file in it. Right-click the folder, <b>Properties</b>, tab <b>Sharing</b>, <b>Share</b>, <b>Share</b>. Note the network path shown, for example <code>\\\\YOUR-PC\\citecheck</code>.",
       "win_2": "In Word: <b>File</b>, <b>Options</b>, <b>Trust Center</b>, <b>Trust Center Settings</b>, <b>Trusted Add-in Catalogs</b>. Paste the network path under <b>Catalog Url</b>, <b>Add catalog</b>, tick <b>Show in Menu</b>, <b>OK</b>, <b>OK</b>. Restart Word.",
       "win_3": "<b>Home</b>, <b>Add-ins</b>, <b>Advanced</b> (older versions: <b>Insert</b>, <b>My Add-ins</b>). Tab <b>Shared Folder</b>, select citecheck, <b>Add</b>.",
-      "win_4": "The pane opens. Next time: tab <b>Review</b>, button <b>Check cites</b>.",
+      "win_4": "The pane opens. Next time: tab <b>Review</b>, buttons <b>Check cites</b> and <b>Check anonymisation</b>.",
       "win_hint": "Some Microsoft 365 versions of Word also show <b>Upload My Add-in</b> under <b>My Add-ins</b>; if yours does, upload the file there instead. If sharing a folder is not allowed, your IT can add the same file in the Microsoft 365 admin center (Integrated apps, Upload custom apps) or put the add-in on the intranet: <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">instructions for IT</a>.",
       "web_1": "Open the document in Word at office.com. <b>Insert</b>, <b>Add-ins</b> (newer versions: <b>Home</b>, <b>Add-ins</b>, <b>More Settings</b>).",
       "web_2": "<b>My Add-ins</b>, <b>Manage My Add-ins</b>, <b>Upload My Add-in</b>, select the file, <b>Upload</b>.",
@@ -493,7 +580,7 @@ OCL.init({
       "use_h": "Use",
       "use_1": "Open the draft, press <strong>Check the draft</strong>. The first time, the list is downloaded (17 MB). After that only when a newer list exists; this is checked before every run.",
       "use_2": "One line per citation: found, differs, not in the list, not checked. Click a line for details.",
-      "use_3": "Without Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html\" rel=\"noopener\">open the pane in a browser</a> and drop the .docx on it. The file is read in the browser, not uploaded.",
+      "use_3": "Without Word: <a href=\"https://jonashertner.github.io/citecheck/taskpane.html?lang=en\" rel=\"noopener\">open the pane in a browser</a> and drop the .docx on it. The file is read in the browser, not uploaded.",
       "data_h": "What is sent where",
       "data_p": "The add-in downloads files. It does not upload anything.",
       "key_stay": "stays on your computer",
@@ -508,9 +595,9 @@ OCL.init({
       "pl1_h": "Your computer",
       "pl1_p": "The add-in runs inside Word. It reads the document and compares the citations with the list. Everything happens here.",
       "pl1_1": "the document",
-      "pl1_2": "the citations found in it",
-      "pl1_3": "the results, the comments",
-      "pl1_4": "a copy of the list, for the next run",
+      "pl1_2": "the citations and places found in it",
+      "pl1_3": "the results, the comments, the anonymised copy",
+      "pl1_4": "a copy of the lists, for the next run",
       "ar3": "download",
       "pl3_h": "Microsoft",
       "pl3_p": "Word loads the file office.js from appsforoffice.microsoft.com. Every Word add-in needs it.",
@@ -521,9 +608,14 @@ OCL.init({
       "court_h": "For the IT of a court",
       "court_p": "The add-in is a folder of files and one manifest. Copy the folder to an internal web server, put the list next to it, generate the manifest for that address, distribute it via the Microsoft 365 admin center. The computers then contact only the internal server and Microsoft. <a href=\"https://github.com/jonashertner/citecheck/blob/main/docs/deployment.md\" rel=\"noopener\">Instructions</a>.",
       "fb_h": "Feedback",
-      "fb_p": "This is a test version. If a result is wrong, send the citation as written and the message from the pane: <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> or e-mail. Which courts and years are in the list: <a href=\"/coverage/\">coverage</a>."
+      "fb_p": "Cite check: if a result is wrong, send the citation as written and the message from the pane. Anonymisation check (preview): please send no content from documents; describe what kind of place was missed or shown wrongly (for example “a name after a hyphen”, “a hospital's address”). <a href=\"https://github.com/jonashertner/citecheck/issues\" rel=\"noopener\">GitHub</a> or e-mail. Which courts and years are in the list: <a href=\"/coverage/\">coverage</a>.",
+      "doc_title": "citecheck — Check citations and anonymisation in Word — OpenCaseLaw",
+      "shot_alt": "The citecheck pane after a check",
+      "an_alt": "The citecheck pane in the anonymisation mode after a check"
     }
-  }
+  },
+  // images carry their description in the page language
+  onReady:function (O) { document.querySelectorAll('img[data-t-alt]').forEach(function (img) { img.alt = O.t(img.dataset.tAlt); }); }
 });
 </script>
 </body>

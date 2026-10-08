@@ -725,6 +725,22 @@ for _group in _COURT_OVERLAP_GROUPS:
         _COURT_TO_GROUP[_code] = _frozen
 
 
+def _record_folded_id(conn: sqlite3.Connection, dropped_id: str, kept_id: str) -> None:
+    """Keep the id of a deleted twin resolving to the copy that was kept
+    (decision_id_aliases, the table re-keyed rows use). A ruling held as both
+    sg_gerichte_VZ.2004.35 and sg_publikationen_VZ.2004.35 is served once; a
+    link, attest ledger or dataset row naming the other id must still find it.
+    Never fails the build (a fixture without the table just skips it)."""
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO decision_id_aliases (previous_id, decision_id, source) "
+            "VALUES (?, ?, 'cross_court_dedup')",
+            (dropped_id, kept_id),
+        )
+    except sqlite3.OperationalError as e:
+        logger.debug("decision_id_aliases not recorded for %s: %s", dropped_id, e)
+
+
 def _cross_court_dedup(conn: sqlite3.Connection) -> int:
     """Remove duplicates where the same docket exists under overlapping court codes.
 
@@ -781,6 +797,7 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
                     break
         for did, _, _, _ in entries[1:]:
             conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+            _record_folded_id(conn, did, entries[0][0])
             deleted += 1
 
     deleted += _generic_bucket_twin_dedup(conn)
