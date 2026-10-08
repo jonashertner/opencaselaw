@@ -96,3 +96,20 @@ def test_non_bge_ids_yield_no_candidates():
     for probe in ("bger_4A_231_2014", "mkg_MKGE_16_Nr_1", "6B_1518_2021",
                   "zh_gerichte_131_III_12", "", "bger_"):
         assert m._bge_ref_candidates(probe) == [], probe
+
+
+# ── the scraper's id for volumes 1-79 (user report 2026-10-07) ───────────────
+# The DFR scraper mints "bge_historical_78_IV_83"; the build serves the row as
+# "bge_78_IV_83" (build_fts5.ID_PREFIX_REMAP). Anyone holding the scraper form
+# (dataset mirror, structure parquet) got "Decision not found".
+
+def test_historical_scraper_id_expands_to_the_served_id():
+    got = m._bge_ref_candidates("bge_historical_78_IV_83")
+    assert "bge_78_IV_83" in got
+    assert got == m._bge_ref_candidates("BGE 78 IV 83")
+
+
+def test_historical_scraper_id_resolves(tmp_path, monkeypatch):
+    _patched(tmp_path, monkeypatch)
+    assert m._resolve_decision_id_strict("bge_historical_76_II_346") == "bge_76_II_346"
+    assert m._resolve_decision_id("bge_historical_76_II_346") == "bge_76_II_346"

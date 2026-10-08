@@ -81,6 +81,7 @@ py-modules = [
     "backfill_bvger_chambers",
     "backfill_canonical_identity",
     "base_scraper",
+    "bge_historical_segment",
     "branch_map",
     "build_fts5",
     "cli_ch",

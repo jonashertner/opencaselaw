@@ -376,11 +376,11 @@ Not fixed, with reasons:
 Take an entry off the list when its source is fixed and re-scraped, and the truncate entry
 once the repaired text has been served and the structure rebuilt.
 
-### Built: segmenter rule, as a patch for the segmentation branch
+### Built: segmenter rule (applied with the segmentation branch)
 
-`historical_bge_source_errors_2026-10-07.segment-page-jump.patch` (`git am` onto
-`claude/historical-bge-sg-twins-2026-10-07`; it applies cleanly to `a7e23576`). A ruling
-also ends where the printed page numbers restart well below the reference page, run on for
+Commit `bge_historical_segment: end a ruling where another volume's pages begin`, on top of
+the segmentation branch (`a7e23576`) in the PR that brings that branch to `main`; it was
+kept here as a patch file until then. A ruling also ends where the printed page numbers restart well below the reference page, run on for
 three page lines and never come back. That is the audit's `page_jump` rule, starting after
 the own header.
 
@@ -490,7 +490,7 @@ the printed volume BGE 52 I and in DFR's own files.
 ### Recommended order
 
 1. Review and deploy the serving list. It needs no rebuild and protects readers at once.
-2. Review and merge the segmentation branch with the page-jump patch.
+2. Review and merge the segmentation branch with the page-jump rule (one PR).
 3. Build the recovery (previous section) before the segmentation runs: the 52 I pages it
    needs leave the neighbouring rows when the shard is segmented.
 4. In one maintenance window: recover, segment, remove the foreign texts, re-fetch 22 I 12
