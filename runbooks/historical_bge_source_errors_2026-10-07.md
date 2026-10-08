@@ -184,12 +184,19 @@ same form as the existing rows. Four decoded references checked on the scans:
 
 Above page 999 these volumes hold their civil-law part (running heads "B." / "C. Civilrechtspflege").
 
-### Patch (branch `claude/modest-dirac-r3nqvk`; proposal, not run in production)
+### Patch `historical_bge_source_errors_2026-10-07.letter-pages.patch` (proposal, not run in production)
 
 `scrapers/bge_historical.py`: `DECISION_CODE_RE` takes `[A-J]\d{2}` as a page code, and
 `decode_page()` turns `C39` into 1239. Nothing else changes: ids, dockets and titles keep the
-`V_P_PAGE` / "BGE V P PAGE" form. Offline tests are in
-`tests/test_bge_historical_letter_pages.py`.
+`V_P_PAGE` / "BGE V P PAGE" form. Offline tests: `tests/test_bge_historical_letter_pages.py`,
+in the patch.
+
+It is a patch file, not part of this branch's code: `bge_historical` runs every night in
+`run_all_scrapers.py` (`opencaselaw-scrape.timer`, 01:00 UTC; not in `SKIP_BY_DEFAULT`), so
+merging the change and deploying would fetch the 230 pages at the next 01:00 run, before the
+segmenter and without the staging run below. Apply it (`git apply`) on top of the merged
+segmentation branch, in its own PR. It applies cleanly on `main` and on the segmentation
+branch.
 
 **Measured offline** (no production state touched):
 
@@ -264,10 +271,11 @@ neither branch has a GitHub CI run yet. A pull request would give one. The last 
 - Today's full publish (timer 03:30 UTC) swapped about 18:00 and finalized 18:31 UTC
   (commits `379b29ea`, `b0e3857e`). The incremental publish timer runs Mon-Sat 20:00 UTC.
 - Shard repairs and the letter-coded scraper run go after the full publish has finished
-  and must be done before the next one starts at 03:30 UTC. Check
-  `systemctl is-active opencaselaw-publish.service` (inactive), not only the absence of
-  `/tmp/opencaselaw-publish.lock`: `publish.py` releases the lock at the DB swap, and later
-  steps still read the shards. The incremental publish (20:00 UTC; it ended about 02:28 UTC
+  and must be done before the nightly scrape starts at 01:00 UTC (`opencaselaw-scrape.timer`,
+  `run_all_scrapers.py`, which appends to the shards and runs for hours). Check
+  `systemctl is-active opencaselaw-publish.service opencaselaw-scrape.service` (both
+  inactive), not only the absence of `/tmp/opencaselaw-publish.lock`: `publish.py` releases
+  the lock at the DB swap, and later steps still read the shards. The incremental publish (20:00 UTC; it ended about 02:28 UTC
   on 2026-10-08) reads `decisions.db`, not the shards (its production `ExecStart` has no
   `--structure-from-shards`), so it does not race a shard repair. No scraper may append to
   the shard being repaired while the repair runs: the atomic replace would drop the lines it
@@ -413,8 +421,8 @@ for f in $(grep -lE '["_](52_I_(1|8|23|39|149|230)|39_I_469|22_I_12|71_II_223)"'
 ### Still proposals
 
 **A (52 I ×6) and C (39 I 469): shard repair.** Run the script above at the next
-segmentation window: after the full publish has finished, done before 03:30 UTC (see
-"Coordination check").
+segmentation window: after the full publish has finished, done before the 01:00 UTC
+nightly scrape (see "Coordination check").
 
 Not recommended:
 
