@@ -555,9 +555,9 @@ h1 i{display:block;font-size:52px;margin:4px 0 0 6px;color:#e3bd4f}
 .gl{font-family:'Bodoni Moda',serif;font-style:italic;font-size:22px;fill:#fff8e8}
 .gl.s{font-size:16px;fill:#d9d1bf}
 .gn{font-style:normal;font-weight:500}
-.lg{position:absolute;left:46px;right:46px;top:1184px;display:flex;justify-content:space-between;font-size:21px}
+.lg{position:absolute;left:46px;right:46px;top:1150px;display:flex;justify-content:space-between;font-size:21px}
 .lg i{display:inline-block;width:17px;height:17px;border-radius:3px;margin-right:9px;vertical-align:-2px}
-.key{position:absolute;left:46px;right:46px;top:1222px;font-size:17px;font-style:italic;color:#bfb7a3}
+.key{position:absolute;left:46px;right:46px;top:1190px;font-size:16px;line-height:1.3;font-style:italic;color:#bfb7a3}
 .ft{position:absolute;left:46px;right:46px;bottom:28px;display:flex;justify-content:space-between;align-items:baseline;font-size:19px;color:#cfc6b1;border-top:1px solid #39456a;padding-top:12px}
 .ft b{font-size:32px;font-weight:500;color:#f1ead9}"""
     return page("family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400;1,6..96,500", css, body, lang)

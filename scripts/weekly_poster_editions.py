@@ -648,6 +648,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ref", default="origin/main", help="git ref carrying the nightly stats.json commits")
     ap.add_argument("--seats", help="LU=n,VD=n: split the Federal Supreme Court in this proportion when the "
                     "week's snapshots predate federal_seats (counts of the week's new rows by docket prefix)")
+    ap.add_argument("--bger-scraped", help="LU=n,VD=n: the Federal Supreme Court's rows first scraped in the window "
+                    "(read-only database count); replaces its snapshot figure, which dips and recovers within a week")
     ap.add_argument("--archive", action="store_true",
                     help="also publish into docs/posters/ (WebP + index.json); refuses to run on fallback fonts")
     args = ap.parse_args(argv)
@@ -656,6 +658,8 @@ def main(argv: list[str] | None = None) -> int:
 
     seats = dict((k, int(v)) for k, v in (p.split("=") for p in args.seats.split(","))) if args.seats else None
     delta, cur = wp.load_week(args.ref, args.end, seats)
+    if args.bger_scraped:  # Federal Supreme Court: rows first scraped in the window, counted in the database
+        wp.set_court_counts(delta, {f"bger@{k}": int(v) for k, v in (p.split("=") for p in args.bger_scraped.split(","))})
     iso = delta["to"].isocalendar()
     out = wp.REPO / "output" / "posters"
     out.mkdir(parents=True, exist_ok=True)

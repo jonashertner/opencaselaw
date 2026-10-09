@@ -223,3 +223,12 @@ def test_only_what_the_catch_all_lost_is_taken_off():
 def test_a_dedupe_elsewhere_is_not_mistaken_for_re_filing():
     d = wp.weekly_delta([BASE, CUR])
     assert d["refiled"] == {} and d["by_canton"] == {"CH": 31, "ZH": 7, "VD": 4}
+
+
+def test_federal_supreme_court_can_take_its_counts_from_the_database():
+    d = wp.weekly_delta([BASE, CUR])
+    before_other = d["added"] - d["by_court"]["bger"]
+    wp.set_court_counts(d, {"bger@LU": 33, "bger@VD": 142})
+    assert "bger" not in d["by_court"] and d["by_court"]["bger@VD"] == 142
+    assert d["added"] == before_other + 175 and d["by_canton"]["CH"] == 175 + 1  # ecthr_chamber CH +1
+    assert d["federal_split"]

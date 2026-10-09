@@ -368,6 +368,28 @@ def usual_week(delta: dict, ref: str = "origin/main", weeks: int = 8) -> dict:
             "added": statistics.median(w["added"] for w in past), "weeks": weeks}
 
 
+def set_court_counts(delta: dict, counts: dict[str, int], canton: str = FEDERAL) -> None:
+    """Replace the week's figures for some courts by counts taken directly from the database.
+
+    Used for the Federal Supreme Court, whose snapshot count dips and recovers within a week so the
+    running-peak rule undercounts it: `counts` are its rows first scraped in the window, by seat
+    ({"bger@LU": n, "bger@VD": n}). Every other court keeps the snapshot rule.
+    """
+    base = {c.split("@")[0] for c in counts}
+    for key in [k for k in delta["by_key"] if k[1] == canton and k[0].split("@")[0] in base]:
+        del delta["by_key"][key]
+    for court, n in counts.items():
+        if n:
+            delta["by_key"][(court, canton)] = n
+    by_court, by_canton = {}, {}
+    for (court, cn), n in delta["by_key"].items():
+        by_court[court] = by_court.get(court, 0) + n
+        by_canton[cn] = by_canton.get(cn, 0) + n
+    delta["by_court"], delta["by_canton"] = by_court, by_canton
+    delta["added"] = sum(delta["by_key"].values())
+    delta["federal_split"] = delta["federal_split"] or any("@" in c for c in counts)
+
+
 def apply_seats(delta: dict, seats: dict[str, int]) -> None:
     """Replace the week's bger row by bger@LU / bger@VD in the proportion of `seats` (see load_week)."""
     key = ("bger", FEDERAL)
