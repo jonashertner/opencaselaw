@@ -2,6 +2,44 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W41",
+   "from": "2026-10-02",
+   "to": "2026-10-08",
+   "added": 724,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "board",
+     "file": "2026-w41/de-board.webp",
+     "caption": "Woche 41 in der Schweizer Rechtsprechung: 724 neue Entscheide. opencaselaw.ch"
+    },
+    {
+     "lang": "fr",
+     "design": "rose",
+     "file": "2026-w41/fr-rose.webp",
+     "caption": "Semaine 41 de la jurisprudence suisse: 724 nouvelles décisions. opencaselaw.ch"
+    },
+    {
+     "lang": "it",
+     "design": "mosaic",
+     "file": "2026-w41/it-mosaic.webp",
+     "caption": "Settimana 41 della giurisprudenza svizzera: 724 nuove decisioni. opencaselaw.ch"
+    },
+    {
+     "lang": "rm",
+     "design": "sgraffito",
+     "file": "2026-w41/rm-sgraffito.webp",
+     "caption": "Emna 41: 724 novas decisiuns. opencaselaw.ch"
+    },
+    {
+     "lang": "en",
+     "design": "forecast",
+     "file": "2026-w41/en-forecast.webp",
+     "caption": "Week 41 in Swiss case law: 724 new decisions. opencaselaw.ch"
+    }
+   ]
+  },
+  {
    "week": "2026-W40",
    "from": "2026-09-25",
    "to": "2026-10-02",

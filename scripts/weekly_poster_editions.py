@@ -605,7 +605,8 @@ def archive_week(delta: dict, rendered: dict[str, tuple[str, Path, str]], archiv
         full.resize((360, 450), Image.LANCZOS).save(archive / "latest" / f"{lang}-s.webp", "WEBP", quality=80, method=6)
         posters.append({"lang": lang, "design": design, "file": rel, "caption": caption})
     week = {
-        "week": f"{iso.year}-W{iso.week:02d}", "from": delta["from"].date().isoformat(),
+        # the baseline is the previous day's last snapshot, so the week shown starts the day after
+        "week": f"{iso.year}-W{iso.week:02d}", "from": (delta["from"] + timedelta(days=1)).date().isoformat(),
         "to": delta["to"].date().isoformat(), "added": delta["added"], "posters": posters,
     }
     index = archive / "index.json"
@@ -613,6 +614,28 @@ def archive_week(delta: dict, rendered: dict[str, tuple[str, Path, str]], archiv
     manifest = update_manifest(manifest, week)
     index.write_text(json.dumps(manifest, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     return week
+
+
+CAPTION_BY_DESIGN = {  # one line per post, in the poster's language (Jonas: minimal captions)
+    "board": "Woche {w} in der Schweizer Rechtsprechung: {n} neue Entscheide. opencaselaw.ch",
+    "rose": "Semaine {w} de la jurisprudence suisse: {n} nouvelles décisions. opencaselaw.ch",
+    "mosaic": "Settimana {w} della giurisprudenza svizzera: {n} nuove decisioni. opencaselaw.ch",
+    "sgraffito": "Emna {w}: {n} novas decisiuns. opencaselaw.ch",
+    "forecast": "Week {w} in Swiss case law: {n} new decisions. opencaselaw.ch",
+}
+
+
+def library() -> dict[str, list[tuple[str, object]]]:
+    """Every design per language, oldest first. The rotation walks this list week by week."""
+    import weekly_poster_designs as more
+
+    return {lang: [EDITION[lang], more.DESIGNS[lang]] for lang in EDITION}
+
+
+def pick(lang: str, week: int, lib: dict | None = None) -> tuple[str, object]:
+    """The design for `lang` in ISO week `week`: week 40 opened the series with the first of each list."""
+    designs = (lib or library())[lang]
+    return designs[(week - 40) % len(designs)]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -623,23 +646,27 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("langs", nargs="*", choices=[*EDITION, []], help="languages to render (default: all five)")
     ap.add_argument("--end", type=date.fromisoformat, help="last day of the window (default: newest snapshot)")
     ap.add_argument("--ref", default="origin/main", help="git ref carrying the nightly stats.json commits")
+    ap.add_argument("--seats", help="LU=n,VD=n: split the Federal Supreme Court in this proportion when the "
+                    "week's snapshots predate federal_seats (counts of the week's new rows by docket prefix)")
     ap.add_argument("--archive", action="store_true",
                     help="also publish into docs/posters/ (WebP + index.json); refuses to run on fallback fonts")
     args = ap.parse_args(argv)
     if args.archive and args.langs and set(args.langs) != set(EDITION):
         ap.error("--archive publishes a whole week: render all five languages")
 
-    delta, cur = wp.load_week(args.ref, args.end)
+    seats = dict((k, int(v)) for k, v in (p.split("=") for p in args.seats.split(","))) if args.seats else None
+    delta, cur = wp.load_week(args.ref, args.end, seats)
     iso = delta["to"].isocalendar()
     out = wp.REPO / "output" / "posters"
     out.mkdir(parents=True, exist_ok=True)
     rendered = {}
+    lib = library()
     for lang in args.langs or list(EDITION):
-        name, fn = EDITION[lang]
+        name, fn = pick(lang, iso.week, lib)
         doc = fn(delta, cur, lang)
         path = out / f"opencaselaw-{iso.year}-w{iso.week:02d}-{lang}-{name}"
         path.with_suffix(".html").write_text(doc, encoding="utf-8")
-        caption = CAPTION[lang].format(
+        caption = CAPTION_BY_DESIGN.get(name, CAPTION[lang]).format(
             w=iso.week, n=wp.fmt(delta["added"], lang), a=wp.fmt_day(delta["from"], lang),
             b=wp.fmt_day(delta["to"], lang), t=wp.fmt(cur["total"], lang)).replace("..", ".")  # "1.10." + full stop
         path.with_suffix(".txt").write_text(caption + "\n", encoding="utf-8")

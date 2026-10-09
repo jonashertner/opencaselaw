@@ -138,6 +138,55 @@ def test_luzern_rulings_stand_in_luzern_on_the_map():
     assert seats["LU"] >= 15 and seats["VD"] >= 15 + 4  # vd_findinfo adds 4 in Lausanne
 
 
+def test_each_language_alternates_between_its_designs_week_by_week():
+    import weekly_poster_editions as ed
+
+    lib = ed.library()
+    assert {lang: ed.pick(lang, 40, lib)[0] for lang in lib} == {
+        "de": "topo", "fr": "sediment", "it": "score", "rm": "fields", "en": "receipt"}
+    assert {lang: ed.pick(lang, 41, lib)[0] for lang in lib} == {
+        "de": "board", "fr": "rose", "it": "mosaic", "rm": "sgraffito", "en": "forecast"}
+    assert ed.pick("de", 42, lib)[0] == "topo"
+    assert all(name in ed.CAPTION_BY_DESIGN or lang in ed.CAPTION for lang, designs in lib.items() for name, _ in designs)
+
+
+def test_forecast_trend_words():
+    import weekly_poster_designs as dz
+
+    assert dz.trend(557, 198) == "557, rising sharply from 198"
+    assert dz.trend(172, 159) == "172, steady from 159"
+    assert dz.trend(0, 3) == "quiet, after 3"
+    assert dz.trend(15, 0) == "15, new this week"
+    assert dz.trend(0, 0) == ""
+
+
+def test_new_designs_render_from_a_two_snapshot_week():
+    import weekly_poster_designs as dz
+
+    d = wp.weekly_delta([BASE, CUR])
+    for lang, (name, fn) in dz.DESIGNS.items():
+        usual = {"by_canton": d["by_canton"], "added": d["added"], "weeks": 8}
+        extra = {"board": {"prev": d}, "forecast": {"usual": usual}, "rose": {"usual": usual},
+                 "sgraffito": {"usual": usual}}.get(name, {})
+        page = fn(d, CUR, lang, **extra)  # no git: every baseline is passed in
+        assert page.startswith("<!doctype html>") and "opencaselaw.ch" in page, name
+
+
+def test_multi_court_sources_split_by_court_code_when_every_snapshot_carries_it():
+    import weekly_poster_designs as dz
+
+    def chambered(s, atas, acjc, other):
+        rows = [r for r in s["by_court"] if r["court"] != "ge_gerichte"] + [
+            {"court": "ge_gerichte", "canton": "GE", "count": atas + acjc + other}]
+        return {**s, "by_court": rows, "court_chambers": {"ge_gerichte": {"ATAS": atas, "ACJC": acjc, "A": other}}}
+
+    d = wp.weekly_delta([chambered(BASE, 10, 5, 1), chambered(CUR, 15, 6, 2)])
+    assert d["by_court"]["ge_gerichte#ATAS"] == 5 and d["by_court"]["ge_gerichte#ACJC"] == 1
+    folded = dz.fold_chambers(d["by_court"])
+    assert folded["ge_gerichte#Cour de justice, Chambre des assurances sociales"] == 5
+    assert folded["ge_gerichte"] == 1  # "A" is a docket prefix, not a court: back to the canton row
+    badge, city, via, fed = dz.board_row("ge_gerichte#Cour de justice, Chambre des assurances sociales", "GE")
+    assert (badge, city, fed) == ("ATAS", "Genève", False) and via.endswith("Kanton Genf")
 ZH_BASE = snap("2026-10-02T21:00:00+00:00", [
     ("zh_gerichte", "ZH", 100), ("zh_obergericht", "ZH", 50), ("zh_bezirksgericht_horgen", "ZH", 5),
     ("vd_gerichte", "VD", 900), ("bger", "CH", 100),

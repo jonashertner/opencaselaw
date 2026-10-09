@@ -179,14 +179,19 @@ def drop_implausible(snaps: list[dict]) -> list[dict]:
 
 
 def pick_window(snaps: list[dict], end: date | None = None, days: int = 7) -> tuple[dict, dict]:
-    """(baseline, current): the newest snapshot up to `end`, and the one closest to `days` earlier."""
+    """(baseline, current): the newest snapshot up to `end`, and the last snapshot of the day `days` earlier.
+
+    A day's build writes several snapshots (post-swap refresh, final). Ending the baseline on a day's
+    last one makes the week exactly `days` builds, so no build is split across two weeks.
+    """
     if end is not None:
         snaps = [s for s in snaps if parse_ts(s["generated_at"]).date() <= end]
     if len(snaps) < 2:
         raise SystemExit("need at least two stats.json snapshots in git history for this window")
     cur = snaps[-1]
-    target = parse_ts(cur["generated_at"]) - timedelta(days=days)
-    base = min(snaps[:-1], key=lambda s: abs(parse_ts(s["generated_at"]) - target))
+    last_day = parse_ts(cur["generated_at"]).date() - timedelta(days=days)
+    earlier = [s for s in snaps[:-1] if parse_ts(s["generated_at"]).date() <= last_day]
+    base = earlier[-1] if earlier else snaps[0]
     return base, cur
 
 
@@ -210,13 +215,17 @@ def weekly_delta(snaps: list[dict]) -> dict:
     # window carries the split; mixing split and unsplit snapshots would count a whole
     # seat's history as new.
     split = all(_seat_split_ok(s) for s in snaps)
-    rows = lambda snap: _seat_rows(snap) if split else snap["by_court"]  # noqa: E731
+    chambered = all(_chambers_ok(s) for s in snaps)
+    rows = lambda snap: _chamber_rows(snap, _seat_rows(snap) if split else snap["by_court"]) if chambered \
+        else (_seat_rows(snap) if split else snap["by_court"])  # noqa: E731
     # A court can appear once per canton (ECtHR: Swiss-respondent "CH" vs other states "CE").
     peak = {(c["court"], c["canton"]): c["count"] for c in rows(base) if swiss(c["canton"])}
     by_key: dict[tuple[str, str], int] = {}
     by_day: dict[date, dict[str, int]] = {}
+    by_court_day: dict[date, dict[str, int]] = {}
     for snap in snaps[1:]:
         day = by_day.setdefault(parse_ts(snap["generated_at"]).date(), {})
+        court_day = by_court_day.setdefault(parse_ts(snap["generated_at"]).date(), {})
         for c in rows(snap):
             key = (c["court"], c["canton"])
             if not swiss(c["canton"]):
@@ -226,6 +235,7 @@ def weekly_delta(snaps: list[dict]) -> dict:
                 peak[key] = c["count"]
                 by_key[key] = by_key.get(key, 0) + gain
                 day[c["canton"]] = day.get(c["canton"], 0) + gain
+                court_day[c["court"]] = court_day.get(c["court"], 0) + gain
     final = {(c["court"], c["canton"]): c["count"] for c in rows(cur)}
     # Rulings that leave a canton's catch-all bucket for a named court of the same canton
     # were in the corpus already: re-filed, not new. Take them off that canton's additions
@@ -261,6 +271,7 @@ def weekly_delta(snaps: list[dict]) -> dict:
         "by_court": by_court,
         "by_canton": by_canton,
         "by_day": by_day,
+        "by_court_day": by_court_day,
         "added": sum(by_key.values()),
         "federal_split": split,
         "removed": sum(n - final.get(key, 0) for key, n in peak.items() if n > final.get(key, 0))
@@ -293,13 +304,88 @@ def _seat_rows(snap: dict) -> list[dict]:
     return out
 
 
-def load_week(ref: str = "origin/main", end: date | None = None) -> tuple[dict, dict]:
-    """(delta, newest snapshot) for the week ending at `end` (default: the newest snapshot)."""
+def _chambers_ok(snap: dict) -> bool:
+    """The snapshot carries court_chambers and each source's codes add up to its count."""
+    ch = snap.get("court_chambers") or {}
+    if not ch:
+        return False
+    counts = {c["court"]: c["count"] for c in snap["by_court"]}
+    return all(court in counts and sum(per.values()) == counts[court] for court, per in ch.items())
+
+
+def _chamber_rows(snap: dict, rows: list[dict]) -> list[dict]:
+    """rows with each multi-court source replaced by one row per recorded court code ("ge_gerichte#ATAS")."""
+    ch = snap.get("court_chambers") or {}
+    out = []
+    for c in rows:
+        per = ch.get(c["court"])
+        if per:
+            out += [{**c, "court": f"{c['court']}#{code}", "count": n} for code, n in sorted(per.items())]
+        else:
+            out.append(c)
+    return out
+
+
+def load_week(ref: str = "origin/main", end: date | None = None,
+              seats: dict[str, int] | None = None) -> tuple[dict, dict]:
+    """(delta, newest snapshot) for the week ending at `end` (default: the newest snapshot).
+
+    `seats` ({"LU": n, "VD": n}) splits the Federal Supreme Court for a week whose snapshots do not
+    all carry federal_seats yet: the week's figure is divided in the proportion of these counts (the
+    week's new rows by docket prefix, counted in the database). From the first week whose snapshots
+    all carry the field, the split is exact and `seats` is ignored.
+    """
     since = 21 if end is None else (date.today() - end).days + 21
     snaps = load_snapshots(ref, since)
     base, cur = pick_window(snaps, end)
     lo, hi = parse_ts(base["generated_at"]), parse_ts(cur["generated_at"])
-    return weekly_delta([s for s in snaps if lo <= parse_ts(s["generated_at"]) <= hi]), cur
+    delta = weekly_delta([s for s in snaps if lo <= parse_ts(s["generated_at"]) <= hi])
+    if seats and not delta["federal_split"]:
+        apply_seats(delta, seats)
+    return delta, cur
+
+
+def usual_week(delta: dict, ref: str = "origin/main", weeks: int = 8) -> dict:
+    """A typical week before this one: per canton (and in total) the median of the previous `weeks` weeks.
+
+    The median, not the mean, so a single clean-up or re-key week (14,000 Vaud rows in September)
+    does not move it.
+    """
+    import statistics
+
+    snaps = load_snapshots(ref, 7 * weeks + 30)
+    end = delta["to"].date()
+    past = []
+    for k in range(1, weeks + 1):
+        base, cur = pick_window(snaps, end - timedelta(days=7 * k))
+        lo, hi = parse_ts(base["generated_at"]), parse_ts(cur["generated_at"])
+        past.append(weekly_delta([s for s in snaps if lo <= parse_ts(s["generated_at"]) <= hi]))
+    codes = [*TILES, FEDERAL]
+    courts = {c for w in past for c in w["by_court"]} | set(delta["by_court"])
+    return {"by_canton": {c: statistics.median(w["by_canton"].get(c, 0) for w in past) for c in codes},
+            "by_court": {c: statistics.median(w["by_court"].get(c, 0) for w in past) for c in courts
+                         if "@" not in c or all(c in w["by_court"] for w in past)},
+            "added": statistics.median(w["added"] for w in past), "weeks": weeks}
+
+
+def apply_seats(delta: dict, seats: dict[str, int]) -> None:
+    """Replace the week's bger row by bger@LU / bger@VD in the proportion of `seats` (see load_week)."""
+    key = ("bger", FEDERAL)
+    n = delta["by_key"].get(key, 0)
+    if not n or sum(seats.values()) <= 0:
+        return
+    total = sum(seats.values())
+    exact = {seat: n * v / total for seat, v in seats.items()}
+    split = {seat: int(x) for seat, x in exact.items()}
+    for seat in sorted(exact, key=lambda k: exact[k] - split[k], reverse=True)[: n - sum(split.values())]:
+        split[seat] += 1  # largest remainder, so the parts add up to the week's figure
+    del delta["by_key"][key]
+    delta["by_court"].pop("bger", None)
+    for seat, v in split.items():
+        if v:
+            delta["by_key"][(f"bger@{seat}", FEDERAL)] = v
+            delta["by_court"][f"bger@{seat}"] = v
+    delta["federal_split"] = "proportional"
 
 
 # ── layout ────────────────────────────────────────────────────────────────────
