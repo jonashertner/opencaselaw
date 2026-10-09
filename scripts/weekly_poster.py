@@ -41,6 +41,11 @@ TILES = {
     "GE": (0, 4), "VS": (2, 4), "UR": (4, 4), "TI": (5, 4),
 }
 FEDERAL = "CH"
+# A canton's catch-all court code: rows a scraper could not attribute to the court that
+# decided them. When a repair files them under that court, the named court's count rises
+# and the catch-all's falls; weekly_delta counts that as re-filed, not new. zh_gerichte
+# held 1,438 such rows until the 2026-10 ZH portal migration moved them.
+CATCH_ALL = {"zh_gerichte"}
 COLS, ROWS = 7, 5
 CELL_W, CELL_H, GAP = 128, 144, 6
 LABEL_H = 28  # room above the dots for the canton code and its count
@@ -193,6 +198,11 @@ def weekly_delta(snaps: list[dict]) -> dict:
     added before it, and a count that dips and recovers is not counted twice.
     Rulings added after a clean-up, below the earlier peak, are missed: the
     result is a lower bound. Records removed = peak minus final count.
+
+    Re-filing: rulings leaving a canton's catch-all bucket (CATCH_ALL) are taken off
+    the additions of that canton's other courts, up to what the bucket lost, and are
+    not counted as removed either ("refiled" per canton). New rulings that arrive in
+    the same canton in a re-filing week are hidden by it: still a lower bound.
     """
     base, cur = snaps[0], snaps[-1]
     swiss = lambda canton: canton in TILES or canton == FEDERAL  # "CE" = non-Swiss ECtHR
@@ -217,6 +227,30 @@ def weekly_delta(snaps: list[dict]) -> dict:
                 by_key[key] = by_key.get(key, 0) + gain
                 day[c["canton"]] = day.get(c["canton"], 0) + gain
     final = {(c["court"], c["canton"]): c["count"] for c in rows(cur)}
+    # Rulings that leave a canton's catch-all bucket for a named court of the same canton
+    # were in the corpus already: re-filed, not new. Take them off that canton's additions
+    # (largest court and night first) and out of the removed count.
+    refiled: dict[str, int] = {}
+    for (court, canton), top in peak.items():
+        if court not in CATCH_ALL:
+            continue
+        gains = {k: n for k, n in by_key.items() if k[1] == canton and k[0] not in CATCH_ALL}
+        moved = min(max(0, top - final.get((court, canton), 0)), sum(gains.values()))
+        if not moved:
+            continue
+        refiled[canton] = refiled.get(canton, 0) + moved
+        left = moved
+        for k in sorted(gains, key=lambda k: (-gains[k], k)):
+            take = min(left, by_key[k])
+            by_key[k] -= take
+            left -= take
+        left = moved
+        for day in sorted(by_day, key=lambda d: (-by_day[d].get(canton, 0), d)):
+            take = min(left, by_day[day].get(canton, 0))
+            if take:
+                by_day[day][canton] -= take
+            left -= take
+    by_key = {k: n for k, n in by_key.items() if n}
     by_court: dict[str, int] = {}
     by_canton: dict[str, int] = {}
     for (court, canton), n in by_key.items():
@@ -229,7 +263,9 @@ def weekly_delta(snaps: list[dict]) -> dict:
         "by_day": by_day,
         "added": sum(by_key.values()),
         "federal_split": split,
-        "removed": sum(n - final.get(key, 0) for key, n in peak.items() if n > final.get(key, 0)),
+        "removed": sum(n - final.get(key, 0) for key, n in peak.items() if n > final.get(key, 0))
+                   - sum(refiled.values()),
+        "refiled": refiled,
         "from": parse_ts(base["generated_at"]),
         "to": parse_ts(cur["generated_at"]),
     }
