@@ -136,3 +136,41 @@ def test_luzern_rulings_stand_in_luzern_on_the_map():
     d = wp.weekly_delta([_split(BASE, 70, 30), _split(CUR, 85, 45)])
     seats = ed.seat_heights(d)
     assert seats["LU"] >= 15 and seats["VD"] >= 15 + 4  # vd_findinfo adds 4 in Lausanne
+
+
+ZH_BASE = snap("2026-10-02T21:00:00+00:00", [
+    ("zh_gerichte", "ZH", 100), ("zh_obergericht", "ZH", 50), ("zh_bezirksgericht_horgen", "ZH", 5),
+    ("vd_gerichte", "VD", 900), ("bger", "CH", 100),
+])
+
+
+def _zh_cur(gerichte, obergericht, horgen, ts="2026-10-09T13:00:00+00:00"):
+    return snap(ts, [
+        ("zh_gerichte", "ZH", gerichte), ("zh_obergericht", "ZH", obergericht),
+        ("zh_bezirksgericht_horgen", "ZH", horgen), ("vd_gerichte", "VD", 600), ("bger", "CH", 120),
+    ])
+
+
+def test_rulings_leaving_the_catch_all_for_a_named_court_are_refiled_not_new():
+    # 90 leave zh_gerichte; the Obergericht gains 70, Horgen 15: all 85 are re-filed.
+    d = wp.weekly_delta([ZH_BASE, _zh_cur(10, 120, 20)])
+    assert d["by_canton"].get("ZH", 0) == 0
+    assert d["refiled"] == {"ZH": 85}
+    assert d["added"] == 20                     # the Bundesgericht's 20, nothing from Zurich
+    assert d["removed"] == 300 + 5              # Vaud's clean-up + the 5 that left the corpus
+    assert sum(sum(day.values()) for day in d["by_day"].values()) == d["added"]
+
+
+def test_only_what_the_catch_all_lost_is_taken_off():
+    # 30 leave zh_gerichte, Zurich's named courts gain 85: 55 stay new, the largest court gives first.
+    mid = _zh_cur(70, 100, 5, ts="2026-10-05T21:00:00+00:00")
+    d = wp.weekly_delta([ZH_BASE, mid, _zh_cur(70, 120, 20)])
+    assert d["refiled"] == {"ZH": 30}
+    assert d["by_canton"]["ZH"] == 55
+    assert d["by_court"]["zh_obergericht"] == 40 and d["by_court"]["zh_bezirksgericht_horgen"] == 15
+    assert sum(sum(day.values()) for day in d["by_day"].values()) == d["added"]
+
+
+def test_a_dedupe_elsewhere_is_not_mistaken_for_re_filing():
+    d = wp.weekly_delta([BASE, CUR])
+    assert d["refiled"] == {} and d["by_canton"] == {"CH": 31, "ZH": 7, "VD": 4}
