@@ -77,10 +77,28 @@ def _rconn(p: str) -> sqlite3.Connection:
     return c
 
 
+def _build_graph(path: Path) -> str:
+    """The reference graph: BGE 115 V 368 cites BGE 73 II 6 (the citing list of
+    a BGE reference comes from here since 2026-10-10, not from full text)."""
+    g = sqlite3.connect(path)
+    g.executescript(
+        "CREATE TABLE decisions(decision_id TEXT PRIMARY KEY, court TEXT, decision_date TEXT);"
+        "CREATE TABLE citation_targets(source_decision_id TEXT, target_ref TEXT,"
+        " target_decision_id TEXT, match_type TEXT, confidence_score REAL);")
+    for did, _docket, date, _text in ROWS:
+        g.execute("INSERT INTO decisions VALUES(?,?,?)", (did, "bge", date))
+    g.execute("INSERT INTO citation_targets VALUES('bge_BGE_115_V_368','BGE 73 II 6','bge_73_II_6','bge',0.85)")
+    g.commit()
+    g.close()
+    return str(path)
+
+
 @pytest.fixture
 def corpus(tmp_path, monkeypatch):
     dbp = _build(tmp_path / "d.db")
+    gp = _build_graph(tmp_path / "g.db")
     monkeypatch.setattr(m, "get_db", lambda: _rconn(dbp))
+    monkeypatch.setattr(m, "_get_graph_conn", lambda: _rconn(gp))
     # Offline: no Haiku, vectors, sparse or graph; the FTS strategy is the
     # query itself; rerank is the identity (BM25 order).
     monkeypatch.setattr(

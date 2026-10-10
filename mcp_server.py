@@ -4036,6 +4036,28 @@ def _search_fts5_inner(
     # rewrite a pinpoint suffix, and the tuple parser ignores it anyway.
     bge_pinned = _search_bge_tuple(conn, query, where, params)
 
+    # A BGE reference: the ruling, then the decisions citing it, from the
+    # citation graph (indexed). Until 2026-10-10 the citing list came from full
+    # text over the reference's tokens ("147", "I", "1"), which matched
+    # millions of rows: "BGE 147 I 1" took 10-23 s on a calm server and timed
+    # out at 60 s under load, and it also listed decisions that merely
+    # contained the numbers. Design of 2026-10-02 kept: ruling first, citing
+    # decisions after. Without the graph the ruling alone answers, at once.
+    if is_docket_query and bge_pinned and _bge_ref_candidates(raw_query):
+        citing = _bge_citing_rows(conn, bge_pinned[0]["decision_id"], where, params, offset + limit)
+        if citing is None:
+            if meta is not None:
+                meta["citing_unavailable"] = True
+            return bge_pinned[offset:offset + limit], len(bge_pinned)
+        merged = _dedupe_results_by_decision_id(bge_pinned + citing["rows"])
+        if where:
+            total = len(merged)
+            if meta is not None:
+                meta["total_is_lower_bound"] = len(citing["rows"]) >= offset + limit
+        else:
+            total = len(bge_pinned) + citing["total"]
+        return merged[offset:offset + limit], total
+
     # Docket-style lookups should prioritize exact/near-exact docket matches.
     if is_docket_query:
         # Extract just the docket portion from mixed queries like "BGer 4A_291/2017"
@@ -5079,6 +5101,73 @@ def _extract_docket_serial(docket: str, *, prefix: str, year: str) -> int | None
         return int(m.group("serial"))
     except Exception:
         return None
+
+
+# Minimum graph confidence for a decision listed as citing a BGE in search.
+BGE_CITING_MIN_CONFIDENCE = 0.5
+
+
+def _bge_citing_rows(conn: sqlite3.Connection, decision_id: str, where: str, params: list,
+                     need: int) -> dict | None:
+    """Search rows of the decisions citing `decision_id`, newest first, from the
+    reference graph, honouring the caller's WHERE filters; plus the graph's
+    total of distinct citing decisions. None when the graph is unavailable."""
+    g = _get_graph_conn()
+    if g is None:
+        return None
+    variants = _decision_id_variants(decision_id)
+    ph = ",".join("?" for _ in variants)
+    try:
+        total = g.execute(
+            f"SELECT COUNT(DISTINCT source_decision_id) FROM citation_targets "
+            f"WHERE target_decision_id IN ({ph}) AND confidence_score >= ?",
+            (*variants, BGE_CITING_MIN_CONFIDENCE)).fetchone()[0]
+        ids = [r[0] for r in g.execute(
+            f"""SELECT ct.source_decision_id FROM citation_targets ct
+                JOIN decisions d ON d.decision_id = ct.source_decision_id
+                WHERE ct.target_decision_id IN ({ph}) AND ct.confidence_score >= ?
+                GROUP BY ct.source_decision_id
+                ORDER BY MAX(d.decision_date) DESC, ct.source_decision_id
+                LIMIT ?""",
+            (*variants, BGE_CITING_MIN_CONFIDENCE, max(need, 1) * (4 if where else 1))).fetchall()]
+    except sqlite3.Error as e:
+        logger.debug("citing lookup for %s failed: %s", decision_id, e)
+        return None
+    finally:
+        g.close()
+    ids = [i for i in ids if i not in set(variants)]
+    if not ids:
+        return {"rows": [], "total": total}
+    rows = _search_rows_for_ids(conn, ids, where, params, relevance=50.0)
+    return {"rows": rows[:max(need, 1)], "total": total}
+
+
+def _search_rows_for_ids(conn: sqlite3.Connection, ids: list[str], where: str, params: list,
+                         *, relevance: float) -> list[dict]:
+    """Search-result rows for `ids` in that order, honouring the WHERE filters."""
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    try:
+        rows = conn.execute(
+            f"""SELECT d.decision_id, d.court, d.canton, d.chamber, d.docket_number, d.decision_date,
+                       d.language, d.title, d.regeste, d.source_url, d.pdf_url
+                FROM decisions d WHERE d.decision_id IN ({placeholders}){where}""",
+            [*ids, *params]).fetchall()
+    except sqlite3.OperationalError as e:
+        logger.debug("search rows for ids failed: %s", e)
+        return []
+    order = {did: i for i, did in enumerate(ids)}
+    out = [{
+        "decision_id": r["decision_id"], "court": r["court"], "canton": r["canton"],
+        "chamber": r["chamber"], "docket_number": r["docket_number"],
+        "decision_date": r["decision_date"], "language": r["language"], "title": r["title"],
+        "regeste": _truncate(r["regeste"], MAX_SNIPPET_LEN) if r["regeste"] else None,
+        "snippet": None, "source_url": r["source_url"], "pdf_url": r["pdf_url"],
+        "relevance_score": relevance,
+    } for r in rows]
+    out.sort(key=lambda r: order.get(r["decision_id"], len(order)))
+    return out
 
 
 def _search_exact_docket_rows(
