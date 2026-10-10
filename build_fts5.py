@@ -129,6 +129,20 @@ def _norm_docket(docket) -> str:
     return re.sub(r"[^0-9A-Z]", "", str(docket or "").upper())
 
 
+def _fold_dockets(court, docket, docket2) -> set:
+    """The docket keys a row can be folded under: its normalised docket_number and
+    the key _cross_court_dedup groups by (decision number for
+    DECISION_NUMBER_COURTS, TG without the "Nr." noise)."""
+    keys = {_norm_docket(docket)}
+    key = _norm_docket(_dedup_docket({"court": court, "docket_number": docket,
+                                      "docket_number_2": docket2}))
+    keys.add(key)
+    if str(court or "").startswith("tg_"):
+        keys.add(re.sub(r"NR(?=\d)", "", key))
+    keys.discard("")
+    return keys
+
+
 def _rows_answered_by_alias(new_db: Path, live_db: Path, court: str) -> int:
     """Live rows of ``court`` that the new build no longer holds under their own
     id but still answers: their id is a ``decision_id_aliases.previous_id`` in the
@@ -148,15 +162,16 @@ def _rows_answered_by_alias(new_db: Path, live_db: Path, court: str) -> int:
         return 0
     answered = 0
     try:
-        for did, docket in live.execute(
-                "SELECT decision_id, docket_number FROM decisions WHERE court = ?", (court,)):
+        for did, docket, docket2 in live.execute(
+                "SELECT decision_id, docket_number, docket_number_2 FROM decisions WHERE court = ?",
+                (court,)):
             if new.execute("SELECT 1 FROM decisions WHERE decision_id = ?", (did,)).fetchone():
                 continue
             row = new.execute(
-                "SELECT d.docket_number FROM decision_id_aliases a "
+                "SELECT d.court, d.docket_number, d.docket_number_2 FROM decision_id_aliases a "
                 "JOIN decisions d ON d.decision_id = a.decision_id WHERE a.previous_id = ?",
                 (did,)).fetchone()
-            if row and _norm_docket(docket) and _norm_docket(row[0]) == _norm_docket(docket):
+            if row and _fold_dockets(court, docket, docket2) & _fold_dockets(*row):
                 answered += 1
     except sqlite3.Error as e:
         logger.warning("per-court gate: alias check for %s failed (%s); counting none", court, e)

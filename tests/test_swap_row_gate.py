@@ -191,3 +191,12 @@ def test_the_alias_check_is_only_asked_for_a_court_below_the_floor():
 
 def test_an_unreadable_file_counts_nothing(tmp_path):
     assert build_fts5._rows_answered_by_alias(tmp_path / "missing.db", tmp_path / "missing2.db", "x") == 0
+
+
+def test_fold_keys_follow_the_dedup_identity():
+    # TG folds group without the "Nr." noise; BS by the decision number.
+    assert build_fts5._fold_dockets("tg_gerichte", "Nr. 123/2020", None) & build_fts5._fold_dockets(
+        "tg_obergericht", "123/2020", None)
+    assert not build_fts5._fold_dockets("sg_gerichte", "BZ.1", None) & build_fts5._fold_dockets(
+        "sg_kantonsgericht", "BZ.2", None)
+    assert build_fts5._fold_dockets("x", "", None) == set()
