@@ -6,6 +6,39 @@ apply remedial migrations without re-deriving them.
 
 ---
 
+## 2026-10 — `structure/`: nightly metadata again, paragraph count = paragraph rows, unnumbered Erwägungen
+
+**Affected files:** `structure/structure.parquet`, `structure/erwaegungen_paragraphs.parquet`.
+**Takes effect:** with the first export after the structure sidecar rebuild,
+planned for the night of 10–11 October 2026.
+
+- **`structure.parquet` was frozen from 2026-09-10 until this change.** Once the
+  sidecar was built from served text, the nightly metadata export ran over its
+  time budget, and the last good file was uploaded again each night. As a result:
+  - The 14,578 historical BGE rows still carried `bge_historical_*` ids, while
+    `erwaegungen_paragraphs.parquet` and `data/` used `bge_*`.
+  - Decisions added or re-extracted after 2026-09-10 had no metadata row.
+
+  The export now reads a small covering index and finishes every night, so the
+  ids match again. Joins between the two files that lost those rows need no
+  remedy beyond downloading the new file.
+- **`erwaegungen_paragraph_count`** now equals the number of rows
+  `erwaegungen_paragraphs.parquet` holds for the decision. Before, it counted
+  everything the extractor parsed: an unnumbered fallback paragraph that was
+  never exported, and each copy of a repeated paragraph number that the export
+  collapsed into one row. Values change only for decisions in those two cases.
+- **New `e_number "0"` rows in `erwaegungen_paragraphs.parquet`** (`depth` 0,
+  `parent` null). A decision whose Erwägungen carry no numbered markers, typically
+  a BGE excerpt introduced by "Aus den Erwägungen", now has its whole reasoning
+  as one row. These rows used to be dropped. Real text is exported; an empty
+  remainder (a historical BGE volume whose next ruling starts at once) is not.
+  "Erwägung 0" is not a number in the decision and is not citable as a
+  pinpoint, so filter `depth >= 1` to keep only numbered Erwägungen. The MCP
+  tools (`get_erwaegung`, pinpoints, Erwägung search) do not serve these rows.
+- `structure.parquet` rows are ordered by `decision_id`, not by extraction order.
+
+---
+
 ## 2026-09-04 — Arbeitsgericht Zürich: court-code repair + yearbooks 2003–2023
 
 **Affected courts:** `zh_arbeitsgericht`, `zh_bezirksgericht_zuerich`, `zh_mietgericht`.

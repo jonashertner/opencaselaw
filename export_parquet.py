@@ -496,9 +496,10 @@ STATUTE_REF_SCHEMA = pa.schema([
 ])
 
 
-def _stream_query_to_parquet(conn, sql: str, schema, out_path: Path,
+def _stream_query_to_parquet(conn, sql: str | list[str], schema, out_path: Path,
                              batch_size: int = 50_000) -> int:
-    """Stream a query into a parquet file (atomic .tmp + replace)."""
+    """Stream a query — or several, one after the other, into the same file —
+    into a parquet file (atomic .tmp + replace)."""
     tmp = out_path.with_suffix(out_path.suffix + ".tmp")
     writer = pq.ParquetWriter(str(tmp), schema, compression="zstd",
                               use_dictionary=True)
@@ -508,18 +509,19 @@ def _stream_query_to_parquet(conn, sql: str, schema, out_path: Path,
     bool_idx = {i for i, f in enumerate(schema) if pa.types.is_boolean(f.type)}
     total = 0
     try:
-        cur = conn.execute(sql)
-        while True:
-            rows = cur.fetchmany(batch_size)
-            if not rows:
-                break
-            batch = {
-                n: [(None if r[i] is None else bool(r[i])) for r in rows]
-                if i in bool_idx else [r[i] for r in rows]
-                for i, n in enumerate(names)
-            }
-            writer.write_table(pa.Table.from_pydict(batch, schema=schema))
-            total += len(rows)
+        for one in ([sql] if isinstance(sql, str) else sql):
+            cur = conn.execute(one)
+            while True:
+                rows = cur.fetchmany(batch_size)
+                if not rows:
+                    break
+                batch = {
+                    n: [(None if r[i] is None else bool(r[i])) for r in rows]
+                    if i in bool_idx else [r[i] for r in rows]
+                    for i, n in enumerate(names)
+                }
+                writer.write_table(pa.Table.from_pydict(batch, schema=schema))
+                total += len(rows)
     except BaseException:
         # never leave a torn .tmp beside the last good artifact, and never
         # let a failing close() replace the original exception
@@ -621,9 +623,20 @@ PARAGRAPH_SCHEMA = pa.schema([
 # and OCL_STRUCTURE_PARAGRAPHS_BUDGET_S (Sunday paragraphs, default 2700),
 # both further capped by what is left of OCL_EXPORT_WALLCLOCK_BUDGET_S
 # (default 3300 s for the whole process — see main()).  0 disables the
-# corresponding export.  Once the sidecar carries a
-# covering index for the metadata columns the probe becomes cheap again
-# and the nightly export resumes by itself.
+# corresponding export.
+#
+# Index-only metadata export (2026-10-08): the probe above seeks rowid windows
+# of the *table*, so it keeps pricing the overflow walk even when an index
+# covers every column the export reads — on its own a covering index would
+# not have unfrozen structure.parquet (it stayed at the 2026-09-10 file for
+# four weeks). Sidecars built since carry has_sachverhalt / has_erwaegungen /
+# has_dispositiv as stored columns and idx_structure_export over exactly the
+# exported columns. When SQLite's plan for the export says "COVERING INDEX
+# idx_structure_export", the export reads that index (~80 B per decision)
+# and skips the table probe: an index-only scan never touches a table page,
+# so its cost is bounded by the index, not by the text. The hard stop and the
+# wall-clock cap still apply. Older sidecars keep the probed table scan.
+# docs/proposals/structure-export-small-columns.md has the measurements.
 
 _DEFAULT_STRUCTURE_BUDGET_S = 600
 # 1800 -> 2700 (2026-09-24): the Sunday export projected 32.4 min on 09-20 and
@@ -684,12 +697,22 @@ def _projected_seconds(conn, table: str, select_cols: str, where: str = "") -> f
 
 def _bounded_stream(conn, label: str, table: str, select_cols: str, where: str,
                     schema, out_path: Path, budget_s: float,
-                    time_left_s: float | None = None) -> tuple[int | None, str | None]:
+                    time_left_s: float | None = None,
+                    index_only: str | None = None,
+                    extra: tuple[tuple[str, str, str], ...] = (),
+                    ) -> tuple[int | None, str | None]:
     """Run one structure export under a budget. Returns (rows, None) on
     success, (None, reason) when skipped or interrupted; the previous
     artifact at ``out_path`` is left untouched in the latter case.
     ``time_left_s`` (what remains of the process wall-clock cap) bounds
-    both the accepted projection and the hard stop."""
+    both the accepted projection and the hard stop.
+
+    ``index_only`` names a covering index the caller has verified (see
+    ``_structure_meta_source``): the query reads ``table INDEXED BY`` it and
+    the rowid-window probe, which reads the table, is skipped.
+    ``extra`` holds further ``(table, select_cols, where)`` parts written
+    after the main query into the same file; their probes add to the
+    projection."""
     if budget_s <= 0:
         return None, "disabled (budget 0)"
     hard_stop_s = budget_s * _HARD_STOP_FACTOR
@@ -699,20 +722,37 @@ def _bounded_stream(conn, label: str, table: str, select_cols: str, where: str,
                           f"({time_left_s / 60:.0f} min); last good file kept")
         budget_s = min(budget_s, time_left_s)
         hard_stop_s = min(hard_stop_s, time_left_s)
-    projected = _projected_seconds(conn, table, select_cols, where)
-    if math.isinf(projected):
+    if index_only:
+        # bounded by the index; only an empty table needs telling apart
+        empty = conn.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone() is None
+        projected = 0.0 if empty else None
+    else:
+        projected = _projected_seconds(conn, table, select_cols, where)
+    if projected is not None and math.isinf(projected):
         return None, "probe inconclusive (no rows in any window); last good file kept"
     if projected == 0.0 and out_path.exists():
         return None, f"{table} is empty; last good file kept"
-    if projected > budget_s:
+    for x_table, x_cols, x_where in extra:
+        x = _projected_seconds(conn, x_table, x_cols, x_where)
+        if math.isinf(x):
+            return None, (f"probe of {x_table} inconclusive (no rows in any window); "
+                          f"last good file kept")
+        projected = (projected or 0.0) + x
+    if projected is not None and projected > budget_s:
         return None, (f"projected {projected / 60:.1f} min > budget "
                       f"{budget_s / 60:.0f} min (last good file kept)")
-    logger.info(f"  {label}: projected {projected / 60:.1f} min "
-                f"(budget {budget_s / 60:.0f} min, hard stop {hard_stop_s / 60:.0f} min)")
+    if index_only:
+        logger.info(f"  {label}: index-only via {index_only}, no table probe "
+                    f"(hard stop {hard_stop_s / 60:.0f} min)")
+    else:
+        logger.info(f"  {label}: projected {projected / 60:.1f} min "
+                    f"(budget {budget_s / 60:.0f} min, hard stop {hard_stop_s / 60:.0f} min)")
     deadline = time.monotonic() + hard_stop_s
     conn.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0,
                               _PROGRESS_EVERY_OPCODES)
-    sql = f"SELECT {select_cols} FROM {table}" + (f" WHERE {where}" if where else "")
+    source = f"{table} INDEXED BY {index_only}" if index_only else table
+    sql = [f"SELECT {select_cols} FROM {source}" + (f" WHERE {where}" if where else "")]
+    sql += [f"SELECT {c} FROM {t}" + (f" WHERE {w}" if w else "") for t, c, w in extra]
     t0 = time.monotonic()
     try:
         n = _stream_query_to_parquet(conn, sql, schema, out_path)
@@ -734,8 +774,47 @@ _STRUCTURE_META_COLS = (
     "sachverhalt_method, erwaegungen_method, dispositiv_method, "
     "CAST(erwaegungen_paragraph_count AS INTEGER)"
 )
+_STRUCTURE_EXPORT_INDEX = "idx_structure_export"
+_STRUCTURE_META_COLS_INDEXED = (
+    "decision_id, court, language, has_sachverhalt, has_erwaegungen, has_dispositiv, "
+    "sachverhalt_method, erwaegungen_method, dispositiv_method, "
+    "CAST(erwaegungen_paragraph_count AS INTEGER)"
+)
 _PARAGRAPH_COLS = "decision_id, e_number, CAST(depth AS INTEGER), parent, text"
 _PARAGRAPH_WHERE = "text IS NOT NULL AND text != ''"
+# Erwägungen without numbered markers, which the extractor keeps whole (its
+# e_number "0" fallback). They live outside erwaegungen_paragraph so that no
+# MCP pinpoint, FTS hit or coverage count ever sees an "Erwägung 0", but they
+# are real reasoning text, so the paragraph export carries them as "0".
+_UNNUMBERED_TABLE = "erwaegungen_unnumbered"
+_UNNUMBERED_COLS = "decision_id, '0', 0, NULL, text"
+
+
+def _structure_meta_source(conn) -> tuple[str, str | None]:
+    """``(select columns, covering index or None)`` for structure.parquet.
+
+    The index-only read is chosen only when the sidecar has the index AND
+    SQLite's plan for exactly this query says the index covers it; anything
+    else (a sidecar built before 2026-10-08) keeps the probed table scan."""
+    names = {r[1] for r in conn.execute("PRAGMA index_list(structure)")}
+    if _STRUCTURE_EXPORT_INDEX not in names:
+        return _STRUCTURE_META_COLS, None
+    try:
+        plan = " ".join(str(r[-1]) for r in conn.execute(
+            f"EXPLAIN QUERY PLAN SELECT {_STRUCTURE_META_COLS_INDEXED} "
+            f"FROM structure INDEXED BY {_STRUCTURE_EXPORT_INDEX}"))
+    except sqlite3.OperationalError as e:      # e.g. the flag columns are missing
+        plan = f"unplannable: {e}"
+    if f"COVERING INDEX {_STRUCTURE_EXPORT_INDEX}" not in plan:
+        logger.warning(f"  structure/structure.parquet: {_STRUCTURE_EXPORT_INDEX} does not "
+                       f"cover the export ({plan}); falling back to the table scan")
+        return _STRUCTURE_META_COLS, None
+    return _STRUCTURE_META_COLS_INDEXED, _STRUCTURE_EXPORT_INDEX
+
+
+def _has_table(conn, name: str) -> bool:
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+                        (name,)).fetchone() is not None
 
 
 def export_decision_structure(structure_db: Path, output_dir: Path,
@@ -778,9 +857,11 @@ def export_decision_structure(structure_db: Path, output_dir: Path,
         return deadline_monotonic - time.monotonic()
 
     try:
+        meta_cols, meta_index = _structure_meta_source(conn)
         n_meta, why = _bounded_stream(
-            conn, "structure/structure.parquet", "structure", _STRUCTURE_META_COLS, "",
-            STRUCTURE_META_SCHEMA, out / "structure.parquet", budget_s, _time_left())
+            conn, "structure/structure.parquet", "structure", meta_cols, "",
+            STRUCTURE_META_SCHEMA, out / "structure.parquet", budget_s, _time_left(),
+            index_only=meta_index)
         if n_meta is None:
             logger.warning(f"  structure/structure.parquet: SKIPPED — {why}")
             counts["structure_skipped"] = why
@@ -788,10 +869,13 @@ def export_decision_structure(structure_db: Path, output_dir: Path,
             logger.info(f"  structure/structure.parquet: {n_meta} decisions")
             counts["structure"] = n_meta
         if include_paragraphs:
+            unnumbered = (((_UNNUMBERED_TABLE, _UNNUMBERED_COLS, _PARAGRAPH_WHERE),)
+                          if _has_table(conn, _UNNUMBERED_TABLE) else ())
             n_para, why = _bounded_stream(
                 conn, "structure/erwaegungen_paragraphs.parquet", "erwaegungen_paragraph",
                 _PARAGRAPH_COLS, _PARAGRAPH_WHERE, PARAGRAPH_SCHEMA,
-                out / "erwaegungen_paragraphs.parquet", paragraphs_budget_s, _time_left())
+                out / "erwaegungen_paragraphs.parquet", paragraphs_budget_s, _time_left(),
+                extra=unnumbered)
             if n_para is None:
                 logger.warning(f"  structure/erwaegungen_paragraphs.parquet: SKIPPED — {why}")
                 counts["erwaegungen_paragraphs_skipped"] = why

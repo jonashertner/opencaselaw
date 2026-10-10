@@ -609,14 +609,28 @@ CREATE TABLE IF NOT EXISTS structure (
     sachverhalt_method   TEXT,
     erwaegungen          TEXT,
     erwaegungen_method   TEXT,
-    erwaegungen_paragraph_count INTEGER,
+    erwaegungen_paragraph_count INTEGER,  -- rows erwaegungen_paragraphs.parquet holds for it (paragraph_rows)
     dispositiv           TEXT,
     dispositiv_method    TEXT,
     dispositiv_orders    TEXT,  -- JSON array
-    extracted_at         TEXT
+    extracted_at         TEXT,
+    -- 1 iff the section is non-empty. Stored rather than derived from the text
+    -- and covered by idx_structure_export, so the structure.parquet export
+    -- reads that index alone: in this row every column after a section sits
+    -- behind the section's overflow pages, and walking them is the ~52 GB scan
+    -- that froze the export (docs/proposals/structure-export-small-columns.md).
+    -- NOT NULL without a default: a writer that forgets them fails loudly.
+    has_sachverhalt      INTEGER NOT NULL,
+    has_erwaegungen      INTEGER NOT NULL,
+    has_dispositiv       INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_court ON structure(court);
 CREATE INDEX IF NOT EXISTS idx_method ON structure(dispositiv_method);
+-- Exactly the columns export_parquet reads for structure.parquet (it checks
+-- the plan says COVERING before relying on it).
+CREATE INDEX IF NOT EXISTS idx_structure_export ON structure(
+    decision_id, court, language, has_sachverhalt, has_erwaegungen, has_dispositiv,
+    sachverhalt_method, erwaegungen_method, dispositiv_method, erwaegungen_paragraph_count);
 
 -- Each numbered Erwägung as its own row, queryable in O(1)
 CREATE TABLE IF NOT EXISTS erwaegungen_paragraph (
@@ -629,6 +643,17 @@ CREATE TABLE IF NOT EXISTS erwaegungen_paragraph (
 );
 CREATE INDEX IF NOT EXISTS idx_erw_decision ON erwaegungen_paragraph(decision_id);
 CREATE INDEX IF NOT EXISTS idx_erw_depth ON erwaegungen_paragraph(depth);
+
+-- Erwägungen that carry no numbered markers, kept whole as one unnumbered
+-- paragraph (parse_erwaegungen_paragraphs' e_number "0" fallback). Real
+-- reasoning text, so erwaegungen_paragraphs.parquet exports it as e_number
+-- "0". Deliberately NOT a row of erwaegungen_paragraph: get_erwaegung, cite()
+-- pinpoints, the FTS index below and the step-2g coverage gate must never see
+-- an "Erwägung 0".
+CREATE TABLE IF NOT EXISTS erwaegungen_unnumbered (
+    decision_id   TEXT PRIMARY KEY,
+    text          TEXT NOT NULL
+);
 
 -- Per-paragraph FTS5 index for claim → Erwägung matching.
 -- External-content references erwaegungen_paragraph by rowid; diacritic-
@@ -646,6 +671,34 @@ CREATE VIRTUAL TABLE IF NOT EXISTS erwaegungen_paragraph_fts USING fts5(
 """
 
 
+def paragraph_rows(paragraphs: list[dict]) -> tuple[list[dict], str | None]:
+    """What the sidecar stores, and erwaegungen_paragraphs.parquet holds, for
+    one decision's parsed Erwägungen.
+
+    Returns ``(numbered, unnumbered)``: the numbered paragraphs as they land in
+    ``erwaegungen_paragraph`` (one per e_number; a repeated e_number keeps the
+    later body, exactly what INSERT OR REPLACE did), and the stripped body of
+    the e_number "0" fallback for ``erwaegungen_unnumbered``, or None when
+    there is none or it is empty. ``erwaegungen_paragraph_count`` is
+    ``paragraph_count(numbered, unnumbered)`` — the rows the paragraph export
+    holds for the decision."""
+    numbered: dict[str, dict] = {}
+    unnumbered = None
+    for p in paragraphs:
+        if p.get("depth", 0) == 0:
+            unnumbered = (p.get("text") or "").strip() or None
+            continue
+        numbered.pop(p["e_number"], None)   # replaced rows move last, as with INSERT OR REPLACE
+        numbered[p["e_number"]] = p
+    return list(numbered.values()), unnumbered
+
+
+def paragraph_count(numbered: list[dict], unnumbered: str | None) -> int:
+    """Rows erwaegungen_paragraphs.parquet holds for a decision: it exports
+    paragraphs with non-empty text, plus the unnumbered one as e_number "0"."""
+    return sum(1 for p in numbered if p.get("text")) + (1 if unnumbered else 0)
+
+
 def iter_jsonl(path: Path) -> Iterator[dict]:
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -656,6 +709,28 @@ def iter_jsonl(path: Path) -> Iterator[dict]:
                 yield json.loads(line)
             except json.JSONDecodeError:
                 continue
+
+
+_STRUCTURE_COLUMNS = (
+    "decision_id, court, canton, language, decision_date, regeste, "
+    "sachverhalt, sachverhalt_method, erwaegungen, erwaegungen_method, "
+    "erwaegungen_paragraph_count, dispositiv, dispositiv_method, dispositiv_orders, "
+    "extracted_at, has_sachverhalt, has_erwaegungen, has_dispositiv"
+)
+
+
+def _write_batch(cur, rows: list, para_rows: list, unnumbered_rows: list) -> None:
+    if rows:
+        cur.executemany(
+            f"INSERT OR REPLACE INTO structure ({_STRUCTURE_COLUMNS}) "
+            f"VALUES ({', '.join('?' * len(rows[0]))})", rows)
+    if para_rows:
+        cur.executemany(
+            "INSERT OR REPLACE INTO erwaegungen_paragraph VALUES (?,?,?,?,?)", para_rows)
+    if unnumbered_rows:
+        cur.executemany(
+            "INSERT OR REPLACE INTO erwaegungen_unnumbered (decision_id, text) VALUES (?, ?)",
+            unnumbered_rows)
 
 
 def build_db(shard_paths: list[Path], out_db: Path) -> dict:
@@ -694,6 +769,7 @@ def build_db(shard_paths: list[Path], out_db: Path) -> dict:
         n_paragraphs = 0
         rows = []
         para_rows = []
+        unnumbered_rows = []
         for entry in iter_jsonl(shard):
             ft = entry.get("full_text") or ""
             if len(ft) < 500:
@@ -707,7 +783,8 @@ def build_db(shard_paths: list[Path], out_db: Path) -> dict:
             regeste = entry.get("regeste") or None
             if regeste and len(str(regeste)) > 20: sreg += 1
             if any(p["depth"] >= 2 for p in s.erwaegungen_paragraphs): ssub += 1
-            n_paragraphs += len(s.erwaegungen_paragraphs)
+            numbered, unnumbered = paragraph_rows(s.erwaegungen_paragraphs)
+            n_paragraphs += paragraph_count(numbered, unnumbered)
             rows.append((
                 s.decision_id,
                 entry.get("court"),
@@ -719,39 +796,26 @@ def build_db(shard_paths: list[Path], out_db: Path) -> dict:
                 s.sachverhalt_method,
                 s.erwaegungen,
                 s.erwaegungen_method,
-                len(s.erwaegungen_paragraphs),
+                paragraph_count(numbered, unnumbered),
                 s.dispositiv,
                 s.dispositiv_method,
                 json.dumps(s.dispositiv_orders, ensure_ascii=False) if s.dispositiv_orders else None,
                 time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                int(bool(s.sachverhalt)),
+                int(bool(s.erwaegungen)),
+                int(bool(s.dispositiv)),
             ))
-            for p in s.erwaegungen_paragraphs:
-                if p["depth"] == 0:
-                    continue  # skip the synthetic "no markers found" fallback
+            for p in numbered:
                 para_rows.append((
                     s.decision_id, p["e_number"], p["depth"], p["parent"], p["text"]
                 ))
+            if unnumbered:
+                unnumbered_rows.append((s.decision_id, unnumbered))
             if len(rows) >= 5000:
-                cur.executemany(
-                    "INSERT OR REPLACE INTO structure VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    rows,
-                )
-                cur.executemany(
-                    "INSERT OR REPLACE INTO erwaegungen_paragraph VALUES (?,?,?,?,?)",
-                    para_rows,
-                )
+                _write_batch(cur, rows, para_rows, unnumbered_rows)
                 conn.commit()
-                rows = []; para_rows = []
-        if rows:
-            cur.executemany(
-                "INSERT OR REPLACE INTO structure VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                rows,
-            )
-        if para_rows:
-            cur.executemany(
-                "INSERT OR REPLACE INTO erwaegungen_paragraph VALUES (?,?,?,?,?)",
-                para_rows,
-            )
+                rows = []; para_rows = []; unnumbered_rows = []
+        _write_batch(cur, rows, para_rows, unnumbered_rows)
         conn.commit()
 
         stats["shards"][court_label] = {

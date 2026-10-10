@@ -260,6 +260,11 @@ The Parquet files use a 34-field schema. The 24 columns available in the FTS5 se
 
 Full 34-field Parquet export schema: [`export_parquet.py`](https://github.com/jonashertner/opencaselaw/blob/main/export_parquet.py)
 
+### `structure/` files
+
+- `structure/structure.parquet`: one row per decision whose sections were extracted, ordered by `decision_id`. It carries `court` and `language`; the flags `has_sachverhalt`, `has_erwaegungen` and `has_dispositiv`; the extraction method of each section; and `erwaegungen_paragraph_count`, which is the number of rows `erwaegungen_paragraphs.parquet` holds for that decision.
+- `structure/erwaegungen_paragraphs.parquet` (refreshed weekly): one row per Erwägung, with `decision_id`, `e_number` (`1`, `1.1`, `2a`, `3c/aa`, …), `depth`, `parent` and the verbatim `text`. If a decision's Erwägungen carry no numbers, its reasoning appears as a single row with `e_number` `"0"` and `depth` 0. That number is not in the decision, so it cannot be cited as a pinpoint; filter on `depth >= 1` to keep only numbered Erwägungen.
+
 ## Court Coverage
 
 ### Federal Courts (20)
@@ -324,6 +329,7 @@ The dataset is updated daily via automated pipeline. New decisions are scraped, 
 
 ## Changelog
 
+- 2026-10-11 (planned; from the first export after the structure rebuild on the night of 10–11 October): `structure/structure.parquet` is written every night again; it had not been updated since 2026-09-10. Its historical BGE rows now use the same `bge_*` ids as `erwaegungen_paragraphs.parquet`, where the old file had `bge_historical_*`. `erwaegungen_paragraph_count` now equals the rows of the paragraph file, and unnumbered Erwägungen are exported as `e_number` `"0"` (see "`structure/` files" under Schema). Details: [docs/MIGRATIONS.md](https://github.com/jonashertner/opencaselaw/blob/main/docs/MIGRATIONS.md).
 - 2026-10-08: The default configuration now reads the court files only (`data/*[!0-9].parquet`). Before, `data/*.parquet` also matched the daily `data/delta-YYYY-MM-DD.parquet`, whose columns differ from the court files, so `load_dataset("voilaj/swiss-caselaw")` failed with a cast error ("column names don't match"). The daily deltas remain available under `artifacts/parquet/deltas/`, listed in `artifacts/manifest.json`.
 
 ## Legal Basis
