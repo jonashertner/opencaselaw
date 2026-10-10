@@ -45,6 +45,10 @@ def _collect_probes(monkeypatch) -> list[tuple]:
     monkeypatch.setattr(smoke, "_probe", fake)
     monkeypatch.setattr(smoke, "_probe_publish_freshness",
                         lambda: _dummy("publish_freshness"))
+    monkeypatch.setattr(smoke, "_probe_served_data_age",
+                        lambda url: captured.append(("served_data_age", url, {})) or _dummy("served_data_age"))
+    monkeypatch.setattr(smoke, "_probe_serving_pressure",
+                        lambda: captured.append(("serving_io_pressure", "", {})) or _dummy("serving_io_pressure"))
     smoke.run_smoke("https://example.invalid")
     return captured
 
@@ -143,3 +147,69 @@ def test_lock_age_is_measured_from_mtime(tmp_path):
     os.utime(lock, (time.time() - 7200, time.time() - 7200))
     age = smoke._publish_lock_age_h(lock)
     assert age is not None and 1.9 < age < 2.1
+
+
+
+# ── 2026-10-10: three days of stale data, and a 16 GB process starving the cache ──
+
+class _Resp:
+    def __init__(self, body: bytes):
+        self._b = body
+
+    def read(self, n=-1):
+        return self._b
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _health(monkeypatch, body: dict):
+    monkeypatch.setattr(smoke.urllib.request, "urlopen",
+                        lambda req, timeout=None: _Resp(json.dumps(body).encode()))
+
+
+def test_both_new_probes_run(monkeypatch):
+    names = [n for n, _, _ in _collect_probes(monkeypatch)]
+    assert "served_data_age" in names and "serving_io_pressure" in names
+
+
+def test_a_three_day_old_served_database_fails(monkeypatch):
+    now = 1_791_700_000
+    _health(monkeypatch, {"status": "ok", "db_generation": now - 60 * 3600})
+    r = smoke._probe_served_data_age("https://x/health", max_age_h=36, now=now)
+    assert not r.passed and "60.0h ago" in r.notes[0]
+
+
+def test_a_day_old_served_database_passes(monkeypatch):
+    now = 1_791_700_000
+    _health(monkeypatch, {"status": "ok", "db_generation": now - 24 * 3600})
+    assert smoke._probe_served_data_age("https://x/health", max_age_h=36, now=now).passed
+
+
+def test_health_without_a_generation_is_not_an_alarm(monkeypatch):
+    _health(monkeypatch, {"status": "ok"})
+    assert smoke._probe_served_data_age("https://x/health").passed
+
+
+def test_io_pressure_of_the_outage_fails_and_names_the_memory_users(tmp_path, monkeypatch):
+    p = tmp_path / "io"
+    p.write_text("some avg10=90.35 avg60=91.29 avg300=90.44 total=1\n"
+                 "full avg10=69.07 avg60=70.22 avg300=72.97 total=1\n")
+    monkeypatch.setattr(smoke, "_top_memory_users", lambda: ["ocl-model 15.9 GB", "mcp 22.9 GB"])
+    r = smoke._probe_serving_pressure(p, max_full_pct=45)
+    assert not r.passed and "72.97" not in r.notes[0] and "73.0%" in r.notes[0]
+    assert "ocl-model 15.9 GB" in r.notes[0]
+
+
+def test_io_pressure_of_a_normal_build_night_passes(tmp_path):
+    p = tmp_path / "io"
+    p.write_text("some avg10=17.03 avg60=17.09 avg300=15.34 total=1\n"
+                 "full avg10=17.01 avg60=17.05 avg300=15.26 total=1\n")
+    assert smoke._probe_serving_pressure(p, max_full_pct=45).passed
+
+
+def test_no_pressure_file_is_not_an_alarm(tmp_path):
+    assert smoke._probe_serving_pressure(tmp_path / "missing").passed
