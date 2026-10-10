@@ -27,3 +27,24 @@ def _clear_search_result_cache():
     cache.clear()
     yield
     cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_real_ntfy_posts(monkeypatch):
+    """Never post to ntfy.sh from the test suite (CLAUDE.md: tests stay offline).
+
+    publish._notify and the alert scripts post to the operator's phone topics;
+    until 2026-09-16 three publish tests pushed real "Publish OK" messages on
+    every run. That guard was per-file, so a new test driving a failing step 2
+    (which now pages at once) could page the operator. Tests that assert on
+    notifications patch _notify or urlopen themselves; their patch wins."""
+    import urllib.request
+    real = urllib.request.urlopen
+
+    def guarded(req, *a, **k):
+        url = req.full_url if hasattr(req, "full_url") else str(req)
+        if "ntfy.sh" in url:
+            raise OSError("ntfy.sh is blocked in tests")
+        return real(req, *a, **k)
+
+    monkeypatch.setattr(urllib.request, "urlopen", guarded)

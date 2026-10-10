@@ -61,6 +61,56 @@ def _notify(title: str, message: str, *, priority: str = "default"):
         pass  # notification failure must never break the pipeline
 
 
+_STEP2_REASON_MARKERS = ("refusing to swap", "PRE-FLIGHT FAILED", "RuntimeError", "timed out",
+                         "Traceback", "disk is full", "database disk image")
+
+
+def _step2_failure_message(log_path: Path | None = None, data_volume: str | None = None) -> str:
+    """What an operator needs the moment step 2 fails: why, how old the data
+    users are getting is, and whether a complete new build is waiting.
+
+    On 2026-10-09 the per-court gate refused the swap at 12:21; the only page
+    came at 20:58, when the whole run ended, too late to swap the kept build in
+    by hand that day, and the 03:30 run then deleted it. Best-effort: any part
+    it cannot read is left out."""
+    parts = []
+    log_path = log_path or (REPO_DIR / "logs" / "publish.log")
+    try:
+        with open(log_path, "rb") as fh:
+            fh.seek(0, 2)
+            fh.seek(max(0, fh.tell() - 200_000))
+            tail = fh.read().decode("utf-8", "replace").splitlines()
+        reason = next((ln for ln in reversed(tail)
+                       if any(m in ln for m in _STEP2_REASON_MARKERS)), "")
+        if reason:
+            parts.append("Reason: " + reason.split("| ", 1)[-1].strip()[:400])
+    except OSError:
+        pass
+    out = Path(data_volume or DATA_VOLUME) / "output"
+    try:
+        import sqlite3
+        conn = sqlite3.connect(f"file:{out / 'decisions.db'}?mode=ro&immutable=1", uri=True)
+        try:
+            gen = conn.execute("PRAGMA user_version").fetchone()[0]
+        finally:
+            conn.close()
+        if gen:
+            parts.append(f"Users keep the previous database, {(time.time() - gen) / 3600:.0f} h old.")
+    except Exception:  # noqa: BLE001 — a message part, never a failure
+        pass
+    kept = out / "decisions.db.tmp"
+    try:
+        st = kept.stat()
+        parts.append(
+            f"A new build is kept at {kept} ({st.st_size / 1e9:.1f} GB, "
+            f"{(time.time() - st.st_mtime) / 3600:.1f} h old). If the refusal is an intended "
+            "fold or re-key, swap it in by hand before the next 03:30 run, which deletes it "
+            "(memory: swap-gate-rekey-trap).")
+    except OSError:
+        parts.append("No new build was kept: the next run starts from scratch.")
+    return " ".join(parts) or "Step 2 failed; see logs/publish.log."
+
+
 def _append_run_record(record: dict) -> None:
     """Append one JSON line to state/publish_runs.jsonl.
 
@@ -2443,6 +2493,12 @@ def main():
                 # before 2c/2g write their .tmp files.
                 if ok and not args.dry_run and args.full_rebuild:
                     _recycle_mcp_workers(dry_run=args.dry_run)
+                # Page now, not when the whole run ends hours later (see
+                # _step2_failure_message): a refused swap can be fixed by hand
+                # the same day, a deleted kept build cannot.
+                if not ok and not args.dry_run:
+                    _notify("OpenCaseLaw: step 2 failed, users keep the old data",
+                            _step2_failure_message(), priority="high")
             elif num in ("2b", "2c", "2d", "2e", "2f", "2g"):
                 ok = func(
                     dry_run=args.dry_run,
