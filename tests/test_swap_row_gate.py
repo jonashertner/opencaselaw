@@ -118,3 +118,76 @@ def test_per_court_noop_when_no_live_db():
 def test_per_court_override_env(monkeypatch):
     monkeypatch.setenv("OCL_SKIP_SWAP_GATE", "1")
     build_fts5._check_swap_per_court_gate({"bger": 0}, {"bger": 190_000})  # overridden
+
+
+# ── Per-court gate: folded or re-keyed rows are answered, not lost (2026-10-09) ──
+
+import sqlite3  # noqa: E402
+
+from db_schema import SCHEMA_SQL  # noqa: E402
+
+
+def _db(path, rows, aliases=()):
+    conn = sqlite3.connect(str(path))
+    conn.executescript(SCHEMA_SQL)
+    conn.executemany(
+        "INSERT INTO decisions(decision_id, court, canton, docket_number, language, title, regeste, full_text) "
+        "VALUES (?, ?, 'SG', ?, 'de', 't', '', 'text')", rows)
+    conn.executemany(
+        "INSERT INTO decision_id_aliases(previous_id, decision_id, source) VALUES (?, ?, ?)", aliases)
+    conn.commit()
+    conn.close()
+    return path
+
+
+def _sg_pair(tmp_path, folded_alias=True, same_docket=True):
+    """Live: 1,000 sg_gerichte rows. New: the first 400 folded into sg_publikationen twins."""
+    live_rows = [(f"sg_gerichte_BZ.{i}", "sg_gerichte", f"BZ.{i}") for i in range(1000)]
+    new_rows = live_rows[400:] + [
+        (f"sg_publikationen_BZ.{i}", "sg_kantonsgericht", f"BZ.{i}" if same_docket else f"XX.{i}")
+        for i in range(400)]
+    aliases = [(f"sg_gerichte_BZ.{i}", f"sg_publikationen_BZ.{i}", "cross_court_dedup")
+               for i in range(400)] if folded_alias else []
+    live = _db(tmp_path / "live.db", live_rows)
+    new = _db(tmp_path / "new.db", new_rows, aliases)
+    return live, new
+
+
+def _gate(live, new):
+    build_fts5._check_swap_per_court_gate(
+        {"sg_gerichte": 600, "sg_kantonsgericht": 400}, {"sg_gerichte": 1000},
+        answered_by_alias=lambda court: build_fts5._rows_answered_by_alias(new, live, court))
+
+
+def test_rows_folded_into_a_twin_under_the_same_docket_pass_the_court_gate(tmp_path, monkeypatch):
+    monkeypatch.delenv("OCL_SKIP_SWAP_GATE", raising=False)
+    live, new = _sg_pair(tmp_path)
+    assert build_fts5._rows_answered_by_alias(new, live, "sg_gerichte") == 400
+    _gate(live, new)  # 600 + 400 answered = 100%: no raise
+
+
+def test_rows_lost_without_an_alias_still_trip_the_gate(tmp_path, monkeypatch):
+    # The class the gate was built for (2026-04 SG id collision): rows gone, no alias.
+    monkeypatch.delenv("OCL_SKIP_SWAP_GATE", raising=False)
+    live, new = _sg_pair(tmp_path, folded_alias=False)
+    with pytest.raises(RuntimeError, match=r"collapsed 1,000 → 600 rows \(\+0 answered"):
+        _gate(live, new)
+
+
+def test_an_alias_to_a_different_docket_does_not_count(tmp_path, monkeypatch):
+    monkeypatch.delenv("OCL_SKIP_SWAP_GATE", raising=False)
+    live, new = _sg_pair(tmp_path, same_docket=False)
+    assert build_fts5._rows_answered_by_alias(new, live, "sg_gerichte") == 0
+    with pytest.raises(RuntimeError, match="refusing to swap"):
+        _gate(live, new)
+
+
+def test_the_alias_check_is_only_asked_for_a_court_below_the_floor():
+    asked = []
+    build_fts5._check_swap_per_court_gate(
+        {"bger": 990}, {"bger": 1000}, answered_by_alias=lambda c: asked.append(c) or 0)
+    assert asked == []
+
+
+def test_an_unreadable_file_counts_nothing(tmp_path):
+    assert build_fts5._rows_answered_by_alias(tmp_path / "missing.db", tmp_path / "missing2.db", "x") == 0

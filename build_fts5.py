@@ -125,10 +125,53 @@ def _check_swap_row_gate(new_count: int, old_count: int,
         )
 
 
+def _norm_docket(docket) -> str:
+    return re.sub(r"[^0-9A-Z]", "", str(docket or "").upper())
+
+
+def _rows_answered_by_alias(new_db: Path, live_db: Path, court: str) -> int:
+    """Live rows of ``court`` that the new build no longer holds under their own
+    id but still answers: their id is a ``decision_id_aliases.previous_id`` in the
+    new build, pointing at a row it holds under the same docket. That is what a
+    cross-court fold (_record_folded_id: two copies of one ruling, the fuller one
+    kept) and a re-key (previous_decision_id) leave behind. A row lost the way the
+    gate was built for (2026-04 SG collision: INSERT OR IGNORE dropped it) has no
+    alias and is not counted. Read-only on both files; 0 on any error."""
+    try:
+        new = sqlite3.connect(f"file:{new_db}?mode=ro&immutable=1", uri=True)
+    except sqlite3.Error:
+        return 0
+    try:
+        live = sqlite3.connect(f"file:{live_db}?mode=ro&immutable=1", uri=True)
+    except sqlite3.Error:
+        new.close()
+        return 0
+    answered = 0
+    try:
+        for did, docket in live.execute(
+                "SELECT decision_id, docket_number FROM decisions WHERE court = ?", (court,)):
+            if new.execute("SELECT 1 FROM decisions WHERE decision_id = ?", (did,)).fetchone():
+                continue
+            row = new.execute(
+                "SELECT d.docket_number FROM decision_id_aliases a "
+                "JOIN decisions d ON d.decision_id = a.decision_id WHERE a.previous_id = ?",
+                (did,)).fetchone()
+            if row and _norm_docket(docket) and _norm_docket(row[0]) == _norm_docket(docket):
+                answered += 1
+    except sqlite3.Error as e:
+        logger.warning("per-court gate: alias check for %s failed (%s); counting none", court, e)
+        return 0
+    finally:
+        new.close()
+        live.close()
+    return answered
+
+
 def _check_swap_per_court_gate(
         new_by_court: dict, live_by_court: dict,
         fraction: float = PER_COURT_MIN_RETAIN_FRACTION,
-        min_live_rows: int = PER_COURT_MIN_SIZE) -> None:
+        min_live_rows: int = PER_COURT_MIN_SIZE,
+        answered_by_alias=None) -> None:
     """Raise RuntimeError if ANY court with >= ``min_live_rows`` live rows would
     shrink below ``fraction`` of its live count in the new build. Catches a
     per-court collapse (the SG dedup-collision class) that the global
@@ -137,7 +180,14 @@ def _check_swap_per_court_gate(
     short-circuit. Honours the SAME OCL_SKIP_SWAP_GATE=1 escape hatch — a
     deliberate court retirement/rename trips this by design and is the intended
     operator-override case. New courts (present in new_by_court, absent from
-    live_by_court) are correctly ignored: the loop iterates over live_by_court."""
+    live_by_court) are correctly ignored: the loop iterates over live_by_court.
+
+    ``answered_by_alias(court) -> int``, asked only for a court below the floor,
+    counts its live rows the new build still answers through an alias under the
+    same docket (see _rows_answered_by_alias). Those are folded or re-keyed, not
+    lost: 2026-10-09 the St. Gallen twin dates let the cross-court dedup fold
+    1,152 short sg_gerichte copies into their full-text twins, and the gate
+    refused the swap (3,141 -> 1,989) although every one still resolved."""
     if not live_by_court:
         return
     if os.environ.get("OCL_SKIP_SWAP_GATE") == "1":
@@ -155,9 +205,18 @@ def _check_swap_per_court_gate(
                                court, live_n, new_n)
             continue
         if new_n < live_n * fraction:
+            folded = answered_by_alias(court) if answered_by_alias else 0
+            if folded and new_n + folded >= live_n * fraction:
+                logger.warning(
+                    "pre-swap per-court gate: %s %d → %d rows, %d more answered through "
+                    "an alias under the same docket (folded or re-keyed, not lost); "
+                    "passes at %.1f%%", court, live_n, new_n, folded,
+                    100 * (new_n + folded) / live_n)
+                continue
             raise RuntimeError(
                 f"pre-swap per-court gate: refusing to swap — court "
                 f"{court!r} collapsed {live_n:,} → {new_n:,} rows "
+                f"(+{folded:,} answered through an alias) "
                 f"({(new_n / live_n) if live_n else 0:.1%} of live, "
                 f"< {fraction:.0%}). Live DB left untouched; temp DB kept for "
                 f"inspection. Set OCL_SKIP_SWAP_GATE=1 to force an intentional "
@@ -2582,7 +2641,10 @@ def build_database(
                 live_row_count = 0  # unreadable live DB → don't block recovery
                 live_by_court = {}
         _check_swap_row_gate(new_row_count, live_row_count)
-        _check_swap_per_court_gate(new_by_court, live_by_court)
+        _check_swap_per_court_gate(
+            new_by_court, live_by_court,
+            answered_by_alias=lambda court: _rows_answered_by_alias(
+                db_path, final_db_path, court))
         logger.info("pre-swap row gate OK: new=%d, live=%d",
                     new_row_count, live_row_count)
         logger.info("pre-swap per-court gate OK: %d live courts checked "

@@ -146,6 +146,27 @@ HF_REPO_ID = "voilaj/swiss-caselaw"
 # volume during the brief window before the .tmp is replaced.
 DATA_VOLUME = "/mnt/HC_Volume_104655575"
 BUILD_DISK_REQUIRED_GB = 80
+# How long a free-space check waits for space a just-deleted file still holds.
+DISK_FREE_SETTLE_S = 120
+# Step 2g wall clock (see step_2g_build_decision_structure).
+STRUCTURE_TIMEOUT_S = 18000
+
+
+def _free_bytes_settled(path, need: int, wait_s: float | None = None, poll_s: float = 5.0) -> int:
+    """Free bytes on ``path``'s volume, re-read for up to ``wait_s`` while short of ``need``.
+
+    Deleting a file does not free its blocks at once on the data volume. On
+    2026-10-10 the step-2 cleanup removed the kept 73 GB decisions.db.tmp and
+    the pre-flight in the same second saw 50.5 GB free (about 124 GB moments
+    later), so the night's build failed at once. Only the path that would fail
+    waits; a volume that is really full fails ``wait_s`` later than before."""
+    wait_s = DISK_FREE_SETTLE_S if wait_s is None else wait_s
+    free = shutil.disk_usage(path).free
+    deadline = time.monotonic() + wait_s
+    while free < need and time.monotonic() < deadline:
+        time.sleep(poll_s)
+        free = shutil.disk_usage(path).free
+    return free
 
 
 
@@ -395,7 +416,7 @@ def _preflight_disk_check() -> bool:
     if not Path(DATA_VOLUME).exists():
         logger.warning(f"  Pre-flight: {DATA_VOLUME} not present, skipping check")
         return True
-    free_gb = shutil.disk_usage(DATA_VOLUME).free / 1e9
+    free_gb = _free_bytes_settled(DATA_VOLUME, int(BUILD_DISK_REQUIRED_GB * 1e9)) / 1e9
     if free_gb < BUILD_DISK_REQUIRED_GB:
         logger.error(
             f"PRE-FLIGHT FAILED: {DATA_VOLUME} has {free_gb:.1f} GB free, "
@@ -752,7 +773,6 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
         if stale.exists():
             stale.unlink()
     if live_real.exists():
-        free = shutil.disk_usage(live_real.parent).free
         need = int(live_real.stat().st_size * 1.2)
         # A bootstrap killed by the step timeout leaves its working copy beside
         # `tmp` for the next run to resume; the extractor reuses those bytes
@@ -765,6 +785,8 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
         except Exception as e:  # noqa: BLE001 — the credit is an optimisation, never a failure
             logger.warning(f"  could not measure the extractor's working copy ({e}); not crediting it")
             reusable = 0
+        # The stale tmp and journal were deleted just above: let their space settle.
+        free = _free_bytes_settled(live_real.parent, need - reusable)
         if free + reusable < need:
             logger.error(f"  {live_real.parent} has {free / 1e9:.1f} GB free"
                          + (f" (+{reusable / 1e9:.1f} GB in the extractor's working copy)" if reusable else "")
@@ -784,8 +806,12 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
     # OCL_STRUCTURE_FORCE_FULL=1 keeps a manual override for a one-off.
     if os.environ.get("OCL_STRUCTURE_FORCE_FULL") == "1":
         cmd.append("--force-full")
+    # 5 h (was 4): a full re-extraction (a new extractor version) took 13,487 s on
+    # 2026-10-08 and its finishing pass (indexes, FTS) was still running when the
+    # 14,400 s wall clock stopped it; the resume then had to wait a day for disk.
+    # A normal night diffs in under an hour, so the cap only bounds the rare full run.
     ok = run_cmd(cmd, "Build decision_structure sidecar (served text, incremental)", dry_run,
-                 timeout=14400, stall_timeout=9000)
+                 timeout=STRUCTURE_TIMEOUT_S, stall_timeout=9000)
     if dry_run:
         return True
     if not ok or not tmp.exists():

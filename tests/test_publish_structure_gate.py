@@ -4,6 +4,13 @@ import sqlite3
 from pathlib import Path
 
 import publish
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_disk_settle_wait(monkeypatch):
+    # A faked full disk must fail at once here; the settle wait has its own tests.
+    monkeypatch.setattr(publish, "DISK_FREE_SETTLE_S", 0)
 
 
 def _decisions(path, ids):
@@ -54,7 +61,7 @@ def test_served_text_sidecar_is_swapped_in_when_coverage_holds(tmp_path, monkeyp
     assert publish.step_2g_build_decision_structure() is True
     cmd = calls[0][0]
     assert "extract_decision_structure_incremental.py" in cmd[1] and "--output" in cmd and cmd[-1].endswith("decision_structure.db.tmp")
-    assert calls[0][2]["timeout"] == 14400 and not fallback
+    assert calls[0][2]["timeout"] == publish.STRUCTURE_TIMEOUT_S == 18000 and not fallback
     assert not (out / "decision_structure.db.tmp").exists()
     assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 4
     # the swapped-in sidecar is cold: its indexes are warmed right after the
@@ -185,3 +192,26 @@ def test_the_extractors_working_copy_counts_as_free_space(tmp_path, monkeypatch)
     wc.write_bytes(b"\0" * (need - 1))
     assert publish.step_2g_build_decision_structure() is False
     assert calls == []
+
+
+def test_free_space_check_waits_for_a_just_deleted_file_to_free_its_blocks(monkeypatch):
+    # 2026-10-10: the cleanup deleted the kept 73 GB build and the pre-flight in the same
+    # second still saw 50.5 GB; the space showed up moments later.
+    reads = iter([50, 50, 124])
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(450, 0, next(reads)))
+    monkeypatch.setattr(publish.time, "sleep", lambda s: None)
+    assert publish._free_bytes_settled("/x", 80, wait_s=60) == 124
+
+
+def test_free_space_check_gives_up_after_the_wait(monkeypatch):
+    clock = iter(range(0, 1000, 10))
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(450, 0, 50))
+    monkeypatch.setattr(publish.time, "sleep", lambda s: None)
+    monkeypatch.setattr(publish.time, "monotonic", lambda: next(clock))
+    assert publish._free_bytes_settled("/x", 80, wait_s=60) == 50
+
+
+def test_enough_space_is_not_waited_for(monkeypatch):
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(450, 0, 124))
+    monkeypatch.setattr(publish.time, "sleep", lambda s: (_ for _ in ()).throw(AssertionError("slept")))
+    assert publish._free_bytes_settled("/x", 80) == 124
