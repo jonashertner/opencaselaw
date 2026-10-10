@@ -71,10 +71,38 @@ def _rconn(p: str) -> sqlite3.Connection:
     return c
 
 
+def _build_graph(path: Path, cites: list[tuple[str, str, float]]) -> str:
+    g = sqlite3.connect(path)
+    g.executescript(
+        "CREATE TABLE decisions(decision_id TEXT PRIMARY KEY, court TEXT, decision_date TEXT);"
+        "CREATE TABLE citation_targets(source_decision_id TEXT, target_ref TEXT,"
+        " target_decision_id TEXT, match_type TEXT, confidence_score REAL);")
+    for did, court, _docket, date, _text in ROWS:
+        g.execute("INSERT INTO decisions VALUES(?,?,?)", (did, court, date))
+    for src, tgt, conf in cites:
+        g.execute("INSERT INTO citation_targets VALUES(?,?,?,?,?)", (src, tgt, tgt, "x", conf))
+    g.commit()
+    g.close()
+    return str(path)
+
+
+GRAPH_CITES = [("bge_BGE_143_IV_457", "bge_BGE_147_I_1", 0.85),
+               ("bger_4A_500_2024", "bge_BGE_147_I_1", 0.85),
+               ("bger_4A_82_2025", "bge_BGE_147_I_1", 0.3)]   # below the search threshold
+
+
+@pytest.fixture
+def graph(tmp_path, monkeypatch):
+    gp = _build_graph(tmp_path / "g.db", GRAPH_CITES)
+    monkeypatch.setattr(m, "_get_graph_conn", lambda: _rconn(gp))
+    return gp
+
+
 @pytest.fixture
 def corpus(tmp_path, monkeypatch):
     dbp = _build(tmp_path / "d.db")
     monkeypatch.setattr(m, "get_db", lambda: _rconn(dbp))
+    monkeypatch.setattr(m, "_get_graph_conn", lambda: None)  # a test asks for `graph` to have one
     full_path = []
 
     def analyze(q, d, **kw):
@@ -107,12 +135,31 @@ def test_a_slash_docket_is_answered_by_the_fast_path_ruling_first(corpus):
     assert corpus == []                                # no full-text path
 
 
-def test_a_bge_reference_keeps_its_design_ruling_first_then_citing(corpus):
-    # 2026-10-02 design (test_search_bge_tuple_pin.py): the ruling is pinned
-    # first and the full-text list of decisions citing it follows. Unchanged.
+def test_a_bge_reference_lists_the_ruling_then_its_citing_decisions_from_the_graph(corpus, graph):
+    # Design of 2026-10-02 kept (ruling first, citing decisions after); the
+    # citing list now comes from the citation graph, not from full text over
+    # "147", "I", "1" (60 s timeouts under load on 2026-10-10).
     rows, total = m.search_fts5("BGE 147 I 1", limit=5)
-    assert _ids(rows)[0] == "bge_BGE_147_I_1"
-    assert "bge_BGE_143_IV_457" in _ids(rows)
+    assert _ids(rows) == ["bge_BGE_147_I_1", "bger_4A_500_2024", "bge_BGE_143_IV_457"]  # newest first
+    assert total == 3                       # the ruling + 2 citing at confidence >= 0.5
+    assert corpus == []                     # no full-text path
+
+
+def test_an_atf_spelling_gives_the_same_answer(corpus, graph):
+    rows, _ = m.search_fts5("ATF 147 I 1", limit=5)
+    assert _ids(rows)[0] == "bge_BGE_147_I_1" and corpus == []
+
+
+def test_citing_decisions_honour_the_filters(corpus, graph):
+    rows, total = m.search_fts5("BGE 147 I 1", court="bge", limit=5)
+    assert _ids(rows) == ["bge_BGE_147_I_1", "bge_BGE_143_IV_457"] and total == 2
+
+
+def test_without_the_graph_the_ruling_alone_answers_at_once(corpus):
+    meta: dict = {}
+    rows, total = m.search_fts5("BGE 147 I 1", limit=5, meta=meta)
+    assert _ids(rows) == ["bge_BGE_147_I_1"] and total == 1
+    assert meta.get("citing_unavailable") is True and corpus == []
 
 
 def test_a_docket_stored_with_a_space_is_found_by_the_exact_lookup(corpus):
