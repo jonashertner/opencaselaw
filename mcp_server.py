@@ -4009,6 +4009,14 @@ def _search_fts5_inner(
     where = (" AND " + " AND ".join(filters)) if filters else ""
 
     is_docket_query = _looks_like_docket_query(fts_query)
+    # The sanitizer turns "4A_82/2024" into "4A_82 2024", which no longer looks
+    # like a docket, so every federal docket took the 5-50 s full-text path and
+    # citing decisions and near numbers ranked with or above it (2026-10-01,
+    # 2026-10-10). Gate on the raw query too, and look the docket up raw.
+    raw_query = (query or "").strip()
+    sanitized_is_docket = is_docket_query
+    raw_is_docket = (not _condensed_info) and _looks_like_docket_query(raw_query)
+    is_docket_query = is_docket_query or raw_is_docket
     # Explicit-syntax detection runs on the ORIGINAL query: the sanitizer
     # rewrites 'Art. 335 OR' into 'Art 335 "OR"', which defeated the statute
     # mask AND tripped the quote-count branch, cutting every statute-citing
@@ -4031,7 +4039,13 @@ def _search_fts5_inner(
     # Docket-style lookups should prioritize exact/near-exact docket matches.
     if is_docket_query:
         # Extract just the docket portion from mixed queries like "BGer 4A_291/2017"
-        docket_search_query = inline_docket_candidates[0] if inline_docket_candidates else fts_query
+        raw_candidates = _extract_inline_docket_candidates(raw_query) if raw_is_docket else []
+        if raw_candidates:
+            docket_search_query = raw_candidates[0]
+        elif raw_is_docket:
+            docket_search_query = raw_query
+        else:
+            docket_search_query = inline_docket_candidates[0] if inline_docket_candidates else fts_query
         try:
             docket_results = _search_by_docket(
                 conn, docket_search_query, where, params, offset + limit,
@@ -4039,6 +4053,24 @@ def _search_fts5_inner(
             )
             if docket_results and bge_pinned:
                 docket_results = _dedupe_results_by_decision_id(bge_pinned + docket_results)
+            # Exact = the stored docket is one of the variants (docket_rank 0,
+            # relevance 100); the rest are the related docket family (near
+            # numbers). BGE references keep their design (2026-10-02): the
+            # pinned ruling first, then the full-text list of decisions citing
+            # it, so they are left to the paths below untouched.
+            if (not bge_pinned and not _bge_ref_candidates(raw_query)
+                    and not any(r.get("relevance_score") == 100.0 for r in docket_results)):
+                # A docket stored with a space ("6B 1070/2018") is not among the
+                # variants, and the near numbers must never stand in for it
+                # (2026-10-10: 6B_1069/1071/... returned without the ruling).
+                exact_rows = _search_exact_docket_rows(
+                    conn, raw_query, where, params, offset + limit)
+                if exact_rows:
+                    docket_results = _dedupe_results_by_decision_id(exact_rows + docket_results)
+                elif not sanitized_is_docket:
+                    # Gated on the raw query only and nothing holds the docket:
+                    # full text, exactly as before the raw gate existed.
+                    docket_results = []
             if docket_results:
                 if sort in ("date_desc", "date_asc"):
                     reverse = sort == "date_desc"
@@ -5047,6 +5079,44 @@ def _extract_docket_serial(docket: str, *, prefix: str, year: str) -> int | None
         return int(m.group("serial"))
     except Exception:
         return None
+
+
+def _search_exact_docket_rows(
+    conn: sqlite3.Connection, raw_query: str, where: str, params: list, limit: int,
+) -> list[dict]:
+    """Search rows for the decisions _lookup_exact resolves `raw_query` to (its
+    own docket, separator-agnostic, joined-docket aliases), honouring the
+    caller's WHERE filters, in the shape _search_by_docket returns. [] when
+    nothing resolves or the lookup fails: the caller falls back to full text."""
+    try:
+        ids = [h["decision_id"] for h in (_lookup_exact(raw_query, max(1, min(limit, 25))) or {}).get("results", [])
+               if h.get("decision_id")]
+    except Exception as e:  # noqa: BLE001 - a fast path, never a failure
+        logger.debug("exact docket lookup failed for %r: %s", raw_query, e)
+        return []
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    try:
+        rows = conn.execute(
+            f"""SELECT d.decision_id, d.court, d.canton, d.chamber, d.docket_number, d.decision_date,
+                       d.language, d.title, d.regeste, d.source_url, d.pdf_url
+                FROM decisions d WHERE d.decision_id IN ({placeholders}){where}""",
+            [*ids, *params]).fetchall()
+    except sqlite3.OperationalError as e:
+        logger.debug("exact docket rows failed for %r: %s", raw_query, e)
+        return []
+    order = {did: i for i, did in enumerate(ids)}
+    out = [{
+        "decision_id": r["decision_id"], "court": r["court"], "canton": r["canton"],
+        "chamber": r["chamber"], "docket_number": r["docket_number"],
+        "decision_date": r["decision_date"], "language": r["language"], "title": r["title"],
+        "regeste": _truncate(r["regeste"], MAX_SNIPPET_LEN) if r["regeste"] else None,
+        "snippet": None, "source_url": r["source_url"], "pdf_url": r["pdf_url"],
+        "relevance_score": 100.0,
+    } for r in rows]
+    out.sort(key=lambda r: order.get(r["decision_id"], len(order)))
+    return out
 
 
 def _build_docket_variants(raw_query: str) -> set[str]:
