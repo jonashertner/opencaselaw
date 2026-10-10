@@ -56,10 +56,30 @@ def body_text(resp: dict) -> str:
     return "".join(c.get("text", "") for c in (res.get("content") or []))
 
 
+def _json_error(text: str) -> str | None:
+    """The "error" of an answer whose whole body is a JSON object carrying one.
+
+    The server answers an aborted call with {"error": "server_timeout", ...}:
+    ~680 characters, so until 2026-10-10 it passed as OK (get_doctrine timed
+    out at 60 s on a daily run that still reported "44 OK / 0 FAIL"). The probe
+    sends realistic arguments and real ids, so an error object is a failure."""
+    t = text.strip()
+    if not t.startswith("{"):
+        return None
+    try:
+        obj = json.loads(t)
+    except ValueError:
+        return None
+    err = obj.get("error") if isinstance(obj, dict) else None
+    return str(err) if err else None
+
+
 def classify(tool: str, resp: dict, text: str, min_chars: int) -> str:
     if resp.get("error"):
         return "FAIL"
     if _ERR_RE.search(text):
+        return "FAIL"
+    if _json_error(text):
         return "FAIL"
     if len(text.strip()) < min_chars:
         return "EMPTY"

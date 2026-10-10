@@ -19811,6 +19811,91 @@ def _build_doctrine_summary(leading_cases: list[dict], law_code: str) -> dict:
     return summary
 
 
+# Abbreviations whose full stop does not end a regeste sentence ("Art. 41 OR",
+# "Abs. 2", "E. 3.2", "lit. a", "Ziff. 2", "z.B.", "consid. 4", "cpv. 1").
+_RULE_ABBREV_RE = re.compile(
+    r"\b(Art|Abs|Ziff|lit|Bst|let|cpv|al|ch|consid|cons|E|S|Nr|N|Rz|bzw|vgl|ff|act|Prot|"
+    r"z\.B|u\.a|d\.h|i\.V\.m|i\.S\.v|m\.w\.H|n|no)\.", re.IGNORECASE)
+
+
+_RULE_CITE_WORDS = frozenset({
+    "art", "abs", "lit", "ziff", "al", "bst", "let", "cpv", "ch", "und", "et", "e", "sowie",
+    "bis", "ter", "quater", "i", "v", "m", "n", "s", "f", "ff", "iv", "vi", "aart", "abis"})
+
+
+def _rule_is_citation(text: str) -> bool:
+    """True when `text` is statute references only ("Art. 122 Abs. 1, 126 Abs.
+    1 lit. a StPO", "Art. 305 bis Ziff. 2 StGB"): no word is left once the
+    statute tokens, numbers and act abbreviations are taken out."""
+    for w in re.findall(r"[^\W\d_]+", text):
+        if w.lower() in _RULE_CITE_WORDS or _rule_is_act(w):
+            continue
+        if len(w) > 2:
+            return False
+    return True
+
+
+def _rule_is_act(word: str) -> bool:
+    """An act's abbreviation: OR, ZGB, StPO, SchKG, VVG (two or more capitals)."""
+    return len(word) <= 8 and sum(ch.isupper() for ch in word) >= 2
+
+
+def _doctrine_rule_summary(regeste: str, terms: list[str] | None = None,
+                           max_len: int = 150) -> str:
+    """The clause of a regeste that states its rule, for get_doctrine.
+
+    Until 2026-10-10 the summary was the text up to the first full stop, so
+    "Art. 135 Ziff. 2 und Art. 138 Abs. 1 OR, Unterbrechung der Verjährung"
+    became "Art", and "Streitwert (Art. 46 OG). Täuschung" became
+    "Streitwert (Art". Now:
+      * sentences end at a full stop that is not an abbreviation's;
+      * clauses are the regeste's ";"-separated headings and its sentences;
+      * statute references leading a clause ("Art. 33 VVG, Auslegung ...")
+        are dropped, and a clause of references only is skipped;
+      * with topic `terms` (a concept query) the first clause carrying one of
+        them wins, so a regeste on several questions is summarised by the one
+        the user asked about; else the first substantive clause;
+      * a one- or two-word heading ("Tierhalterhaftung") is joined with the
+        clause after it.
+    """
+    clean = re.sub(r"(?m)^\s*Regest[eo][^\n]*\n", "", regeste or "").strip()
+    if not clean:
+        return ""
+    protected = _RULE_ABBREV_RE.sub(lambda m: m.group(0)[:-1] + "\u2024", clean)
+    clauses: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", protected):
+        for part in re.split(r";\s*", sentence):
+            part = part.replace("\u2024", ".").strip().rstrip(".").strip()
+            # "(E. 1.2.4)" / "(consid. 3)": where the regeste found it, not the rule.
+            part = re.sub(r"\s*\((?:E|consid|cons)\.[^)]*\)", "", part).strip()
+            pieces = part.split(", ")
+            while pieces and _rule_is_citation(pieces[0]):
+                pieces.pop(0)
+            part = ", ".join(pieces).strip()
+            if len(part) >= 4 and not _rule_is_citation(part):
+                clauses.append(part)
+    if not clauses:
+        return ""
+    idx = 0
+    if terms:
+        lengths = {len(t) for t in terms}
+        for i, c in enumerate(clauses):
+            words = re.findall(r"[0-9a-z]+", _fold_ascii(c))
+            prefixes = {w[:n] for w in words for n in lengths}
+            if any(t in prefixes for t in terms):
+                idx = i
+                break
+    chosen = clauses[idx]
+    content_words = [w for w in re.findall(r"[^\W\d_]+", chosen) if len(w) > 2
+                     and w.lower() not in _RULE_CITE_WORDS and not _rule_is_act(w)]
+    if len(content_words) <= 2 and idx + 1 < len(clauses):
+        chosen = f"{chosen}: {clauses[idx + 1]}"
+    if len(chosen) > max_len:
+        cut = chosen[:max_len].rsplit(" ", 1)[0]
+        chosen = cut.rstrip(" ,;:(") + " …"
+    return chosen
+
+
 def _handle_get_doctrine(*, query: str) -> dict:
     """Handler for get_doctrine tool.
 
@@ -19876,25 +19961,24 @@ def _handle_get_doctrine(*, query: str) -> dict:
         if not raw_cases and "error" in lc_result:
             raw_cases = _find_leading_cases_by_fts_fallback(query=q, limit=8)
 
-    # Enrich each case with authority count and rule_summary
+    # Enrich each case with authority count and rule_summary. The leading-case
+    # lookup hands over the first 300 characters of each regeste; the rule a
+    # concept query asks about often sits later (BGE 143 IV 500: "Vertrauens-
+    # prinzip" is in its third part), so read the full regestes once.
+    full_regeste: dict[str, str] = {}
+    try:
+        for r in _fetch_decision_rows_by_ids([c.get("decision_id", "") for c in raw_cases]):
+            for v in _decision_id_variants(r["decision_id"]):
+                full_regeste.setdefault(v, r.get("regeste") or "")
+    except sqlite3.Error as e:
+        logger.debug("get_doctrine: full regeste lookup failed: %s", e)
+    summary_terms = None if statute_refs else _leading_topic_terms(q)
     for case in raw_cases:
         did = case.get("decision_id", "")
         incoming, _ = _count_citations(did)
         regeste = case.get("regeste") or ""
-        # rule_summary: first substantive clause of regeste, max 150 chars.
-        # Strip "Regeste" header line that appears at the start of some BGE fields.
-        clean = re.sub(r"^Regeste[^\n]*\n\s*", "", regeste).strip()
-        # BGE regeste often starts with "Art. 41 OR (...); widerrechtlich..." —
-        # skip leading statute citation segments (start with Art./Abs./§) and
-        # use the first non-citation segment as rule_summary.
-        first_sentence = ""
-        for seg in re.split(r";\s*", clean):
-            seg = seg.strip()
-            if seg and not re.match(r"^(?:Art|Abs|§|Ziff)\b", seg, re.I):
-                first_sentence = seg.split(".")[0].strip()[:150]
-                break
-        if not first_sentence and clean:
-            first_sentence = clean.split(".")[0].strip()[:150]
+        first_sentence = _doctrine_rule_summary(
+            full_regeste.get(did) or regeste, summary_terms)
         leading_cases.append({
             "decision_id": did,
             "bge_ref": case.get("docket_number", ""),
