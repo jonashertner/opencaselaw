@@ -8,6 +8,10 @@ Hits the production server every 5 minutes via systemd timer. Verifies:
   4. /api/decisions?query=…            → 200 + at least one decision_id
   5. publish freshness (local marker)  → last success recent, or a build
                                          currently holding the lock
+  6. served data age (/health)         → the served database was built in the
+                                         last SERVED_MAX_AGE_H hours
+  7. serving I/O pressure (local)      → /proc/pressure/io "full" 5-min average
+                                         below IO_FULL_MAX_PCT
 
 The .docx / .bib / /sse probes this docstring used to list were removed on
 2026-05-09 (see the export_pdf comment below); the list had not been updated
@@ -194,7 +198,104 @@ def run_smoke(base_url: str = DEFAULT_BASE_URL) -> list[ProbeResult]:
     ]
     results = [_probe(n, u, **kw) for n, u, kw in probes]
     results.append(_probe_publish_freshness())
+    results.append(_probe_served_data_age(f"{base}/health"))
+    results.append(_probe_serving_pressure())
     return results
+
+
+# The served database's age, from /health's db_generation (the unix time the
+# build or quick_publish wrote it). publish_freshness cannot see this: it
+# passes while any build holds the lock, so from 2026-10-08 14:25 to 10-11 the
+# site served the same database for three days with that probe green (two
+# full builds failed to swap). A normal day swaps within ~28 h.
+SERVED_MAX_AGE_H = float(os.environ.get("OCL_SMOKE_SERVED_MAX_AGE_H", "36"))
+
+
+def _probe_served_data_age(url: str, max_age_h: float = SERVED_MAX_AGE_H,
+                           now: float | None = None) -> ProbeResult:
+    name = "served_data_age"
+    started = time.monotonic()
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "opencaselaw-smoke/1.0"})
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            body = json.loads(resp.read(64 * 1024) or b"{}")
+        elapsed = round((time.monotonic() - started) * 1000, 1)
+        gen = int(body.get("db_generation") or 0)
+        if not gen:
+            return ProbeResult(name=name, url=url, status=200, elapsed_ms=elapsed,
+                               content_type="application/json", bytes_read=0, passed=True,
+                               notes=["no db_generation in /health — age not checked"])
+        age_h = ((now or time.time()) - gen) / 3600.0
+        ok = age_h <= max_age_h
+        notes = [f"served database built {age_h:.1f}h ago"] if ok else [
+            f"served database built {age_h:.1f}h ago (> {max_age_h:.0f}h) — no new data "
+            "reaches users; check the last builds' step 2 (swap gate, pre-flight)"]
+        return ProbeResult(name=name, url=url, status=200, elapsed_ms=elapsed,
+                           content_type="application/json", bytes_read=0, passed=ok, notes=notes)
+    except Exception as e:
+        return ProbeResult(name=name, url=url, status=0,
+                           elapsed_ms=round((time.monotonic() - started) * 1000, 1),
+                           content_type="", bytes_read=0, passed=False,
+                           error=f"{type(e).__name__}: {e}")
+
+
+# Serving reads a 73 GB database through the page cache on a 61 GB host. When
+# something else takes the memory, searches go to disk and time out: 2026-09-30
+# (bloated workers) and 2026-10-10 09:40-10:00 (a 16 GB local model), I/O
+# "full" pressure 70-73% while a normal build night runs at 10-20%. This pages
+# with the memory users named, minutes before the search probe times out.
+IO_FULL_MAX_PCT = float(os.environ.get("OCL_SMOKE_IO_FULL_MAX_PCT", "45"))
+
+
+def _top_memory_users(proc: Path = Path("/proc"), n: int = 3) -> list[str]:
+    import pwd
+    per_user: dict[str, int] = {}
+    for d in proc.iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            rss_kb, uid = 0, None
+            for line in (d / "status").read_text().splitlines():
+                if line.startswith("VmRSS:"):
+                    rss_kb = int(line.split()[1])
+                elif line.startswith("Uid:"):
+                    uid = int(line.split()[1])
+            if uid is None:
+                continue
+            try:
+                user = pwd.getpwuid(uid).pw_name
+            except KeyError:
+                user = str(uid)
+            per_user[user] = per_user.get(user, 0) + rss_kb
+        except (OSError, ValueError):
+            continue
+    top = sorted(per_user.items(), key=lambda kv: -kv[1])[:n]
+    return [f"{u} {kb / 1e6:.1f} GB" for u, kb in top]
+
+
+def _probe_serving_pressure(path: Path = Path("/proc/pressure/io"),
+                            max_full_pct: float = IO_FULL_MAX_PCT) -> ProbeResult:
+    name = "serving_io_pressure"
+    try:
+        text = path.read_text()
+    except OSError:
+        return ProbeResult(name=name, url=str(path), status=0, elapsed_ms=0.0,
+                           content_type="", bytes_read=0, passed=True,
+                           notes=["no pressure stall information here — not checked"])
+    full = next((ln for ln in text.splitlines() if ln.startswith("full ")), "")
+    fields = dict(kv.split("=", 1) for kv in full.split()[1:] if "=" in kv)
+    try:
+        avg300 = float(fields.get("avg300", "0"))
+    except ValueError:
+        avg300 = 0.0
+    ok = avg300 <= max_full_pct
+    notes = [f"io full avg300 {avg300:.1f}%"]
+    if not ok:
+        notes = [f"io full avg300 {avg300:.1f}% (> {max_full_pct:.0f}%): searches are going to "
+                 "disk — page cache squeezed. Top memory users: "
+                 + ", ".join(_top_memory_users() or ["unknown"])]
+    return ProbeResult(name=name, url=str(path), status=200, elapsed_ms=0.0,
+                       content_type="text/plain", bytes_read=len(text), passed=ok, notes=notes)
 
 
 def _publish_lock_age_h(path: Path | None = None) -> float | None:
