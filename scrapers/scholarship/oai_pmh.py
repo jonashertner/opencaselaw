@@ -28,6 +28,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -296,24 +297,67 @@ _FORCE_MAX_PAGES = 500
 _RETRY_BACKOFF_S = (5, 20)
 
 
+class DeadlineReached(Exception):
+    """The caller's time budget ran out before the next request."""
+
+
+def _oai_error_body(e: urllib.error.HTTPError) -> bytes | None:
+    """The body of a 4xx that carries an OAI-PMH <error>, else None.
+
+    SONAR answers an empty window with HTTP 422 and a perfectly valid
+    <error code="noRecordsMatch"/>. Treating the status as a fetch failure
+    turned every empty window into a gap and sent bisection down through
+    1995 one sub-day window at a time; unifr_law never produced a file
+    (2026-09-22 catch-up, killed after 4 h at 0 records).
+    """
+    if not 400 <= e.code < 500:
+        return None
+    try:
+        body = e.read()
+    except Exception:                               # noqa: BLE001
+        return None
+    if b"OAI-PMH" in body and b"<error" in body:
+        return body
+    return None
+
+
 def _fetch_with_retry(url: str, *, user_agent: str, timeout: int,
-                      source: str, page: int) -> bytes:
-    """GET with retries — a transient 5xx must not end a harvest silently."""
+                      source: str, page: int,
+                      deadline: float | None = None) -> bytes:
+    """GET with retries — a transient 5xx must not end a harvest silently.
+
+    With a `deadline` (time.monotonic()), no attempt starts after it and no
+    attempt's timeout reaches past it; running out raises DeadlineReached so
+    the caller can checkpoint instead of recording a failure.
+    """
     last: Exception | None = None
     for attempt in range(_FETCH_RETRIES):
+        attempt_timeout: float = timeout
+        if deadline is not None:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise DeadlineReached()
+            attempt_timeout = min(timeout, max(5.0, left))
         try:
             req = urllib.request.Request(
                 url, headers={"User-Agent": user_agent,
                               "Accept": "application/xml"})
-            with urllib.request.urlopen(req, timeout=timeout) as r:
+            with urllib.request.urlopen(req, timeout=attempt_timeout) as r:
                 return r.read()
+        except urllib.error.HTTPError as e:
+            body = _oai_error_body(e)
+            if body is not None:
+                return body
+            last = e
         except Exception as e:                      # noqa: BLE001
             last = e
-            if attempt < _FETCH_RETRIES - 1:
-                wait = _RETRY_BACKOFF_S[min(attempt, len(_RETRY_BACKOFF_S) - 1)]
-                log.warning("OAI fetch retry %d/%d (%s, page %d) in %ds: %s",
-                            attempt + 1, _FETCH_RETRIES, source, page, wait, e)
-                time.sleep(wait)
+        if deadline is not None and time.monotonic() >= deadline:
+            raise DeadlineReached()
+        if attempt < _FETCH_RETRIES - 1:
+            wait = _RETRY_BACKOFF_S[min(attempt, len(_RETRY_BACKOFF_S) - 1)]
+            log.warning("OAI fetch retry %d/%d (%s, page %d) in %ds: %s",
+                        attempt + 1, _FETCH_RETRIES, source, page, wait, last)
+            time.sleep(wait)
     raise last  # type: ignore[misc]
 
 
@@ -321,9 +365,10 @@ def _identify_granularity(base_url: str, *, user_agent: str,
                           timeout: int) -> bool:
     """True when the server declares seconds granularity via Identify.
 
-    Matters twice: SONAR (Invenio) rejects date-only from/until outright —
-    HTTP 422, not even an OAI badArgument — so windows must be sent as
-    full 'YYYY-MM-DDThh:mm:ssZ' there; and only seconds-granularity servers
+    Matters twice: SONAR (Invenio) was believed to reject date-only
+    from/until with HTTP 422 (re-probed 2026-10-11: its 422s are
+    noRecordsMatch bodies on empty windows — see _oai_error_body), so
+    windows are sent as full 'YYYY-MM-DDThh:mm:ssZ' there; and only seconds-granularity servers
     can accept the sub-day bisection boundaries that migration-burst days
     require. Defaults to False (date-only) when Identify is unreadable.
     """
@@ -403,6 +448,391 @@ def _bisect_window(a: str, b: str, *,
             _fmt(nxt, date_only_ok=False))
 
 
+Window = tuple  # (from, until, depth, parent_size)
+
+
+def _window_plan(windowed: bool, from_date: str | None,
+                 until_date: str | None) -> list[Window]:
+    """The initial window stack for a harvest over [from_date, until_date]."""
+    if windowed:
+        from datetime import date, timedelta
+        w_start = (from_date or WINDOW_FLOOR)[:10]
+        w_end = (until_date or (date.today() + timedelta(days=1)).isoformat())[:10]
+        return [(w_start, w_end, 0, None)]
+    return [(from_date, until_date, 0, None)]
+
+
+class _Walk:
+    """Walks a LIFO stack of datestamp windows into an open JSONL handle.
+
+    The window stack IS the cursor: windows are popped, harvested whole, and
+    discarded; a window that comes back truncated or oversize is split and
+    its halves pushed. With a `deadline`, the walk stops before the next
+    request once the budget is spent and pushes the in-flight window back,
+    so `stack` is exactly the work that remains — persist it and the walk
+    resumes next run (resumption tokens die within minutes, windows don't).
+
+    `record_removals` additionally writes `{"_removed": id}` marker lines for
+    records the server reports deleted and records that fail the subject
+    filter, so an incremental delta can be merged into an existing shard.
+    """
+
+    def __init__(self, base_url: str, source: str, *,
+                 set_spec: str | None, metadata_prefix: str,
+                 rate_limit: float, windowed: bool, max_window_records: int,
+                 subject_filter: list[str] | None, fetch_timeout: int,
+                 license_override: tuple[str, str] | None, user_agent: str,
+                 max_records: int | None = None,
+                 deadline: float | None = None,
+                 record_removals: bool = False,
+                 seen_ids: set[str] | None = None,
+                 checkpoint=None,
+                 newest_first: bool = False):
+        self.base_url = base_url
+        self.source = source
+        self.set_spec = set_spec
+        self.metadata_prefix = metadata_prefix
+        self.rate_limit = rate_limit
+        self.windowed = windowed
+        self.max_window_records = max_window_records
+        self.subject_filter = subject_filter
+        self.fetch_timeout = fetch_timeout
+        self.license_override = license_override
+        self.user_agent = user_agent
+        self.max_records = max_records
+        self.deadline = deadline
+        self.record_removals = record_removals
+        # Split windows are walked oldest-first by default; newest-first
+        # makes a full re-harvest that spans several budgeted runs deliver
+        # recent changes in its first run rather than its last.
+        self.newest_first = newest_first
+        self.seen_ids: set[str] = seen_ids if seen_ids is not None else set()
+        # Called after each finished window with the walk itself, so the
+        # caller can persist `stack`/`gaps` while the walk is still running.
+        self.checkpoint = checkpoint
+
+        self.total = 0
+        self.deleted = 0
+        self.removed = 0
+        self.pages = 0
+        self.windows_done = 0
+        self.aborted = False
+        self.hit_cap = False
+        self.interrupted = False
+        # Windows that could not be harvested after day-atomic retries. Each
+        # entry: {"window", "reason", "declared", "scanned"} — scanned is the
+        # LAST attempt's count (attempts re-scan already-written records, so a
+        # cumulative number would overstate coverage and mislead diagnosis).
+        self.gaps: list[dict] = []
+        self.chain_fail_reason: str | None = None
+        self.seconds_gran = False
+        self.stack: list[Window] = []
+
+    # ── one resumption chain ────────────────────────────────────────────
+    def _params_for(self, w_from: str | None,
+                    w_until: str | None) -> dict[str, str]:
+        p: dict[str, str] = {"verb": "ListRecords",
+                             "metadataPrefix": self.metadata_prefix}
+        if self.set_spec:
+            p["set"] = self.set_spec
+        if w_from:
+            p["from"] = w_from
+        if w_until:
+            p["until"] = w_until
+        return p
+
+    def _remove(self, fh, rid: str, reason: str) -> None:
+        if self.record_removals and rid:
+            fh.write(json.dumps({"_removed": rid, "_reason": reason}) + "\n")
+            self.removed += 1
+
+    def _run_chain(self, fh, w_from: str | None, w_until: str | None,
+                   force: bool = False):
+        """One resumption chain over [w_from, w_until].
+
+        Returns (scanned, complete_size, clean, oversize):
+          scanned       — record elements seen (kept + dupes + filtered + deleted)
+          complete_size — resumptionToken/@completeListSize from page 1, or None
+          clean         — chain ended without error
+          oversize      — windowed mode: page 1 declared more than
+                          max_window_records, chain abandoned for bisection
+                          (its page-1 records were NOT consumed)
+
+        Raises DeadlineReached when the budget runs out before a request.
+
+        force=True walks the chain regardless of the oversize probe, with a
+        hard _FORCE_MAX_PAGES ceiling. In windowed mode chain failures no
+        longer poison the harvest-level `aborted` flag — the window loop
+        owns that decision (gap-and-continue semantics); non-windowed
+        harvests keep the original abort-on-error behavior.
+        """
+        source = self.source
+        token: str | None = None
+        scanned = 0
+        chain_pages = 0
+        complete_size: int | None = None
+        while True:
+            if self.deadline is not None and time.monotonic() >= self.deadline:
+                raise DeadlineReached()
+            self.pages += 1
+            chain_pages += 1
+            if force and chain_pages > _FORCE_MAX_PAGES:
+                self.chain_fail_reason = "force_walk_runaway"
+                log.error("%s window [%s..%s]: forced walk exceeded %d pages "
+                          "— giving up on this window", source, w_from,
+                          w_until, _FORCE_MAX_PAGES)
+                return scanned, complete_size, False, False
+            if token:
+                qs = urllib.parse.urlencode(
+                    {"verb": "ListRecords", "resumptionToken": token})
+            else:
+                qs = urllib.parse.urlencode(self._params_for(
+                    *_day_bounds(w_from, w_until, self.seconds_gran)))
+            url = f"{self.base_url}?{qs}"
+            try:
+                raw = _fetch_with_retry(url, user_agent=self.user_agent,
+                                        timeout=self.fetch_timeout,
+                                        source=source, page=self.pages,
+                                        deadline=self.deadline)
+            except DeadlineReached:
+                raise
+            except Exception as e:                  # noqa: BLE001
+                log.error("OAI fetch failed after %d retries (%s, page %d): %s",
+                          _FETCH_RETRIES, source, self.pages, e)
+                self.chain_fail_reason = "fetch_error"
+                if not self.windowed:
+                    self.aborted = True
+                return scanned, complete_size, False, False
+
+            try:
+                root = ET.fromstring(raw)
+            except ET.ParseError:
+                # Some IRs (e.g. ex-ante.ch as of 2026-05-27) emit control
+                # characters in dc:description that make the document not
+                # well-formed under XML 1.0. Strip and retry once.
+                cleaned = _STRIP_INVALID_XML.sub(b"", raw)
+                try:
+                    root = ET.fromstring(cleaned)
+                    log.warning("OAI XML had invalid control chars "
+                                "(%s, page %d) — stripped and retried",
+                                source, self.pages)
+                except ET.ParseError as e2:
+                    log.error("OAI XML parse failed (%s, page %d): %s",
+                              source, self.pages, e2)
+                    self.chain_fail_reason = "xml_error"
+                    if not self.windowed:
+                        self.aborted = True
+                    return scanned, complete_size, False, False
+
+            err = root.find(f"{{{OAI_NS}}}error")
+            if err is not None:
+                code = err.get("code", "?")
+                if code == "noRecordsMatch":
+                    return scanned, 0, True, False   # empty window, fine
+                log.error("OAI error (%s, page %d) code=%s msg=%s",
+                          source, self.pages, code, (err.text or "").strip())
+                self.chain_fail_reason = "oai_error_" + code
+                if not self.windowed:
+                    self.aborted = True
+                return scanned, complete_size, False, False
+
+            list_recs = root.find(f"{{{OAI_NS}}}ListRecords")
+            if list_recs is None:
+                log.warning("OAI: no ListRecords element (%s, page %d)",
+                            source, self.pages)
+                self.chain_fail_reason = "no_listrecords"
+                if not self.windowed:
+                    self.aborted = True
+                return scanned, complete_size, False, False
+
+            rt = list_recs.find(f"{{{OAI_NS}}}resumptionToken")
+            if token is None and rt is not None:
+                cls = rt.get("completeListSize")
+                if cls and cls.isdigit():
+                    complete_size = int(cls)
+                # Oversize probe: don't walk a chain the server may truncate —
+                # one request spent, records re-arrive via the sub-windows.
+                # force=True (day-atomic fallback) walks it regardless.
+                if (self.windowed and not force and complete_size
+                        and complete_size > self.max_window_records
+                        and (w_from or w_until)):
+                    return 0, complete_size, True, True
+
+            page_kept = 0
+            page_filtered = 0
+            for rec in list_recs.findall(f"{{{OAI_NS}}}record"):
+                scanned += 1
+                hdr = rec.find(f"{{{OAI_NS}}}header")
+                if hdr is not None and (hdr.get("status") or "").lower() == "deleted":
+                    self.deleted += 1
+                    self._remove(fh, hdr.findtext(
+                        f"{{{OAI_NS}}}identifier", default="").strip(),
+                        "deleted")
+                    continue
+                d = _record_to_dict(rec, source)
+                if d is None:
+                    continue
+                rid = d.get("source_record_id") or ""
+                if rid and rid in self.seen_ids:
+                    continue                        # window-boundary duplicate
+                if self.subject_filter and not _record_matches_subject(
+                        d, self.subject_filter):
+                    page_filtered += 1
+                    self._remove(fh, rid, "filtered")
+                    continue
+                if self.license_override and (
+                    not d.get("license")
+                    or not d["license"].upper().startswith("CC-")
+                ):
+                    d["license"] = self.license_override[0]
+                    d["license_url"] = self.license_override[1]
+                fh.write(json.dumps(d, ensure_ascii=False) + "\n")
+                if rid:
+                    self.seen_ids.add(rid)
+                self.total += 1
+                page_kept += 1
+                if self.max_records and self.total >= self.max_records:
+                    break
+
+            log.info(
+                "%s page %d [%s..%s]: %d records (running total: %d, "
+                "deleted: %d, subject-filtered: %d)",
+                source, self.pages, w_from or "*", w_until or "*",
+                page_kept, self.total, self.deleted, page_filtered,
+            )
+
+            if self.max_records and self.total >= self.max_records:
+                self.hit_cap = True
+                return scanned, complete_size, True, False
+
+            rt = list_recs.find(f"{{{OAI_NS}}}resumptionToken")
+            if rt is None or not (rt.text or "").strip():
+                return scanned, complete_size, True, False
+            token = rt.text.strip()
+            time.sleep(self.rate_limit)
+
+    # ── the window loop ─────────────────────────────────────────────────
+    def run(self, fh, stack: list[Window]) -> None:
+        """Pop windows until the stack is empty, the record cap is hit, or
+        the deadline passes (then `interrupted` is set and the in-flight
+        window is back on `stack`)."""
+        self.stack = stack
+        if self.windowed:
+            gran_timeout = self.fetch_timeout
+            if self.deadline is not None:
+                left = self.deadline - time.monotonic()
+                if left <= 0:
+                    self.interrupted = True
+                    return
+                gran_timeout = int(min(self.fetch_timeout, max(5.0, left)))
+            self.seconds_gran = _identify_granularity(
+                self.base_url, user_agent=self.user_agent,
+                timeout=gran_timeout)
+        source = self.source
+        while self.stack and not self.hit_cap:
+            window = self.stack.pop()
+            try:
+                self._window(fh, window)
+            except DeadlineReached:
+                self.stack.append(window)
+                self.interrupted = True
+                log.info("%s: time budget reached — %d window(s) left, "
+                         "resuming at [%s..%s] next run", source,
+                         len(self.stack), window[0] or "*", window[1] or "*")
+                break
+            if self.checkpoint is not None:
+                self.checkpoint(self)
+        # A windowed harvest where nothing at all came back but gaps exist is
+        # a wholesale failure — keep the abort semantics for the installer.
+        if (self.windowed and self.gaps and self.total == 0
+                and not self.interrupted):
+            self.aborted = True
+
+    def _window(self, fh, window: Window) -> None:
+        source = self.source
+        w_from, w_until, depth, parent_size = window
+        self.chain_fail_reason = None
+        scanned, size, clean, oversize = self._run_chain(fh, w_from, w_until)
+        self.windows_done += 1
+        windowed = self.windowed
+        truncated = (windowed and clean and not oversize
+                     and size is not None and size > 0 and scanned < size)
+        failed = windowed and not clean
+        if not (oversize or truncated or failed):
+            return
+        if not windowed:
+            return          # non-windowed: _run_chain set `aborted`
+
+        if truncated:
+            log.warning(
+                "%s window [%s..%s]: chain ended at %d of %d declared "
+                "records (silent server cap)",
+                source, w_from, w_until, scanned, size)
+
+        # Sub-day-lie short-circuit (UNIGE, probed 2026-08-23): a child
+        # window reporting its PARENT's completeListSize means the
+        # server accepted sub-day bounds but ignored the time-of-day
+        # component — descending further just burns probes on identical
+        # lies. Fall through to the day-atomic walk instead.
+        subday_lie = (size is not None and parent_size is not None
+                      and size == parent_size
+                      and ("T" in (w_from or "") or "T" in (w_until or "")))
+        split = None
+        if not subday_lie and depth < _MAX_BISECT_DEPTH:
+            split = _bisect_window(w_from or WINDOW_FLOOR,
+                                   w_until or "2100-01-01",
+                                   seconds_granularity=self.seconds_gran)
+        if split is not None:
+            a, mid, mid_next = split
+            halves = [(mid_next, w_until, depth + 1, size),
+                      (a, mid, depth + 1, size)]
+            if self.newest_first:
+                halves.reverse()
+            self.stack.extend(halves)       # LIFO: the last one goes next
+            return
+
+        # Day-atomic fallback: walk the window WHOLE. Windowing manages
+        # CHAIN LENGTH, not output correctness — subject_filter and
+        # seen_ids own the output — so force-walking a window the
+        # server mis-serves (out-of-range records, lying sizes) is
+        # content-safe; the worst case is re-scanning records already
+        # written. Bounded attempts; a window that still fails becomes
+        # a recorded gap and the SOURCE CONTINUES — one bad day must
+        # never veto a whole repository again (2026-08-23 postmortem).
+        gap_scanned = scanned
+        gap_reason: str | None = None
+        for _attempt in range(_DAY_ATOMIC_ATTEMPTS):
+            if self.hit_cap:
+                gap_reason = None          # cap is an exit, not a failure
+                break
+            self.chain_fail_reason = None
+            f_scanned, f_size, f_clean, _ = self._run_chain(
+                fh, w_from, w_until, force=True)
+            gap_scanned = f_scanned
+            if f_clean:
+                if f_size and f_size > 0 and f_scanned < f_size:
+                    gap_reason = "residual_truncation"
+                    size = f_size
+                else:
+                    gap_reason = None
+                    log.info("%s window [%s..%s]: day-atomic walk "
+                             "recovered %d records", source, w_from,
+                             w_until, f_scanned)
+                break
+            gap_reason = self.chain_fail_reason or "force_walk_failed"
+        if gap_reason is not None:
+            self.gaps.append({
+                "window": [w_from, w_until],
+                "reason": gap_reason,
+                "declared": size,
+                "scanned": gap_scanned,
+            })
+            log.error("%s window [%s..%s]: GAP recorded (%s, %s of %s) "
+                      "— continuing with remaining windows",
+                      source, w_from, w_until, gap_reason,
+                      gap_scanned, size)
+
+
 def harvest(
     base_url: str,
     source: str,
@@ -426,292 +856,27 @@ def harvest(
     license_override: tuple[str, str] | None = None,
     user_agent: str = "OpenCaseLaw-scholarship/0.1 (+https://opencaselaw.ch)",
 ) -> dict:
-    """Stream OAI-PMH ListRecords into a JSONL file.
+    """Stream OAI-PMH ListRecords into a JSONL file (one full, unbudgeted
+    pass that replaces the shard). The weekly pipeline uses
+    `scrapers.scholarship.incremental.harvest_source` instead, which walks
+    the same windows incrementally, under a deadline, and resumably.
 
     Returns a summary dict.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     out_path = output_dir / f"{source}.jsonl"
     tmp_path = output_dir / f"{source}.jsonl.tmp"
-
-    total = 0
-    deleted = 0
-    pages = 0
-    windows_done = 0
-    aborted = False
-    hit_cap = False
-    # Windows that could not be harvested after day-atomic retries. Each
-    # entry: {"window", "reason", "declared", "scanned"} — scanned is the
-    # LAST attempt's count (attempts re-scan already-written records, so a
-    # cumulative number would overstate coverage and mislead diagnosis).
-    gaps: list[dict] = []
-    chain_fail_reason: str | None = None
-    seen_ids: set[str] = set()
     started = time.time()
 
-    def _params_for(w_from: str | None, w_until: str | None) -> dict[str, str]:
-        p: dict[str, str] = {"verb": "ListRecords",
-                             "metadataPrefix": metadata_prefix}
-        if set_spec:
-            p["set"] = set_spec
-        if w_from:
-            p["from"] = w_from
-        if w_until:
-            p["until"] = w_until
-        return p
-
-    def _run_chain(fh, w_from: str | None, w_until: str | None,
-                   force: bool = False):
-        """One resumption chain over [w_from, w_until].
-
-        Returns (scanned, complete_size, clean, oversize):
-          scanned       — record elements seen (kept + dupes + filtered + deleted)
-          complete_size — resumptionToken/@completeListSize from page 1, or None
-          clean         — chain ended without error
-          oversize      — windowed mode: page 1 declared more than
-                          max_window_records, chain abandoned for bisection
-                          (its page-1 records were NOT consumed)
-
-        force=True walks the chain regardless of the oversize probe, with a
-        hard _FORCE_MAX_PAGES ceiling. In windowed mode chain failures no
-        longer poison the harvest-level `aborted` flag — the window loop
-        owns that decision (gap-and-continue semantics); non-windowed
-        harvests keep the original abort-on-error behavior.
-        """
-        nonlocal total, deleted, pages, aborted, hit_cap, chain_fail_reason
-        token: str | None = None
-        scanned = 0
-        chain_pages = 0
-        complete_size: int | None = None
-        while True:
-            pages += 1
-            chain_pages += 1
-            if force and chain_pages > _FORCE_MAX_PAGES:
-                chain_fail_reason = "force_walk_runaway"
-                log.error("%s window [%s..%s]: forced walk exceeded %d pages "
-                          "— giving up on this window", source, w_from,
-                          w_until, _FORCE_MAX_PAGES)
-                return scanned, complete_size, False, False
-            if token:
-                qs = urllib.parse.urlencode(
-                    {"verb": "ListRecords", "resumptionToken": token})
-            else:
-                qs = urllib.parse.urlencode(
-                    _params_for(*_day_bounds(w_from, w_until, seconds_gran)))
-            url = f"{base_url}?{qs}"
-            try:
-                raw = _fetch_with_retry(url, user_agent=user_agent,
-                                        timeout=fetch_timeout,
-                                        source=source, page=pages)
-            except Exception as e:                  # noqa: BLE001
-                log.error("OAI fetch failed after %d retries (%s, page %d): %s",
-                          _FETCH_RETRIES, source, pages, e)
-                chain_fail_reason = "fetch_error"
-                if not windowed:
-                    aborted = True
-                return scanned, complete_size, False, False
-
-            try:
-                root = ET.fromstring(raw)
-            except ET.ParseError:
-                # Some IRs (e.g. ex-ante.ch as of 2026-05-27) emit control
-                # characters in dc:description that make the document not
-                # well-formed under XML 1.0. Strip and retry once.
-                cleaned = _STRIP_INVALID_XML.sub(b"", raw)
-                try:
-                    root = ET.fromstring(cleaned)
-                    log.warning("OAI XML had invalid control chars "
-                                "(%s, page %d) — stripped and retried",
-                                source, pages)
-                except ET.ParseError as e2:
-                    log.error("OAI XML parse failed (%s, page %d): %s",
-                              source, pages, e2)
-                    chain_fail_reason = "xml_error"
-                    if not windowed:
-                        aborted = True
-                    return scanned, complete_size, False, False
-
-            err = root.find(f"{{{OAI_NS}}}error")
-            if err is not None:
-                code = err.get("code", "?")
-                if code == "noRecordsMatch":
-                    return scanned, 0, True, False   # empty window, fine
-                log.error("OAI error (%s, page %d) code=%s msg=%s",
-                          source, pages, code, (err.text or "").strip())
-                chain_fail_reason = "oai_error_" + code
-                if not windowed:
-                    aborted = True
-                return scanned, complete_size, False, False
-
-            list_recs = root.find(f"{{{OAI_NS}}}ListRecords")
-            if list_recs is None:
-                log.warning("OAI: no ListRecords element (%s, page %d)",
-                            source, pages)
-                chain_fail_reason = "no_listrecords"
-                if not windowed:
-                    aborted = True
-                return scanned, complete_size, False, False
-
-            rt = list_recs.find(f"{{{OAI_NS}}}resumptionToken")
-            if token is None and rt is not None:
-                cls = rt.get("completeListSize")
-                if cls and cls.isdigit():
-                    complete_size = int(cls)
-                # Oversize probe: don't walk a chain the server may truncate —
-                # one request spent, records re-arrive via the sub-windows.
-                # force=True (day-atomic fallback) walks it regardless.
-                if (windowed and not force and complete_size
-                        and complete_size > max_window_records
-                        and (w_from or w_until)):
-                    return 0, complete_size, True, True
-
-            page_kept = 0
-            page_filtered = 0
-            for rec in list_recs.findall(f"{{{OAI_NS}}}record"):
-                scanned += 1
-                hdr = rec.find(f"{{{OAI_NS}}}header")
-                if hdr is not None and (hdr.get("status") or "").lower() == "deleted":
-                    deleted += 1
-                    continue
-                d = _record_to_dict(rec, source)
-                if d is None:
-                    continue
-                rid = d.get("source_record_id") or ""
-                if rid and rid in seen_ids:
-                    continue                        # window-boundary duplicate
-                if subject_filter and not _record_matches_subject(d, subject_filter):
-                    page_filtered += 1
-                    continue
-                if license_override and (
-                    not d.get("license")
-                    or not d["license"].upper().startswith("CC-")
-                ):
-                    d["license"] = license_override[0]
-                    d["license_url"] = license_override[1]
-                fh.write(json.dumps(d, ensure_ascii=False) + "\n")
-                if rid:
-                    seen_ids.add(rid)
-                total += 1
-                page_kept += 1
-                if max_records and total >= max_records:
-                    break
-
-            log.info(
-                "%s page %d [%s..%s]: %d records (running total: %d, "
-                "deleted: %d, subject-filtered: %d)",
-                source, pages, w_from or "*", w_until or "*",
-                page_kept, total, deleted, page_filtered,
-            )
-
-            if max_records and total >= max_records:
-                hit_cap = True
-                return scanned, complete_size, True, False
-
-            rt = list_recs.find(f"{{{OAI_NS}}}resumptionToken")
-            if rt is None or not (rt.text or "").strip():
-                return scanned, complete_size, True, False
-            token = rt.text.strip()
-            time.sleep(rate_limit)
-
-    # Window plan. LIFO stack, chronological-first; a window whose chain
-    # comes back short of its declared completeListSize (the silent-cap
-    # signature) or oversize is split and requeued.
-    seconds_gran = False
-    if windowed:
-        from datetime import date, timedelta
-        seconds_gran = _identify_granularity(
-            base_url, user_agent=user_agent, timeout=fetch_timeout)
-        w_start = (from_date or WINDOW_FLOOR)[:10]
-        w_end = (until_date or (date.today() + timedelta(days=1)).isoformat())[:10]
-        stack: list[tuple[str | None, str | None, int, int | None]] = [
-            (w_start, w_end, 0, None)]
-    else:
-        stack = [(from_date, until_date, 0, None)]
-
+    walk = _Walk(
+        base_url, source, set_spec=set_spec, metadata_prefix=metadata_prefix,
+        rate_limit=rate_limit, windowed=windowed,
+        max_window_records=max_window_records, subject_filter=subject_filter,
+        fetch_timeout=fetch_timeout, license_override=license_override,
+        user_agent=user_agent, max_records=max_records)
     with tmp_path.open("w", encoding="utf-8") as fh:
-        while stack and not hit_cap:
-            w_from, w_until, depth, parent_size = stack.pop()
-            chain_fail_reason = None
-            scanned, size, clean, oversize = _run_chain(fh, w_from, w_until)
-            windows_done += 1
-            truncated = (windowed and clean and not oversize
-                         and size is not None and size > 0 and scanned < size)
-            failed = windowed and not clean
-            if not (oversize or truncated or failed):
-                continue
-            if not windowed:
-                continue        # non-windowed: _run_chain set `aborted`
-
-            if truncated:
-                log.warning(
-                    "%s window [%s..%s]: chain ended at %d of %d declared "
-                    "records (silent server cap)",
-                    source, w_from, w_until, scanned, size)
-
-            # Sub-day-lie short-circuit (UNIGE, probed 2026-08-23): a child
-            # window reporting its PARENT's completeListSize means the
-            # server accepted sub-day bounds but ignored the time-of-day
-            # component — descending further just burns probes on identical
-            # lies. Fall through to the day-atomic walk instead.
-            subday_lie = (size is not None and parent_size is not None
-                          and size == parent_size
-                          and ("T" in (w_from or "") or "T" in (w_until or "")))
-            split = None
-            if not subday_lie and depth < _MAX_BISECT_DEPTH:
-                split = _bisect_window(w_from or WINDOW_FLOOR,
-                                       w_until or "2100-01-01",
-                                       seconds_granularity=seconds_gran)
-            if split is not None:
-                a, mid, mid_next = split
-                stack.append((mid_next, w_until, depth + 1, size))
-                stack.append((a, mid, depth + 1, size))
-                continue
-
-            # Day-atomic fallback: walk the window WHOLE. Windowing manages
-            # CHAIN LENGTH, not output correctness — subject_filter and
-            # seen_ids own the output — so force-walking a window the
-            # server mis-serves (out-of-range records, lying sizes) is
-            # content-safe; the worst case is re-scanning records already
-            # written. Bounded attempts; a window that still fails becomes
-            # a recorded gap and the SOURCE CONTINUES — one bad day must
-            # never veto a whole repository again (2026-08-23 postmortem).
-            gap_scanned = scanned
-            gap_reason: str | None = None
-            for _attempt in range(_DAY_ATOMIC_ATTEMPTS):
-                if hit_cap:
-                    gap_reason = None          # cap is an exit, not a failure
-                    break
-                chain_fail_reason = None
-                f_scanned, f_size, f_clean, _ = _run_chain(
-                    fh, w_from, w_until, force=True)
-                gap_scanned = f_scanned
-                if f_clean:
-                    if f_size and f_size > 0 and f_scanned < f_size:
-                        gap_reason = "residual_truncation"
-                        size = f_size
-                    else:
-                        gap_reason = None
-                        log.info("%s window [%s..%s]: day-atomic walk "
-                                 "recovered %d records", source, w_from,
-                                 w_until, f_scanned)
-                    break
-                gap_reason = chain_fail_reason or "force_walk_failed"
-            if gap_reason is not None:
-                gaps.append({
-                    "window": [w_from, w_until],
-                    "reason": gap_reason,
-                    "declared": size,
-                    "scanned": gap_scanned,
-                })
-                log.error("%s window [%s..%s]: GAP recorded (%s, %s of %s) "
-                          "— continuing with remaining windows",
-                          source, w_from, w_until, gap_reason,
-                          gap_scanned, size)
-
-    # A windowed harvest where nothing at all came back but gaps exist is
-    # a wholesale failure — keep the abort semantics for the installer.
-    if windowed and gaps and total == 0:
-        aborted = True
+        walk.run(fh, _window_plan(windowed, from_date, until_date))
+    total, aborted, gaps = walk.total, walk.aborted, walk.gaps
 
     # Atomic install — never let a broken harvest truncate last week's data
     # (the old code opened the real file with mode "w" before the first
@@ -749,10 +914,10 @@ def harvest(
         "base_url": base_url,
         "set": set_spec,
         "metadata_prefix": metadata_prefix,
-        "pages": pages,
+        "pages": walk.pages,
         "total_records": total,
-        "deleted_records": deleted,
-        "windows": windows_done,
+        "deleted_records": walk.deleted,
+        "windows": walk.windows_done,
         "aborted": aborted,
         "gaps": gaps,
         "replaced": replaced,
