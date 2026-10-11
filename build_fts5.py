@@ -2682,7 +2682,13 @@ def build_database(
         #       immutable=1 and tried to apply the stale May-2 WAL.
         # Workers using immutable=1 don't open the WAL at all, so removing
         # these sidecars under their reads is safe.
-        for ext in ("-wal", "-shm"):
+        # A hot rollback -journal is the same hazard in DELETE mode: SQLite
+        # replays its page images into whatever file is at the path, so one
+        # left by a killed writer would corrupt the new DB on its first
+        # read-write open (the graph builder hit this on 2026-10-11). The
+        # build committed and closed before the swap, so no journal here
+        # belongs to a live transaction.
+        for ext in ("-wal", "-shm", "-journal"):
             for stale_path in (
                 Path(str(db_path) + ext),         # source: .tmp-wal / .tmp-shm
                 Path(str(final_db_path) + ext),   # destination: stale from previous build
