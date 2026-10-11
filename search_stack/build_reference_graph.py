@@ -557,8 +557,12 @@ def build_graph(
     prev_path = (compare_against.resolve() if compare_against is not None
                  else db_path)
     tmp_path = db_path.with_name(f".{db_path.name}.tmp")
-    if tmp_path.exists():
-        tmp_path.unlink()
+    # A hot -journal from a killed build must not outlive its file: SQLite
+    # would replay it into whatever is at this path next.
+    for stale in (tmp_path, *(Path(str(tmp_path) + ext)
+                              for ext in ("-journal", "-wal", "-shm"))):
+        if stale.exists():
+            stale.unlink()
 
     conn: sqlite3.Connection | None = None
     try:
