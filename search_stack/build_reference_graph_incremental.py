@@ -398,7 +398,15 @@ def _apply_extraction(
 
 
 def _cleanup_sidecars(target: Path) -> None:
-    for ext in ("-wal", "-shm"):
+    """Remove -wal/-shm and a stale rollback -journal. A -journal left by a
+    killed run is "hot": SQLite replays its page images into whatever file
+    is at the path next time. The full builder renames a finished graph onto
+    the staging path, and the diff path copies the base onto its tmp, so the
+    replay lands in a fresh 5 GB graph and corrupts it. On 2026-10-11 the
+    seeding of a bootstrap failed with "database disk image is malformed"
+    after the 10-10 run was killed mid-seed at the step timeout. No path
+    here is ever reopened to resume, so a journal never has to survive."""
+    for ext in ("-wal", "-shm", "-journal"):
         p = Path(str(target) + ext)
         if p.exists():
             p.unlink()

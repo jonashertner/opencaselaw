@@ -807,3 +807,102 @@ def test_incremental_tmp_name_cannot_collide_with_the_full_builder(
     )
     assert full_tmp.read_bytes() == b"half-written full rebuild"
     assert full.__name__  # keep the import meaningful
+
+
+# ── stale rollback journals (2026-10-11) ──────────────────────────────
+
+
+def _leave_hot_journal(db: Path) -> Path:
+    """Write to ``db`` in a child that dies mid-transaction, the way the
+    step timeout kills a seeding bootstrap. The child spills dirty pages,
+    so the -journal it leaves holds page images and is hot."""
+    import subprocess
+    import textwrap
+
+    code = textwrap.dedent(f"""
+        import os, sqlite3
+        c = sqlite3.connect({str(db)!r})
+        c.execute("PRAGMA cache_size=5")
+        c.execute("CREATE TABLE filler(id INTEGER PRIMARY KEY, blob TEXT)")
+        c.executemany("INSERT INTO filler VALUES (?, ?)",
+                      ((i, "x" * 400) for i in range(5000)))
+        c.execute("DELETE FROM decisions")
+        os._exit(9)
+    """)
+    subprocess.run([sys.executable, "-c", code], check=False)
+    journal = Path(str(db) + "-journal")
+    assert journal.exists() and journal.stat().st_size > 0
+    return journal
+
+
+@pytest.mark.parametrize("killed", ["staging", "full_builder_tmp"])
+def test_a_killed_run_does_not_replay_its_journal_into_the_next_bootstrap(
+    tmp_path: Path, killed: str
+) -> None:
+    """Regression for the 2026-10-11 graph failure.
+
+    The 10-10 bootstrap hit the step timeout while seeding its staging file
+    and was killed, leaving a hot -journal. The 10-11 run unlinked the
+    staging file but not the journal, built a fresh graph and renamed it
+    onto the staging path. Opening it to seed replayed the dead run's page
+    images into the new graph: "database disk image is malformed" after
+    3 h 20 of work. The full builder's own '.tmp' has the same shape.
+    """
+    import search_stack.build_reference_graph_incremental as inc
+
+    decisions_db = _make_decisions_db(tmp_path / "src", BASE_ROWS)
+    live = tmp_path / "reference_graph.db"
+    staging = live.with_name(f".{live.name}.bootstrap.tmp")
+    victim = (staging if killed == "staging"
+              else staging.with_name(f".{staging.name}.tmp"))
+
+    # The dead run's file: a graph from an older, smaller corpus.
+    old_db = _make_decisions_db(tmp_path / "old", BASE_ROWS[:2])
+    build_graph(input_dir=tmp_path / "old", db_path=victim, source_db=old_db)
+    journal = _leave_hot_journal(victim)
+
+    stats = inc._bootstrap_via_full_rebuild(
+        decisions_db=decisions_db, output_path=live)
+
+    assert stats["seeded_processed_decisions"] == len(BASE_ROWS)
+    assert not journal.exists()
+    conn = sqlite3.connect(f"file:{live}?mode=ro", uri=True)
+    try:
+        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert conn.execute(
+            "SELECT COUNT(*) FROM decisions").fetchone()[0] == len(BASE_ROWS)
+        assert conn.execute(
+            "SELECT COUNT(*) FROM processed_decisions").fetchone()[0] == len(BASE_ROWS)
+        assert "filler" not in {r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+    finally:
+        conn.close()
+
+
+def test_the_diff_path_does_not_replay_a_stale_journal_into_its_copy(
+    tmp_path: Path
+) -> None:
+    """The diff path copies the base graph onto '.incremental.tmp' and opens
+    it read-write; a journal left there by a killed diff run must go."""
+    decisions_db = _make_decisions_db(tmp_path / "src", BASE_ROWS)
+    dest = tmp_path / "reference_graph.db"
+    build_graph_incremental(
+        decisions_db=decisions_db, graph_db=dest, output_path=dest)
+
+    tmp = dest.with_name(f".{dest.name}.incremental.tmp")
+    old_db = _make_decisions_db(tmp_path / "old", BASE_ROWS[:2])
+    build_graph(input_dir=tmp_path / "old", db_path=tmp, source_db=old_db)
+    journal = _leave_hot_journal(tmp)
+
+    stats = build_graph_incremental(
+        decisions_db=decisions_db, graph_db=dest, output_path=dest)
+
+    assert stats.get("mode") != "full_bootstrap"
+    assert not journal.exists()
+    conn = sqlite3.connect(f"file:{dest}?mode=ro", uri=True)
+    try:
+        assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert conn.execute(
+            "SELECT COUNT(*) FROM decisions").fetchone()[0] == len(BASE_ROWS)
+    finally:
+        conn.close()
