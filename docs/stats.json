@@ -3724,21 +3724,21 @@
       "ref_count": 196033
     },
     "oldest_decision": {
-      "docket": "1_I_26",
+      "docket": "1_I_3",
       "decision_date": "1875-01-01",
       "year": 1875,
-      "url": "https://mcp.opencaselaw.ch/entscheid/bge_1_I_26"
+      "url": "https://mcp.opencaselaw.ch/entscheid/bge_1_I_3"
     },
     "language_split": {
       "de_pct": 47.0,
       "fr_pct": 44.5,
       "it_pct": 8.5,
-      "total": 1074694
+      "total": 1073893
     },
     "regeste_coverage": {
       "pct": 38.4,
-      "with_regeste": 414635,
-      "total": 1078666
+      "with_regeste": 413455,
+      "total": 1077865
     },
     "graph_size": {
       "decision_edges": 11079757,
@@ -3746,10 +3746,10 @@
       "total": 23873599
     },
     "echr_switzerland": {
-      "total": 1527,
+      "total": 1532,
       "grand_chamber": 19,
-      "in_2026": 61,
-      "ecthr_corpus_total": 9646,
+      "in_2026": 64,
+      "ecthr_corpus_total": 9651,
       "most_recent": {
         "decision_date": "2026-09-03",
         "docket": "1007/20_21022/21",
@@ -3873,7 +3873,7 @@
         "earliest": "1875-01-01",
         "latest": "2026-05-11",
         "span_years": 151,
-        "decision_count": 49259
+        "decision_count": 49486
       },
       {
         "court": "ch_vb",
@@ -3908,7 +3908,7 @@
         "earliest": "1908-11-08",
         "latest": "2026-10-01",
         "span_years": 118,
-        "decision_count": 171005
+        "decision_count": 171031
       }
     ]
   },
