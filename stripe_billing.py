@@ -42,7 +42,7 @@ LICENSES_DB = os.environ.get(
 # Pro verify: max tokens and model
 VERIFY_MODEL = "claude-sonnet-4-6"
 VERIFY_MAX_TOKENS = 500
-PARSE_MODEL = "claude-haiku-4-5-20251001"
+PARSE_MODEL = "claude-haiku-5-5"
 VERIFY_SYSTEM_PROMPT_TEMPLATE = (
     "You are a Swiss legal reference verification assistant. "
     "Given a text passage that cites a court decision, and the full text of that decision, "
@@ -555,7 +555,11 @@ def parse_legal_statement(statement: str) -> dict:
         },
         json={
             "model": PARSE_MODEL,
-            "max_tokens": 300,
+            # 400, not 300: Haiku 5.5's tokenizer counts ~30% more tokens.
+            "max_tokens": 400,
+            # Haiku 5.5 thinks by default; this is a short extraction.
+            "thinking": {"type": "disabled"},
+            "output_config": {"effort": "low"},
             "system": PARSE_STATEMENT_PROMPT,
             "messages": [{"role": "user", "content": f"Statement:\n\"{statement}\""}],
         },
@@ -566,7 +570,10 @@ def parse_legal_statement(statement: str) -> dict:
         logger.error("Parse statement error: %s", resp.text[:200])
         return {"error": "AI service error"}
 
-    content = (resp.json().get("content") or [{}])[0].get("text", "")
+    # By type, not position: a Haiku 5.5 response can lead with a
+    # thinking block, and a refusal can carry no text.
+    content = next((b.get("text", "") for b in resp.json().get("content") or []
+                    if b.get("type") == "text"), "")
     # Strip markdown code fences if present
     import re
     content = re.sub(r"^```(?:json)?\s*", "", content.strip())
