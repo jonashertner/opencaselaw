@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/bger.xml</link>
     <description>Latest published Bundesgericht decisions.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 11 Oct 2026 02:02:59 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 12 Oct 2026 14:16:26 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/bger.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -34,6 +34,14 @@ Gerichtsschreiber Baur.
 Verfahrensbetei…</description>
       <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_545.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 5A_719/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_719_2026</link>
+      <description>Request unsuccessful. Incapsula incident ID: 492000370176504663-445241392544614774</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_719.2026</guid>
       <category>bger</category>
     </item>
     <item>
@@ -67,6 +75,14 @@ Particip…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesgericht 7B_1032/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1032_2026</link>
+      <description>Request unsuccessful. Incapsula incident ID: 492000370176504663-101049675585161586</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1032.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
       <title>Bundesgericht 7B_1066/2026 vom 2026-09-30</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1066_2026</link>
       <description>Bundesgericht
@@ -92,6 +108,14 @@ Gerichtsschreiberin Sauthier.
 Verfahrensbeteili…</description>
       <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1066.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 8C_513/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_513_2026</link>
+      <description>Request unsuccessful. Incapsula incident ID: 492000370176504663-341668702878173557</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_513.2026</guid>
       <category>bger</category>
     </item>
     <item>
@@ -1130,6 +1154,14 @@ Partic…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesgericht 9F_17/2026 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_9F_17_2026</link>
+      <description>Request unsuccessful. Incapsula incident ID: 492000370176504663-17834452296927583</description>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:9F_17.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
       <title>Bundesgericht 1C_486/2026 vom 2026-09-22</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_486_2026</link>
       <description>Bundesgericht
@@ -1371,124 +1403,6 @@ Bundesrichter Glassey,
 Ger…</description>
       <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_297.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 6B_645/2026 vom 2026-09-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_645_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-6B_645/2026
-
-Urteil vom 22. September 2026
-
-I. strafrechtliche Abteilung
-
-Besetzung
-
-Bundesrichter von Felten, als präsidierendes Mitglied,
-
-Gerichtsschreiberin Arquint Hill.
-
-Ver…</description>
-      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_645.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_183/2026 vom 2026-09-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_183_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_183/2026
-
-Urteil vom 22. September 2026
-
-II. strafrechtliche Abteilung
-
-Besetzung
-
-Bundesrichter Abrecht, Präsident,
-
-Bundesrichter Rüedi, Hofmann,
-
-Gerichtsschreiber Matt.
-
-Ve…</description>
-      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_183.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_780/2026 vom 2026-09-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_780_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_780/2026
-
-Arrêt du 22 septembre 2026
-
-IIe Cour de droit pénal
-
-Composition
-
-M. le Juge fédéral Abrecht, Président.
-
-Greffier : M. Fragnière.
-
-Participants à la procédure
-
-A.___…</description>
-      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_780.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_290/2026 vom 2026-09-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_290_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_290/2026
-
-Ordonnance du 22 septembre 2026
-
-IVe Cour de droit public
-
-Composition
-
-M. le Juge fédéral
-
-Métral, en qualité de juge unique.
-
-Greffier : M. Ourny.
-
-Participants à l…</description>
-      <pubDate>Tue, 22 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_290.2026</guid>
       <category>bger</category>
     </item>
   </channel>

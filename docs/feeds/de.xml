@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 11 Oct 2026 02:02:59 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 12 Oct 2026 14:16:26 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -301,6 +301,22 @@ Verfahrensbetei…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesgericht 5A_719/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_719_2026</link>
+      <description>Request unsuccessful. Incapsula incident ID: 492000370176504663-445241392544614774</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_719.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 7B_1032/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1032_2026</link>
+      <description>Request unsuccessful. Incapsula incident ID: 492000370176504663-101049675585161586</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1032.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
       <title>Bundesgericht 7B_1066/2026 vom 2026-09-30</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1066_2026</link>
       <description>Bundesgericht
@@ -326,6 +342,14 @@ Gerichtsschreiberin Sauthier.
 Verfahrensbeteili…</description>
       <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1066.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 8C_513/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_513_2026</link>
+      <description>Request unsuccessful. Incapsula incident ID: 492000370176504663-341668702878173557</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_513.2026</guid>
       <category>bger</category>
     </item>
     <item>
@@ -840,30 +864,6 @@ Gerich…</description>
       <description>Öffentlichkeitsprinzip</description>
       <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-1738.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-5539/2026 vom 2026-09-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5539_2026</link>
-      <description>Asyl und Wegweisung</description>
-      <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5539.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-4335/2025 vom 2026-09-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-4335_2025</link>
-      <description>Asyl (ohne Wegweisungsvollzug) (beschleunigtes Verfahren)</description>
-      <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-4335.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-4790/2026 vom 2026-09-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-4790_2026</link>
-      <description>Asyl und Wegweisung</description>
-      <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-4790.2026</guid>
       <category>bvger</category>
     </item>
   </channel>
