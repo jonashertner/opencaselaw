@@ -211,6 +211,13 @@ def _normalize_docket(text: str) -> str:
 _GEGENSTAND_RE = re.compile(
     r"\b(?:Gegenstand|Objet|Oggetto)\b", re.IGNORECASE
 )
+# The heading form: the word alone on its line, optionally with a colon.
+_GEGENSTAND_LINE_RE = re.compile(
+    r"^[ \t]*(?:Gegenstand|Objet|Oggetto)[ \t]*:?[ \t]*$", re.IGNORECASE | re.MULTILINE
+)
+# How far into the text a bare (non-heading) "Gegenstand" may start and still
+# be taken as the heading. BGer headers put it within ~1,500 chars.
+_GEGENSTAND_MAX_START = 6000
 _BODY_START_RE = re.compile(
     r"\b(?:Erwägung(?:en)?|Sachverhalt|Considérant|Faits|Considerando|Fatti"
     r"|Visto|In\s+Erwägung)\s*:",
@@ -327,8 +334,18 @@ def _extract_header_section(text: str) -> str:
 
     Looks for text between 'Gegenstand/Objet/Oggetto' and the first body
     marker (Erwägung/Sachverhalt/etc.). Falls back to the first 2000 chars.
+
+    The heading is the word on a line of its own (BGer: "Gegenstand\\n").
+    The bare word also occurs in the reasoning ("Gegenstand des Verfahrens"),
+    and a cantonal judgment without a Gegenstand heading used to lose its real
+    header to that mention: ZH Obergericht LA240031 took its "header" from
+    char 33,883 and never saw "Berufung gegen ... (AN220047-L)" on line 15.
+    A bare-word match therefore only counts near the top, where a flattened
+    text (no line breaks) still carries it.
     """
-    gegenstand = _GEGENSTAND_RE.search(text)
+    gegenstand = _GEGENSTAND_LINE_RE.search(text) or _GEGENSTAND_RE.search(
+        text, 0, _GEGENSTAND_MAX_START
+    )
     if not gegenstand:
         return text[:2000]
 
@@ -336,6 +353,9 @@ def _extract_header_section(text: str) -> str:
     body = _BODY_START_RE.search(text, pos=start + 10)
     end = body.start() if body else min(start + 2000, len(text))
     return text[start:end]
+
+
+_ZH_SPLIT_SUFFIX_RE = re.compile(r"(?<=\b[A-Z]{2}\d{6})-\s+(?=[A-Z](?![A-Za-z]))")
 
 
 def _extract_dockets_from_paren(content: str) -> list[str]:
@@ -347,6 +367,9 @@ def _extract_dockets_from_paren(content: str) -> list[str]:
     """
     if not content or content.strip() in ("...", "…"):
         return []
+
+    # A ZH docket broken at its hyphen by the PDF line wrap: "(AN220047- L)".
+    content = _ZH_SPLIT_SUFFIX_RE.sub("-", content)
 
     # Split on spaced dash/en-dash, comma, or semicolon for multi-docket
     # parentheticals like "A/1168/2024 AIDSO - ATA/917/2024" or

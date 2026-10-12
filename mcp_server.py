@@ -7857,7 +7857,8 @@ def _find_appeal_chain(
         visited_up: set[str] = set()
 
         # Walk DOWN: find prior instances (what this decision appealed)
-        _walk_chain(conn, decision_id, "down", result["chain"], min_confidence, visited=visited_down)
+        _walk_chain(conn, decision_id, "down", result["chain"], min_confidence, visited=visited_down,
+                    node_date=src["decision_date"] if src else None)
 
         # For BGE decisions: the prior-instance info is usually on the
         # corresponding bger record (the non-BGE version of the same case,
@@ -7886,14 +7887,16 @@ def _find_appeal_chain(
                     ).fetchone()
                     if bger_row:
                         bger_id = bger_row["decision_id"]
-                        _walk_chain(conn, bger_id, "down", result["chain"], min_confidence, visited=visited_down)
+                        _walk_chain(conn, bger_id, "down", result["chain"], min_confidence, visited=visited_down,
+                                    node_date=src["decision_date"])
             except sqlite3.Error:
                 pass
             finally:
                 fts_conn.close()
 
         # Walk UP: find subsequent instances (decisions that appealed this one)
-        _walk_chain(conn, decision_id, "up", result["chain"], min_confidence, visited=visited_up)
+        _walk_chain(conn, decision_id, "up", result["chain"], min_confidence, visited=visited_up,
+                    node_date=src["decision_date"] if src else None)
 
         # Sort chain by date
         result["chain"].sort(key=lambda x: x.get("decision_date") or "")
@@ -7906,6 +7909,14 @@ def _find_appeal_chain(
         conn.close()
 
 
+def _chain_dates_ordered(lower_date: str | None, upper_date: str | None) -> bool:
+    """False only when both dates are known and the lower instance is later."""
+    lo, up = (lower_date or "")[:10], (upper_date or "")[:10]
+    if len(lo) < 10 or len(up) < 10:
+        return True
+    return lo <= up
+
+
 def _walk_chain(
     conn: sqlite3.Connection,
     decision_id: str,
@@ -7914,8 +7925,16 @@ def _walk_chain(
     min_confidence: float,
     visited: set[str],
     depth: int = 0,
+    node_date: str | None = None,
 ) -> None:
-    """Recursively walk the appeal chain in one direction."""
+    """Recursively walk the appeal chain in one direction.
+
+    ``node_date`` is the date of ``decision_id``. A link whose lower instance
+    is dated after its higher one is not an appeal: the docket the higher
+    court named belongs to a different case under the same number (ZH
+    Obergericht LA210028 of 28 Sep 2021 appealed an AN210006-L ruling of
+    3 Aug 2021; the AN210006-L we hold is a different case of 22 Jul 2022).
+    """
     if depth > 5:  # safety limit
         return
     if decision_id in visited:
@@ -7948,6 +7967,8 @@ def _walk_chain(
             target_id = row["target_decision_id"]
             if target_id in visited:
                 continue
+            if not _chain_dates_ordered(row["decision_date"], node_date):
+                continue
             chain.append({
                 "decision_id": target_id,
                 "docket_number": row["docket_number"],
@@ -7959,7 +7980,8 @@ def _walk_chain(
                 "appealed_by": decision_id,
             })
             # Recurse down
-            _walk_chain(conn, target_id, "down", chain, min_confidence, visited, depth + 1)
+            _walk_chain(conn, target_id, "down", chain, min_confidence, visited, depth + 1,
+                        node_date=row["decision_date"])
 
     elif direction == "up":
         # Find subsequent instances: decisions that appealed this one
@@ -7987,6 +8009,8 @@ def _walk_chain(
             source_id = row["source_decision_id"]
             if source_id in visited:
                 continue
+            if not _chain_dates_ordered(node_date, row["decision_date"]):
+                continue
             chain.append({
                 "decision_id": source_id,
                 "docket_number": row["docket_number"],
@@ -7998,7 +8022,8 @@ def _walk_chain(
                 "appeals": decision_id,
             })
             # Recurse up
-            _walk_chain(conn, source_id, "up", chain, min_confidence, visited, depth + 1)
+            _walk_chain(conn, source_id, "up", chain, min_confidence, visited, depth + 1,
+                        node_date=row["decision_date"])
 
 
 def _text_matches_any_statute_hint(text: str, statutes: set[str]) -> bool:

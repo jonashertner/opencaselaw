@@ -91,6 +91,17 @@ CREATE TABLE IF NOT EXISTS citation_targets (
 
 CREATE INDEX IF NOT EXISTS idx_citation_targets_target_decision_id
     ON citation_targets(target_decision_id);
+
+-- Further docket forms a decision is cited under, read from its own caption
+-- (ZH "Geschäfts-Nr.: LA200010-O/U" for a row stored as "LA200010"). Used
+-- only for references the exact docket_norm match left unresolved.
+CREATE TABLE IF NOT EXISTS docket_aliases (
+    decision_id TEXT NOT NULL,
+    docket_norm TEXT NOT NULL,
+    PRIMARY KEY (decision_id, docket_norm)
+);
+
+CREATE INDEX IF NOT EXISTS idx_docket_aliases_norm ON docket_aliases(docket_norm);
 """
 
 
@@ -130,6 +141,54 @@ def _docket_norm(value: str | None) -> str:
     if re.match(r"^\d{1,3}_[IVX]{1,4}_\d{1,4}$", out):
         out = out.replace("_", " ")
     return out
+
+
+# ZH caption: "Geschäfts-Nr.: LA200010-O/U", "AH240003-G/U", "AN210006-L/U-anonymisiert".
+_ZH_CAPTION_DOCKET_RE = re.compile(
+    r"Gesch(?:ä|ae)fts-?\s*Nr\.?\s*:?\s*([A-Z]{2}\d{6})\s*-\s*([A-Z])"
+    r"(?:\s*/\s*([A-Z]{1,2})(?![A-Za-z]))?"
+)
+
+
+def caption_docket_aliases(
+    *, canton: str | None, docket_number: str | None, full_text: str | None
+) -> list[str]:
+    """Docket forms a ZH ruling is cited under that its stored docket lacks.
+
+    ZH Geschäftsnummern carry a court letter and a document suffix
+    ("LA200010-O/U"; the letter names the court, O = Obergericht, L = Zürich,
+    G = Meilen, ...). The rows are stored with or without them depending on
+    the source ("LA200010", "AH240003", "AN210006-L"), while a citing ruling
+    writes what the caption says: BGer "(LA200010-O/U)", Obergericht
+    "(AH240003-G)". Read from the decision's own caption, so the letter is the
+    one the court printed, never a guess, and only when the caption's number
+    is the stored one.
+    """
+    if (canton or "").upper() != "ZH" or not full_text:
+        return []
+    m = _ZH_CAPTION_DOCKET_RE.search(full_text[:1500])
+    if not m:
+        return []
+    core, letter, sub = m.group(1), m.group(2), m.group(3)
+    stored = _docket_norm(docket_number)
+    if not stored.startswith(core):
+        return []
+    forms = [f"{core}_{letter}"]
+    if sub:
+        forms.append(f"{core}_{letter}_{sub}")
+    return [f for f in forms if f != stored]
+
+
+def insert_docket_aliases(conn: sqlite3.Connection, row: dict) -> None:
+    for alias in caption_docket_aliases(
+        canton=row.get("canton"),
+        docket_number=row.get("docket_number"),
+        full_text=row.get("full_text"),
+    ):
+        conn.execute(
+            "INSERT OR IGNORE INTO docket_aliases (decision_id, docket_norm) VALUES (?, ?)",
+            (row.get("decision_id"), alias),
+        )
 
 
 # BStGer two-letter prefixes
@@ -228,6 +287,77 @@ def _citation_confidence(
     return max(0.05, min(0.99, round(score, 4)))
 
 
+def _resolve_via_docket_aliases(conn: sqlite3.Connection, insert_sql: str) -> None:
+    """Resolve docket refs the exact pass left unmatched through
+    ``docket_aliases`` (caption forms such as ``LA200010_O_U``). Additive:
+    a ref that already has a target is never touched."""
+    has_table = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'docket_aliases'"
+    ).fetchone()
+    if not has_table:
+        return
+    # CROSS JOIN pins docket_aliases (tens of thousands of rows) as the outer
+    # loop, so each alias probes decision_citations through its target_ref
+    # index instead of the planner scanning millions of citation rows.
+    rows = conn.execute(
+        """
+        WITH alias_matches AS (
+            SELECT
+                dc.source_decision_id,
+                dc.target_ref,
+                sd.court AS source_court,
+                sd.canton AS source_canton,
+                sd.decision_date AS source_date,
+                td.decision_id AS target_decision_id,
+                td.court AS target_court,
+                td.canton AS target_canton,
+                td.decision_date AS target_date,
+                ROW_NUMBER() OVER (
+                    PARTITION BY dc.source_decision_id, dc.target_ref
+                    ORDER BY td.decision_date DESC, td.decision_id
+                ) AS candidate_rank,
+                COUNT(*) OVER (
+                    PARTITION BY dc.source_decision_id, dc.target_ref
+                ) AS candidate_count
+            FROM docket_aliases da
+            CROSS JOIN decision_citations dc
+            JOIN decisions td ON td.decision_id = da.decision_id
+            LEFT JOIN decisions sd ON sd.decision_id = dc.source_decision_id
+            WHERE dc.target_ref = da.docket_norm
+              AND dc.target_type = 'docket'
+              AND td.decision_id <> dc.source_decision_id
+              AND NOT EXISTS (
+                  SELECT 1 FROM citation_targets ct
+                   WHERE ct.source_decision_id = dc.source_decision_id
+                     AND ct.target_ref = dc.target_ref
+              )
+        )
+        SELECT * FROM alias_matches
+        """
+    ).fetchall()
+    payload = [
+        (
+            row["source_decision_id"],
+            row["target_ref"],
+            row["target_decision_id"],
+            "docket_alias",
+            _citation_confidence(
+                source_court=row["source_court"],
+                source_canton=row["source_canton"],
+                source_date=row["source_date"],
+                target_court=row["target_court"],
+                target_canton=row["target_canton"],
+                target_date=row["target_date"],
+                target_ref=row["target_ref"],
+                candidate_rank=int(row["candidate_rank"] or 1),
+                candidate_count=int(row["candidate_count"] or 1),
+            ),
+        )
+        for row in rows
+    ]
+    conn.executemany(insert_sql, payload)
+
+
 def _resolve_citation_targets(conn: sqlite3.Connection) -> None:
     cursor = conn.execute(
         """
@@ -305,6 +435,10 @@ def _resolve_citation_targets(conn: sqlite3.Connection) -> None:
                 )
             )
         conn.executemany(insert_sql, payload)
+
+    # Docket refs the exact pass left unmatched, through the caption forms in
+    # docket_aliases (ZH "LA200010-O/U" for a row stored as "LA200010").
+    _resolve_via_docket_aliases(conn, insert_sql)
 
     # Second pass: resolve BGE citations.
     # BGE target_ref = "BGE 147 I 268", BGE docket_norm = "BGE 147 I 268".
@@ -602,6 +736,7 @@ def build_graph(
                     row.get("decision_date"),
                 ),
             )
+            insert_docket_aliases(conn, row)
             decisions += 1
 
             text = " ".join(

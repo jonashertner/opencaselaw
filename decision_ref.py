@@ -371,6 +371,12 @@ def _grammar_candidates(core: str, courts: set[str] | None = None, canton: str |
             order.append("zh_kassationsgericht")
         order += list(ZH_SIX_DIGIT_COURTS)
         out += [f"{court}_{docket}" for court in _dedupe(order)]
+        # "-O" is the Obergericht's own letter (Handelsgericht too), printed in
+        # every caption and every BGer header ("LA210028-O/U"), while the rows
+        # are stored without it. One court, so dropping it is never ambiguous;
+        # a district letter ("-G" Meilen) is identity and is kept.
+        if suffix.startswith("-O"):
+            out += [f"{court}_{prefix}{digits}" for court in _dedupe(order)]
 
     m = _SLASH_RE.match(core) or _GE_SPACED_RE.match(core)
     if m:
