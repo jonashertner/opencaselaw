@@ -45,6 +45,7 @@ from search_stack.build_reference_graph import (  # noqa: E402
     _open_sqlite_readonly,
     _resolve_citation_targets,
     build_graph,
+    insert_docket_aliases,
 )
 from search_stack.reference_extraction import (  # noqa: E402
     extract_case_citations,
@@ -271,6 +272,10 @@ def _delete_source_edges(conn: sqlite3.Connection, ids: set[str]) -> None:
             "DELETE FROM processed_decisions WHERE decision_id = ?",
             (did,),
         )
+        cur.execute(
+            "DELETE FROM docket_aliases WHERE decision_id = ?",
+            (did,),
+        )
 
 
 def _delete_decisions(conn: sqlite3.Connection, ids: set[str]) -> None:
@@ -309,6 +314,9 @@ def _upsert_decision(conn: sqlite3.Connection, row: dict) -> None:
             row.get("decision_date"),
         ),
     )
+    # Caption docket forms (ZH "LA200010-O/U"), as the full builder records
+    # them; _delete_source_edges cleared this row's old ones.
+    insert_docket_aliases(conn, row)
 
 
 def _apply_extraction(
