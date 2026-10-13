@@ -7143,6 +7143,89 @@ def _lookup_previous_id(conn: sqlite3.Connection, reference: str | None) -> str 
     return row[0] if row else None
 
 
+def _lookup_padded_id(conn: sqlite3.Connection, reference: str | None) -> str | None:
+    """The stored id of ``reference`` written without (or with other) trailing
+    underscores. Ids minted from a docket that ended in a newline and spaces
+    carry one underscore per character ('vd_findinfo_353___________': 2,722
+    vd_findinfo rows, 11,700 ch_vb, ~300 elsewhere on 2026-10-13); the docket was
+    trimmed at build time, the id was not, so the id a reader derives from the
+    docket ('vd_findinfo_353') answered "not found". Primary-key lookups only:
+    the bare base, then the range base+'_' .. base+'_'*64, which holds every
+    base-plus-underscores id (and the few other base_* ids, filtered out).
+    Unique match only.
+    """
+    reference = (reference or "").strip()
+    base = reference.rstrip("_")
+    if not base or "_" not in base:
+        return None
+    hits: list[str] = []
+    row = conn.execute(
+        "SELECT decision_id FROM decisions WHERE decision_id = ?", (base,)
+    ).fetchone()
+    if row and row[0] != reference:
+        hits.append(row[0])
+    hits += [
+        r[0] for r in conn.execute(
+            "SELECT decision_id FROM decisions WHERE decision_id >= ? "
+            "AND decision_id <= ? LIMIT 256",
+            (base + "_", base + "_" * 64),
+        )
+        if r[0].rstrip("_") == base and r[0] != reference
+    ]
+    return hits[0] if len(hits) == 1 else None
+
+
+def _docket_homonyms(conn: sqlite3.Connection, docket: str | None,
+                     chosen_id: str | None, limit: int = 10) -> list[dict]:
+    """Other decisions stored under exactly ``docket``, newest first, excluding
+    ``chosen_id`` and its known duplicate representations.
+
+    A bare docket is not unique across courts or years: '353' is both a VD
+    Tribunal cantonal ruling of 4 September 2023 and one of 27 December 2011
+    (report 2026-10-13). The lookup serves the newest, which is the long-standing
+    behaviour; this lets the response say that it chose, and among what, instead
+    of presenting one of several rulings as the only reading. Indexed
+    (idx_decisions_docket); never raises."""
+    docket = (docket or "").strip()
+    if not docket or not chosen_id:
+        return []
+    try:
+        rows = conn.execute(
+            "SELECT decision_id, court, decision_date FROM decisions "
+            "WHERE docket_number = ? AND decision_id != ? "
+            "ORDER BY decision_date DESC LIMIT ?",
+            (docket, chosen_id, limit + 10),
+        ).fetchall()
+    except sqlite3.Error:
+        return []
+    if not rows:
+        return []
+    same: set[str] = set()
+    rep = _representation_info(chosen_id)
+    if rep:
+        same.add(rep.get("canonical_decision_id") or "")
+        same.update(m.get("decision_id") or "" for m in rep.get("members") or [])
+    return [
+        {"decision_id": r[0], "court": r[1], "decision_date": r[2]}
+        for r in rows if r[0] not in same
+    ][:limit]
+
+
+def _attach_docket_ambiguity(result: dict, docket: str | None, others: list[dict]) -> None:
+    """Mark a response resolved from a docket that other decisions share."""
+    result["docket_ambiguous"] = True
+    result["other_decisions_with_docket"] = others
+    result["docket_ambiguity_note"] = (
+        f"Docket {docket!r} is also carried by {len(others)} other record(s) "
+        f"(other_decisions_with_docket), so the docket alone does not identify "
+        "this one: usually another ruling in the same case (an interim order, a "
+        "revision), sometimes another court's case with the same number, and "
+        "where court code differs but the date matches, possibly the same ruling "
+        "filed twice. Check court and date before relying on it, fetch another "
+        "by its decision_id, and cite whichever you use through cite(decision_id)."
+    )
+
+
 def _joined_dockets_for(conn: sqlite3.Connection, decision_id: str | None) -> list[str]:
     """Every secondary (joined) docket stored for a consolidated decision (#41),
     in the alias table's normalised form ('1B_243/2022'), sorted; [] when there
@@ -7317,6 +7400,9 @@ def _resolve_decision_id(decision_id: str) -> str:
         _prev_hit = _lookup_previous_id(conn, decision_id)
         if _prev_hit:
             return _prev_hit
+        _pad_hit = _lookup_padded_id(conn, decision_id)
+        if _pad_hit:
+            return _pad_hit
         # Fallback: exact docket — always tried.
         row = conn.execute(
             "SELECT decision_id FROM decisions WHERE docket_number = ? "
@@ -9950,6 +10036,18 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             ).fetchone()
             _via_previous_id = bool(row)
 
+    _via_padded_id = False
+    if not row:
+        # The id written without the trailing underscores a padded docket left
+        # in it ('vd_findinfo_353' for 'vd_findinfo_353___________').
+        _pad_hit = _lookup_padded_id(conn, decision_id)
+        if _pad_hit:
+            row = conn.execute(
+                "SELECT * FROM decisions WHERE decision_id = ?", (_pad_hit,)
+            ).fetchone()
+            _via_padded_id = bool(row)
+
+    _docket_hit: str | None = None
     if not row:
         # Try searching by docket number — prefer newest decision
         row = conn.execute(
@@ -9957,6 +10055,8 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             "ORDER BY decision_date DESC LIMIT 1",
             (decision_id,),
         ).fetchone()
+        if row:
+            _docket_hit = decision_id
 
     if not row:
         # Robustness (#44): resolve a DECORATED form of the tool's own printed
@@ -9968,6 +10068,8 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                 "SELECT * FROM decisions WHERE docket_number = ? "
                 "ORDER BY decision_date DESC LIMIT 1", (_ext,),
             ).fetchone()
+            if row:
+                _docket_hit = _ext
 
     _via_alias = False
     if not row:
@@ -10014,6 +10116,8 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                 break
 
     _joined = _joined_dockets_for(conn, row["decision_id"]) if row else []
+    _homonyms = (_docket_homonyms(conn, _docket_hit, row["decision_id"])
+                 if row and _docket_hit else [])
     # What the court says happened next ("Weiterzug ans Bundesgericht,
     # 6B_122/2024"), verbatim, and the decisions it names that we hold.
     _appeal = appeal_refs.appeal_info_of(row) if row else None
@@ -10057,6 +10161,11 @@ def get_decision_by_id(decision_id: str) -> dict | None:
         result["resolved_via"] = "joined_docket_alias"
         result["queried_docket"] = decision_id
         result["canonical_docket"] = result.get("docket_number")
+    if _via_padded_id:
+        result["resolved_via"] = "padded_decision_id"
+        result["queried_id"] = decision_id
+    if _homonyms:
+        _attach_docket_ambiguity(result, _docket_hit, _homonyms)
 
     # Canonical-identity enrichment (C-2): a text-verified decision date overrides
     # a synthetic YYYY-01-01 placeholder; publication_date and ECLI are added; a
@@ -10092,6 +10201,10 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     result["date_is_estimated"] = bool(
         (not _dd or _dd.endswith("-01-01")) and _prov != "extracted_from_text"
     )
+    _future = _future_date_warning(_dd)
+    if _future:
+        result["date_is_implausible"] = True
+        result["decision_date_warning"] = _future
     # cli:ch — the Swiss-native caselaw identifier (Switzerland is not an ECLI
     # member; cli:ch is the appropriate identifier). Minted on the fly from the row.
     if _mint_cli_ch is not None:
@@ -13991,6 +14104,34 @@ _BGE_VOLUME_EPOCH = 1874
 _BGE_YEAR_TOLERANCE = 1
 
 
+def _future_date_warning(iso_date: str | None) -> dict | None:
+    """Flag a stored decision date that lies after today in Switzerland.
+
+    Report 2026-10-13: three fr_gerichte rows were served on 2026-10-15,
+    2026-10-26 and 2027-07-27; the first two are the portal's entry or
+    legal-force date (the Tribuna string table is read positionally), the third
+    is a typo in the court's own document. A ruling cannot postdate the day it
+    is read. Detection only: the stored value is not replaced, because the
+    response cannot know the real date. Today is taken at UTC+2 so that a
+    ruling of the Swiss calendar day is never flagged late in the evening.
+    """
+    if not iso_date:
+        return None
+    stored = str(iso_date)[:10]
+    today = (datetime.now(timezone.utc) + timedelta(hours=2)).date().isoformat()
+    if len(stored) != 10 or stored <= today:
+        return None
+    return {
+        "stored_date": stored,
+        "checked_on": today,
+        "note": (
+            f"Stored date {stored} lies in the future, so it is not the date of the "
+            "ruling. Take the date from the decision's own heading (get_decision with "
+            "full_text) before stating it or computing a deadline from it."
+        ),
+    }
+
+
 def _bge_volume_year_mismatch(citation_text: str,
                               iso_date: str | None) -> dict | None:
     """Flag a BGE whose stored year contradicts its volume (#48 / GitHub #84).
@@ -14406,6 +14547,29 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
     target = para_map.get(e_clean) if not text_fallback else fallback
     composed_of: list[str] | None = None
     composed_parts: list[dict] | None = None
+    composed_with_intro = False
+    if target and not text_fallback:
+        # Report 2026-10-13: BGE 138 III 67 stores E. 2.2 as its introductory
+        # paragraph and E. 2.2.1 / 2.2.2 as separate rows, so a request for
+        # "E. 2.2" (the Regeste's own pinpoint) returned 574 characters of
+        # introduction and no hint that the reasoning follows. A pinpoint to a
+        # parent covers its sub-Erwägungen, so serve the subtree: the stored
+        # paragraph first, then its descendants, same rules as the composed
+        # parent below (trailing-dot prefix, document order, verbatim).
+        kids = sorted(
+            (p for p in paragraphs if p["e_number"].startswith(e_clean + ".")),
+            key=lambda p: _e_number_sort_key(p["e_number"]),
+        )
+        if kids:
+            whole = [target] + kids
+            composed_of = [p["e_number"] for p in whole]
+            composed_parts = [
+                {"e_number": p["e_number"],
+                 "text": _auto_link_citations(p["text"])} for p in whole
+            ]
+            target = {**target,
+                      "text": "\n\n".join(p["text"] for p in whole if p.get("text"))}
+            composed_with_intro = True
     if not target:
         # GitHub #86: the official Regeste cites Erwägungen at parent level
         # ("Begriff des Ordre public ... (E. 2)") but only leaf paragraphs are
@@ -14460,7 +14624,7 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         }
     if text_fallback:
         siblings = sorted(para_map.keys(), key=_e_number_sort_key)
-    elif composed_of:
+    elif composed_of and not composed_with_intro:
         # Siblings of a composed parent are the other subtrees at its level,
         # derived from the leaves (E. 2 -> ['2', '3']); the stored `parent`
         # field cannot answer this because the parent rows do not exist.
@@ -14536,6 +14700,11 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         **({"composed_of": composed_of,
             "parts": composed_parts,
             "_composed_note": (
+                f"E. {target['e_number']} has sub-Erwägungen. `text` is its introductory "
+                f"paragraph followed by E. {', '.join(composed_of[1:])}, concatenated in "
+                f"order, verbatim and unmodified. Cite it as E. {target['e_number']}, or "
+                f"quote one entry from `parts` and cite that sub-number instead."
+            ) if composed_with_intro else (
                 f"E. {target['e_number']} is not stored as a single paragraph. "
                 f"`text` is E. {', '.join(composed_of)} concatenated in order, "
                 f"verbatim and unmodified. Cite it as E. "
@@ -16615,7 +16784,7 @@ def _handle_cite(
     rule = _rule_statement(decision, pinpoint_text=pinpoint_text)
     _date_warning = _bge_volume_year_mismatch(
         citation["citation_string_de"], decision.get("decision_date"),
-    )
+    ) or _future_date_warning(decision.get("decision_date"))
 
     result = {
         "exists": True,
@@ -16687,6 +16856,16 @@ def _handle_cite(
         result["decision_date_warning"] = _date_warning
     if identity:
         result["identity"] = identity
+        if identity.get("method") == "exact_docket":
+            # A bare docket can name several rulings ('353': VD 2011 and 2023);
+            # cite picked the newest. Say so rather than certify it as unique.
+            _conn = get_db()
+            try:
+                _others = _docket_homonyms(_conn, identity.get("label"), decision.get("decision_id"))
+            finally:
+                _conn.close()
+            if _others:
+                _attach_docket_ambiguity(result, identity.get("label"), _others)
     # Identity exposure: the decision's joined (secondary) dockets and its
     # canonical representation, so a client can tell a consolidated or
     # duplicated ruling from an unrecognised one. Additive: decision_id and
@@ -27694,7 +27873,8 @@ def _list_tools() -> list[Tool]:
                 "Verbatim text of ONE numbered Erwägung — the citable unit in Swiss practice "
                 "(e.g. 'BGE 136 III 513 E. 2.3'). Use when the user already gave an e_number. "
                 "If only a claim was given (no e_number): use find_relevant_erwaegung — never guess. "
-                "Returns text + sibling Erwägung numbers. e_number: '1', '4.1', '5.2.1', …"
+                "Returns text + sibling Erwägung numbers; a parent (E. 2.2) includes its "
+                "sub-Erwägungen in order, each also under `parts`. e_number: '1', '4.1', '5.2.1', …"
             ),
             inputSchema={
                 "type": "object",
