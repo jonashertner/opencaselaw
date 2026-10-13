@@ -9,8 +9,9 @@ apply remedial migrations without re-deriving them.
 ## 2026-10 — `structure/`: nightly metadata again, paragraph count = paragraph rows, unnumbered Erwägungen
 
 **Affected files:** `structure/structure.parquet`, `structure/erwaegungen_paragraphs.parquet`.
-**Takes effect:** with the first export after the structure sidecar rebuild,
-planned for the night of 10–11 October 2026.
+**Took effect:** with the structure sidecar rebuild of 10–11 October 2026:
+`erwaegungen_paragraphs.parquet` from the file of 2026-10-11,
+`structure/structure.parquet` from the file of 2026-10-12.
 
 - **`structure.parquet` was frozen from 2026-09-10 until this change.** Once the
   sidecar was built from served text, the nightly metadata export ran over its
