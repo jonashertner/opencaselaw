@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 12 Oct 2026 14:16:26 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 13 Oct 2026 12:59:49 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -263,6 +263,22 @@ Be…</description>
       <pubDate>Fri, 02 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">gr_gerichte_SV2 2026 39</guid>
       <category>gr_gerichte</category>
+    </item>
+    <item>
+      <title>ag_handelsgericht HSU.2026.41 vom 2026-10-01</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ag_handelsgericht_HSU.2026.41</link>
+      <description>Handelsgericht
+2. Kammer
+HSU.2026.41 / as / mv
+Entscheid vom 1. Oktober 2026
+Besetzung Oberrichter Vetter, Präsident
+Gerichtsschreiber-Stv. Eisenring
+Gesuchstellerin B._____ AG,
+Gesuchsgegne- C._____, c/o A._____
+rin vertreten durch MLaw Daniela Küng…</description>
+      <pubDate>Thu, 01 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ag_handelsgericht_HSU.2026.41</guid>
+      <category>ag_handelsgericht</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht E-3692/2026 vom 2026-10-01</title>
@@ -857,14 +873,6 @@ Gerich…</description>
       <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1097.2026</guid>
       <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-1738/2025 vom 2026-09-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-1738_2025</link>
-      <description>Öffentlichkeitsprinzip</description>
-      <pubDate>Fri, 25 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-1738.2025</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>
