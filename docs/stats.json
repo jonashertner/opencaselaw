@@ -1,9 +1,9 @@
 {
-  "total": 1078022,
-  "source_representations": 1078022,
+  "total": 1078024,
+  "source_representations": 1078024,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 937134,
-  "unique_decisions_lower_bound": 937084,
+  "unique_decisions": 937136,
+  "unique_decisions_lower_bound": 937086,
   "duplicate_representations": 140888,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -271,10 +271,10 @@
     {
       "court": "ecthr_chamber",
       "canton": "CE",
-      "count": 7624,
+      "count": 7626,
       "earliest": "1960-11-14",
-      "latest": "2026-10-08",
-      "last_scraped": "2026-10-08T14:05:51.830928+00:00",
+      "latest": "2026-10-13",
+      "last_scraped": "2026-10-13T14:10:32.472765+00:00",
       "languages": [
         "fr",
         "en"
@@ -1752,10 +1752,10 @@
     {
       "canton": "CE",
       "name": "CE",
-      "count": 8119,
+      "count": 8121,
       "court_count": 2,
       "earliest": "1960-11-14",
-      "latest": "2026-10-08",
+      "latest": "2026-10-13",
       "languages": [
         "fr",
         "en"
@@ -1915,9 +1915,9 @@
   ],
   "by_language": {
     "de": 504611,
-    "fr": 478230,
+    "fr": 478231,
     "it": 91209,
-    "en": 3972
+    "en": 3973
   },
   "by_year": {
     "1875": 153,
@@ -2071,7 +2071,7 @@
     "2023": 52223,
     "2024": 52230,
     "2025": 49535,
-    "2026": 26235,
+    "2026": 26237,
     "2027": 1
   },
   "recent_daily": {
@@ -2096,11 +2096,12 @@
     "2026-10-06": 9,
     "2026-10-07": 13,
     "2026-10-08": 6,
-    "2026-10-11": 1
+    "2026-10-11": 1,
+    "2026-10-13": 2
   },
   "date_range": {
     "earliest": "1875-01-01",
-    "latest": "2026-10-11"
+    "latest": "2026-10-13"
   },
   "court_count": 124,
   "top_courts": [
@@ -2311,7 +2312,7 @@
   },
   "federal_vs_cantonal": {
     "federal": 398168,
-    "cantonal": 679854
+    "cantonal": 679856
   },
   "language_by_year": {
     "2005": {
@@ -2442,8 +2443,8 @@
     },
     "2026": {
       "de": 13718,
-      "en": 128,
-      "fr": 11410,
+      "en": 129,
+      "fr": 11411,
       "it": 979
     }
   },
@@ -2484,9 +2485,9 @@
     "2026-07": 2626,
     "2026-08": 2409,
     "2026-09": 1457,
-    "2026-10": 41
+    "2026-10": 43
   },
-  "generated_at": "2026-10-13T12:53:37.178914+00:00",
+  "generated_at": "2026-10-13T21:28:15.344465+00:00",
   "scraper_health": {
     "run_at": "2026-10-13T01:53:35.774940+00:00",
     "run_duration_s": 3154.7,
@@ -3033,7 +3034,7 @@
         "note": null,
         "state_count": 99584,
         "jsonl_size_mb": 1506.3,
-        "jsonl_mtime": "2026-10-13T12:38:40.266089+00:00"
+        "jsonl_mtime": "2026-10-13T16:38:40.567777+00:00"
       },
       "postcom": {
         "success": true,
@@ -3708,19 +3709,19 @@
       "chapter": 11,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10079066,
-    "statute_edges": 12787758
+    "citation_edges": 10080418,
+    "statute_edges": 12789314
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "BGE 125 V 351",
-      "citation_count": 78845,
+      "citation_count": 78850,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196099
+      "ref_count": 196125
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -3732,23 +3733,23 @@
       "de_pct": 47.0,
       "fr_pct": 44.5,
       "it_pct": 8.5,
-      "total": 1073961
+      "total": 1074051
     },
     "regeste_coverage": {
       "pct": 38.4,
-      "with_regeste": 413462,
-      "total": 1077933
+      "with_regeste": 413476,
+      "total": 1078024
     },
     "graph_size": {
-      "decision_edges": 11114676,
-      "statute_edges": 12787758,
-      "total": 23902434
+      "decision_edges": 11115897,
+      "statute_edges": 12789314,
+      "total": 23905211
     },
     "echr_switzerland": {
       "total": 1532,
       "grand_chamber": 19,
       "in_2026": 64,
-      "ecthr_corpus_total": 9651,
+      "ecthr_corpus_total": 9653,
       "most_recent": {
         "decision_date": "2026-09-03",
         "docket": "1007/20_21022/21",
@@ -3759,31 +3760,31 @@
     "top_5_decisions": [
       {
         "docket": "BGE 125 V 351",
-        "citation_count": 78845,
+        "citation_count": 78850,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
       },
       {
         "docket": "125 V 351",
-        "citation_count": 76400,
+        "citation_count": 76412,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "BGE 122 V 157",
-        "citation_count": 40672,
+        "citation_count": 40673,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_122_V_157"
       },
       {
         "docket": "BGE 134 V 231",
-        "citation_count": 39746,
+        "citation_count": 39753,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_134_V_231"
       },
       {
         "docket": "BGE 115 V 133",
-        "citation_count": 34725,
+        "citation_count": 34728,
         "regeste_excerpt": "Regeste\n Art. 67 und 76 KUVG, Art. 6 und 18 UVG. Präzisierung der in BGE 113 V 307 veröffentlichten Rechtsprechung zum adäquaten Kausalzusammenhang.\nRegeste\n Ar",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_115_V_133"
       }
@@ -3792,27 +3793,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196099
+        "ref_count": 196125
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 120754
+        "ref_count": 120760
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109178
+        "ref_count": 109169
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98079
+        "ref_count": 98103
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 60867
+        "ref_count": 60856
       }
     ],
     "materialien_coverage": {
@@ -3886,7 +3887,7 @@
         "earliest": "1901-01-01",
         "latest": "2026-08-30",
         "span_years": 125,
-        "decision_count": 1226
+        "decision_count": 1227
       },
       {
         "court": "ar_gerichte",
@@ -3907,7 +3908,7 @@
         "earliest": "1908-11-08",
         "latest": "2026-10-01",
         "span_years": 118,
-        "decision_count": 171031
+        "decision_count": 171077
       }
     ]
   },
@@ -4294,6 +4295,24 @@
     ],
     "cantonal": [
       {
+        "decision_id": "ecthr_chamber_25406_22_20261013",
+        "docket": "25406/22_20261013",
+        "date": "2026-10-13",
+        "court": "ecthr_chamber",
+        "language": "fr",
+        "summary": "Violation de l'article 8 - Droit au respect de la vie privée et familiale (Article 8-1 - Respect de la correspondance;Respect de la vie familiale;Respect de la vie privée);Dommage matériel - demande rejetée (Article 41…",
+        "canton": "CE"
+      },
+      {
+        "decision_id": "ecthr_chamber_16947_22_20261013",
+        "docket": "16947/22_20261013",
+        "date": "2026-10-13",
+        "court": "ecthr_chamber",
+        "language": "en",
+        "summary": "Violation of Article 1 of Protocol No. 1 - Protection of property (Article 1 para. 1 of Protocol No. 1 - Peaceful enjoyment of possessions);Pecuniary and non-pecuniary damage - award (Article 41 - Non-pecuniary damage;P…",
+        "canton": "CE"
+      },
+      {
         "decision_id": "ecthr_chamber_72982_17_74407_17_20261008",
         "docket": "72982/17_74407/17_20261008",
         "date": "2026-10-08",
@@ -4363,24 +4382,6 @@
         "court": "ecthr_chamber",
         "language": "en",
         "summary": "Violation of Article 7 - No punishment without law (Article 7-1 - Nullum crimen sine lege);Pecuniary damage - claim dismissed (Article 41 - Pecuniary damage;Just satisfaction);Non-pecuniary damage - finding of violation…",
-        "canton": "CE"
-      },
-      {
-        "decision_id": "ecthr_chamber_45738_22_20261006",
-        "docket": "45738/22_20261006",
-        "date": "2026-10-06",
-        "court": "ecthr_chamber",
-        "language": "en",
-        "summary": "Violation of Article 10 - Freedom of expression - {general} (Article 10-1 - Freedom of expression);Pecuniary damage - claim dismissed (Article 41 - Pecuniary damage;Just satisfaction);Non-pecuniary damage - award (Artic…",
-        "canton": "CE"
-      },
-      {
-        "decision_id": "ecthr_chamber_42160_21_20261006",
-        "docket": "42160/21_20261006",
-        "date": "2026-10-06",
-        "court": "ecthr_chamber",
-        "language": "en",
-        "summary": "Preliminary objection joined to merits and dismissed (Art. 34) Individual applications;(Art. 34) Victim;Remainder inadmissible (Art. 35) Admissibility criteria;(Art. 35-3-a) Manifestly ill-founded;Violation of Article 8…",
         "canton": "CE"
       }
     ]
@@ -4508,7 +4509,7 @@
     }
   ],
   "delta": {
-    "total": 89,
+    "total": 91,
     "by_court": {
       "ge_gerichte": 46,
       "bvger": 9,
@@ -4518,6 +4519,7 @@
       "be_verwaltungsgericht": 2,
       "bstger": 3,
       "ne_gerichte": 5,
+      "ecthr_chamber": 2,
       "be_zivilstraf": 14,
       "sg_verwaltungsgericht": 10,
       "sz_verwaltungsgericht": 8,
@@ -4538,12 +4540,14 @@
       "SG": 10,
       "AG": 6,
       "NE": 5,
+      "CE": 2,
       "SZ": 8,
       "ZG": 1,
       "UR": 1
     },
     "corpus": {
-      "citation_edges": 7963
+      "citation_edges": 9315,
+      "statute_edges": 1556
     },
     "previous_generated_at": "2026-10-12T23:06:42.087729+00:00"
   }
