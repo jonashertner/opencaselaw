@@ -161,6 +161,17 @@ BGE_VOLUME_EPOCH = 1874
 BGE_HEADER_LAG_YEARS = 3
 
 
+def trilingual_regeste(regesten: dict) -> str | None:
+    """The Regeste field of a BGE: the German, French and Italian Regeste, in
+    that order, joined by a blank line (the shape of the entscheidsuche feed's
+    rows). Until 2026-10-14 only the German one went into `regeste`; the French
+    and Italian sat in abstract_fr / abstract_it, which neither the FTS index
+    nor get_regeste reads, so a French or Italian query never reached them."""
+    parts = [str(regesten.get(lang) or "").strip() for lang in SPRACHEN]
+    parts = [p for p in parts if p]
+    return "\n\n".join(parts) if parts else None
+
+
 def header_date_plausible(d: date | None, volume_year: int | None) -> bool:
     """Volume gate for a date taken from a decision's OWN Urteilskopf/Kopfzeile."""
     if d is None:
@@ -808,7 +819,7 @@ class BGELeitentscheideScraper(BaseScraper):
                 decision_date=decision_date,
                 language=lang,
                 title=stub.get("case_name"),
-                regeste=regesten.get("de") or regesten.get("fr"),
+                regeste=trilingual_regeste(regesten),
                 abstract_de=regesten.get("de"),
                 abstract_fr=regesten.get("fr"),
                 abstract_it=regesten.get("it"),

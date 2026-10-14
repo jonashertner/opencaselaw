@@ -1,5 +1,10 @@
 # Runbook: BGE entscheidsuche rows take their direct twin's date (2026-10-14)
 
+> **Superseded the same day by `runbooks/bge_es_retirement.md` (update 2026-10-14).** The
+> direct rows hold all three Regeste languages in their abstracts; once those are composed
+> into `regeste`, retiring the feed fixes the dates and leaves one id per BGE with nothing
+> lost. Use this runbook only if retirement is deferred.
+
 **What is wrong (report 2026-10-13, finding 3).** `BGE 141 II 280` and `BGE 151 III 227`
 are served on 1 January (2015-01-01, 2025-01-01). Their entscheidsuche rows
 (`bge_BGE_…`, `es_bge.jsonl`) carry the volume placeholder because the Kopfzeile states
@@ -8,9 +13,9 @@ date of their own Urteilskopf ("4A_418/2024 vom 20. Dezember 2024"). Served on
 2026-10-14: 4,261 BGEs whose es row is a placeholder while the direct row is dated, 234
 with two different real dates, and 10,003 `bge` rows on a 1 January or empty date.
 
-**Why not retire es_bge.jsonl now** (`runbooks/bge_es_retirement.md`). The feed's rows are
-the fuller copies: they hold the Regeste in German, French and Italian, the direct rows
-only in German (BGE 151 III 227: 4,817 vs 1,499 Regeste characters; every one of the
+**Why not retire es_bge.jsonl now (as first assessed; corrected in the retirement
+runbook's 2026-10-14 update)** The feed's rows looked like the fuller copies: they hold the
+Regeste in German, French and Italian in `regeste`, the direct rows only in German (BGE 151 III 227: 4,817 vs 1,499 Regeste characters; every one of the
 20,718 shared BGEs has a >10 % shorter Regeste in the direct row). Retirement would drop
 the French and Italian Regeste until the direct scraper fetches them from bger.ch.
 

@@ -145,3 +145,27 @@ _H_85_II_369 = ("59. TARIF für die Gerichtsgebühren (zu Art. 153 des Organisat
 ])
 def test_first_volume_consistent_date_wins(header, year, expected):
     assert parse_urteilskopf(header, volume_year=year)["decision_date"] == expected
+
+
+def test_regeste_carries_all_three_languages(tmp_path, monkeypatch):
+    # 2026-10-14: the French and Italian Regeste were stored in abstract_fr /
+    # abstract_it only, which FTS and get_regeste never read.
+    scraper = _scraper(tmp_path)
+    html = (FIXTURES / "bge_150_III_367_head.html").read_text(encoding="utf-8")
+    monkeypatch.setattr(scraper, "_fetch_trilingual_regesten",
+                        lambda base_url: {"de": "Regeste DE", "fr": "Regeste FR", "it": "Regesto IT"})
+    monkeypatch.setattr(scraper, "_safe_get",
+                        lambda url, **kw: type("R", (), {"text": html})())
+    decision = scraper.fetch_decision({
+        "docket_number": "150 III 367", "bge_reference": "150 III 367",
+        "url": "/ext/eurospider/live/de/php/clir/http/index.php?highlight_docid=atf%3A%2F%2F150-III-367%3Ade&lang=de",
+        "year": 2024, "volume": "III",
+    })
+    assert decision.regeste == "Regeste DE\n\nRegeste FR\n\nRegesto IT"
+    assert decision.abstract_fr == "Regeste FR"
+
+
+def test_trilingual_regeste_skips_missing_languages():
+    from scrapers.bge import trilingual_regeste
+    assert trilingual_regeste({"de": None, "fr": " FR ", "it": ""}) == "FR"
+    assert trilingual_regeste({}) is None
