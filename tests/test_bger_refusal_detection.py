@@ -109,7 +109,11 @@ def test_a_page_that_is_not_the_list_raises(body):
         bp._classify_neuheiten_page(body)
 
 
-def test_a_blocked_tunnel_answer_falls_back_to_direct(monkeypatch):
+def test_a_blocked_tunnel_answer_is_never_read_as_an_empty_day(monkeypatch):
+    # 2026-09-28: a non-list page through the tunnel must not parse as "0
+    # decisions". Since 2026-10-14 the answer to such a page is a cookie harvest
+    # THROUGH the tunnel (a real browser at that address passes), not the
+    # datacenter path: browsers launched there only hammer a hard-blocked address.
     monkeypatch.setenv("BGER_PROXY", "socks5h://127.0.0.1:1080")
 
     class R:
@@ -119,8 +123,27 @@ def test_a_blocked_tunnel_answer_falls_back_to_direct(monkeypatch):
 
     import requests
     monkeypatch.setattr(requests.Session, "get", lambda self, url, timeout=None: R())
-    monkeypatch.setattr(bp, "_fetch_neuheiten_direct", lambda url: {"9C_9/2026"})
+    monkeypatch.setattr(bp, "_fetch_neuheiten_via_proxy_with_cookies", lambda url, proxy: {"9C_9/2026"})
+    monkeypatch.setattr(bp, "_fetch_neuheiten_direct",
+                        lambda url: pytest.fail("no datacenter fallback on a challenge"))
     assert bp._fetch_neuheiten("20260928") == {"9C_9/2026"}
+
+
+def test_a_tunnel_still_blocked_after_the_harvest_raises(monkeypatch):
+    monkeypatch.setenv("BGER_PROXY", "socks5h://127.0.0.1:1080")
+
+    class R:
+        text = "<html><body>blocked</body></html>"
+        def raise_for_status(self):
+            pass
+
+    import requests
+    monkeypatch.setattr(requests.Session, "get", lambda self, url, timeout=None: R())
+    monkeypatch.setattr(bp, "IncapsulaCookieManager", None, raising=False)
+    import incapsula_bypass
+    monkeypatch.setattr(incapsula_bypass.IncapsulaCookieManager, "get_cookies", lambda self, d: {})
+    with pytest.raises(RuntimeError, match="not a Neuheiten page"):
+        bp._fetch_neuheiten("20260928")
 
 
 # ── bger_poller: a failed fetch after the publication window alerts once ──

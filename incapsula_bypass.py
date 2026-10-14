@@ -184,6 +184,26 @@ def _wait_for_challenge(page, timeout_seconds: int, t0: float) -> bool:
     return False
 
 
+def browser_proxy(proxy: Optional[str]) -> Optional[dict]:
+    """A requests-style proxy URL as a browser launch option. Browsers take
+    "socks5://host:port", not requests' "socks5h://" (remote DNS is the
+    browser's default for SOCKS5). None when there is no proxy."""
+    if not proxy:
+        return None
+    server = proxy.replace("socks5h://", "socks5://", 1)
+    return {"server": server}
+
+
+def _user_agent(page) -> Optional[str]:
+    """The User-Agent the browser presented while earning the cookies.
+    Incapsula ties its session to the client that solved the challenge, so the
+    requests session must send the same one (camoufox presents a Firefox UA)."""
+    try:
+        return page.evaluate("navigator.userAgent")
+    except Exception:
+        return None
+
+
 def _has_incapsula_cookies(cookies: dict[str, str]) -> bool:
     """Check if cookie dict contains Incapsula session cookies."""
     return any(
@@ -217,8 +237,8 @@ def _log_harvest_result(strategy: str, cookies: dict[str, str], t0: float) -> No
 
 
 def _harvest_via_camoufox(
-    url: str, timeout_seconds: int, headless: bool,
-) -> dict[str, str]:
+    url: str, timeout_seconds: int, headless: bool, proxy: Optional[str] = None,
+) -> tuple[dict[str, str], Optional[str]]:
     """
     Harvest cookies using camoufox — C++-level Firefox patching.
 
@@ -230,7 +250,10 @@ def _harvest_via_camoufox(
     logger.info(f"[camoufox] Attempting cookie harvest for {url}")
     t0 = time.time()
 
-    with Camoufox(headless=headless) as browser:
+    launch = {"headless": headless}
+    if browser_proxy(proxy):
+        launch["proxy"] = browser_proxy(proxy)
+    with Camoufox(**launch) as browser:
         page = browser.new_page()
         # 60-s page.goto timeout (bumped 2026-05-13 from 30 s after
         # BGer's Incapsula was tuned up: camoufox started timing out
@@ -242,7 +265,7 @@ def _harvest_via_camoufox(
         _wait_for_challenge(page, timeout_seconds, t0)
         cookies = _extract_cookies(page.context)
         _log_harvest_result("camoufox", cookies, t0)
-        return cookies
+        return cookies, _user_agent(page)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -251,8 +274,8 @@ def _harvest_via_camoufox(
 
 
 def _harvest_via_playwright_stealth(
-    url: str, timeout_seconds: int, headless: bool,
-) -> dict[str, str]:
+    url: str, timeout_seconds: int, headless: bool, proxy: Optional[str] = None,
+) -> tuple[dict[str, str], Optional[str]]:
     """
     Harvest cookies using playwright-stealth — patches 7+ detection vectors.
 
@@ -268,6 +291,7 @@ def _harvest_via_playwright_stealth(
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=headless,
+            proxy=browser_proxy(proxy),
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
@@ -289,7 +313,7 @@ def _harvest_via_playwright_stealth(
             _wait_for_challenge(page, timeout_seconds, t0)
             cookies = _extract_cookies(context)
             _log_harvest_result("playwright-stealth", cookies, t0)
-            return cookies
+            return cookies, _user_agent(page)
         finally:
             browser.close()
 
@@ -300,8 +324,8 @@ def _harvest_via_playwright_stealth(
 
 
 def _harvest_via_playwright_plain(
-    url: str, timeout_seconds: int, headless: bool,
-) -> dict[str, str]:
+    url: str, timeout_seconds: int, headless: bool, proxy: Optional[str] = None,
+) -> tuple[dict[str, str], Optional[str]]:
     """
     Harvest cookies using plain Playwright with Chrome UA.
 
@@ -316,6 +340,7 @@ def _harvest_via_playwright_plain(
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=headless,
+            proxy=browser_proxy(proxy),
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
@@ -344,7 +369,7 @@ def _harvest_via_playwright_plain(
             _wait_for_challenge(page, timeout_seconds, t0)
             cookies = _extract_cookies(context)
             _log_harvest_result("playwright-plain", cookies, t0)
-            return cookies
+            return cookies, _user_agent(page)
         finally:
             browser.close()
 
@@ -358,7 +383,18 @@ def harvest_cookies(
     url: str,
     timeout_seconds: int = 60,
     headless: bool = True,
+    proxy: Optional[str] = None,
 ) -> dict[str, str]:
+    """Cookies only; see harvest() for the User-Agent that earned them."""
+    return harvest(url, timeout_seconds, headless, proxy)[0]
+
+
+def harvest(
+    url: str,
+    timeout_seconds: int = 60,
+    headless: bool = True,
+    proxy: Optional[str] = None,
+) -> tuple[dict[str, str], Optional[str]]:
     """
     Launch a browser, navigate to URL, wait for Incapsula JS challenge
     to resolve, and extract cookies.
@@ -375,9 +411,11 @@ def harvest_cookies(
         url: Target URL (must be on an Incapsula-protected domain)
         timeout_seconds: Max time to wait for challenge resolution per strategy
         headless: Run browser headlessly (set False for debugging)
+        proxy: requests-style proxy URL (the residential tunnel); the browser
+            then egresses there, like the requests that use the cookies
 
     Returns:
-        Dict of cookie name -> value for the domain
+        (dict of cookie name -> value for the domain, the browser's User-Agent)
 
     Raises:
         RuntimeError: If no strategy succeeds
@@ -407,12 +445,13 @@ def harvest_cookies(
     )
 
     last_error = None
+    last_ua = None
     for name, strategy_fn in strategies:
         try:
-            cookies = strategy_fn(url, timeout_seconds, headless)
+            cookies, ua = strategy_fn(url, timeout_seconds, headless, proxy)
             if _has_incapsula_cookies(cookies):
                 logger.info(f"Strategy '{name}' succeeded with Incapsula cookies")
-                return cookies
+                return cookies, ua
             else:
                 logger.warning(
                     f"Strategy '{name}' completed but no Incapsula cookies found, "
@@ -421,6 +460,7 @@ def harvest_cookies(
                 # Still return if this is the last strategy
                 last_error = None
                 last_cookies = cookies
+                last_ua = ua
         except Exception as e:
             logger.warning(f"Strategy '{name}' failed: {e}")
             last_error = e
@@ -434,7 +474,7 @@ def harvest_cookies(
 
     # Return whatever the last strategy gave us (may still work)
     logger.warning("No strategy produced Incapsula cookies, returning best result")
-    return last_cookies  # type: ignore[possibly-undefined]
+    return last_cookies, last_ua  # type: ignore[possibly-undefined]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -467,17 +507,40 @@ class IncapsulaCookieManager:
 
     # Cookies are good for ~20 minutes typically, but be conservative
     COOKIE_MAX_AGE_SECONDS = 900  # 15 minutes
+    # Browser harvests per domain for the life of one manager (one scraper run).
+    # Every refused request may ask for a refresh; without a budget a blocked run
+    # launches a browser per page from the same address, the request burst that
+    # got the tunnel address challenged before (memory: bger-capture-guarantees).
+    MAX_HARVESTS_PER_DOMAIN = 3
 
-    def __init__(self, cache_dir: Path = Path("state"), headless: bool = True):
+    def __init__(self, cache_dir: Path = Path("state"), headless: bool = True,
+                 proxy: Optional[str] = None):
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.headless = headless
+        # The egress the cookies are earned through. A scraper that sends its
+        # requests through the residential tunnel sets this to the tunnel, so
+        # the browser solves the challenge from that address too: cookies
+        # earned from the datacenter address are no use through the tunnel,
+        # and a browser launched there only hammers an address Incapsula
+        # already blocks (2026-10-14: the tunnel address is challenged too).
+        self.proxy = proxy
         self._cookies: dict[str, dict[str, str]] = {}
         self._timestamps: dict[str, float] = {}
+        self._user_agents: dict[str, Optional[str]] = {}
+        self._harvests: dict[str, int] = {}
+
+    def _key(self, domain: str) -> str:
+        return f"{domain}|{'proxy' if self.proxy else 'direct'}"
 
     def _cache_path(self, domain: str) -> Path:
         safe_domain = domain.replace(".", "_")
-        return self.cache_dir / f"incapsula_{safe_domain}.json"
+        suffix = "_via_proxy" if self.proxy else ""
+        return self.cache_dir / f"incapsula_{safe_domain}{suffix}.json"
+
+    def user_agent(self, domain: str) -> Optional[str]:
+        """The User-Agent that earned the current cookies for ``domain``."""
+        return self._user_agents.get(self._key(domain))
 
     def _load_cache(self, domain: str) -> Optional[dict[str, str]]:
         """Load cached cookies from disk if still fresh."""
@@ -502,26 +565,31 @@ class IncapsulaCookieManager:
                 f"Loaded {len(cookies)} cached cookies for {domain} "
                 f"(age: {age:.0f}s)"
             )
-            self._cookies[domain] = cookies
-            self._timestamps[domain] = timestamp
+            self._cookies[self._key(domain)] = cookies
+            self._timestamps[self._key(domain)] = timestamp
+            self._user_agents[self._key(domain)] = data.get("user_agent")
             return cookies
 
         except Exception as e:
             logger.warning(f"Failed to load cookie cache for {domain}: {e}")
             return None
 
-    def _save_cache(self, domain: str, cookies: dict[str, str]) -> None:
+    def _save_cache(self, domain: str, cookies: dict[str, str],
+                    user_agent: Optional[str] = None) -> None:
         """Save cookies to disk cache."""
         path = self._cache_path(domain)
         timestamp = time.time()
         data = {
             "domain": domain,
             "timestamp": timestamp,
+            "via_proxy": bool(self.proxy),
+            "user_agent": user_agent,
             "cookies": cookies,
         }
         path.write_text(json.dumps(data, indent=2))
-        self._cookies[domain] = cookies
-        self._timestamps[domain] = timestamp
+        self._cookies[self._key(domain)] = cookies
+        self._timestamps[self._key(domain)] = timestamp
+        self._user_agents[self._key(domain)] = user_agent
         logger.debug(f"Cached {len(cookies)} cookies for {domain}")
 
     def get_cookies(self, domain: str) -> dict[str, str]:
@@ -535,10 +603,11 @@ class IncapsulaCookieManager:
             Dict of cookie name -> value
         """
         # Try in-memory cache first
-        if domain in self._cookies:
-            age = time.time() - self._timestamps.get(domain, 0)
+        key = self._key(domain)
+        if key in self._cookies:
+            age = time.time() - self._timestamps.get(key, 0)
             if age < self.COOKIE_MAX_AGE_SECONDS:
-                return self._cookies[domain]
+                return self._cookies[key]
 
         # Try disk cache
         cached = self._load_cache(domain)
@@ -565,9 +634,17 @@ class IncapsulaCookieManager:
                 f"Known: {list(PROTECTED_DOMAINS.keys())}"
             )
 
+        key = self._key(domain)
+        if self._harvests.get(key, 0) >= self.MAX_HARVESTS_PER_DOMAIN:
+            raise RuntimeError(
+                f"Incapsula harvest budget for {domain} spent "
+                f"({self.MAX_HARVESTS_PER_DOMAIN} this run); not launching another browser")
+        self._harvests[key] = self._harvests.get(key, 0) + 1
         url = config["seed_url"]
-        cookies = harvest_cookies(url, headless=self.headless)
-        self._save_cache(domain, cookies)
+        logger.info(f"Harvesting Incapsula cookies for {domain} "
+                    f"({'through the proxy' if self.proxy else 'direct'})")
+        cookies, user_agent = harvest(url, headless=self.headless, proxy=self.proxy)
+        self._save_cache(domain, cookies, user_agent)
         return cookies
 
     @staticmethod
@@ -581,6 +658,11 @@ class IncapsulaCookieManager:
         Returns:
             True if the response appears to be an Incapsula challenge/block
         """
+        # The challenge page grew: 953-955 bytes on 2026-10-14 ("Request
+        # unsuccessful. Incapsula incident ID"), so a 500-byte cut missed it
+        # and a blocked request read as an empty page.
+        if len(response_text) < 5000 and "_Incapsula_Resource" in response_text:
+            return True
         if len(response_text) < 500:
             markers = ["_Incapsula_Resource", "Incapsula", "robots"]
             return any(m in response_text for m in markers)

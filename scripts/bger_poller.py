@@ -157,9 +157,44 @@ def _fetch_neuheiten(date_str: str) -> set[str]:
     if proxy:
         try:
             return _fetch_neuheiten_via_proxy(url, proxy)
-        except Exception as e:  # connection/tunnel error — try direct as a backstop
+        except Exception as e:  # noqa: BLE001
+            if not _is_tunnel_error(e):
+                # The tunnel works and bger.ch answered with a challenge or a
+                # refusal: harvest cookies THROUGH the tunnel (2026-10-14, a real
+                # browser at the tunnel address passes). Never fall back to the
+                # datacenter address for this; its browser launches only hammer
+                # an address Incapsula already hard-blocks.
+                logger.warning("Neuheiten via proxy challenged (%s) — harvesting cookies through the proxy", e)
+                return _fetch_neuheiten_via_proxy_with_cookies(url, proxy)
             logger.warning("Neuheiten proxy fetch failed (%s) — falling back to direct", e)
     return _fetch_neuheiten_direct(url)
+
+
+def _is_tunnel_error(e: BaseException) -> bool:
+    """True for a failure of the tunnel itself (connection refused/reset,
+    timeout, SOCKS error), False for an answer from bger.ch (status, page)."""
+    import requests
+    if isinstance(e, (requests.ConnectionError, requests.Timeout, OSError)) and \
+            not isinstance(e, requests.HTTPError):
+        return True
+    return "SOCKS" in type(e).__name__ or "socks" in str(e).lower()
+
+
+def _fetch_neuheiten_via_proxy_with_cookies(url: str, proxy: str) -> set[str]:
+    """The proxied fetch with Incapsula cookies earned through the same proxy,
+    sending the harvesting browser's User-Agent. Raises when still challenged."""
+    import requests
+    sys.path.insert(0, str(REPO_DIR))
+    from incapsula_bypass import IncapsulaCookieManager
+
+    mgr = IncapsulaCookieManager(cache_dir=REPO_DIR / "state", proxy=proxy)
+    session = requests.Session()
+    session.proxies = {"http": proxy, "https": proxy}
+    session.cookies.update(mgr.get_cookies("search.bger.ch"))
+    session.headers["User-Agent"] = mgr.user_agent("search.bger.ch") or _UA
+    r = session.get(url, timeout=45)
+    r.raise_for_status()
+    return _classify_neuheiten_page(r.text)
 
 
 def _fetch_neuheiten_via_proxy(url: str, proxy: str) -> set[str]:

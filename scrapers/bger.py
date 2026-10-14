@@ -441,6 +441,9 @@ class BgerScraper(BaseScraper):
         self._session_cookies: dict = {}
         self._pow_required: bool = False  # Determined at runtime by probing
         self._incapsula = IncapsulaCookieManager(cache_dir=state_dir)
+        # Per-instance headers: the User-Agent becomes the harvesting browser's
+        # once cookies are harvested (see _apply_harvested_ua).
+        self._headers: dict = dict(BGER_HEADERS)
         # When True, discover_new() yields only the Neuheiten (last 14
         # days of recently-published) and skips the AZA search backfill.
         # Used by the poller, where the AZA search has been the stall
@@ -635,6 +638,33 @@ class BgerScraper(BaseScraper):
             self._session_cookies = make_pow_cookies(self._pow)
         return self._pow
 
+    def _proxy_url(self) -> str | None:
+        return self.session.proxies.get("https") or self.session.proxies.get("http") or None
+
+    def _req_headers(self) -> dict:
+        """BGER_HEADERS, with the harvesting browser's User-Agent once there is one."""
+        return self.__dict__.get("_headers") or BGER_HEADERS
+
+    def _apply_harvested_ua(self, domain: str) -> None:
+        """Send the User-Agent of the browser that earned the cookies."""
+        ua = self._incapsula.user_agent(domain)
+        if ua:
+            if "_headers" not in self.__dict__:
+                self._headers = dict(BGER_HEADERS)
+            self._headers["User-Agent"] = ua
+            self.session.headers["User-Agent"] = ua
+
+    def _probe_challenged(self) -> bool:
+        """One request to the AZA start page: is it refused or a challenge page?"""
+        try:
+            resp = self.get(AZA_INITIAL_URL, headers=self._req_headers())
+        except Exception as e:  # noqa: BLE001
+            if is_refusal(e, listing=True):
+                return True
+            logger.warning(f"AZA probe failed ({e}); treating the egress as not challenged")
+            return False
+        return self._incapsula.is_incapsula_blocked(resp.text)
+
     def _init_session(self) -> None:
         """
         Initialize session by solving Incapsula and optionally PoW.
@@ -647,22 +677,29 @@ class BgerScraper(BaseScraper):
            - No  → skip PoW (saves time and avoids infinite mining loops)
         4. If still blocked by Incapsula, force-refresh cookies
 
-        When egressing via a proxy (the residential reverse-SOCKS tunnel),
-        Incapsula does NOT challenge the request, so the entire cookie-harvest +
-        PoW is skipped. This also stops the hourly poller-triggered scrape from
-        hammering the hard-blocked datacenter IP with camoufox (which is plausibly
-        what sustains the block).
+        When egressing via a proxy (the residential reverse-SOCKS tunnel), one
+        probe decides: not challenged -> no harvest, no PoW (as before). Since
+        2026-10-14 01:00 UTC Incapsula challenges the tunnel address too (a real
+        browser there passes); then the cookies are harvested THROUGH the
+        tunnel, never from the datacenter address (a browser launched there only
+        hammers an address Incapsula hard-blocks, plausibly sustaining the block).
         """
-        if self.session.proxies.get("http") or self.session.proxies.get("https"):
-            logger.info("Egress via proxy (residential) — skipping Incapsula harvest + PoW")
-            self._pow_required = False
-            return
+        proxy = self._proxy_url()
+        self._incapsula.proxy = proxy
+        if proxy:
+            if not self._probe_challenged():
+                logger.info("Egress via proxy (residential), not challenged — skipping Incapsula harvest + PoW")
+                self._pow_required = False
+                return
+            logger.warning("Egress via proxy (residential) is challenged by Incapsula — "
+                           "harvesting cookies through the proxy")
 
         # Step 1: Incapsula cookies (browser automation) for both domains
         for domain in ["www.bger.ch", "search.bger.ch"]:
             try:
                 incap_cookies = self._incapsula.get_cookies(domain)
                 self.session.cookies.update(incap_cookies)
+                self._apply_harvested_ua(domain)
                 logger.info(f"Applied {len(incap_cookies)} Incapsula cookies for {domain}")
             except Exception as e:
                 logger.warning(f"Incapsula cookie harvest failed for {domain}: {e}")
@@ -670,7 +707,7 @@ class BgerScraper(BaseScraper):
         # Step 2: Probe — is PoW still required?
         logger.info("Probing AZA to determine if PoW is required")
         try:
-            resp = self.get(AZA_INITIAL_URL, headers=BGER_HEADERS)
+            resp = self.get(AZA_INITIAL_URL, headers=self._req_headers())
 
             if "pow.php" in resp.url:
                 # PoW redirect detected — mine and retry
@@ -680,7 +717,7 @@ class BgerScraper(BaseScraper):
                 self.session.cookies.update(self._session_cookies)
                 resp = self.get(
                     AZA_INITIAL_URL,
-                    headers=BGER_HEADERS,
+                    headers=self._req_headers(),
                     cookies=self._session_cookies,
                 )
             else:
@@ -692,9 +729,10 @@ class BgerScraper(BaseScraper):
                 logger.warning("Still blocked after initial cookies, force-refreshing")
                 incap_cookies = self._incapsula.refresh_cookies("www.bger.ch")
                 self.session.cookies.update(incap_cookies)
+                self._apply_harvested_ua("www.bger.ch")
                 resp = self.get(
                     AZA_INITIAL_URL,
-                    headers=BGER_HEADERS,
+                    headers=self._req_headers(),
                     cookies=self._session_cookies if self._pow_required else {},
                 )
 
@@ -733,7 +771,7 @@ class BgerScraper(BaseScraper):
 
         resp = self.get(
             url,
-            headers=BGER_HEADERS,
+            headers=self._req_headers(),
             cookies=cookies,
         )
 
@@ -749,6 +787,19 @@ class BgerScraper(BaseScraper):
             or (len(resp.text) < 10 and resp.status_code == 200)
         )
         proxied = bool(self.session.proxies.get("http") or self.session.proxies.get("https"))
+        if is_blocked and proxied and self._incapsula.is_incapsula_blocked(resp.text) and retry < 2:
+            # A real challenge page through the tunnel (2026-10-14): earn
+            # cookies through the tunnel and retry. The manager carries the
+            # session's proxy, so the browser never runs from the datacenter.
+            logger.info(f"Incapsula challenge via proxy — refreshing {domain} cookies through the proxy ({retry+1}/2)")
+            self._incapsula.proxy = self._proxy_url()
+            try:
+                incap_cookies = self._incapsula.refresh_cookies(domain)
+                self.session.cookies.update(incap_cookies)
+                self._apply_harvested_ua(domain)
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"Incapsula refresh through the proxy failed for {domain}: {e}")
+            return self._get_with_pow(url, retry + 1)
         if is_blocked and proxied:
             # Residential egress: a short/empty response is a transient tunnel
             # hiccup, not a real Incapsula block. A couple of plain retries (NO
@@ -769,6 +820,7 @@ class BgerScraper(BaseScraper):
                 self.session.cookies.update(incap_cookies)
             except Exception as e:
                 logger.error(f"Incapsula refresh failed for {domain}: {e}")
+            self._apply_harvested_ua(domain)
             return self._get_with_pow(url, retry + 1)
 
         # Check for pow.php redirect
@@ -1436,7 +1488,7 @@ class BgerScraper(BaseScraper):
         if jump_url:
             try:
                 # Use plain session without PoW cookies for relevancy.bger.ch
-                resp = self.get(jump_url, headers=BGER_HEADERS)
+                resp = self.get(jump_url, headers=self._req_headers())
                 if (resp.ok and len(resp.text) > 500
                         and "pow.php" not in resp.url
                         and not self._incapsula.is_incapsula_blocked(resp.text)):

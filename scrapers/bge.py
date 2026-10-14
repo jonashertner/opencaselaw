@@ -340,6 +340,29 @@ class BGELeitentscheideScraper(BaseScraper):
     # Session management
     # ---------------------------------------------------------------
 
+    def _refresh_incapsula(self) -> None:
+        """Harvest fresh search.bger.ch cookies through the session's own egress
+        (the residential tunnel when there is one, 2026-10-14) and send the
+        harvesting browser's User-Agent from then on."""
+        self._incapsula.proxy = self.session.proxies.get("https") or self.session.proxies.get("http") or None
+        incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
+        self.session.cookies.update(incap_cookies)
+        self._session_cookies.update(incap_cookies)
+        ua = self._incapsula.user_agent("search.bger.ch")
+        if ua:
+            self.session.headers["User-Agent"] = ua
+
+    def _get_or_challenge(self, url: str, **kwargs):
+        """(response, challenged): a 403/404 refusal or a challenge page counts as
+        challenged; the response is None for a refusal."""
+        try:
+            resp = self.get(url, **kwargs)
+        except Exception as e:  # noqa: BLE001
+            if is_refusal(e, listing=True):
+                return None, True
+            raise
+        return resp, self._incapsula.is_incapsula_blocked(resp.text)
+
     def _establish_session(self) -> None:
         """
         Establish session: Incapsula bypass + CLIR session cookie.
@@ -349,9 +372,11 @@ class BGELeitentscheideScraper(BaseScraper):
         2. Apply to requests.Session
         3. Hit CLIR initial URL to get session cookies
         """
-        # Step 1: Incapsula cookies — skipped when egressing via a residential
-        # proxy (not challenged; harvesting would only hammer the blocked IP).
-        if self.session.proxies.get("http") or self.session.proxies.get("https"):
+        # Step 1: Incapsula cookies — skipped up front when egressing via the
+        # residential proxy; a challenge there is answered by a harvest through
+        # the proxy below (never from the datacenter address).
+        self._incapsula.proxy = self.session.proxies.get("https") or self.session.proxies.get("http") or None
+        if self._incapsula.proxy:
             logger.info("Egress via proxy (residential) — skipping Incapsula harvest")
         else:
             try:
@@ -364,17 +389,18 @@ class BGELeitentscheideScraper(BaseScraper):
         # Step 2: CLIR session
         logger.info("Establishing CLIR session...")
         url = self._make_url(INITIAL_URL)
-        response = self.get(url)
+        response, challenged = self._get_or_challenge(url)
 
-        # Check for Incapsula block
-        if self._incapsula.is_incapsula_blocked(response.text):
+        # Check for Incapsula block (a challenge page or a 403/404 refusal)
+        if challenged:
             logger.warning("Incapsula block on CLIR, force-refreshing cookies")
             try:
-                incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
-                self.session.cookies.update(incap_cookies)
+                self._refresh_incapsula()
                 response = self.get(url)
             except Exception as e:
                 logger.error(f"Incapsula refresh failed: {e}")
+        if response is None:
+            raise PortalRefused("CLIR start page refused")
 
         # Store any cookies from the response (use items() to avoid CookieConflictError
         # when multiple cookies share the same name across domains)
@@ -393,19 +419,17 @@ class BGELeitentscheideScraper(BaseScraper):
         If blocked, refreshes cookies via Playwright and retries.
         """
         kwargs.setdefault("cookies", self._session_cookies)
-        resp = self.get(url, **kwargs)
+        resp, challenged = self._get_or_challenge(url, **kwargs)
 
-        if self._incapsula.is_incapsula_blocked(resp.text) and retry < max_retries:
+        if challenged and retry < max_retries:
             logger.info(f"Incapsula block on BGE request, refreshing ({retry+1}/{max_retries})")
             try:
-                incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
-                self.session.cookies.update(incap_cookies)
-                self._session_cookies.update(incap_cookies)
+                self._refresh_incapsula()
             except Exception as e:
                 logger.error(f"Incapsula refresh failed: {e}")
             return self._safe_get(url, retry + 1, max_retries, **kwargs)
 
-        if self._incapsula.is_incapsula_blocked(resp.text):
+        if challenged:
             # Still the block page after the cookie refreshes. Returning it
             # made the caller parse it as a listing with no entries: a blocked
             # run looked like a quiet one.
