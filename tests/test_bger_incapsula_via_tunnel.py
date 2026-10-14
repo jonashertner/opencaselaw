@@ -63,8 +63,9 @@ def test_browser_proxy_takes_socks5_not_socks5h():
 def test_manager_harvests_through_its_proxy_and_keeps_a_separate_cache(tmp_path, monkeypatch):
     seen = {}
 
-    def fake_harvest(url, timeout_seconds=60, headless=True, proxy=None):
+    def fake_harvest(url, timeout_seconds=60, headless=True, proxy=None, ignore_https_errors=False):
         seen["proxy"] = proxy
+        seen["ignore_https_errors"] = ignore_https_errors
         return {"visid_incap_1": "v", "incap_ses_1": "s"}, FF_UA
 
     monkeypatch.setattr(ib, "harvest", fake_harvest)
@@ -89,8 +90,8 @@ def test_manager_harvests_through_its_proxy_and_keeps_a_separate_cache(tmp_path,
 
 def test_harvests_per_run_are_budgeted(tmp_path, monkeypatch):
     calls = []
-    monkeypatch.setattr(ib, "harvest", lambda url, timeout_seconds=60, headless=True, proxy=None:
-                        (calls.append(1) or ({"incap_ses_1": "s"}, None)))
+    monkeypatch.setattr(ib, "harvest", lambda url, timeout_seconds=60, headless=True, proxy=None,
+                        ignore_https_errors=False: (calls.append(1) or ({"incap_ses_1": "s"}, None)))
     mgr = ib.IncapsulaCookieManager(cache_dir=tmp_path, proxy=PROXY)
     for _ in range(mgr.MAX_HARVESTS_PER_DOMAIN):
         mgr.refresh_cookies("search.bger.ch")
@@ -214,3 +215,15 @@ def test_poller_challenge_harvests_through_the_tunnel_not_direct(monkeypatch):
     assert "direct" not in calls
     assert bp._is_tunnel_error(OSError("tunnel down"))
     assert not bp._is_tunnel_error(_http_error(403))
+
+
+def test_only_www_bger_ch_harvest_accepts_its_incomplete_chain(tmp_path, monkeypatch):
+    # 2026-10-14 12:00: both browsers refused www.bger.ch's leaf-only chain
+    seen = []
+    monkeypatch.setattr(ib, "harvest", lambda url, timeout_seconds=60, headless=True, proxy=None,
+                        ignore_https_errors=False: (seen.append((url, ignore_https_errors)) or ({"incap_ses_1": "s"}, None)))
+    mgr = ib.IncapsulaCookieManager(cache_dir=tmp_path, proxy=PROXY)
+    mgr.refresh_cookies("www.bger.ch")
+    mgr.refresh_cookies("search.bger.ch")
+    assert seen[0][1] is True and "www.bger.ch" in seen[0][0]
+    assert seen[1][1] is False and "search.bger.ch" in seen[1][0]

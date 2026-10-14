@@ -108,6 +108,12 @@ PROTECTED_DOMAINS = {
         "seed_url": "https://www.bger.ch/ext/eurospider/live/de/php/aza/http/index.php",
         "success_marker": "Eurospider",
         "fail_markers": ["Incapsula", "_Incapsula_Resource", "robots"],
+        # www.bger.ch serves its leaf certificate without the intermediate
+        # (since 2026-08-24; requests carries the intermediate itself). The
+        # harvesting browser has no such bundle: camoufox SEC_ERROR_UNKNOWN_ISSUER,
+        # Chromium ERR_CERT_AUTHORITY_INVALID (2026-10-14 12:00). For this host's
+        # cookie harvest only, the browser accepts the incomplete chain.
+        "ignore_https_errors": True,
     },
     "search.bger.ch": {
         "seed_url": "https://search.bger.ch/ext/eurospider/live/de/php/clir/http/index_atf.php?lang=de",
@@ -238,6 +244,7 @@ def _log_harvest_result(strategy: str, cookies: dict[str, str], t0: float) -> No
 
 def _harvest_via_camoufox(
     url: str, timeout_seconds: int, headless: bool, proxy: Optional[str] = None,
+    ignore_https_errors: bool = False,
 ) -> tuple[dict[str, str], Optional[str]]:
     """
     Harvest cookies using camoufox — C++-level Firefox patching.
@@ -254,7 +261,7 @@ def _harvest_via_camoufox(
     if browser_proxy(proxy):
         launch["proxy"] = browser_proxy(proxy)
     with Camoufox(**launch) as browser:
-        page = browser.new_page()
+        page = browser.new_context(ignore_https_errors=ignore_https_errors).new_page()
         # 60-s page.goto timeout (bumped 2026-05-13 from 30 s after
         # BGer's Incapsula was tuned up: camoufox started timing out
         # on Page.goto while playwright-plain fallback still solved
@@ -275,6 +282,7 @@ def _harvest_via_camoufox(
 
 def _harvest_via_playwright_stealth(
     url: str, timeout_seconds: int, headless: bool, proxy: Optional[str] = None,
+    ignore_https_errors: bool = False,
 ) -> tuple[dict[str, str], Optional[str]]:
     """
     Harvest cookies using playwright-stealth — patches 7+ detection vectors.
@@ -303,6 +311,7 @@ def _harvest_via_playwright_stealth(
             viewport={"width": 1920, "height": 1080},
             locale="de-CH",
             timezone_id="Europe/Zurich",
+            ignore_https_errors=ignore_https_errors,
         )
         page = context.new_page()
         stealth_sync(page)
@@ -325,6 +334,7 @@ def _harvest_via_playwright_stealth(
 
 def _harvest_via_playwright_plain(
     url: str, timeout_seconds: int, headless: bool, proxy: Optional[str] = None,
+    ignore_https_errors: bool = False,
 ) -> tuple[dict[str, str], Optional[str]]:
     """
     Harvest cookies using plain Playwright with Chrome UA.
@@ -352,6 +362,7 @@ def _harvest_via_playwright_plain(
             viewport={"width": 1920, "height": 1080},
             locale="de-CH",
             timezone_id="Europe/Zurich",
+            ignore_https_errors=ignore_https_errors,
         )
 
         # Remove webdriver indicator
@@ -384,9 +395,10 @@ def harvest_cookies(
     timeout_seconds: int = 60,
     headless: bool = True,
     proxy: Optional[str] = None,
+    ignore_https_errors: bool = False,
 ) -> dict[str, str]:
     """Cookies only; see harvest() for the User-Agent that earned them."""
-    return harvest(url, timeout_seconds, headless, proxy)[0]
+    return harvest(url, timeout_seconds, headless, proxy, ignore_https_errors)[0]
 
 
 def harvest(
@@ -394,6 +406,7 @@ def harvest(
     timeout_seconds: int = 60,
     headless: bool = True,
     proxy: Optional[str] = None,
+    ignore_https_errors: bool = False,
 ) -> tuple[dict[str, str], Optional[str]]:
     """
     Launch a browser, navigate to URL, wait for Incapsula JS challenge
@@ -448,7 +461,7 @@ def harvest(
     last_ua = None
     for name, strategy_fn in strategies:
         try:
-            cookies, ua = strategy_fn(url, timeout_seconds, headless, proxy)
+            cookies, ua = strategy_fn(url, timeout_seconds, headless, proxy, ignore_https_errors)
             if _has_incapsula_cookies(cookies):
                 logger.info(f"Strategy '{name}' succeeded with Incapsula cookies")
                 return cookies, ua
@@ -643,7 +656,8 @@ class IncapsulaCookieManager:
         url = config["seed_url"]
         logger.info(f"Harvesting Incapsula cookies for {domain} "
                     f"({'through the proxy' if self.proxy else 'direct'})")
-        cookies, user_agent = harvest(url, headless=self.headless, proxy=self.proxy)
+        cookies, user_agent = harvest(url, headless=self.headless, proxy=self.proxy,
+                                      ignore_https_errors=bool(config.get("ignore_https_errors")))
         self._save_cache(domain, cookies, user_agent)
         return cookies
 
