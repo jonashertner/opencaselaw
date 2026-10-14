@@ -27,9 +27,13 @@ Why (report 2026-10-13; audit of the shard 2026-10-14):
 The ruling's own date: the first "Arrêt / Jugement / Séance / Décision /
 Ordonnance / Prononcé … du <date>" of the header block, i.e. before the panel
 ("Composition", "Présidence") and before the operative text ("Statuant",
-"Vu", "La Chambre …"). It counts only when the year is at most one before
-the docket's year (findinfo numbers carry the publication year), the date is not in the future, and a Kopfzeile date ("Vaud
+"Vu", "La Chambre …"). It counts only when it stands between the
+header's underline rules (a date in the facts never does), is not in the
+future, and a Kopfzeile date ("Vaud
 Tribunal cantonal <Cour> 22.08.2017 …"), where present, agrees.
+
+Left alone (ambiguous, see ambiguous()): a stored date exactly one year off on the
+same day, and a stored date under 15 days off that the text never states.
 
 Per row (courts vd_findinfo, vd_gerichte):
   * heading date found and differs from (or fills) decision_date -> decision_date
@@ -90,12 +94,26 @@ def _flat(text: str | None) -> str:
     return re.sub(r"\s+", " ", text or "")[:_HEAD_CHARS]
 
 
+# The ruling's heading stands between the underline rules of the header block:
+# "COUR D'APPEL PENALE ______ Séance du 23 juillet 2015 ______ Composition".
+# A date in the facts ("dans une séance du 21 mai 2014", "Par jugement incident
+# du 28 janvier 2011") never does; without this anchor the first match of a text
+# that has no "Composition" line is such a date.
+_RULE_BEFORE_RE = re.compile(r"_{5,}[^_]{0,60}$")
+_RULE_AFTER_RE = re.compile(r"^\W{0,3}(?:_{3,}|Composition|Pr[ée]sidence)")
+
+
 def heading_date(text: str | None, docket: str | None = None,
                  today: str | None = None) -> tuple[str | None, str]:
     """(the ruling's own date from its header block, reason)."""
     t = _flat(text)
     end = _BLOCK_END_RE.search(t)
-    m = _HEADING_RE.search(t, 0, end.start() if end else len(t))
+    m = None
+    for cand in _HEADING_RE.finditer(t, 0, end.start() if end else len(t)):
+        if _RULE_BEFORE_RE.search(t[max(0, cand.start() - 70):cand.start()]) and \
+                _RULE_AFTER_RE.search(t[cand.end():cand.end() + 40]):
+            m = cand
+            break
     if not m:
         return None, "no_heading"
     d = 1 if m.group("d").replace(" ", "").lower() == "1er" else int(m.group("d"))
@@ -105,12 +123,11 @@ def heading_date(text: str | None, docket: str | None = None,
         return None, "invalid_date"
     if own > (today or date.today().isoformat()):
         return None, "heading_in_future"
-    # The year in a findinfo number ("HC / 2018 / 27", "Jug / 2020 / 2") is the
-    # publication number's year: a ruling of 22 December 2017 is "HC / 2018 /
-    # 27". One year earlier is therefore normal, two is not.
-    years = [int(y) for y in re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", docket or "")]
-    if years and int(own[:4]) < max(years) - 1:
-        return None, "before_docket_year"
+    # No bound from the number or from publication_date: a findinfo number
+    # ("HC / 2018 / 27", "Jug / 2020 / 2") carries the PUBLICATION year, and
+    # publication can come long after the ruling; publication_date in the
+    # entscheidsuche copy often holds the ruling date itself. The structural
+    # anchor above is what keeps other dates out.
     k = _KOPF_RE.search(text or "")
     if k:
         try:
@@ -132,16 +149,54 @@ def text_language(obj: dict) -> str | None:
     return None
 
 
+_ANY_DATE_RE = re.compile(_DATE, re.I)
+
+
+def _dates_in_text(text: str | None) -> set[str]:
+    out = set()
+    for m in _ANY_DATE_RE.finditer(_flat(text)):
+        d = 1 if m.group("d").replace(" ", "").lower() == "1er" else int(m.group("d"))
+        try:
+            out.add(date(int(m.group("y")), _MONTHS[m.group("m").lower()], d).isoformat())
+        except (ValueError, KeyError):
+            pass
+    return out
+
+
+def ambiguous(cur: str, own: str, text: str | None) -> str | None:
+    """Reason to leave a disagreement alone, or None. Checked 2026-10-14 on the
+    163 rows the live scraper stored since 2026-09 that disagree with their
+    heading: where the stored date is a dated event of the text (the dispositif
+    "communiqué aux parties le …", the lower court's ruling, a filing) or is
+    impossible, the heading is the ruling's date; but a stored date one year
+    off on the same day may be the court's own heading typo (written early in
+    the year), and a stored date a few days off that the text never states
+    cannot be judged from the text."""
+    try:
+        a, b = date.fromisoformat(cur), date.fromisoformat(own)
+    except ValueError:
+        return None
+    if (a.month, a.day) == (b.month, b.day) and abs(a.year - b.year) == 1:
+        return "year_off_by_one"
+    if abs((a - b).days) < 15 and cur not in _dates_in_text(text):
+        return "small_unexplained_gap"
+    return None
+
+
 def decide(obj: dict, today: str | None = None) -> tuple[list[str], dict]:
     """(outcomes, field changes)."""
     out: list[str] = []
     changes: dict = {}
     own, how = heading_date(obj.get("full_text"), obj.get("docket_number"), today)
     cur = str(obj.get("decision_date") or "")[:10]
+    why = ambiguous(cur, own, obj.get("full_text")) if own and cur and own != cur \
+        and not cur.endswith("-01-01") else None
     if own is None:
         out.append(how)
     elif own == cur:
         out.append("date_agrees")
+    elif why:
+        out.append(why)
     else:
         out.append("date_filled" if not cur or cur.endswith("-01-01") else "date_corrected")
         changes["decision_date"] = own

@@ -13,7 +13,7 @@ import restore_vd_dates as r  # noqa: E402
 
 TODAY = "2026-10-14"
 SEANCE = ("Vaud Tribunal cantonal Cour d'appel pénale 23.07.2015 Jug / 2015 / 329 LÉSIONS | 52 CP "
-          "TRIBUNAL CANTONAL 288 PE12.024402-VFE COUR D’APPEL PENALE ______________ Séance du "
+          "TRIBUNAL CANTONAL 288 PE12.024402-VFE COUR D’APPEL PENALE ________________ Séance du "
           "23 juillet 2015 ____________ Composition : M. S, président. Statuant sur l'appel "
           "interjeté contre le jugement rendu le 13 mars 2015 par le Tribunal de police")
 PLACEHOLDER = ("Waadt Tribunal cantonal Cour administrative 10 RÉCUSATION | 47 CPC TRIBUNAL CANTONAL "
@@ -42,10 +42,18 @@ def test_reviewed_decision_after_the_panel_is_never_taken():
     assert r.heading_date(text, "Décision / 2019 / 790", TODAY) == (None, "no_heading")
 
 
-def test_publication_year_allows_one_year_back_not_two():
-    dec = "TRIBUNAL CANTONAL CHAMBRE DES RECOURS CIVILE ____ Arrêt du 22 décembre 2017 ____ Composition"
-    assert r.heading_date(dec, "HC / 2018 / 27", TODAY)[0] == "2017-12-22"
-    assert r.heading_date(dec, "HC / 2019 / 27", TODAY) == (None, "before_docket_year")
+def test_number_year_bounds_nothing():
+    # the findinfo number carries the publication year, which can be years later
+    dec = "TRIBUNAL CANTONAL CHAMBRE DES RECOURS CIVILE ______ Arrêt du 22 décembre 2017 ______ Composition"
+    assert r.heading_date(dec, "HC / 2021 / 27", TODAY)[0] == "2017-12-22"
+
+
+def test_dates_in_the_facts_are_never_the_heading():
+    # seen in the 2026-10-14 dry run once the year bound was dropped: no
+    # "Composition" line, so the first match was an event of the facts
+    facts = ("TRIBUNAL CANTONAL COUR D'APPEL PENALE ____ A. Le service a confirmé que, dans une "
+             "séance du 21 mai 2014, la délégation a décidé. Par jugement incident du 28 janvier 2011")
+    assert r.heading_date(facts, "Jug / 2019 / 403", TODAY) == (None, "no_heading")
 
 
 def test_kopfzeile_that_disagrees_blocks_the_change():
@@ -54,7 +62,7 @@ def test_kopfzeile_that_disagrees_blocks_the_change():
 
 
 def test_future_heading_is_refused():
-    text = "TRIBUNAL CANTONAL ____ Arrêt du 5 mai 2027 ____ Composition"
+    text = "TRIBUNAL CANTONAL ______ Arrêt du 5 mai 2027 ______ Composition"
     assert r.heading_date(text, "HC / 2027 / 1", TODAY) == (None, "heading_in_future")
 
 
@@ -94,8 +102,26 @@ def test_apply_stamps_keeps_mode_and_is_idempotent(tmp_path):
 def test_vd_gerichte_rows_are_repaired_too(tmp_path):
     p = tmp_path / "vd_gerichte.jsonl"
     row = {**_row("vd_gerichte_41_2017", "41/2017", "2016-03-07",
-                  "TRIBUNAL CANTONAL COUR ADMINISTRATIVE ____ Séance du 30 octobre 2017 ____ Présidence de M. X"),
+                  "TRIBUNAL CANTONAL COUR ADMINISTRATIVE ______ Séance du 30 octobre 2017 ______ Présidence de M. X"),
            "court": "vd_gerichte"}
     p.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
     assert r.run(p, apply=True, examples=0, today=TODAY)["date_corrected"] == 1
     assert json.loads(p.read_text(encoding="utf-8"))["decision_date"] == "2017-10-30"
+
+
+def test_one_year_off_on_the_same_day_is_left_alone():
+    text = "TRIBUNAL CANTONAL ______ Séance du 7 mars 2023 ______ Composition"
+    assert r.decide(_row("e", "1", "2024-03-07", text), TODAY) == (["year_off_by_one"], {})
+
+
+def test_small_gap_the_text_never_states_is_left_alone():
+    text = "TRIBUNAL CANTONAL ______ Séance du 8 juillet 2025 ______ Composition"
+    assert r.decide(_row("f", "AM 22/25", "2025-07-05", text), TODAY) == (["small_unexplained_gap"], {})
+
+
+def test_small_gap_to_a_dated_event_of_the_text_is_corrected():
+    # the portal took the date the dispositif was communicated
+    text = ("TRIBUNAL CANTONAL ______ Jugement du 24 novembre 2020 ______ Composition ... "
+            "Le jugement qui précède, dont le dispositif a été communiqué aux parties le 4 décembre 2020")
+    assert r.decide(_row("g", "25/2020/JMN", "2020-12-04", text), TODAY) == (
+        ["date_corrected"], {"decision_date": "2020-11-24"})
