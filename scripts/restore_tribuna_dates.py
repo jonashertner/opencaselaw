@@ -49,6 +49,7 @@ import argparse
 import json
 import os
 import re
+import stat
 import sys
 import tempfile
 from collections import Counter
@@ -237,6 +238,8 @@ def run(path: Path, apply: bool, examples: int, today: str | None = None) -> Cou
     if fout:
         fout.close()
         if stats["rows_changed"]:
+            # mkstemp creates 0600; keep the shard's own mode (gr_gerichte was 0644).
+            os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
             os.replace(tmp_path, str(path))
         else:
             os.unlink(tmp_path)

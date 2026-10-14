@@ -167,3 +167,10 @@ def test_apply_stamps_and_is_idempotent(tmp_path):
     again = r.run(p, apply=True, examples=0, today=TODAY)
     assert again["rows_changed"] == 0 and again["agrees"] == 1
     assert list(tmp_path.iterdir()) == [p]
+
+
+def test_apply_keeps_the_shard_file_mode(tmp_path):
+    p = _write(tmp_path, [_row("fr_gerichte", "604 2026 58", "2026-10-26", FR_HEAD)])
+    p.chmod(0o644)
+    r.run(p, apply=True, examples=0, today=TODAY)
+    assert (p.stat().st_mode & 0o777) == 0o644

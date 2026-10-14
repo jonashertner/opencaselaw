@@ -7175,8 +7175,12 @@ def _lookup_padded_id(conn: sqlite3.Connection, reference: str | None) -> str | 
     return hits[0] if len(hits) == 1 else None
 
 
+_DOCKET_HOMONYM_SCAN = 500   # rows read per docket; the count says "500+" beyond
+_DOCKET_HOMONYMS_LISTED = 10  # entries shown in other_decisions_with_docket
+
+
 def _docket_homonyms(conn: sqlite3.Connection, docket: str | None,
-                     chosen_id: str | None, limit: int = 10) -> list[dict]:
+                     chosen_id: str | None, limit: int = _DOCKET_HOMONYM_SCAN) -> list[dict]:
     """Other decisions stored under exactly ``docket``, newest first, excluding
     ``chosen_id`` and its known duplicate representations.
 
@@ -7194,7 +7198,7 @@ def _docket_homonyms(conn: sqlite3.Connection, docket: str | None,
             "SELECT decision_id, court, decision_date FROM decisions "
             "WHERE docket_number = ? AND decision_id != ? "
             "ORDER BY decision_date DESC LIMIT ?",
-            (docket, chosen_id, limit + 10),
+            (docket, chosen_id, limit + 1),
         ).fetchall()
     except sqlite3.Error:
         return []
@@ -7208,21 +7212,34 @@ def _docket_homonyms(conn: sqlite3.Connection, docket: str | None,
     return [
         {"decision_id": r[0], "court": r[1], "decision_date": r[2]}
         for r in rows if r[0] not in same
-    ][:limit]
+    ][:limit + 1]  # one past the cap, so the caller can say "more than"
 
 
 def _attach_docket_ambiguity(result: dict, docket: str | None, others: list[dict]) -> None:
-    """Mark a response resolved from a docket that other decisions share."""
+    """Mark a response resolved from a docket that other decisions share.
+
+    ``others`` is the whole scan (up to _DOCKET_HOMONYM_SCAN + 1 rows); the
+    response lists the newest _DOCKET_HOMONYMS_LISTED and states the total, so
+    a capped list is never presented as all of them (docket '353' is carried by
+    more than ten VD records; the reported 2011 ruling was the eleventh)."""
+    shown = others[:_DOCKET_HOMONYMS_LISTED]
+    total = (f"more than {_DOCKET_HOMONYM_SCAN}" if len(others) > _DOCKET_HOMONYM_SCAN
+             else str(len(others)))
     result["docket_ambiguous"] = True
-    result["other_decisions_with_docket"] = others
+    result["other_decisions_with_docket"] = shown
+    result["other_decisions_with_docket_total"] = (
+        len(others) if len(others) <= _DOCKET_HOMONYM_SCAN else f">{_DOCKET_HOMONYM_SCAN}")
+    listed = ("all listed" if len(shown) == len(others)
+              else f"the newest {len(shown)} listed in other_decisions_with_docket")
     result["docket_ambiguity_note"] = (
-        f"Docket {docket!r} is also carried by {len(others)} other record(s) "
-        f"(other_decisions_with_docket), so the docket alone does not identify "
+        f"Docket {docket!r} is also carried by {total} other record(s) "
+        f"({listed}), so the docket alone does not identify "
         "this one: usually another ruling in the same case (an interim order, a "
         "revision), sometimes another court's case with the same number, and "
         "where court code differs but the date matches, possibly the same ruling "
-        "filed twice. Check court and date before relying on it, fetch another "
-        "by its decision_id, and cite whichever you use through cite(decision_id)."
+        "filed twice. Check court and date before relying on it, narrow by court "
+        "or date (search_decisions) to find an older one, fetch another by its "
+        "decision_id, and cite whichever you use through cite(decision_id)."
     )
 
 

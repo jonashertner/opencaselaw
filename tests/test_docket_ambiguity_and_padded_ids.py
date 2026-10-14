@@ -113,6 +113,8 @@ def test_bare_shared_docket_says_it_chose(tmp_path, monkeypatch):
     assert [o["decision_id"] for o in others] == [PADDED]
     assert others[0]["decision_date"] == "2011-12-27"
     assert "353" in d["docket_ambiguity_note"]
+    assert d["other_decisions_with_docket_total"] == 1
+    assert "all listed" in d["docket_ambiguity_note"]
 
 
 def test_unique_docket_is_not_flagged(tmp_path, monkeypatch):
@@ -160,3 +162,33 @@ def test_past_and_today_dates_are_not_flagged():
     assert m._future_date_warning(None) is None
     today = (m.datetime.now(m.timezone.utc) + m.timedelta(hours=2)).date().isoformat()
     assert m._future_date_warning(today) is None
+
+
+def test_capped_list_states_the_true_total(tmp_path, monkeypatch):
+    # Docket '353' is carried by more than ten VD records in production; the
+    # reported 2011 ruling was the eleventh and fell off a list that claimed
+    # to be complete.
+    conn_factory = _serve(tmp_path, monkeypatch)
+    c = conn_factory()
+    for i in range(12):
+        assert build_fts5.insert_decision(c, _row(
+            f"vd_gerichte_extra_{i:02d}", "vd_gerichte", "353", f"2015-0{1 + i % 9}-1{i % 9}",
+            f"Arrêt numéro {i} " * 20))
+    c.commit()
+    c.close()
+    d = m.get_decision_by_id("353")
+    assert d["docket_ambiguous"] is True
+    assert len(d["other_decisions_with_docket"]) == 10
+    assert d["other_decisions_with_docket_total"] == 13
+    assert "13 other record(s)" in d["docket_ambiguity_note"]
+    assert "the newest 10 listed" in d["docket_ambiguity_note"]
+
+
+def test_total_beyond_the_scan_cap_says_more_than(monkeypatch):
+    others = [{"decision_id": f"x{i}", "court": "c", "decision_date": None}
+              for i in range(m._DOCKET_HOMONYM_SCAN + 1)]
+    result: dict = {}
+    m._attach_docket_ambiguity(result, "1", others)
+    assert result["other_decisions_with_docket_total"] == f">{m._DOCKET_HOMONYM_SCAN}"
+    assert f"more than {m._DOCKET_HOMONYM_SCAN} other record(s)" in result["docket_ambiguity_note"]
+    assert len(result["other_decisions_with_docket"]) == m._DOCKET_HOMONYMS_LISTED
