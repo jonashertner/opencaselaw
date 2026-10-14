@@ -88,6 +88,10 @@ def _parse_swiss_date(text):
     return None
 
 
+_BLOCK_TAGS = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
+_WS_RE = re.compile(r"\s+")
+
+
 def _extract_document_text(soup):
     """Extract full text from div.WordSection1."""
     content = soup.find("div", class_="WordSection1")
@@ -107,9 +111,19 @@ def _extract_document_text(soup):
     if not content:
         return ""
 
+    # Every block element, in document order. Until 2026-10-14 only
+    # <p class="MsoNormal"> was kept, but the Word exports file the body under
+    # their own styles ("R1", "R2", ...): 52.2023.477 came out as 677 characters
+    # of heading and signature, 15,234 with all blocks (report 2026-10-13/14;
+    # 15,140 shard rows had no "in fatto"/"in diritto" at all). The same defect
+    # as bs_gerichte (fixed 2026-09-17). Whitespace is taken as written and then
+    # collapsed: get_text(strip=True) dropped the spaces between runs, which
+    # produced "In nomedella Repubblica".
     paragraphs = []
-    for p in content.find_all("p", class_="MsoNormal"):
-        text = p.get_text(strip=True)
+    for block in content.find_all(_BLOCK_TAGS):
+        if block.find_parent(_BLOCK_TAGS) is not None:
+            continue                      # nested: its text is in the outer block
+        text = _WS_RE.sub(" ", block.get_text()).strip()
         if text:
             paragraphs.append(text)
 
