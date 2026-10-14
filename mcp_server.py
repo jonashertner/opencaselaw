@@ -236,6 +236,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from db_schema import SCHEMA_SQL, INSERT_OR_IGNORE_SQL, INSERT_COLUMNS  # noqa: E402
 import appeal_refs  # noqa: E402  (the court's appeal note, read from json_data)
 import docket_aliases  # noqa: E402  (joined-docket resolution, issue #41)
+import decision_suppression  # noqa: E402  (host-local privacy takedowns, served at once)
 import reference_parser
 import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; honest not-found reasons)
 import source_defects  # references whose stored text is another ruling's
@@ -31036,6 +31037,10 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
         _record_tool_call(name, (time.monotonic() - _tool_start) * 1000, error=_tool_error)
 
 
+# Privacy takedowns take effect here, not at the next rebuild: every caller
+# (_dispatch_with_timeout, _call_tool_json) resolves this name at call time.
+_handle_call_tool_inner = decision_suppression.wrap_tool_handler(
+    _handle_call_tool_inner, _ctx_tool_payload, TextContent)
 
 
 # ── Main ──────────────────────────────────────────────────────
@@ -31940,6 +31945,33 @@ setInterval(load, 30000);
         docs_url="/docs",
         redoc_url="/redoc",
     )
+
+    @rest_api.middleware("http")
+    async def _rest_suppression(request: Request, call_next):
+        # Privacy takedowns (decision_suppression): a request naming a
+        # suppressed decision gets 410; JSON naming one in passing is
+        # filtered. No list on the host → one cached stat, nothing else.
+        s = decision_suppression.current()
+        if not s.ids:
+            return await call_next(request)
+        target = urllib.parse.unquote(
+            request.url.path + "?" + request.url.query)
+        if s.mentions(target):
+            return JSONResponse(status_code=410,
+                                content=decision_suppression.NOT_AVAILABLE)
+        response = await call_next(request)
+        if "application/json" not in response.headers.get("content-type", ""):
+            return response
+        body = b"".join([chunk async for chunk in response.body_iterator])
+        text = body.decode("utf-8", errors="replace")
+        scrubbed = s.scrub_text(text)
+        if scrubbed is not text:
+            body = scrubbed.encode("utf-8")
+        out = Response(content=body, status_code=response.status_code)
+        out.raw_headers = [(k, v) for k, v in response.raw_headers
+                           if k.lower() != b"content-length"]
+        out.headers["content-length"] = str(len(body))
+        return out
 
     @rest_api.middleware("http")
     async def _rest_llm_provenance(request: Request, call_next):
@@ -34955,6 +34987,9 @@ setInterval(load, 30000);
 
     async def handle_decision_page(request):
         decision_id = request.path_params["decision_id"]
+        if decision_suppression.current().mentions(urllib.parse.unquote(decision_id)):
+            return Response("This decision is not available on OpenCaseLaw.\n",
+                            status_code=410, media_type="text/plain")
         # ?highlight=<verbatim substring> tags one Erwägung sentence with
         # <mark> after the page is rendered. Used by find_relevant_erwaegung
         # display_urls so the lawyer landing on the page sees the matched

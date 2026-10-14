@@ -91,6 +91,7 @@ py-modules = [
     "derive_from_text",
     "docket_aliases",
     "decision_ref",
+    "decision_suppression",
     "reference_parser",
     "ecli",
     "ecthr_docket",
