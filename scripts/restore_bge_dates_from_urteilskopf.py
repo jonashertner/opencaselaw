@@ -41,10 +41,24 @@ default. Do not run on the VPS shards during the build window (they are the
 build's input) — run after publish.py exits, then let the next full build
 pick the shard up. Never scp the result into the git tree (MCP deploy path).
 
+Twin dates (--twin-shard, report 2026-10-13): an entscheidsuche row whose
+Kopfzeile carries only the year ("Band III 2025") keeps the 1 January
+placeholder above, although the same BGE sits in the direct shard with the
+date its own Urteilskopf states (bge_BGE_151_III_227 2025-01-01 vs
+bge_151 III 227 2024-12-20, "4A_418/2024 vom 20. Dezember 2024"). With
+--twin-shard output/decisions/bge.jsonl an es row takes the direct twin's
+date ("direct_twin") when that date is confirmed by the twin's own
+Urteilskopf and passes the source gate; a Kopfzeile date that contradicts it
+is left alone and counted ("kopfzeile_twin_conflict"). Both copies then carry
+one date, so the build's dedup folds them into the fuller row (the feed's,
+which holds the Regeste in all three languages).
+
 Usage:
   python3 scripts/restore_bge_dates_from_urteilskopf.py output/decisions/bge.jsonl
   python3 scripts/restore_bge_dates_from_urteilskopf.py output/decisions/es_bge.jsonl --apply
   python3 scripts/restore_bge_dates_from_urteilskopf.py output/decisions/bge_historical.jsonl
+  python3 scripts/restore_bge_dates_from_urteilskopf.py output/decisions/es_bge.jsonl \
+      --twin-shard output/decisions/bge.jsonl
 """
 from __future__ import annotations
 
@@ -52,6 +66,7 @@ import argparse
 import json
 import os
 import re
+import stat
 import sys
 import tempfile
 from collections import Counter
@@ -76,6 +91,40 @@ _KEY_RE = re.compile(
 )
 _REF_LINE_RE = re.compile(r"^\d{1,3}\s+[IVX]+[abAB]?\s+\d{1,4}$")
 _KOPFZEILE_DATE_RE = re.compile(r"\bBand\s+[IVX]+[ab]?\s+(\d{2}\.\d{2}\.\d{4})\b")
+
+
+_REF_ID_RE = re.compile(r"^bge_(?:BGE_|ATF_|DTF_|historical_)?(\d{1,3})[_ ]([IVX]+[abAB]?)[_ ](\d{1,4})$")
+
+
+def bge_ref(decision_id: str | None) -> str | None:
+    """'bge_BGE_116_Ia_28' and 'bge_116 IA 28' -> '116 IA 28' (Ia/Ib upper-cased:
+    the direct scraper stores IA, the feed both Ia and IA)."""
+    m = _REF_ID_RE.match(decision_id or "")
+    return f"{m.group(1)} {m.group(2).upper()} {m.group(3)}" if m else None
+
+
+def load_twin_dates(path: Path) -> dict[str, str]:
+    """ref -> decision_date of each direct-shard BGE whose stored date is the
+    one its own Urteilskopf states (and passes the source gate)."""
+    out: dict[str, str] = {}
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                continue
+            did = str(obj.get("decision_id") or "")
+            if obj.get("court") != "bge" or did.startswith("bge_BGE_") or obj.get("source") == "entscheidsuche":
+                continue
+            ref = bge_ref(did)
+            cur = str(obj.get("decision_date") or "")[:10]
+            if not ref or not cur or cur.endswith("-01-01"):
+                continue
+            volume = int(ref.split()[0])
+            hd, _ = header_date_direct(obj.get("full_text") or "", volume)
+            if hd is not None and hd.isoformat() == cur and source_consistent(cur, volume):
+                out[ref] = cur
+    return out
 
 
 def volume_of(docket: str | None, decision_id: str | None) -> int | None:
@@ -134,7 +183,7 @@ def header_date_es(full_text: str, volume: int) -> date | None:
     return d if d and source_consistent(d, volume) else None
 
 
-def decide(obj: dict) -> tuple[str, str | None, dict]:
+def decide(obj: dict, twins: dict[str, str] | None = None) -> tuple[str, str | None, dict]:
     """Return (method, new_iso_or_None, extra_fields)."""
     volume = volume_of(obj.get("docket_number"), obj.get("decision_id"))
     if volume is None:
@@ -145,6 +194,12 @@ def decide(obj: dict) -> tuple[str, str | None, dict]:
     if is_es:
         hd = header_date_es(obj.get("full_text") or "", volume)
         method = "kopfzeile"
+        twin = (twins or {}).get(bge_ref(obj.get("decision_id")) or "")
+        if twin:
+            if hd is not None and hd.isoformat() != twin:
+                return "kopfzeile_twin_conflict", None, extra
+            if hd is None:
+                return "direct_twin", twin, extra
     else:
         hd, meta = header_date_direct(obj.get("full_text") or "", volume)
         method = "urteilskopf"
@@ -170,7 +225,7 @@ def decide(obj: dict) -> tuple[str, str | None, dict]:
     return "placeholder", date(volume + BGE_VOLUME_EPOCH, 1, 1).isoformat(), extra
 
 
-def run(path: Path, apply: bool, examples: int) -> Counter:
+def run(path: Path, apply: bool, examples: int, twins: dict[str, str] | None = None) -> Counter:
     stats: Counter = Counter()
     shown = 0
     fout = None
@@ -200,7 +255,7 @@ def run(path: Path, apply: bool, examples: int) -> Counter:
                         fout.write(line)
                     continue
                 stats["bge_rows"] += 1
-                method, new, extra = decide(obj)
+                method, new, extra = decide(obj, twins)
                 old = obj.get("decision_date")
                 stats[f"method:{method}"] += 1
                 changed_date = new is not None and new != old
@@ -242,6 +297,7 @@ def run(path: Path, apply: bool, examples: int) -> Counter:
     if fout:
         fout.close()
         if stats["rows_changed"]:
+            os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
             os.replace(tmp_path, str(path))
         else:
             os.unlink(tmp_path)
@@ -253,9 +309,14 @@ def main() -> int:
     ap.add_argument("shard", type=Path, help="bge.jsonl or es_bge.jsonl")
     ap.add_argument("--apply", action="store_true", help="rewrite the shard (default: dry run)")
     ap.add_argument("--examples", type=int, default=12)
+    ap.add_argument("--twin-shard", type=Path, default=None,
+                    help="direct bge.jsonl: es rows take its Urteilskopf-confirmed date")
     args = ap.parse_args()
     print(f"{'APPLY' if args.apply else 'DRY RUN'}: {args.shard}", file=sys.stderr)
-    stats = run(args.shard, args.apply, args.examples)
+    twins = load_twin_dates(args.twin_shard) if args.twin_shard else None
+    if twins is not None:
+        print(f"twin dates confirmed by their own Urteilskopf: {len(twins):,}", file=sys.stderr)
+    stats = run(args.shard, args.apply, args.examples, twins)
     for k, v in sorted(stats.items()):
         print(f"{v:>8}  {k}")
     return 0
