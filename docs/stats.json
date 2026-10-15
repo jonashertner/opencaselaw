@@ -1,9 +1,9 @@
 {
-  "total": 1064688,
-  "source_representations": 1064688,
+  "total": 1064689,
+  "source_representations": 1064689,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 923799,
-  "unique_decisions_lower_bound": 923749,
+  "unique_decisions": 923800,
+  "unique_decisions_lower_bound": 923750,
   "duplicate_representations": 140889,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -270,10 +270,10 @@
     {
       "court": "ecthr_chamber",
       "canton": "CE",
-      "count": 7626,
+      "count": 7627,
       "earliest": "1960-11-14",
-      "latest": "2026-10-13",
-      "last_scraped": "2026-10-13T14:10:32.472765+00:00",
+      "latest": "2026-10-15",
+      "last_scraped": "2026-10-15T14:06:04.039681+00:00",
       "languages": [
         "fr",
         "en"
@@ -1751,10 +1751,10 @@
     {
       "canton": "CE",
       "name": "CE",
-      "count": 8121,
+      "count": 8122,
       "court_count": 2,
       "earliest": "1960-11-14",
-      "latest": "2026-10-13",
+      "latest": "2026-10-15",
       "languages": [
         "fr",
         "en"
@@ -1916,7 +1916,7 @@
     "de": 495351,
     "fr": 474977,
     "it": 90387,
-    "en": 3973
+    "en": 3974
   },
   "by_year": {
     "1875": 153,
@@ -2070,7 +2070,7 @@
     "2023": 52267,
     "2024": 52303,
     "2025": 49879,
-    "2026": 26755,
+    "2026": 26756,
     "2027": 1
   },
   "recent_daily": {
@@ -2092,11 +2092,12 @@
     "2026-10-06": 14,
     "2026-10-07": 13,
     "2026-10-08": 7,
-    "2026-10-13": 3
+    "2026-10-13": 3,
+    "2026-10-15": 1
   },
   "date_range": {
     "earliest": "1875-01-01",
-    "latest": "2026-10-13"
+    "latest": "2026-10-15"
   },
   "court_count": 124,
   "top_courts": [
@@ -2307,7 +2308,7 @@
   },
   "federal_vs_cantonal": {
     "federal": 384572,
-    "cantonal": 680116
+    "cantonal": 680117
   },
   "language_by_year": {
     "2005": {
@@ -2438,7 +2439,7 @@
     },
     "2026": {
       "de": 13988,
-      "en": 129,
+      "en": 130,
       "fr": 11638,
       "it": 1000
     }
@@ -2480,9 +2481,9 @@
     "2026-07": 2663,
     "2026-08": 2440,
     "2026-09": 1686,
-    "2026-10": 82
+    "2026-10": 83
   },
-  "generated_at": "2026-10-15T13:15:12.678402+00:00",
+  "generated_at": "2026-10-15T21:51:50.633092+00:00",
   "scraper_health": {
     "run_at": "2026-10-15T01:55:56.226028+00:00",
     "run_duration_s": 3295.1,
@@ -3704,19 +3705,19 @@
       "chapter": 11,
       "bachelor_thesis": 3
     },
-    "citation_edges": 10084309,
-    "statute_edges": 12792557
+    "citation_edges": 9989977,
+    "statute_edges": 12690897
   },
   "interesting_stats": {
     "most_cited_decision": {
-      "docket": "BGE 125 V 351",
-      "citation_count": 78855,
-      "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
+      "docket": "125 V 351",
+      "citation_count": 111377,
+      "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196171
+      "ref_count": 196189
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -3725,26 +3726,26 @@
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_1_I_3"
     },
     "language_split": {
-      "de_pct": 47.0,
-      "fr_pct": 44.5,
+      "de_pct": 46.7,
+      "fr_pct": 44.8,
       "it_pct": 8.5,
-      "total": 1074288
+      "total": 1060715
     },
     "regeste_coverage": {
-      "pct": 38.3,
-      "with_regeste": 413482,
-      "total": 1078261
+      "pct": 37.5,
+      "with_regeste": 399701,
+      "total": 1064689
     },
     "graph_size": {
-      "decision_edges": 11089115,
-      "statute_edges": 12792557,
-      "total": 23881672
+      "decision_edges": 9508424,
+      "statute_edges": 12690897,
+      "total": 22199321
     },
     "echr_switzerland": {
       "total": 1532,
       "grand_chamber": 19,
       "in_2026": 64,
-      "ecthr_corpus_total": 9653,
+      "ecthr_corpus_total": 9654,
       "most_recent": {
         "decision_date": "2026-09-03",
         "docket": "1007/20_21022/21",
@@ -3754,61 +3755,61 @@
     },
     "top_5_decisions": [
       {
-        "docket": "BGE 125 V 351",
-        "citation_count": 78855,
-        "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
-        "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_125_V_351"
-      },
-      {
         "docket": "125 V 351",
-        "citation_count": 76421,
+        "citation_count": 111377,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
-        "docket": "BGE 122 V 157",
-        "citation_count": 40677,
+        "docket": "122 V 157",
+        "citation_count": 58445,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
-        "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_122_V_157"
+        "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
-        "docket": "BGE 134 V 231",
-        "citation_count": 39758,
+        "docket": "134 V 231",
+        "citation_count": 39761,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
-        "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_134_V_231"
+        "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
       {
-        "docket": "BGE 115 V 133",
-        "citation_count": 34728,
-        "regeste_excerpt": "Regeste\n Art. 67 und 76 KUVG, Art. 6 und 18 UVG. Präzisierung der in BGE 113 V 307 veröffentlichten Rechtsprechung zum adäquaten Kausalzusammenhang.\nRegeste\n Ar",
-        "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_115_V_133"
+        "docket": "126 V 75",
+        "citation_count": 35917,
+        "regeste_excerpt": "Regeste\n Art. 28 Abs. 2 IVG: Kürzung von Tabellenlöhnen. - Für die Bestimmung des Invalideneinkommens ist primär von der beruflich-erwerblichen Situation auszug",
+        "url": "https://mcp.opencaselaw.ch/entscheid/bge_126 V 75"
+      },
+      {
+        "docket": "130 V 343",
+        "citation_count": 34775,
+        "regeste_excerpt": "Regeste\n Art. 1 Abs. 1 IVG (in der seit 1. Januar 2003 geltenden Fassung) in Verbindung mit Art. 6, 7, 8 Abs. 1, Art. 16 und 17 ATSG; Art. 4 Abs. 1, Art. 28 Abs",
+        "url": "https://mcp.opencaselaw.ch/entscheid/bge_130 V 343"
       }
     ],
     "top_5_statutes": [
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196171
+        "ref_count": 196189
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 120774
+        "ref_count": 120769
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109208
+        "ref_count": 109186
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98157
+        "ref_count": 98143
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 60904
+        "ref_count": 60899
       }
     ],
     "materialien_coverage": {
@@ -3868,7 +3869,7 @@
         "earliest": "1875-01-01",
         "latest": "2026-05-11",
         "span_years": 151,
-        "decision_count": 49486
+        "decision_count": 35687
       },
       {
         "court": "ch_vb",
@@ -3903,7 +3904,7 @@
         "earliest": "1908-11-08",
         "latest": "2026-10-05",
         "span_years": 118,
-        "decision_count": 171119
+        "decision_count": 171150
       }
     ]
   },
@@ -4286,6 +4287,15 @@
     ],
     "cantonal": [
       {
+        "decision_id": "ecthr_chamber_52652_20_3536_21_21602_21_20261015",
+        "docket": "52652/20_3536/21_21602/21_20261015",
+        "date": "2026-10-15",
+        "court": "ecthr_chamber",
+        "language": "en",
+        "summary": "Preliminary objection joined to merits and dismissed (Art. 34) Individual applications;(Art. 34) Victim;Violation of Article 3 - Prohibition of torture (Article 3 - Degrading treatment) (Substantive aspect);No violation…",
+        "canton": "CE"
+      },
+      {
         "decision_id": "ecthr_chamber_25406_22_20261013",
         "docket": "25406/22_20261013",
         "date": "2026-10-13",
@@ -4364,15 +4374,6 @@
         "court": "ecthr_chamber",
         "language": "en",
         "summary": "Preliminary objection dismissed (Art. 35) Admissibility criteria;(Art. 35-2-b) Matter already submitted to another international procedure;Remainder inadmissible (Art. 35) Admissibility criteria;(Art. 35-1) Exhaustion o…",
-        "canton": "CE"
-      },
-      {
-        "decision_id": "ecthr_chamber_5232_24_20261006",
-        "docket": "5232/24_20261006",
-        "date": "2026-10-06",
-        "court": "ecthr_chamber",
-        "language": "en",
-        "summary": "Violation of Article 7 - No punishment without law (Article 7-1 - Nullum crimen sine lege);Pecuniary damage - claim dismissed (Article 41 - Pecuniary damage;Just satisfaction);Non-pecuniary damage - finding of violation…",
         "canton": "CE"
       }
     ]
@@ -4500,7 +4501,7 @@
     }
   ],
   "delta": {
-    "total": -13573,
+    "total": -13572,
     "by_court": {
       "bger": 29,
       "ge_gerichte": 31,
@@ -4513,6 +4514,7 @@
       "be_verwaltungsgericht": 3,
       "bstger": 4,
       "bs_appellationsgericht": 2,
+      "ecthr_chamber": 1,
       "zh_handelsgericht": 1,
       "edoeb": 1,
       "ag_spezialverwaltungsgericht": 2,
@@ -4537,9 +4539,13 @@
       "GR": 1,
       "FR": 24,
       "AG": 2,
-      "BS": 2
+      "BS": 2,
+      "CE": 1
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": -94332,
+      "statute_edges": -101660
+    },
     "previous_generated_at": "2026-10-14T21:18:57.754035+00:00"
   }
 }
