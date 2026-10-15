@@ -1,0 +1,167 @@
+{
+ "id": "rec_15_rc_link_release",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "product.market_approval",
+  "text": "Release of the RC-Link drive controller with Bluetooth module for Switzerland, the EU/EEA and the United Kingdom from 1 November 2023."
+ },
+ "purpose": "Offer smartphone commissioning of drives in markets where the radio module is approved.",
+ "decided_by": "Product Release Committee of Sernfeld Antriebstechnik AG",
+ "decided_at": "2023-10-19",
+ "minutes": "dms://products/rc-link/release-decision-2023.md",
+ "owner": {
+  "person": "ra",
+  "name": "Dr. Nadia Rüegg",
+  "role": "Head of Regulatory Affairs and Quality"
+ },
+ "fallback_owner": {
+  "person": "ceo",
+  "name": "Lukas Oberholzer",
+  "role": "Chief Executive Officer"
+ },
+ "restrictions": [
+  "Sale only in Switzerland, the EU/EEA and the UK",
+  "App not offered in other countries' app stores until the radio module is approved there"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Declaration of conformity for radio equipment with EN 300 328 V2.2.2",
+    "source": "dms://products/rc-link/declaration-of-conformity-2023.md",
+    "as_of": "2023-10-19"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "FAV",
+    "sr_number": "784.101.2",
+    "act_title": "Verordnung vom 25. November 2015 über Fernmeldeanlagen (FAV)",
+    "jurisdiction": "Bund (federal)",
+    "article": "7",
+    "article_label": "Art. 7 — Grundlegende Anforderungen",
+    "paragraph": "1",
+    "as_of": "2023-10-19",
+    "edition": "2022-01-01",
+    "act_in_force": "2016-06-13 – (open)",
+    "text": "1 Die Funkanlagen müssen so hergestellt sein, damit sie Folgendes gewährleisten: a. den Schutz der Gesundheit und der Sicherheit von Menschen und Haus- und Nutztieren sowie den Schutz von Gütern einschliesslich der in der Verordnung vom 25. November 2015 über elektrische Niederspannungserzeugnisse (NEV) enthaltenen Ziele in Bezug auf die Sicherheitsanforderungen, aber ohne Spannungsgrenze; b. ein angemessenes Niveau an elektromagnetischer Verträglichkeit nach der Verordnung vom 25. November 2015 über die elektromagnetische Verträglichkeit (VEMV).",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2016/24/20220101/de",
+    "source_snapshot": "get_law__FAV-7-2023-10-19__a2d1850308",
+    "proposition": "Radio equipment must be built to protect health and safety, ensure electromagnetic compatibility and use the radio spectrum efficiently.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:57+00:00",
+     "snapshot": "attest_response__Art--7-Abs--1-FAV__70d165f41f",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:57+00:00",
+      "as_of": "2023-10-19",
+      "edition": "2022-01-01",
+      "snapshot": "get_law__FAV-7-2023-10-19__a2d1850308"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "FAV",
+    "sr_number": "784.101.2",
+    "act_title": "Verordnung vom 25. November 2015 über Fernmeldeanlagen (FAV)",
+    "jurisdiction": "Bund (federal)",
+    "article": "9",
+    "article_label": "Art. 9 — Erfüllung der Anforderungen der Frequenzspektrumsnutzung",
+    "paragraph": null,
+    "as_of": "2023-10-19",
+    "edition": "2022-01-01",
+    "act_in_force": "2016-06-13 – (open)",
+    "text": "Eine Funkanlage kann nur auf dem Markt bereitgestellt werden, wenn sie die Anforderungen an die Nutzung des Frequenzspektrums von mindestens einer der vom BAKOM bestimmten technischen Vorschriften für Funkschnittstellen nach Artikel 3 Absatz 1 erfüllt.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2016/24/20220101/de",
+    "source_snapshot": "get_law__FAV-9-2023-10-19__ea99762dd7",
+    "proposition": "Conformity with the essential requirements on the use of the frequency spectrum is presumed for equipment built to designated technical standards.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:58+00:00",
+     "snapshot": "attest_response__Art--9-FAV__db8bd0f3ff",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:58+00:00",
+      "as_of": "2023-10-19",
+      "edition": "2022-01-01",
+      "snapshot": "get_law__FAV-9-2023-10-19__ea99762dd7"
+     }
+    }
+   }
+  ],
+  "commitments": []
+ },
+ "objections": [],
+ "review": {
+  "date": "2025-10-31",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "f1 standard superseded",
+   "sale or app distribution outside the approved markets"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://products/rc-link/declaration-of-conformity-2023.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Sale only in Switzerland, the EU/EEA and the UK",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "App not offered in other countries' app stores until the radio module is approved there",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

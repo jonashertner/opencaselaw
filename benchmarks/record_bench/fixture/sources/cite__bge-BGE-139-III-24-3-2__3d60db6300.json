@@ -1,0 +1,33 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_139_III_24",
+  "pinpoint": "3.2"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T22:59:18+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_139_III_24",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2012-11-20",
+  "citation_string": "BGE 139 III 24, E. 3.2",
+  "citation_string_de": "BGE 139 III 24, E. 3.2",
+  "citation_string_fr": "ATF 139 III 24, consid. 3.2",
+  "citation_string_it": "DTF 139 III 24, consid. 3.2",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_139_III_24#e-3-2",
+  "markdown_link": "[BGE 139 III 24, E. 3.2](https://mcp.opencaselaw.ch/entscheid/bge_BGE_139_III_24#e-3-2)",
+  "rule_statement": "Nach\nArt. 717 Abs. 1 OR\nmüssen die Mitglieder des Verwaltungsrats, sowie Dritte, die mit der Geschäftsführung befasst sind, ihre Aufgaben mit aller Sorgfalt erfüllen und die Interessen der Gesellschaft in guten Treuen wahren. Die gesetzlich normierte Treuepflicht verlangt, dass die Mitglieder des Verwaltungsrats ihr Verhalten am Gesellschaftsinteresse ausrichten. […]",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "pinpoint": "3.2",
+  "pinpoint_status": "verified",
+  "pinpoint_valid": true,
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_139_III_24"
+  },
+  "canonical_decision_id": "bge_BGE_139_III_24",
+  "is_canonical": true
+ }
+}
