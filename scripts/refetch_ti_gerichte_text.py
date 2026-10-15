@@ -67,6 +67,31 @@ BODY_RE = re.compile(
 DEFAULT_SIDECAR = "state/ti_gerichte.refetch.jsonl"
 
 
+_INCARTO_RE = re.compile(r"Incarto\s*n\.?\s*(\d{1,3})\.(\d{2}|\d{4})\.(\d{1,6})")
+
+
+def incarto(text: str | None) -> str | None:
+    """The docket a ruling names in its own heading ("Incarto n. 14.95.00081"),
+    normalised to "14.1995.81"; None when the head names none."""
+    m = _INCARTO_RE.search(re.sub(r"\s+", " ", text or "")[:1000])
+    if not m:
+        return None
+    y = m.group(2)
+    if len(y) == 2:
+        y = ("19" if int(y) > 50 else "20") + y
+    return f"{int(m.group(1))}.{y}.{int(m.group(3))}"
+
+
+def _docket_key(docket: str | None) -> str | None:
+    m = re.match(r"\s*(\d{1,3})\.(\d{2}|\d{4})\.0*(\d{1,6})\s*$", docket or "")
+    if not m:
+        return None
+    y = m.group(2)
+    if len(y) == 2:
+        y = ("19" if int(y) > 50 else "20") + y
+    return f"{int(m.group(1))}.{y}.{int(m.group(3))}"
+
+
 def _iter_jsonl(path: Path):
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -157,7 +182,15 @@ def run_fetch(shard: Path, sidecar: Path, fetcher, max_rows: int | None, delay: 
 
 def apply_rows(rows: list[dict], sidecar_rows: dict[str, dict]) -> Counter:
     """Pure: update ``rows`` in place. A row takes the fetched text only when it
-    is longer than what the row holds."""
+    is the same ruling and longer than what the row holds.
+
+    Same ruling: the docket the fetched document names in its heading must be
+    the one the row's own text names (or, without a heading, the row's
+    docket_number). The shard holds 1,302 ids twice, both rows with the same
+    source_url; in 24 of them the second row is another ruling (the row under
+    ti_gerichte_14.1995.00081 dated 1995-12-27 is "Incarto n. 16.95.00168",
+    while the URL serves 14.95.00081 of 29 May 1995). Without this check the
+    re-fetch wrote the May ruling into the December row (rehearsal 2026-10-15)."""
     stats: Counter = Counter()
     for row in rows:
         doc = sidecar_rows.get(row.get("decision_id")) if row.get("court") == COURT else None
@@ -166,6 +199,11 @@ def apply_rows(rows: list[dict], sidecar_rows: dict[str, dict]) -> Counter:
             continue
         old_len = len(row.get("full_text") or "")
         new_text = doc.get("full_text") or ""
+        own = incarto(row.get("full_text")) or _docket_key(row.get("docket_number"))
+        fetched = incarto(new_text)
+        if own and fetched and own != fetched:
+            stats["identity_mismatch"] += 1
+            continue
         if len(new_text) <= old_len:
             stats["kept"] += 1
             continue

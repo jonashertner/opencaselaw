@@ -104,3 +104,29 @@ def test_apply_only_lengthens_keeps_dates_and_mode(tmp_path):
     assert out[1]["full_text"] == FULL * 50                        # never shortened
     assert (shard.stat().st_mode & 0o777) == 0o644
     assert rf.run_apply(shard, sidecar, dry_run=False)["updated"] == 0
+
+
+def test_apply_never_writes_another_ruling_into_a_row(tmp_path):
+    # Two rows under one id and one URL in the live shard: the URL serves
+    # 14.95.00081 (29 May 1995); the second row is 16.95.00168 (27 Dec 1995).
+    may = "Incarto n.14.95.00081 Lugano 29 maggio 1995 In nome della Repubblica"
+    dec = "Incarto n.16.95.00168 Lugano 27 dicembre 1995 In nome della Repubblica"
+    shard = tmp_path / "ti_gerichte.jsonl"
+    rows = [{**_row("ti_gerichte_14.1995.00081", may), "docket_number": "14.1995.00081"},
+            {**_row("ti_gerichte_14.1995.00081", dec), "docket_number": "14.1995.00081"}]
+    shard.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    sidecar = tmp_path / "side.jsonl"
+    full = may + " in fatto A. ... in diritto 1. ... Per questi motivi" * 20
+    sidecar.write_text(json.dumps({"decision_id": "ti_gerichte_14.1995.00081", "full_text": full,
+                                   "cited_decisions": [], "fetched_at": "t"}) + "\n")
+    stats = rf.run_apply(shard, sidecar, dry_run=False)
+    assert stats["updated"] == 1 and stats["identity_mismatch"] == 1
+    out = [json.loads(ln) for ln in shard.read_text().splitlines()]
+    assert out[0]["full_text"] == full
+    assert out[1]["full_text"] == dec            # the December ruling keeps its own text
+
+
+def test_incarto_normalises_two_digit_years_and_padding():
+    assert rf.incarto("Raccomandata Incarto n. 14.95.00081 Lugano") == "14.1995.81"
+    assert rf.incarto("Incarto n.32.2023.125 FC Lugano") == "32.2023.125"
+    assert rf._docket_key("14.1995.00081") == "14.1995.81"
