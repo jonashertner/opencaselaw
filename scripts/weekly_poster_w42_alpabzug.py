@@ -18,7 +18,8 @@ with the count too. The people, the dog, the chalet and the trees carry no data.
 Nothing about removed rows, nights or builds is shown; the counts are the harness's by_canton / by_court figures
 and must add up to week["added"].
 
-The silhouettes were developed in output/posters/w42/cow_lab/ (cowlab.py, NOTES.md with the research notes).
+The silhouettes are traced from public-domain references (output/posters/w42/cow_lab/ref/SOURCES.md); the
+development record is in cow_lab/ (NOTES.md with the research notes, ref_trace.py, embed_pieces.py).
 """
 from __future__ import annotations
 
@@ -120,46 +121,82 @@ def anchor(x: float, ground: float, s: float, flip: bool, length: float, lx: flo
     return (x + ((length - lx) if flip else lx) * s, ground + ly * s)
 
 
+# ── traced silhouettes ───────────────────────────────────────────────────────────────────────────
+# The animals are cut from real silhouettes rather than drawn freehand: public-domain references from Wikimedia
+# Commons, rasterised, traced and simplified (output/posters/w42/cow_lab/ref_trace.py; sources and licences in
+# cow_lab/ref/SOURCES.md, all PD, no credit due). Cow: "Cowicon.svg" (Abu badali, PD, after the Swedish road-sign
+# pictogram), its tail erased and recut standing off the body. Goat: "Goat (NIH BioArt 636 - 663087).svg"
+# (Alexander Stewart / NIAID, PD). Dog: "Dog Silhouette 01.svg" (Amada44, PD).
+# Local units: facing right, feet on y = 0. Each animal is the body cut at the belly line plus one piece per leg
+# (points, pivot, foot); a leg piece reaches 8 % of the height up into the body and turns about its pivot there,
+# so the legs can be set in walking phases without opening the outline. Douglas-Peucker at 0.4 % of the body length
+# keeps the edges as clean scissor cuts. Regenerate with cow_lab/embed_pieces.py.
+COW = dict(
+    body="160.0,-68.9 159.1,-65.1 155.8,-62.3 146.6,-62.6 141.5,-63.8 128.8,-59.9 125.6,-55.7 118.8,-41.3 115.7,-38.5 111.9,-36.9 112.3,-36.3 83.7,-36.3 84.2,-37.5 76.1,-37.7 57.5,-36.3 46.2,-38.2 43.2,-36.3 4.2,-36.3 6.3,-43.5 4.9,-67.8 4.2,-64.1 0.1,-64.1 0.0,-65.2 0.5,-74.9 3.0,-80.9 9.0,-86.5 16.5,-89.3 25.0,-89.7 60.4,-86.3 94.9,-88.9 119.7,-88.2 129.9,-91.3 130.8,-91.9 130.7,-94.5 136.1,-96.4 139.1,-99.7 139.6,-98.6 138.2,-95.0 144.3,-91.7 149.6,-95.5 146.2,-87.6 149.8,-84.7 150.9,-81.0",
+    legs=[
+        ("18.0,-36.2 18.0,-30.8 11.5,-22.6 8.7,-12.2 8.9,-8.3 13.2,-0.1 4.5,-0.1 3.4,-2.2 4.4,-6.0 2.0,-7.5 4.6,-23.3 3.4,-34.4 6.3,-44.2 12.4,-44.2 12.4,-36.3",
+         (9.4, -44.3), (8.9, -0.1)),
+        ("52.2,-0.1 43.4,0.0 40.6,-4.9 38.3,-4.6 31.8,-14.1 23.5,-20.5 19.9,-32.3 19.2,-32.9 18.1,-31.0 18.1,-36.2 22.6,-36.3 22.6,-44.2 32.5,-44.2 32.6,-36.2 43.0,-36.2 42.1,-35.7 42.8,-31.6 41.7,-30.2 40.2,-30.6 38.2,-34.5 36.6,-34.1 36.8,-29.5 34.6,-29.0 33.1,-33.6 31.4,-33.6 31.6,-26.5 37.3,-15.5 46.0,-7.5 48.0,-4.1",
+         (27.6, -44.3), (47.8, 0.0)),
+        ("100.3,-36.2 100.3,-31.6 95.6,-35.7 82.5,-12.8 81.5,-6.9 86.3,-2.3 87.1,0.0 78.3,0.0 77.2,-2.4 77.9,-5.3 75.6,-6.4 81.2,-29.1 84.3,-37.4 80.1,-37.6 80.1,-44.2 88.8,-44.2 88.9,-36.2",
+         (84.4, -44.3), (82.7, 0.0)),
+        ("121.3,-25.9 118.8,-20.1 107.9,-8.4 102.6,-4.6 100.0,-1.2 96.5,-0.6 99.0,-9.1 102.0,-10.2 101.8,-13.1 107.9,-17.2 111.1,-23.4 109.3,-27.1 100.3,-31.5 100.3,-36.2 111.0,-36.2 111.1,-44.2 120.0,-44.2 117.0,-39.4 111.8,-36.8 118.9,-30.0",
+         (115.6, -44.3), (97.4, -0.5)),
+    ],
+)   # H=99.7, belly=-36.3
+
+GOAT = dict(
+    body="115.0,-64.7 114.7,-61.7 113.0,-59.2 110.8,-58.1 105.0,-59.2 104.3,-58.4 104.3,-56.1 103.5,-56.1 102.3,-60.8 101.0,-61.0 100.7,-62.1 97.5,-61.5 92.7,-54.6 85.9,-47.8 78.7,-37.0 73.8,-33.1 72.5,-29.4 61.2,-29.4 60.9,-30.4 55.3,-29.4 43.4,-29.4 35.2,-31.5 34.3,-31.4 33.9,-29.4 22.6,-29.4 21.5,-30.5 20.6,-30.5 20.3,-29.4 12.5,-29.4 12.0,-33.6 11.3,-33.6 11.1,-35.5 10.5,-35.5 12.1,-43.1 11.7,-51.9 9.7,-51.7 8.2,-53.2 0.6,-52.9 0.6,-54.8 0.0,-55.4 0.0,-57.0 2.2,-57.9 2.2,-58.7 9.5,-57.3 13.0,-57.3 21.3,-61.8 27.1,-63.2 35.7,-63.7 56.6,-61.9 64.7,-63.6 74.9,-61.7 75.9,-64.2 81.9,-67.0 93.2,-76.0 95.2,-75.1 95.6,-76.2 98.6,-77.0 99.0,-79.8 97.8,-83.4 95.5,-88.7 92.2,-93.7 92.2,-94.7 93.1,-94.7 96.9,-91.2 97.7,-91.2 98.1,-96.7 99.0,-96.7 100.7,-90.9 104.3,-84.9 106.3,-78.8 106.3,-77.9 101.8,-76.8 101.8,-75.9 105.1,-73.5 105.5,-71.2 106.2,-70.8 105.8,-67.4 104.6,-67.4 104.0,-65.3 106.0,-65.9 106.4,-63.9 109.0,-63.2 109.3,-62.0 112.8,-62.1 113.1,-63.4 112.1,-64.4 111.9,-66.1 110.4,-67.2 109.7,-71.0 110.6,-71.0",
+    legs=[
+        ("19.3,-29.4 19.0,-27.0 17.0,-28.1 15.6,-27.6 16.3,-24.8 17.4,-24.7 17.4,-23.8 15.2,-17.3 14.5,-12.8 16.8,-7.6 16.8,-5.4 13.1,-4.6 9.1,-5.5 11.0,-23.1 12.5,-28.5 12.0,-33.6 11.2,-33.9 10.7,-37.2 15.3,-37.2 15.3,-29.4",
+         (13.0, -37.2), (13.6, -4.6)),
+        ("33.9,-29.4 33.2,-29.2 32.0,-26.6 31.0,-26.4 28.8,-21.6 28.1,-12.3 31.2,-8.5 31.0,-6.6 28.9,-6.3 24.9,-6.4 23.0,-10.6 23.0,-23.0 25.8,-29.7 22.6,-28.8 23.0,-37.2 28.4,-37.2 28.4,-29.4",
+         (25.7, -37.2), (27.8, -6.3)),
+        ("73.5,-6.5 73.5,-4.7 72.0,-4.1 71.7,-2.1 67.9,0.0 65.2,-0.1 62.8,-5.9 61.4,-6.4 63.7,-16.1 61.7,-23.8 61.3,-29.2 63.4,-29.4 63.4,-37.2 71.0,-37.2 71.0,-29.4 72.5,-29.2 70.7,-11.5 71.2,-9.4",
+         (67.2, -37.2), (66.6, 0.0)),
+    ],
+)   # H=96.7, belly=-29.4
+
+DOG = dict(
+    body="40.0,-29.6 39.6,-28.9 38.7,-28.2 37.9,-27.9 36.4,-27.8 36.6,-27.3 37.6,-26.7 37.5,-26.1 36.2,-26.2 34.0,-27.8 32.4,-27.0 32.0,-26.1 31.9,-25.2 30.7,-23.3 30.5,-20.5 29.9,-18.5 26.7,-18.5 28.1,-19.5 28.2,-20.0 27.9,-20.3 26.3,-19.1 26.3,-18.5 17.9,-18.5 14.9,-21.6 12.6,-22.3 11.3,-21.2 10.4,-22.6 9.9,-22.3 10.2,-20.6 9.5,-18.5 2.7,-18.5 1.7,-26.4 2.2,-28.5 3.3,-30.3 1.0,-33.2 0.4,-35.4 0.7,-37.4 1.9,-39.1 3.5,-40.1 5.5,-40.4 6.6,-40.0 7.3,-39.4 8.0,-38.4 8.2,-37.6 7.5,-36.5 5.7,-35.4 5.3,-35.6 5.2,-36.1 5.7,-37.1 6.3,-37.7 6.3,-38.1 5.6,-38.5 4.9,-38.6 4.1,-38.4 3.3,-37.8 2.6,-36.4 2.5,-35.1 3.2,-33.7 4.2,-32.7 5.1,-32.5 7.3,-33.2 8.8,-33.5 11.7,-33.4 15.1,-32.9 19.7,-31.5 20.8,-31.4 25.8,-31.7 26.8,-32.9 26.6,-34.2 27.2,-35.1 28.2,-35.6 29.8,-35.8 31.5,-36.9 33.5,-36.8 35.3,-36.1 37.2,-34.6 37.5,-34.1 37.7,-32.3 39.6,-30.3",
+    legs=[
+        ("4.4,-18.5 4.4,-14.1 2.9,-12.0 1.9,-8.9 1.9,-7.0 2.4,-4.0 2.2,-2.7 1.6,-2.5 1.3,-2.7 0.5,-3.7 0.2,-4.7 0.0,-12.1 1.7,-14.7 2.5,-17.0 2.7,-18.8 2.2,-21.8 4.0,-21.8 4.0,-18.5",
+         (3.1, -21.8), (1.8, -2.5)),
+        ("9.5,-18.5 8.2,-14.9 6.6,-11.9 6.0,-8.5 6.0,-5.7 6.5,-4.9 7.3,-4.4 7.5,-3.3 6.1,-3.0 5.2,-3.4 3.8,-10.7 5.3,-14.9 5.1,-15.0 4.4,-14.2 4.4,-18.5 4.9,-18.5 4.9,-21.8 7.6,-21.8 7.6,-18.5",
+         (6.2, -21.8), (6.4, -3.0)),
+        ("24.7,-18.5 24.7,-16.9 23.4,-15.6 22.5,-14.1 21.7,-10.0 21.5,-3.6 21.8,-2.5 23.3,-0.8 23.3,-0.3 22.8,0.0 20.4,-0.1 20.0,-0.5 19.7,-3.5 19.2,-5.0 19.6,-9.4 19.8,-14.4 19.4,-16.2 19.6,-17.1 18.0,-18.5 19.7,-18.5 19.7,-21.8 22.4,-21.8 22.4,-18.5",
+         (21.1, -21.8), (22.3, 0.0)),
+        ("36.1,-1.2 35.7,-0.4 34.8,-0.2 32.9,-2.0 31.8,-5.0 31.1,-5.5 31.0,-6.5 30.6,-7.4 25.5,-15.3 25.5,-17.3 25.2,-17.4 24.7,-16.9 24.7,-18.5 26.6,-18.5 28.2,-19.6 28.1,-20.1 27.8,-20.3 26.6,-19.4 26.6,-21.8 29.9,-21.8 29.9,-18.6 29.4,-17.1 29.4,-15.0 30.7,-11.4 33.0,-6.8 33.7,-4.3",
+         (28.3, -21.8), (34.9, -0.2)),
+    ],
+)   # H=40.4, belly=-18.5
+
+def cut(points: str, fill=BLACK) -> str:
+    """A traced piece: a polygon with its corners softened by a hairline stroke of the same colour."""
+    return f'<polygon points="{points}" fill="{fill}" stroke="{fill}" stroke-width=".8" stroke-linejoin="round"/>'
+
+
+def legs(animal: dict, angles, clefts: bool = True) -> str:
+    """The leg pieces, each turned about its pivot by its angle (degrees, clockwise = foot back), with a fine cut at
+    the toe for the cloven hoof."""
+    out = ""
+    for (pts, (px, py), (fx, fy)), a in zip(animal["legs"], angles):
+        piece = cut(pts) + (f'<path d="M{fx:.1f},{fy:.1f} L{fx:.1f},{fy - 3.5:.1f}" stroke="{PAPER}" stroke-width=".9"/>' if clefts else "")
+        out += rot(piece, a, px, py)
+    return out
+
+
 # ── the cow ──────────────────────────────────────────────────────────────────────────────────────
-# Local coordinates: facing right, hooves on y=0, tail head at x≈8, nose at x≈160 (COW_L), withers y≈-102.
+# Local coordinates: facing right, hooves on y=0, rump at x≈0, nose at x=160 (COW_L), topline y≈-90, horn tip -100.
 COW_L = 160
-COW_BELL = (112, -64)   # where the Treichel hangs: the chest, under the strap
-
-# Barrel + neck, clockwise from the pin bone; the neck ends in a rounded stump under the head.
-BODY = [
-    (10, -89, .6), (16, -97), (28, -100), (56, -101), (86, -102),          # pin bone, hooks, straight topline, withers
-    (102, -102), (113, -99), (121, -102), (126, -112, .5), (130, -100), (129, -86, .5),  # neck dips before the skull, poll, throat
-    (124, -80), (120, -74, .6), (117, -69), (113, -62, .6), (108, -56),    # neck underline with the dewlap folds, brisket
-    (98, -52), (80, -47), (62, -44), (46, -47), (36, -54),                 # elbow, low belly curve, flank
-    (34, -70), (24, -84), (14, -90, .5),
-]
-# Head, level pose, pivot at the poll (127, -114). Clockwise from the poll; the back runs into the neck.
-HEAD = [
-    (125, -116, .6), (136, -114), (144, -108, .7), (150, -101), (155, -95, .8),   # broad heavy poll and forehead, brow, nasal line
-    (160, -88, .9), (161, -80, .9), (157, -72, .7), (150, -70), (142, -73),       # big rounded nose, deep blunt muzzle, chin, cheek
-    (135, -79), (130, -86, .5), (125, -90), (121, -100), (121, -110),             # deep throat under the jaw, into the neck, skull back
-]
-EAR = [(128, -105, .4), (122, -106.5), (116, -107.5), (111, -108, .3), (113, -104.5), (120, -102.5), (127, -101, .4)]
-HORN = [(122, -114, .5), (118.5, -121), (120, -127.5), (125.5, -131, .5), (127, -125), (128.5, -119), (130.5, -113, .5)]
-HORN_FAR = shift(HORN, -4, 2.5)
-# Legs, finer than before (the originals' legs are thin): near hind, clockwise from the pin bone.
-HIND = [
-    (10, -88, .6), (4, -72), (4, -58), (7, -46), (11, -35, .4),
-    (14.5, -22), (16.5, -10), (15.5, -6, .5), (15.5, -1, 0), (25, 0, 0), (26, -5, .3),
-    (22.5, -9, .5), (21.5, -20), (21.5, -30, .5), (28, -40), (38, -50, .5), (43, -62), (42, -76), (34, -90), (20, -96),
-]
-FRONT = [
-    (91, -78), (90, -60), (92.5, -46), (94.5, -38, .5), (95.5, -24), (96.5, -10), (95.5, -6, .5), (95.5, -1, 0),
-    (104.5, 0, 0), (104.5, -5, .3), (102.5, -9, .5), (102.5, -22), (105.5, -36, .5), (110, -48), (114, -60), (113, -72), (104, -80),
-]
-UDDER = [(36, -54), (33, -44), (35, -36, .5), (44, -33, .5), (53, -36, .5), (55, -46), (50, -53)]
-TAIL = [(10, -90), (1, -78), (-3, -60), (-3, -42), (0, -30)]
-TUFT = [(0, -32, .5), (-5, -22), (-4, -12), (1, -6, .3), (5, -14), (4, -25)]
-
-
-def leg(pts, angle, px, py, cleft_x) -> str:
-    """A leg with a fine cut at the toe (the cloven hoof)."""
-    return rot(path(pts) + f'<path d="M{cleft_x},0 L{cleft_x},-4" stroke="{PAPER}" stroke-width=".9"/>', angle, px, py)
+COW_BELL = (124, -56)   # where the Treichel hangs: the front of the chest, at the foot of the strap
+# Walking phases, angles for the four pieces in COW["legs"] order: far hind, near hind, far front, near front.
+# Diagonal pairs swing together; the reference pose is phase 0 (near hind forward, near front back).
+COW_PHASES = [(0, 0, 0, 0), (-7, 8, 8, -7), (-12, 14, 12, -12)]
+# The tail, cut as one tapered shape: it leaves the pin bone, hangs a hair off the rump and ends in a brush tuft.
+TAIL = [(6, -88, .3), (0, -80), (-3, -66), (-4, -52), (-5.5, -40), (-6, -30), (-3.5, -22, .2),
+        (-1, -30), (-1, -40), (-1, -52), (0, -66), (2.5, -80)]
+HORN_FAR = "130.5,-91 132,-96 134,-99.5 136,-99.5 135.5,-95 136.5,-91"   # the second horn, behind the near one
 
 
 def headdress() -> str:
@@ -177,26 +214,20 @@ def headdress() -> str:
 
 
 def cow_local(pose: int, head: int, lead: bool) -> str:
-    """The cow silhouette in local coordinates. pose: leg phase 0..2; head: 0 lowered, 1 level, 2 raised."""
-    ph = [(-9, 10, 12, -10), (10, -9, -12, 11), (1, 3, -8, 8)][pose % 3]   # near hind, near front, far hind, far front
-    out = leg(shift(HIND, -5), ph[2], 18, -90, 17) + leg(shift(FRONT, -5), ph[3], 97, -74, 97)   # far pair
-    out += (f'<path d="{smooth(TAIL, closed=False)}" fill="none" stroke="{BLACK}" stroke-width="2.8" stroke-linecap="round"/>'
-            + path(TUFT))
-    out += path(BODY)
-    out += path(UDDER) + f'<path d="M39,-35 L39,-29 M47,-34 L47,-28" stroke="{BLACK}" stroke-width="2.6" stroke-linecap="round"/>'
-    out += leg(HIND, ph[0], 22, -90, 22) + leg(FRONT, ph[1], 100, -74, 101)                      # near pair
-    ang = [12, 0, -6][head % 3]
-    hd = (path(HORN_FAR) + f'<path d="{smooth(HORN)}" fill="none" stroke="{PAPER}" stroke-width="1.6"/>'   # slit between the horns
-          + path(HORN) + path(EAR) + path(HEAD))
-    hd += f'<circle cx="141" cy="-100" r="2.2" fill="{PAPER}"/>'
-    hd += f'<path d="M159.5,-76 C156,-75 153.5,-74.5 150,-75" fill="none" stroke="{PAPER}" stroke-width="1.1" stroke-linecap="round"/>'
+    """The cow silhouette in local coordinates. pose: leg phase 0..2; head is kept for the call sites (the traced
+    head is not articulated)."""
+    out = legs(COW, COW_PHASES[pose % 3])
+    out += path(TAIL)
+    out += cut(HORN_FAR) + cut(COW["body"])
+    # the cut details: eye and mouth
+    out += f'<circle cx="143" cy="-82" r="2.2" fill="{PAPER}"/>'
+    out += f'<path d="M158.5,-66 C156,-65.2 153.5,-65 151,-65.6" fill="none" stroke="{PAPER}" stroke-width="1.1" stroke-linecap="round"/>'
     if lead:
-        hd += headdress()
-    out += rot(hd, ang, 127, -114)
+        out += f'<g transform="translate(16 23)">{headdress()}</g>'   # the frame stands on the poll at (143, -91)
     # the strap: a light band cut round the base of the neck, with black diamonds (hearts for the lead cow)
     w = 11 if lead else 7
-    out += f'<path d="M102,-100 C106,-89 110,-77 113,-64" fill="none" stroke="{PAPER}" stroke-width="{w}"/>'
-    pts = [(104, -92), (106.5, -84), (109.5, -76), (112, -68)]
+    out += f'<path d="M112,-89 C116,-78 120,-67 124,-56" fill="none" stroke="{PAPER}" stroke-width="{w}"/>'
+    pts = [(114, -81), (116.5, -73), (119.5, -65.5), (122, -59)]
     if lead:
         out += "".join(f'<path d="M{x},{y + 1.6} C{x - 4},{y - 2} {x - 1.6},{y - 5} {x},{y - 2.2} '
                        f'C{x + 1.6},{y - 5} {x + 4},{y - 2} {x},{y + 1.6} Z" fill="{BLACK}"/>' for x, y in pts)
@@ -241,48 +272,22 @@ def round_bell(cx: float, top: float, h: float) -> str:
 
 
 # ── the goat ─────────────────────────────────────────────────────────────────────────────────────
-# Local: facing right, hooves on y=0, rump at x≈8, nose at x≈100 (GOAT_L), withers y≈-62, horn tips ≈ -104.
-GOAT_L = 100
-GOAT_BELL = (66, -46)   # the round bell hangs under the throat, at the base of the neck
-
-GBODY = [
-    (10, -58, .6), (18, -62), (34, -63), (48, -62), (60, -64),            # rump, back, withers
-    (70, -70), (80, -78), (85, -82, .5), (88, -72), (87, -62, .5),         # neck rising to the poll, throat
-    (80, -56), (72, -50), (64, -45), (54, -40), (40, -36), (28, -39),      # neck underline, chest, belly
-    (20, -46), (12, -52),
-]
-GHEAD = [
-    (84, -84, .6), (92, -82), (98, -75, .7), (102, -67, .8), (101, -61, .7), (97, -57, .6),   # poll, forehead, nose, muzzle, chin
-    (92, -56), (86, -60), (83, -68), (82, -78),                                                # jaw, throat, into the neck
-]
-GBEARD = [(96, -57, .5), (93, -50), (91, -44, .2), (90, -50), (89, -56)]
-GEAR = [(84, -80, .4), (78, -83), (72, -86), (69, -87, .3), (72, -82), (78, -79), (83, -77, .4)]
-GHORN = [(83, -85, .5), (78, -92), (71, -100), (66, -104, .3), (72, -97), (80, -88), (90, -83, .5)]
-GHIND = [
-    (10, -56, .6), (6, -44), (6, -32), (8, -22, .5), (10, -10), (9, -1, 0), (16, 0, 0), (16.5, -5, .3),
-    (16, -12), (16, -22, .5), (20, -32), (26, -40, .5), (28, -50), (22, -58),
-]
-GFRONT = [
-    (56, -52), (54, -40), (54, -28, .5), (54.5, -12), (53.5, -1, 0), (60, 0, 0), (60.5, -5, .3), (60.5, -14),
-    (61, -28, .5), (63, -40), (66, -50), (62, -56),
-]
-GTAIL = [(10, -60, .5), (5, -70, .3), (8, -72, .3), (14, -63, .5)]
-GUDDER = [(27, -40), (25, -34, .6), (29, -30, .6), (35, -31, .6), (38, -36)]
+# Local: facing right, hooves on y=0, tail at x≈0, nose at x=115 (GOAT_L), withers y≈-63, horn tips ≈ -97.
+GOAT_L = 115
+GOAT_BELL = (88, -49)   # the round bell hangs at the front of the neck, at its base
+# Phases for the three pieces in GOAT["legs"] order: far hind, near hind, the front pair (which overlap in the
+# reference and move as one).
+GOAT_PHASES = [(0, 0, 0), (8, -8, 6), (-6, 8, -7)]
+GBEARD = "102.5,-58.5 106.5,-57.5 104.5,-48.5"
 
 
 def goat_local(pose: int) -> str:
-    """The goat silhouette: slim legs, beard, backward-curving horns (two, with a paper slit), short upright tail."""
-    ph = [(-10, 10, 12, -10), (10, -10, -12, 10), (2, 2, -8, 8)][pose % 3]
-    out = rot(path(shift(GHIND, -4)), ph[2], 14, -56, ) + rot(path(shift(GFRONT, -4)), ph[3], 58, -52)
-    out += path(GTAIL) + path(GBODY) + path(GUDDER)
-    out += rot(path(GHIND), ph[0], 18, -56) + rot(path(GFRONT), ph[1], 60, -52)
-    ang = [8, 0, -8][pose % 3]
-    hd = (path(shift(GHORN, -3, 2)) + f'<path d="{smooth(GHORN)}" fill="none" stroke="{PAPER}" stroke-width="1.3"/>'
-          + path(GHORN) + path(GEAR) + path(GHEAD) + path(GBEARD))
-    hd += f'<circle cx="91" cy="-75" r="1.6" fill="{PAPER}"/>'
-    hd += f'<path d="M101,-62 C98.5,-61.5 96.5,-61.5 94,-62" fill="none" stroke="{PAPER}" stroke-width=".9" stroke-linecap="round"/>'
-    out += rot(hd, ang, 84, -82)
-    out += f'<path d="M62,-66 C64,-60 65.5,-53 66,-46" fill="none" stroke="{PAPER}" stroke-width="3.6"/>'   # the thin strap
+    """The goat silhouette: slim legs, beard, long backward-curving horns, short upright tail."""
+    out = legs(GOAT, GOAT_PHASES[pose % 3])
+    out += cut(GBEARD) + cut(GOAT["body"])
+    out += f'<circle cx="104" cy="-72" r="1.6" fill="{PAPER}"/>'
+    out += f'<path d="M113.5,-61.5 C111.5,-61 109.5,-61 107.5,-61.5" fill="none" stroke="{PAPER}" stroke-width=".9" stroke-linecap="round"/>'
+    out += f'<path d="M81,-63 C85,-58 87,-53 88,-49" fill="none" stroke="{PAPER}" stroke-width="3.6"/>'   # the thin strap
     return out
 
 
@@ -321,15 +326,8 @@ DOG_L = 40
 
 
 def dog_local() -> str:
-    """A small herding dog trotting, ears up, tail curled over the back."""
-    out = path([(4, -17, .6), (9, -22), (22, -23), (31, -21), (35, -17, .5), (33, -12), (26, -10), (12, -10), (6, -12)])   # body
-    out += path([(31, -23, .5), (37, -27), (45, -24, .4), (46, -21, .3), (42, -18, .5), (36, -16), (32, -17)])          # head, pointed muzzle
-    out += path([(35, -27, .3), (34, -34, .2), (38, -28, .3)]) + path([(38, -27, .3), (39, -34, .2), (42, -27, .3)])   # ears up
-    out += f'<path d="M6,-20 C2,-26 1,-32 6,-34 C9,-35 10,-31 7,-29" fill="none" stroke="{BLACK}" stroke-width="2.2" stroke-linecap="round"/>'  # tail
-    for x0, a in ((9, -12), (13, 10), (26, 10), (30, -11)):   # legs, thin
-        out += rot(path([(x0 - 1.6, -12), (x0 + 1.6, -12), (x0 + 1.4, -1, .3), (x0 + 2.4, 0, 0), (x0 - 2.4, 0, 0), (x0 - 1.4, -1, .3)]), a, x0, -12)
-    out += f'<circle cx="38.5" cy="-23.5" r="1" fill="{PAPER}"/>'
-    return out
+    """The herding dog trotting beside the closing man, tail curled over the back."""
+    return legs(DOG, (0, 0, 0, 0), clefts=False) + cut(DOG["body"]) + f'<circle cx="33" cy="-33" r="1" fill="{PAPER}"/>'
 
 
 # ── the scene ────────────────────────────────────────────────────────────────────────────────────
@@ -460,7 +458,10 @@ def design(week: dict, lang: str = "rm") -> str:
     # the file, back to front: closing herdsman + dog, cows ascending, lead cow, goats ascending, the Senn
     file_ = ([("herd", None, 0)] + [("cow", lab, n) for lab, n in cows[::-1]]
              + [("goat", lab, n) for lab, n in goats[::-1]] + [("senn", None, 0)])
-    left, right = 110, 970
+    # Register extents (first and last animal centre). The middle register is drawn in a little at both ends: its
+    # lead cow (the biggest, head and headdress towards the left border) and the AG cow's tail at the right must clear
+    # the lace border by 12 px.
+    spans = [(110, 952), (140, 952), (110, 970)]
     grounds = [728, 938, 1148]                       # the three registers, far to near
     k0 = len(cows) - 7                               # the top register: the herdsman and the smaller cows
     rows = [file_[:k0 + 1], file_[k0 + 1:k0 + 8], file_[k0 + 8:]]
@@ -468,6 +469,7 @@ def design(week: dict, lang: str = "rm") -> str:
     out, bells, labels = [], [], []
     for r, (ground, row, flip) in enumerate(zip(grounds, rows, flips)):
         k = len(row)
+        left, right = spans[r]
         pitch = (right - left) / max(1, k - 1)
         for i, (kind, label, n) in enumerate(row):
             cx = (right - i * pitch) if flip else (left + i * pitch)   # the file reads on from the register before
@@ -480,7 +482,7 @@ def design(week: dict, lang: str = "rm") -> str:
                 bells.append(treichel(bx, by, bell_height(n, top), (11 if lead else 7) * s))
             elif kind == "goat":
                 s = 0.82 + 0.18 * math.sqrt(n / GOAT_BELOW)
-                x = cx - 52 * s
+                x = cx - 57 * s
                 out.append(place(goat_local((i + r) % 3), x, ground, s, flip, GOAT_L))
                 bx, by = anchor(x, ground, s, flip, GOAT_L, *GOAT_BELL)
                 bells.append(round_bell(bx, by, bell_height(n, top)))
@@ -492,6 +494,7 @@ def design(week: dict, lang: str = "rm") -> str:
             if label is not None:
                 labels.append(f'<text x="{cx:.1f}" y="{ground + 48}" class="num">{wp.fmt(n, lang)}</text>'
                               f'<text x="{cx:.1f}" y="{ground + 69}" class="code">{esc(label)}</text>')
+    left, right = spans[0]
     road = (f"M-30,{grounds[0] - 118} C30,{grounds[0] - 70} 50,{grounds[0]} {left - 20},{grounds[0]} L{right + 20},{grounds[0]} "
             f"C{right + 110},{grounds[0]} {right + 110},{grounds[1]} {right + 20},{grounds[1]} L{left - 20},{grounds[1]} "
             f"C{left - 110},{grounds[1]} {left - 110},{grounds[2]} {left - 20},{grounds[2]} L{right + 20},{grounds[2]} "

@@ -1,0 +1,4 @@
+{"mosaic": "weiss", "far": "weiss_far", "cam": [2628200, 1103800, 2600], "azimuth": -71.1, "fh": 800, "fv": 1025, "v0": 680, "u0": 519,
+ "summits": [[2621452, 1105568, 4504], [2621352, 1107416, 4149]],
+ "t_min": 200, "t_max": 24000, "treeline": 2350, "valley_floor": 1500, "sun_rel": -78, "sun_el": 32, "haze_t0": 5500, "haze_km": 5000,
+ "shade_sigma": 2.0, "bands": 4, "soft_px": 0.7, "rock_lo": 44, "rock_hi": 56, "key_lo": 0.38, "rock_min_cells": 250}
