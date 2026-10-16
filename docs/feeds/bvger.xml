@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/bvger.xml</link>
     <description>Latest published Bundesverwaltungsgericht decisions.</description>
     <language>de-CH</language>
-    <lastBuildDate>Thu, 15 Oct 2026 13:22:27 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 16 Oct 2026 12:46:19 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/bvger.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht E-7191/2026 vom 2026-10-07</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-7191_2026</link>
+      <description>Vollzug der Wegweisung (Wiedererwägung)</description>
+      <pubDate>Wed, 07 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-7191.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesverwaltungsgericht D-8128/2024 vom 2026-10-06</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-8128_2024</link>
@@ -22,6 +30,14 @@
       <description>Asyl und Wegweisung</description>
       <pubDate>Tue, 06 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-1352.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-6903/2026 vom 2026-10-06</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6903_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (Dublin-Verfahren - Art. 31a Abs. 1 Bst. b AsylG)</description>
+      <pubDate>Tue, 06 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6903.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -105,6 +121,14 @@
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht F-6766/2026 vom 2026-10-05</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6766_2026</link>
+      <description>Déni de justice/retard injustifié</description>
+      <pubDate>Mon, 05 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6766.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht B-1961/2026 vom 2026-10-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-1961_2026</link>
       <description>Beiträge für vorbereitende Kurse</description>
@@ -134,6 +158,14 @@
       <description>Asyl (ohne Wegweisungsvollzug)</description>
       <pubDate>Fri, 02 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-848.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-138/2025 vom 2026-10-01</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-138_2025</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Thu, 01 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-138.2025</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -249,11 +281,43 @@
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht C-3204/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-3204_2026</link>
+      <description>Droit à la rente</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-3204.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht C-3446/2023 vom 2026-09-30</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-3446_2023</link>
       <description>Spezialitätenliste</description>
       <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-3446.2023</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-4108/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-4108_2026</link>
+      <description>Rentes</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-4108.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-4429/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-4429_2026</link>
+      <description>Substances thérapeutiques (divers)</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-4429.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-5331/2026 vom 2026-09-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-5331_2026</link>
+      <description>Marktüberwachung</description>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-5331.2026</guid>
       <category>bvger</category>
     </item>
     <item>
@@ -297,6 +361,14 @@
       <category>bvger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht C-4540/2023 vom 2026-09-29</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-4540_2023</link>
+      <description>Zwangsanschluss an die Auffangeinrichtung</description>
+      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-4540.2023</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesverwaltungsgericht C-4795/2026 vom 2026-09-29</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-4795_2026</link>
       <description>Beitragsverfügung der Auffangeinrichtung</description>
@@ -334,78 +406,6 @@
       <description>Asyl und Wegweisung (Wiedererwägung)</description>
       <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-3679.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-386/2026 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-386_2026</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-386.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-387/2026 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-387_2026</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-387.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-6210/2025 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6210_2025</link>
-      <description>Asile (sans exécution du renvoi)</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6210.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-6630/2026 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6630_2026</link>
-      <description>Asile et renvoi (procédure accélérée)</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6630.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-7997/2024 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-7997_2024</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-7997.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-1330/2021 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-1330_2021</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-1330.2021</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-52/2024 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-52_2024</link>
-      <description>Asyl und Wegweisung</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-52.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-5684/2023 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5684_2023</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5684.2023</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-6682/2026 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6682_2026</link>
-      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
-      <pubDate>Tue, 29 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6682.2026</guid>
       <category>bvger</category>
     </item>
   </channel>
