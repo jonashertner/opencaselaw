@@ -5484,6 +5484,147 @@ def _canonical_for(decision_id: str | None) -> dict | None:
         conn.close()
 
 
+# BGE ids per canonical_key, read once from the sidecar and re-read when the
+# sidecar file is replaced. A BGE and the Federal Supreme Court judgment it
+# publishes share one key ("ECLI:CH:BGER:2026:4A_149.2025"); the BGE row names
+# its judgment (underlying_docket), the judgment did not name its BGE, so a
+# lookup of 4A_149/2025 never mentioned BGE 152 III 240 (LinkedIn, 2026-10-16).
+# decisions.docket_number_2 carries the docket on the BGE row but is not
+# indexed, and full-text search for the docket takes minutes on the live
+# table; the sidecar is ~0.2 s to read whole.
+_bge_by_key: dict[str, list[str]] = {}
+_bge_by_key_sig: tuple | None = None
+_bge_by_key_lock = threading.Lock()
+_OLD_BGE_ID_RE = re.compile(r"^bge_BGE_(\d+)_([IVX]+[ab]?)_(\d+)$")
+
+
+def _bge_ids_for_key(key: str | None) -> list[str]:
+    global _bge_by_key, _bge_by_key_sig
+    if not key or not key.startswith("ECLI:CH:BGER:"):
+        return []
+    try:
+        st = CANONICAL_DB_PATH.stat()
+    except OSError:
+        return []
+    sig = (st.st_ino, st.st_mtime_ns, st.st_size)
+    if sig != _bge_by_key_sig:
+        with _bge_by_key_lock:
+            if sig != _bge_by_key_sig:
+                conn = _get_canonical_conn()
+                if conn is None:
+                    return []
+                m: dict[str, list[str]] = {}
+                try:
+                    for did, k in conn.execute(
+                            "SELECT decision_id, canonical_key FROM canonical_identity "
+                            "WHERE decision_id LIKE 'bge\\_%' ESCAPE '\\' "
+                            "AND canonical_key LIKE 'ECLI:CH:BGER:%'"):
+                        # Ids from before the BGE one-id change (2026-10-15)
+                        # name the live row "bge_146 I 126".
+                        o = _OLD_BGE_ID_RE.match(did)
+                        did = f"bge_{o[1]} {o[2]} {o[3]}" if o else did
+                        if did not in m.setdefault(k, []):
+                            m[k].append(did)
+                except sqlite3.Error:
+                    return []
+                finally:
+                    conn.close()
+                _bge_by_key, _bge_by_key_sig = m, sig
+    return _bge_by_key.get(key, [])
+
+
+def _bger_key(docket: str | None, decision_date: str | None) -> str | None:
+    """The canonical_key a BGer judgment carries: ECLI:CH:BGER:<year>:<docket
+    with '/' as '.'>; None without a docket or year."""
+    docket, year = (docket or "").strip(), str(decision_date or "")[:4]
+    if not docket or not year.isdigit():
+        return None
+    docket = re.sub(r"^(\d[A-Z])[ .]", r"\1_", docket)   # "9C 292/2007", "4C.215/2005"
+    return f"ECLI:CH:BGER:{year}:{docket.replace('/', '.')}"
+
+
+def _published_as_bge(result: dict) -> list[dict]:
+    """The BGE(s) publishing this BGer judgment: same canonical key, same
+    decision date, and (where the BGE row names one) the same docket or one
+    joined to it. A docket
+    can carry an interim order and the judgment in one year, so the date must
+    match. Point lookups only; [] when there is none or the sidecar is absent."""
+    if (result.get("court") or "").lower() != "bger":
+        return []
+    date = str(result.get("decision_date") or "")[:10]
+    if not date:
+        return []
+    # A consolidated proceeding is filed under its lead docket; its BGE can be
+    # keyed on a joined one (BGE 151 I 3: "2C_36/2023 / 2C_38/2023", keyed
+    # 2C_38, judgment stored as 2C_36).
+    dockets = [result.get("docket_number") or "", *(result.get("joined_dockets") or [])]
+    keys = [result.get("canonical_key"), *(_bger_key(d, date) for d in dockets)]
+    ids: list[str] = []
+    for k in keys:
+        for bid in _bge_ids_for_key(k):
+            if bid not in ids:
+                ids.append(bid)
+    if not ids:
+        return []
+    own = {_normalize_docket(d) for d in dockets if d}
+    out: list[dict] = []
+    conn = get_db()
+    try:
+        for bid in ids:
+            row = conn.execute(
+                "SELECT decision_id, court, docket_number, docket_number_2, decision_date "
+                "FROM decisions WHERE decision_id = ?", (bid,)).fetchone()
+            if not row:
+                continue
+            row = dict(row)
+            if (row.get("court") or "") != "bge" or str(row.get("decision_date") or "")[:10] != date:
+                continue
+            d2 = row.get("docket_number_2")
+            if d2 and _normalize_docket(d2) not in own:
+                continue
+            cs = _build_citation_strings(row)
+            out.append({"decision_id": row["decision_id"],
+                        "citation_string_de": cs["citation_string_de"],
+                        "citation_string_fr": cs["citation_string_fr"],
+                        "citation_string_it": cs["citation_string_it"],
+                        "canonical_url": cs["canonical_url"]})
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+    return out
+
+
+def _full_decision_for_bge(result: dict, docket: str | None) -> dict | None:
+    """The BGer judgment a BGE publishes: a bger row under the BGE's own docket
+    with the BGE's date (indexed docket lookup); None when not held. The
+    caption writes "9C_292/2007"; 66,456 bger rows store "9C 292/2007", the
+    pre-2007 ones "4C.215/2005"."""
+    date = str(result.get("decision_date") or "")[:10]
+    if not docket or not date:
+        return None
+    forms = sorted({docket, *(re.sub(r"^(\d[A-Z])[_ .]", r"\1" + sep, docket) for sep in "_ .")})
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT decision_id, court, docket_number, decision_date FROM decisions "
+            f"WHERE docket_number IN ({','.join('?' * len(forms))}) AND court = 'bger'",
+            forms).fetchall()
+    except sqlite3.Error:
+        return None
+    finally:
+        conn.close()
+    hits = [dict(r) for r in rows if str(r["decision_date"] or "")[:10] == date]
+    if len(hits) != 1:
+        return None
+    cs = _build_citation_strings(hits[0])
+    return {"decision_id": hits[0]["decision_id"],
+            "citation_string_de": cs["citation_string_de"],
+            "citation_string_fr": cs["citation_string_fr"],
+            "citation_string_it": cs["citation_string_it"],
+            "canonical_url": cs["canonical_url"]}
+
+
 _manifest_warned = False
 
 
@@ -10242,8 +10383,26 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                     if dcid:
                         result["underlying_docket"] = cap
                         result["cli_ch_full_decision"] = dcid
+                    full = _full_decision_for_bge(result, cap)
+                    if full:
+                        result["full_decision"] = full
             except Exception:
                 pass
+    # The other direction: a BGer judgment published in the official
+    # collection names its BGE, which is what a brief cites.
+    try:
+        _bge = _published_as_bge(result)
+    except Exception:
+        _bge = []
+    if _bge:
+        result["published_as_bge"] = _bge
+        result["published_as_bge_note"] = (
+            "This judgment is published in the official collection as "
+            + " and ".join(b["citation_string_de"] for b in _bge)
+            + ". Cite the BGE (copy its citation_string verbatim); the BGE "
+            "carries the Regeste and may abridge the reasons, so quote from "
+            "the version you read."
+        )
 
     # BGE-bound flag: DB stores 0/1/NULL; present it as a real bool (or None
     # when unknown). The column exists only after a post-schema-change rebuild,
@@ -16888,7 +17047,8 @@ def _handle_cite(
     # canonical representation, so a client can tell a consolidated or
     # duplicated ruling from an unrecognised one. Additive: decision_id and
     # the citation strings are exactly what the pipeline built above.
-    for _key in ("joined_dockets", "canonical_decision_id", "is_canonical"):
+    for _key in ("joined_dockets", "canonical_decision_id", "is_canonical",
+                 "published_as_bge", "published_as_bge_note", "full_decision"):
         if decision.get(_key) is not None:
             result[_key] = decision[_key]
     if rule is None and (decision.get("full_text") or decision.get("regeste")):
@@ -30403,6 +30563,10 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 + (f"**Full decision:** `{result['cli_ch_full_decision']}` "
                    f"(docket {result['underlying_docket']})\n"
                    if result.get("cli_ch_full_decision") else "")
+                + ("**Published in the official collection as:** "
+                   + ", ".join(f"`{b['citation_string_de']}`" for b in result["published_as_bge"])
+                   + " — cite the BGE\n"
+                   if result.get("published_as_bge") else "")
                 + "\n"
                 f"## Citation — copy verbatim (do NOT reconstruct)\n"
                 f"- DE: `{citation['citation_string_de']}`\n"
