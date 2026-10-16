@@ -143,3 +143,34 @@ def test_is_synthetic_date():
     assert d.is_synthetic_date("") is True
     assert d.is_synthetic_date(None) is True
     assert d.is_synthetic_date("2025-09-27") is False
+
+
+# Heads the parser missed (2026-10-16): no date was read, so a 1-January
+# placeholder stayed, and EVG-era BGEs got no federal key at all.
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("head,docket,iso", [
+    ("(ricorso in materia penale) 6B_1379/2023 dell'11 settembre 2024 Regeste", "6B_1379/2023", "2024-09-11"),
+    ("(ricorso per cassazione) 6S.110/2005 del 1° settembre 2005 Regeste", "6S_110/2005", "2005-09-01"),
+    ("(recours en réforme) 5C.29/2005 des 14 juillet et 1er septembre 2005 Regeste", "5C_29/2005", "2005-07-14"),
+    ("Sozialversicherungsgericht des Kantons Zürich P 71/01 vom 5. März 2002 Regeste", "P71/01", "2002-03-05"),
+    ("Tribunal des assurances du canton de Vaud I 189/02 du 15 janvier 2003 Regeste", "I189/02", "2003-01-15"),
+])
+def test_italian_apostrophe_first_of_month_two_sessions_and_evg_dockets(head, docket, iso):
+    u = d.extract_urteilskopf(head)
+    assert (u.get("docket"), u.get("date")) == (docket, iso)
+
+
+def test_evg_shape_is_never_taken_without_its_date():
+    # "A 12/34" in running text is not a docket
+    assert d.extract_urteilskopf("gemäss Ziff. A 12/34 der Weisung, Regeste").get("docket") is None
+
+
+def test_joined_dockets_give_the_lead_docket():
+    # BGE 136 III 502 and 151 I 3: the judgment is filed under the first docket
+    u = d.extract_urteilskopf("(recours en matière civile) 4A_210/2010 / 4A_214/2010 / 4A_216/2010 "
+                              "du 1er octobre 2010 Regeste")
+    assert (u.get("docket"), u.get("date")) == ("4A_210/2010", "2010-10-01")
+    u = d.extract_urteilskopf("(recours en matière de droit public) 2C_36/2023 / 2C_38/2023 du 5 juin 2024 Regeste")
+    assert (u.get("docket"), u.get("date")) == ("2C_36/2023", "2024-06-05")

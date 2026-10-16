@@ -191,3 +191,26 @@ def test_the_sidecar_writer_applies_the_same_checks(tmp_path):
     assert g("bge_78_IV_83") == ("1952-06-03", "extracted_from_text", "ECLI:CH:BGER:1952:78_IV_83")
     assert g("bge_78_IV_84")[:2] == (None, "volume_synthetic")
     assert g("bge_1_I_396")[:2] == (None, "volume_synthetic")
+
+
+def test_sidecar_key_prefers_the_bge_docket_number_2(tmp_path):
+    # BGE 134 II 49 prints "1E_15/2007 / 1E_16/2007"; the court files it under
+    # 1E_16/2007 (docket_number_2), which is what the BGer row's key carries.
+    src = tmp_path / "src.db"
+    c = sqlite3.connect(src)
+    c.execute("CREATE TABLE decisions(decision_id TEXT PRIMARY KEY, court TEXT, decision_date TEXT, "
+              "publication_date TEXT, docket_number TEXT, full_text TEXT, docket_number_2 TEXT)")
+    head = ("Urteilskopf 134 II 49 5. Auszug aus dem Urteil der I. öffentlich-rechtlichen Abteilung "
+            "i.S. X. gegen Y. 1E_15/2007 / 1E_16/2007 vom 12. Dezember 2007 Regeste")
+    c.executemany("INSERT INTO decisions VALUES(?,?,?,?,?,?,?)", [
+        ("bge_134 II 49", "bge", "2007-12-12", None, "134 II 49", head, "1E_16/2007"),
+        ("bge_134 II 50", "bge", "2007-12-12", None, "134 II 50", head, None),
+    ])
+    c.commit(); c.close()
+    out = tmp_path / "ci.db"
+    bci.run_write(str(src), str(out), max_year=2026)
+    o = sqlite3.connect(out)
+    key = lambda did: o.execute("SELECT canonical_key FROM canonical_identity WHERE decision_id=?",
+                                (did,)).fetchone()[0]
+    assert key("bge_134 II 49") == "ECLI:CH:BGER:2007:1E_16.2007"
+    assert key("bge_134 II 50") == "ECLI:CH:BGER:2007:1E_15.2007"     # header fallback: the lead

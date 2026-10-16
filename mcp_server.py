@@ -5539,7 +5539,10 @@ def _bger_key(docket: str | None, decision_date: str | None) -> str | None:
     docket, year = (docket or "").strip(), str(decision_date or "")[:4]
     if not docket or not year.isdigit():
         return None
-    docket = re.sub(r"^(\d[A-Z])[ .]", r"\1_", docket)   # "9C 292/2007", "4C.215/2005"
+    # The sidecar's own normalisation: "9C 292/2007", "4C.215/2005" -> "_",
+    # EVG "P 71/01" -> "P71/01".
+    docket = _dft.normalize_docket(docket) if _dft is not None else \
+        re.sub(r"^(\d[A-Z])[ .]", r"\1_", docket)
     return f"ECLI:CH:BGER:{year}:{docket.replace('/', '.')}"
 
 
@@ -5603,7 +5606,9 @@ def _full_decision_for_bge(result: dict, docket: str | None) -> dict | None:
     date = str(result.get("decision_date") or "")[:10]
     if not docket or not date:
         return None
-    forms = sorted({docket, *(re.sub(r"^(\d[A-Z])[_ .]", r"\1" + sep, docket) for sep in "_ .")})
+    forms = {docket, *(re.sub(r"^(\d[A-Z])[_ .]", r"\1" + sep, docket) for sep in "_ .")}
+    forms.add(re.sub(r"^([A-Z]{1,2})\s?(\d{1,4}/\d{2})$", r"\1 \2", docket))   # EVG "P71/01" -> "P 71/01"
+    forms = sorted(forms)
     conn = get_db()
     try:
         # No court term in SQL: with "AND court = 'bger'" SQLite picks
@@ -10387,7 +10392,12 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                     if dcid:
                         result["underlying_docket"] = cap
                         result["cli_ch_full_decision"] = dcid
-                    full = _full_decision_for_bge(result, cap)
+                    # A consolidated proceeding's caption can lead with a
+                    # joined docket (BGE 151 I 3: "2C_36/2023 / 2C_38/2023"
+                    # read as 2C_38); the row's docket_number_2 is the lead.
+                    d2 = (result.get("docket_number_2") or "").strip()
+                    full = _full_decision_for_bge(result, cap) or (
+                        _full_decision_for_bge(result, d2) if d2 and d2 != cap else None)
                     if full:
                         result["full_decision"] = full
             except Exception:

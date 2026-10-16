@@ -146,6 +146,9 @@ def test_consolidated_proceeding_keyed_on_the_joined_docket(tmp_path, monkeypatc
     bge = ("bge_151 I 3", "bge", "CH", "151 I 3", "2C_36/2023", "2024-06-05", None, "fr", "x", None)
     _wire(monkeypatch, tmp_path, extra=[bger, bge], sidecar_rows=[("bge_151 I 3", None, None, None, None, k38, k38)])
     out = m._published_as_bge({**m.get_decision_by_id("bger_2C_36_2023"), "joined_dockets": ["2C_38/2023"]})
+    # and back: the caption leads with the joined 2C_38, docket_number_2 is the lead 2C_36
+    monkeypatch.setattr(m._dft, "extract_urteilskopf", lambda t, **k: {"docket": "2C_38/2023"})
+    assert m.get_decision_by_id("bge_151 I 3")["full_decision"]["decision_id"] == "bger_2C_36_2023"
     assert [b["decision_id"] for b in out] == ["bge_151 I 3"]
     assert m._published_as_bge(m.get_decision_by_id("bger_2C_36_2023")) == []   # without the alias: no key
 
@@ -175,5 +178,6 @@ def test_bger_key_format():
     assert m._bger_key("9C 292/2007", "2007-10-29") == "ECLI:CH:BGER:2007:9C_292.2007"
     assert m._bger_key("4C.215/2005", "2005-12-20") == "ECLI:CH:BGER:2005:4C_215.2005"
     assert m._bger_key("4A_149/2025", "2026-01-12") == KEY
+    assert m._bger_key("P 71/01", "2002-03-05") == "ECLI:CH:BGER:2002:P71.01"
     assert m._bger_key("", "2026-01-12") is None
     assert m._bger_key("4A_1/2025", None) is None

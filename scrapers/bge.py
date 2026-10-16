@@ -138,8 +138,16 @@ RE_META_SIMPLE = re.compile(r"^\d+\s?\.\s+(?P<Rest>.+)$")
 # "vom/du/del <Datum>" token of the joined Urteilskopf; a lower-court date
 # never appears in the Urteilskopf, only in the Sachverhalt.
 RE_KOPF_DATUM = re.compile(
-    r"(?:\bvom|\bdu|\bdel|\bdell')\s+(?P<Datum>\d{1,2}(?:\.|er|°)?\s*(?:"
+    r"(?:\bvom|\bdu|\bdes|\bdel|\bdell['’])\s*(?P<Datum>\d{1,2}(?:\.|er|°)?\s*(?:"
     + _ALL_MONTHS + r")\s+(?:18|19|20)\d\d)",
+    re.IGNORECASE,
+)
+# "dell'11 settembre 2024" has no space after the apostrophe (BGE 150 IV 481,
+# 142 I 26, 131 I 52 kept wrong dates); "des 14 juillet et 1er septembre 2005"
+# names two session dates, the first is the ruling's (BGE 131 III 601).
+RE_SECOND_SESSION = re.compile(
+    r"(\d{1,2}(?:\.|er|°)?\s*(?:" + _ALL_MONTHS + r"))\s+(?:et|und|e)\s+"
+    r"\d{1,2}(?:\.|er|°)?\s*(?:" + _ALL_MONTHS + r")(?=\s+(?:18|19|20)\d\d)",
     re.IGNORECASE,
 )
 RE_KOPF_DOCKET = re.compile(r"\b(?P<Num2>\d{1,2}[A-F]?[._]\d+/(?:19|20)\d\d)\b")
@@ -237,8 +245,8 @@ def parse_urteilskopf(header: str, volume_year: int | None = None) -> dict:
     # dans la cause X contre la décision du 31 janvier 2000 ...", "Urteil vom
     # 16. März 1978 i.S. Z. betreffend Erläuterung des Urteils vom 5.
     # September 1977"); 6 of 20,867 shard headers, all of that shape.
-    for tok in RE_KOPF_DATUM.findall(header):
-        d = parse_date(tok)
+    for tok in RE_KOPF_DATUM.findall(RE_SECOND_SESSION.sub(r"\1", header)):
+        d = parse_date(tok.replace("°", ""))          # "1° settembre"
         if d and d not in candidates:
             candidates.append(d)
     if not meta.get("docket_2"):

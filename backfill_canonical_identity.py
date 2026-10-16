@@ -29,7 +29,7 @@ FEDERAL = ("bge", "bger", "bvger", "bstger", "bpatger", "mkg")
 
 
 def _enrich_row(court, stored_date, docket, full_text, max_year, max_date=None,
-                decision_id=None):
+                decision_id=None, docket_2=None):
     """Return (best_date, provenance, norm_docket, ecli)."""
     if stored_date and not d.is_synthetic_date(stored_date):
         best, prov = stored_date, "source_metadata"
@@ -47,6 +47,14 @@ def _enrich_row(court, stored_date, docket, full_text, max_year, max_date=None,
         uk = d.extract_urteilskopf(full_text, max_year=max_year)
         if uk.get("docket"):
             docket = uk["docket"]
+        # The scraper's docket_number_2 comes from the court's own metadata. A
+        # consolidated proceeding prints several dockets ("1E_15/2007 /
+        # 1E_16/2007") and neither the first nor the last is always the one the
+        # judgment is filed under (2026-10-16: first = docket_number_2 in 278
+        # of 312 joined captions); docket_number_2 is, so it wins where set.
+        d2 = d.normalize_docket(docket_2) if docket_2 else None
+        if d2 and d.docket_year(d2):
+            docket = d2
     nd = d.normalize_docket(docket) if docket else None
     ecli = d.build_ecli(court, best, nd)
     return best, prov, nd, ecli
@@ -254,16 +262,19 @@ def run_write(src_path: str, out_path: str, max_year: int) -> None:
     flush()
 
     # Pass 2 — everything needing text extraction: synthetic/NULL dates + all bge.
-    q2 = ("SELECT decision_id,court,decision_date,publication_date,docket_number,full_text "
-          "FROM decisions WHERE court='bge' OR decision_date IS NULL OR decision_date='' "
+    has_d2 = "docket_number_2" in {r[1] for r in src.execute("PRAGMA table_info(decisions)")}
+    q2 = ("SELECT decision_id,court,decision_date,publication_date,docket_number,full_text,"
+          + ("docket_number_2" if has_d2 else "NULL")
+          + " FROM decisions WHERE court='bge' OR decision_date IS NULL OR decision_date='' "
           "OR decision_date LIKE '%-01-01'")
-    for did, court, sd, spub, docket, ft in src.execute(q2):
+    for did, court, sd, spub, docket, ft, docket_2 in src.execute(q2):
         scanned += 1
         dd, dprov, pd, pprov = d.derive_dates(sd, spub, ft, max_year=max_year, max_date=today)
         # Same checks as the in-build pass (apply_to_db): the served sidecar
         # carried BGE 78 IV 83's neighbour date because this path had none.
         dd, dprov = gate_bge_text_date(court, did, docket, ft, dd, dprov, max_year)
-        _, _, nd, ecli = _enrich_row(court, sd, docket, ft, max_year, today, decision_id=did)
+        _, _, nd, ecli = _enrich_row(court, sd, docket, ft, max_year, today, decision_id=did,
+                                     docket_2=docket_2)
         ck = ecli
         # only write rows that actually carry enrichment
         if dprov == "extracted_from_text" or pprov == "volume_year" or ecli:
