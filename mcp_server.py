@@ -5606,15 +5606,19 @@ def _full_decision_for_bge(result: dict, docket: str | None) -> dict | None:
     forms = sorted({docket, *(re.sub(r"^(\d[A-Z])[_ .]", r"\1" + sep, docket) for sep in "_ .")})
     conn = get_db()
     try:
+        # No court term in SQL: with "AND court = 'bger'" SQLite picks
+        # idx_decisions_court and walks every bger row (2026-10-16: the disk
+        # sat at its IOPS cap within minutes of the deploy). Filter here.
         rows = conn.execute(
             "SELECT decision_id, court, docket_number, decision_date FROM decisions "
-            f"WHERE docket_number IN ({','.join('?' * len(forms))}) AND court = 'bger'",
+            f"INDEXED BY idx_decisions_docket WHERE docket_number IN ({','.join('?' * len(forms))})",
             forms).fetchall()
     except sqlite3.Error:
         return None
     finally:
         conn.close()
-    hits = [dict(r) for r in rows if str(r["decision_date"] or "")[:10] == date]
+    hits = [dict(r) for r in rows
+            if r["court"] == "bger" and str(r["decision_date"] or "")[:10] == date]
     if len(hits) != 1:
         return None
     cs = _build_citation_strings(hits[0])

@@ -33,6 +33,8 @@ def _db(path, extra=()):
             ("bger_5A_1_2024", "bger", "CH", "5A_1/2024", None, "2024-05-06", None, "de", "y", None),
             *extra]
     c.executemany("INSERT INTO decisions VALUES(?,?,?,?,?,?,?,?,?,?)", rows)
+    c.execute("CREATE INDEX idx_decisions_court ON decisions(court)")      # as in production
+    c.execute("CREATE INDEX idx_decisions_docket ON decisions(docket_number)")
     c.commit(); c.close()
     return path
 
@@ -146,6 +148,27 @@ def test_consolidated_proceeding_keyed_on_the_joined_docket(tmp_path, monkeypatc
     out = m._published_as_bge({**m.get_decision_by_id("bger_2C_36_2023"), "joined_dockets": ["2C_38/2023"]})
     assert [b["decision_id"] for b in out] == ["bge_151 I 3"]
     assert m._published_as_bge(m.get_decision_by_id("bger_2C_36_2023")) == []   # without the alias: no key
+
+
+def test_lookups_never_walk_the_court_index(tmp_path, monkeypatch):
+    # "docket_number IN (...) AND court = 'bger'" was planned on
+    # idx_decisions_court: every bger row read per BGE lookup, the production
+    # disk at its IOPS cap minutes after the deploy (2026-10-16).
+    _wire(monkeypatch, tmp_path)
+    seen: list[str] = []
+    dbp = tmp_path / "d.db"
+
+    def traced():
+        c = _rconn(dbp)
+        c.set_trace_callback(seen.append)
+        return c
+    monkeypatch.setattr(m, "get_db", traced)
+    m.get_decision_by_id("bge_152 III 240")
+    m.get_decision_by_id("bger_4A_149_2025")
+    plan_conn = sqlite3.connect(dbp)
+    for sql in {q for q in seen if q.lstrip().upper().startswith("SELECT")}:
+        plan = " ".join(str(r[-1]) for r in plan_conn.execute("EXPLAIN QUERY PLAN " + sql))
+        assert "idx_decisions_court" not in plan and "SCAN decisions" not in plan, (sql, plan)
 
 
 def test_bger_key_format():
