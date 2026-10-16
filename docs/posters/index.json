@@ -2,6 +2,44 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W42",
+   "from": "2026-10-09",
+   "to": "2026-10-15",
+   "added": 806,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "abstimmung",
+     "file": "2026-w42/de-abstimmung.webp",
+     "caption": "Woche 42 in der Schweizer Rechtsprechung: 806 neue Entscheide. opencaselaw.ch"
+    },
+    {
+     "lang": "fr",
+     "design": "releve",
+     "file": "2026-w42/fr-releve.webp",
+     "caption": "Semaine 42 de la jurisprudence suisse : 806 nouvelles décisions. opencaselaw.ch"
+    },
+    {
+     "lang": "it",
+     "design": "francobolli",
+     "file": "2026-w42/it-francobolli.webp",
+     "caption": "Settimana 42 della giurisprudenza svizzera: 806 nuove decisioni. opencaselaw.ch"
+    },
+    {
+     "lang": "rm",
+     "design": "alpabzug",
+     "file": "2026-w42/rm-alpabzug.webp",
+     "caption": "Emna 42: 806 novas decisiuns. opencaselaw.ch"
+    },
+    {
+     "lang": "en",
+     "design": "piste",
+     "file": "2026-w42/en-piste.webp",
+     "caption": "Week 42 in Swiss case law: 806 new decisions. opencaselaw.ch"
+    }
+   ]
+  },
+  {
    "week": "2026-W41",
    "from": "2026-10-02",
    "to": "2026-10-08",
