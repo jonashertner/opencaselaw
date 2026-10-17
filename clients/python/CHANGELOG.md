@@ -3,6 +3,16 @@
 The client follows semantic versioning. The research API contract it consumes is
 versioned separately (`x-opencaselaw-contract-version` in `/api/research/openapi.json`).
 
+## Unreleased
+
+- `ocl decisions search` takes `--published-from` / `--published-to` and
+  `--sort published_desc`: filter and order by the date the court PUBLISHED a
+  ruling, not the date it was decided. The Federal Supreme Court often
+  publishes months after it rules (4A_524/2025: decided 11 May 2026, published
+  16 October 2026), so a `--date-from` window misses such rulings on the day
+  they appear. Needs a service with the publication-date parameters; the
+  `opencaselaw_cli.search()` API passes them through as keyword filters.
+
 ## 0.9.2 (2026-10-02)
 
 - References parsed as written now cover the EVG single-letter chambers

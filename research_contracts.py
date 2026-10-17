@@ -76,6 +76,7 @@ class SearchDecisionsResponse(ResearchModel):
     condensed_terms: list[str] | None = None
     note: str | None = None
     degraded: bool | None = Field(default=None, description="True when the search hit its time budget and skipped ranking strategies; the page is a degraded ranking, not the best matches.")
+    publication_window_decided_from: str | None = Field(default=None, description="Set on a publication-date query (published_from / sort=published_desc): the earliest decision_date it considered. Decisions decided earlier are not in the result; pass an earlier date_from to include them.")
     decisions: list[dict[str, Any]] | None = Field(default=None, description="Legacy MCP widget records, retained alongside results.")
 
 

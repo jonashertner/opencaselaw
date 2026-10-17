@@ -55,6 +55,13 @@ SCHEMA_SQL = """
     CREATE INDEX IF NOT EXISTS idx_decisions_proceeding ON decisions(proceeding_type);
     CREATE INDEX IF NOT EXISTS idx_decisions_type ON decisions(decision_type);
     CREATE INDEX IF NOT EXISTS idx_decisions_canonical ON decisions(canonical_key);
+    -- Newly-published listings per court (search_decisions published_from /
+    -- sort=published_desc, /api/atom/{court}.xml, docs/feeds): a ruling BGer
+    -- releases months after deciding it must surface on its publication day.
+    -- Without it those queries fall back to an 18-month decision_date window
+    -- (mcp_server.PUBLICATION_LAG_WINDOW_DAYS) and the RSS feeds to decision
+    -- order. ~28 MB on the full corpus; +0.4% insert time (measured 2026-10-17).
+    CREATE INDEX IF NOT EXISTS idx_decisions_court_pub ON decisions(court, publication_date);
 
     -- Joined-docket aliases for consolidated federal proceedings (issue #41).
     -- A "vereinigte Verfahren" / "causes jointes" decision is stored under only

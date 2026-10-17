@@ -188,12 +188,17 @@ def build_parser(config: dict | None = None):
                      "--max-results (at most 800). Without query text, the filters enumerate an exact set "
                      "page by page. The output keeps the service's counts (total, total_is_lower_bound, "
                      "has_more, next_offset) so you can see how complete the selection is."),
-        epilog="example:\n  ocl decisions search 'Rachekündigung' --court bge --date-from 2015-01-01 --max-results 20 --format jsonl > hits.jsonl\n")
+        epilog=("examples:\n  ocl decisions search 'Rachekündigung' --court bge --date-from 2015-01-01 --max-results 20 --format jsonl > hits.jsonl\n"
+                "  ocl decisions search --court bger --published-from 2026-10-13 --sort published_desc --format jsonl\n"))
     search_parser.add_argument("query", nargs="?", default="", help="search text (FTS5 syntax: words, \"phrases\", AND/OR/NOT); omit to enumerate by filters only")
     _filters(search_parser)
     search_parser.add_argument("--chamber", help="chamber or division, substring match")
     search_parser.add_argument("--marked-for-publication", action="store_true", default=None, help="only BGer rulings flagged for the official BGE collection")
-    search_parser.add_argument("--sort", choices=["relevance", "date_desc", "date_asc"], default="relevance", help="ordering (default: relevance)")
+    search_parser.add_argument("--published-from", help="earliest PUBLICATION date, YYYY-MM-DD: what the court released since then, "
+                               "whenever it was decided (use this, not --date-from, for 'newly published')")
+    search_parser.add_argument("--published-to", help="latest publication date, YYYY-MM-DD, inclusive; needs --published-from")
+    search_parser.add_argument("--sort", choices=["relevance", "date_desc", "date_asc", "published_desc"], default="relevance",
+                               help="ordering (default: relevance); date_* order by decision date, published_desc by publication date, newest first")
     search_parser.add_argument("--detail", choices=["full", "compact"], default="compact", help="record detail requested from the service (default: compact, which carries citation_string_de only; full adds regeste, snippet, pinpoint and the French/Italian citation strings)")
     search_parser.add_argument("--no-pinpoint", action="store_true", help="skip the per-result pinpoint lookup for full detail (faster)")
     search_parser.add_argument("--no-collapse", action="store_true", help="keep every row of a ruling the service stores under several ids (by default one row per canonical_decision_id is kept, the canonical record, and the others are counted in _client.duplicates_collapsed)")
@@ -1169,7 +1174,9 @@ def run(args, client):
         return {"_raw": "\n".join(complete(build_parser(config={}), list(args.words)))}, 0
     if args.command == "decisions":
         if args.action == "search":
-            params = {name: getattr(args, name) for name in ("query", "court", "canton", "language", "date_from", "date_to", "chamber", "marked_for_publication", "sort", "offset")}
+            params = {name: getattr(args, name) for name in ("query", "court", "canton", "language", "date_from", "date_to",
+                                                             "published_from", "published_to", "chamber",
+                                                             "marked_for_publication", "sort", "offset")}
             params.update(fields=args.detail, include_pinpoint=not args.no_pinpoint)
             return search(client, params, args.max_results, args.page_size, collapse=not args.no_collapse)
         if args.action == "get":

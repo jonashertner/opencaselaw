@@ -62,7 +62,7 @@ def passage(decision_id: str, number: str, *, client: Client | None = None) -> d
 
 
 def search(query: str | None = None, *, max_results: int = 20, client: Client | None = None, **filters) -> dict:
-    """Bounded search; filters: court, canton, language, date_from, date_to."""
+    """Bounded search; filters: court, canton, language, date_from, date_to, published_from, published_to, sort."""
     from .cli import search as _search
     params = {"query": query, **{k: v for k, v in filters.items() if v is not None}, "fields": "compact", "include_pinpoint": False}
     result, _ = _search(_client(client), params, max_results, 50)

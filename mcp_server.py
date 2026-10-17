@@ -266,6 +266,18 @@ MAX_SNIPPET_LEN = 500  # chars per snippet
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 2000           # FTS searches with reranking
 FILTER_MAX_LIMIT = 10000   # filter-only queries (no FTS, no reranking)
+# Publication-date filters/sort (published_from, published_to,
+# sort="published_desc") only consider decisions DECIDED within this many days
+# before the publication window opens. publication_date has no index, so the
+# bound lets idx_decisions_date drive the scan (~62k rows for 18 months, 1-3.5 s
+# cold, 0.1 s warm, measured on prod 2026-10-16) instead of reading every row
+# of a court. BGer publishes most rulings within weeks; 4A_524/2025 (decided
+# 2026-05-11, published 2026-10-16) is the late case the feature exists for.
+PUBLICATION_LAG_WINDOW_DAYS = 548
+# (court, publication_date) index from db_schema.py. When the served DB has it,
+# per-court publication queries walk it and drop the window above; queries
+# without a court filter keep the window.
+PUBLICATION_INDEX = "idx_decisions_court_pub"
 MAX_FACT_DECISION_LIMIT = 20
 MAX_RERANK_CANDIDATES = 2500
 MIN_CANDIDATE_POOL = 60
@@ -3782,6 +3794,8 @@ def search_fts5(
     offset: int = 0,
     sort: str | None = None,
     meta: dict | None = None,
+    published_from: str | None = None,
+    published_to: str | None = None,
 ) -> tuple[list[dict], int]:
     """
     Full-text search using SQLite FTS5 with BM25 ranking.
@@ -3815,7 +3829,7 @@ def search_fts5(
             cache_key = _search_result_cache_key((
                 query, court, canton, language, date_from, date_to,
                 chamber, decision_type, legal_area, marked_for_publication,
-                limit, offset, sort,
+                limit, offset, sort, published_from, published_to,
             ))
             cached = _SEARCH_RESULT_CACHE.get(cache_key)
             if cached is not None:
@@ -3836,6 +3850,8 @@ def search_fts5(
             limit, offset, sort=sort,
             marked_for_publication=marked_for_publication,
             meta=inner_meta,
+            published_from=published_from,
+            published_to=published_to,
         )
         # A hit on a source-defect reference matched another ruling's text
         # (source_defects.py). When hits are dropped, refill the page from a
@@ -3854,28 +3870,40 @@ def search_fts5(
                 limit + _dropped, offset, sort=sort,
                 marked_for_publication=marked_for_publication,
                 meta={},
+                published_from=published_from,
+                published_to=published_to,
             )
             kept = source_defects.filter_hits(more, _stored_text)[0][:limit]
         results = kept
-        # Surface the BGE-bound flag on each result (BGer Neuheiten "*" =
-        # "für die Publikation vorgesehen"). Single guarded lookup — the column
-        # exists only after a post-schema-change rebuild; pre-rebuild → omitted.
-        if results and _sqlite_has_column(conn, "decisions", "marked_for_publication"):
-            ids = [r.get("decision_id") for r in results if r.get("decision_id")]
-            if ids:
-                ph = ",".join("?" * len(ids))
-                flags = {
-                    row[0]: row[1]
-                    for row in conn.execute(
-                        f"SELECT decision_id, marked_for_publication "
-                        f"FROM decisions WHERE decision_id IN ({ph})",
-                        ids,
-                    )
-                }
-                for r in results:
-                    v = flags.get(r.get("decision_id"))
-                    if v is not None:
-                        r["marked_for_publication"] = bool(v)
+        # One primary-key lookup adds two row facts the search SELECTs omit:
+        # publication_date (when the court released it; None where it
+        # publishes none), so a client can tell a late-published ruling from
+        # an old one without a get_decision call, and the BGE-bound flag (BGer
+        # Neuheiten "*" = "für die Publikation vorgesehen"). Each column is
+        # guarded: marked_for_publication exists only after a post-schema-change
+        # rebuild; pre-rebuild → omitted.
+        _extra = [c for c in ("publication_date", "marked_for_publication")
+                  if results and _sqlite_has_column(conn, "decisions", c)]
+        ids = list(dict.fromkeys(r.get("decision_id") for r in results if r.get("decision_id")))
+        if _extra and ids:
+            facts: dict = {}
+            for i in range(0, len(ids), 900):
+                chunk = ids[i:i + 900]
+                ph = ",".join("?" * len(chunk))
+                for row in conn.execute(
+                    f"SELECT decision_id, {', '.join(_extra)} "
+                    f"FROM decisions WHERE decision_id IN ({ph})",
+                    chunk,
+                ):
+                    facts[row[0]] = dict(zip(_extra, tuple(row)[1:]))
+            for r in results:
+                f = facts.get(r.get("decision_id"))
+                if not f:
+                    continue
+                if "publication_date" in f and "publication_date" not in r:
+                    r["publication_date"] = f["publication_date"]
+                if f.get("marked_for_publication") is not None:
+                    r["marked_for_publication"] = bool(f["marked_for_publication"])
         if meta is not None:
             meta.update(inner_meta)
         # A deadline-partial pool is a degraded result the next identical
@@ -3953,6 +3981,92 @@ def _date_arg_error(date_from: str | None, date_to: str | None) -> str | None:
     return None
 
 
+def _published_arg_error(published_from: str | None, published_to: str | None) -> str | None:
+    """Error message for an unparseable publication-date filter, or for
+    published_to without published_from (an open lower end cannot be bounded
+    to the decision-date window, so it would read every row), else None."""
+    bad = [f"{lbl}={v!r}" for lbl, v in (("published_from", published_from),
+                                          ("published_to", published_to))
+           if v and str(v).strip() and _parse_date_param(str(v)) is None]
+    if bad:
+        return ("Unrecognized publication-date filter (" + ", ".join(bad) +
+                "). Use ISO YYYY-MM-DD or Swiss DD.MM.YYYY. The filter was NOT "
+                "applied — re-issue with a valid date rather than trusting these results.")
+    if published_to and str(published_to).strip() and not (
+            published_from and str(published_from).strip()):
+        return ("published_to requires published_from: give the start of the "
+                "publication window too (e.g. published_from=2026-10-01).")
+    return None
+
+
+def _publication_window_floor(published_from: str | None) -> str:
+    """Earliest decision_date a publication-date query considers: published_from
+    (or today, for a bare sort='published_desc') minus PUBLICATION_LAG_WINDOW_DAYS."""
+    start = datetime.strptime(published_from, "%Y-%m-%d") if published_from else datetime.now()
+    return (start - timedelta(days=PUBLICATION_LAG_WINDOW_DAYS)).strftime("%Y-%m-%d")
+
+
+def _publication_filters(
+    alias: str,
+    published_from: str | None,
+    published_to: str | None,
+    date_from: str | None,
+    bound_window: bool,
+) -> tuple[list[str], list, str | None]:
+    """SQL fragments for the publication-date filters.
+
+    Returns (filters, params, window_floor). window_floor is the decision_date
+    lower bound added for the scan; None when the caller gave date_from, which
+    then is the bound (an earlier one widens the window, at the cost of a
+    longer scan). published_to is inclusive of the whole day, so a timestamped
+    publication_date on that day still matches.
+    """
+    filters: list[str] = []
+    params: list = []
+    if published_from:
+        filters.append(f"{alias}publication_date >= ?")
+        params.append(published_from)
+    if published_to:
+        next_day = (datetime.strptime(published_to, "%Y-%m-%d")
+                    + timedelta(days=1)).strftime("%Y-%m-%d")
+        filters.append(f"{alias}publication_date < ?")
+        params.append(next_day)
+    floor = None
+    if bound_window and not date_from:
+        floor = _publication_window_floor(published_from)
+        filters.append(f"{alias}decision_date >= ?")
+        params.append(floor)
+    return filters, params, floor
+
+
+def _has_publication_index(conn: sqlite3.Connection) -> bool:
+    """Whether the served DB carries PUBLICATION_INDEX (built from 2026-10 on)."""
+    try:
+        return conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?",
+            (PUBLICATION_INDEX,),
+        ).fetchone() is not None
+    except sqlite3.Error:
+        return False
+
+
+def _publication_dates(conn: sqlite3.Connection, ids: list[str]) -> dict[str, str | None]:
+    """{decision_id: publication_date} by primary key; {} on a DB without the column."""
+    ids = [i for i in dict.fromkeys(ids) if i]
+    if not ids or not _sqlite_has_column(conn, "decisions", "publication_date"):
+        return {}
+    out: dict[str, str | None] = {}
+    for i in range(0, len(ids), 900):
+        chunk = ids[i:i + 900]
+        ph = ",".join("?" * len(chunk))
+        for row in conn.execute(
+            f"SELECT decision_id, publication_date FROM decisions WHERE decision_id IN ({ph})",
+            chunk,
+        ):
+            out[row[0]] = row[1]
+    return out
+
+
 def _search_fts5_inner(
     conn: sqlite3.Connection,
     query: str,
@@ -3969,6 +4083,8 @@ def _search_fts5_inner(
     sort: str | None = None,
     marked_for_publication: bool | None = None,
     meta: dict | None = None,
+    published_from: str | None = None,
+    published_to: str | None = None,
 ) -> tuple[list[dict], int]:
     """Inner search logic. Returns (results, total_count). Caller closes conn.
 
@@ -4015,11 +4131,14 @@ def _search_fts5_inner(
     # correct (issue #45); Swiss DD.MM.YYYY now works, unparseable -> dropped.
     date_from = _parse_date_param(date_from)
     date_to = _parse_date_param(date_to)
+    published_from = _parse_date_param(published_from)
+    published_to = _parse_date_param(published_to) if published_from else None
 
     fts_query = _sanitize_fts5(query)
     if not fts_query.strip():
         # No search query — return recent decisions with filters
-        return _list_recent(conn, court, canton, language, date_from, date_to, chamber, decision_type, limit, offset, sort=sort, marked_for_publication=marked_for_publication)
+        return _list_recent(conn, court, canton, language, date_from, date_to, chamber, decision_type, limit, offset, sort=sort, marked_for_publication=marked_for_publication,
+                            published_from=published_from, published_to=published_to, meta=meta)
 
     # Build WHERE clause for filters (applied to main table via JOIN)
     filters = []
@@ -4050,6 +4169,17 @@ def _search_fts5_inner(
     # so the query never references the column on a pre-rebuild served DB.
     if marked_for_publication and _sqlite_has_column(conn, "decisions", "marked_for_publication"):
         filters.append("d.marked_for_publication = 1")
+    # Publication-date window. FTS drives this path, so the decision-date floor
+    # is not needed for speed; it is applied anyway so a query returns the same
+    # set whether or not it carries search terms.
+    if published_from:
+        _pf, _pp, _floor = _publication_filters(
+            "d.", published_from, published_to, date_from,
+            bound_window=not (court and _has_publication_index(conn)))
+        filters.extend(_pf)
+        params.extend(_pp)
+        if meta is not None and _floor:
+            meta["publication_window_floor"] = _floor
     # legal_area is NOT a WHERE filter — too many decisions lack this field.
     # Instead it's used as a reranking boost (see _rerank_rows).
 
@@ -4145,6 +4275,13 @@ def _search_fts5_inner(
                     reverse = sort == "date_desc"
                     docket_results.sort(
                         key=lambda r: r.get("decision_date") or "", reverse=reverse,
+                    )
+                elif sort == "published_desc":
+                    _pub = _publication_dates(conn, [r.get("decision_id") for r in docket_results])
+                    docket_results.sort(
+                        key=lambda r: (_pub.get(r.get("decision_id")) or "",
+                                       r.get("decision_date") or ""),
+                        reverse=True,
                     )
                 total = len(docket_results)
                 return docket_results[offset:offset + limit], total
@@ -4648,6 +4785,10 @@ def _search_fts5_inner(
 
     if candidate_meta:
         rows_for_rerank = [m["row"] for m in candidate_meta.values()]
+        _rerank_pub_dates = (
+            _publication_dates(conn, list(candidate_meta.keys()))
+            if sort == "published_desc" else None
+        )
         fusion_scores = {
             did: {
                 "rrf_score": float(meta["rrf_score"]),
@@ -4670,6 +4811,7 @@ def _search_fts5_inner(
                 sort=sort,
                 is_docket_query=is_docket_query,
                 deadline=_deadline,
+                publication_dates=_rerank_pub_dates,
             )
             merged = _merge_priority_results(
                 primary=inline_docket_results,
@@ -4694,6 +4836,7 @@ def _search_fts5_inner(
             is_docket_query=is_docket_query,
             deadline=_deadline,
             signal_sink=_signal_sink,
+            publication_dates=_rerank_pub_dates,
         )
         reranked = _dedupe_results_by_decision_id(reranked)
         # Per-signal contributions for what actually surfaced. Only the
@@ -4705,7 +4848,7 @@ def _search_fts5_inner(
             for r in reranked[:10] if r.get("decision_id") in _signal_sink
         }
         # Soft boost: if legal_area filter given, promote matching results
-        if legal_area and reranked:
+        if legal_area and reranked and sort != "published_desc":
             la_lower = legal_area.lower()
             if la_lower == "anwaltsrecht":
                 # Use Anwaltsrecht tags DB for hard filtering
@@ -4735,7 +4878,9 @@ def _search_fts5_inner(
         # Cross-lingual interleaving: ensure FR/IT results appear in top results
         # when the query language differs from result language.
         # Reserve ~20% of slots for cross-lingual results if available.
-        if reranked and not language:  # only when no language filter is set
+        # Not under sort="published_desc": interleaving would break the
+        # newest-published order a feed/alert client pages through.
+        if reranked and not language and sort != "published_desc":  # only when no language filter is set
             query_lang = _detect_query_languages(fts_query)
             primary_lang = query_lang[0] if query_lang else "de"
             cross = [r for r in reranked if r.get("language", "") != primary_lang]
@@ -8386,6 +8531,7 @@ def _rerank_rows(
     is_docket_query: bool = False,
     deadline: float | None = None,
     signal_sink: dict | None = None,
+    publication_dates: dict[str, str | None] | None = None,
 ) -> list[dict]:
     """
     Re-rank lexical FTS candidates with lightweight query-intent signals.
@@ -8612,7 +8758,7 @@ def _rerank_rows(
     # date sort their entire output is overwritten by the re-sort below, so a
     # date-sorted search was paying a ~3 s synchronous Haiku round-trip for a
     # score boost that was provably discarded (integration evaluation latency audit).
-    if sort not in ("date_desc", "date_asc"):
+    if sort not in ("date_desc", "date_asc", "published_desc"):
         scored = _apply_cross_encoder_boosts(scored, raw_query, deadline=deadline)
         scored = _apply_llm_rerank(scored, raw_query, is_docket_query=is_docket_query, deadline=deadline)
     scored.sort(key=lambda x: (-x[0], x[1], x[2]))
@@ -8621,6 +8767,11 @@ def _rerank_rows(
     if sort in ("date_desc", "date_asc"):
         reverse = sort == "date_desc"
         scored.sort(key=lambda x: (x[3]["decision_date"] or ""), reverse=reverse)
+    elif sort == "published_desc":
+        # Undated rows (no publication_date) sort last, newest decision first.
+        _pub = publication_dates or {}
+        scored.sort(key=lambda x: (_pub.get(x[3]["decision_id"]) or "",
+                                   x[3]["decision_date"] or ""), reverse=True)
 
     # ── Enrich results with graph + metadata ──
     # Deduplicate BEFORE paginating (#77). The caller ran
@@ -12678,20 +12829,41 @@ def _list_recent(
     offset: int = 0,
     sort: str | None = None,
     marked_for_publication: bool | None = None,
+    published_from: str | None = None,
+    published_to: str | None = None,
+    meta: dict | None = None,
 ) -> tuple[list[dict], int]:
     """List recent decisions without FTS query (just filters).
-    Returns (results, total_count) with exact count."""
+    Returns (results, total_count) with exact count.
+
+    A publication-date query (published_from / sort="published_desc") with a
+    court filter walks PUBLICATION_INDEX when the DB has it. Otherwise it is
+    bounded to decisions decided within PUBLICATION_LAG_WINDOW_DAYS before the
+    window, so idx_decisions_date can drive it: without sqlite_stat1 the
+    planner prefers any equality index, and court=bger would read every BGer
+    row, so the court / canton / language equalities are written as unary-plus
+    terms (not indexable) unless the court is smaller than the date window."""
     filters = []
     params: list = []
+    by_publication = bool(published_from) or sort == "published_desc"
+    pub_indexed = bool(by_publication and court and _has_publication_index(conn))
+    source = f"decisions INDEXED BY {PUBLICATION_INDEX}" if pub_indexed else "decisions"
+    court_eq = canton_eq = language_eq = ""
+    if by_publication:
+        canton_eq = language_eq = "+"
+        scan_floor = date_from or _publication_window_floor(published_from)
+        if (court and not pub_indexed
+                and not _court_smaller_than_window(conn, court.lower(), scan_floor)):
+            court_eq = "+"
 
     if court:
-        filters.append("court = ?")
+        filters.append(f"{court_eq}court = ?")
         params.append(court.lower())
     if canton:
-        filters.append("canton = ?")
+        filters.append(f"{canton_eq}canton = ?")
         params.append(canton.upper())
     if language:
-        filters.append("language = ?")
+        filters.append(f"{language_eq}language = ?")
         params.append(language.lower())
     if date_from:
         filters.append("decision_date >= ?")
@@ -12707,24 +12879,129 @@ def _list_recent(
         params.append(f"%{decision_type}%")
     if marked_for_publication and _sqlite_has_column(conn, "decisions", "marked_for_publication"):
         filters.append("marked_for_publication = 1")
+    if by_publication:
+        _pf, _pp, _floor = _publication_filters(
+            "", published_from, published_to, date_from, bound_window=not pub_indexed)
+        filters.extend(_pf)
+        params.extend(_pp)
+        if meta is not None and _floor:
+            meta["publication_window_floor"] = _floor
 
     where = ("WHERE " + " AND ".join(filters)) if filters else ""
 
     total_count = conn.execute(
-        f"SELECT COUNT(*) FROM decisions {where}", params,
+        f"SELECT COUNT(*) FROM {source} {where}", params,
     ).fetchone()[0]
 
-    order_dir = "ASC" if sort == "date_asc" else "DESC"
+    if sort == "published_desc":
+        order_by = "publication_date DESC, decision_date DESC, decision_id DESC"
+    elif sort == "date_asc":
+        order_by = "decision_date ASC"
+    else:
+        order_by = "decision_date DESC"
+    pub_col = ", publication_date" if by_publication else ""
     rows = conn.execute(
         f"""SELECT decision_id, court, canton, chamber, docket_number,
-            decision_date, language, title, regeste, source_url, pdf_url
-        FROM decisions {where}
-        ORDER BY decision_date {order_dir}
+            decision_date, language, title, regeste, source_url, pdf_url{pub_col}
+        FROM {source} {where}
+        ORDER BY {order_by}
         LIMIT ? OFFSET ?""",
         params + [limit, offset],
     ).fetchall()
 
     return [dict(r) for r in rows], total_count
+
+
+def _court_smaller_than_window(conn: sqlite3.Connection, court: str, floor: str) -> bool:
+    """True when the court has fewer rows than the decision-date window, so the
+    court index is the cheaper driver. Both counts are index-only."""
+    try:
+        n_court = conn.execute(
+            "SELECT COUNT(*) FROM decisions WHERE court = ?", (court,)).fetchone()[0]
+        n_window = conn.execute(
+            "SELECT COUNT(*) FROM decisions WHERE decision_date >= ?", (floor,)).fetchone()[0]
+    except sqlite3.Error:
+        return False
+    return n_court < n_window
+
+
+def _atom_feed_rows(conn: sqlite3.Connection, court: str, limit: int = 50) -> list:
+    """Rows for /atom/{court}.xml: newest by publication date (decision_date
+    where the court publishes none), so a ruling released months after it was
+    decided enters the feed on the day it appears instead of being ranked below
+    everything decided since."""
+    if _has_publication_index(conn):
+        return _atom_feed_rows_indexed(conn, court, limit)
+    # No index: the decision-date floor keeps the scan on idx_decisions_date
+    # (see PUBLICATION_LAG_WINDOW_DAYS); a court with fewer than `limit`
+    # rulings in that window is topped up by decision date.
+    floor = _publication_window_floor(None)
+    court_eq = "" if _court_smaller_than_window(conn, court, floor) else "+"
+    rows = conn.execute(
+        f"SELECT {_ATOM_COLS} FROM decisions "
+        f"WHERE {court_eq}court = ? AND decision_date >= ? "
+        "ORDER BY COALESCE(NULLIF(substr(publication_date, 1, 10), ''), decision_date) DESC, "
+        "decision_date DESC, decision_id DESC LIMIT ?",
+        (court, floor, limit),
+    ).fetchall()
+    if len(rows) < limit:
+        rows += conn.execute(
+            f"SELECT {_ATOM_COLS} FROM decisions "
+            "WHERE court = ? AND decision_date < ? "
+            "ORDER BY decision_date DESC LIMIT ?",
+            (court, floor, limit - len(rows)),
+        ).fetchall()
+    return rows
+
+
+_ATOM_COLS = ("decision_id, court, decision_date, publication_date, "
+              "docket_number, regeste, language")
+
+
+def _atom_effective_date(row) -> str:
+    return (row["publication_date"] or "")[:10] or (row["decision_date"] or "")
+
+
+def _atom_feed_rows_indexed(conn: sqlite3.Connection, court: str, limit: int) -> list:
+    """Bounded reads merged by effective date: the dated rows published on or
+    after the day of the `limit`-th newest one (walks of PUBLICATION_INDEX;
+    the whole cut-off day, so same-day ties rank by decision_date as in the
+    plain ordering), and the newest undated rows decided on or after that day.
+    Exact: an undated row decided earlier ranks below every dated row taken,
+    and a dated row not taken was published before the cut-off day."""
+    dated = conn.execute(
+        f"SELECT {_ATOM_COLS} FROM decisions INDEXED BY {PUBLICATION_INDEX} "
+        "WHERE court = ? AND publication_date > '' "
+        "ORDER BY publication_date DESC LIMIT ?",
+        (court, limit),
+    ).fetchall()
+    undated_sql = (f"SELECT {_ATOM_COLS} FROM decisions "
+                   "WHERE {court_term} AND (publication_date IS NULL OR publication_date = '')"
+                   "{cut_term} ORDER BY decision_date DESC, decision_id DESC LIMIT ?")
+    if len(dated) == limit:
+        cut = _atom_effective_date(dated[-1])
+        dated = conn.execute(
+            f"SELECT {_ATOM_COLS} FROM decisions INDEXED BY {PUBLICATION_INDEX} "
+            "WHERE court = ? AND publication_date >= ?",
+            (court, cut),
+        ).fetchall()
+        court_term = ("court = ?" if _court_smaller_than_window(conn, court, cut)
+                      else "+court = ?")
+        undated = conn.execute(
+            undated_sql.format(court_term=court_term, cut_term=" AND decision_date >= ?"),
+            (court, cut, limit),
+        ).fetchall()
+    else:
+        undated = conn.execute(
+            undated_sql.format(court_term="court = ?", cut_term=""),
+            (court, limit),
+        ).fetchall()
+    merged = sorted(
+        dated + undated,
+        key=lambda r: (_atom_effective_date(r), r["decision_date"] or "", r["decision_id"]),
+        reverse=True,
+    )
+    return merged[:limit]
 
 
 def _truncate(text: str | None, max_len: int) -> str | None:
@@ -13279,7 +13556,11 @@ server = Server(
         "the corpus look stale when it is not. `get_decision` returns "
         "both `decision_date` (when decided) and `publication_date` "
         "(when the court released it) — use publication_date to reason "
-        "about recency of publication.\n\n"
+        "about recency of publication. For NEWLY PUBLISHED decisions "
+        "(daily alerts, 'what came out this week') use "
+        "`search_decisions(published_from=..., sort=\"published_desc\")`, "
+        "never date_from: the Federal Supreme Court often publishes months "
+        "after it rules.\n\n"
 
         "══════════════════════════════════════════════════════════════\n"
         "CITATION WORKFLOW — THE ONLY LEGITIMATE PATH\n"
@@ -14461,6 +14742,8 @@ def _handle_get_decisions(
             meta.append(f"court: {result['court']}")
         if result.get("decision_date"):
             meta.append(f"date: {result['decision_date']}")
+        if result.get("publication_date"):
+            meta.append(f"published: {result['publication_date']}")
         if result.get("language"):
             meta.append(f"language: {result['language']}")
         if meta:
@@ -27507,7 +27790,9 @@ def _list_tools() -> list[Tool]:
                 "range, chamber. Results are relevance-ranked and enriched "
                 "with citation counts, statute references and "
                 "is_leading_case. Use offset to page. Most recent decisions: "
-                "empty query + sort='date_desc' + court filter. "
+                "empty query + sort='date_desc' + court filter. Newly "
+                "PUBLISHED decisions (alerts): published_from + "
+                "sort='published_desc'. "
                 "Not for statutes (search_laws), commentary "
                 "(search_scholarship), or administrative guidance "
                 "(search_practice)."
@@ -27577,6 +27862,36 @@ def _list_tools() -> list[Tool]:
                         "type": "string",
                         "description": "End date (YYYY-MM-DD)",
                     },
+                    "published_from": {
+                        "type": "string",
+                        "description": (
+                            "Only decisions the court PUBLISHED on or after this "
+                            "date (YYYY-MM-DD) — publication_date, not "
+                            "decision_date. Use this, not date_from, for a "
+                            "'what is newly published' alert: the Federal Supreme "
+                            "Court often publishes weeks or months after it rules. "
+                            "May be limited to decisions decided up to 18 months "
+                            "before published_from (always without a court "
+                            "filter); the response then names the limit in "
+                            "publication_window_decided_from, and an earlier "
+                            "date_from widens it. "
+                            "publication_date exists for BGer "
+                            "rulings published since May 2026, BVGer, BStGer and "
+                            "several cantonal courts (VD, VS, BS, SG and others); "
+                            "decisions without one never match. BGer rulings are "
+                            "indexed the day they are published, other courts with "
+                            "the nightly rebuild, up to two days later: for a "
+                            "recurring alert, start each run's window 3 days back "
+                            "and skip decision_ids already reported."
+                        ),
+                    },
+                    "published_to": {
+                        "type": "string",
+                        "description": (
+                            "Only decisions published on or before this date "
+                            "(YYYY-MM-DD, inclusive). Requires published_from."
+                        ),
+                    },
                     "chamber": {
                         "type": "string",
                         "description": (
@@ -27608,8 +27923,13 @@ def _list_tools() -> list[Tool]:
                     },
                     "sort": {
                         "type": "string",
-                        "description": "Sort order: 'relevance' (default for FTS), 'date_desc', 'date_asc'.",
-                        "enum": ["relevance", "date_desc", "date_asc"],
+                        "description": (
+                            "Sort order: 'relevance' (default for FTS), "
+                            "'date_desc' / 'date_asc' (decision_date), "
+                            "'published_desc' (newest publication_date first; "
+                            "decisions without one last)."
+                        ),
+                        "enum": ["relevance", "date_desc", "date_asc", "published_desc"],
                     },
                     "fields": {
                         "type": "string",
@@ -29970,10 +30290,11 @@ _RESEARCH_COMPACT_KEYS = (
     "decision_id", "docket_number", "court", "language", "decision_date",
     "citation_string_de", "canonical_url",
 )
-# Identity keys a compact row keeps WHEN PRESENT: set by _attach_canonical_ids
-# only while the representation manifest is loaded, so a client can collapse
-# duplicate representations without a second request.
-_RESEARCH_COMPACT_OPTIONAL_KEYS = ("canonical_decision_id", "is_canonical")
+# Keys a compact row keeps WHEN PRESENT: the identity keys are set by
+# _attach_canonical_ids only while the representation manifest is loaded, so a
+# client can collapse duplicate representations without a second request;
+# publication_date is set by search_fts5 where the court publishes one.
+_RESEARCH_COMPACT_OPTIONAL_KEYS = ("canonical_decision_id", "is_canonical", "publication_date")
 _DECISION_MCP_TEXT_CAP = 200_000
 
 
@@ -30189,7 +30510,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                             "sr_number", "article", "court", "language",
                             "date_from", "date_to", "canton", "chamber",
                             "limit", "offset", "sort", "e_number",
-                            "lexfind_id", "systematic_number")
+                            "lexfind_id", "systematic_number",
+                            "published_from", "published_to")
     _log_args = {k: v for k, v in arguments.items() if k in _STRUCTURAL_LOG_KEYS}
     # No IP, User-Agent or session id on this line. /datenschutz/ describes
     # three log tiers; the systemd journal is none of them and journald
@@ -30298,7 +30620,9 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 )
                 return ([TextContent(type="text", text=json.dumps({"error": _msg}, ensure_ascii=False))],
                         {"error": _msg})
-            _derr = _date_arg_error(arguments.get("date_from"), arguments.get("date_to"))
+            _derr = (_date_arg_error(arguments.get("date_from"), arguments.get("date_to"))
+                     or _published_arg_error(arguments.get("published_from"),
+                                             arguments.get("published_to")))
             if _derr:
                 return ([TextContent(type="text", text=json.dumps({"error": _derr}, ensure_ascii=False))],
                         {"error": _derr})
@@ -30324,6 +30648,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 offset=req_offset,
                 sort=sort_arg,
                 meta=_search_meta,
+                published_from=arguments.get("published_from"),
+                published_to=arguments.get("published_to"),
             )
             # Apply the REST response bounds before rendering either text or
             # widget data. Copy rows: snippet and pinpoint rendering must not
@@ -30421,14 +30747,19 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
 
                 # Each result is rendered as a Markdown link so the LLM
                 # propagates a clickable citation to the user-facing answer.
+                def _pub_tag(r: dict) -> str:
+                    # Only when it differs: a same-day publication adds nothing.
+                    pd = (r.get("publication_date") or "")[:10]
+                    return f" (published {pd})" if pd and pd != r.get("decision_date") else ""
+
                 if fields_arg == "compact":
                     for i, r in enumerate(results, 1):
                         link = _md_link(r['docket_number'], _canonical_decision_url(r.get('decision_id', '')))
-                        text += f"{i}. {link} ({r['decision_date']}) [{r['court']}] [{r['language']}]\n"
+                        text += f"{i}. {link} ({r['decision_date']}){_pub_tag(r)} [{r['court']}] [{r['language']}]\n"
                 else:
                     for i, r in enumerate(results, 1):
                         link = _md_link(r['docket_number'], _canonical_decision_url(r.get('decision_id', '')))
-                        text += f"**{i}.** {link} ({r['decision_date']}) [{r['court']}] [{r['language']}]\n"
+                        text += f"**{i}.** {link} ({r['decision_date']}){_pub_tag(r)} [{r['court']}] [{r['language']}]\n"
                         if r.get("title"):
                             text += f"   Title: {r['title']}\n"
                         if r.get("regeste"):
@@ -30480,10 +30811,17 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
             if _search_meta.get("query_condensed"):
                 _struct["query_condensed"] = True
                 _struct["condensed_terms"] = _search_meta.get("condensed_terms", [])
-            if _condense_note or _page_note or _degraded_note:
-                _struct["note"] = " ".join(p.strip() for p in (_condense_note, _page_note, _degraded_note) if p)
-            if _page_note or _degraded_note:
-                text += "\n" + " ".join(p.strip() for p in (_page_note, _degraded_note) if p) + "\n"
+            _pubwin_note = ""
+            if _search_meta.get("publication_window_floor"):
+                _struct["publication_window_decided_from"] = _search_meta["publication_window_floor"]
+                _pubwin_note = (
+                    "Publication-date results cover decisions decided on or after "
+                    f"{_search_meta['publication_window_floor']}; pass an earlier "
+                    "date_from to reach older ones.")
+            if _condense_note or _page_note or _degraded_note or _pubwin_note:
+                _struct["note"] = " ".join(p.strip() for p in (_condense_note, _page_note, _degraded_note, _pubwin_note) if p)
+            if _page_note or _degraded_note or _pubwin_note:
+                text += "\n" + " ".join(p.strip() for p in (_page_note, _degraded_note, _pubwin_note) if p) + "\n"
             if _DECISION_TOOL_META is not None:
                 # Preserve every legacy widget field while adding the shared
                 # research records and pagination independently of the flag.
@@ -33225,7 +33563,9 @@ setInterval(load, 30000);
         marked_for_publication: bool = Query(None, description="If true, return only Federal Supreme Court rulings flagged for the official BGE collection (Neuheiten '*' = 'für die Publikation vorgesehen') — future leading cases, flagged before the BGE number is assigned. Populated for BGer decisions from mid-2026 onward."),
         limit: int = Query(50, ge=1, le=2000, description="Max results to return"),
         offset: int = Query(0, ge=0, description="Skip results for pagination"),
-        sort: str = Query(None, description="Sort: relevance (default), date_desc, date_asc"),
+        sort: str = Query(None, description="Sort: relevance (default), date_desc, date_asc (decision_date), published_desc (newest publication_date first)"),
+        published_from: str = Query(None, description="Only decisions PUBLISHED on or after this date (YYYY-MM-DD; publication_date, not decision_date). Use for 'newly published' alerts. May be limited to decisions decided up to 18 months earlier (always without a court filter); publication_window_decided_from then names the limit, and an earlier date_from widens it. Decisions without a publication_date never match."),
+        published_to: str = Query(None, description="Only decisions published on or before this date (YYYY-MM-DD, inclusive). Requires published_from."),
         fields: str = Query("full", description="Detail level: full or compact"),
         include_pinpoint: bool = Query(True, description=(
             "Attach a pinpoint Erwägung citation to the top 5 full-fields "
@@ -33254,7 +33594,8 @@ setInterval(load, 30000);
                 detail=(f"Unsupported search filter(s): {', '.join(_unsupported)}. "
                         "Corpus metadata is too sparse to apply them honestly; express "
                         "the concept in `query`, or filter by `court` / `chamber`."))
-        _derr = _date_arg_error(date_from, date_to)
+        _derr = (_date_arg_error(date_from, date_to)
+                 or _published_arg_error(published_from, published_to))
         if _derr:
             raise HTTPException(status_code=422, detail=_derr)  # #45: no silent drop
         _search_meta: dict = {}
@@ -33264,6 +33605,7 @@ setInterval(load, 30000);
             chamber=chamber,
             marked_for_publication=marked_for_publication,
             limit=limit, offset=offset, sort=sort, meta=_search_meta,
+            published_from=published_from, published_to=published_to,
         )
         results = copy.deepcopy(results)
         # Duplicate representations: canonical_decision_id + is_canonical on every
@@ -33353,6 +33695,12 @@ setInterval(load, 30000);
                 "For best results send 3-8 precise terms per legal issue."
             )
             note = ((note + " ") if note else "") + _cnote
+        if _search_meta.get("publication_window_floor"):
+            resp["publication_window_decided_from"] = _search_meta["publication_window_floor"]
+            note = ((note + " ") if note else "") + (
+                "Publication-date results cover decisions decided on or after "
+                f"{_search_meta['publication_window_floor']}; pass an earlier "
+                "date_from to reach older ones.")
         if note:
             resp["note"] = note
         # Name the miss precisely where the arguments allow it. Only two
@@ -33362,7 +33710,7 @@ setInterval(load, 30000);
         # case is not attributable, and says so rather than guessing.
         _filtered = any(v not in (None, "") for v in (
             court, canton, language, date_from, date_to, chamber,
-            marked_for_publication))
+            marked_for_publication, published_from, published_to))
         if returned:
             _reason = None
         elif total:
@@ -34497,8 +34845,10 @@ setInterval(load, 30000);
 
     @rest_api.get("/atom/{court}.xml", tags=["Exports"],
                   summary="Atom feed of newest decisions for a court",
-                  description="Atom 1.0 feed of the 50 most recent decisions "
-                              "from a given court. Subscribe in any feed reader "
+                  description="Atom 1.0 feed of the 50 most recently published "
+                              "decisions from a given court, newest publication "
+                              "date first (decision date where the court publishes "
+                              "none). Subscribe in any feed reader "
                               "(NetNewsWire, Inoreader, Feedbin, etc.) to get a "
                               "daily digest of newly published decisions.",
                   response_class=_FastAPIResponse)
@@ -34515,12 +34865,7 @@ setInterval(load, 30000);
         def _build():
             conn = get_db()
             try:
-                rows = conn.execute(
-                    "SELECT decision_id, court, decision_date, docket_number, "
-                    "regeste, language FROM decisions "
-                    "WHERE court = ? ORDER BY decision_date DESC LIMIT 50",
-                    (court,),
-                ).fetchall()
+                rows = _atom_feed_rows(conn, court)
                 decisions = []
                 for r in rows:
                     d = dict(r)

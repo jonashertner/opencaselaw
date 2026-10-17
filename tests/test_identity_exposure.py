@@ -235,7 +235,8 @@ def test_search_rows_carry_canonical_ids_on_rest_and_mcp(corpus, monkeypatch):
         assert by_id[BGE_DUPLICATE]["canonical_decision_id"] == BGE_CANONICAL and by_id[BGE_DUPLICATE]["is_canonical"] is False
         assert by_id[BGE_CANONICAL]["is_canonical"] is True and by_id[PLAIN]["canonical_decision_id"] == PLAIN
         if fields == "compact":
-            assert set(by_id[PLAIN]) == set(m._RESEARCH_COMPACT_KEYS) | {"canonical_decision_id", "is_canonical"}
+            assert set(by_id[PLAIN]) == set(m._RESEARCH_COMPACT_KEYS) | {
+                "canonical_decision_id", "is_canonical", "publication_date"}
         validate_payload("search_decisions", rest)
         jsonschema.validate(rest, output_schema("search_decisions"))
     result = asyncio.run(wire("search_decisions", {"query": "x", "limit": 10, "fields": "compact"}))
@@ -245,7 +246,8 @@ def test_search_rows_carry_canonical_ids_on_rest_and_mcp(corpus, monkeypatch):
     assert PLAIN in mcp_rows and mcp_rows[PLAIN]["canonical_decision_id"] == PLAIN
     assert all("canonical_decision_id" in r for r in mcp_rows.values())
     jsonschema.validate(result.structuredContent, output_schema("search_decisions"))
-    # without the manifest, compact rows are exactly the documented compact keys
+    # without the manifest, compact rows carry no identity keys: the documented
+    # compact keys plus publication_date, the one optional key not manifest-bound
     no_manifest(monkeypatch, corpus)
     bare = client.get("/api/decisions", params={"query": "x", "limit": 10, "fields": "compact"}).json()
-    assert all(set(r) == set(m._RESEARCH_COMPACT_KEYS) for r in bare["results"])
+    assert all(set(r) == set(m._RESEARCH_COMPACT_KEYS) | {"publication_date"} for r in bare["results"])

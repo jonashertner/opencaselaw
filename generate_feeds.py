@@ -44,6 +44,20 @@ Query strategy (2026-09-04):
   Both shapes also cap decision_date at date('now'): build_fts5 tolerates
   decision dates up to 365 days in the future (pending publications), and
   a DESC sort would otherwise float those rows to the top of every feed.
+
+Publication order (2026-10-17):
+  A feed lists what was PUBLISHED most recently: rows rank by publication_date,
+  or decision_date where the court publishes none. BGer released 4A_524/2025
+  (decided 2026-05-11) on 2026-10-16; by decision date it never reached the
+  top 50. Sorting a whole window by that key would read every row in it, so
+  query_published() keeps the bounded walk above and adds two small reads:
+  with X = the decision_date of the 50th row of the walk, every row of the
+  true top 50 has an effective date >= X (an effective date is never earlier
+  than the decision date, publication before decision aside), so the top 50
+  is exactly the newest of: rows decided on or after X, plus rows published
+  on or after X — one short range per court on PUB_INDEX
+  (court, publication_date). Without that index the feed keeps decision-date
+  order.
 """
 from __future__ import annotations
 
@@ -74,6 +88,9 @@ DATE_INDEX = "idx_decisions_date"
 # >50 rows well inside that window; BGE is the laggard (published months
 # after the decision date) and still has ~250 a year.
 RECENT_WINDOW_DAYS = 365
+# (court, publication_date) index (db_schema.SCHEMA_SQL) behind the
+# publication-ordered feeds; absent → decision-date order.
+PUB_INDEX = "idx_decisions_court_pub"
 
 COURT_NAMES = {
     "bger": "Bundesgericht",
@@ -137,6 +154,9 @@ def make_item(row: dict) -> ET.Element:
     docket = ecthr_docket.display_docket(
         court, row.get("docket_number")) or row.get("decision_id", "")
     date = row.get("decision_date") or ""
+    # pubDate is when the court published the ruling; the title keeps the
+    # decision date, which is how a ruling is cited.
+    published = (row.get("publication_date") or "")[:10] or date
 
     title = f"{court_label} {docket}".strip()
     if date:
@@ -157,7 +177,7 @@ def make_item(row: dict) -> ET.Element:
     if desc:
         ET.SubElement(item, "description").text = desc
 
-    dt = parse_iso_date(date)
+    dt = parse_iso_date(published)
     if dt is not None:
         ET.SubElement(item, "pubDate").text = format_datetime(dt)
 
@@ -207,9 +227,13 @@ _SELECT_COLS = (
     "SELECT decision_id, court, docket_number, decision_date, language, "
     "regeste, substr(full_text, 1, 300) AS full_text, legal_area "
 )
+# The publication-ordered path (PUB_INDEX present, so the column exists).
+_PUB_SELECT_COLS = _SELECT_COLS.replace(
+    "decision_date, language", "decision_date, publication_date, language")
 
 
-def feed_sql(where: str, *, pinned: bool = False, floored: bool = False) -> str:
+def feed_sql(where: str, *, pinned: bool = False, floored: bool = False,
+             cols: str = _SELECT_COLS) -> str:
     """Build one feed query.
 
     ``pinned`` forces the newest-first walk of DATE_INDEX (INDEXED BY);
@@ -223,7 +247,7 @@ def feed_sql(where: str, *, pinned: bool = False, floored: bool = False) -> str:
     hint = f" INDEXED BY {DATE_INDEX}" if pinned else ""
     floor = " AND decision_date >= ?" if floored else ""
     return (
-        _SELECT_COLS
+        cols
         + f"FROM decisions{hint} "
         + f"WHERE {where} AND decision_date IS NOT NULL AND decision_date != '' "
         # decision_date is stored as ISO YYYY-MM-DD (build_fts5._normalize_dates
@@ -266,6 +290,7 @@ def query_decisions(
     since: str | None = None,
     use_date_index: bool | None = None,
     stats: dict | None = None,
+    cols: str = _SELECT_COLS,
 ) -> list[dict]:
     """Newest ``limit`` decisions matching ``where``.
 
@@ -279,7 +304,7 @@ def query_decisions(
     if use_date_index:
         floor = since or recent_floor()
         rows = _rows(conn.execute(
-            feed_sql(where, pinned=True, floored=True), params + (floor, limit)))
+            feed_sql(where, pinned=True, floored=True, cols=cols), params + (floor, limit)))
         if len(rows) >= limit:
             if stats is not None:
                 stats.update({"path": "date-walk", "window_rows": len(rows)})
@@ -287,10 +312,80 @@ def query_decisions(
         window_rows = len(rows)
     else:
         window_rows = None
-    rows = _rows(conn.execute(feed_sql(where), params + (limit,)))
+    rows = _rows(conn.execute(feed_sql(where, cols=cols), params + (limit,)))
     if stats is not None:
         stats.update({"path": "fallback", "window_rows": window_rows})
     return rows
+
+
+def effective_date(row: dict) -> str:
+    """Publication day, else decision date: the key a feed ranks by."""
+    return (row.get("publication_date") or "")[:10] or (row.get("decision_date") or "")
+
+
+def _feed_order(rows: list[dict]) -> list[dict]:
+    # Newest effective date first; same tie-breaks as feed_sql (decision_date
+    # DESC, decision_id ASC). Two stable sorts: id ascending, then the dates.
+    rows = sorted(rows, key=lambda r: r["decision_id"])
+    return sorted(rows, key=lambda r: (effective_date(r), r.get("decision_date") or ""),
+                  reverse=True)
+
+
+def query_published(
+    conn: sqlite3.Connection,
+    where: str,
+    params: tuple,
+    limit: int = ITEMS_PER_FEED,
+    *,
+    courts: list[str],
+    use_date_index: bool | None = None,
+    stats: dict | None = None,
+) -> list[dict]:
+    """Newest ``limit`` rows matching ``where`` by effective date (see module
+    docstring). ``courts`` are the court codes to probe on PUB_INDEX: the one
+    court of a court feed, every court otherwise. Same exclusions as
+    feed_sql: no NULL / '' / future decision_date, and no future
+    publication_date either."""
+    today = datetime.now(timezone.utc).date().isoformat()  # = date('now')
+
+    def drop_future(rows: list[dict]) -> list[dict]:
+        # A publication_date after today ranks by its decision date instead.
+        for r in rows:
+            if (r.get("publication_date") or "")[:10] > today:
+                r["publication_date"] = None
+        return rows
+
+    if use_date_index is None:
+        use_date_index = has_index(conn)
+    seed = drop_future(query_decisions(conn, where, params, limit,
+                                       use_date_index=use_date_index, stats=stats,
+                                       cols=_PUB_SELECT_COLS))
+    if len(seed) < limit:
+        # The walk returned every matching row there is.
+        return _feed_order(seed)[:limit]
+    # `limit` rows rank at or above the oldest effective date among them, so
+    # every row of the true top `limit` does too: rows decided since `cut`
+    # plus rows published since `cut` hold all of them.
+    cut = min(effective_date(r) for r in seed)
+    hint = f" INDEXED BY {DATE_INDEX}" if use_date_index else ""
+    decided = drop_future(_rows(conn.execute(
+        _PUB_SELECT_COLS + f"FROM decisions{hint} "
+        f"WHERE {where} AND decision_date >= ? AND decision_date <= date('now')",
+        params + (cut,))))
+    published: list[dict] = []
+    for court in courts:
+        published += _rows(conn.execute(
+            _PUB_SELECT_COLS + f"FROM decisions INDEXED BY {PUB_INDEX} "
+            f"WHERE court = ? AND publication_date >= ? AND ({where}) "
+            "AND substr(publication_date, 1, 10) <= date('now') "
+            "AND decision_date IS NOT NULL AND decision_date != '' "
+            "AND decision_date <= date('now')",
+            (court, cut) + params))
+    if stats is not None:
+        stats.update({"path": f"{stats.get('path')}+published",
+                      "published_rows": len(published), "decided_rows": len(decided)})
+    by_id = {r["decision_id"]: r for r in seed + decided + published}
+    return _feed_order(list(by_id.values()))[:limit]
 
 
 def write_atomic(path: Path, text: str) -> None:
@@ -321,15 +416,31 @@ def main():
     use_date_index = has_index(conn)
     if not use_date_index:
         print(f"note: {DATE_INDEX} missing — using unpinned queries")
+    by_publication = has_index(conn, PUB_INDEX)
+    if not by_publication:
+        print(f"note: {PUB_INDEX} missing — feeds in decision-date order")
+    all_courts: list[str] | None = None
 
     written = []
 
     def emit(rel: str, path: Path, title: str, description: str, link: str,
              where: str, params: tuple) -> None:
+        nonlocal all_courts
         stats: dict = {}
         t0 = time.monotonic()
-        items = query_decisions(conn, where, params,
-                                use_date_index=use_date_index, stats=stats)
+        if by_publication:
+            if where == "court = ?":
+                courts = [params[0]]
+            else:
+                if all_courts is None:
+                    all_courts = [r[0] for r in conn.execute(
+                        "SELECT DISTINCT court FROM decisions")]
+                courts = all_courts
+            items = query_published(conn, where, params, courts=courts,
+                                    use_date_index=use_date_index, stats=stats)
+        else:
+            items = query_decisions(conn, where, params,
+                                    use_date_index=use_date_index, stats=stats)
         write_atomic(path, make_feed(title, description, link, items))
         written.append((rel, len(items), time.monotonic() - t0, stats))
 
@@ -368,7 +479,7 @@ def main():
     print(f"Generated {len(written)} feeds:")
     for path, count, elapsed, stats in written:
         note = ""
-        if stats.get("path") == "fallback":
+        if str(stats.get("path", "")).startswith("fallback"):
             note = f", fallback: {stats.get('window_rows')} rows in the last {RECENT_WINDOW_DAYS}d"
         print(f"  ✓ {path} ({count} items, {elapsed:.1f}s{note})")
 
