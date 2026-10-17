@@ -26,6 +26,7 @@ import json
 import re
 import sys
 import time
+import urllib.parse
 import urllib.request
 
 DEFAULT_BASE = "https://mcp.opencaselaw.ch"
@@ -94,8 +95,10 @@ def harvest(base: str) -> dict:
                 {"query": "missbräuchliche Kündigung", "limit": 5,
                  "fields": "compact", "include_pinpoint": False})
     t = body_text(r)
-    m = re.findall(r"/entscheid/([A-Za-z0-9_\-.]+)", t)
-    ids["decision_id"] = m[0] if m else "bge_BGE_132_III_115"
+    # BGE ids carry spaces ("bge_132 III 115"), percent-encoded in the links.
+    m = [urllib.parse.unquote(x)
+         for x in re.findall(r"/entscheid/([A-Za-z0-9_\-.%]+)", t)]
+    ids["decision_id"] = m[0] if m else "bge_132 III 115"
     # a federal decision with structure (Erwägungen) for the pinpoint tools
     ids["federal_decision_id"] = next(
         (x for x in m if x.startswith(("bge_", "bger_"))), ids["decision_id"])
