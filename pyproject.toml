@@ -112,6 +112,7 @@ py-modules = [
     "seo_pages",
     "source_defects",
     "stripe_billing",
+    "suggestions",
     "widget_runtime",
 ]
 

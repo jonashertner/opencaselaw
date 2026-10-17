@@ -133,5 +133,21 @@
       "it": "Componente Word con due controlli: le decisioni citate esistono e hanno il considerando citato, e che cosa, nella versione da pubblicare, rende identificabile una persona. Il documento resta sul computer. Open source.",
       "en": "Word add-in with two checks: whether the cited court decisions exist and have the cited Erwägung, and what in the version to be published could identify a person. The document stays on the computer. Open source."
     }
+  },
+  "/vorschlag/": {
+    "title": {
+      "de": "Vorschlag: Was fehlt? · OpenCaseLaw",
+      "fr": "Suggestion : que manque-t-il ? · OpenCaseLaw",
+      "it": "Proposta: che cosa manca? · OpenCaseLaw",
+      "rm": "Proposta: tge manca? · OpenCaseLaw",
+      "en": "Suggest: what is missing? · OpenCaseLaw"
+    },
+    "description": {
+      "de": "Eine Quelle, eine Funktion, ein Fehler: ein Satz genügt. Während Sie schreiben, zeigt die Seite live, was OpenCaseLaw dazu schon enthält, von Entscheiden über Gesetze und Botschaften bis zur Literatur.",
+      "fr": "Une source, une fonction, une erreur : une phrase suffit. Pendant que vous écrivez, la page montre en direct ce qu’OpenCaseLaw contient déjà, des décisions aux lois, messages et à la doctrine.",
+      "it": "Una fonte, una funzione, un errore: basta una frase. Mentre scrive, la pagina mostra in diretta che cosa contiene già OpenCaseLaw, dalle decisioni alle leggi, ai messaggi e alla dottrina.",
+      "rm": "Ina funtauna, ina funcziun, in sbagl: ina frasa basta. Durant che Vus scrivais, mussa la pagina live tge che OpenCaseLaw cuntegna gia, da decisiuns fin leschas, missivas e litteratura.",
+      "en": "A source, a feature, an error: one sentence is enough. As you type, the page shows live what OpenCaseLaw already holds, from decisions to laws, dispatches and scholarship."
+    }
   }
 }

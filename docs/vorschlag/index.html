@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vorschlag: Was fehlt? · OpenCaseLaw</title>
+<meta name="description" content="Eine Quelle, eine Funktion, ein Fehler: ein Satz genügt. Während Sie schreiben, zeigt die Seite live, was OpenCaseLaw dazu schon enthält, von Entscheiden über Gesetze und Botschaften bis zur Literatur.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://opencaselaw.ch/vorschlag/">
+<link rel="alternate" hreflang="de" href="https://opencaselaw.ch/vorschlag/">
+<link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/vorschlag/fr/">
+<link rel="alternate" hreflang="it" href="https://opencaselaw.ch/vorschlag/it/">
+<link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/vorschlag/rm/">
+<link rel="alternate" hreflang="en" href="https://opencaselaw.ch/vorschlag/en/">
+<link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/vorschlag/">
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://mcp.opencaselaw.ch">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Shippori+Mincho:wght@500&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js');</script>
+<link rel="stylesheet" href="/static/css/site.css?v=3">
+<!-- What counts as personal data is defined once, in the Word add-in's redaction
+     module (mirrored by quality/redact.py on the server). The page works without it;
+     the privacy card then stays hidden and the server's pass still runs. -->
+<script src="https://word.opencaselaw.ch/js/redact.js" defer></script>
+<style>
+:root{
+  --shu:var(--red);--on-shu:var(--on-red);
+  --shu-wash:color-mix(in srgb,var(--red) 12%,transparent);
+  --ink-wash:color-mix(in srgb,var(--t1) 6%,transparent);
+  --f-serif:'Shippori Mincho','Times New Roman',Georgia,serif;
+}
+.v-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* head */
+.v-head{padding:clamp(48px,8vw,104px) 0 clamp(26px,4vw,40px)}
+.v-kicker{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--t3);margin:0 0 clamp(20px,4vw,36px)}
+.v-h1{font-family:var(--f-serif);font-weight:500;font-size:clamp(40px,8vw,92px);line-height:1;letter-spacing:-.015em;margin:0;color:var(--t1)}
+.v-lede{font-size:clamp(16px,1.6vw,18px);color:var(--t2);max-width:54ch;margin:clamp(16px,3vw,26px) 0 0;line-height:1.6}
+
+/* layout */
+.v-desk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,372px);gap:clamp(28px,5vw,64px);align-items:start;padding-bottom:clamp(56px,8vw,96px)}
+@media(max-width:900px){.v-desk{grid-template-columns:minmax(0,1fr)}}
+
+/* the sheet */
+.v-sheet{position:relative;border-top:1px solid var(--t1);padding-top:22px}
+.v-ctx{display:none;align-items:center;gap:10px;font-family:var(--f-mono);font-size:12px;color:var(--t2);
+  background:var(--paper-2);border:1px solid var(--line-2);padding:6px 6px 6px 12px;margin:0 0 18px;max-width:100%}
+.v-ctx.on{display:inline-flex}
+.v-ctx b{font-weight:500;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v-ctx button{background:none;border:0;color:var(--t3);cursor:pointer;font:inherit;padding:2px 6px}
+.v-ctx button:hover{color:var(--shu)}
+.v-field{position:relative}
+.v-field textarea,.v-mirror,.v-ph{font-family:var(--f-serif);font-weight:500;font-size:clamp(22px,2.6vw,30px);line-height:1.5;letter-spacing:-.003em;
+  padding:0 0 10px;margin:0;border:0;width:100%;white-space:pre-wrap;overflow-wrap:break-word;word-break:normal}
+.v-mirror{position:absolute;inset:0;color:transparent;pointer-events:none;z-index:0}
+.v-field textarea{position:relative;z-index:1;display:block;background:transparent;color:var(--t1);resize:none;outline:none;min-height:3em;overflow:hidden;caret-color:var(--shu)}
+.v-field textarea::placeholder{color:transparent}
+.v-ph{position:absolute;top:0;left:0;right:0;z-index:0;pointer-events:none;color:var(--t3);opacity:.55;transition:opacity .5s var(--ease)}
+.v-ph.out{opacity:0}
+.v-field.filled .v-ph{display:none}
+.v-mirror mark{color:transparent;background:none;border-radius:2px}
+.v-mirror mark.ent{box-shadow:inset 0 -2px 0 var(--t3);background:var(--ink-wash)}
+.v-mirror mark.pii{background:var(--shu-wash);box-shadow:inset 0 -2px 0 var(--shu)}
+.v-rule{height:1px;background:var(--line);position:relative;overflow:hidden}
+.v-rule::after{content:"";position:absolute;inset:0;background:var(--shu);transform:scaleX(0);transform-origin:left;transition:transform .7s var(--ease)}
+.v-field:focus-within + .v-rule::after{transform:scaleX(1)}
+.v-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:14px;min-height:22px}
+.v-hint{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.03em;color:var(--t3)}
+.v-hint kbd{font:inherit;border:1px solid var(--line);border-bottom-width:2px;padding:0 5px;border-radius:3px;color:var(--t2)}
+.v-take{font:inherit;font-family:var(--f-mono);font-size:11.5px;color:var(--t2);background:none;border:0;border-bottom:1px dotted var(--t3);padding:0 0 1px;cursor:pointer}
+.v-take:hover{color:var(--shu);border-bottom-color:var(--shu)}
+
+.v-kinds{display:flex;flex-wrap:wrap;gap:6px;margin:24px 0 0;border:0;padding:0;min-width:0}
+.v-kinds legend{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin:0 0 10px;padding:0}
+.v-kinds label{position:relative;cursor:pointer}
+.v-kinds input{position:absolute;opacity:0;pointer-events:none}
+.v-kinds label span{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:var(--t2);border:1px solid var(--line);padding:6px 12px;border-radius:999px;transition:all .25s var(--ease)}
+.v-kinds label span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--line);transition:background .25s}
+.v-kinds input:checked + span{color:var(--t1);border-color:var(--t1)}
+.v-kinds input:checked + span::before{background:var(--shu)}
+.v-kinds input:focus-visible + span{outline:2px solid var(--shu);outline-offset:2px}
+.v-auto{font-family:var(--f-mono);font-size:10.5px;color:var(--t3);letter-spacing:.03em;align-self:center;margin-left:6px;opacity:0;transition:opacity .3s}
+.v-auto.on{opacity:1}
+
+.v-follow{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s var(--ease),opacity .5s;opacity:0}
+.v-follow.on{grid-template-rows:1fr;opacity:1}
+.v-follow>div{overflow:hidden}
+.v-follow label{display:block;font-size:14px;color:var(--t2);margin:24px 0 8px}
+.v-follow input{width:100%;max-width:420px;font:inherit;font-size:16px;color:var(--t1);background:transparent;border:0;border-bottom:1px solid var(--line);padding:6px 0;outline:none}
+.v-follow input:focus{border-bottom-color:var(--shu)}
+.v-follow small{display:block;font-size:12.5px;color:var(--t3);margin-top:6px}
+.v-follow .err{color:var(--shu)}
+.v-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+
+.v-send{display:flex;align-items:center;gap:18px;margin-top:28px;flex-wrap:wrap}
+.v-btn{font:inherit;font-size:15px;font-weight:500;background:var(--t1);color:var(--paper);border:0;padding:13px 22px;cursor:pointer;border-radius:2px;
+  display:inline-flex;align-items:center;gap:12px;transition:background .25s var(--ease),transform .15s}
+.v-btn:hover:not(:disabled){background:var(--shu);color:var(--on-shu)}
+.v-btn:active:not(:disabled){transform:translateY(1px)}
+.v-btn:disabled{background:var(--line);color:var(--t3);cursor:default}
+.v-btn kbd{font-family:var(--f-mono);font-size:11px;opacity:.7}
+.v-note{font-size:13px;color:var(--t3)}
+.v-note a{color:var(--t2)}
+.v-msg{margin:16px 0 0;font-size:14px;color:var(--shu);min-height:0}
+.v-msg a{color:var(--t1)}
+.v-mine{margin-top:34px;font-size:13.5px;color:var(--t3)}
+.v-mine b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;display:block;margin-bottom:6px}
+.v-mine a{color:var(--t2);text-decoration:none;margin-right:16px;white-space:nowrap}
+.v-mine a:hover{color:var(--shu)}
+.v-mine a span{font-family:var(--f-mono);font-size:12px;color:var(--t1)}
+
+/* the echo: the whole corpus, live */
+.v-echo{position:sticky;top:84px;font-size:14px}
+.v-echo h2{font-family:var(--f-mono);font-size:11px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin:0 0 14px;line-height:1.6}
+.v-echo h2 q{quotes:"«" "»";color:var(--t1);letter-spacing:.03em;text-transform:none;font-size:12px}
+.v-corpus{border-top:1px solid var(--line);margin-bottom:22px;position:relative}
+.v-layer{padding:11px 0 10px;border-bottom:1px solid var(--line-2);background:var(--paper);position:relative}
+.v-layer>.in{transition:opacity .2s}
+.v-layer.stale>.in{opacity:.5}
+.v-layer .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.v-layer .name{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);display:inline-flex;align-items:center;gap:8px}
+.v-layer .name i{width:5px;height:5px;border-radius:50%;background:var(--shu);opacity:0}
+.v-layer.busy .name i{animation:v-blink .9s ease-in-out infinite}
+@keyframes v-blink{50%{opacity:1}}
+.v-layer .num{font-family:var(--f-serif);font-size:19px;line-height:1.2;color:var(--t1);white-space:nowrap;font-variant-numeric:tabular-nums lining-nums}
+.v-layer .sub{font-size:12.5px;color:var(--t3);margin-top:1px;line-height:1.45}
+.v-layer.none .num{color:var(--t3)}
+.v-layer.none .sub{color:var(--shu)}
+.v-layer ol{list-style:none;margin:6px 0 0;padding:0}
+.v-layer li{padding:3px 0;font-size:13.5px;line-height:1.4}
+.v-layer li a{color:var(--t1);text-decoration:none;display:block;border-radius:2px}
+.v-layer li a:hover .ht,.v-layer li a:focus-visible .ht{text-decoration:underline;text-decoration-color:var(--shu);text-underline-offset:3px}
+.v-layer li small{display:block;font-size:12px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v-layer li .x{display:none;white-space:normal;color:var(--t2);margin-top:2px;line-height:1.45}
+@media(hover:hover){.v-layer li a:hover .x,.v-layer li a:focus-visible .x{display:block}}
+.v-layer .all{font-family:var(--f-mono);font-size:11px;color:var(--t3);text-decoration:none;display:inline-block;margin-top:4px}
+.v-layer .all:hover{color:var(--shu)}
+.v-layer .sk{display:block;height:9px;margin:9px 0 4px;background:var(--line-2);border-radius:2px;animation:v-sk 1.1s ease-in-out infinite}
+.v-layer .sk+.sk{width:62%;margin-top:6px}
+@keyframes v-sk{50%{opacity:.4}}
+.v-cards{display:flex;flex-direction:column;gap:12px}
+#v-pii .v-card{margin-bottom:18px}
+.v-card{border-top:1px solid var(--line);padding:14px 0 4px;animation:v-rise .45s var(--ease) both}
+@keyframes v-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.v-card .lab{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--t3);margin:0 0 6px;display:flex;justify-content:space-between;gap:8px}
+.v-card h3{font-family:var(--f-serif);font-weight:500;font-size:20px;line-height:1.25;margin:0;color:var(--t1)}
+.v-card .big{font-family:var(--f-serif);font-size:28px;line-height:1.1;margin:8px 0 2px;color:var(--t1)}
+.v-card .big span{font-size:15px;color:var(--t3)}
+.v-card p{margin:6px 0 0;color:var(--t2);line-height:1.55;font-size:14px}
+.v-card .meta{font-family:var(--f-mono);font-size:11.5px;color:var(--t3);margin-top:6px}
+.v-card .warn{color:var(--shu)}
+.v-card ul{list-style:none;margin:10px 0 0;padding:0}
+.v-card li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid var(--line-2);font-size:13.5px;color:var(--t2)}
+.v-card li.hit{color:var(--t1)}
+.v-card li.hit span:first-child::before{content:"→ ";color:var(--shu)}
+.v-card li .n{font-family:var(--f-mono);font-size:12px;color:var(--t3);text-align:right}
+.v-card li .n.stale{color:var(--shu)}
+.v-spark{display:block;width:100%;height:30px;margin-top:10px}
+.v-spark rect{fill:var(--t3);opacity:.45}
+.v-spark rect.hi{fill:var(--shu);opacity:.9}
+.v-card code{font-family:var(--f-mono);font-size:12px;color:var(--t1);background:var(--paper-2);padding:1px 6px}
+.v-card.pii .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px}
+.v-card.pii s{color:var(--t3);text-decoration-color:var(--shu)}
+.v-card.pii code{color:var(--shu);background:none;padding:0}
+@media(max-width:900px){.v-echo{position:static;margin-top:26px}.v-echo:not(.has){display:none}.v-layer li small{white-space:normal}}
+
+/* receipt and status */
+.v-receipt{display:none;position:relative;border-top:1px solid var(--t1);padding:28px 0 0}
+.v-receipt.on{display:block;animation:v-rise .5s var(--ease) both}
+.v-quote{font-family:var(--f-serif);font-weight:500;font-size:clamp(20px,2.2vw,26px);line-height:1.5;color:var(--t1);margin:0;padding-right:160px;white-space:pre-wrap;overflow-wrap:break-word;hyphens:auto;-webkit-hyphens:auto}
+@media(max-width:560px){.v-quote{padding-right:0;padding-top:130px}.v-answer{margin-right:0}}
+.v-stamp{position:absolute;top:22px;right:4px;width:128px;height:128px;color:var(--shu);transform:rotate(-7deg);opacity:0}
+.v-receipt.on .v-stamp{animation:v-stamp .62s cubic-bezier(.2,1.4,.4,1) .35s both}
+.v-receipt.quiet .v-stamp{animation:none;opacity:.94}
+@keyframes v-stamp{0%{opacity:0;transform:rotate(-14deg) scale(1.9)}55%{opacity:1;transform:rotate(-6deg) scale(.94)}100%{opacity:.94;transform:rotate(-7deg) scale(1)}}
+.v-stamp text{font-family:var(--f-mono);fill:currentColor}
+.v-answer{margin:22px 160px 0 0;padding:14px 16px;border-left:2px solid var(--shu);background:var(--paper-2);font-size:15px;color:var(--t1);max-width:62ch}
+.v-answer b{display:block;font-family:var(--f-mono);font-size:10.5px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+.v-steps{list-style:none;padding:0;margin:32px 0 0;display:grid;grid-template-columns:repeat(4,1fr)}
+@media(max-width:620px){.v-steps{grid-template-columns:1fr 1fr;row-gap:18px}}
+.v-steps li{position:relative;padding:16px 12px 0 0;border-top:2px solid var(--line);font-size:13.5px;color:var(--t3)}
+.v-steps li b{display:block;font-weight:500;color:var(--t2);font-size:14px}
+.v-steps li.done{border-top-color:var(--shu)}
+.v-steps li.done b{color:var(--t1)}
+.v-steps li.done::before{content:"";position:absolute;top:-5px;left:0;width:8px;height:8px;border-radius:50%;background:var(--shu)}
+.v-track{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:26px;font-size:14px;color:var(--t2)}
+.v-track code{font-family:var(--f-mono);font-size:13px;color:var(--t1);background:var(--paper-2);padding:4px 10px;overflow-wrap:anywhere}
+.v-link{font:inherit;font-size:13.5px;background:none;border:0;border-bottom:1px solid var(--line);color:var(--t1);cursor:pointer;padding:0 0 1px;text-decoration:none}
+.v-link:hover{border-bottom-color:var(--shu)}
+
+/* below the fold */
+.v-more{border-top:1px solid var(--line);padding:clamp(40px,6vw,72px) 0}
+.v-more-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(24px,4vw,56px)}
+@media(max-width:820px){.v-more-grid{grid-template-columns:1fr}}
+.v-more h2{font-family:var(--f-mono);font-size:11px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin:0 0 14px}
+.v-more p,.v-more li{font-size:14.5px;color:var(--t2);line-height:1.6;margin:0 0 10px}
+.v-more ul{list-style:none;padding:0;margin:0}
+.v-more li{padding:8px 0;border-top:1px solid var(--line-2)}
+.v-more time{font-family:var(--f-mono);font-size:11.5px;color:var(--t3);display:block}
+@media (prefers-reduced-motion:reduce){
+  .v-head *,.v-desk *,.v-desk *::before,.v-desk *::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+  .v-receipt.on .v-stamp{opacity:.94}
+}
+</style>
+</head>
+<body>
+<a href="#main" class="skip" data-t="skip">Zum Inhalt springen</a>
+<div data-nav></div>
+
+<main id="main">
+  <section class="v-head">
+    <div class="wrap">
+      <p class="v-kicker"><span data-t="v_kick">Vorschlag · jeder wird gelesen</span></p>
+      <h1 class="v-h1" data-t="v_h1">Was fehlt Ihnen?</h1>
+      <p class="v-lede" data-t="v_lede">Ein Satz genügt: eine Quelle, eine Funktion, ein Fehler. Während Sie schreiben, zeigen wir, was die Sammlung dazu schon enthält. Personendaten werden vor dem Senden ersetzt.</p>
+    </div>
+  </section>
+
+  <section class="wrap v-desk">
+    <div>
+      <form class="v-sheet" id="v-sheet" novalidate>
+        <div class="v-ctx" id="v-ctx" role="note"><span data-t="v_ctx">Bezug</span><b id="v-ctx-v"></b><button type="button" id="v-ctx-x" aria-label="✕">✕</button></div>
+        <div class="v-field" id="v-field">
+          <div class="v-mirror" id="v-mirror" aria-hidden="true"></div>
+          <div class="v-ph" id="v-ph" aria-hidden="true"></div>
+          <label for="v-t" class="v-sr" data-t="v_label">Ihr Vorschlag</label>
+          <textarea id="v-t" name="text" rows="2" maxlength="4000" spellcheck="true" autocomplete="off" aria-describedby="v-count"></textarea>
+        </div>
+        <div class="v-rule"></div>
+        <div class="v-bar">
+          <span class="v-hint" id="v-count"></span>
+          <span class="v-hint" id="v-keys"><kbd>⌘</kbd> <kbd>↵</kbd> <span data-t="v_sends">sendet</span></span>
+        </div>
+
+        <fieldset class="v-kinds" id="v-kinds">
+          <legend data-t="v_kinds">Es geht um</legend>
+          <label><input type="radio" name="kind" value="source"><span data-t="v_k_source">eine Quelle</span></label>
+          <label><input type="radio" name="kind" value="feature"><span data-t="v_k_feature">eine Funktion</span></label>
+          <label><input type="radio" name="kind" value="error"><span data-t="v_k_error">einen Fehler</span></label>
+          <label><input type="radio" name="kind" value="other" checked><span data-t="v_k_other">etwas anderes</span></label>
+          <span class="v-auto" id="v-auto" data-t="v_auto">aus dem Text erkannt</span>
+        </fieldset>
+
+        <div class="v-follow" id="v-follow"><div>
+          <label for="v-mail" data-t="v_mail">Möchten Sie hören, wenn es umgesetzt ist?</label>
+          <input id="v-mail" name="email" type="email" inputmode="email" autocomplete="email" placeholder="name@kanzlei.ch">
+          <small id="v-mail-note" data-t="v_mail_note">Freiwillig. Wir schreiben Ihnen persönlich, wenn sich der Status ändert, und sonst nie.</small>
+        </div></div>
+        <input class="v-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+        <div class="v-send">
+          <button class="v-btn" id="v-go" type="submit" disabled><span id="v-go-l" data-t="v_send">Vorschlag senden</span> <kbd>⌘↵</kbd></button>
+          <span class="v-note" data-t="v_send_note">Ohne Konto. <a href="/datenschutz/#vorschlag">Datenschutz</a></span>
+        </div>
+        <p class="v-msg" id="v-msg" role="alert"></p>
+        <div class="v-mine" id="v-mine" hidden></div>
+      </form>
+
+      <div class="v-receipt" id="v-receipt">
+        <svg class="v-stamp" viewBox="0 0 128 128" aria-hidden="true">
+          <defs><filter id="v-ink"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 1.5"/><feComposite in="SourceGraphic" operator="in"/></filter></defs>
+          <g filter="url(#v-ink)">
+            <rect x="4" y="4" width="120" height="120" rx="6" fill="none" stroke="currentColor" stroke-width="5"/>
+            <rect x="12" y="12" width="104" height="104" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="64" y="44" text-anchor="middle" font-size="12.5" letter-spacing="2.5" font-weight="500" id="v-st-l">EINGANG</text>
+            <text x="64" y="77" text-anchor="middle" font-size="25" font-weight="500" id="v-st-no">0000</text>
+            <text x="64" y="100" text-anchor="middle" font-size="10.5" letter-spacing="1" id="v-st-date"></text>
+          </g>
+        </svg>
+        <p class="v-quote" id="v-r-quote"></p>
+        <div class="v-answer" id="v-r-answer" hidden><b data-t="v_answer">Antwort</b><span></span></div>
+        <ol class="v-steps" id="v-steps">
+          <li><b data-t="v_s1">Eingegangen</b><span></span></li>
+          <li><b data-t="v_s2">Gelesen</b><span data-t="v_s2x">innert 48 Stunden</span></li>
+          <li><b data-t="v_s3">Entschieden</b><span data-t="v_s3x">umsetzen oder begründet ablehnen</span></li>
+          <li><b data-t="v_s4">Umgesetzt</b><span data-t="v_s4x">hier sichtbar</span></li>
+        </ol>
+        <div class="v-track"><span data-t="v_track">Status jederzeit unter</span><code id="v-r-url"></code><button class="v-link" id="v-r-copy" type="button" data-t="v_copy">Link kopieren</button></div>
+        <div class="v-send"><a class="v-link" id="v-again" href="./" data-t="v_again">Noch etwas vorschlagen</a></div>
+      </div>
+      <p class="v-sr" id="v-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <aside class="v-echo" id="v-echo" aria-labelledby="v-echo-h">
+      <div class="v-cards" id="v-pii"></div>
+      <h2 id="v-echo-h"></h2>
+      <div class="v-corpus" id="v-corpus"></div>
+      <div class="v-cards" id="v-cards"></div>
+    </aside>
+  </section>
+
+  <section class="v-more">
+    <div class="wrap v-more-grid">
+      <div>
+        <h2 data-t="v_after_h">Was danach passiert</h2>
+        <p data-t="v_after_p1">Jeder Vorschlag wird gelesen, in der Regel innert zwei Tagen. Wir setzen ihn um oder sagen, warum nicht. Den Stand sehen Sie jederzeit über Ihren Status-Link; mit E-Mail-Adresse schreiben wir Ihnen persönlich.</p>
+        <p data-t="v_after_p2">Vorschläge erscheinen nie öffentlich mit Ihrem Namen.</p>
+      </div>
+      <div>
+        <h2 data-t="v_shipped_h">Zuletzt auf Anregung umgesetzt</h2>
+        <!-- Only items that genuinely came from someone's request. -->
+        <ul>
+          <li><time data-t="v_sh1d">Oktober 2026</time><span data-t="v_sh1">Suche nach Publikationsdatum, nicht nur nach Entscheiddatum</span></li>
+          <li><time data-t="v_sh2d">September 2026</time><span data-t="v_sh2">Verwaltungspraxis von WEKO, BSV und OAK BV, jede Fassung</span></li>
+        </ul>
+      </div>
+      <div>
+        <h2 data-t="v_else_h">Lieber anders?</h2>
+        <p data-t="v_else_p">Per E-Mail an <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> oder als <a href="https://github.com/jonashertner/opencaselaw/issues/new" rel="noopener">GitHub-Issue</a>, wenn Sie öffentlich mitdiskutieren möchten.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div data-foot></div>
+<script src="/static/js/site.js?v=4"></script>
+<script>
+OCL.init({
+  active:'',
+  i18n:{
+    de:{v_kick:'Vorschlag · jeder wird gelesen',v_h1:'Was fehlt Ihnen?',
+      v_lede:'Ein Satz genügt: eine Quelle, eine Funktion, ein Fehler. Während Sie schreiben, zeigen wir, was die Sammlung dazu schon enthält. Personendaten werden vor dem Senden ersetzt.',
+      v_ctx:'Bezug',v_label:'Ihr Vorschlag',v_sends:'sendet',v_kinds:'Es geht um',v_k_source:'eine Quelle',v_k_feature:'eine Funktion',v_k_error:'einen Fehler',v_k_other:'etwas anderes',v_auto:'aus dem Text erkannt',
+      v_mail:'Möchten Sie hören, wenn es umgesetzt ist?',v_mail_note:'Freiwillig. Wir schreiben Ihnen persönlich, wenn sich der Status ändert, und sonst nie.',
+      v_send:'Vorschlag senden',v_sending:'Wird gesendet …',v_send_note:'Ohne Konto. <a href="/datenschutz/#vorschlag">Datenschutz</a>',
+      v_answer:'Antwort',v_s1:'Eingegangen',v_s2:'Gelesen',v_s2x:'innert 48 Stunden',v_s3:'Entschieden',v_s3x:'umsetzen oder begründet ablehnen',v_s4:'Umgesetzt',v_s4x:'hier sichtbar',
+      v_track:'Status jederzeit unter',v_copy:'Link kopieren',v_copied:'Kopiert',v_again:'Noch etwas vorschlagen',
+      v_after_h:'Was danach passiert',v_after_p1:'Jeder Vorschlag wird gelesen, in der Regel innert zwei Tagen. Wir setzen ihn um oder sagen, warum nicht. Den Stand sehen Sie jederzeit über Ihren Status-Link; mit E-Mail-Adresse schreiben wir Ihnen persönlich.',v_after_p2:'Vorschläge erscheinen nie öffentlich mit Ihrem Namen.',
+      v_shipped_h:'Zuletzt auf Anregung umgesetzt',v_sh1d:'Oktober 2026',v_sh1:'Suche nach Publikationsdatum, nicht nur nach Entscheiddatum',v_sh2d:'September 2026',v_sh2:'Verwaltungspraxis von WEKO, BSV und OAK BV, jede Fassung',
+      v_else_h:'Lieber anders?',v_else_p:'Per E-Mail an <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> oder als <a href="https://github.com/jonashertner/opencaselaw/issues/new" rel="noopener">GitHub-Issue</a>, wenn Sie öffentlich mitdiskutieren möchten.',
+      j_ex:'Die Entscheide der Berner Steuerrekurskommission seit Februar fehlen.|Ein Filter nach Spruchkörper wäre in der Suche hilfreich.|Bei BGE 147 III 1 stimmt das Entscheiddatum nicht.|Die Botschaften vor 1999 wären für die Auslegung wertvoll.|Kommentare zum Mietrecht im OR fehlen mir.',
+      j_take:'Beispiel übernehmen',j_more:'noch {n} Zeichen',j_chars:'{n} Zeichen',j_c_search:'Suche «{q}»',j_c_decision:'Entscheid {q}',j_c_law:'Gesetz {q}',j_c_scholarship:'Literatur «{q}»',
+      j_stamp:'EINGANG',j_at:'{t} Uhr',j_planned:'Geplant',j_declined:'Abgelehnt',j_mail_yes:'Sie erhalten eine E-Mail',
+      j_e_rate:'Sie haben in kurzer Zeit viele Vorschläge gesendet. Bitte versuchen Sie es später nochmals.',j_e_mail:'Diese E-Mail-Adresse scheint nicht zu stimmen.',j_e_links:'Bitte höchstens drei Links.',j_e_generic:'Das hat nicht geklappt. Ihr Text bleibt gespeichert; bitte nochmals versuchen.',
+      j_fb:'Die Annahmestelle ist gerade nicht erreichbar. Wir haben eine E-Mail mit Ihrem Text vorbereitet:',j_fb_btn:'E-Mail öffnen',j_fb_subject:'Vorschlag an OpenCaseLaw',
+      j_st_load:'Status wird geladen …',j_st_404:'Diesen Status-Link kennen wir nicht.',j_st_err:'Der Status ist gerade nicht abrufbar. Bitte später nochmals.',j_mine:'Ihre Vorschläge auf diesem Gerät',
+      j_echo_rest:'Was die Sammlung heute enthält',j_echo_q:'Was wir zu {q} haben',
+      j_L_dec:'Entscheide',j_L_dec_s:'{n} Gerichte und Behörden, 1875 bis heute',j_L_law:'Gesetze',j_L_law_s:'{f} Bundeserlasse, {c} kantonale, {a} Artikel',
+      j_L_bot:'Botschaften',j_L_bot_s:'Botschaften des Bundesrates im Wortlaut, mit BBl-Fundstelle',j_L_pra:'Verwaltungspraxis',j_L_pra_s:'Weisungen, Kreisschreiben und Rundschreiben von BSV, FINMA, ESTV, SEM, SECO, WEKO, OAK BV u. a.',
+      j_L_com:'Kommentare',j_L_com_s:'frei zugänglich, Artikel für Artikel',j_L_sch:'Rechtswissenschaft',j_L_sch_s:'Aufsätze, Bücher und Dissertationen aus {n} offenen Quellen',j_L_cit:'Zitiernetz',j_L_cit_s:'Verweise zwischen Entscheiden, dazu {n} auf Gesetzesartikel',
+      j_newest:'neueste zuerst',j_best:'relevanteste zuerst',j_only:'nur zu «{q}»',j_none:'Nichts dazu. Genau dafür ist Ihr Vorschlag da.',j_err:'Gerade nicht erreichbar.',j_all:'alle ansehen →',j_over:'über {n}',j_min:'mind. {n}',j_page:'S. {n}',
+      j_fed:'Bund',j_canton:'Kanton {n}',j_srcs:'{n} Quellen',j_src:'1 Quelle',j_decs:'Entscheide',j_c_meta:'neuester vom {d} · abgefragt {a}',j_since:'seit {d}',j_c_note:'Zu dieser Quelle gibt es einen Hinweis zur Abdeckung.',j_c_see:'ansehen',j_c_empty:'Noch keine Entscheide aus diesem Kanton. Ihr Hinweis auf eine Quelle hilft direkt.',
+      j_today:'heute',j_yday:'gestern',j_days:'vor {n} Tagen',j_months:'vor {n} Monaten',
+      j_pii_lab:'Datenschutz',j_pii_h:'Wird vor dem Senden ersetzt',j_pii_p:'Wir erhalten nur den Platzhalter. Die Erkennung folgt Mustern und ist nicht vollständig: bitte keine Mandatsdetails.',
+      j_tool_lab:'Gibt es vielleicht schon',j_tool_go:'ansehen',
+      j_t_ver:'Gesetze in jeder Fassung',j_t_ver_x:'Bundesrecht mit Versionsgeschichte pro Artikel, Stichtag frei wählbar.',j_t_cit:'Zitiernetz und Leitentscheide',j_t_cit_x:'Wer einen Entscheid zitiert und welche Entscheide ein Thema prägen.',
+      j_t_app:'Instanzenzug',j_t_app_x:'Verbindet kantonale Urteile mit dem Bundesgerichtsentscheid zum selben Fall.',j_t_erw:'Gegliederte Entscheide',j_t_erw_x:'Sachverhalt, Erwägungen und Dispositiv einzeln abrufbar und zitierbar.',
+      j_t_stat:'Statistik und Trends',j_t_stat_x:'Wie sich ein Thema über Jahre und Gerichte entwickelt.',j_t_word:'Zitate in Word prüfen',j_t_word_x:'citecheck prüft BGE- und Gesetzeszitate direkt im Dokument.',
+      j_t_api:'API und Datensatz',j_t_api_x:'REST-API, Kommandozeile, MCP-Server und der ganze Datensatz als Parquet, CC0.',
+      j_a11y:'Treffer in {n} von {m} Bereichen.',j_a11y_pii:'{n} Personenangaben werden vor dem Senden ersetzt.'},
+    fr:{v_kick:'Suggestion · chacune est lue',v_h1:'Que vous manque-t-il ?',
+      v_lede:'Une phrase suffit : une source, une fonction, une erreur. Pendant que vous écrivez, nous montrons ce que la collection contient déjà. Les données personnelles sont remplacées avant l’envoi.',
+      v_ctx:'Contexte',v_label:'Votre suggestion',v_sends:'envoie',v_kinds:'Il s’agit',v_k_source:'d’une source',v_k_feature:'d’une fonction',v_k_error:'d’une erreur',v_k_other:'d’autre chose',v_auto:'reconnu dans le texte',
+      v_mail:'Souhaitez-vous être informé·e quand ce sera fait ?',v_mail_note:'Facultatif. Nous vous écrivons personnellement quand le statut change, et jamais autrement.',
+      v_send:'Envoyer la suggestion',v_sending:'Envoi …',v_send_note:'Sans compte. <a href="/datenschutz/fr/#vorschlag">Protection des données</a>',
+      v_answer:'Réponse',v_s1:'Reçue',v_s2:'Lue',v_s2x:'dans les 48 heures',v_s3:'Décidée',v_s3x:'réalisée ou refusée avec motifs',v_s4:'Réalisée',v_s4x:'visible ici',
+      v_track:'Statut à tout moment sous',v_copy:'Copier le lien',v_copied:'Copié',v_again:'Suggérer autre chose',
+      v_after_h:'Et ensuite',v_after_p1:'Chaque suggestion est lue, en règle générale dans les deux jours. Nous la réalisons ou disons pourquoi pas. Le statut est visible en tout temps via votre lien ; avec une adresse e-mail, nous vous écrivons personnellement.',v_after_p2:'Les suggestions ne sont jamais publiées avec votre nom.',
+      v_shipped_h:'Réalisé récemment sur suggestion',v_sh1d:'octobre 2026',v_sh1:'Recherche par date de publication, pas seulement par date de décision',v_sh2d:'septembre 2026',v_sh2:'Pratique administrative de la COMCO, de l’OFAS et de la CHS PP, toutes les versions',
+      v_else_h:'Autrement ?',v_else_p:'Par e-mail à <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> ou comme <a href="https://github.com/jonashertner/opencaselaw/issues/new" rel="noopener">issue GitHub</a> si vous souhaitez en discuter publiquement.',
+      j_ex:'Les arrêts du Tribunal cantonal jurassien avant 2010 manquent.|Un filtre par cour serait utile dans la recherche.|La date de l’ATF 147 III 1 est erronée.|Les messages du Conseil fédéral antérieurs à 1999 seraient précieux.|Il manque des commentaires sur le bail dans le CO.',
+      j_take:'Reprendre l’exemple',j_more:'encore {n} caractères',j_chars:'{n} caractères',j_c_search:'Recherche « {q} »',j_c_decision:'Arrêt {q}',j_c_law:'Loi {q}',j_c_scholarship:'Doctrine « {q} »',
+      j_stamp:'REÇU',j_at:'{t}',j_planned:'Prévue',j_declined:'Refusée',j_mail_yes:'Vous recevrez un e-mail',
+      j_e_rate:'Vous avez envoyé beaucoup de suggestions en peu de temps. Merci de réessayer plus tard.',j_e_mail:'Cette adresse e-mail semble incorrecte.',j_e_links:'Trois liens au maximum, s’il vous plaît.',j_e_generic:'Cela n’a pas fonctionné. Votre texte est conservé ; merci de réessayer.',
+      j_fb:'Le guichet est momentanément indisponible. Nous avons préparé un e-mail avec votre texte :',j_fb_btn:'Ouvrir l’e-mail',j_fb_subject:'Suggestion pour OpenCaseLaw',
+      j_st_load:'Chargement du statut …',j_st_404:'Ce lien de statut nous est inconnu.',j_st_err:'Le statut n’est pas disponible pour le moment. Merci de réessayer.',j_mine:'Vos suggestions sur cet appareil',
+      j_echo_rest:'Ce que contient la collection',j_echo_q:'Ce que nous avons sur {q}',
+      j_L_dec:'Décisions',j_L_dec_s:'{n} tribunaux et autorités, de 1875 à aujourd’hui',j_L_law:'Lois',j_L_law_s:'{f} actes fédéraux, {c} cantonaux, {a} articles',
+      j_L_bot:'Messages',j_L_bot_s:'Messages du Conseil fédéral en texte intégral, avec référence FF',j_L_pra:'Pratique administrative',j_L_pra_s:'Directives, circulaires et communications de l’OFAS, la FINMA, l’AFC, le SEM, le SECO, la COMCO, la CHS PP etc.',
+      j_L_com:'Commentaires',j_L_com_s:'en libre accès, article par article',j_L_sch:'Doctrine',j_L_sch_s:'Articles, livres et thèses de {n} sources ouvertes',j_L_cit:'Réseau de citations',j_L_cit_s:'renvois entre décisions, plus {n} vers des articles de loi',
+      j_newest:'les plus récentes d’abord',j_best:'les plus pertinentes d’abord',j_only:'seulement « {q} »',j_none:'Rien à ce sujet. C’est précisément à cela que sert votre suggestion.',j_err:'Momentanément indisponible.',j_all:'tout voir →',j_over:'plus de {n}',j_min:'au moins {n}',j_page:'p. {n}',
+      j_fed:'Confédération',j_canton:'Canton {n}',j_srcs:'{n} sources',j_src:'1 source',j_decs:'décisions',j_c_meta:'la plus récente du {d} · consultée {a}',j_since:'depuis le {d}',j_c_note:'Une note de couverture existe pour cette source.',j_c_see:'voir',j_c_empty:'Aucune décision de ce canton pour l’instant. Votre indication d’une source aide directement.',
+      j_today:'aujourd’hui',j_yday:'hier',j_days:'il y a {n} jours',j_months:'il y a {n} mois',
+      j_pii_lab:'Protection des données',j_pii_h:'Remplacé avant l’envoi',j_pii_p:'Nous ne recevons que l’espace réservé. La détection suit des motifs et n’est pas complète : pas de détails de mandat, s’il vous plaît.',
+      j_tool_lab:'Existe peut-être déjà',j_tool_go:'voir',
+      j_t_ver:'Lois dans chaque version',j_t_ver_x:'Droit fédéral avec l’historique de chaque article, à la date de votre choix.',j_t_cit:'Citations et arrêts de principe',j_t_cit_x:'Qui cite une décision et quels arrêts font autorité sur un thème.',
+      j_t_app:'Voies de recours',j_t_app_x:'Relie les arrêts cantonaux à l’arrêt du Tribunal fédéral dans la même affaire.',j_t_erw:'Décisions structurées',j_t_erw_x:'Faits, considérants et dispositif accessibles et citables séparément.',
+      j_t_stat:'Statistiques et tendances',j_t_stat_x:'Comment un thème évolue au fil des années et des tribunaux.',j_t_word:'Vérifier les citations dans Word',j_t_word_x:'citecheck vérifie les citations d’ATF et de lois directement dans le document.',
+      j_t_api:'API et jeu de données',j_t_api_x:'API REST, ligne de commande, serveur MCP et le jeu de données complet en Parquet, CC0.',
+      j_a11y:'Résultats dans {n} domaines sur {m}.',j_a11y_pii:'{n} données personnelles seront remplacées avant l’envoi.'},
+    it:{v_kick:'Proposta · ognuna viene letta',v_h1:'Che cosa le manca?',
+      v_lede:'Basta una frase: una fonte, una funzione, un errore. Mentre scrive, mostriamo che cosa contiene già la raccolta. I dati personali vengono sostituiti prima dell’invio.',
+      v_ctx:'Riferimento',v_label:'La sua proposta',v_sends:'invia',v_kinds:'Si tratta di',v_k_source:'una fonte',v_k_feature:'una funzione',v_k_error:'un errore',v_k_other:'altro',v_auto:'riconosciuto dal testo',
+      v_mail:'Vuole sapere quando sarà realizzata?',v_mail_note:'Facoltativo. Le scriviamo personalmente quando lo stato cambia, e mai altrimenti.',
+      v_send:'Invia la proposta',v_sending:'Invio …',v_send_note:'Senza account. <a href="/datenschutz/it/#vorschlag">Protezione dei dati</a>',
+      v_answer:'Risposta',v_s1:'Ricevuta',v_s2:'Letta',v_s2x:'entro 48 ore',v_s3:'Decisa',v_s3x:'realizzata o respinta con motivazione',v_s4:'Realizzata',v_s4x:'visibile qui',
+      v_track:'Stato in ogni momento su',v_copy:'Copia il link',v_copied:'Copiato',v_again:'Proporre altro',
+      v_after_h:'Che cosa succede poi',v_after_p1:'Ogni proposta viene letta, di regola entro due giorni. La realizziamo o spieghiamo perché no. Lo stato è sempre visibile tramite il suo link; con un indirizzo e-mail le scriviamo personalmente.',v_after_p2:'Le proposte non vengono mai pubblicate con il suo nome.',
+      v_shipped_h:'Realizzato di recente su proposta',v_sh1d:'ottobre 2026',v_sh1:'Ricerca per data di pubblicazione, non solo per data della decisione',v_sh2d:'settembre 2026',v_sh2:'Prassi amministrativa di COMCO, UFAS e CAV PP, ogni versione',
+      v_else_h:'Altrimenti?',v_else_p:'Per e-mail a <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> o come <a href="https://github.com/jonashertner/opencaselaw/issues/new" rel="noopener">issue GitHub</a> se desidera discuterne pubblicamente.',
+      j_ex:'Mancano le sentenze del Tribunale d’appello ticinese prima del 2010.|Un filtro per camera sarebbe utile nella ricerca.|La data della DTF 147 III 1 non è corretta.|I messaggi del Consiglio federale anteriori al 1999 sarebbero preziosi.|Mancano commentari sulla locazione nel CO.',
+      j_take:'Usa l’esempio',j_more:'ancora {n} caratteri',j_chars:'{n} caratteri',j_c_search:'Ricerca «{q}»',j_c_decision:'Decisione {q}',j_c_law:'Legge {q}',j_c_scholarship:'Dottrina «{q}»',
+      j_stamp:'RICEVUTO',j_at:'ore {t}',j_planned:'Prevista',j_declined:'Respinta',j_mail_yes:'Riceverà un’e-mail',
+      j_e_rate:'Ha inviato molte proposte in poco tempo. La preghiamo di riprovare più tardi.',j_e_mail:'Questo indirizzo e-mail non sembra corretto.',j_e_links:'Al massimo tre link, per favore.',j_e_generic:'Non ha funzionato. Il suo testo resta salvato; la preghiamo di riprovare.',
+      j_fb:'Lo sportello non è raggiungibile al momento. Abbiamo preparato un’e-mail con il suo testo:',j_fb_btn:'Apri l’e-mail',j_fb_subject:'Proposta per OpenCaseLaw',
+      j_st_load:'Caricamento dello stato …',j_st_404:'Non conosciamo questo link di stato.',j_st_err:'Lo stato non è disponibile al momento. Riprovi più tardi.',j_mine:'Le sue proposte su questo dispositivo',
+      j_echo_rest:'Che cosa contiene la raccolta',j_echo_q:'Che cosa abbiamo su {q}',
+      j_L_dec:'Decisioni',j_L_dec_s:'{n} tribunali e autorità, dal 1875 a oggi',j_L_law:'Leggi',j_L_law_s:'{f} atti federali, {c} cantonali, {a} articoli',
+      j_L_bot:'Messaggi',j_L_bot_s:'Messaggi del Consiglio federale nel testo integrale, con riferimento FF',j_L_pra:'Prassi amministrativa',j_L_pra_s:'Direttive, circolari e comunicazioni di UFAS, FINMA, AFC, SEM, SECO, COMCO, CAV PP ecc.',
+      j_L_com:'Commentari',j_L_com_s:'ad accesso libero, articolo per articolo',j_L_sch:'Dottrina',j_L_sch_s:'Articoli, libri e tesi da {n} fonti aperte',j_L_cit:'Rete di citazioni',j_L_cit_s:'rinvii tra decisioni, più {n} ad articoli di legge',
+      j_newest:'le più recenti prima',j_best:'le più pertinenti prima',j_only:'solo «{q}»',j_none:'Niente in merito. È proprio a questo che serve la sua proposta.',j_err:'Momentaneamente non raggiungibile.',j_all:'vedi tutto →',j_over:'oltre {n}',j_min:'almeno {n}',j_page:'p. {n}',
+      j_fed:'Confederazione',j_canton:'Cantone {n}',j_srcs:'{n} fonti',j_src:'1 fonte',j_decs:'decisioni',j_c_meta:'la più recente del {d} · consultata {a}',j_since:'dal {d}',j_c_note:'Per questa fonte esiste una nota sulla copertura.',j_c_see:'vedi',j_c_empty:'Ancora nessuna decisione di questo cantone. La sua indicazione di una fonte aiuta direttamente.',
+      j_today:'oggi',j_yday:'ieri',j_days:'{n} giorni fa',j_months:'{n} mesi fa',
+      j_pii_lab:'Protezione dei dati',j_pii_h:'Sostituito prima dell’invio',j_pii_p:'Riceviamo solo il segnaposto. Il riconoscimento segue modelli e non è completo: niente dettagli di mandato, per favore.',
+      j_tool_lab:'Forse esiste già',j_tool_go:'vedi',
+      j_t_ver:'Leggi in ogni versione',j_t_ver_x:'Diritto federale con la storia di ogni articolo, alla data che preferisce.',j_t_cit:'Citazioni e sentenze di principio',j_t_cit_x:'Chi cita una decisione e quali decisioni orientano un tema.',
+      j_t_app:'Iter processuale',j_t_app_x:'Collega le sentenze cantonali alla decisione del Tribunale federale sullo stesso caso.',j_t_erw:'Decisioni strutturate',j_t_erw_x:'Fatti, considerandi e dispositivo consultabili e citabili separatamente.',
+      j_t_stat:'Statistiche e tendenze',j_t_stat_x:'Come un tema si sviluppa negli anni e tra i tribunali.',j_t_word:'Verificare le citazioni in Word',j_t_word_x:'citecheck verifica le citazioni di DTF e leggi direttamente nel documento.',
+      j_t_api:'API e dataset',j_t_api_x:'API REST, riga di comando, server MCP e l’intero dataset in Parquet, CC0.',
+      j_a11y:'Risultati in {n} ambiti su {m}.',j_a11y_pii:'{n} dati personali saranno sostituiti prima dell’invio.'},
+    rm:{v_kick:'Proposta · mintgina vegn legida',v_h1:'Tge As manca?',
+      v_lede:'Ina frasa basta: ina funtauna, ina funcziun, in sbagl. Durant che Vus scrivais, mussain nus tge che la collecziun cuntegna gia. Datas persunalas vegnan remplazzadas avant che trametter.',
+      v_ctx:'Referenza',v_label:'Vossa proposta',v_sends:'trametta',v_kinds:'I sa tracta da',v_k_source:'ina funtauna',v_k_feature:'ina funcziun',v_k_error:'in sbagl',v_k_other:'insatge auter',v_auto:'renconuschì en il text',
+      v_mail:'Vulais Vus vegnir a savair cura ch’igl è realisà?',v_mail_note:'Facultativ. Nus As scrivain persunalmain cura ch’il status sa mida, e uschiglio mai.',
+      v_send:'Trametter la proposta',v_sending:'Vegn tramess …',v_send_note:'Senza conto. <a href="/datenschutz/rm/#vorschlag">Protecziun da datas</a>',
+      v_answer:'Resposta',v_s1:'Arrivada',v_s2:'Legida',v_s2x:'entaifer 48 uras',v_s3:'Decidida',v_s3x:'realisar u refusar cun motivaziun',v_s4:'Realisada',v_s4x:'visibel qua',
+      v_track:'Status adina sut',v_copy:'Copiar la colliaziun',v_copied:'Copià',v_again:'Proponer insatge auter',
+      v_after_h:'Tge che succeda suenter',v_after_p1:'Mintga proposta vegn legida, per regla entaifer dus dis. Nus la realisain u declerain pertge betg. Il status vesais Vus adina sur Vossa colliaziun; cun ina adressa dad e-mail As scrivain nus persunalmain.',v_after_p2:'Propostas na vegnan mai publitgadas cun Voss num.',
+      v_shipped_h:'Realisà dacurt sin proposta',v_sh1d:'october 2026',v_sh1:'Tschertga tenor data da publicaziun, betg mo tenor data da la decisiun',v_sh2d:'settember 2026',v_sh2:'Pratica administrativa da la COMCO, da l’UFAS e da la CAV PP, mintga versiun',
+      v_else_h:'Pli gugent auter?',v_else_p:'Per e-mail a <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> u sco <a href="https://github.com/jonashertner/opencaselaw/issues/new" rel="noopener">issue da GitHub</a>, sche Vus vulais discutar publicamain.',
+      j_ex:'Las decisiuns dal Tribunal chantunal grischun avant 2010 mancan.|In filter tenor dretgira fiss nizzaivel en la tschertga.|La data da la BGE 147 III 1 n’è betg correcta.|Las missivas dal Cussegl federal avant 1999 fissan preziusas.|Commentaris davart la locaziun en il DO mancan.',
+      j_take:'Surpigliar l’exempel',j_more:'anc {n} caracters',j_chars:'{n} caracters',j_c_search:'Tschertga «{q}»',j_c_decision:'Decisiun {q}',j_c_law:'Lescha {q}',j_c_scholarship:'Litteratura «{q}»',
+      j_stamp:'ARRIVÀ',j_at:'las {t}',j_planned:'Planisada',j_declined:'Refusada',j_mail_yes:'Vus survegnis in e-mail',
+      j_e_rate:'Vus avais tramess bleras propostas en curt temp. Empruvai pli tard anc ina giada.',j_e_mail:'Questa adressa dad e-mail na para betg d’esser correcta.',j_e_links:'Maximalmain trais colliaziuns, per plaschair.',j_e_generic:'Quai n’ha betg funcziunà. Voss text resta memorisà; empruvai anc ina giada.',
+      j_fb:'Il post da retschavida n’è ussa betg cuntanschibel. Nus avain preparà in e-mail cun Voss text:',j_fb_btn:'Avrir l’e-mail',j_fb_subject:'Proposta per OpenCaseLaw',
+      j_st_load:'Status vegn chargià …',j_st_404:'Questa colliaziun da status n’enconuschain nus betg.',j_st_err:'Il status n’è ussa betg disponibel. Empruvai pli tard.',j_mine:'Vossas propostas sin quest apparat',
+      j_echo_rest:'Tge che la collecziun cuntegna oz',j_echo_q:'Tge che nus avain davart {q}',
+      j_L_dec:'Decisiuns',j_L_dec_s:'{n} dretgiras ed autoritads, dal 1875 fin oz',j_L_law:'Leschas',j_L_law_s:'{f} relaschs federals, {c} chantunals, {a} artitgels',
+      j_L_bot:'Missivas',j_L_bot_s:'Missivas dal Cussegl federal en il text original, cun referenza BBl',j_L_pra:'Pratica administrativa',j_L_pra_s:'Directivas, circulars e communicaziuns da l’UFAS, FINMA, AFC, SEM, SECO, COMCO, CAV PP e.a.',
+      j_L_com:'Commentaris',j_L_com_s:'cun access liber, artitgel per artitgel',j_L_sch:'Scienza giuridica',j_L_sch_s:'Artitgels, cudeschs e dissertaziuns da {n} funtaunas avertas',j_L_cit:'Rait da citaziuns',j_L_cit_s:'renviaments tranter decisiuns, ultra da quai {n} ad artitgels da lescha',
+      j_newest:'las pli novas l’emprim',j_best:'las pli relevantas l’emprim',j_only:'mo «{q}»',j_none:'Nagut davart quai. Precis per quai è Vossa proposta.',j_err:'Ussa betg cuntanschibel.',j_all:'vesair tut →',j_over:'passa {n}',j_min:'almain {n}',j_page:'p. {n}',
+      j_fed:'Confederaziun',j_canton:'Chantun {n}',j_srcs:'{n} funtaunas',j_src:'1 funtauna',j_decs:'decisiuns',j_c_meta:'la pli nova dals {d} · consultada {a}',j_since:'dapi ils {d}',j_c_note:'Per questa funtauna datti ina remartga davart la cuvertura.',j_c_see:'vesair',j_c_empty:'Anc naginas decisiuns da quest chantun. Voss renviament ad ina funtauna gida directamain.',
+      j_today:'oz',j_yday:'ier',j_days:'avant {n} dis',j_months:'avant {n} mais',
+      j_pii_lab:'Protecziun da datas',j_pii_h:'Vegn remplazzà avant che trametter',j_pii_p:'Nus survegnin mo il placeholder. L’identificaziun suonda models e n’è betg cumpletta: per plaschair nagins detagls da mandat.',
+      j_tool_lab:'Exista forsa gia',j_tool_go:'vesair',
+      j_t_ver:'Leschas en mintga versiun',j_t_ver_x:'Dretg federal cun l’istorgia da mintga artitgel, a la data da Vossa tscherna.',j_t_cit:'Citaziuns e decisiuns da princip',j_t_cit_x:'Tgi che citescha ina decisiun e tge decisiuns che marcan in tema.',
+      j_t_app:'Via da recurs',j_t_app_x:'Collia sentenzas chantunalas cun la decisiun dal Tribunal federal en il medem cas.',j_t_erw:'Decisiuns structuradas',j_t_erw_x:'Fatgs, consideraziuns e dispositiv accessibels e citabels separadamain.',
+      j_t_stat:'Statistica e tendenzas',j_t_stat_x:'Co in tema sa sviluppa tras ils onns e las dretgiras.',j_t_word:'Controllar citaziuns en Word',j_t_word_x:'citecheck controllescha citaziuns da BGE e da leschas directamain en il document.',
+      j_t_api:'API e set da datas',j_t_api_x:'API REST, lingia da cumond, server MCP e l’entir set da datas en Parquet, CC0.',
+      j_a11y:'Resultats en {n} da {m} secturs.',j_a11y_pii:'{n} datas persunalas vegnan remplazzadas avant che trametter.'},
+    en:{v_kick:'Suggestion · every one is read',v_h1:'What are you missing?',
+      v_lede:'One sentence is enough: a source, a feature, an error. As you type, we show what the collection already holds. Personal data is replaced before sending.',
+      v_ctx:'Context',v_label:'Your suggestion',v_sends:'sends',v_kinds:'It is about',v_k_source:'a source',v_k_feature:'a feature',v_k_error:'an error',v_k_other:'something else',v_auto:'recognised from the text',
+      v_mail:'Would you like to hear when it ships?',v_mail_note:'Optional. We write to you personally when the status changes, and never otherwise.',
+      v_send:'Send suggestion',v_sending:'Sending …',v_send_note:'No account. <a href="/datenschutz/en/#vorschlag">Privacy</a>',
+      v_answer:'Answer',v_s1:'Received',v_s2:'Read',v_s2x:'within 48 hours',v_s3:'Decided',v_s3x:'built, or declined with reasons',v_s4:'Shipped',v_s4x:'visible here',
+      v_track:'Status any time at',v_copy:'Copy link',v_copied:'Copied',v_again:'Suggest something else',
+      v_after_h:'What happens next',v_after_p1:'Every suggestion is read, usually within two days. We build it or say why not. Your status link shows where it stands at any time; with an e-mail address we write to you personally.',v_after_p2:'Suggestions are never published with your name.',
+      v_shipped_h:'Recently shipped on request',v_sh1d:'October 2026',v_sh1:'Search by publication date, not only by decision date',v_sh2d:'September 2026',v_sh2:'Administrative practice of COMCO, FSIO and OAK BV, every version',
+      v_else_h:'Prefer another way?',v_else_p:'E-mail <a href="mailto:team@jonashertner.com">team@jonashertner.com</a> or open a <a href="https://github.com/jonashertner/opencaselaw/issues/new" rel="noopener">GitHub issue</a> if you would like to discuss it in public.',
+      j_ex:'Decisions of the Bern tax appeals commission since February are missing.|A filter by chamber would help in search.|The decision date of BGE 147 III 1 is wrong.|Federal Council dispatches before 1999 would help with interpretation.|I am missing commentaries on tenancy law in the CO.',
+      j_take:'Use the example',j_more:'{n} more characters',j_chars:'{n} characters',j_c_search:'Search “{q}”',j_c_decision:'Decision {q}',j_c_law:'Law {q}',j_c_scholarship:'Scholarship “{q}”',
+      j_stamp:'RECEIVED',j_at:'{t}',j_planned:'Planned',j_declined:'Declined',j_mail_yes:'You will get an e-mail',
+      j_e_rate:'You have sent many suggestions in a short time. Please try again later.',j_e_mail:'This e-mail address does not look right.',j_e_links:'At most three links, please.',j_e_generic:'That did not work. Your text is kept; please try again.',
+      j_fb:'The inbox is unreachable right now. We have prepared an e-mail with your text:',j_fb_btn:'Open e-mail',j_fb_subject:'Suggestion for OpenCaseLaw',
+      j_st_load:'Loading status …',j_st_404:'We do not know this status link.',j_st_err:'The status is unavailable right now. Please try again later.',j_mine:'Your suggestions on this device',
+      j_echo_rest:'What the collection holds today',j_echo_q:'What we have on {q}',
+      j_L_dec:'Decisions',j_L_dec_s:'{n} courts and authorities, 1875 to today',j_L_law:'Laws',j_L_law_s:'{f} federal acts, {c} cantonal, {a} articles',
+      j_L_bot:'Dispatches',j_L_bot_s:'Federal Council dispatches (Botschaften) verbatim, with BBl reference',j_L_pra:'Administrative practice',j_L_pra_s:'Directives and circulars of FSIO, FINMA, FTA, SEM, SECO, COMCO, OAK BV and others',
+      j_L_com:'Commentaries',j_L_com_s:'open access, article by article',j_L_sch:'Scholarship',j_L_sch_s:'Articles, books and dissertations from {n} open sources',j_L_cit:'Citation graph',j_L_cit_s:'links between decisions, plus {n} to statute articles',
+      j_newest:'newest first',j_best:'most relevant first',j_only:'only “{q}”',j_none:'Nothing on this. This is exactly what your suggestion is for.',j_err:'Unreachable right now.',j_all:'see all →',j_over:'over {n}',j_min:'at least {n}',j_page:'p. {n}',
+      j_fed:'Federal',j_canton:'Canton of {n}',j_srcs:'{n} sources',j_src:'1 source',j_decs:'decisions',j_c_meta:'newest from {d} · checked {a}',j_since:'since {d}',j_c_note:'There is a coverage note for this source.',j_c_see:'see',j_c_empty:'No decisions from this canton yet. Pointing us to a source helps directly.',
+      j_today:'today',j_yday:'yesterday',j_days:'{n} days ago',j_months:'{n} months ago',
+      j_pii_lab:'Privacy',j_pii_h:'Replaced before sending',j_pii_p:'We only receive the placeholder. Detection follows patterns and is not complete: please leave out case details.',
+      j_tool_lab:'May already exist',j_tool_go:'see',
+      j_t_ver:'Laws in every version',j_t_ver_x:'Federal law with the history of each article, at any date you choose.',j_t_cit:'Citations and leading cases',j_t_cit_x:'Who cites a decision, and which decisions shape a topic.',
+      j_t_app:'Appeal chain',j_t_app_x:'Links cantonal judgments to the Federal Supreme Court ruling in the same case.',j_t_erw:'Structured decisions',j_t_erw_x:'Facts, reasons (Erwägungen) and operative part, each retrievable and citable.',
+      j_t_stat:'Statistics and trends',j_t_stat_x:'How a topic develops across years and courts.',j_t_word:'Check citations in Word',j_t_word_x:'citecheck checks BGE and statute citations right in the document.',
+      j_t_api:'API and dataset',j_t_api_x:'REST API, command line, MCP server and the full dataset as Parquet, CC0.',
+      j_a11y:'Results in {n} of {m} areas.',j_a11y_pii:'{n} personal details will be replaced before sending.'}
+  },
+  onReady:vorschlag
+});
+
+function vorschlag(O){
+'use strict';
+var API='https://mcp.opencaselaw.ch/api';
+var LANG=O.lang, D=document;
+function $(id){return D.getElementById(id)}
+function tr(k,vars){var s=O.t(k);if(vars)Object.keys(vars).forEach(function(v){s=s.split('{'+v+'}').join(vars[v])});return s}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmt(n){return Number(n).toLocaleString('de-CH')}
+function pageUrl(base){return LANG==='de'?base:base+LANG+'/'}
+function dch(iso){if(!iso)return '';var p=String(iso).slice(0,10).split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:''}
+function ago(iso){if(!iso)return '';var d=(Date.now()-new Date(iso).getTime())/864e5;
+  if(d<1)return tr('j_today');if(d<2)return tr('j_yday');if(d<45)return tr('j_days',{n:Math.round(d)});return tr('j_months',{n:Math.round(d/30.4)})}
+var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
+var reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+var t=$('v-t'), mirror=$('v-mirror'), field=$('v-field'), ph=$('v-ph'), go=$('v-go');
+
+/* ── placeholder: real kinds of request, one at a time; Tab or a click takes it ── */
+var EXAMPLES=tr('j_ex').split('|'), phi=0;
+function setPh(){ph.textContent=EXAMPLES[phi%EXAMPLES.length]}
+setPh();
+var phTimer=setInterval(function(){if(t.value)return;ph.classList.add('out');setTimeout(function(){phi++;setPh();ph.classList.remove('out');grow()},500)},4200);
+function takeExample(){t.value=EXAMPLES[phi%EXAMPLES.length];clearInterval(phTimer);grow();update();t.focus();t.setSelectionRange(t.value.length,t.value.length)}
+
+/* ── context from the page that sent the user here ── */
+var qs=new URLSearchParams(location.search), ctx=null;
+(function(){
+  var map=[['bezug','decision','j_c_decision'],['law','law','j_c_law'],['lit','scholarship','j_c_scholarship'],['q','search','j_c_search']];
+  for(var i=0;i<map.length;i++){var v=qs.get(map[i][0]);if(v){ctx={type:map[i][1],value:v.slice(0,300)};$('v-ctx-v').textContent=tr(map[i][2],{q:v});$('v-ctx').classList.add('on');break}}
+  $('v-ctx-x').onclick=function(){ctx=null;$('v-ctx').classList.remove('on');t.focus()};
+  if(qs.get('text'))t.value=qs.get('text').slice(0,4000);
+})();
+if(!t.value){var draft=store.get('ocl-vorschlag');if(draft)t.value=draft}
+
+/* ── data: the live corpus, the same files the home page reads ── */
+var BY_COURT=[], YEARS={}, NOTES={}, TOTAL=0, CORPUS={};
+Promise.all([
+  fetch('/stats.json',{cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return null}),
+  fetch('/coverage.json').then(function(r){return r.json()}).catch(function(){return null})
+]).then(function(a){
+  if(a[0]){BY_COURT=a[0].by_court||[];TOTAL=a[0].total||0;CORPUS=a[0].corpus||{}}
+  if(a[1])(a[1].courts||[]).forEach(function(x){YEARS[x.court]=x.by_year||{};if(x.note)NOTES[x.court]=1});
+  lastSig='';update();renderCorpus();
+});
+
+/* ── recognisers: cantons and federal bodies in DE/FR/IT/EN, matched without accents ── */
+function fold(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()}
+function alt(src){return src.split('|').map(function(w){return w.replace(/\\./g,'').length>=6?w+'[a-z]{0,4}':w}).join('|')}
+// [de, fr, it, en] display names, then the folded patterns
+var CANTONS={
+  ZH:[['Zürich','Zurich','Zurigo','Zurich'],'zurich|zuerich|zurigo|zurcher|zuercher|zurichois'],
+  BE:[['Bern','Berne','Berna','Bern'],'bern|berne|berna|berner|bernisch|bernois'],
+  LU:[['Luzern','Lucerne','Lucerna','Lucerne'],'luzern|lucerne|lucerna|luzerner'],
+  UR:[['Uri','Uri','Uri','Uri'],'kanton uri|canton d.uri|urner'],
+  SZ:[['Schwyz','Schwyz','Svitto','Schwyz'],'schwyz|svitto|schwyzer'],
+  OW:[['Obwalden','Obwald','Obvaldo','Obwalden'],'obwalden|obwald|obvaldo|obwaldner'],
+  NW:[['Nidwalden','Nidwald','Nidvaldo','Nidwalden'],'nidwalden|nidwald|nidvaldo|nidwaldner'],
+  GL:[['Glarus','Glaris','Glarona','Glarus'],'glarus|glaris|glarona|glarner'],
+  ZG:[['Zug','Zoug','Zugo','Zug'],'zug|zoug|zugo|zuger'],
+  FR:[['Freiburg','Fribourg','Friburgo','Fribourg'],'freiburg|fribourg|friburgo|freiburger|fribourgeois'],
+  SO:[['Solothurn','Soleure','Soletta','Solothurn'],'solothurn|soleure|soletta|solothurner'],
+  BS:[['Basel-Stadt','Bâle-Ville','Basilea Città','Basel-Stadt'],'basel-stadt|baselstadt|bale-ville|basilea citta|basel|basler|bale'],
+  BL:[['Basel-Landschaft','Bâle-Campagne','Basilea Campagna','Basel-Landschaft'],'basel-landschaft|basel-land|baselland|baselbiet|bale-campagne|basilea campagna|basellandschaftlich'],
+  SH:[['Schaffhausen','Schaffhouse','Sciaffusa','Schaffhausen'],'schaffhausen|schaffhouse|sciaffusa|schaffhauser'],
+  AR:[['Appenzell Ausserrhoden','Appenzell Rhodes-Extérieures','Appenzello Esterno','Appenzell Outer Rhodes'],'ausserrhoden|rhodes-exterieures|appenzello esterno'],
+  AI:[['Appenzell Innerrhoden','Appenzell Rhodes-Intérieures','Appenzello Interno','Appenzell Inner Rhodes'],'innerrhoden|rhodes-interieures|appenzello interno'],
+  SG:[['St. Gallen','Saint-Gall','San Gallo','St. Gallen'],'st\\. ?gallen|sankt gallen|saint-gall|san gallo|st\\. ?galler'],
+  GR:[['Graubünden','Grisons','Grigioni','Graubünden'],'graubunden|graubuenden|grisons|grigioni|grischun|bundner|buendner|grischuna?'],
+  AG:[['Aargau','Argovie','Argovia','Aargau'],'aargau|argovie|argovia|aargauer'],
+  TG:[['Thurgau','Thurgovie','Turgovia','Thurgau'],'thurgau|thurgovie|turgovia|thurgauer'],
+  TI:[['Tessin','Tessin','Ticino','Ticino'],'tessin|ticino|ticinese|tessiner'],
+  VD:[['Waadt','Vaud','Vaud','Vaud'],'waadt|vaud|vaudois|waadtland'],
+  VS:[['Wallis','Valais','Vallese','Valais'],'wallis|valais|vallese|walliser|valaisan'],
+  NE:[['Neuenburg','Neuchâtel','Neuchâtel','Neuchâtel'],'neuenburg|neuchatel|neuchatelois|neuenburger'],
+  GE:[['Genf','Genève','Ginevra','Geneva'],'genf|geneve|geneva|ginevra|genfer|genevois'],
+  JU:[['Jura','Jura','Giura','Jura'],'jura|giura|jurassien|jurassisch']
+};
+var LI={de:0,fr:1,it:2,rm:0,en:3}[LANG]||0;
+var CANTON_RE=Object.keys(CANTONS).map(function(k){return [k,new RegExp('(^|[^a-z])('+alt(CANTONS[k][1])+')(?=[^a-z]|$)','g')]});
+var ABBR_RE=/(^|[^A-Za-z])(ZH|BE|LU|UR|SZ|OW|NW|GL|ZG|FR|SO|BS|BL|SH|AR|SG|GR|AG|TG|TI|VD|VS|NE|GE|JU)(?=[^A-Za-z]|$)/g; // "AI" usually means KI
+var FED={
+  bger:[['Bundesgericht','Tribunal fédéral','Tribunale federale','Federal Supreme Court'],'bundesgericht|bger|tribunal federal|tribunale federale|federal supreme court'],
+  bge:[['BGE · Leitentscheide','ATF · arrêts publiés','DTF · decisioni pubblicate','BGE · leading cases'],'bge|atf|dtf|leitentscheid|amtliche sammlung'],
+  bvger:[['Bundesverwaltungsgericht','Tribunal administratif fédéral','Tribunale amministrativo federale','Federal Administrative Court'],'bundesverwaltungsgericht|bvger|tribunal administratif federal|taf'],
+  bstger:[['Bundesstrafgericht','Tribunal pénal fédéral','Tribunale penale federale','Federal Criminal Court'],'bundesstrafgericht|bstger|tribunal penal federal|tpf'],
+  bpatger:[['Bundespatentgericht','Tribunal fédéral des brevets','Tribunale federale dei brevetti','Federal Patent Court'],'bundespatentgericht|bpatger|patentgericht|tribunal federal des brevets'],
+  ecthr:[['EGMR','CrEDH','CorteEDU','ECtHR'],'egmr|ecthr|echr|cedh|credh|corte ?edu|strassburg|strasbourg|menschenrechtsgerichtshof|hudoc'],
+  finma:[['FINMA','FINMA','FINMA','FINMA'],'finma'],weko:[['WEKO','COMCO','COMCO','COMCO'],'weko|comco|wettbewerbskommission'],
+  elcom:[['ElCom','ElCom','ElCom','ElCom'],'elcom'],edoeb:[['EDÖB','PFPDT','IFPDT','FDPIC'],'edob|edoeb|pfpdt|ifpdt|fdpic|datenschutzbeauftragt'],
+  ubi:[['UBI','AIEP','AIRR','UBI'],'ubi|aiep|airr'],postcom:[['PostCom','PostCom','PostCom','PostCom'],'postcom'],
+  comcom:[['ComCom','ComCom','ComCom','ComCom'],'comcom'],estv:[['ESTV','AFC','AFC','FTA'],'estv|steuerverwaltung'],
+  bazg:[['BAZG','OFDF','UDSC','FOCBS'],'bazg|ofdf|udsc'],esbk:[['ESBK','CFMJ','CFCG','FGB'],'esbk|cfmj|spielbanken'],
+  mkg:[['Militärkassationsgericht','Tribunal militaire de cassation','Tribunale militare di cassazione','Military Court of Cassation'],'militarkassation|mkg']
+};
+var FED_RE=Object.keys(FED).map(function(k){return [k,new RegExp('(^|[^a-z])('+alt(FED[k][1])+')(?=[^a-z]|$)','g')]});
+var TOOLS=[
+  ['fassung|version|historisch|in kraft|geltend|revision|anderung|aenderung|ancienne teneur|teneur|versione','ver','/laws/','get_law · get_article_history'],
+  ['zitier|citation|zitat|leitentscheid|leading case|wird zitiert|arret de principe|sentenza di principio','cit','/mcp/','find_citations · find_leading_cases'],
+  ['vorinstanz|instanzenzug|weitergezogen|appeal chain|voie de recours|istanza precedente','app','/mcp/','find_appeal_chain'],
+  ['erwagung|erwaegung|considerant|considerando|regeste|dispositiv','erw','/mcp/','get_erwaegung · get_regeste'],
+  ['statistik|trend|entwicklung|haufigkeit|statistique|statistica','stat','/stats/','analyze_legal_trend'],
+  ['word|add-in|addin|zitate prufen|citecheck','word','/citecheck/','citecheck'],
+  ['api|rest|python|cli|programm|schnittstelle|download|parquet|huggingface|datensatz|dataset|jeu de donnees','api','/api/','REST · ocl · MCP']
+].map(function(x){return {re:new RegExp('(^|[^a-z])('+x[0]+')'),k:x[1],href:x[2],tools:x[3]}});
+var KIND_RULES={
+  error:/(korrigier|falsch|fehlerhaft|fehler|stimmt nicht|kaputt|broken|wrong|bug|erreur|errone|faux|incorrect|sbagliat|errore|non e corrett|funktioniert nicht|404|timeout|doppelt|doublon)/,
+  source:/(fehl(t|en)|manque|mancan|missing|aufnehmen|ajouter|aggiungere|quelle|sammlung|entscheide d|arrets d|sentenze d|rechtsprechung|jurisprudence|giurisprudenza)/,
+  feature:/(funktion|filter|filtre|filtro|wäre|waere|ware|möchte|mochte|könnte|konnte|tool|export|sortier|benachrichtig|alert|feature|fonction|pourrait|serait|funzione|sarebbe|would|could|berechn)/
+};
+function analyse(raw){
+  var f=fold(raw), spans=[], cantons={}, feds={}, tools=[], m;
+  CANTON_RE.forEach(function(p){p[1].lastIndex=0;while((m=p[1].exec(f))){var st=m.index+m[1].length;spans.push({s:st,e:st+m[2].length,k:'ent'});cantons[p[0]]=1}});
+  ABBR_RE.lastIndex=0;while((m=ABBR_RE.exec(raw))){var st=m.index+m[1].length;spans.push({s:st,e:st+2,k:'ent'});cantons[m[2]]=1}
+  FED_RE.forEach(function(p){p[1].lastIndex=0;while((m=p[1].exec(f))){var st=m.index+m[1].length;spans.push({s:st,e:st+m[2].length,k:'ent'});feds[p[0]]=1}});
+  if(cantons.BL&&cantons.BS&&!/basel-stadt|baselstadt|bale-ville|basilea citta/.test(f)&&!/\bBS\b/.test(raw))delete cantons.BS;
+  TOOLS.forEach(function(x){if(x.re.test(f))tools.push(x)});
+  var pii=[];
+  if(window.redactPII&&raw.trim()){try{pii=window.redactPII(raw).replacements||[]}catch(e){}}
+  pii.forEach(function(r){spans.push({s:r.start,e:r.end,k:'pii'})});
+  var kind='other',best=0;
+  Object.keys(KIND_RULES).forEach(function(k){var n=(f.match(new RegExp(KIND_RULES[k].source,'g'))||[]).length;if(k==='error')n*=2;
+    if(k==='source'&&(Object.keys(cantons).length||Object.keys(feds).length))n+=.5;if(n>best){best=n;kind=k}});
+  // what may leave the page while typing: the text with recognised personal data taken out
+  var safe=raw;if(pii.length){safe='';var at=0;pii.forEach(function(r){safe+=raw.slice(at,r.start)+' ';at=r.end});safe+=raw.slice(at)}
+  return {spans:spans,cantons:Object.keys(cantons),feds:Object.keys(feds),tools:tools.slice(0,2),pii:pii,kind:kind,safe:safe};
+}
+function paint(raw,spans){
+  spans.sort(function(a,b){return a.s-b.s||(a.k==='pii'?-1:b.k==='pii'?1:b.e-a.e)});
+  var out='',pos=0;
+  spans.forEach(function(sp){if(sp.s<pos)return;out+=esc(raw.slice(pos,sp.s))+'<mark class="'+sp.k+'">'+esc(raw.slice(sp.s,sp.e))+'</mark>';pos=sp.e});
+  mirror.innerHTML=out+esc(raw.slice(pos))+'​';
+}
+
+/* ── court and canton cards ── */
+function pretty(code){var s=code.replace(/^[a-z]{2}_/,'').replace(/_/g,' ');return s.charAt(0).toUpperCase()+s.slice(1)}
+function spark(codes){
+  var y={},lo=1990,hi=new Date().getFullYear(),i;
+  codes.forEach(function(c){var b=YEARS[c]||{};Object.keys(b).forEach(function(k){y[k]=(y[k]||0)+b[k]})});
+  var max=0;for(i=lo;i<=hi;i++)max=Math.max(max,y[i]||0);if(!max)return '';
+  var w=100/(hi-lo+1),r='';
+  for(i=lo;i<=hi;i++){var h=Math.max((y[i]||0)/max*28,(y[i]?1:0));r+='<rect x="'+((i-lo)*w+.15).toFixed(2)+'" y="'+(30-h).toFixed(1)+'" width="'+(w-.3).toFixed(2)+'" height="'+h.toFixed(1)+'"'+(i>=hi-1?' class="hi"':'')+'/>'}
+  return '<svg class="v-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">'+r+'</svg>';
+}
+function courtCard(title,lab,rows,words){
+  if(!rows.length)return '';
+  var total=0,last=null,latest=null;
+  rows.forEach(function(r){total+=r.count;if(!last||r.last_scraped>last)last=r.last_scraped;if(!latest||r.latest>latest)latest=r.latest});
+  rows.sort(function(a,b){return b.count-a.count});
+  var hits=rows.filter(function(r){return words.some(function(w){return r.court.indexOf(w)>=0})});
+  var shown=(hits.length?hits.concat(rows.filter(function(r){return hits.indexOf(r)<0})):rows).slice(0,5);
+  var noted=(hits.length?hits:rows.slice(0,1)).some(function(r){return NOTES[r.court]});
+  var li=shown.map(function(r){var stale=r.last_scraped&&(Date.now()-new Date(r.last_scraped))/864e5>45;
+    return '<li class="'+(hits.indexOf(r)>=0?'hit':'')+'"><span>'+esc(pretty(r.court))+'</span><span class="n'+(stale?' stale':'')+'">'+fmt(r.count)+(stale?' · '+tr('j_since',{d:dch(r.last_scraped)}):'')+'</span></li>'}).join('');
+  return '<div class="v-card"><p class="lab"><span>'+esc(lab)+'</span><span>'+(rows.length===1?tr('j_src'):tr('j_srcs',{n:rows.length}))+'</span></p>'+
+    '<h3>'+esc(title)+'</h3><p class="big">'+fmt(total)+' <span>'+tr('j_decs')+'</span></p>'+
+    '<p class="meta">'+tr('j_c_meta',{d:dch(latest),a:ago(last)})+'</p>'+spark(rows.map(function(r){return r.court}))+
+    (noted?'<p><span class="warn">'+tr('j_c_note')+'</span> <a href="'+pageUrl('/coverage/')+'">'+tr('j_c_see')+'</a></p>':'')+
+    (rows.length>1?'<ul>'+li+'</ul>':'')+'</div>';
+}
+
+/* ── the whole corpus, live ──
+   Every layer is asked on the public API as the user types: ~110 ms after the last
+   keystroke, older requests aborted, each row painted the moment its answer lands.
+   Fast paths only; decisions are re-asked by relevance once typing pauses. Hits are
+   re-ranked here by how many of the typed words they carry. */
+function qp(o){return Object.keys(o).filter(function(k){return o[k]!=null&&o[k]!==''}).map(function(k){return k+'='+encodeURIComponent(o[k])}).join('&')}
+function clip(x,n){x=String(x||'').replace(/\s+/g,' ').trim();return x.length>n?x.slice(0,n-1).replace(/\s\S*$/,'')+'…':x}
+function shortTitle(s){var m=String(s||'').match(/\(([^()]{3,80})\)\s*$/);return m?m[1]:clip(s,80)}
+function unmark(s){return String(s||'').replace(/\*\*|>>>|<<<|&amp;/g,function(x){return x==='&amp;'?'&':''}).replace(/^…\s*/,'')}
+var REF_RE=/\b(BGE|ATF|DTF)\s+\d{1,3}\s+[IV]{1,3}[a-z]?\s+\d{1,4}\b|\b\d{1,2}[A-Z]{1,2}[_.]\d{1,5}\/\d{4}\b|\b[A-F]-\d{1,5}\/\d{4}\b/;
+var LAW_ABBR_RE=/^(?=.*[A-Z].*[A-Z])[A-Z][A-Za-z]{0,5}[A-Z0-9]$/;
+var CANTON_ABBR=/^(ZH|BE|LU|UR|SZ|OW|NW|GL|ZG|FR|SO|BS|BL|SH|AR|AI|SG|GR|AG|TG|TI|VD|VS|NE|GE|JU|CH|BGE|ATF|DTF|API|CLI|MCP|REST|PDF|URL|KI)$/;
+var LAYERS=[
+  {k:'dec',name:'j_L_dec',
+   base:function(){return TOTAL?fmt(TOTAL):''},sub:function(){return BY_COURT.length?tr('j_L_dec_s',{n:BY_COURT.length}):''},
+   req:function(q,o){return o.ref?API+'/lookup?'+qp({q:o.ref,limit:3})
+     :API+'/decisions?'+qp({q:q,limit:3,sort:o.best?null:'date_desc',fields:'compact',include_pinpoint:'false'})},
+   parse:function(d){return {total:d.total,lower:d.total_is_lower_bound,hits:(d.results||[]).map(function(r){
+     return {t:r.citation_string_de&&LANG!=='fr'&&LANG!=='it'?r.citation_string_de:(r['citation_string_'+LANG]||r.citation_string_de||r.citation||r.docket_number),
+       s:[dch(r.decision_date),(r.court||'').replace(/_/g,' ').toUpperCase()].filter(Boolean).join(' · '),href:r.canonical_url||r.url}})}},
+   all:function(q){return pageUrl('/search/')+'?q='+encodeURIComponent(q)}},
+  {k:'law',name:'j_L_law',
+   base:function(){return CORPUS.federal_laws?fmt(CORPUS.federal_laws+CORPUS.cantonal_laws):''},
+   sub:function(){return CORPUS.federal_laws?tr('j_L_law_s',{f:fmt(CORPUS.federal_laws),c:fmt(CORPUS.cantonal_laws),a:fmt(CORPUS.federal_law_articles+CORPUS.cantonal_law_articles)}):''},
+   req:function(q){return API+'/laws/search?'+qp({q:q,limit:8})},
+   parse:function(d){return {hits:(d.results||[]).map(function(r){var fed=r.level==='federal';
+     return {t:'Art. '+r.article_num+' '+r.abbreviation+(fed?'':' '+r.canton),s:shortTitle(r.title),x:r.heading||'',abbr:r.abbreviation,
+       href:fed?pageUrl('/laws/')+'?'+qp({law:r.abbreviation,art:r.article_num}):pageUrl('/laws/')+'?'+qp({q:r.abbreviation})}})}},
+   all:function(q){return pageUrl('/laws/')+'?q='+encodeURIComponent(q)}},
+  {k:'bot',name:'j_L_bot',base:function(){return ''},sub:function(){return tr('j_L_bot_s')},
+   req:function(q){return API+'/search-botschaft?'+qp({q:q,limit:6})},
+   parse:function(d){return {hits:(d.results||[]).map(function(r){var sn=unmark(r.snippet);
+     return {t:r.bbl_citation+(r.page?', '+tr('j_page',{n:r.page}):''),s:clip(sn,110),x:clip(sn,320),href:r.eli_uri}})}}},
+  {k:'pra',name:'j_L_pra',base:function(){return ''},sub:function(){return tr('j_L_pra_s')},
+   post:'/tool/search_practice',body:function(q){return {query:q,limit:6}},
+   parse:function(d){return {total:d.distinct_documents||d.total,hits:(d.results||[]).map(function(r){
+     return {t:clip(r.title,90),s:[r.issuing_authority,dch(r.date)].filter(Boolean).join(' · '),x:clip(unmark(r.snippet),320),href:r.url}})}}},
+  {k:'com',name:'j_L_com',base:function(){return CORPUS.commentaries?fmt(CORPUS.commentaries):''},sub:function(){return tr('j_L_com_s')},
+   req:function(q,o){return API+'/commentaries/search?'+qp({q:q,limit:6,abbreviation:o.abbr})},
+   parse:function(d){return {hits:(d.results||[]).map(function(r){var a=r.authors;if(Array.isArray(a))a=a.join(', ');
+     return {t:r.title,s:clip(a,60),x:clip(unmark(r.snippet),320),abbr:r.abbreviation,href:r.html_link}})}}},
+  {k:'sch',name:'j_L_sch',base:function(){return CORPUS.scholarship_publications?fmt(CORPUS.scholarship_publications):''},
+   sub:function(){var n=Object.keys(CORPUS.scholarship_by_source||{}).length;return n?tr('j_L_sch_s',{n:n}):''},
+   req:function(q){return API+'/scholarship/search?'+qp({q:q,limit:6})},
+   parse:function(d){return {hits:(d.results||[]).map(function(r){
+     return {t:clip(unmark(r.title),90),s:[clip(r.authors,40),r.year].filter(Boolean).join(' · '),x:clip(unmark(r.snippet),320),
+       href:r.url||(pageUrl('/scholarship/')+'?q='+encodeURIComponent(r.title))}})}},
+   all:function(q){return pageUrl('/scholarship/')+'?q='+encodeURIComponent(q)}},
+  {k:'cit',name:'j_L_cit',fixed:true,base:function(){return CORPUS.citation_edges?fmt(CORPUS.citation_edges):''},
+   sub:function(){return CORPUS.statute_edges?tr('j_L_cit_s',{n:fmt(CORPUS.statute_edges)}):''}}
+];
+var SHOW={dec:3,law:3,bot:2,pra:2,com:2,sch:2};
+
+/* the words that carry the topic: no stopwords, no request vocabulary, law abbreviations first */
+var STOP={};('aber alle allem allen also auch auf aus bei beim bereits bin bis bitte dabei damit dann dass dem den denen der des dessen die dies diese diesem diesen dieser dieses doch dort durch eben eine einem einen einer eines einige etwa etwas euch fast gegen genau gerade gerne gibt habe haben hallo hat hatte heute hier ihnen ihr ihre ihrem ihren immer jede jeder jetzt kann kein keine keinen konnte konnten könnte könnten leider machen mehr meine mich mir mit muss nach neben nicht noch nur oder ohne sehr sein seine seit sich sie sind sollte sollten sowie statt über und uns unser unter viel viele vielleicht vom von vor wäre wären waere war waren warum was weil weiter welche wenn werden wie wieder wir wird wurde wurden würde zum zur zwar zwischen danke grüsse gruss '+
+ 'stimmt stimmen zeigt zeigen steht stehen geht gehen kommt kommen sollen soll gäbe wenig weniger manchmal oft dazu bisher fehlen fehlt fehlende fehlenden fehlten '+
+ 'entscheid entscheide entscheiden entscheidungen urteil urteile quelle quellen fehler falsch falsche falschem falschen korrigieren korrektur ergänzen ergaenzen aufnehmen hinzufügen einbauen funktion funktionen feature features hilfreich nützlich schön toll super suche suchen finden gefunden möglich möglichkeit vorschlag idee datum seite website plattform opencaselaw gericht gerichte '+
+ 'kommentar kommentare kommentaren gesetz gesetze gesetzen botschaft botschaften literatur aufsatz aufsätze weisung weisungen besonders insbesondere vielen dank '+
+ 'commentaire commentaires loi lois message messages doctrine notamment surtout commentario commentari legge leggi messaggio messaggi dottrina soprattutto commentary commentaries law laws dispatch scholarship especially '+
+ 'januar februar märz april juni juli august september oktober november dezember '+
+ 'avec dans des les une pour pas plus que qui sur est sont manque manquent ajouter serait pourrait arrêts arrêt merci aussi cette ces leur leurs dont mais tout tous très été être avoir date erronée erreur fonction recherche utile '+
+ 'della delle degli dei per che con non sono manca mancano sarebbe anche questa questo grazie nella nelle sentenze sentenza data corretta errore funzione ricerca utile '+
+ 'the and for with that this would should missing please add could from have there their about which also wrong date search helpful decisions').split(' ').forEach(function(w){STOP[w]=1});
+function terms(raw){
+  var toks=raw.replace(REF_RE,' ').match(/[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\-]*/g)||[], seen={}, out=[];
+  toks.forEach(function(w,i){
+    w=w.replace(/-+$/,'');var lw=w.toLowerCase();if(seen[lw]||STOP[lw])return;
+    var abbr=LAW_ABBR_RE.test(w)&&!CANTON_ABBR.test(w);
+    if(!abbr&&(w.length<4||CANTON_ABBR.test(w)))return;
+    seen[lw]=1;out.push({w:w,i:i,abbr:abbr,score:(abbr?100:0)+Math.min(w.length,16)-i*.01});
+  });
+  return out.sort(function(a,b){return b.score-a.score}).slice(0,3);
+}
+function relevance(hit,keys,abbr){
+  var hay=fold([hit.t,hit.s,hit.x].join(' ')), sc=0;
+  keys.forEach(function(k){if(hay.indexOf(k)>=0)sc+=10});
+  if(abbr&&hit.abbr&&hit.abbr.replace(/\W/g,'').toUpperCase()===abbr.replace(/\W/g,'').toUpperCase())sc+=15;
+  return sc;
+}
+function rerank(l,res,ctx){
+  if(l.k==='dec'||!res.hits.length)return res;
+  var keys=ctx.terms.map(function(x){return fold(x.w).slice(0,6)});
+  var ranked=res.hits.map(function(h,i){return {h:h,i:i,s:relevance(h,keys,ctx.abbr)}})
+    .sort(function(a,b){return b.s-a.s||a.i-b.i}).map(function(x){return x.h});
+  return {total:res.total,lower:res.lower,narrow:res.narrow,best:res.best,hits:ranked};
+}
+
+var live={q:'',ref:'',gen:0,ctrl:null,timer:0,relTimer:0,state:{},ctx:{terms:[]}}, cache={};
+function fetchLayer(l,q,o,sig){
+  var key=l.k+'|'+q+'|'+(o.ref||'')+'|'+(o.abbr||'')+'|'+(o.best?1:0);if(cache[key])return cache[key];
+  var req=l.post?fetch(API+l.post,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(l.body(q)),signal:sig})
+                :fetch(l.req(q,o),{signal:sig});
+  var p=req.then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(l.parse);
+  cache[key]=p;p.catch(function(){delete cache[key]});return p;
+}
+function schedule(raw){
+  var tq=terms(raw), q=tq.map(function(x){return x}).sort(function(a,b){return a.i-b.i}).map(function(x){return x.w}).join(' ');
+  var m=raw.match(REF_RE), ref=m?m[0]:'', abbrT=tq.filter(function(x){return x.abbr})[0];
+  if(q===live.q&&ref===live.ref)return;
+  live.q=q;live.ref=ref;live.ctx={terms:tq,abbr:abbrT?abbrT.w:'',top:tq.length?tq[0].w:''};
+  clearTimeout(live.timer);clearTimeout(live.relTimer);
+  if(!q&&!ref){live.gen++;if(live.ctrl)live.ctrl.abort();live.state={};renderCorpus();return}
+  LAYERS.forEach(function(l){if(l.fixed||(!q&&l.k!=='dec')){delete live.state[l.k];return}
+    var o=live.state[l.k]||{};live.state[l.k]={busy:true,hits:o.hits,total:o.total,lower:o.lower,best:o.best}});
+  renderCorpus();
+  live.timer=setTimeout(function(){run(q,ref)},110);
+}
+function run(q,ref){
+  var gen=++live.gen, cx=live.ctx;if(live.ctrl)live.ctrl.abort();live.ctrl=new AbortController();var sig=live.ctrl.signal;
+  LAYERS.forEach(function(l){
+    if(l.fixed||(!q&&l.k!=='dec'))return;
+    var o={ref:l.k==='dec'?ref:'',abbr:l.k==='com'?cx.abbr:''};
+    var qq=(l.k==='com'&&cx.abbr)?(cx.terms.filter(function(x){return !x.abbr}).map(function(x){return x.w}).join(' ')||cx.abbr):q;
+    fetchLayer(l,qq,o,sig).then(function(res){
+      if(gen!==live.gen)return;
+      if(!res.hits.length&&!o.ref&&(o.abbr||q.indexOf(' ')>0)){
+        var steps=[];if(o.abbr)steps.push(q);
+        var byScore=cx.terms.map(function(x){return x.w});
+        if(byScore.length>2)steps.push(byScore.slice(0,2).join(' '));
+        if(byScore.length>1)steps.push(byScore[0]);
+        return (function next(i){
+          if(i>=steps.length){settle(l,res);return}
+          return fetchLayer(l,steps[i],{ref:'',abbr:''},sig).then(function(r){if(gen!==live.gen)return;
+            if(!r.hits.length)return next(i+1);if(steps[i]!==q)r.narrow=steps[i];settle(l,rerank(l,r,cx))});
+        })(0);
+      }
+      settle(l,rerank(l,res,cx));
+    }).catch(function(e){if(gen!==live.gen||e.name==='AbortError')return;var o2=live.state[l.k]||{};live.state[l.k]={error:!o2.hits,hits:o2.hits,total:o2.total};renderCorpus()});
+  });
+  // decisions by relevance, once the typing has settled (the heavier query)
+  if(q&&!ref)live.relTimer=setTimeout(function(){
+    if(gen!==live.gen)return;
+    fetchLayer(LAYERS[0],q,{best:true},sig).then(function(r){
+      if(gen!==live.gen||!r.hits.length)return;var cur=live.state.dec||{};
+      if(cur.narrow)return;
+      r.best=true;if(cur.total!=null&&r.total==null){r.total=cur.total;r.lower=cur.lower}settle(LAYERS[0],r);
+    }).catch(function(){});
+  },900);
+}
+function settle(l,r){live.state[l.k]=r;renderCorpus()}
+
+var rows={}, announced='';
+function rowFor(l){
+  if(rows[l.k])return rows[l.k];
+  var el=D.createElement('div');el.className='v-layer';el.dataset.k=l.k;
+  el.innerHTML='<div class="in"><div class="top"><span class="name">'+tr(l.name)+'<i></i></span><span class="num"></span></div><div class="sub"></div><div class="body"></div></div>';
+  rows[l.k]=el;return el;
+}
+function setNum(el,text,value){
+  if(el.dataset.text===text)return;
+  var from=parseFloat(el.dataset.v||'NaN');el.dataset.text=text;el.dataset.v=value==null?'':value;
+  if(reduced||value==null||isNaN(from)||from===value||!text){el.textContent=text;return}
+  var t0=performance.now(),pre=text.slice(0,text.indexOf(fmt(value)));
+  (function step(now){var k=Math.min(1,(now-t0)/450),e=1-Math.pow(1-k,3);
+    if(el.dataset.text!==text)return;el.textContent=pre+fmt(Math.round(from+(value-from)*e));if(k<1)requestAnimationFrame(step)})(t0);
+}
+function renderCorpus(){
+  var q=live.q||live.ref, box=$('v-corpus'), busyAny=false, withHits=0, asked=0;
+  $('v-echo-h').innerHTML=q?tr('j_echo_q',{q:'<q>'+esc(q)+'</q>'}):tr('j_echo_rest');
+  var order=[];
+  LAYERS.forEach(function(l){
+    var el=rowFor(l), st=live.state[l.k], cls='v-layer', num='', val=null, sub='', body='', rank=1;
+    if(!q||l.fixed||!st){num=l.base();val=num?parseInt(num.replace(/\D/g,''),10):null;sub=l.sub();rank=l.fixed?3:1}
+    else{
+      asked++;
+      if(st.busy){cls+=' busy';busyAny=true;if(st.hits)cls+=' stale'}
+      if(st.error){sub=tr('j_err');rank=2}
+      else if(st.busy&&!st.hits){body='<span class="sk"></span><span class="sk"></span>'}
+      else if(st.hits&&st.hits.length){
+        withHits++;rank=0;
+        if(st.total!=null){val=st.total;num=st.lower?tr(st.total>=2000?'j_over':'j_min',{n:fmt(st.total)}):fmt(st.total)}
+        var bits=[];if(st.narrow)bits.push(tr('j_only',{q:esc(st.narrow)}));
+        if(l.k==='dec'&&!live.ref)bits.push(tr(st.best?'j_best':'j_newest'));sub=bits.join(' · ');
+        body='<ol>'+st.hits.slice(0,SHOW[l.k]||2).map(function(x){
+          var inner='<span class="ht">'+esc(x.t||'')+'</span>'+(x.s?'<small>'+esc(x.s)+'</small>':'')+(x.x&&x.x!==x.s?'<small class="x">'+esc(x.x)+'</small>':'');
+          return '<li>'+(x.href?'<a href="'+esc(x.href)+'" target="_blank" rel="noopener">'+inner+'</a>':inner)+'</li>'}).join('')+'</ol>'+
+          (l.all?'<a class="all" href="'+esc(l.all(st.narrow||live.q||live.ref))+'" target="_blank" rel="noopener">'+tr('j_all')+'</a>':'');
+      }
+      else if(st.hits){cls+=' none';num='0';val=0;sub=tr('j_none');rank=2}
+    }
+    if(el.className!==cls)el.className=cls;
+    setNum(el.querySelector('.num'),num,val);
+    var subEl=el.querySelector('.sub');if(subEl.innerHTML!==sub){subEl.innerHTML=sub;subEl.style.display=sub?'':'none'}
+    var bodyEl=el.querySelector('.body');if(bodyEl.dataset.h!==body){bodyEl.dataset.h=body;bodyEl.innerHTML=body}
+    order.push({el:el,rank:rank,i:order.length});
+  });
+  // layers with hits rise, empty ones sink; FLIP so the eye can follow
+  order.sort(function(a,b){return a.rank-b.rank||a.i-b.i});
+  var changed=order.some(function(o,i){return box.children[i]!==o.el});
+  if(changed){
+    var first={};order.forEach(function(o){if(o.el.parentNode)first[o.el.dataset.k]=o.el.getBoundingClientRect().top});
+    order.forEach(function(o){box.appendChild(o.el)});
+    if(!reduced)order.forEach(function(o){var f=first[o.el.dataset.k];if(f==null)return;var d=f-o.el.getBoundingClientRect().top;if(!d)return;
+      o.el.animate([{transform:'translateY('+d+'px)'},{transform:'none'}],{duration:380,easing:'cubic-bezier(.22,.61,.36,1)'})});
+  }
+  box.setAttribute('aria-busy',busyAny?'true':'false');
+  if(q&&!busyAny&&asked){var msg=tr('j_a11y',{n:withHits,m:asked});if(msg+q!==announced){announced=msg+q;announce(msg)}}
+}
+var annTimer=0;
+function announce(msg){clearTimeout(annTimer);annTimer=setTimeout(function(){$('v-status').textContent=msg},700)}
+
+/* ── live analysis on every keystroke ── */
+var userKind=false, lastSig='', lastPii=0;
+function update(){
+  var raw=t.value, a=analyse(raw), n=raw.trim().length;
+  paint(raw,a.spans);
+  field.classList.toggle('filled',raw.length>0);
+  $('v-count').innerHTML=n?(n<12?tr('j_more',{n:12-n}):tr('j_chars',{n:fmt(n)})):'<button type="button" class="v-take" id="v-take">⇥ '+tr('j_take')+'</button>';
+  var tk=$('v-take');if(tk)tk.onclick=takeExample;
+  go.disabled=n<12;
+  $('v-follow').classList.toggle('on',n>=24);
+  if(!userKind){var r=D.querySelector('input[name=kind][value='+a.kind+']');if(r)r.checked=true;$('v-auto').classList.toggle('on',a.kind!=='other'&&n>=12)}
+  store.set('ocl-vorschlag',raw||null);
+  schedule(a.safe);
+  $('v-echo').classList.toggle('has',n>=3);
+  if(a.pii.length!==lastPii){lastPii=a.pii.length;if(lastPii)announce(tr('j_a11y_pii',{n:lastPii}))}
+
+  var words=fold(raw).split(/[^a-z0-9]+/).filter(function(w){return w.length>4}).map(function(w){return w.slice(0,6)});
+  var sig=a.cantons.join()+'|'+a.feds.join()+'|'+a.tools.map(function(x){return x.k}).join()+'|'+a.pii.map(function(p){return p.original}).join()+'|'+words.join();
+  if(sig===lastSig)return;lastSig=sig;
+  $('v-pii').innerHTML=a.pii.length?'<div class="v-card pii"><p class="lab"><span>'+tr('j_pii_lab')+'</span><span>'+a.pii.length+'×</span></p><h3>'+tr('j_pii_h')+'</h3>'+
+      a.pii.slice(0,4).map(function(r){return '<div class="row"><s>'+esc(r.original)+'</s><span aria-hidden="true">→</span><code>'+esc(r.placeholder)+'</code></div>'}).join('')+
+      '<p>'+tr('j_pii_p')+'</p></div>':'';
+  var html='';
+  a.feds.forEach(function(k){
+    var rws=BY_COURT.filter(function(r){return k==='ecthr'?/^(ecthr|hudoc|bge_egmr)/.test(r.court):r.court===k});
+    html+=courtCard(FED[k][0][LI],tr('j_fed'),rws,words);
+  });
+  a.cantons.slice(0,3).forEach(function(k){
+    var rws=BY_COURT.filter(function(r){return r.canton===k}), name=tr('j_canton',{n:CANTONS[k][0][LI]});
+    html+=courtCard(name,k,rws,words)||(BY_COURT.length?'<div class="v-card"><p class="lab"><span>'+k+'</span></p><h3>'+esc(name)+'</h3><p>'+tr('j_c_empty')+'</p></div>':'');
+  });
+  a.tools.forEach(function(x){
+    html+='<div class="v-card"><p class="lab"><span>'+tr('j_tool_lab')+'</span></p><h3>'+tr('j_t_'+x.k)+'</h3><p>'+tr('j_t_'+x.k+'_x')+'</p><p class="meta"><code>'+esc(x.tools)+'</code> · <a href="'+pageUrl(x.href)+'">'+tr('j_tool_go')+'</a></p></div>';
+  });
+  $('v-cards').innerHTML=html;
+}
+
+/* ── wiring ── */
+function grow(){t.style.height='auto';t.style.height=Math.max(t.scrollHeight,t.value?0:ph.offsetHeight)+'px'}
+t.addEventListener('input',function(){grow();update()});
+t.addEventListener('keydown',function(e){
+  if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();if(!go.disabled)$('v-sheet').requestSubmit()}
+  else if(e.key==='Tab'&&!e.shiftKey&&!t.value){e.preventDefault();takeExample()}
+});
+D.querySelectorAll('input[name=kind]').forEach(function(r){r.addEventListener('change',function(){userKind=true;$('v-auto').classList.remove('on')})});
+window.addEventListener('resize',grow);
+// on a phone the echo moves up under the text, where the eye already is
+var aside=$('v-echo'), desk=D.querySelector('.v-desk'), mq=matchMedia('(max-width:900px)');
+function place(){if(mq.matches)D.querySelector('.v-bar').after(aside);else desk.appendChild(aside)}
+(mq.addEventListener?mq.addEventListener('change',place):mq.addListener(place));place();
+
+/* ── sending ── */
+function setMsg(html){$('v-msg').innerHTML=html||''}
+function busy(on){go.disabled=on||t.value.trim().length<12;$('v-go-l').textContent=tr(on?'v_sending':'v_send')}
+$('v-sheet').addEventListener('submit',function(e){
+  e.preventDefault();setMsg('');
+  var raw=t.value.trim(), red=window.redactPII?window.redactPII(raw).redacted:raw;
+  var kind=(D.querySelector('input[name=kind]:checked')||{}).value||'other', mail=$('v-mail').value.trim();
+  var body={text:red,kind:kind,context:ctx,email:mail||null,lang:LANG,page:D.referrer?D.referrer.slice(0,300):null,website:this.website.value||undefined};
+  busy(true);
+  fetch(API+'/suggestions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){return r.json().catch(function(){return {}}).then(function(j){return {status:r.status,j:j}})})
+    .then(function(res){
+      busy(false);
+      if(res.status===201){remember(res.j);showReceipt({no:res.j.no,token:res.j.token,text:red,status:'received',created_at:res.j.created_at,email:!!mail},true);return}
+      if(res.status===429)return setMsg(tr('j_e_rate'));
+      if(res.status===400&&res.j.error==='email_invalid'){$('v-mail-note').innerHTML='<span class="err">'+tr('j_e_mail')+'</span>';$('v-mail').focus();return}
+      if(res.status===400&&res.j.error==='too_many_links')return setMsg(tr('j_e_links'));
+      if(res.status===400)return setMsg(tr('j_e_generic'));
+      fallback(red,kind);
+    })
+    .catch(function(){busy(false);fallback(red,kind)});
+});
+// the inbox is down or not deployed yet: nothing is lost, the e-mail is ready
+function fallback(text,kind){
+  var b=text+'\n\n— '+tr('v_k_'+kind)+(ctx?' · '+ctx.type+': '+ctx.value:'')+' · '+LANG;
+  var href='mailto:team@jonashertner.com?subject='+encodeURIComponent(tr('j_fb_subject'))+'&body='+encodeURIComponent(b);
+  setMsg(tr('j_fb')+' <a class="v-link" href="'+href+'">'+tr('j_fb_btn')+'</a>');
+}
+
+/* ── receipt and status ── */
+var STEP={received:1,read:2,planned:3,declined:3,shipped:4};
+function showReceipt(s,fresh){
+  var when=s.created_at?new Date(s.created_at):new Date();
+  $('v-st-l').textContent=tr('j_stamp');$('v-st-no').textContent=s.no;$('v-st-date').textContent=dch(when.toISOString());
+  $('v-r-quote').textContent=s.text||'';
+  var ans=$('v-r-answer');ans.hidden=!s.note;ans.querySelector('span').textContent=s.note||'';
+  var lis=$('v-steps').children, done=STEP[s.status]||1;
+  for(var i=0;i<lis.length;i++)lis[i].classList.toggle('done',i<done);
+  lis[0].querySelector('span').textContent=dch(when.toISOString())+(fresh?' · '+tr('j_at',{t:when.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}):'');
+  if(s.status==='planned'||s.status==='declined')lis[2].querySelector('b').textContent=tr(s.status==='planned'?'j_planned':'j_declined');
+  if(s.email)lis[3].querySelector('span').textContent=tr('j_mail_yes');
+  var url='opencaselaw.ch'+pageUrl('/vorschlag/')+'#'+s.token;
+  $('v-r-url').textContent=url;
+  $('v-r-copy').onclick=function(){var b=this;try{navigator.clipboard.writeText('https://'+url).then(function(){b.textContent=tr('v_copied')})}catch(e){}};
+  $('v-sheet').style.display='none';
+  var rc=$('v-receipt');rc.classList.toggle('quiet',!fresh);rc.classList.add('on');
+  if(fresh){history.replaceState(null,'','#'+s.token);store.set('ocl-vorschlag',null);
+    var top=rc.getBoundingClientRect().top+scrollY-110;scrollTo({top:top,behavior:reduced?'auto':'smooth'})}
+  $('v-status').textContent=tr('v_s1')+' · '+s.no;
+}
+function loadStatus(token){
+  $('v-sheet').style.display='none';
+  var rc=$('v-receipt');rc.classList.add('on','quiet');$('v-r-quote').textContent=tr('j_st_load');$('v-st-no').textContent='…';
+  fetch(API+'/suggestions/'+token,{cache:'no-store'}).then(function(r){return r.json().then(function(j){return {status:r.status,j:j}})})
+    .then(function(res){
+      if(res.status===200){res.j.token=token;showReceipt(res.j,false);var m=mine();if(m[token]){m[token].status=res.j.status;saveMine(m)}}
+      else{$('v-r-quote').textContent=tr(res.status===404&&res.j&&res.j.error==='not_found'?'j_st_404':'j_st_err');$('v-st-no').textContent='?'}
+    }).catch(function(){$('v-r-quote').textContent=tr('j_st_err');$('v-st-no').textContent='?'});
+}
+// this device's own suggestions: a convenience, never the record
+function mine(){try{return JSON.parse(store.get('ocl-vorschlag-mine')||'{}')}catch(e){return {}}}
+function saveMine(m){store.set('ocl-vorschlag-mine',JSON.stringify(m))}
+function remember(j){if(!j||!j.token)return;var m=mine();m[j.token]={no:j.no,status:'received',at:Date.now()};saveMine(m)}
+function listMine(){
+  var m=mine(), ks=Object.keys(m).sort(function(a,b){return m[b].at-m[a].at}).slice(0,6);
+  if(!ks.length)return;
+  var label={received:'v_s1',read:'v_s2',planned:'j_planned',declined:'j_declined',shipped:'v_s4'};
+  $('v-mine').innerHTML='<b>'+tr('j_mine')+'</b>'+ks.map(function(k){return '<a href="#'+k+'"><span>'+esc(m[k].no)+'</span> '+tr(label[m[k].status]||'v_s1')+'</a>'}).join('');
+  $('v-mine').hidden=false;
+}
+function route(){
+  var h=location.hash.slice(1);
+  if(/^[a-z2-9]{10}$/.test(h)){loadStatus(h);return true}
+  return false;
+}
+window.addEventListener('hashchange',function(){if(!route()){$('v-receipt').classList.remove('on');$('v-sheet').style.display=''}});
+
+grow();update();renderCorpus();listMine();
+if(!route()&&!('ontouchstart' in window))t.focus({preventScroll:true});
+window.addEventListener('load',function(){lastSig='';grow();update()}); // redact.js arrives deferred
+}
+</script>
+</body>
+</html>

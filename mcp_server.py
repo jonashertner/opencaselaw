@@ -34639,6 +34639,26 @@ setInterval(load, 30000);
     # Copilot Studio / Azure Function integrations get the same safety net
     # that Claude-side MCP clients get.
 
+    # ── Suggestions from opencaselaw.ch/vorschlag/ (suggestions.py) ──
+    # Off the OpenAPI schema on purpose: a form endpoint, not a research tool.
+    @rest_api.post("/suggestions", include_in_schema=False)
+    async def api_submit_suggestion(request: Request):
+        import suggestions as _sg
+        if int(request.headers.get("content-length") or 0) > 20_000:
+            return JSONResponse(status_code=413, content={"error": "too_large"})
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "invalid_json"})
+        code, body = await asyncio.to_thread(_sg.submit, payload, _client_ip(request))
+        return JSONResponse(status_code=code, content=body, headers={"Cache-Control": "no-store"})
+
+    @rest_api.get("/suggestions/{token}", include_in_schema=False)
+    async def api_suggestion_status(token: str):
+        import suggestions as _sg
+        code, body = await asyncio.to_thread(_sg.status, token)
+        return JSONResponse(status_code=code, content=body, headers={"Cache-Control": "no-store"})
+
     @rest_api.get("/cite", tags=["Citation Integrity"],
                   summary="Build a canonical Swiss citation",
                   description="Given any Swiss case reference (decision_id, BGE ref, docket number), "

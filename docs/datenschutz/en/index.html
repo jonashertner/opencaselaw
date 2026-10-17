@@ -59,6 +59,7 @@
         <a href="#priv-logs" data-t="priv_toc_logs">Logs &amp; retention</a>
         <a href="#priv-rollup" data-t="priv_toc_rollup">Aggregation &amp; DP</a>
         <a href="#priv-wordaddin" data-t="priv_toc_wordaddin">Word add-in</a>
+        <a href="#vorschlag" data-t="priv_toc_suggest">Suggestions</a>
         <a href="#priv-rights" data-t="priv_toc_rights">Your rights</a>
         <a href="#priv-contact" data-t="priv_toc_contact">Contact</a>
       </nav>
@@ -169,9 +170,20 @@
       </div>
     </div>
 
-    <!-- §05 Your rights -->
+    <!-- §05 Suggestions -->
+    <div id="vorschlag" class="priv-sec">
+      <p class="sec-tag"><span class="n">§05</span> <span data-t="priv_toc_suggest">Suggestions</span></p>
+      <h2 class="sec-h" data-t="priv_suggest_heading">Suggestions through the form</h2>
+      <div class="prose">
+        <p data-t="priv_suggest_1">Sending a suggestion at <a href="/vorschlag/en/">opencaselaw.ch/vorschlag</a> transmits the text, the chosen kind and, if you give one, an e-mail address. Recognisable personal data (names after a title, AHV numbers, IBANs, phone numbers and more) is already replaced by your browser; the server checks a second time. We use the e-mail address only to write to you personally when the status changes.</p>
+        <p data-t="priv_suggest_2">Against abuse we keep, instead of the IP address, a hash formed with a secret key and the day’s date: it cannot be linked across days or traced back to the address. Suggestions are not published and not used to train models. On request we delete a suggestion together with the e-mail address; tell us its number or status link.</p>
+        <p data-t="priv_suggest_3">While you type, the page looks for matching material in the collection. To do so it sends up to three keywords from your text, after removing recognised personal data, as ordinary search requests to the public API; they are handled like any other request (§02). The suggestion itself is only transmitted when you send it.</p>
+      </div>
+    </div>
+
+    <!-- §06 Your rights -->
     <div id="priv-rights" class="priv-sec">
-      <p class="sec-tag"><span class="n">§05</span> <span data-t="priv_toc_rights">Your rights</span></p>
+      <p class="sec-tag"><span class="n">§06</span> <span data-t="priv_toc_rights">Your rights</span></p>
       <h2 class="sec-h" data-t="priv_rights_heading">Your rights (nFADP / GDPR)</h2>
       <div class="prose">
         <p data-t="priv_rights_1">The revised Swiss Federal Act on Data Protection (nFADP, in force since September 2023) and the European GDPR grant you rights of access, rectification, and deletion. OpenCaseLaw keeps no user account and no persistent identifier that automatically links a request to a person. That limits what we can attribute to you in practice, but it does not remove these rights:</p>
@@ -185,15 +197,15 @@
       </div>
     </div>
 
-    <!-- §06 Contact -->
+    <!-- §07 Contact -->
     <div id="priv-contact" class="priv-sec">
-      <p class="sec-tag"><span class="n">§06</span> <span data-t="priv_toc_contact">Contact</span></p>
+      <p class="sec-tag"><span class="n">§07</span> <span data-t="priv_toc_contact">Contact</span></p>
       <h2 class="sec-h" data-t="priv_contact_heading">Questions, concerns, audits</h2>
       <div class="prose">
         <p data-t="priv_contact_1">Every mechanism described here is open source and auditable in the <a href="https://github.com/jonashertner/opencaselaw">GitHub repository</a>. If you spot a discrepancy between this page and the system’s actual behaviour, treat it as a bug — report it and we will fix it.</p>
         <p data-t="priv_contact_2">Email: <a href="mailto:team@jonashertner.com">team@jonashertner.com</a><br>Privacy questions get a reply within a few days.</p>
       </div>
-      <p class="priv-meta" data-t="priv_contact_version">Last updated: 2026-09-25 · Versioned in Git, changes publicly visible.</p>
+      <p class="priv-meta" data-t="priv_contact_version">Last updated: 2026-10-17 · Versioned in Git, changes publicly visible.</p>
     </div>
 
   </section>
@@ -213,6 +225,7 @@ OCL.init({
       priv_h1:'Datenschutz',
       priv_sub:'OpenCaseLaw protokolliert Anfragen für Betrieb und Forschung, setzt aber keine Cookies und betreibt kein Drittanbieter-Tracking. Alle veröffentlichten Kennzahlen sind aggregiert, k-anonym und differentiell privat.',
       priv_toc_summary:'Kurzfassung', priv_toc_logs:'Logs & Aufbewahrung', priv_toc_rollup:'Aggregation & DP', priv_toc_wordaddin:'Word-Add-in', priv_toc_rights:'Ihre Rechte', priv_toc_contact:'Kontakt',
+      priv_toc_suggest:'Vorschläge', priv_suggest_heading:'Vorschläge über das Formular', priv_suggest_1:'Wer unter <a href="/vorschlag/">opencaselaw.ch/vorschlag</a> einen Vorschlag sendet, übermittelt den Text, die gewählte Art und, falls angegeben, eine E-Mail-Adresse. Erkennbare Personendaten (Namen nach einer Anrede, AHV-Nummern, IBAN, Telefonnummern u. a.) ersetzt bereits Ihr Browser durch Platzhalter; der Server prüft ein zweites Mal. Die E-Mail-Adresse verwenden wir nur, um Ihnen persönlich zu schreiben, wenn sich der Status ändert.', priv_suggest_2:'Gegen Missbrauch speichern wir statt der IP-Adresse einen Hashwert, gebildet mit einem geheimen Schlüssel und dem Tagesdatum: Er lässt sich weder über Tage verknüpfen noch auf die Adresse zurückführen. Vorschläge werden nicht veröffentlicht und nicht für das Training von Modellen verwendet. Auf Anfrage löschen wir einen Vorschlag samt E-Mail-Adresse; nennen Sie uns dazu die Nummer oder den Status-Link.', priv_suggest_3:'Während Sie tippen, sucht die Seite in der Sammlung nach Passendem. Dazu schickt sie bis zu drei Stichwörter aus Ihrem Text, nach Entfernen erkannter Personendaten, als gewöhnliche Suchanfragen an die öffentliche API; sie werden behandelt wie jede andere Anfrage (§02). Der Vorschlag selbst wird erst übermittelt, wenn Sie ihn senden.',
       priv_summary_heading:'Die Kurzfassung',
       priv_summary_1:'OpenCaseLaw ist ein öffentliches Forschungsprojekt. Es gibt kein Nutzerkonto und keine dauerhafte Kennung, die eine Anfrage automatisch mit einer Person verknüpft. Das ist <strong>keine Aussage, dass wir keine Daten erheben</strong>: Anfragetext, Zeitpunkt, Sitzungs- und Client-Kennungen sowie Server-Zugriffslogs werden erfasst, wie unten im Einzelnen beschrieben. Diese Seite hält fest, was tatsächlich gesammelt wird, wofür, und wie lange.',
       priv_summary_bullet_cookies:'<strong>Keine Cookies.</strong> Die Website setzt keinerlei Cookies, weder notwendige noch optionale.',
@@ -265,7 +278,7 @@ OCL.init({
       priv_contact_heading:'Fragen, Bedenken, Audits',
       priv_contact_1:'Alle hier beschriebenen Mechanismen sind Open Source und prüfbar im <a href="https://github.com/jonashertner/opencaselaw">GitHub-Repository</a>. Wenn Sie eine Diskrepanz zwischen dieser Seite und dem tatsächlichen Verhalten des Systems feststellen, betrachten Sie das als Bug — melden Sie es uns und wir beheben es.',
       priv_contact_2:'E-Mail: <a href="mailto:team@jonashertner.com">team@jonashertner.com</a><br>Fragen zum Datenschutz werden innerhalb weniger Tage beantwortet.',
-      priv_contact_version:'Letzte Aktualisierung: 2026-09-25 · Versioniert in Git, Änderungen öffentlich einsehbar.'
+      priv_contact_version:'Letzte Aktualisierung: 2026-10-17 · Versioniert in Git, Änderungen öffentlich einsehbar.'
     },
     fr:{
       priv_copilot_title:'Agent Microsoft 365 Copilot (<code>/mcp-edu</code>)',priv_copilot_body:'L\'agent OpenCaseLaw pour Microsoft 365 Copilot appelle un endpoint propre, <code>/mcp-edu</code>. Pour les requêtes passant par cet endpoint, il n\'y a ni capture complète (aucun texte de requête, aucun identifiant de session, aucune archive de recherche, aucun entraînement de modèles), ni traces de qualité de recherche, ni grand livre des coûts par adresse IP. Restent le journal de niveau 1 (ici avec l\'adresse IP de Microsoft, 72 heures), les niveaux 2 et 3 sans données personnelles et la comptabilité des coûts sans adresse IP ni texte de requête (modèle, tokens, coût). L\'analyse et le réordonnancement des requêtes via Anthropic ainsi que la recherche d\'actes cantonaux via LexFind fonctionnent comme décrit ci-dessus.',
@@ -275,6 +288,7 @@ OCL.init({
       priv_h1:'Confidentialité',
       priv_sub:'OpenCaseLaw journalise les requêtes pour l’exploitation du service et pour la recherche, mais sans cookies ni suivi par des tiers. Toutes les métriques publiées sont agrégées, k-anonymes et différentiellement privées.',
       priv_toc_summary:'Résumé', priv_toc_logs:'Logs & rétention', priv_toc_rollup:'Agrégation & DP', priv_toc_wordaddin:'Add-in Word', priv_toc_rights:'Vos droits', priv_toc_contact:'Contact',
+      priv_toc_suggest:'Suggestions', priv_suggest_heading:'Suggestions via le formulaire', priv_suggest_1:'Qui envoie une suggestion via <a href="/vorschlag/fr/">opencaselaw.ch/vorschlag</a> transmet le texte, le type choisi et, le cas échéant, une adresse e-mail. Les données personnelles reconnaissables (noms précédés d’une civilité, numéros AVS, IBAN, numéros de téléphone, etc.) sont déjà remplacées par votre navigateur ; le serveur effectue un second contrôle. L’adresse e-mail sert uniquement à vous écrire personnellement quand le statut change.', priv_suggest_2:'Contre les abus, nous conservons, au lieu de l’adresse IP, une valeur de hachage formée avec une clé secrète et la date du jour : elle ne peut ni être reliée d’un jour à l’autre ni ramenée à l’adresse. Les suggestions ne sont pas publiées ni utilisées pour entraîner des modèles. Sur demande, nous effaçons une suggestion avec l’adresse e-mail ; indiquez-nous le numéro ou le lien de statut.', priv_suggest_3:'Pendant que vous écrivez, la page cherche ce qui correspond dans la collection. Elle envoie pour cela jusqu’à trois mots-clés de votre texte, après suppression des données personnelles reconnues, comme requêtes ordinaires à l’API publique ; elles sont traitées comme toute autre requête (§02). La suggestion elle-même n’est transmise que lorsque vous l’envoyez.',
       priv_summary_heading:'Le résumé',
       priv_summary_1:'OpenCaseLaw est un projet de recherche public. Il n’existe ni compte utilisateur ni identifiant permanent reliant automatiquement une requête à une personne. Cela <strong>ne signifie pas que nous ne collectons aucune donnée</strong> : texte des requêtes, horodatage, identifiants de session et de client, ainsi que les journaux d’accès du serveur, sont enregistrés, comme décrit en détail ci-dessous. Cette page indique ce qui est réellement collecté, pourquoi, et pour combien de temps.',
       priv_summary_bullet_cookies:'<strong>Aucun cookie.</strong> Le site n’installe aucun cookie, ni nécessaire ni facultatif.',
@@ -327,7 +341,7 @@ OCL.init({
       priv_contact_heading:'Questions, préoccupations, audits',
       priv_contact_1:'Tous les mécanismes décrits ici sont open source et vérifiables dans le <a href="https://github.com/jonashertner/opencaselaw">dépôt GitHub</a>. Si vous constatez un écart entre cette page et le comportement réel du système, considérez cela comme un bug — signalez-le et nous le corrigerons.',
       priv_contact_2:'E-mail : <a href="mailto:team@jonashertner.com">team@jonashertner.com</a><br>Les questions de confidentialité reçoivent une réponse en quelques jours.',
-      priv_contact_version:'Dernière mise à jour : 2026-08-31 · Versionné dans Git, modifications publiquement consultables.'
+      priv_contact_version:'Dernière mise à jour : 2026-10-17 · Versionné dans Git, modifications publiquement consultables.'
     },
     it:{
       priv_copilot_title:'Agente Microsoft 365 Copilot (<code>/mcp-edu</code>)',priv_copilot_body:'L\'agente OpenCaseLaw per Microsoft 365 Copilot chiama un endpoint proprio, <code>/mcp-edu</code>. Per le richieste che passano da questo endpoint non vi sono né raccolta completa (nessun testo di richiesta, nessun identificativo di sessione, nessun archivio di ricerca, nessun addestramento di modelli), né tracce di qualità della ricerca, né registro dei costi per indirizzo IP. Restano il log di livello 1 (qui con l\'indirizzo IP di Microsoft, 72 ore), i livelli 2 e 3 senza dati personali e la contabilità dei costi senza indirizzo IP né testo di richiesta (modello, token, costo). L\'analisi e il riordinamento delle richieste tramite Anthropic e la ricerca di atti cantonali tramite LexFind funzionano come descritto sopra.',
@@ -337,6 +351,7 @@ OCL.init({
       priv_h1:'Privacy',
       priv_sub:'OpenCaseLaw registra le richieste per l’esercizio del servizio e per la ricerca, ma senza cookie né tracciamento di terze parti. Tutte le metriche pubblicate sono aggregate, k-anonime e differenzialmente private.',
       priv_toc_summary:'Sintesi', priv_toc_logs:'Log & conservazione', priv_toc_rollup:'Aggregazione & DP', priv_toc_wordaddin:'Add-in Word', priv_toc_rights:'I vostri diritti', priv_toc_contact:'Contatto',
+      priv_toc_suggest:'Proposte', priv_suggest_heading:'Proposte tramite il modulo', priv_suggest_1:'Chi invia una proposta tramite <a href="/vorschlag/it/">opencaselaw.ch/vorschlag</a> trasmette il testo, il tipo scelto e, se indicato, un indirizzo e-mail. I dati personali riconoscibili (nomi preceduti da un titolo, numeri AVS, IBAN, numeri di telefono ecc.) sono già sostituiti dal suo browser; il server effettua un secondo controllo. L’indirizzo e-mail serve solo per scriverle personalmente quando lo stato cambia.', priv_suggest_2:'Contro gli abusi conserviamo, al posto dell’indirizzo IP, un valore hash formato con una chiave segreta e la data del giorno: non può essere collegato da un giorno all’altro né ricondotto all’indirizzo. Le proposte non vengono pubblicate né usate per addestrare modelli. Su richiesta cancelliamo una proposta insieme all’indirizzo e-mail; ci indichi il numero o il link di stato.', priv_suggest_3:'Mentre scrive, la pagina cerca riscontri nella raccolta. A tal fine invia fino a tre parole chiave del suo testo, dopo la rimozione dei dati personali riconosciuti, come normali richieste all’API pubblica; sono trattate come qualsiasi altra richiesta (§02). La proposta stessa viene trasmessa solo quando la invia.',
       priv_summary_heading:'La sintesi',
       priv_summary_1:'OpenCaseLaw è un progetto di ricerca pubblico. Non esiste un account utente né un identificativo permanente che colleghi automaticamente una richiesta a una persona. Questo <strong>non significa che non raccogliamo dati</strong>: testo delle richieste, momento, identificativi di sessione e di client, nonché i log di accesso del server, vengono registrati, come descritto nel dettaglio qui sotto. Questa pagina indica cosa viene effettivamente raccolto, perché e per quanto tempo.',
       priv_summary_bullet_cookies:'<strong>Nessun cookie.</strong> Il sito non installa alcun cookie, né necessario né facoltativo.',
@@ -389,7 +404,7 @@ OCL.init({
       priv_contact_heading:'Domande, preoccupazioni, audit',
       priv_contact_1:'Tutti i meccanismi qui descritti sono open source e verificabili nel <a href="https://github.com/jonashertner/opencaselaw">repository GitHub</a>. Se notate una discrepanza tra questa pagina e il comportamento effettivo del sistema, consideratela un bug — segnalatecela e la correggeremo.',
       priv_contact_2:'E-mail: <a href="mailto:team@jonashertner.com">team@jonashertner.com</a><br>Le domande sulla privacy ricevono risposta in pochi giorni.',
-      priv_contact_version:'Ultimo aggiornamento: 2026-09-25 · Versionato in Git, modifiche pubblicamente consultabili.'
+      priv_contact_version:'Ultimo aggiornamento: 2026-10-17 · Versionato in Git, modifiche pubblicamente consultabili.'
     },
     rm:{
       kicker:'Protecziun da datas',
@@ -398,6 +413,7 @@ OCL.init({
       priv_h1:'Protecziun da datas',
       priv_sub:'OpenCaseLaw protocollescha dumondas per il manaschi dal servetsch e per la retschertga, senza cookies e senza tracking da terzs. Tut las cifras publitgadas èn aggregadas, k-anonimas ed a privezza differenziala.',
       priv_toc_summary:'Sumari', priv_toc_logs:'Logs & retenziun', priv_toc_rollup:'Aggregaziun & DP', priv_toc_wordaddin:'Add-in Word', priv_toc_rights:'Vossas dretgiras', priv_toc_contact:'Contact',
+      priv_toc_suggest:'Propostas', priv_suggest_heading:'Propostas tras il formular', priv_suggest_1:'Tgi che trametta ina proposta sur <a href="/vorschlag/rm/">opencaselaw.ch/vorschlag</a> transmetta il text, il gener tschernì e, sche indicà, ina adressa dad e-mail. Datas persunalas renconuschiblas (nums suenter in titel, numers AVS, IBAN, numers da telefon e.a.) remplazza gia Voss navigatur; il server controllescha ina segunda giada. L’adressa dad e-mail duvrain nus mo per As scriver persunalmain cura ch’il status sa mida.', priv_suggest_2:'Cunter abus memorisain nus empè da l’adressa IP ina valur hash, furmada cun ina clav secreta e la data dal di: ella na po ni vegnir colliada sur plirs dis ni manada enavos a l’adressa. Propostas na vegnan ni publitgadas ni duvradas per trenar models. Sin dumonda stizzain nus ina proposta inclusiv l’adressa dad e-mail; numnai il numer u la colliaziun da status.', priv_suggest_3:'Durant che Vus scrivais, tschertga la pagina en la collecziun. Per quai trametta ella fin trais pleds-clav da Voss text, suenter avair allontanà las datas persunalas renconuschidas, sco dumondas ordinarias a l’API publica; ellas vegnan tractadas sco mintga autra dumonda (§02). La proposta sezza vegn transmessa pir cura che Vus la trametteis.',
       priv_summary_heading:'Il sumari',
       priv_summary_1:'OpenCaseLaw è in project da retschertga public. I na dat nagin conto d’utilisader e nagina identificaziun permanenta che collia automaticamain ina dumonda cun ina persuna. Quai <strong>na signifitgescha betg che nus na rimnain naginas datas</strong>: text da dumonda, mument, identificaziuns da sesida e da client sco er protocols d’access dal server vegnan registrads, sco descrit sutvart. Questa pagina mussa tge che vegn propi rimnà, pertge e per quant temp.',
       priv_summary_bullet_cookies:'<strong>Nagin cookie.</strong> Il sit na metta nagin cookie — nè necessari nè facultativ.',
@@ -450,7 +466,7 @@ OCL.init({
       priv_contact_heading:'Dumondas, preoccupaziuns, audits',
       priv_contact_1:'Tut ils mecanissems qua descrits èn open source e verifitgabels en il <a href="https://github.com/jonashertner/opencaselaw">repositori GitHub</a>.',
       priv_contact_2:'E-mail: <a href="mailto:team@jonashertner.com">team@jonashertner.com</a><br>Dumondas davart la protecziun da datas survegnan resposta en pauc dis.',
-      priv_contact_version:'Davosa actualisaziun: 2026-09-25 · Versiunà en Git.'
+      priv_contact_version:'Davosa actualisaziun: 2026-10-17 · Versiunà en Git.'
     },
     en:{
       priv_copilot_title:'Microsoft 365 Copilot agent (<code>/mcp-edu</code>)',priv_copilot_body:'The OpenCaseLaw agent for Microsoft 365 Copilot calls its own endpoint, <code>/mcp-edu</code>. For requests through this endpoint there is no full capture (no query text, no session id, no research archive, no model training), no search-quality traces and no per-IP cost ledger. What remains is the tier-1 log (here with Microsoft\'s IP address, 72 hours), tiers 2 and 3 without personal data, and cost accounting without IP address or query text (model, tokens, cost). Query analysis and re-ranking via Anthropic and the search of cantonal legislation via LexFind work as described above.',
@@ -460,6 +476,7 @@ OCL.init({
       priv_h1:'Privacy',
       priv_sub:'OpenCaseLaw logs requests to operate the service and to support research, but sets no cookies and runs no third-party tracking. Every published number is aggregated, k-anonymous, and differentially private.',
       priv_toc_summary:'Summary', priv_toc_logs:'Logs & retention', priv_toc_rollup:'Aggregation & DP', priv_toc_wordaddin:'Word add-in', priv_toc_rights:'Your rights', priv_toc_contact:'Contact',
+      priv_toc_suggest:'Suggestions', priv_suggest_heading:'Suggestions through the form', priv_suggest_1:'Sending a suggestion at <a href="/vorschlag/en/">opencaselaw.ch/vorschlag</a> transmits the text, the chosen kind and, if you give one, an e-mail address. Recognisable personal data (names after a title, AHV numbers, IBANs, phone numbers and more) is already replaced by your browser; the server checks a second time. We use the e-mail address only to write to you personally when the status changes.', priv_suggest_2:'Against abuse we keep, instead of the IP address, a hash formed with a secret key and the day’s date: it cannot be linked across days or traced back to the address. Suggestions are not published and not used to train models. On request we delete a suggestion together with the e-mail address; tell us its number or status link.', priv_suggest_3:'While you type, the page looks for matching material in the collection. To do so it sends up to three keywords from your text, after removing recognised personal data, as ordinary search requests to the public API; they are handled like any other request (§02). The suggestion itself is only transmitted when you send it.',
       priv_summary_heading:'The short version',
       priv_summary_1:'OpenCaseLaw is a public research project. There is no user account and no persistent identifier that automatically links a request to a person. That is <strong>not a claim that we collect no data</strong>: query text, timestamps, session and client identifiers, and server access logs are all recorded, as set out in full below. This page states what is actually collected, why, and for how long.',
       priv_summary_bullet_cookies:'<strong>No cookies.</strong> The site sets no cookies at all, neither necessary nor optional.',
@@ -512,7 +529,7 @@ OCL.init({
       priv_contact_heading:'Questions, concerns, audits',
       priv_contact_1:'Every mechanism described here is open source and auditable in the <a href="https://github.com/jonashertner/opencaselaw">GitHub repository</a>. If you spot a discrepancy between this page and the system’s actual behaviour, treat it as a bug — report it and we will fix it.',
       priv_contact_2:'Email: <a href="mailto:team@jonashertner.com">team@jonashertner.com</a><br>Privacy questions get a reply within a few days.',
-      priv_contact_version:'Last updated: 2026-09-25 · Versioned in Git, changes publicly visible.'
+      priv_contact_version:'Last updated: 2026-10-17 · Versioned in Git, changes publicly visible.'
     }
   }
 });

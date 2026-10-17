@@ -1342,4 +1342,59 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://opencaselaw.ch/stats/en/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/stats/" />
   </url>
+  <url>
+    <loc>https://opencaselaw.ch/vorschlag/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="de" href="https://opencaselaw.ch/vorschlag/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/vorschlag/fr/" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://opencaselaw.ch/vorschlag/it/" />
+    <xhtml:link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/vorschlag/rm/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://opencaselaw.ch/vorschlag/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/vorschlag/" />
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/vorschlag/fr/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="de" href="https://opencaselaw.ch/vorschlag/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/vorschlag/fr/" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://opencaselaw.ch/vorschlag/it/" />
+    <xhtml:link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/vorschlag/rm/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://opencaselaw.ch/vorschlag/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/vorschlag/" />
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/vorschlag/it/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="de" href="https://opencaselaw.ch/vorschlag/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/vorschlag/fr/" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://opencaselaw.ch/vorschlag/it/" />
+    <xhtml:link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/vorschlag/rm/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://opencaselaw.ch/vorschlag/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/vorschlag/" />
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/vorschlag/rm/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="de" href="https://opencaselaw.ch/vorschlag/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/vorschlag/fr/" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://opencaselaw.ch/vorschlag/it/" />
+    <xhtml:link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/vorschlag/rm/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://opencaselaw.ch/vorschlag/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/vorschlag/" />
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/vorschlag/en/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="de" href="https://opencaselaw.ch/vorschlag/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://opencaselaw.ch/vorschlag/fr/" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://opencaselaw.ch/vorschlag/it/" />
+    <xhtml:link rel="alternate" hreflang="rm" href="https://opencaselaw.ch/vorschlag/rm/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://opencaselaw.ch/vorschlag/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/vorschlag/" />
+  </url>
 </urlset>
