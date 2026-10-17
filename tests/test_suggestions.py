@@ -174,3 +174,13 @@ def test_rest_rejects_bad_bodies(client):
 def test_rest_routes_stay_out_of_the_openapi_schema(client):
     paths = client.get("/api/openapi.json").json().get("paths", {})
     assert not any("suggestions" in p for p in paths)
+
+
+def test_admin_cli_refuses_a_file_owned_by_another_user(monkeypatch, capsys):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import os
+    import suggestions_admin
+    sg.submit(_ok(), "198.51.100.7")
+    monkeypatch.setattr(os, "geteuid", lambda: sg.db_path().stat().st_uid + 1)
+    assert suggestions_admin.main(["list"]) == 2
+    assert "sudo -u mcp" in capsys.readouterr().err

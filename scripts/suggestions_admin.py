@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Read and answer the suggestions sent from opencaselaw.ch/vorschlag/.
 
-Run on the VPS with the workers' environment, so it opens the live file:
+Run on the VPS as the workers' user and with their environment, so it opens the live
+file and never leaves root-owned WAL files the workers cannot write past:
 
-    SWISS_CASELAW_DIR=/opt/caselaw/repo/output python3 scripts/suggestions_admin.py list
+    sudo -u mcp env SWISS_CASELAW_DIR=/opt/caselaw/repo/output python3 scripts/suggestions_admin.py list
     ... list --status received          only the unread ones (default: everything not shipped/declined)
     ... show 7
     ... set 7 read
@@ -18,6 +19,7 @@ nothing sends it automatically.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import textwrap
 import urllib.parse
@@ -97,6 +99,19 @@ def _set(args) -> int:
     return 0
 
 
+def _owner_guard() -> str | None:
+    """Refuse to open the workers' file as another user (root): SQLite would create the
+    -wal/-shm files as that user and every later submission would fail to write."""
+    path = sg.db_path()
+    if not path.exists() or not hasattr(os, "geteuid"):
+        return None
+    owner = path.stat().st_uid
+    if os.geteuid() != owner:
+        return (f"{path} belongs to uid {owner}; run as that user, e.g.\n"
+                f"  sudo -u mcp env SWISS_CASELAW_DIR={path.parent} python3 scripts/suggestions_admin.py ...")
+    return None
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -111,6 +126,10 @@ def main(argv=None) -> int:
     pt.add_argument("status", choices=sg.STATUSES)
     pt.add_argument("--note")
     args = p.parse_args(argv)
+    problem = _owner_guard()
+    if problem:
+        print(problem, file=sys.stderr)
+        return 2
     return {"list": _list, "show": _show, "set": _set}[args.cmd](args)
 
 
