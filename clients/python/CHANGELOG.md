@@ -3,7 +3,7 @@
 The client follows semantic versioning. The research API contract it consumes is
 versioned separately (`x-opencaselaw-contract-version` in `/api/research/openapi.json`).
 
-## Unreleased
+## 0.10.0 (2026-10-17)
 
 - `ocl decisions search` takes `--published-from` / `--published-to` and
   `--sort published_desc`: filter and order by the date the court PUBLISHED a
