@@ -393,8 +393,12 @@ the own header.
 ### Built: shard repair `scripts/repair_bge_historical_sources.py` (proposal; not run)
 
 It applies the list to a shard. **Dry run by default.** `--apply` writes atomically and puts
-every removed or changed row, as it was, into `<shard>.source-repair-<date>.jsonl`. A second
-run changes nothing, and rows of other courts are never touched.
+every removed or changed row, as it was, into `<shard>.undo-source-repair-<date>.jsonl.bak`. A
+second run changes nothing, and rows of other courts are never touched. (Until 2026-10-09 the
+undo file was named `<shard>.source-repair-<date>.jsonl`; `build_fts5.py` ingests every
+`output/decisions/*.jsonl`, so an undo file with that name would re-insert the removed rows at
+the next full build. The 2026-10-08 copies were moved to
+`/mnt/HC_Volume_104655575/backups/shard-repair-20261008/`.)
 
 - **withhold:** the row is removed from the shard. Its id stays in
   `state/bge_historical.jsonl`, so the same defective document is not fetched again. The
