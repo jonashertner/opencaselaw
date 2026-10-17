@@ -167,7 +167,10 @@
 .v-card.pii .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px}
 .v-card.pii s{color:var(--t3);text-decoration-color:var(--shu)}
 .v-card.pii code{color:var(--shu);background:none;padding:0}
-@media(max-width:900px){.v-echo{position:static;margin-top:26px}.v-echo:not(.has){display:none}.v-layer li small{white-space:normal}}
+.v-live{color:var(--t2);text-decoration:none;border-bottom:1px dotted var(--t3)}
+.v-why:empty{display:none}.v-why{color:var(--t2)}
+@media(max-width:900px),(hover:none){#v-keys,.v-btn kbd{display:none}}
+@media(max-width:900px){.v-echo{position:static;margin-top:40px}.v-echo:not(.has){display:none}.v-layer li small{white-space:normal}}
 
 /* receipt and status */
 .v-receipt{display:none;position:relative;border-top:1px solid var(--t1);padding:28px 0 0}
@@ -235,6 +238,7 @@
         <div class="v-bar">
           <span class="v-hint" id="v-count"></span>
           <span class="v-hint" id="v-keys"><kbd>⌘</kbd> <kbd>↵</kbd> <span data-t="v_sends">invia</span></span>
+          <a class="v-hint v-live" id="v-live" href="#v-echo" hidden></a>
         </div>
 
         <fieldset class="v-kinds" id="v-kinds">
@@ -255,6 +259,7 @@
 
         <div class="v-send">
           <button class="v-btn" id="v-go" type="submit" disabled><span id="v-go-l" data-t="v_send">Invia la proposta</span> <kbd>⌘↵</kbd></button>
+          <span class="v-note v-why" id="v-why" aria-live="polite"></span>
           <span class="v-note" data-t="v_send_note">Senza account. <a href="/datenschutz/it/#vorschlag">Protezione dei dati</a></span>
         </div>
         <p class="v-msg" id="v-msg" role="alert"></p>
@@ -323,7 +328,7 @@
 OCL.init({
   active:'',
   i18n:{
-    de:{v_kick:'Vorschlag · jeder wird gelesen',v_h1:'Was fehlt Ihnen?',
+    de:{j_live:'Treffer in {n} von {m} Bereichen ↓',j_live_busy:'Suche in der Sammlung …',v_kick:'Vorschlag · jeder wird gelesen',v_h1:'Was fehlt Ihnen?',
       v_lede:'Ein Satz genügt: eine Quelle, eine Funktion, ein Fehler. Während Sie schreiben, zeigen wir, was die Sammlung dazu schon enthält. Personendaten werden vor dem Senden ersetzt.',
       v_ctx:'Bezug',v_label:'Ihr Vorschlag',v_sends:'sendet',v_kinds:'Es geht um',v_k_source:'eine Quelle',v_k_feature:'eine Funktion',v_k_error:'einen Fehler',v_k_other:'etwas anderes',v_auto:'aus dem Text erkannt',
       v_mail:'Möchten Sie hören, wenn es umgesetzt ist?',v_mail_note:'Freiwillig. Wir schreiben Ihnen persönlich, wenn sich der Status ändert, und sonst nie.',
@@ -353,7 +358,7 @@ OCL.init({
       j_t_stat:'Statistik und Trends',j_t_stat_x:'Wie sich ein Thema über Jahre und Gerichte entwickelt.',j_t_word:'Zitate in Word prüfen',j_t_word_x:'citecheck prüft BGE- und Gesetzeszitate direkt im Dokument.',
       j_t_api:'API und Datensatz',j_t_api_x:'REST-API, Kommandozeile, MCP-Server und der ganze Datensatz als Parquet, CC0.',
       j_a11y:'Treffer in {n} von {m} Bereichen.',j_a11y_pii:'{n} Personenangaben werden vor dem Senden ersetzt.'},
-    fr:{v_kick:'Suggestion · chacune est lue',v_h1:'Que vous manque-t-il ?',
+    fr:{j_live:'Résultats dans {n} domaines sur {m} ↓',j_live_busy:'Recherche dans la collection …',v_kick:'Suggestion · chacune est lue',v_h1:'Que vous manque-t-il ?',
       v_lede:'Une phrase suffit : une source, une fonction, une erreur. Pendant que vous écrivez, nous montrons ce que la collection contient déjà. Les données personnelles sont remplacées avant l’envoi.',
       v_ctx:'Contexte',v_label:'Votre suggestion',v_sends:'envoie',v_kinds:'Il s’agit',v_k_source:'d’une source',v_k_feature:'d’une fonction',v_k_error:'d’une erreur',v_k_other:'d’autre chose',v_auto:'reconnu dans le texte',
       v_mail:'Souhaitez-vous être informé·e quand ce sera fait ?',v_mail_note:'Facultatif. Nous vous écrivons personnellement quand le statut change, et jamais autrement.',
@@ -383,7 +388,7 @@ OCL.init({
       j_t_stat:'Statistiques et tendances',j_t_stat_x:'Comment un thème évolue au fil des années et des tribunaux.',j_t_word:'Vérifier les citations dans Word',j_t_word_x:'citecheck vérifie les citations d’ATF et de lois directement dans le document.',
       j_t_api:'API et jeu de données',j_t_api_x:'API REST, ligne de commande, serveur MCP et le jeu de données complet en Parquet, CC0.',
       j_a11y:'Résultats dans {n} domaines sur {m}.',j_a11y_pii:'{n} données personnelles seront remplacées avant l’envoi.'},
-    it:{v_kick:'Proposta · ognuna viene letta',v_h1:'Che cosa le manca?',
+    it:{j_live:'Risultati in {n} ambiti su {m} ↓',j_live_busy:'Ricerca nella raccolta …',v_kick:'Proposta · ognuna viene letta',v_h1:'Che cosa le manca?',
       v_lede:'Basta una frase: una fonte, una funzione, un errore. Mentre scrive, mostriamo che cosa contiene già la raccolta. I dati personali vengono sostituiti prima dell’invio.',
       v_ctx:'Riferimento',v_label:'La sua proposta',v_sends:'invia',v_kinds:'Si tratta di',v_k_source:'una fonte',v_k_feature:'una funzione',v_k_error:'un errore',v_k_other:'altro',v_auto:'riconosciuto dal testo',
       v_mail:'Vuole sapere quando sarà realizzata?',v_mail_note:'Facoltativo. Le scriviamo personalmente quando lo stato cambia, e mai altrimenti.',
@@ -413,7 +418,7 @@ OCL.init({
       j_t_stat:'Statistiche e tendenze',j_t_stat_x:'Come un tema si sviluppa negli anni e tra i tribunali.',j_t_word:'Verificare le citazioni in Word',j_t_word_x:'citecheck verifica le citazioni di DTF e leggi direttamente nel documento.',
       j_t_api:'API e dataset',j_t_api_x:'API REST, riga di comando, server MCP e l’intero dataset in Parquet, CC0.',
       j_a11y:'Risultati in {n} ambiti su {m}.',j_a11y_pii:'{n} dati personali saranno sostituiti prima dell’invio.'},
-    rm:{v_kick:'Proposta · mintgina vegn legida',v_h1:'Tge As manca?',
+    rm:{j_live:'Resultats en {n} da {m} secturs ↓',j_live_busy:'Tschertga en la collecziun …',v_kick:'Proposta · mintgina vegn legida',v_h1:'Tge As manca?',
       v_lede:'Ina frasa basta: ina funtauna, ina funcziun, in sbagl. Durant che Vus scrivais, mussain nus tge che la collecziun cuntegna gia. Datas persunalas vegnan remplazzadas avant che trametter.',
       v_ctx:'Referenza',v_label:'Vossa proposta',v_sends:'trametta',v_kinds:'I sa tracta da',v_k_source:'ina funtauna',v_k_feature:'ina funcziun',v_k_error:'in sbagl',v_k_other:'insatge auter',v_auto:'renconuschì en il text',
       v_mail:'Vulais Vus vegnir a savair cura ch’igl è realisà?',v_mail_note:'Facultativ. Nus As scrivain persunalmain cura ch’il status sa mida, e uschiglio mai.',
@@ -443,7 +448,7 @@ OCL.init({
       j_t_stat:'Statistica e tendenzas',j_t_stat_x:'Co in tema sa sviluppa tras ils onns e las dretgiras.',j_t_word:'Controllar citaziuns en Word',j_t_word_x:'citecheck controllescha citaziuns da BGE e da leschas directamain en il document.',
       j_t_api:'API e set da datas',j_t_api_x:'API REST, lingia da cumond, server MCP e l’entir set da datas en Parquet, CC0.',
       j_a11y:'Resultats en {n} da {m} secturs.',j_a11y_pii:'{n} datas persunalas vegnan remplazzadas avant che trametter.'},
-    en:{v_kick:'Suggestion · every one is read',v_h1:'What are you missing?',
+    en:{j_live:'Results in {n} of {m} areas ↓',j_live_busy:'Searching the collection …',v_kick:'Suggestion · every one is read',v_h1:'What are you missing?',
       v_lede:'One sentence is enough: a source, a feature, an error. As you type, we show what the collection already holds. Personal data is replaced before sending.',
       v_ctx:'Context',v_label:'Your suggestion',v_sends:'sends',v_kinds:'It is about',v_k_source:'a source',v_k_feature:'a feature',v_k_error:'an error',v_k_other:'something else',v_auto:'recognised from the text',
       v_mail:'Would you like to hear when it ships?',v_mail_note:'Optional. We write to you personally when the status changes, and never otherwise.',
@@ -832,6 +837,7 @@ function renderCorpus(){
       o.el.animate([{transform:'translateY('+d+'px)'},{transform:'none'}],{duration:380,easing:'cubic-bezier(.22,.61,.36,1)'})});
   }
   box.setAttribute('aria-busy',busyAny?'true':'false');
+  var lv=$('v-live');lv.hidden=!(q&&mq.matches);if(q)lv.textContent=busyAny&&!withHits?tr('j_live_busy'):tr('j_live',{n:withHits,m:asked||1});
   if(q&&!busyAny&&asked){var msg=tr('j_a11y',{n:withHits,m:asked});if(msg+q!==announced){announced=msg+q;announce(msg)}}
 }
 var annTimer=0;
@@ -846,6 +852,7 @@ function update(){
   $('v-count').innerHTML=n?(n<12?tr('j_more',{n:12-n}):tr('j_chars',{n:fmt(n)})):'<button type="button" class="v-take" id="v-take">⇥ '+tr('j_take')+'</button>';
   var tk=$('v-take');if(tk)tk.onclick=takeExample;
   go.disabled=n<12;
+  $('v-why').textContent=n&&n<12?tr('j_more',{n:12-n}):'';
   $('v-follow').classList.toggle('on',n>=24);
   if(!userKind){var r=D.querySelector('input[name=kind][value='+a.kind+']');if(r)r.checked=true;$('v-auto').classList.toggle('on',a.kind!=='other'&&n>=12)}
   store.set('ocl-vorschlag',raw||null);
@@ -886,7 +893,7 @@ D.querySelectorAll('input[name=kind]').forEach(function(r){r.addEventListener('c
 window.addEventListener('resize',grow);
 // on a phone the echo moves up under the text, where the eye already is
 var aside=$('v-echo'), desk=D.querySelector('.v-desk'), mq=matchMedia('(max-width:900px)');
-function place(){if(mq.matches)D.querySelector('.v-bar').after(aside);else desk.appendChild(aside)}
+function place(){if(mq.matches)$('v-receipt').after(aside);else desk.appendChild(aside)}
 (mq.addEventListener?mq.addEventListener('change',place):mq.addListener(place));place();
 
 /* ── sending ── */
