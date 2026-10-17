@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feed.xml</link>
     <description>Latest published decisions across all Swiss courts indexed by OpenCaseLaw.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 16 Oct 2026 23:32:29 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2026 12:38:05 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feed.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -165,6 +165,45 @@ Spiegelgasse 12, Postfach, 40…</description>
       <category>EMRK / CEDH / CEDU — Menschenrechte</category>
     </item>
     <item>
+      <title>so_gerichte VWBES.2025.317 vom 2026-10-09</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/so_gerichte_VWBES.2025.317</link>
+      <description>Urteilvom9. Oktober 2026
+
+Es wirken mit:
+
+Präsidentin
+Obrecht Steiner
+
+Oberrichter Flückiger
+
+Oberrichter
+Thomann
+
+Gerichtsschreiberin
+Kurt
+
+In Sachen
+
+A.___,vertreten durch Rechtsanwalt Fred Hofer,
+
+Beschwerdeführer
+
+gegen
+
+1.Departement des Inne…</description>
+      <pubDate>Fri, 09 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">so_gerichte_VWBES.2025.317</guid>
+      <category>so_gerichte</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-7062/2026 vom 2026-10-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-7062_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-7062.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>EGMR (Kammer) 12952/13_15540/13_36990/19 vom 2026-10-08</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_12952_13_15540_13_36990_19_20261008</link>
       <description>Exception préliminaire jointe au fond et rejetée (Art. 35) Conditions de recevabilité;(Art. 35-1) Épuisement des voies de recours internes;Violation de l'article 6 - Droit à un procès équitable (Article 6 - Procédure pénale;Article 6-1 - Délai raisonnable);Préjudice moral - réparation (Article 41 - Préjudice moral;Satisfaction équitable); Violation: 6;6-1; [EGMR / CourEDH / CorteEDU; Art. 35, Art. 13, Art. 6, Art. 41 EMRK / CEDH / CEDU]</description>
@@ -240,6 +279,22 @@ im Schlichtungsverfahr…</description>
       <category>Öffentlichkeitsprinzip</category>
     </item>
     <item>
+      <title>ag_handelsgericht HSU.2026.42 vom 2026-10-07</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ag_handelsgericht_HSU.2026.42</link>
+      <description>Handelsgericht
+1. Kammer
+HSU.2026.42 / SV
+Entscheid vom 7. Oktober 2026
+Besetzung Oberrichter Egloff, Vizepräsident
+Gerichtsschreiberin Vollenweider
+Gesuchstellerin A._____ AG
+vertreten durch Rechtsanwalt lic. iur. Daniel Buchser,
+Sandgasse 1, Postfa…</description>
+      <pubDate>Wed, 07 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ag_handelsgericht_HSU.2026.42</guid>
+      <category>ag_handelsgericht</category>
+    </item>
+    <item>
       <title>Bundesgericht 5A_1001/2026 vom 2026-10-07</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_1001_2026</link>
       <description>Bundesgericht
@@ -302,6 +357,14 @@ B…</description>
       <pubDate>Wed, 07 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_988.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-7039/2026 vom 2026-10-07</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-7039_2026</link>
+      <description>Asyl und Wegweisung (Art. 40 i.V.m. Art. 6a Abs. 2 AsylG)</description>
+      <pubDate>Wed, 07 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-7039.2026</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht E-7191/2026 vom 2026-10-07</title>
@@ -733,54 +796,6 @@ Spiegelgasse 12, Postfach, 400…</description>
       <guid isPermaLink="false">ecthr_chamber_42160_21_20261006</guid>
       <category>ecthr_chamber</category>
       <category>EMRK / CEDH / CEDU — Menschenrechte</category>
-    </item>
-    <item>
-      <title>EGMR (Kammer) 45738/22 vom 2026-10-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_45738_22_20261006</link>
-      <description>Violation of Article 10 - Freedom of expression - {general} (Article 10-1 - Freedom of expression);Pecuniary damage - claim dismissed (Article 41 - Pecuniary damage;Just satisfaction);Non-pecuniary damage - award (Article 41 - Non-pecuniary damage;Just satisfaction); Violation: 10;10-1; [EGMR / CourEDH / CorteEDU; Art. 10, Art. 41 EMRK / CEDH / CEDU]</description>
-      <pubDate>Tue, 06 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ecthr_chamber_45738_22_20261006</guid>
-      <category>ecthr_chamber</category>
-      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
-    </item>
-    <item>
-      <title>EGMR (Kammer) 5232/24 vom 2026-10-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_5232_24_20261006</link>
-      <description>Violation of Article 7 - No punishment without law (Article 7-1 - Nullum crimen sine lege);Pecuniary damage - claim dismissed (Article 41 - Pecuniary damage;Just satisfaction);Non-pecuniary damage - finding of violation sufficient (Article 41 - Non-pecuniary damage;Just satisfaction); Violation: 7;7-1; [EGMR / CourEDH / CorteEDU; Art. 7, Art. 41 EMRK / CEDH / CEDU]</description>
-      <pubDate>Tue, 06 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ecthr_chamber_5232_24_20261006</guid>
-      <category>ecthr_chamber</category>
-      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
-    </item>
-    <item>
-      <title>EGMR (Kammer) 8412/23_33159/23 vom 2026-10-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_8412_23_33159_23_20261006</link>
-      <description>Preliminary objection dismissed (Art. 35) Admissibility criteria;(Art. 35-2-b) Matter already submitted to another international procedure;Remainder inadmissible (Art. 35) Admissibility criteria;(Art. 35-1) Exhaustion of domestic remedies;(Art. 35-1) Effective domestic remedy;Violation of Article 11 - Freedom of assembly and association (Article 11-1 - Freedom of association);Non-pecuniary damage - finding of violation sufficient (Article 41 - Non-pecuniary damage;Just satisfaction);Non-pecuniary damage - award (Article 41 - Non-pecuniary damage;Just satisfaction); Violation: 11;11-1; [EGMR / CourEDH / CorteEDU; Art. 35, Art. 11, Art. 41 EMRK / CEDH / CEDU]</description>
-      <pubDate>Tue, 06 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ecthr_chamber_8412_23_33159_23_20261006</guid>
-      <category>ecthr_chamber</category>
-      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
-    </item>
-    <item>
-      <title>ge_gerichte AARP/346/2026 vom 2026-10-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_AARP_346_2026</link>
-      <description>Siégeant : Monsieur Vincent FOURNIER, président. 
- 
-REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-P/2324/2026 
-AARP/346/2026
-COUR DE JUSTICE 
-Chambre pénale d’appel et de révision 
-Arrêt du 6 octobre 2026 
- 
-Entre 
-A______, actuellement déte…</description>
-      <pubDate>Tue, 06 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_AARP_346_2026</guid>
-      <category>ge_gerichte</category>
     </item>
   </channel>
 </rss>

@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 16 Oct 2026 23:32:29 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2026 12:38:06 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -44,6 +44,14 @@ Hartmann, Juge prés…</description>
       <guid isPermaLink="false">ecthr_chamber_25406_22_20261013</guid>
       <category>ecthr_chamber</category>
       <category>EMRK / CEDH / CEDU — Menschenrechte</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-7062/2026 vom 2026-10-08</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-7062_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-7062.2026</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>EGMR (Kammer) 12952/13_15540/13_36990/19 vom 2026-10-08</title>
@@ -311,6 +319,14 @@ con…</description>
       <category>ge_gerichte</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht F-7687/2025 vom 2026-10-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-7687_2025</link>
+      <description>Interdiction d'entrée</description>
+      <pubDate>Fri, 02 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-7687.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>ge_gerichte AARP/337/2026 vom 2026-10-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_AARP_337_2026</link>
       <description>Siégeant : Madame Sara GARBARSKI, présidente. 
@@ -567,6 +583,62 @@ Arrêt du 1er oc…</description>
       <pubDate>Thu, 01 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ge_gerichte_ATAS_852_2026</guid>
       <category>ge_gerichte</category>
+    </item>
+    <item>
+      <title>vd_gerichte 793 vom 2026-10-01</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_32dc3c09-1362-4bfa-96d5-1727543326f3</link>
+      <description>TRIBUNAL CANTONAL
+DA26.***-***
+793
+CHAMBRE DE S RECO URS PEN ALE
+__________________________________________
+Arrêt du 1er octobre 2026
+Composition : Mme ELKAIM, présidente
+M. Krieger et M. Maytain, juges
+Greffier : M. Glauser
+*****
+Art. 76a al. 1 et 2…</description>
+      <pubDate>Thu, 01 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_32dc3c09-1362-4bfa-96d5-1727543326f3</guid>
+      <category>vd_gerichte</category>
+    </item>
+    <item>
+      <title>vd_gerichte 308 vom 2026-10-01</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_64001dbe-d400-4b54-a607-ef1259e3f78b</link>
+      <description>TRIBUNAL CANTONAL
+JX26.***-***
+308
+CHAMBRE D E S RECOURS CIVIL E
+_________________________________________
+Arrêt du 1er octobre 2026
+Composition : M. WINZAP, Vice-président
+M. Pellet et Mme Crittin Dayen, juges
+Greffière: Mme Clerc
+*****
+Art. 337 et …</description>
+      <pubDate>Thu, 01 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_64001dbe-d400-4b54-a607-ef1259e3f78b</guid>
+      <category>vd_gerichte</category>
+      <category>Exécution forcée d'expulsion</category>
+    </item>
+    <item>
+      <title>vd_gerichte 709 vom 2026-10-01</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_cc9fef70-3af9-4046-a533-c950b9ca653a</link>
+      <description>TRIBUNAL CANTONAL
+PE25.***-***
+709
+CO UR D’APPEL PENALE
+______________________________
+Séance du 1er octobre 2026
+Composition : M. WINZAP, président
+Mme Rouleau et Mme Chollet, juges
+Greffier : M. Glauser
+*****
+Parties à la présente cause :
+A._______…</description>
+      <pubDate>Thu, 01 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_cc9fef70-3af9-4046-a533-c950b9ca653a</guid>
+      <category>vd_gerichte</category>
     </item>
     <item>
       <title>Bundesgericht 4A_410/2026 vom 2026-09-30</title>
@@ -861,86 +933,6 @@ Participants à la…</description>
       <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-4429.2026</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-830/2024 vom 2026-09-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-830_2024</link>
-      <description>Asile et renvoi</description>
-      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-830.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-6912/2026 vom 2026-09-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6912_2026</link>
-      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
-      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6912.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACPR/932/2026 vom 2026-09-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_932_2026</link>
-      <description>REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-P/20426/2026 
-ACPR/932/2026
-COUR DE JUSTICE 
-Chambre pénale de recours 
-Arrêt du mercredi 30 septembre 2026 
- 
-Entre 
-A______, représenté par Me B______, avocate, 
-recourant, 
-contre l'ordonnance…</description>
-      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACPR_932_2026</guid>
-      <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACPR/933/2026 vom 2026-09-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_933_2026</link>
-      <description>REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-P/13285/2026 
-ACPR/933/2026
-COUR DE JUSTICE 
-Chambre pénale de recours 
-Arrêt du mercredi 30 septembre 2026 
- 
-Entre 
-A______, domiciliée ______ [GE], agissant en personne, 
-recourante, 
-contre l…</description>
-      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACPR_933_2026</guid>
-      <category>ge_gerichte</category>
-    </item>
-    <item>
-      <title>ge_gerichte ACPR/936/2026 vom 2026-09-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ge_gerichte_ACPR_936_2026</link>
-      <description>REPUBLIQUE ET 
- 
-CANTON DE GENEVE 
-POUVOIR JUDICIAIRE 
-P/11743/2026 
-ACPR/936/2026
-COUR DE JUSTICE 
-Chambre pénale de recours 
-Arrêt du mercredi 30 septembre 2026 
- 
-Entre 
-A______, domicilié ______, France, agissant en personne, 
-recourant, 
- 
-contr…</description>
-      <pubDate>Wed, 30 Sep 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ge_gerichte_ACPR_936_2026</guid>
-      <category>ge_gerichte</category>
     </item>
   </channel>
 </rss>
