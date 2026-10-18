@@ -498,6 +498,37 @@ def test_custom_adapter_success_records_last_success(tmp_path, monkeypatch):
     assert incremental.load_state(tmp_path, "leges")["last_success"]
 
 
+def test_custom_adapter_counting_skipped_records_is_a_success(tmp_path,
+                                                              monkeypatch):
+    # thegoodboard reports "skipped" as a record count. On 2026-10-18 the
+    # summary line did "skipped: " + 69 and the TypeError failed step 2h after
+    # every source had harvested; the key also kept last_success from being set.
+    payload = json.dumps({"summaries": [
+        {"source": "thegoodboard", "scraped": 140, "skipped": 69}]}, indent=2)
+    monkeypatch.setattr(
+        harvest_all.subprocess, "run",
+        lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, payload))
+    custom = ScholarshipSource(key="thegoodboard", name="x", kind="custom",
+                               custom_module="scrapers.scholarship.thegoodboard")
+    out = harvest_all.schedule([custom], budget_s=3300, output_dir=tmp_path)
+    assert out[0]["skipped"] == 69
+    assert incremental.load_state(tmp_path, "thegoodboard")["last_success"]
+
+
+def test_skipped_source_still_reports_its_reason(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr(
+        harvest_all.subprocess, "run",
+        lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, json.dumps(
+            {"summaries": [{"source": "leges", "skipped": "no custom_module"}]},
+            indent=2)))
+    custom = ScholarshipSource(key="leges", name="x", kind="custom",
+                               custom_module="scrapers.scholarship.leges")
+    with caplog.at_level("INFO", logger=harvest_all.log.name):
+        harvest_all.schedule([custom], budget_s=3300, output_dir=tmp_path)
+    assert "skipped: no custom_module" in caplog.text
+    assert not incremental.load_state(tmp_path, "leges").get("last_success")
+
+
 def test_state_files_are_invisible_to_the_builder_glob(serve, tmp_path):
     """build_legal_scholarship ingests output/legal_scholarship/*.jsonl."""
     clock = Clock()

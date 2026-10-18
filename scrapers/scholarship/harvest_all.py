@@ -106,7 +106,7 @@ def _run_custom(src, timeout: float | None, output_dir: Path) -> dict:
     except (ValueError, KeyError, IndexError):
         summary = {"source": src.key,
                    "error": f"child exited {proc.returncode} without a summary"}
-    if proc.returncode == 0 and not ({"error", "skipped"} & summary.keys()):
+    if proc.returncode == 0 and "error" not in summary and _skip_reason(summary) is None:
         st = incremental.load_state(output_dir, src.key)
         st["last_success"] = incremental._iso(datetime.now(timezone.utc))
         incremental.save_state(output_dir, src.key, st)
@@ -127,6 +127,17 @@ def _run_one(src, slice_end: float | None, global_end: float | None,
             timeout = min(max(slice_end - now, CUSTOM_MIN_S), global_end - now)
         return _run_custom(src, timeout, output_dir)
     return {"source": src.key, "skipped": f"unknown kind {src.kind}"}
+
+
+def _skip_reason(summary: dict) -> str | None:
+    """Why harvest_all skipped a source, or None if it did not.
+
+    harvest_all writes "skipped" as a reason string. A custom adapter can use
+    the same key for a count of records it passed over (thegoodboard does),
+    which says nothing about whether the source itself ran.
+    """
+    reason = summary.get("skipped")
+    return reason if isinstance(reason, str) else None
 
 
 def _safe(fn, src, *args) -> dict:
@@ -184,8 +195,8 @@ def schedule(targets: list, *, budget_s: float,
         s = summaries[src.key]
         if s.get("error"):
             status = "ERROR " + s["error"]
-        elif s.get("skipped"):
-            status = "skipped: " + s["skipped"]
+        elif _skip_reason(s):
+            status = "skipped: " + _skip_reason(s)
         elif s.get("pending"):
             status = f"{s['op']} paused, {s['windows_left']} window(s) left"
         elif "op" in s:
