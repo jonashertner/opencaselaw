@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import io
 import json
 import logging
@@ -2266,9 +2267,37 @@ def import_jsonl(
         new_checkpoint[fname] = {
             "size": current_size,
             "imported": prev_imported + file_imported,
+            # Fingerprint of the bytes just before `size`, so quick_publish can
+            # tell an appended shard (resume at `size`) from a rewritten one.
+            "tail_sha256": shard_tail_sha256(jsonl_file, current_size),
         }
 
     return imported, skipped, new_checkpoint
+
+
+SHARD_TAIL_BYTES = 4096
+
+
+def shard_tail_sha256(path: Path, size: int) -> str | None:
+    """SHA-256 of the SHARD_TAIL_BYTES bytes ending at byte `size` of `path`.
+
+    The full build records it per shard next to `size` in .fts5_checkpoint.json.
+    JSONL shards are append-only, so while a shard is only appended to, the
+    bytes before the recorded size stay the same and the hash still matches; a
+    rewrite (a repair, a re-fetch, a removal) changes them. Never raises: a
+    shard it cannot read gets None, and quick_publish then treats it as
+    unverifiable.
+    """
+    try:
+        start = max(0, size - SHARD_TAIL_BYTES)
+        with open(path, "rb") as fb:
+            fb.seek(start)
+            data = fb.read(size - start)
+        if len(data) != size - start:
+            return None
+        return hashlib.sha256(data).hexdigest()
+    except OSError:
+        return None
 
 
 def import_parquet(conn: sqlite3.Connection, parquet_dir: Path) -> tuple[int, int]:
