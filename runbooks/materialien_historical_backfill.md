@@ -281,7 +281,18 @@ of a message anchor the following paragraphs). The Geschäftsnummer line is drop
 title block, so `mcp_server`'s `_BOTSCHAFT_HEAD_RE` does not match these rows and the
 title falls back to the excerpt (open question 3).
 
-## Known limitation: UNIQUE(bbl_year, bbl_page, language) — later schema migration
+## 2026-10-19: automated, widened, volume-aware
+
+Superseded in three points (see `runbooks/materialien_completeness.md`):
+the nightly runs are `opencaselaw-materialien-historical.timer` (00:20 UTC,
+on a copy via `search_stack.materialien_swap`, DE → FR → IT, deadline 2.5 h);
+discovery takes Berichte des Bundesrates, Kommissionsberichte and
+Parlamentarische Initiativen too (12,205 DE works, not 8,767), with
+`--host-allow bar,fedlex`; and the collision limitation below is lifted by
+`build_botschaft_corpus --migrate-volume-key` (run once on a copy before the
+first night). The courtesy notice to the Bundesarchiv still comes first.
+
+## Known limitation: UNIQUE(bbl_year, bbl_page, language) — later schema migration (lifted 2026-10-19)
 
 `botschaft_documents` is UNIQUE on (bbl_year, bbl_page, language), a constraint from the
 volume-less post-1998 Bundesblatt. Before 1998 a year has several volumes and the same page

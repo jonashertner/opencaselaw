@@ -6146,6 +6146,262 @@ def _normalise_materialien_doc_type(doc_type: str | None) -> str | None:
     return slug
 
 
+# ── Vernehmlassungen (consultations.db, 2026-10-19) ─────────────────────
+# Fedlex's consultation procedures (eli/dl/proj/…) with their verbatim
+# Erläuternde Berichte, Vorlagen, Ergebnisberichte and Stellungnahmen, built by
+# search_stack/build_consultation_corpus.py into its own database (swapped in
+# atomically; one connection per call, so no worker restart is needed). The
+# labels are Fedlex's skos:prefLabel of the draft-document-type vocabulary,
+# read 2026-10-19 (R3: never synthesised); the database's consultation_vocab
+# table carries the same labels and wins when present.
+_CONSULTATION_DOC_TYPE_LABELS: dict[str, dict[str, str]] = {
+    "erlaeuternder_bericht": {"de": "Erläuternder Bericht", "fr": "Rapport explicatif",
+                              "it": "Rapporto esplicativo"},
+    "vernehmlassungsvorlage": {"de": "Vernehmlassungsvorlage",
+                               "fr": "Projet mis en consultation",
+                               "it": "Progetto posto in consultazione"},
+    "ergebnisbericht": {"de": "Ergebnisbericht", "fr": "Rapport de résultats",
+                        "it": "Rapporto sui risultati"},
+    "stellungnahmen": {"de": "Stellungnahmen", "fr": "Avis", "it": "Pareri"},
+    "synoptische_tabelle": {"de": "Synoptische Tabelle", "fr": "Tableau synoptique",
+                            "it": "Tavola sinottica"},
+    "vernehmlassung_diverses": {"de": "Diverses", "fr": "Divers", "it": "Altri"},
+    "begleitschreiben": {"de": "Begleitschreiben", "fr": "Lettre d'accompagnement",
+                         "it": "Lettera accompagnatoria"},
+    "adressatenliste": {"de": "Adressatenliste", "fr": "Destinataires",
+                        "it": "Lista dei destinatari"},
+    "antwortformular": {"de": "Antwortformular", "fr": "Formulaire de réponse",
+                        "it": "Modulo di risposta"},
+    "fragebogen": {"de": "Fragebogen", "fr": "Questionnaire", "it": "Questionario"},
+}
+# The types whose text is searchable (the others are listed with their link).
+_CONSULTATION_DOC_TYPES: tuple[str, ...] = (
+    "erlaeuternder_bericht", "vernehmlassungsvorlage", "ergebnisbericht",
+    "stellungnahmen", "synoptische_tabelle", "vernehmlassung_diverses",
+)
+# search_botschaft's doc_type enum: the Bundesblatt types, then the
+# Vernehmlassung types.
+_SEARCH_BOTSCHAFT_DOC_TYPES: tuple[str, ...] = (
+    _MATERIALIEN_DOC_TYPES + _CONSULTATION_DOC_TYPES)
+_CONSULTATION_PASSAGE_MAX = 2000
+
+
+def _consultations_db_path() -> Path:
+    return Path(os.environ.get("SWISS_CASELAW_CONSULTATIONS_DB",
+                               str(DATA_DIR / "consultations.db")))
+
+
+def _get_consultations_conn() -> sqlite3.Connection | None:
+    """consultations.db read-only (immutable — the file is only ever replaced
+    whole), or None when it is missing or has no text index yet."""
+    path = _consultations_db_path()
+    if not path.exists():
+        return None
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True, timeout=0.5)
+        conn.row_factory = sqlite3.Row
+        conn.execute("SELECT 1 FROM consultation_paragraphs_fts LIMIT 1").fetchone()
+        return conn
+    except sqlite3.Error as e:
+        logger.warning("Failed to open consultations DB: %s", e)
+        return None
+
+
+def _consultation_doc_type_label(doc_type: str | None, language: str | None) -> str:
+    labels = _CONSULTATION_DOC_TYPE_LABELS.get((doc_type or "").lower())
+    if not labels:
+        return doc_type or ""
+    return labels.get((language or "de").lower(), labels["de"])
+
+
+def _consultation_vocab(conn: sqlite3.Connection, uris: list) -> dict:
+    wanted = sorted({u for u in uris if u})
+    if not wanted:
+        return {}
+    marks = ",".join("?" * len(wanted))
+    try:
+        return {r["uri"]: r for r in conn.execute(
+            f"SELECT uri, label_de, label_fr, label_it FROM consultation_vocab "
+            f"WHERE uri IN ({marks})", wanted)}
+    except sqlite3.Error:
+        return {}
+
+
+def _vocab_label(vocab: dict, uri: str | None, language: str | None) -> str | None:
+    row = vocab.get(uri) if uri else None
+    if row is None:
+        return None
+    lang = (language or "de").lower()
+    return (row[f"label_{lang}"] if lang in ("de", "fr", "it") else None) or row["label_de"]
+
+
+def _pick_lang(row, prefix: str, language: str | None) -> str | None:
+    lang = (language or "de").lower()
+    order = [lang] + [x for x in ("de", "fr", "it") if x != lang]
+    for lg in order:
+        try:
+            v = row[f"{prefix}_{lg}"]
+        except (IndexError, KeyError):
+            v = None
+        if v:
+            return v
+    return None
+
+
+def _consultation_procedure_meta(row, vocab: dict, language: str | None) -> dict:
+    """The procedure fields every Vernehmlassung answer carries. Titles,
+    dates, status and institution are Fedlex's own; the ELI URI resolves to
+    the procedure's page on fedlex.admin.ch."""
+    return {
+        "procedure_id": row["event_id"],
+        "procedure_uri": row["procedure_uri"],
+        "procedure_title": _pick_lang(row, "title", language),
+        "procedure_year": row["year"],
+        "consultation_opened": row["start_date"],
+        "consultation_deadline": row["end_date"],
+        "status": _vocab_label(vocab, row["status_uri"], language),
+        "institution": _vocab_label(vocab, row["institution_uri"], language),
+    }
+
+
+def _search_consultations(
+    conn: sqlite3.Connection, fts_q: str, *, language: str | None,
+    year_min: int | None, year_max: int | None, doc_type: str | None,
+    limit: int,
+) -> list[dict]:
+    """Ranked verbatim passages from the Vernehmlassung documents. Each hit
+    carries the WHOLE paragraph (capped at _CONSULTATION_PASSAGE_MAX chars,
+    flagged `text_truncated`) so it can be quoted verbatim, plus the page of
+    the PDF it is on and the procedure it belongs to."""
+    sql = """
+        SELECT cp.paragraph_id, cp.page_number, cp.section_path, cp.article_anchor,
+               cp.text,
+               cf.language, cf.file_url, cf.publication_date,
+               cd.document_uri, cd.doc_type,
+               pr.procedure_uri, pr.event_id, pr.year, pr.status_uri,
+               pr.title_de, pr.title_fr, pr.title_it, pr.start_date, pr.end_date,
+               pr.institution_uri,
+               snippet(consultation_paragraphs_fts, 0, '<<<', '>>>', '…', 24) AS snippet
+        FROM consultation_paragraphs_fts
+        JOIN consultation_paragraphs cp ON cp.paragraph_id = consultation_paragraphs_fts.rowid
+        JOIN consultation_files cf ON cf.file_id = cp.file_id
+        JOIN consultation_documents cd ON cd.document_uri = cf.document_uri
+        JOIN consultation_procedures pr ON pr.procedure_uri = cd.procedure_uri
+        WHERE consultation_paragraphs_fts MATCH ?
+    """
+    params: list = [fts_q]
+    if language:
+        sql += " AND cf.language = ? "
+        params.append(language)
+    if doc_type:
+        sql += " AND cd.doc_type = ? "
+        params.append(doc_type)
+    if year_min is not None:
+        sql += " AND pr.year >= ? "
+        params.append(int(year_min))
+    if year_max is not None:
+        sql += " AND pr.year <= ? "
+        params.append(int(year_max))
+    sql += " ORDER BY rank LIMIT ? "
+    params.append(int(limit))
+    try:
+        rows = conn.execute(sql, params).fetchall()
+    except sqlite3.OperationalError:
+        return []
+    vocab = _consultation_vocab(
+        conn, [u for r in rows for u in (r["status_uri"], r["institution_uri"])])
+    hits = []
+    for r in rows:
+        text = r["text"] or ""
+        hit = {
+            "source": "fedlex_vernehmlassung",
+            "doc_type": r["doc_type"],
+            "doc_type_label": _consultation_doc_type_label(r["doc_type"], r["language"]),
+            "language": r["language"],
+            **_consultation_procedure_meta(r, vocab, r["language"]),
+            "document_uri": r["document_uri"],
+            "file_url": r["file_url"],
+            "file_published": r["publication_date"],
+            "page": r["page_number"],
+            "section": r["section_path"],
+            "article_anchor": r["article_anchor"],
+            "text": text[:_CONSULTATION_PASSAGE_MAX],
+            "snippet": _render_fts_snippet(r["snippet"]),
+        }
+        if len(text) > _CONSULTATION_PASSAGE_MAX:
+            hit["text_truncated"] = True
+        hits.append(hit)
+    return hits
+
+
+def _consultations_for_sr(
+    conn: sqlite3.Connection, sr: str | None, article: str | None, *,
+    language: str | None = None, limit: int = 30,
+) -> list[dict]:
+    """The Vernehmlassungen Fedlex links to an act (foreseenImpactToLegalResource),
+    newest first, each with its documents (type, languages, Fedlex file
+    links, whether the text is searchable) and — when ``article`` is given —
+    the Erläuternder-Bericht passages anchored to that article."""
+    if not sr:
+        return []
+    try:
+        procs = conn.execute(
+            """SELECT DISTINCT pr.* FROM consultation_laws cl
+               JOIN consultation_procedures pr ON pr.procedure_uri = cl.procedure_uri
+               WHERE cl.sr_number = ?
+               ORDER BY COALESCE(pr.start_date, pr.year) DESC LIMIT ?""",
+            (sr, int(limit))).fetchall()
+    except sqlite3.Error:
+        return []
+    vocab = _consultation_vocab(
+        conn, [u for r in procs for u in (r["status_uri"], r["institution_uri"])])
+    out = []
+    for pr in procs:
+        docs: dict[str, dict] = {}
+        for d in conn.execute(
+                """SELECT cd.document_uri, cd.doc_type, cf.language, cf.file_url,
+                          cf.status, cf.text_policy
+                   FROM consultation_documents cd
+                   LEFT JOIN consultation_files cf ON cf.document_uri = cd.document_uri
+                   WHERE cd.procedure_uri = ?
+                   ORDER BY cd.doc_type_code, cd.document_uri, cf.language""",
+                (pr["procedure_uri"],)):
+            e = docs.setdefault(d["document_uri"], {
+                "document_uri": d["document_uri"],
+                "doc_type": d["doc_type"],
+                "doc_type_label": _consultation_doc_type_label(d["doc_type"], language),
+                "files": [],
+                "text_searchable": False,
+            })
+            if d["language"]:
+                e["files"].append({"language": d["language"], "url": d["file_url"]})
+            if d["status"] in ("done", "same_as"):
+                e["text_searchable"] = True
+        entry = {**_consultation_procedure_meta(pr, vocab, language),
+                 "documents": list(docs.values())}
+        if article:
+            passages = []
+            for r in conn.execute(
+                    """SELECT cp.page_number, cp.section_path, cp.text, cf.language, cf.file_url
+                       FROM consultation_paragraphs cp
+                       JOIN consultation_files cf ON cf.file_id = cp.file_id
+                       JOIN consultation_documents cd ON cd.document_uri = cf.document_uri
+                       WHERE cd.procedure_uri = ? AND cd.doc_type = 'erlaeuternder_bericht'
+                         AND cp.article_anchor = ? AND (? IS NULL OR cf.language = ?)
+                       ORDER BY cf.language, cp.para_order LIMIT 6""",
+                    (pr["procedure_uri"], str(article), language, language)):
+                passages.append({
+                    "language": r["language"], "page": r["page_number"],
+                    "section": r["section_path"],
+                    "text": (r["text"] or "")[:_CONSULTATION_PASSAGE_MAX],
+                    "file_url": r["file_url"],
+                })
+            if passages:
+                entry["erlaeuternder_bericht_passages"] = passages
+        out.append(entry)
+    return out
+
+
 def _botschaft_doc_type_expr(conn: sqlite3.Connection, alias: str = "bd") -> str:
     """SQL expression for a document's type: the column where the DB has it,
     the literal 'botschaft' on a materialien.db from before the column
@@ -6543,6 +6799,15 @@ def get_materialien(law_code: str, article: str | None = None,
         # answer, so it is fetched whether or not a digest exists.
         botschaft_docs = _linked_botschaft_documents(
             conn, sr, article, doc_type=doc_type)
+        # The Vernehmlassungen Fedlex links to the act (2026-10-19): the
+        # Erläuternder Bericht, Vorlage and Ergebnisbericht of each procedure.
+        vernehmlassungen: list[dict] = []
+        cconn = _get_consultations_conn()
+        if cconn is not None:
+            try:
+                vernehmlassungen = _consultations_for_sr(cconn, sr, article)
+            finally:
+                cconn.close()
 
         amendment_refs = []
         try:
@@ -6568,7 +6833,7 @@ def get_materialien(law_code: str, article: str | None = None,
         except Exception:
             pass
 
-        if not sources and not amendment_refs and not botschaft_docs:
+        if not sources and not amendment_refs and not botschaft_docs and not vernehmlassungen:
             # Nothing keyed to the provision in either Materialien corpus
             # (~4,100 misses a month, 30 days to 2026-09-08). Keep the
             # success shape, flag the miss, and hand over what the corpus
@@ -6591,6 +6856,7 @@ def get_materialien(law_code: str, article: str | None = None,
                 "no_materialien": True,
                 "sources": [],
                 "botschaft_documents": [],
+                "vernehmlassungen": [],
                 "amendment_refs": [],
                 "parliamentary_modifications": modifications,
                 "doctrine": ctx["doctrine"],
@@ -6617,6 +6883,7 @@ def get_materialien(law_code: str, article: str | None = None,
             "doc_type_filter": doc_type,
             "sources": sources,
             "botschaft_documents": botschaft_docs,
+            "vernehmlassungen": vernehmlassungen,
             "amendment_refs": amendment_refs,
             "parliamentary_modifications": modifications,
         }
@@ -13633,7 +13900,10 @@ server = Server(
         "5,525 federal laws (Fedlex SPARQL), 15,600 cantonal laws (direct "
         "portal scraping for 19 cantons + LexFind fallback for the rest), "
         "1,100+ scholarly commentaries, a verbatim Federal Council Botschaft "
-        "corpus (5,900+ documents, ~410K FTS5-indexed paragraphs), "
+        "corpus (5,900+ documents, ~410K FTS5-indexed paragraphs) and the "
+        "documents of the federal Vernehmlassungen (Erläuternde Berichte, "
+        "Vorlagen, Ergebnisberichte, Stellungnahmen; via search_botschaft and "
+        "get_materialien), "
         "federal administrative practice — Verwaltungspraxis, 9,900+ documents: "
         "BSV Wegleitungen, Kreisschreiben, Rundschreiben and Mitteilungen for "
         "AHV/IV/EL/EO/FamZ/BVG (every retained version, DE/FR/IT), "
@@ -16781,10 +17051,18 @@ def _handle_search_botschaft(
         return {"error": "Provide a search query."}
     language = (language or "").lower().strip() or None
     limit = max(1, min(int(limit or 20), 50))
-    try:
-        doc_type = _normalise_materialien_doc_type(doc_type)
-    except ValueError as e:
-        return {"error": str(e)}
+    # A Vernehmlassung doc_type (2026-10-19) searches consultations.db only;
+    # a Bundesblatt doc_type searches materialien.db only; none searches both.
+    consultation_type = None
+    _dt_raw = str(doc_type).strip().lower() if doc_type is not None else ""
+    if _dt_raw in _CONSULTATION_DOC_TYPES:
+        consultation_type, doc_type = _dt_raw, None
+    else:
+        try:
+            doc_type = _normalise_materialien_doc_type(doc_type)
+        except ValueError:
+            return {"error": f"Unknown doc_type {doc_type!r}; one of: "
+                             + ", ".join(_SEARCH_BOTSCHAFT_DOC_TYPES)}
     # Critical invariant #3: all FTS5 input must pass _sanitize_fts5. Without it,
     # ordinary legislative-history queries ("Art. 64 StGB", hyphenated German
     # compounds, French apostrophes) raise fts5 syntax errors / 500s.
@@ -16792,6 +17070,30 @@ def _handle_search_botschaft(
     if not fts_q:
         return {"query": q, "language_filter": language, "total": 0, "results": [],
                 "_hint": "Query reduced to empty after FTS5 sanitisation; try different terms."}
+
+    if consultation_type:
+        cons, cons_relaxed = _consultation_hits_for_query(
+            q, fts_q, language=language, year_min=year_min, year_max=year_max,
+            doc_type=consultation_type, limit=limit)
+        out = {
+            "query": q, "language_filter": language,
+            "doc_type_filter": consultation_type,
+            "year_filter": ({"min": year_min, "max": year_max}
+                            if (year_min is not None or year_max is not None) else None),
+            "total": len(cons or []), "results": cons or [],
+        }
+        if cons is None:
+            out.update(total=0, results=[], _hint=(
+                "The Vernehmlassung corpus (consultations.db) is not available "
+                "on this server yet."))
+        elif not cons:
+            out["_hint"] = ("No matches in the Vernehmlassung documents of this "
+                            "type. Drop doc_type to search every Materialien type.")
+        if cons_relaxed:
+            out["filters_relaxed"] = True
+            out["note"] = (f"No passage contains every term of \"{q}\"; listed are "
+                           "the passages matching any of them (ranked OR).")
+        return out
 
     materialien_db = os.environ.get(
         "SWISS_CASELAW_MATERIALIEN_DB",
@@ -16886,8 +17188,16 @@ def _handle_search_botschaft(
     finally:
         conn.close()
 
+    # Vernehmlassung passages ride along when no doc_type narrows the search,
+    # in their own key so the Bundesblatt ranking is unchanged.
+    cons, cons_relaxed = (None, False)
+    if not doc_type:
+        cons, cons_relaxed = _consultation_hits_for_query(
+            q, fts_q, language=language, year_min=year_min, year_max=year_max,
+            doc_type=None, limit=min(limit, 10))
+
     if not rows:
-        return {
+        empty = {
             "query": q, "language": language, "doc_type_filter": doc_type,
             "total": 0, "results": [],
             "_hint": (
@@ -16899,6 +17209,11 @@ def _handle_search_botschaft(
                    "document type." if doc_type else "")
             ),
         }
+        if cons:
+            empty["vernehmlassung_results"] = cons
+            if cons_relaxed:
+                empty["vernehmlassung_filters_relaxed"] = True
+        return empty
 
     results = [
         {
@@ -16937,7 +17252,35 @@ def _handle_search_botschaft(
             "verbatim, but check that it speaks to the whole question before "
             "relying on it."
         )
+    if cons:
+        out["vernehmlassung_results"] = cons
+        if cons_relaxed:
+            out["vernehmlassung_filters_relaxed"] = True
     return out
+
+
+def _consultation_hits_for_query(
+    q: str, fts_q: str, *, language: str | None, year_min: int | None,
+    year_max: int | None, doc_type: str | None, limit: int,
+) -> tuple[list[dict] | None, bool]:
+    """(hits, relaxed) from consultations.db; hits is None when the database
+    is absent. Strict AND first, then ranked OR (as search_botschaft)."""
+    conn = _get_consultations_conn()
+    if conn is None:
+        return None, False
+    try:
+        kw = dict(language=language, year_min=year_min, year_max=year_max,
+                  doc_type=doc_type, limit=limit)
+        hits = _search_consultations(conn, fts_q, **kw)
+        if hits:
+            return hits, False
+        or_q = _fts5_or_query(q)
+        if or_q and or_q != fts_q:
+            hits = _search_consultations(conn, or_q, **kw)
+            return hits, bool(hits)
+        return hits, False
+    finally:
+        conn.close()
 
 
 def _handle_get_article_history(
@@ -28821,25 +29164,22 @@ def _list_tools() -> list[Tool]:
             name="search_botschaft",
             title="Search Botschaft",
             description=(
-                "Use this tool to retrieve and quote the VERBATIM text of "
-                "Bundesblatt Materialien: Federal Council Botschaften plus "
-                "Berichte and Stellungnahmen des Bundesrates, parliamentary "
-                "committee reports, Erlassentwürfe and consultation openings "
-                "(each hit is tagged `doc_type`; filter with doc_type, "
-                "default all). Where get_article_purpose answers 'why does Art. X "
-                "exist?', this tool answers 'show me every passage about "
-                "TOPIC X'. Useful when starting from a concept "
-                "('Vaterschaftsurlaub', 'Klimaschutz') rather than an "
-                "SR/article. Returns ranked passages (FTS5 BM25) with "
-                "bbl_citation, the source document's "
-                "title and publication_date (from Fedlex where available; "
-                "`publication_date_source` says whether it is Fedlex's "
-                "publicationDate, its dateDocument, or only the BBl year), "
-                "page, section path, and an article anchor where the parser "
-                "could identify one. Quote verbatim; every snippet has a "
-                "stable Fedlex ELI URI. When no paragraph carries every term "
-                "the page is relaxed to ranked OR, flagged "
-                "`filters_relaxed: true` with a `note`."
+                "Retrieve and quote the VERBATIM text of federal "
+                "Materialien: Federal Council Botschaften, Berichte and Stellungnahmen "
+                "des Bundesrates, parliamentary committee reports, Erlassentwürfe — and "
+                "the Vernehmlassung documents: Erläuternde Berichte, Vorlagen, "
+                "Ergebnisberichte, Stellungnahmen (2,500+ procedures from Fedlex). Each "
+                "hit is tagged `doc_type`; filter with doc_type, default all. Bundesblatt "
+                "hits come in `results` (bbl_citation, title, publication_date from "
+                "Fedlex where available — `publication_date_source` says whether it is "
+                "Fedlex's date or only the BBl year — page, section, article anchor); "
+                "Vernehmlassung passages come in "
+                "`vernehmlassung_results` (or in `results` when doc_type is a "
+                "Vernehmlassung type), with the whole paragraph `text`, PDF page, "
+                "procedure title, dates, office and Fedlex ELI link. Use it when starting "
+                "from a concept rather than an SR/article (get_article_purpose answers "
+                "'why does Art. X exist?'). Quote verbatim. No paragraph with every "
+                "term: ranked OR, flagged `filters_relaxed`."
             ),
             inputSchema={
                 "type": "object",
@@ -28870,7 +29210,7 @@ def _list_tools() -> list[Tool]:
                     "year_max": {"type": "integer", "description": "Latest publication year of the source Botschaft (inclusive)."},
                     "doc_type": {
                         "type": "string",
-                        "enum": list(_MATERIALIEN_DOC_TYPES),
+                        "enum": list(_SEARCH_BOTSCHAFT_DOC_TYPES),
                         "description": (
                             "OPTIONAL Fedlex document type. botschaft = Botschaft des "
                             "Bundesrates (Message / Messaggio); bericht_bundesrat = "
@@ -28879,9 +29219,12 @@ def _list_tools() -> list[Tool]:
                             "bericht_kommission = Bericht parlamentarische Kommission; "
                             "erlassentwurf = Erlassentwurf (draft act, 2021+); "
                             "vorentwurf_erlass = Vorentwurf; vernehmlassung_eroeffnung = "
-                            "Eröffnung des Vernehmlassungsverfahrens. Leave unset to "
-                            "search every type; each hit carries doc_type and Fedlex's "
-                            "doc_type_label in its own language."
+                            "Eröffnung des Vernehmlassungsverfahrens. Vernehmlassung "
+                            "documents: erlaeuternder_bericht, vernehmlassungsvorlage, "
+                            "ergebnisbericht, stellungnahmen, synoptische_tabelle, "
+                            "vernehmlassung_diverses. Leave unset to search every type; "
+                            "each hit carries doc_type and Fedlex's doc_type_label in "
+                            "its own language."
                         ),
                     },
                     "limit": {
@@ -29647,21 +29990,21 @@ def _list_tools() -> list[Tool]:
             name="get_materialien",
             title="Get Materialien",
             description=(
-                "Look up Materialien for a Swiss federal law article. Returns up to three "
-                "things: `sources` = per-article digests of legislative intent (BV and BGFA "
-                "only — 167 articles); `botschaft_documents` = the Bundesblatt documents "
-                "that concern this article — Federal Council messages, Berichte, "
-                "Stellungnahmen, committee reports, Erlassentwürfe — each tagged `doc_type`, "
-                "with BBl citation, title, publication_date (from Fedlex where available; "
-                "`publication_date_source` = 'bbl_year' means only the year) and Fedlex link "
-                "(620+ SR numbers); `amendment_refs` = the AS/BBl locators from the "
-                "statute's own footnotes. "
-                "Empty `sources` means no digest exists for that law, NOT that the law has no "
-                "legislative history — read `botschaft_documents` and cite the BBl reference. "
-                "For full text use search_botschaft. A provision with nothing keyed to it is "
-                "flagged `found: false` / `no_materialien: true` and lists `leading_cases`, a "
-                "`doctrine` excerpt and `scholarship_citing_statute` instead — none of it is "
-                "legislative history."
+                "Look up Materialien for a Swiss federal law article. Returns: `sources` = "
+                "per-article digests of legislative intent (BV and BGFA only); "
+                "`botschaft_documents` = the Bundesblatt documents that concern the article "
+                "(Botschaften, Berichte, Stellungnahmen, committee reports, Erlassentwürfe; "
+                "tagged `doc_type`, with BBl citation, title, publication_date from Fedlex "
+                "where available — `publication_date_source` 'bbl_year' means only the "
+                "year — and Fedlex link); `vernehmlassungen` = the consultation procedures Fedlex links to "
+                "the act, each with its Erläuternder Bericht, Vorlage, Ergebnisbericht and "
+                "Stellungnahmen (with an article: the Erläuternder-Bericht passages on it); "
+                "`amendment_refs` = the AS/BBl locators from the statute's footnotes. Empty "
+                "`sources` means no digest, NOT that the law has no legislative history. "
+                "Full text: "
+                "search_botschaft. Nothing keyed to a provision: flagged "
+                "`found: false` and lists `leading_cases`, a `doctrine` excerpt and "
+                "`scholarship_citing_statute` instead — none of it legislative history."
             ),
             inputSchema={
                 "type": "object",
@@ -29701,7 +30044,8 @@ def _list_tools() -> list[Tool]:
                 "source message (bbl_ref, title, publication_date from Fedlex where "
                 "available, with `publication_date_source`). "
                 "Prefer search_botschaft, which covers all 6,154 Federal Council messages "
-                "plus Berichte, Stellungnahmen, committee reports and Erlassentwürfe "
+                "plus Berichte, Stellungnahmen, committee reports, Erlassentwürfe and the "
+                "Vernehmlassung documents (Erläuternde Berichte, Ergebnisberichte) "
                 "verbatim (filter by doc_type), or get_materialien(law_code) for the "
                 "documents linked to one statute."
             ),
@@ -35387,11 +35731,14 @@ setInterval(load, 30000);
         year_min: int = Query(None, description="Earliest source-Botschaft publication year (inclusive)"),
         year_max: int = Query(None, description="Latest source-Botschaft publication year (inclusive)"),
         doc_type: str = Query(
-            None, regex="^(" + "|".join(_MATERIALIEN_DOC_TYPES) + ")$",
+            None, regex="^(" + "|".join(_SEARCH_BOTSCHAFT_DOC_TYPES) + ")$",
             description=(
                 "Optional Fedlex document type: botschaft, bericht_bundesrat, "
                 "stellungnahme_bundesrat, bericht_kommission, erlassentwurf, "
-                "vorentwurf_erlass, vernehmlassung_eroeffnung. Leave unset for all; "
+                "vorentwurf_erlass, vernehmlassung_eroeffnung, or a Vernehmlassung "
+                "document: erlaeuternder_bericht, vernehmlassungsvorlage, "
+                "ergebnisbericht, stellungnahmen, synoptische_tabelle, "
+                "vernehmlassung_diverses. Leave unset for all; "
                 "every hit carries doc_type + doc_type_label (Fedlex's DE/FR/IT name)."
             ),
         ),

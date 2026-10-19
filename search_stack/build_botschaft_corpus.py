@@ -144,8 +144,11 @@ CREATE TABLE IF NOT EXISTS botschaft_documents (
     page_count      INTEGER,
     text_hash       TEXT,                     -- sha-256 of full text, for delta detection
     ingested_at     TEXT NOT NULL,
-    doc_type        TEXT NOT NULL DEFAULT 'botschaft',  -- Fedlex resource-type slug (FGA_DOC_TYPES)
-    UNIQUE(bbl_year, bbl_page, language)
+    doc_type        TEXT NOT NULL DEFAULT 'botschaft'  -- Fedlex resource-type slug (FGA_DOC_TYPES)
+    -- Uniqueness is the expression index ux_bd_citation on (bbl_year,
+    -- COALESCE(bbl_volume, 0), bbl_page, language), created by
+    -- migrate_volume_key once bbl_volume exists: before 1999 a year has
+    -- several Bundesblatt volumes and page numbers recur across them.
 );
 
 CREATE INDEX IF NOT EXISTS ix_bd_eli ON botschaft_documents(eli_uri);
@@ -273,9 +276,90 @@ def migrate_additive(conn: sqlite3.Connection) -> list[str]:
     return added
 
 
+VOLUME_KEY_INDEX = (
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_bd_citation ON botschaft_documents"
+    "(bbl_year, COALESCE(bbl_volume, 0), bbl_page, language)"
+)
+_OLD_CITATION_UNIQUE_RE = re.compile(
+    r"UNIQUE\s*\(\s*bbl_year\s*,\s*bbl_page\s*,\s*language\s*\)", re.IGNORECASE)
+
+
+def needs_volume_key_migration(conn: sqlite3.Connection) -> bool:
+    row = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' "
+                       "AND name='botschaft_documents'").fetchone()
+    return bool(row and row[0] and _OLD_CITATION_UNIQUE_RE.search(row[0]))
+
+
+def migrate_volume_key(conn: sqlite3.Connection) -> dict:
+    """Replace UNIQUE(bbl_year, bbl_page, language) by the volume-aware
+    ux_bd_citation index — a table rebuild (SQLite cannot drop a table
+    constraint), keeping every botschaft_id so botschaft_paragraphs,
+    article_botschaft_links and the FTS index stay aligned. Historical works
+    that lost their (year, page) slot to another volume of the same year
+    ('collision' in botschaft_fetch_state) are reset for a retry.
+
+    Rewrites the whole table: run it on a COPY of the served database
+    (search_stack/materialien_swap.py), never on the live file. Idempotent;
+    on a database that already has the new key it only ensures the index."""
+    migrate_additive(conn)
+    if not needs_volume_key_migration(conn):
+        conn.execute(VOLUME_KEY_INDEX)
+        conn.commit()
+        return {"migrated": False}
+    before = conn.execute("SELECT COUNT(*), COALESCE(SUM(botschaft_id), 0) "
+                          "FROM botschaft_documents").fetchone()
+    old_sql = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' "
+                           "AND name='botschaft_documents'").fetchone()[0]
+    # The constraint becomes a no-op CHECK in place: wherever ALTER TABLE ADD
+    # COLUMN left it in the stored CREATE text, the statement stays valid.
+    new_sql = _OLD_CITATION_UNIQUE_RE.sub("CHECK(1)", old_sql, count=1)
+    new_sql = re.sub(r"CREATE TABLE\s+(?:IF NOT EXISTS\s+)?\"?botschaft_documents\"?",
+                     "CREATE TABLE botschaft_documents__new", new_sql, count=1)
+    cols = [r[1] for r in conn.execute('PRAGMA table_info("botschaft_documents")')]
+    col_list = ", ".join(f'"{c}"' for c in cols)
+    others = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE tbl_name='botschaft_documents' "
+        "AND type IN ('index','trigger') AND sql IS NOT NULL").fetchall()
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        conn.execute("BEGIN")
+        conn.execute(new_sql)
+        conn.execute(f"INSERT INTO botschaft_documents__new ({col_list}) "
+                     f"SELECT {col_list} FROM botschaft_documents")
+        conn.execute("DROP TABLE botschaft_documents")
+        conn.execute("ALTER TABLE botschaft_documents__new RENAME TO botschaft_documents")
+        for (ddl,) in others:
+            conn.execute(ddl)
+        conn.execute(VOLUME_KEY_INDEX)
+        after = conn.execute("SELECT COUNT(*), COALESCE(SUM(botschaft_id), 0) "
+                             "FROM botschaft_documents").fetchone()
+        if tuple(after) != tuple(before):
+            raise RuntimeError(f"row check failed: {tuple(before)} -> {tuple(after)}")
+        bad = conn.execute("PRAGMA foreign_key_check").fetchall()
+        if bad:
+            raise RuntimeError(f"foreign_key_check: {len(bad)} rows")
+        reset = 0
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name='botschaft_fetch_state'").fetchone():
+            reset = conn.execute(
+                "UPDATE botschaft_fetch_state SET status='error', attempts=0, "
+                "error='retry after volume-key migration' WHERE status='collision'").rowcount
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys=ON")
+    log.info("  schema: botschaft_documents keyed on (year, volume, page, language); "
+             "%d collision rows reset", reset)
+    return {"migrated": True, "rows": before[0], "collisions_reset": reset}
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
     migrate_additive(conn)
+    if not needs_volume_key_migration(conn):
+        conn.execute(VOLUME_KEY_INDEX)
     conn.commit()
 
 
@@ -1299,6 +1383,12 @@ def main() -> int:
         help="just create the new tables and exit",
     )
     parser.add_argument(
+        "--migrate-volume-key", action="store_true",
+        help="rebuild botschaft_documents keyed on (year, volume, page, language) "
+             "and reset historical 'collision' rows; run on a COPY "
+             "(search_stack.materialien_swap), then exit",
+    )
+    parser.add_argument(
         "--ingest-one", action="store_true",
         help="ingest a single Botschaft (PoC); requires --year + --page",
     )
@@ -1448,6 +1538,10 @@ def main() -> int:
     # ingest never started. ensure_schema is idempotent (CREATE TABLE
     # IF NOT EXISTS) — calling it unconditionally costs <1 ms.
     ensure_schema(conn)
+
+    if args.migrate_volume_key:
+        print(json.dumps(migrate_volume_key(conn)))
+        return 0
 
     if args.schema_only:
         log.info("schema migrated")

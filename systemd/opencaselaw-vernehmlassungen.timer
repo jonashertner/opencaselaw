@@ -1,0 +1,15 @@
+[Unit]
+Description=Twice-daily Fedlex Vernehmlassungen refresh (skipped while the full build runs)
+
+[Timer]
+# 17:45 UTC after the full build has usually exited; 22:45 UTC as the second
+# chance on days the build runs late (ExecCondition skips a run during it).
+OnCalendar=*-*-* 17:45:00 UTC
+OnCalendar=*-*-* 22:45:00 UTC
+# Persistent=false: a daemon-reload must never fire an unplanned run
+# (see opencaselaw-practice.timer, 2026-09-03).
+Persistent=false
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

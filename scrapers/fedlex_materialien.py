@@ -974,6 +974,63 @@ _BAR_HOST = "www.amtsdruckschriften.bar.admin.ch"
 _FEDLEX_FILE_HOST = "fedlex.data.admin.ch"
 _BOTSCHAFT_TITLE_PREFIX = {"de": "botschaft", "fr": "message", "it": "messaggio"}
 
+# Historical (untyped) Materialien beyond the Botschaft (2026-10-19). Fedlex
+# lists 1850-1999 Bundesblatt works without a typeDocument; besides 8,819 DE
+# messages they hold ~4,260 DE reports and committee papers that are
+# Materialien in the legal sense: "Bericht des Bundesrates an die
+# Bundesversammlung über …", "Bericht der ständerätlichen Kommission …",
+# "Parlamentarische Initiative … Bericht der Kommission / Stellungnahme des
+# Bundesrates", Nachtrags-/Ergänzungsbotschaften. The rules classify a title
+# (lower-cased, first match wins) into the doc_type slugs Fedlex uses for the
+# typed works; a title no rule claims (consular reports, cantonal returns,
+# notices) is not a candidate.
+_HISTORICAL_TITLE_RULES: dict[str, tuple[tuple[str, str], ...]] = {
+    "de": (
+        (r"^(?:nachtrags|ergänzungs|zusatz)?botschaft", "botschaft"),
+        (r"^parlamentarische initiative.*stellungnahme des bundesrates", "stellungnahme_bundesrat"),
+        (r"^parlamentarische initiative", "bericht_kommission"),
+        (r"^(?:ergänzungs|zusatz)?berichte? des bundesrates", "bericht_bundesrat"),
+        (r"^(?:ergänzungs|zusatz)?berichte?\b.{0,160}kommission", "bericht_kommission"),
+        (r"^kommissionalbericht", "bericht_kommission"),
+    ),
+    "fr": (
+        (r"^message", "botschaft"),
+        (r"^initiative parlementaire.*avis du conseil fédéral", "stellungnahme_bundesrat"),
+        (r"^initiative parlementaire", "bericht_kommission"),
+        (r"^rapports? (?:complémentaires? )?du conseil fédéral", "bericht_bundesrat"),
+        (r"^rapports?\b.{0,160}commission", "bericht_kommission"),
+    ),
+    "it": (
+        (r"^messaggio", "botschaft"),
+        (r"^iniziativa parlamentare.*parere del consiglio federale", "stellungnahme_bundesrat"),
+        (r"^iniziativa parlamentare", "bericht_kommission"),
+        (r"^rapporti? (?:complementari? )?del consiglio federale", "bericht_bundesrat"),
+        (r"^rapport[oi]\b.{0,160}commission", "bericht_kommission"),
+    ),
+}
+_HISTORICAL_TITLE_RES = {
+    lang: tuple((re.compile(rx, re.IGNORECASE | re.DOTALL), slug) for rx, slug in rules)
+    for lang, rules in _HISTORICAL_TITLE_RULES.items()
+}
+
+
+def classify_historical_title(title: str | None, language: str) -> str | None:
+    """doc_type slug of a historical untyped Bundesblatt title, or None when
+    it is not a Materialien document."""
+    t = re.sub(r"\s+", " ", (title or "")).strip().lower()
+    for rx, slug in _HISTORICAL_TITLE_RES.get(language, ()):
+        if rx.search(t):
+            return slug
+    return None
+
+
+def _historical_title_sparql_regex(language: str) -> str:
+    """One SPARQL REGEX alternation of the rules' patterns, in the XPath
+    dialect (no non-capturing groups, no \\b); the Python rules re-check and
+    classify every row the endpoint returns."""
+    parts = [rx.replace("(?:", "(").replace("\\b", "") for rx, _ in _HISTORICAL_TITLE_RULES[language]]
+    return "|".join(parts)
+
 
 class UntypedBotschaft(NamedTuple):
     """One historical (untyped) Botschaft candidate.
@@ -997,6 +1054,9 @@ class UntypedBotschaft(NamedTuple):
     publication_date: str | None
     volume: int | None
     language: str
+    # Fedlex doc_type slug inferred from the title (classify_historical_title);
+    # appended last so positional construction elsewhere keeps working.
+    doc_type: str = "botschaft"
 
 
 def parse_historical_fga_eli(eli_uri: str) -> dict | None:
@@ -1035,7 +1095,8 @@ def _untyped_candidate(row: dict, language: str) -> UntypedBotschaft | None:
     title = (_val(row, "title") or "").strip()
     if not act or not title:
         return None
-    if not title.lower().startswith(_BOTSCHAFT_TITLE_PREFIX[language]):
+    doc_type = classify_historical_title(title, language)
+    if doc_type is None:
         return None
     parsed = parse_historical_fga_eli(act)
     year: int | None = parsed["year"] if parsed else None
@@ -1066,6 +1127,7 @@ def _untyped_candidate(row: dict, language: str) -> UntypedBotschaft | None:
         year=year, page=page, title=title, eli_uri=act, file_url=file_url,
         file_host=classify_file_host(file_url), citation=citation,
         publication_date=_val(row, "pubDate"), volume=volume, language=language,
+        doc_type=doc_type,
     )
 
 
@@ -1092,7 +1154,11 @@ def discover_fga_botschaften_untyped(
     """
     if language not in LANG_URIS:
         raise ValueError(f"Unsupported language: {language!r}")
-    prefix = _BOTSCHAFT_TITLE_PREFIX[language]
+    title_regex = _historical_title_sparql_regex(language)
+    # Works the typed path ingests (FGA_DOC_TYPES, Botschaft 23 among them)
+    # are left to it; everything else whose title is a Materialien title —
+    # untyped, or typed outside that list (18, 33) — is a historical candidate.
+    typed_values = " ".join(f"<{fga_type_uri(t)}>" for t in sorted(FGA_DOC_TYPES))
     query = f"""
     PREFIX jolux: <{JOLUX}>
     PREFIX dct: <{DCT}>
@@ -1100,9 +1166,10 @@ def discover_fga_botschaften_untyped(
       ?act jolux:isRealizedBy ?expr .
       ?expr jolux:language <{LANG_URIS[language]}> .
       ?expr jolux:title ?title .
-      FILTER(STRSTARTS(LCASE(STR(?title)), "{prefix}"))
       FILTER(strstarts(STR(?act), "https://fedlex.data.admin.ch/eli/fga/"))
-      FILTER NOT EXISTS {{ ?act jolux:typeDocument <{BOTSCHAFT_TYPE_DOC_URI}> }}
+      FILTER(REGEX(LCASE(STR(?title)), "{title_regex}"))
+      FILTER NOT EXISTS {{ ?act jolux:typeDocument ?typed .
+                          VALUES ?typed {{ {typed_values} }} }}
       OPTIONAL {{ ?expr jolux:memorialPage ?memPage }}
       OPTIONAL {{ ?expr dct:identifier ?ident }}
       OPTIONAL {{ ?expr jolux:historicalLegalId ?hid }}

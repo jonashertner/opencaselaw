@@ -1,0 +1,36 @@
+[Unit]
+Description=OpenCaseLaw Vernehmlassungen from Fedlex (Erläuternde Berichte, Vorlagen, Ergebnisberichte, Stellungnahmen) → consultations.db
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+Environment=PYTHONPATH=/opt/caselaw/repo
+# Never alongside the full build (03:30 UTC, ~13-14 h): the fetch is light,
+# but the publish snapshot writes the whole corpus (several GB) and would
+# compete with the build for the page cache. A skipped run is harmless; the
+# timer fires twice a day.
+ExecCondition=/bin/sh -c '! systemctl is-active --quiet opencaselaw-publish.service'
+Nice=10
+CPUWeight=20
+IOWeight=20
+# discover (all years, ~2 min of SPARQL) → fetch (Fedlex file store, one
+# connection, 0.5 s between requests, stops on 429/403 or 5 failures in a
+# row, 3 h budget per run; the first catch-up of ~28,700 files takes a few
+# runs, then a handful per day) → publish (VACUUM INTO + os.replace onto the
+# volume, only when something changed or weekly). The work DB is the
+# resumable state and is never served.
+ExecStart=/usr/bin/python3 -m search_stack.build_consultation_corpus run \
+    --work-db /mnt/HC_Volume_104655575/output/consultations_work.db \
+    --out /mnt/HC_Volume_104655575/output/consultations.db \
+    --rate-limit 0.5 --max-seconds 10800
+# The nightly completeness report (Bundesblatt typed + historical +
+# Vernehmlassungen vs a fresh Fedlex census) and one ntfy push on a gap.
+# "-": a gap is reported, not a failed unit.
+ExecStartPost=-/usr/bin/python3 /opt/caselaw/repo/scripts/check_materialien_completeness.py \
+    --materialien-db /opt/caselaw/repo/output/materialien.db \
+    --consultations-db /mnt/HC_Volume_104655575/output/consultations.db \
+    --report /opt/caselaw/repo/logs/materialien_completeness.json
+TimeoutStartSec=4h
+StandardOutput=append:/opt/caselaw/repo/logs/vernehmlassungen.log
+StandardError=append:/opt/caselaw/repo/logs/vernehmlassungen.log

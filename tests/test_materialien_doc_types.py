@@ -477,7 +477,10 @@ def test_tool_schemas_expose_doc_type():
     tools = {t.name: t for t in mcp_server._list_tools()}
     for name in ("search_botschaft", "get_materialien", "search_materialien"):
         prop = tools[name].inputSchema["properties"]["doc_type"]
-        assert prop["enum"] == list(mcp_server._MATERIALIEN_DOC_TYPES)
+        # search_botschaft also searches the Vernehmlassung documents (2026-10-19).
+        expected = (mcp_server._SEARCH_BOTSCHAFT_DOC_TYPES if name == "search_botschaft"
+                    else mcp_server._MATERIALIEN_DOC_TYPES)
+        assert prop["enum"] == list(expected)
         assert len(tools[name].description) <= 1024
     assert "doc_type" in tools["search_botschaft"].description
     assert "Berichte" in tools["search_materialien"].description

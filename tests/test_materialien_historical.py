@@ -86,9 +86,13 @@ def test_discover_untyped_parses_sparql_rows(monkeypatch) -> None:
         # Duplicate row for the same work (second title) — dropped.
         _row("https://fedlex.data.admin.ch/eli/fga/1975/1_609__",
              "Botschaft (Zweittitel)", mem="609", file=BAR % 10046299),
-        # Title does not start with the prefix — dropped.
+        # A report of the Federal Council is a Materialien document too
+        # (2026-10-19): kept, typed bericht_bundesrat.
         _row("https://fedlex.data.admin.ch/eli/fga/1975/1_700__", "Bericht des Bundesrates",
              mem="700", file=BAR % 6),
+        # A consular report is not — dropped.
+        _row("https://fedlex.data.admin.ch/eli/fga/1875/1_507__",
+             "Bericht des schweizerischen Konsuls in Bastia", mem="507", file=BAR % 7),
         # No file — nothing to fetch, dropped.
         _row("https://fedlex.data.admin.ch/eli/fga/1975/1_800__", "Botschaft ohne Datei",
              mem="800"),
@@ -99,7 +103,10 @@ def test_discover_untyped_parses_sparql_rows(monkeypatch) -> None:
     ]
     monkeypatch.setattr(fm, "sparql_query", lambda q, timeout=600: rows)
     out = fm.discover_fga_botschaften_untyped("de")
-    assert [c.eli_uri.rsplit("/", 1)[-1] for c in out] == ["1_609__", "1_269_205_179", "2_223__", "1_9000__"]
+    assert [c.eli_uri.rsplit("/", 1)[-1] for c in out] == [
+        "1_609__", "1_269_205_179", "2_223__", "1_700__", "1_9000__"]
+    assert [c.doc_type for c in out] == [
+        "botschaft", "botschaft", "botschaft", "bericht_bundesrat", "botschaft"]
     c0 = out[0]
     assert (c0.year, c0.page, c0.title, c0.eli_uri, c0.file_url, c0.file_host) == (
         1975, 609, "Botschaft des Bundesrates über den Erwerb von zwei Heizöltanks",
@@ -108,7 +115,7 @@ def test_discover_untyped_parses_sparql_rows(monkeypatch) -> None:
     assert c0.volume == 1 and c0.language == "de"
     assert out[1].page == 270 and out[1].volume == 1
     assert out[2].citation == "BBl 1866 II 223" and out[2].volume == 2   # from historicalLegalId
-    assert out[3].file_host == "fedlex"
+    assert out[4].file_host == "fedlex"
 
 
 def test_discover_untyped_french_page_from_eli_when_no_mempage(monkeypatch) -> None:
@@ -139,7 +146,7 @@ def test_discover_untyped_query_excludes_type_23_and_rejects_language(monkeypatc
     monkeypatch.setattr(fm, "sparql_query", fake)
     assert fm.discover_fga_botschaften_untyped("it") == []
     assert "FILTER NOT EXISTS" in seen["q"] and "resource-type/23" in seen["q"]
-    assert '"messaggio"' in seen["q"]
+    assert "^messaggio" in seen["q"] and "^iniziativa parlamentare" in seen["q"]
     with pytest.raises(ValueError):
         fm.discover_fga_botschaften_untyped("rm")
 
@@ -588,16 +595,20 @@ def test_backfill_respects_max_per_run_and_resumes(db, fake_pdf) -> None:
 
 
 def test_backfill_collision_and_host_opt_in(db, fake_pdf) -> None:
+    # 2026-10-19: the key is (year, volume, page, language), so BBl 1866 II 223
+    # is a document of its own; only the same volume collides.
     cands = [_cand(1866, 223, "1_223__", n=1),
-             _cand(1866, 223, "2_223__", vol=2, n=2),          # same (year, page): collision
+             _cand(1866, 223, "2_223__", vol=2, n=2),          # other volume: its own document
+             _cand(1866, 223, "1_223_x", n=4),                 # same (year, volume, page): collision
              _cand(1999, 9000, "1_9000__", host="fedlex", n=3)]  # not allowed by --host-allow bar
-    f, script, _ = _fetcher([(200, {}, PDF)] * 3)
+    f, script, _ = _fetcher([(200, {}, PDF)] * 4)
     st = _run(db, cands, f)
     assert st["skipped"]["host"] == 1
-    assert st["done"] == 1 and st["collision"] == 1 and len(script.calls) == 1
+    assert st["done"] == 2 and st["collision"] == 1 and len(script.calls) == 2
     rows = dict(db.execute("SELECT eli_uri, status FROM botschaft_fetch_state").fetchall())
-    assert rows[cands[0].eli_uri] == "done" and rows[cands[1].eli_uri] == "collision"
-    assert cands[2].eli_uri not in rows
+    assert rows[cands[0].eli_uri] == "done" and rows[cands[1].eli_uri] == "done"
+    assert rows[cands[2].eli_uri] == "collision"
+    assert cands[3].eli_uri not in rows
     err = db.execute("SELECT error FROM botschaft_fetch_state WHERE status='collision'").fetchone()[0]
     assert cands[0].eli_uri in err
     # With both hosts allowed the Fedlex file is fetched too.

@@ -1,0 +1,35 @@
+[Unit]
+Description=OpenCaseLaw historical Materialien 1850-1999 (Bundesarchiv scans) — nightly polite backfill on a copy of materialien.db
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+Environment=PYTHONPATH=/opt/caselaw/repo
+# The quiet window (runbooks/materialien_historical_backfill.md): never with
+# the full build or the 04:30 Botschaft unit, both of which use materialien.db.
+ExecCondition=/bin/sh -c '! systemctl is-active --quiet opencaselaw-publish.service && ! systemctl is-active --quiet opencaselaw-materialien.service'
+CPUWeight=20
+IOWeight=20
+# materialien_swap: the backfill writes a private copy (the workers read the
+# live file immutable=1 and must not see the run's commits), which is checked
+# and swapped in when the run ends — at the latest at the 2.5 h deadline
+# (00:20 → ~02:55 UTC, before the 03:30 build). The swap is refused if
+# anything else changed the live file meanwhile. DE, then FR, then IT, newest
+# first; a language with nothing left passes on at once. The polite fetcher
+# (one connection, >= 2.5 s, backoff, hard stop on 429/403/soft blocks) and
+# the per-host lock are build_botschaft_corpus's own.
+ExecStart=/usr/bin/python3 -m search_stack.materialien_swap \
+    --db /opt/caselaw/repo/output/materialien.db \
+    --deadline-seconds 9000 \
+    --lock-file /opt/caselaw/repo/logs/materialien_swap.lock -- \
+    /bin/bash -c '\
+      for lang in de fr it; do \
+        /usr/bin/python3 -m search_stack.build_botschaft_corpus --ingest-all \
+          --discover-untyped-by-title --host-allow bar,fedlex --language $$lang \
+          --max-per-run 3000 --lock-file /opt/caselaw/repo/logs/bar_fetch.lock \
+          --db {db} || exit $$?; \
+      done'
+TimeoutStartSec=3h
+StandardOutput=append:/opt/caselaw/repo/logs/materialien_historical.log
+StandardError=append:/opt/caselaw/repo/logs/materialien_historical.log

@@ -1,0 +1,13 @@
+[Unit]
+Description=Nightly historical Materialien backfill window (00:20 UTC)
+
+[Timer]
+# 00:20 UTC: after the 20:00 incremental has normally exited; ExecCondition
+# skips the night when the build or the 04:30 unit is still active. Enable
+# only after the courtesy notice to the Bundesarchiv has gone out
+# (runbooks/materialien_historical_backfill.md).
+OnCalendar=*-*-* 00:20:00 UTC
+Persistent=false
+
+[Install]
+WantedBy=timers.target

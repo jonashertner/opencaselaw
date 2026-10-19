@@ -538,8 +538,8 @@ def store_historical_document(
             INSERT INTO botschaft_documents
                 (bbl_year, bbl_page, bbl_citation, eli_uri, title, publication_date,
                  date_source, source_url, format, language, page_count, text_hash,
-                 ingested_at, source_collection, bbl_volume)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, ?, ?)
+                 ingested_at, source_collection, bbl_volume, doc_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pdf', ?, ?, ?, ?, ?, ?, ?)
             """,
             (cand.year, cand.page, cand.citation, cand.eli_uri, cand.title,
              cand.publication_date,
@@ -547,7 +547,8 @@ def store_historical_document(
              # the historical path never falls back to the BBl year.
              DATE_SOURCE_PUBLICATION if cand.publication_date else None,
              cand.file_url, cand.language, len(pages),
-             text_hash, now, source_collection, cand.volume),
+             text_hash, now, source_collection, cand.volume,
+             getattr(cand, "doc_type", None) or "botschaft"),
         )
         botschaft_id = cur.lastrowid
         conn.executemany(
@@ -602,11 +603,23 @@ def ingest_historical_one(
         log.warning("  %s: row %d has no paragraphs; re-fetching", cand.citation, row[0])
         conn.execute("DELETE FROM botschaft_documents WHERE botschaft_id = ?", (row[0],))
         conn.commit()
-    holder = conn.execute(
-        "SELECT botschaft_id, eli_uri FROM botschaft_documents "
-        "WHERE bbl_year = ? AND bbl_page = ? AND language = ?",
-        (cand.year, cand.page, lang),
-    ).fetchone()
+    # Volume-aware: BBl 1975 I 609 and BBl 1975 II 609 are two documents.
+    # Before the volume-key migration the table's own UNIQUE(year, page,
+    # language) still refuses the second; needs_volume_key_migration tells.
+    from search_stack.build_botschaft_corpus import needs_volume_key_migration
+    if needs_volume_key_migration(conn):
+        holder = conn.execute(
+            "SELECT botschaft_id, eli_uri FROM botschaft_documents "
+            "WHERE bbl_year = ? AND bbl_page = ? AND language = ?",
+            (cand.year, cand.page, lang),
+        ).fetchone()
+    else:
+        holder = conn.execute(
+            "SELECT botschaft_id, eli_uri FROM botschaft_documents "
+            "WHERE bbl_year = ? AND COALESCE(bbl_volume, 0) = COALESCE(?, 0) "
+            "AND bbl_page = ? AND language = ?",
+            (cand.year, cand.volume, cand.page, lang),
+        ).fetchone()
     if holder:
         record_state(conn, cand.eli_uri, lang, "collision", botschaft_id=holder[0],
                      error=f"(year, page) held by {holder[1]}", bump_attempts=False)
