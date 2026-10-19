@@ -125,3 +125,40 @@ def test_small_gap_to_a_dated_event_of_the_text_is_corrected():
             "Le jugement qui précède, dont le dispositif a été communiqué aux parties le 4 décembre 2020")
     assert r.decide(_row("g", "25/2020/JMN", "2020-12-04", text), TODAY) == (
         ["date_corrected"], {"decision_date": "2020-11-24"})
+
+
+# Cour d'appel pénale judgments open with "Audience du"; the stored value was the
+# first instance's judgment date (PE17.011760: 2022-10-10 vs 17 August 2023).
+AUDIENCE = ("TRIBUNAL CANTONAL 237 PE17.011760-SOS COUR D’APPEL PENALE ______________________________ "
+            "Audience du 17 août 2023 __________________ Composition : M. W, président. "
+            "Statuant sur les appels formés contre le jugement rendu le 10 octobre 2022")
+
+
+def test_audience_heads_appeal_judgments():
+    assert r.heading_date(AUDIENCE, "PE17.011760", TODAY) == ("2023-08-17", "heading")
+
+
+def test_audience_outside_the_cour_d_appel_penale_is_a_hearing_not_the_ruling():
+    # Cour civile: hearing 18.08.2010, written judgment 06.12.2010
+    text = ("TRIBUNAL CANTONAL CM10.017229 COUR CIVILE ____________ Audience du "
+            "18 août 2010 ____________ Composition : M. X")
+    assert r.heading_date(text, "CM10.017229", TODAY) == (None, "no_heading")
+
+
+def test_an_audience_in_the_facts_is_never_the_heading():
+    facts = ("TRIBUNAL CANTONAL COUR D'APPEL PENALE ____ A. Lors de l'audience du 3 mars 2021, "
+             "le prévenu a contesté les faits.")
+    assert r.heading_date(facts, "PE20.000001", TODAY) == (None, "no_heading")
+
+
+def test_decide_moves_an_appeal_judgment_to_its_audience_date():
+    row = _row("vd_gerichte_PE17.011760", "PE17.011760", "2022-10-10", AUDIENCE)
+    row["court"] = "vd_gerichte"
+    changed, new = r.decide(row, TODAY)
+    assert new["decision_date"] == "2023-08-17"
+
+
+def test_audience_under_a_letter_split_court_name():
+    text = ("TRIBUNAL CANTONAL 77 PE07.023614-ABA JUGEMENT DE LA COUR D’ APP EL PE NAL E ______________ "
+            "Audience du 9 mai 2012 __________________ Présidence de M. S")
+    assert r.heading_date(text, "PE07.023614", TODAY)[0] == "2012-05-09"

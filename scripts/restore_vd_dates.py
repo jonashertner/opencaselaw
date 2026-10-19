@@ -25,7 +25,8 @@ Why (report 2026-10-13; audit of the shard 2026-10-14):
     their keyword line) is French; the ingest's detector falls back to "de".
 
 The ruling's own date: the first "Arrêt / Jugement / Séance / Décision /
-Ordonnance / Prononcé … du <date>" of the header block, i.e. before the panel
+Ordonnance / Prononcé … du <date>" of the header block ("Audience du …" under a
+Cour d'appel pénale header only), i.e. before the panel
 ("Composition", "Présidence") and before the operative text ("Statuant",
 "Vu", "La Chambre …"). It counts only when it stands between the
 header's underline rules (a date in the facts never does), is not in the
@@ -76,8 +77,15 @@ _DATE = (r"(?P<d>1\s?er|\d{1,2})\s+(?P<m>" + "|".join(sorted(_MONTHS, key=len, r
 _QUAL = (r"(?:sur|incident(?:e)?|partiel(?:le)?|final(?:e)?|par|d[ée]faut|de|la|du|juge|"
          r"unique|pr[ée]sidentiel(?:le)?|requ[êe]te|r[ée]cusation|civile|p[ée]nale)")
 _HEADING_RE = re.compile(
-    r"\b(?:Arr[êe]t|Jugement|S[ée]ance|D[ée]cision|Ordonnance|Prononc[ée])"
+    r"\b(?P<kind>Arr[êe]t|Jugement|S[ée]ance|D[ée]cision|Ordonnance|Prononc[ée]|Audience)"
     r"(?:\s+" + _QUAL + r"){0,4}\s+du\s+" + _DATE, re.I)
+# "Audience du 17 août 2023" heads every Cour d'appel pénale judgment and is its
+# date; without it 81 of 1,468 portal-checked rows (all CAPE) kept the first
+# instance's date (2026-10-19). Elsewhere an "Audience" is a hearing that the
+# written ruling can follow by months (Cour civile CM10.017229: 18.08 vs
+# 06.12.2010), so it counts only under a Cour d'appel pénale header.
+# Matched with the spaces removed: the PDF extraction splits letters ("CO UR D’ APP EL PE NAL E").
+_CAPE_RE = re.compile(r"COURD.APPELP[ÉE]NALE", re.I)
 # End of the header block: the panel, or the start of the ruling itself.
 _BLOCK_END_RE = re.compile(
     r"\b(?:Composition|Pr[ée]sidence|Statuant|Vu\b|Cause pendante|La Chambre|Le Tribunal|"
@@ -110,6 +118,8 @@ def heading_date(text: str | None, docket: str | None = None,
     end = _BLOCK_END_RE.search(t)
     m = None
     for cand in _HEADING_RE.finditer(t, 0, end.start() if end else len(t)):
+        if cand.group("kind").lower() == "audience" and not _CAPE_RE.search(re.sub(r"\s+", "", t[:cand.start()])):
+            continue
         if _RULE_BEFORE_RE.search(t[max(0, cand.start() - 70):cand.start()]) and \
                 _RULE_AFTER_RE.search(t[cand.end():cand.end() + 40]):
             m = cand
