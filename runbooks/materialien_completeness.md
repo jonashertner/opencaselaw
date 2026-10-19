@@ -7,7 +7,7 @@ verbatim, and a nightly census proves it.
 |---|---|---|---|
 | Bundesblatt, typed (Botschaft 23, Bericht BR 24, Stellungnahme BR 25, Bericht Kommission 30, Erlassentwurf 38, Eröffnung Vernehmlassung 40), 1999– | 5,627 DE / 5,630 FR / 5,625 IT | `materialien.db` `botschaft_documents.doc_type` | 04:30 unit (`opencaselaw-materialien.service`) |
 | Bundesblatt, historical 1850–1999 (Botschaften incl. Nachtrags-/Ergänzungsbotschaften, Berichte BR, Kommissionsberichte, Parl. Initiativen) | 12,205 DE (8,819 Botschaften + 3,386 Berichte) / ~12,000 FR / ~3,300 IT | `materialien.db`, `source_collection='bar-amtsdruckschriften'` | `opencaselaw-materialien-historical.timer` 00:20 |
-| Vernehmlassungen (2,581 procedures 1993–): Erläuternder Bericht 2,434 · Vorlage 3,275 · Ergebnisbericht 1,943 · Stellungnahmen 1,214 · Synoptische Tabelle 243 · Diverses 683 | 46,168 language files, ~28,700 under the text policy | `consultations.db` (own DB, volume) | `opencaselaw-vernehmlassungen.timer` 17:45 + 22:45 |
+| Vernehmlassungen (2,581 procedures 1993–; ~5 GB of text when complete): Erläuternder Bericht 2,434 · Vorlage 3,275 · Ergebnisbericht 1,943 · Stellungnahmen 1,214 · Synoptische Tabelle 243 · Diverses 683 | 46,168 language files, ~28,700 under the text policy | `consultations.db` (own DB, volume) | `opencaselaw-vernehmlassungen.timer` 17:45 + 22:45 |
 
 Not on Fedlex, scoped but not built (memory `materialien-non-fedlex-sources`):
 1995–2004 consultation documents (Wayback of `admin.ch/ch/d/gg/pc/ind<YEAR>.html`),
@@ -31,8 +31,10 @@ ordinance Erläuterungen (news.admin.ch API, contract unverified).
   resets `collision` rows.
 * **`search_stack/materialien_swap.py`**: heavy writers of materialien.db run
   on a copy that is checked (quick_check, no shrink) and `os.replace`d in;
-  refused if the live file changed meanwhile. Used by the historical unit and
-  the one-off migrations below.
+  refused if the live file changed meanwhile. Used by the 04:30 Botschaft
+  unit (its typed catch-up runs for hours on the first nights), the
+  historical unit and the one-off migrations below; all share
+  `logs/materialien_swap.lock`.
 * **`search_stack/build_consultation_corpus.py`** + `consultations.db`.
 * **Server**: `search_botschaft(doc_type=erlaeuternder_bericht | vernehmlassungsvorlage | ergebnisbericht | stellungnahmen | synoptische_tabelle | vernehmlassung_diverses)`;
   without doc_type, Vernehmlassung passages ride along in

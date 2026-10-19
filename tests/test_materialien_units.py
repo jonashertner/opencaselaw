@@ -40,3 +40,14 @@ def test_historical_unit_runs_on_a_copy_inside_the_window():
     assert "opencaselaw-publish.service" in text and "opencaselaw-materialien.service" in text
     timer = (SD / "opencaselaw-materialien-historical.timer").read_text()
     assert "OnCalendar=*-*-* 00:20:00 UTC" in timer and "Persistent=false" in timer
+
+
+def test_daily_botschaft_unit_writes_a_copy():
+    text = (SD / "opencaselaw-materialien.service").read_text()
+    cmd = _exec_start("opencaselaw-materialien.service")
+    assert cmd.lstrip().startswith("/usr/bin/python3 -m search_stack.materialien_swap")
+    assert "--ok-codes 0,4" in cmd
+    # every writer in the chain gets the copy, none the live path
+    assert cmd.count("--db {db}") == 4
+    assert cmd.count("/opt/caselaw/repo/output/materialien.db") == 1  # the swap's own --db
+    assert "Environment=PYTHONPATH=/opt/caselaw/repo" in text

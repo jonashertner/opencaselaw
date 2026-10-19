@@ -496,3 +496,20 @@ def test_publish_due_only_when_missing_or_stale(work, tmp_path):
     work.execute("UPDATE meta SET value='2020-01-01T00:00:00+00:00' WHERE key='published_at'")
     work.commit()
     assert bcc.publish_due(work, out)            # a week old
+
+
+def test_consultation_search_gives_up_at_its_deadline(served, monkeypatch):
+    monkeypatch.setattr(served, "_CONSULTATION_PROGRESS_STEPS", 1)
+    conn = served._get_consultations_conn()
+    try:
+        hits = served._search_consultations(
+            conn, "Aushubmaterial", language=None, year_min=None, year_max=None,
+            doc_type=None, limit=5, deadline_s=1e-9)
+        assert hits == []  # interrupted, not raised
+        # and the handler is cleared: the next call on the connection answers
+        again = served._search_consultations(
+            conn, "Aushubmaterial", language=None, year_min=None, year_max=None,
+            doc_type=None, limit=5)
+        assert again
+    finally:
+        conn.close()

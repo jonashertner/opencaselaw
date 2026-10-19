@@ -6184,6 +6184,7 @@ _CONSULTATION_DOC_TYPES: tuple[str, ...] = (
 _SEARCH_BOTSCHAFT_DOC_TYPES: tuple[str, ...] = (
     _MATERIALIEN_DOC_TYPES + _CONSULTATION_DOC_TYPES)
 _CONSULTATION_PASSAGE_MAX = 2000
+_CONSULTATION_PROGRESS_STEPS = 20000  # SQLite VM steps between deadline checks
 
 
 def _consultations_db_path() -> Path:
@@ -6267,7 +6268,7 @@ def _consultation_procedure_meta(row, vocab: dict, language: str | None) -> dict
 def _search_consultations(
     conn: sqlite3.Connection, fts_q: str, *, language: str | None,
     year_min: int | None, year_max: int | None, doc_type: str | None,
-    limit: int,
+    limit: int, deadline_s: float | None = None,
 ) -> list[dict]:
     """Ranked verbatim passages from the Vernehmlassung documents. Each hit
     carries the WHOLE paragraph (capped at _CONSULTATION_PASSAGE_MAX chars,
@@ -6304,10 +6305,19 @@ def _search_consultations(
         params.append(int(year_max))
     sql += " ORDER BY rank LIMIT ? "
     params.append(int(limit))
+    if deadline_s:
+        # A common term ranked over the whole corpus can take seconds; the
+        # passages are an addition to the answer, never a reason to stall it.
+        _stop_at = time.monotonic() + deadline_s
+        conn.set_progress_handler(lambda: int(time.monotonic() > _stop_at),
+                                  _CONSULTATION_PROGRESS_STEPS)
     try:
         rows = conn.execute(sql, params).fetchall()
     except sqlite3.OperationalError:
         return []
+    finally:
+        if deadline_s:
+            conn.set_progress_handler(None, 0)
     vocab = _consultation_vocab(
         conn, [u for r in rows for u in (r["status_uri"], r["institution_uri"])])
     hits = []
@@ -17270,7 +17280,9 @@ def _consultation_hits_for_query(
         return None, False
     try:
         kw = dict(language=language, year_min=year_min, year_max=year_max,
-                  doc_type=doc_type, limit=limit)
+                  doc_type=doc_type, limit=limit,
+                  # ride-along block (no doc_type): 1.5 s; asked for: 5 s
+                  deadline_s=5.0 if doc_type else 1.5)
         hits = _search_consultations(conn, fts_q, **kw)
         if hits:
             return hits, False
