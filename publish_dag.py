@@ -118,6 +118,9 @@ _register(Target(
     name="stats_early",
     deps=["build_fts5"],
     parallel_safe=True,  # writes only docs/stats.json, no shared state
+    # non_fatal (2026-10-07, as on the linear path): the previous stats.json
+    # stays served; a timeout must not cascade to the early git push.
+    non_fatal=True,
     description="Step 5a — early stats.json (kicks off the homepage update)",
 ))
 

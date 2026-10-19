@@ -20,6 +20,8 @@ If a court or public body removes, replaces, or re-anonymizes a published decisi
 - downstream build artifacts may be regenerated to remove or update the affected record
 - mirrors and derived exports may lag briefly behind the source while the next pipeline run or manual update completes
 
+For Federal Supreme Court decisions, a daily check re-fetches recently published decisions at search.bger.ch and lists those the court has withdrawn for at least ten days as candidates for review. The check does not remove anything; de-listing, removal or re-sync remain maintainer decisions under the review standard below.
+
 ## Correction and removal requests
 
 Verified requests may be sent to `team@jonashertner.com` or filed via the project issue tracker when public discussion is appropriate.

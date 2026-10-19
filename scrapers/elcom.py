@@ -41,6 +41,8 @@ from models import (
     parse_date,
 )
 
+from scrapers import pdf_ocr
+
 logger = logging.getLogger(__name__)
 
 LISTING_URL = "https://www.elcom.admin.ch/de/verfuegungen"
@@ -125,9 +127,12 @@ class ElComScraper(BaseScraper):
     # text layer, e.g. 211-00008): fetch_decision returns None for them on
     # every run, which re-downloaded the same 3-4 MB nightly since March 2026
     # and made the health check read "8 not downloadable" as a portal outage.
-    # Cache them as gaps (re-probed after GAP_TTL_DAYS in case a text layer
-    # appears); the real fix is OCR, tracked separately.
-    CACHE_NONE_AS_GAP = True
+    # fetch_decision caches exactly those as gaps (re-probed after
+    # GAP_TTL_DAYS in case a text layer appears); a failed download is NOT
+    # cached, so the 09:00 UTC retry unit still gets the PDFs that 502 at
+    # 01:00 (admin.ch DAM). The real fix for the scans is OCR, tracked
+    # separately. (The blanket CACHE_NONE_AS_GAP flag used here until
+    # 2026-09-14 would have cached the 502s too once run_scraper honoured it.)
 
     @property
     def court_code(self) -> str:
@@ -258,12 +263,18 @@ class ElComScraper(BaseScraper):
             return None
 
         full_text = _extract_pdf_text(response.content)
-        if not full_text or len(full_text.strip()) < 50:
-            logger.warning(
-                f"[elcom] No text extracted from {docket} "
-                f"({len(response.content)} bytes PDF)"
-            )
-            return None
+        if not full_text or len(full_text.strip()) < pdf_ocr.MIN_TEXT_CHARS:
+            # Image-only scans: OCR before caching the id as a gap.
+            full_text = pdf_ocr.ocr_pdf_bytes(response.content)
+            if len(full_text) < pdf_ocr.MIN_TEXT_CHARS:
+                logger.warning(
+                    f"[elcom] No text extracted from {docket} "
+                    f"({len(response.content)} bytes PDF, OCR included) — cached as gap for "
+                    f"{self.state.GAP_TTL_DAYS} days"
+                )
+                self.state.mark_gap(make_decision_id("elcom", docket))
+                return None
+            logger.info(f"[elcom] OCR recovered {len(full_text)} chars for {docket}")
 
         full_text = self.clean_text(full_text)
         lang = detect_language(full_text)

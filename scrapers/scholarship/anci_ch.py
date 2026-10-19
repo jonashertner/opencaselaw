@@ -24,6 +24,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ._atomic import atomic_jsonl
+
 log = logging.getLogger("scholarship.anci_ch")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -86,7 +88,7 @@ def harvest(*, max_records: int | None = None,
             pdf_by_author[key] = "https://www.anci.ch" + path
 
     total = 0
-    with out_path.open("w", encoding="utf-8") as fh:
+    with atomic_jsonl(out_path) as fh:
         # Index articles by their landing page IDs
         for aid in article_ids:
             url = f"https://anci.ch/articles/{aid}"

@@ -592,9 +592,10 @@ of a JSONL record come back under `input`, so rows can be correlated.
 
 Each reference is parsed the way it is written: the collection label
 (`BGE`/`ATF`/`DTF`), a docket in any of the separators the corpus stores
-(`4A_747/2012`, `4A 747/2012`, `4C.230/2005`) or a cantonal form
+(`4A_747/2012`, `4A 747/2012`, `4C.230/2005`, the EVG chambers `B 59/2001`
+and `I 25/2005`, the two-digit chambers `12T 3/2013`) or a cantonal form
 (`LA210005`, `WBE.2026.33`, `C/11532/2013`, `HC / 2020 / 38`, `K 2015/3`,
-`810 16 9`), court words (`BGer`, `TF`, `Obergericht ZH`, `Cour de justice de
+`810 16 9`, `BRGE I Nr. 0167/2014`, `AI 12/14 - 140/2014`), court words (`BGer`, `TF`, `Obergericht ZH`, `Cour de justice de
 Genève`), a date, page references (`S. 357`, `p. 305`, `ff.`) and an inline
 pinpoint (`E. 2.3`, `consid. 3b`, `E. 3c/aa`). The label is what is queried
 (`query` in the row says which); the decision the service proposes must carry

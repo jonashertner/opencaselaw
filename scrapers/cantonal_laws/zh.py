@@ -23,6 +23,8 @@ from typing import Iterator
 
 import requests
 
+from scrapers.cantonal_laws import mount_retries
+
 logger = logging.getLogger(__name__)
 
 SEARCH_URL = (
@@ -50,6 +52,7 @@ class ZHScraper:
         self.canton = "ZH"
         self.lang = "de"
         self.session = requests.Session()
+        mount_retries(self.session)
         self.session.headers.update({"User-Agent": USER_AGENT})
         self._last_request: float = 0
         self.portal_count: int | None = None

@@ -76,9 +76,12 @@ include = [
 [tool.setuptools]
 py-modules = [
     "appeal_extract",
+    "appeal_refs",
     "backfill_bger_chambers",
+    "backfill_bvger_chambers",
     "backfill_canonical_identity",
     "base_scraper",
+    "bge_historical_segment",
     "branch_map",
     "build_fts5",
     "cli_ch",
@@ -88,6 +91,7 @@ py-modules = [
     "derive_from_text",
     "docket_aliases",
     "decision_ref",
+    "decision_suppression",
     "reference_parser",
     "ecli",
     "ecthr_docket",
@@ -106,7 +110,9 @@ py-modules = [
     "research_contracts",
     "run_scraper",
     "seo_pages",
+    "source_defects",
     "stripe_billing",
+    "suggestions",
     "widget_runtime",
 ]
 

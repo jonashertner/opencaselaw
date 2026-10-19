@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import logging
 import re
+from urllib.parse import quote
 from typing import Iterator
 
 from base_scraper import BaseScraper
@@ -66,6 +67,62 @@ _RE_DOC_ID = re.compile(r"^[0-9a-f]{32}$")
 _RE_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _RE_DOCKET = re.compile(r"^[A-Z0-9]{1,4}\s+\d{4}\s+\d+$")
 _RE_ENC_PATH = re.compile(r"^[0-9a-f]{60,}$")
+# Since ~2026-08 publicationtc.fr.ch (VTPlus 24.x) sends the encrypted document
+# path as ~140 chars of base64 (with "=" GWT-escaped as \x3D) instead of hex.
+# GR / ZG / BE still send hex, so both forms are recognised.
+_RE_B64_PATH = re.compile(r"^[A-Za-z0-9+/]{110,}={0,2}$")
+_RE_GWT_ESCAPE = re.compile(r"\\x([0-9A-Fa-f]{2})|\\u([0-9A-Fa-f]{4})|\\(.)")
+
+
+def _gwt_unescape(s: str) -> str:
+    r"""Decode the escapes GWT-RPC uses inside its string table (\x3D, \uNNNN, \\, \")."""
+    if "\\" not in s:
+        return s
+
+    def _sub(m: re.Match) -> str:
+        if m.group(1):
+            return chr(int(m.group(1), 16))
+        if m.group(2):
+            return chr(int(m.group(2), 16))
+        return m.group(3)
+
+    return _RE_GWT_ESCAPE.sub(_sub, s)
+
+
+def _row_dates_from_stream(text: str) -> dict[str, str]:
+    """Map docket -> decision date, read from each row's own record.
+
+    The string table of a GWT-RPC response is DEDUPLICATED: a date shared by
+    two rows is stored once, under the first. Rows point into the table from
+    the integer stream before it, and every row record holds the
+    decisionDate reference immediately before its dossierNumber reference
+    (column order of _COLUMNS). Measured 2026-09-27 on both fixtures: 40 of
+    40 rows found, 44 ints per record; 18 checked against the judgment text,
+    18 right. The docket-span reading got 9 of those 18 NULL and 3 wrong
+    (it took createDate or the Rechtskraft date, some in the future).
+
+    A docket can also match inside the leading byte-array blocks, which are
+    ASCII codes that collide with small table indices; the row records come
+    after them, so the LAST match wins.
+    """
+    table_at = text.find('["')
+    if not text.startswith("//OK[") or table_at < 0:
+        return {}
+    table = [_gwt_unescape(s) for s in re.findall(r'"((?:[^"\\]|\\.)*)"', text[table_at:])]
+    dates: dict[str, str] = {}
+    prev = None
+    for tok in text[5:table_at].split(","):
+        try:
+            n = int(float(tok))
+        except ValueError:
+            prev = None
+            continue
+        s = table[n - 1] if 0 < n <= len(table) else None
+        if (s is not None and prev is not None and _RE_DOCKET.match(s)
+                and _RE_DATE.match(prev) and prev != "0000-00-00"):
+            dates[s] = prev
+        prev = s
+    return dates
 _RE_HEX = re.compile(r"^[0-9a-f]{60,}$")
 _RE_B64CRED = re.compile(r"^[A-Za-z0-9+/=]{60,140}$")
 
@@ -120,6 +177,8 @@ class TribunaBaseScraper(BaseScraper):
     # DATE_WINDOW_MAX_DEPTH. None = original single-pass behaviour (every other
     # Tribuna portal is unaffected).
     DATE_WINDOW_FIELD: int | None = None
+    # Listing counters of the current windowed walk (see _apply_listing_counts).
+    _listing: dict = {"total": 0, "rows": 0, "dups": 0, "incomplete": False}
     DATE_WINDOW_START_YEAR: int = 2000
     DATE_WINDOW_MAX_DEPTH: int = 1      # 0=year only, 1=+month, 2=+day
     DATE_WINDOW_SPLIT_OVER: int = 150   # only split a window finer when total exceeds this
@@ -394,7 +453,7 @@ class TribunaBaseScraper(BaseScraper):
         # Extract all strings from the response, KEEPING their positions —
         # the row a value belongs to is determined by where it sits, not by
         # how many values of its kind came before it.
-        all_strings = re.findall(r'"([^"]*)"', text)
+        all_strings = [_gwt_unescape(x) for x in re.findall(r'"([^"]*)"', text)]
 
         # Group fields into decisions.
         #
@@ -434,7 +493,7 @@ class TribunaBaseScraper(BaseScraper):
                 kinds.append((idx, "docket", s))
             elif _RE_DATE.match(s):
                 kinds.append((idx, "date", s))
-            elif _RE_ENC_PATH.match(s):
+            elif _RE_ENC_PATH.match(s) or _RE_B64_PATH.match(s):
                 kinds.append((idx, "enc_path", s))
 
         # Find titles: strings that are >10 chars, not hex, not dates, not types
@@ -446,6 +505,7 @@ class TribunaBaseScraper(BaseScraper):
                 and not _RE_DATE.match(s)
                 and not _RE_DOCKET.match(s)
                 and not _RE_ENC_PATH.match(s)
+                and not _RE_B64_PATH.match(s)
                 and not _RE_HEX.match(s)
                 # An all-digit run is an internal row id, not a subject line.
                 # Measured 2026-08-27: the span for be_verwaltungsgericht
@@ -456,6 +516,13 @@ class TribunaBaseScraper(BaseScraper):
                 and not any(s.startswith(p) for p in skip_prefixes)):
                 kinds.append((idx, "title", s))
         kinds.sort(key=lambda t: t[0])
+
+        # The span date is only a fallback: the string table is deduplicated,
+        # so a row whose date an earlier row already carried has no date in
+        # its span and picks up createDate / the Rechtskraft date instead.
+        # See _row_dates_from_stream.
+        row_dates = _row_dates_from_stream(text)
+        corrected = 0
 
         # One row per docket. Row i spans [its own index, next docket's index).
         docket_positions = [i for i, (_, k, _) in enumerate(kinds) if k == "docket"]
@@ -469,14 +536,24 @@ class TribunaBaseScraper(BaseScraper):
                         return v
                 return ""
 
+            docket = kinds[ki][2]
+            # "0000-00-00" is the Rechtskraft sentinel, not a date.
+            span_date = _first("date", {"0000-00-00"})
+            date = row_dates.get(docket) or span_date
+            if date != span_date:
+                corrected += 1
             decisions.append({
-                "docket_number": kinds[ki][2],
-                # "0000-00-00" is the Rechtskraft sentinel, not a date.
-                "decision_date": _first("date", {"0000-00-00"}),
+                "docket_number": docket,
+                "decision_date": date,
                 "enc_path": _first("enc_path"),
                 "title": _first("title"),
             })
 
+        if corrected:
+            logger.info(
+                f"[{self.court_code}] {corrected}/{len(decisions)} row dates taken "
+                f"from the row record (docket span had none or another date)"
+            )
         return total, decisions
 
     def discover_new(self, since_date=None) -> Iterator[dict]:
@@ -504,6 +581,9 @@ class TribunaBaseScraper(BaseScraper):
             return
 
         total = None
+        rows_parsed = 0
+        seen_dockets: set[str] = set()
+        complete = False
         for page in range(self.MAX_PAGES):
             try:
                 body = self._build_search_body(credential, page, total, court_filter)
@@ -528,6 +608,8 @@ class TribunaBaseScraper(BaseScraper):
                 break
 
             for stub in decisions:
+                rows_parsed += 1
+                seen_dockets.add(stub["docket_number"])
                 if since_date and stub.get("decision_date"):
                     d = parse_date(stub["decision_date"])
                     if d and d < since_date:
@@ -543,7 +625,38 @@ class TribunaBaseScraper(BaseScraper):
             # Check if we've exhausted all pages
             if total and (page + 1) * self.PAGE_SIZE >= total:
                 logger.info(f"[{self.court_code}] All {total} results covered in {page+1} pages")
+                complete = True
                 break
+
+        if total:
+            self._apply_listing_counts(
+                f"'{court_filter}'", total, rows_parsed, len(seen_dockets), complete
+            )
+
+    def _apply_listing_counts(
+        self, label: str, total: int, rows_parsed: int, distinct: int, complete: bool
+    ) -> None:
+        """Count the listing in dockets, not rows (2026-09-15).
+
+        The portal total counts rows. A docket can be listed twice (two documents
+        under one Geschaeftsnummer: GR 41 rows, BE VG 15, FR 9 on 2026-09-15, all
+        with 0 unknown ids) and the second row can never become a decision because
+        ids are keyed by docket, so the nightly health gap carried a permanent
+        phantom. Duplicate rows leave portal_count. Rows the parser cannot anchor
+        on a docket stay in it (they are rows we do not have) and are logged so
+        the parser gap remains visible.
+        """
+        dup_rows = max(0, rows_parsed - distinct)
+        if dup_rows:
+            self.portal_count = (self.portal_count or 0) - dup_rows
+        tail = (
+            f", {max(0, total - rows_parsed)} rows not parsed (no docket, or window under-fill)"
+            if complete else ", walk incomplete"
+        )
+        logger.info(
+            f"[{self.court_code}] {label}: {total} rows listed, {distinct} distinct dockets, "
+            f"{dup_rows} duplicate rows{tail}"
+        )
 
     # ------------------------------------------------------------------
     # Date-windowed discovery (opt-in via DATE_WINDOW_FIELD)
@@ -557,8 +670,15 @@ class TribunaBaseScraper(BaseScraper):
         if since_date:
             # Incremental run: only walk windows that can contain new decisions.
             start_year = max(start_year, since_date.year)
+        self._listing = {"total": 0, "rows": 0, "dups": 0, "incomplete": False}
         for year in range(end_year, start_year - 1, -1):
             yield from self._window(credential, court_filter, since_date, str(year), depth=0)
+        counts = self._listing
+        if counts["total"]:
+            self._apply_listing_counts(
+                f"'{court_filter}' windows", counts["total"], counts["rows"],
+                counts["rows"] - counts["dups"], not counts["incomplete"],
+            )
 
     def _window(self, credential, court_filter, since_date, prefix, depth) -> Iterator[dict]:
         """Walk one date window; split finer if the server under-fills it."""
@@ -566,6 +686,7 @@ class TribunaBaseScraper(BaseScraper):
         if depth == 0:
             # Each year is counted once → portal_count tracks the true corpus size.
             self.portal_count = (self.portal_count or 0) + total
+            self._listing["total"] += total
             logger.info(f"[{self.court_code}] window '{prefix}': total={total}")
         if total == 0:
             return
@@ -583,6 +704,9 @@ class TribunaBaseScraper(BaseScraper):
                 f"[{self.court_code}] window '{prefix}': recovered {len(unique)}/{total} "
                 f"(residual under-fill)"
             )
+        # Leaf window: rows seen and rows that repeat a docket already in this window.
+        self._listing["rows"] += len(stubs)
+        self._listing["dups"] += len(stubs) - len(unique)
         yield from self._yield_new(list(unique.values()), since_date)
 
     @staticmethod
@@ -609,6 +733,7 @@ class TribunaBaseScraper(BaseScraper):
                 )
             except Exception as e:
                 logger.error(f"[{self.court_code}] Search page {page} ['{value}'] failed: {e}")
+                self._listing["incomplete"] = True
                 break
             page_total, decisions = self._parse_search_response(resp.text)
             if total is None:
@@ -644,6 +769,15 @@ class TribunaBaseScraper(BaseScraper):
         enc_path = stub.get("enc_path", "")
         if not enc_path:
             return ""
+        if not _RE_ENC_PATH.match(enc_path):
+            # base64 path (FR since 2026-08): "/" and "+" must not land in the URL
+            # path segment (the old shape answers HTTP 400); the servlet accepts the
+            # token in the query string alone. Verified live 2026-09-15: 601 2026 45
+            # → 200, application/pdf, 9 pages.
+            return (
+                f"{self._gwt_base}/ServletDownload/{docket_url}"
+                f"?path={quote(enc_path, safe='')}&pathIsEncrypted=1&dossiernummer={docket_url}"
+            )
         return (
             f"{self._gwt_base}/ServletDownload/{docket_url}_{enc_path}"
             f"?path={enc_path}&pathIsEncrypted=1&dossiernummer={docket_url}"

@@ -55,6 +55,13 @@ SCHEMA_SQL = """
     CREATE INDEX IF NOT EXISTS idx_decisions_proceeding ON decisions(proceeding_type);
     CREATE INDEX IF NOT EXISTS idx_decisions_type ON decisions(decision_type);
     CREATE INDEX IF NOT EXISTS idx_decisions_canonical ON decisions(canonical_key);
+    -- Newly-published listings per court (search_decisions published_from /
+    -- sort=published_desc, /api/atom/{court}.xml, docs/feeds): a ruling BGer
+    -- releases months after deciding it must surface on its publication day.
+    -- Without it those queries fall back to an 18-month decision_date window
+    -- (mcp_server.PUBLICATION_LAG_WINDOW_DAYS) and the RSS feeds to decision
+    -- order. ~28 MB on the full corpus; +0.4% insert time (measured 2026-10-17).
+    CREATE INDEX IF NOT EXISTS idx_decisions_court_pub ON decisions(court, publication_date);
 
     -- Joined-docket aliases for consolidated federal proceedings (issue #41).
     -- A "vereinigte Verfahren" / "causes jointes" decision is stored under only
@@ -77,6 +84,21 @@ SCHEMA_SQL = """
         ON decision_docket_aliases(alias_docket_norm);
     CREATE INDEX IF NOT EXISTS idx_docket_alias_canonical
         ON decision_docket_aliases(canonical_decision_id);
+
+    -- A decision_id a row used to carry before a re-key (a court moved to a
+    -- different identity scheme: BS Gerichte 2026-09-17, case number -> the
+    -- court's decision number). Populated at insert time from the shard row's
+    -- ``previous_decision_id``; lookup-only, so old ids in dashboard URLs,
+    -- attest ledgers and users' notes resolve to exactly the decision they
+    -- pointed at. Serve side joins on decisions, so an alias whose target was
+    -- deduplicated away simply falls through.
+    CREATE TABLE IF NOT EXISTS decision_id_aliases (
+        previous_id TEXT PRIMARY KEY,
+        decision_id TEXT NOT NULL,
+        source      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_id_alias_decision
+        ON decision_id_aliases(decision_id);
 
     CREATE VIRTUAL TABLE IF NOT EXISTS decisions_fts USING fts5(
         decision_id UNINDEXED,

@@ -42,6 +42,7 @@ COURT_BRANCH = {
     "ag_handelsgericht": ZIVIL,
     "sg_handelsgericht": ZIVIL,
     "ag_zivilgericht": ZIVIL,
+    "bs_zivilgericht": ZIVIL,
     "zh_mietgericht": ZIVIL,
     "zh_arbeitsgericht": ZIVIL,
     # oeffentlich — administrative courts and recourse bodies
@@ -80,8 +81,6 @@ COURT_BRANCH = {
     "zg_anwaltsaufsicht": OEFF,
     "be_anwaltsaufsicht": OEFF,
     "tg_anwaltskommission": OEFF,
-    "sav_kantone": OEFF,
-    "sav_international": OEFF,
     # federal regulators
     "edoeb": OEFF, "finma": OEFF, "finma_versicherungsrecht": OEFF,
     "weko": OEFF, "elcom": OEFF, "comcom": OEFF, "postcom": OEFF,

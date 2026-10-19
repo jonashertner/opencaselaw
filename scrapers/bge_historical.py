@@ -11,6 +11,7 @@ Architecture:
 - Individual decisions as HTML: servat.unibe.ch/dfr/c{SVVVPPP}.html
   or as PDF: www.fallrecht.ch/c{SVVVPPP}.pdf
   where S = section (1-5), VVV = volume (zero-padded), PPP+ = page
+  (from page 1000 on a letter gives the hundreds: c1021C39 = BGE 21 I 1239)
 - Decision code example: c1001003 = section 1 (I), volume 001, page 003 = BGE 1 I 3
 - Sections: 1=I (public law), 2=II (civil), 3=III (debt/bankruptcy),
   4=IV (criminal), 5=V (social insurance)
@@ -22,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
+import subprocess
 from datetime import date, datetime, timezone
 from typing import Iterator
 from urllib.parse import urljoin, urlsplit
@@ -29,12 +31,14 @@ from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup
 
 from base_scraper import BaseScraper
+from bge_historical_segment import header_date, own_text
 from models import (
     Decision,
     detect_language,
     extract_citations,
     make_decision_id,
 )
+from scrapers import pdf_ocr
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +56,21 @@ SECTION_MAP = {
     "5": "V",    # Sozialversicherungsrecht
 }
 
-# Match decision code in href: c{section 1 digit}{volume 3 digits}{page 3+ digits}
-# Examples: c1001003 = BGE 1 I 3, c2045123 = BGE 45 II 123
-DECISION_CODE_RE = re.compile(r"c([1-5])(\d{3})(\d{3,})")
+# Match decision code in href: c{section 1 digit}{volume 3 digits}{page}
+# Examples: c1001003 = BGE 1 I 3, c2045123 = BGE 45 II 123.
+# A page from 1000 on carries a letter for its hundreds (A = 10 ... J = 19):
+# c1020A00 = BGE 20 I 1000, c1021C39 = BGE 21 I 1239, c1023J55 = BGE 23 I 1955.
+# The digit-only pattern skipped all 230 of them (20 I, 21 I, 22 I, 23 I, 25 II),
+# so no page above 999 was ever scraped; four were checked on the scans
+# (runbooks/historical_bge_source_errors_2026-10-07.md).
+DECISION_CODE_RE = re.compile(r"c([1-5])(\d{3})([A-J]\d{2}|\d{3,})")
+
+
+def decode_page(code: str) -> int:
+    """The page number of a DFR page code: '003' -> 3, 'C39' -> 1239."""
+    if code[:1].isalpha():
+        return (ord(code[0]) - ord("A") + 10) * 100 + int(code[1:])
+    return int(code)
 
 # Volume year lookup (approximate: BGE 1 = 1875, BGE 79 = 1953)
 VOLUME_YEAR = {v: 1874 + v for v in range(1, 80)}
@@ -76,6 +92,74 @@ def _extract_pdf_text(data: bytes) -> str:
     except ImportError:
         pass
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Image-only rulings (2026-09-17)
+# ---------------------------------------------------------------------------
+# 161 rulings of 1877 and 1909 exist only as scans on www.fallrecht.ch. The German
+# ones are set in Fraktur, with French rulings in Antiqua on the same pages.
+# Tesseract's Antiqua models turn blackletter into German-looking nonsense ("Die
+# Natur diefer Klage ift", "bas Verhältnis quifchen", measured on BGE 3 I 457 and
+# 35 I 773): long enough to pass every length check, served as the ruling, found by
+# no search. OCR therefore runs only with the Fraktur script model (tessdata_best
+# script/Fraktur), which reads both scripts. On a host without that model a scan
+# stays a gap, re-probed weekly, rather than being ingested garbled.
+OCR_LANG = "script/Fraktur"
+
+# The model transcribes the long s as printed and renders the ch and ck ligatures
+# as "<" and ">"; directly after a letter neither sign occurs in these volumes.
+# Line-end hyphens stay as printed: a running header ends in "Schuldbetreibungs-" and
+# German prose in "Zivil- und Strafrecht", so joining would fuse unrelated words.
+_OCR_FIXES = (
+    (re.compile("\u017f"), "s"),
+    (re.compile(r"(?<=[A-Za-zÄÖÜäöü])<"), "ch"),
+    (re.compile(r"(?<=[A-Za-zÄÖÜäöü])>"), "ck"),
+)
+
+_OCR_MODEL_STATE: dict[str, bool] = {}
+
+
+def _ocr_model_installed() -> bool:
+    """True when Tesseract lists OCR_LANG; asked once per process.
+
+    pytesseract.get_languages() keeps only names made of lowercase letters and
+    underscores, so it never reports "script/Fraktur"; the listing is read directly.
+    """
+    if "installed" not in _OCR_MODEL_STATE:
+        try:
+            import pytesseract
+
+            proc = subprocess.run(
+                [pytesseract.pytesseract.tesseract_cmd, "--list-langs"],
+                capture_output=True, text=True, timeout=30,
+            )
+            # Tesseract has printed the listing on stdout or stderr depending on the version.
+            listing = f"{proc.stdout or ''}\n{proc.stderr or ''}"
+            installed = OCR_LANG in {line.strip() for line in listing.splitlines()}
+        except Exception as e:
+            logger.warning(f"[bge_historical] OCR unavailable: {e}")
+            installed = False
+        if not installed:
+            logger.warning(
+                f"[bge_historical] Tesseract model {OCR_LANG} is not installed; "
+                f"image-only rulings stay gap-cached"
+            )
+        _OCR_MODEL_STATE["installed"] = installed
+    return _OCR_MODEL_STATE["installed"]
+
+
+def _normalise_ocr(text: str) -> str:
+    for pattern, replacement in _OCR_FIXES:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def _ocr_scan(data: bytes) -> str:
+    """Text of an image-only PDF; "" when the Fraktur model is missing or OCR fails."""
+    if not _ocr_model_installed():
+        return ""
+    return _normalise_ocr(pdf_ocr.ocr_pdf_bytes(data, lang=OCR_LANG))
 
 
 class BGEHistoricalScraper(BaseScraper):
@@ -131,7 +215,7 @@ class BGEHistoricalScraper(BaseScraper):
 
                 sect_num = m.group(1)
                 vol = int(m.group(2))
-                page = int(m.group(3))
+                page = decode_page(m.group(3))
 
                 # Only historical volumes (1-79)
                 if vol < 1 or vol > 79:
@@ -215,6 +299,14 @@ class BGEHistoricalScraper(BaseScraper):
 
         if stub["is_pdf"]:
             full_text = _extract_pdf_text(response.content)
+            if len((full_text or "").strip()) < pdf_ocr.MIN_TEXT_CHARS:
+                # Image-only scan: read it with the Fraktur model or leave it a gap.
+                full_text = _ocr_scan(response.content)
+                if full_text:
+                    logger.info(
+                        f"[bge_historical] {docket}: no text layer, read by OCR "
+                        f"({len(full_text)} chars)"
+                    )
         else:
             soup = BeautifulSoup(response.text, "html.parser")
             for tag in soup.find_all(["script", "style"]):
@@ -229,8 +321,18 @@ class BGEHistoricalScraper(BaseScraper):
             return None
 
         full_text = self.clean_text(full_text)
-        lang = detect_language(full_text)
+        # The document is the page range the ruling is printed on: cut it to
+        # the ruling's own header and the next ruling's header, and take the
+        # date from that header (bge_historical_segment; report 2026-10-07).
+        # A text whose own header cannot be placed is kept whole, on the
+        # volume-year placeholder.
+        full_text, own = own_text(full_text, stub["page"])
         decision_date = date(stub["year"], 1, 1)
+        if own is not None:
+            decision_date = header_date(own.header, stub["volume"]) or decision_date
+        else:
+            logger.debug(f"[bge_historical] {docket}: own header not placed, text kept whole")
+        lang = detect_language(full_text)
 
         section_areas = {
             "I": "Öffentliches Recht",

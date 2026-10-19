@@ -86,6 +86,14 @@
               "type": "string",
               "description": "End date (YYYY-MM-DD)"
             },
+            "published_from": {
+              "type": "string",
+              "description": "Only decisions the court PUBLISHED on or after this date (YYYY-MM-DD) — publication_date, not decision_date. Use this, not date_from, for a 'what is newly published' alert: the Federal Supreme Court often publishes weeks or months after it rules. May be limited to decisions decided up to 18 months before published_from (always without a court filter); the response then names the limit in publication_window_decided_from, and an earlier date_from widens it. publication_date exists for BGer rulings published since May 2026, BVGer, BStGer and several cantonal courts (VD, VS, BS, SG and others); decisions without one never match. BGer rulings are indexed the day they are published, other courts with the nightly rebuild, up to two days later: for a recurring alert, start each run's window 3 days back and skip decision_ids already reported."
+            },
+            "published_to": {
+              "type": "string",
+              "description": "Only decisions published on or before this date (YYYY-MM-DD, inclusive). Requires published_from."
+            },
             "chamber": {
               "type": "string",
               "description": "Filter by chamber/division (substring match). Examples: 'Abteilung V' (BVGer asylum), 'Zivilrechtliche', 'CASSO', 'Strafrechtliche'"
@@ -106,11 +114,12 @@
             },
             "sort": {
               "type": "string",
-              "description": "Sort order: 'relevance' (default for FTS), 'date_desc', 'date_asc'.",
+              "description": "Sort order: 'relevance' (default for FTS), 'date_desc' / 'date_asc' (decision_date), 'published_desc' (newest publication_date first; decisions without one last).",
               "enum": [
                 "relevance",
                 "date_desc",
-                "date_asc"
+                "date_asc",
+                "published_desc"
               ]
             },
             "fields": {
@@ -884,7 +893,7 @@
       "type": "function",
       "function": {
         "name": "get_commentary",
-        "description": "Look up a scholarly legal commentary from OnlineKommentar.ch (CC-BY-4.0) for a Swiss federal law article. Without article: lists available commentaries for that law. With article: returns the full commentary text, authors, and citation. Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more.",
+        "description": "Look up a scholarly legal commentary from OnlineKommentar.ch (CC-BY-4.0) for a Swiss federal law article. Without article: lists available commentaries for that law. With article: returns the full commentary text, authors, and citation. Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more. Cantonal: the Kommentar zur Schaffhauser Verwaltungsrechtspflege (Meyer/Herrmann/Bilger, 2021; CC BY-SA text) for the Schaffhausen VRG (SHR 172.200) and JG (SHR 173.200), article by article with margin numbers — pass canton='SH' and abbreviation 'VRG' or 'JG' (or 'SH/VRG').",
         "parameters": {
           "type": "object",
           "properties": {
@@ -904,6 +913,10 @@
               "type": "string",
               "description": "Preferred language (de, en, fr, it). Falls back to de if unavailable.",
               "default": "de"
+            },
+            "canton": {
+              "type": "string",
+              "description": "Two-letter canton code for a cantonal act (e.g. 'SH' with abbreviation 'VRG' or 'JG'). Omit for federal law."
             }
           }
         }

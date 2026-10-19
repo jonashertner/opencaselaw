@@ -39,6 +39,7 @@ import io
 import logging
 import re
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Iterator
 
 from bs4 import BeautifulSoup
@@ -133,34 +134,71 @@ _COURT_MAP = {
     "arbeitsgericht": "zh_arbeitsgericht",
 }
 
-# Keywords that take precedence over the Bezirksgericht they sit in.
+# The Arbeitsgericht and the Mietgericht are divisions of a Bezirksgericht, and
+# every district has its own. Only the two in Zürich carry a court code of
+# their own (zh_arbeitsgericht / zh_mietgericht: the courts behind the AGer-Z
+# and ZMP collections). Everywhere else the deciding court is the district
+# court and the division is its chamber.
 _SPECIALISED_COURTS = ("arbeitsgericht", "mietgericht")
+_ZURICH_DISTRICT = "zh_bezirksgericht_zuerich"
+
+_DISTRICT_KEYS = sorted(
+    (k for k in _COURT_MAP if k.startswith("bezirksgericht ")), key=len, reverse=True
+)
+# "Mietgericht des Bezirkes Horgen", "Arbeitsgericht Zürich": the division
+# named as the court, the district only in the tail.
+_DIVISION_AS_COURT_RE = re.compile(
+    r"^(arbeitsgericht|mietgericht)\s+(?:des\s+bezirke?s\s+)?(.+)$", re.IGNORECASE
+)
+
+
+def _clean_kammer(kammer: str | None) -> str | None:
+    """The portal prints "-" for "no chamber"."""
+    k = (kammer or "").strip()
+    return k if k and k != "-" else None
+
+
+def _district_code(gericht: str) -> tuple[str | None, str | None]:
+    """(district court code, division named in the Gericht field) or (None, None)."""
+    g = " ".join((gericht or "").lower().split())
+    for key in _DISTRICT_KEYS:
+        if key in g:
+            return _COURT_MAP[key], None
+    m = _DIVISION_AS_COURT_RE.match(g)
+    if m:
+        code = _COURT_MAP.get(f"bezirksgericht {m.group(2).strip()}")
+        if code:
+            return code, m.group(1).capitalize()
+    return None, None
 
 
 def _map_court(gericht: str, kammer: str) -> tuple[str, str | None]:
     """
     Map Gericht/Behörde + Abteilung/Kammer to (court_code, chamber_str).
 
-    Strategy: check combined text against court map, longest match first.
-    The kammer field becomes the chamber string.
+    The court code names the court that decided. A district court's
+    Arbeitsgericht or Mietgericht stays with that district court and becomes
+    its chamber; the Zürich ones keep their own code.
     """
     combined = f"{gericht} {kammer}".lower().strip()
-    kammer_clean = kammer.strip() if kammer and kammer.strip() else None
+    kammer_clean = _clean_kammer(kammer)
 
-    # Specialised first-instance courts win over their host Bezirksgericht.
-    # Since 2024 the portal files Arbeitsgericht / Mietgericht rulings as
-    # Gericht="Bezirksgericht Zürich", Abteilung/Kammer="Arbeitsgericht";
-    # before that as Gericht="Arbeitsgericht Zürich", Kammer="4. Abteilung".
-    # The longest-keyword rule below picked "bezirksgericht zürich" over
-    # "arbeitsgericht", so 67 Arbeitsgericht rulings (2006–2026) sat under
-    # zh_bezirksgericht_zuerich while zh_arbeitsgericht held 34 (2026-09-04).
-    for keyword in _SPECIALISED_COURTS:
-        if keyword in combined:
-            code = _COURT_MAP[keyword]
+    district, division = _district_code(gericht)
+    if district:
+        specialised = next((k for k in _SPECIALISED_COURTS if k in combined), None)
+        if specialised and district == _ZURICH_DISTRICT:
             # A Kammer that only repeats the court name carries no information.
-            if kammer_clean and kammer_clean.lower() == keyword:
-                return code, None
-            return code, kammer_clean
+            if kammer_clean and kammer_clean.lower() == specialised:
+                return _COURT_MAP[specialised], None
+            return _COURT_MAP[specialised], kammer_clean
+        # 2026-10-02: until now every district's Arbeitsgericht / Mietgericht
+        # was filed as zh_arbeitsgericht / zh_mietgericht with the chamber
+        # dropped — 58 rulings of ten district courts shown as "Arbeitsgericht
+        # ZH", and two courts' docket series sharing one id space
+        # (AN230001 of Pfäffikon hidden behind AN230001 of Zürich).
+        if division and kammer_clean:
+            return district, f"{division}, {kammer_clean}"
+        return district, kammer_clean or division
 
     # Check longest keywords first to avoid substring collisions
     for keyword, code in sorted(_COURT_MAP.items(), key=lambda x: len(x[0]), reverse=True):
@@ -170,7 +208,7 @@ def _map_court(gericht: str, kammer: str) -> tuple[str, str | None]:
 
     # Fallback
     logger.debug(f"ZH unmapped court: gericht={gericht!r}, kammer={kammer!r}")
-    return "zh_gerichte", kammer.strip() if kammer and kammer.strip() else None
+    return "zh_gerichte", kammer_clean
 
 
 # ============================================================
@@ -223,8 +261,90 @@ def _get_detail_field(details_soup, label: str) -> str | None:
         spans = p.find_all("span")
         if len(spans) >= 2:
             if spans[0].get_text(strip=True) == label:
-                return spans[1].get_text(strip=True)
+                # Multi-line values (Verweise, Gesetze) are <br>-separated.
+                return _tidy(spans[1].get_text("\n", strip=True))
     return None
+
+
+def _tidy(text: str) -> str:
+    """Portal text carries soft hyphens and non-breaking spaces."""
+    text = (text or "").replace("\xad", "").replace("\xa0", " ")
+    lines = [" ".join(ln.split()) for ln in text.splitlines()]
+    return "\n".join(ln for ln in lines if ln)
+
+
+def _extract_headnote(details_soup) -> str:
+    """
+    The Leitsatz: the paragraphs of the details block that are not labelled
+    fields. 2,815 of the portal's 37,336 entries carry one (2026-10-02),
+    nearly all of the Kassationsgericht's and the Obergericht's leading
+    rulings. It was looked for in an <em> the portal never emits, so not one
+    was ever stored.
+    """
+    paras = []
+    for p in details_soup.find_all("p", recursive=False):
+        if p.find("span", class_="titel"):
+            continue
+        text = _tidy(p.get_text(" ", strip=True))
+        if text:
+            paras.append(text)
+    return "\n\n".join(paras)
+
+
+# Shortest text taken as a Leitsatz (the real ones start around 40 characters).
+MIN_HEADNOTE_CHARS = 30
+
+# The caption of a Zürich ruling: "Urteil vom 10. Februar 2022",
+# "Beschluss und Teilurteil vom 6. Februar 2025", "Beschluss vom 20.06.2013".
+# Anchored to a line of its own, so a date quoted in the reasoning ("mit
+# Verfügung vom 20. Juni 2013 trat die Einzelrichterin …") is not a caption.
+_MONTHS = {"januar": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5,
+           "juni": 6, "juli": 7, "august": 8, "september": 9, "oktober": 10,
+           "november": 11, "dezember": 12}
+_CAPTION_RE = re.compile(
+    r"^[ \t]*(?:(?:Teil|Zwischen|Vor|End)?(?:[Uu]rteil|[Bb]eschluss|[Vv]erfügung(?:en)?|[Ee]ntscheid)"
+    r"(?:[ \t]+und[ \t]+)?){1,2}[ \t]+vom[ \t]+"
+    r"(\d{1,2})\.[ \t]*(?:(\d{1,2})\.|([A-Za-zä]+))[ \t]*((?:19|20)\d{2})[ \t]*$",
+    re.MULTILINE,
+)
+CAPTION_HEAD_CHARS = 4000
+
+
+def caption_dates(full_text: str | None) -> set[str]:
+    """ISO dates of the caption lines in the head of a ruling."""
+    out: set[str] = set()
+    for m in _CAPTION_RE.finditer((full_text or "")[:CAPTION_HEAD_CHARS]):
+        month = int(m.group(2)) if m.group(2) else _MONTHS.get(m.group(3).lower())
+        if not month:
+            continue
+        try:
+            out.add(date(int(m.group(4)), month, int(m.group(1))).isoformat())
+        except ValueError:
+            continue
+    return out
+
+
+# A docket in a PDF file name: "VO110048-O1.pdf", "AA110010.pdf",
+# "60259F69CB005C13C1256EC20039F2A1_UK040072.pdf".
+_PDF_DOCKET_RE = re.compile(r"(?:^|_)([A-Z]{2}\d{6})(?=[-_.]|$)")
+
+
+def _docket_from_pdf(pdf_url: str | None) -> str | None:
+    name = (pdf_url or "").rsplit("/", 1)[-1]
+    m = _PDF_DOCKET_RE.search(name)
+    return m.group(1) if m else None
+
+
+# "<docket id>_d<YYYYMMDD>": a further ruling of a held docket on another day.
+_DATED_ID_RE = re.compile(r"_d\d{8}$")
+
+# The portal's way of saying "none".
+_NO_VALUE = {"", "-", "keine", "n/a"}
+
+
+def _value_or_none(text: str | None) -> str | None:
+    t = (text or "").strip()
+    return None if t.lower() in _NO_VALUE else t
 
 
 def _parse_date_ddmmyyyy(text: str) -> date | None:
@@ -267,6 +387,114 @@ class ZHGerichteScraper(BaseScraper):
     def court_code(self) -> str:
         return "zh_gerichte"
 
+    # ───────────────────────────────────────────────────────────────────────
+    # Document-aware identity (2026-10-02)
+    # ───────────────────────────────────────────────────────────────────────
+    # The portal lists every document on its own: the interim order and the
+    # judgment of one case, a ruling after remand, and often the same ruling
+    # twice (an edited extract and the full text). decision_id is docket-
+    # keyed, so once a docket was held every further document under it was
+    # skipped. Checked against the whole listing on 2026-10-02: 235 documents
+    # were another ruling of a held docket on another day and were missing.
+    # Same class as BGer (e555b27f) and Tribuna (0156e2ff).
+    #
+    # Sidecar state/zh_gerichte.docids.txt, written by
+    # scripts/backfill_zh_hidden_documents.py and appended to here:
+    #     doc_id <TAB> decision_id | "-" <TAB> date <TAB> pdf_url
+    # ("-" = looked at, not stored: a duplicate listing or a second rendering.)
+    # A new document of a held docket with a date we do not hold is fetched as
+    # "<docket id>_d<YYYYMMDD>", the id build_fts5 mints for the same case; the
+    # docket number stays real. A new document of a date we do hold is another
+    # rendering of that ruling and is left alone (logged). Without the sidecar
+    # the scraper behaves exactly as before and never writes one.
+    MAX_NEW_COLLISIONS = 60     # a doc_id renumbering must not refetch the corpus
+
+    _docids: dict | None = None
+
+    def _docid_sidecar(self) -> Path:
+        return Path(self.state.state_file).with_name("zh_gerichte.docids.txt")
+
+    def _load_docids(self) -> None:
+        self._docids = None
+        self._held: dict[str, list[tuple[str, str]]] = {}
+        self._claimed: set[str] = set()
+        self._collisions = 0
+        if getattr(self, "state", None) is None:
+            return
+        side = self._docid_sidecar()
+        if not side.exists() or side.stat().st_size == 0:
+            return                                              # legacy
+        docs: dict[str, str] = {}
+        stored = 0
+        for line in side.read_text(encoding="utf-8").splitlines():
+            parts = line.split("\t")
+            if len(parts) < 2 or not parts[0]:
+                continue
+            doc, did = parts[0], parts[1]
+            day = parts[2] if len(parts) > 2 else ""
+            pdf = parts[3] if len(parts) > 3 else ""
+            if did != "-":
+                if not self.state.is_known(did):
+                    continue                                    # crash window: retried
+                stored += 1
+                self._held.setdefault(_DATED_ID_RE.sub("", did), []).append((day, pdf))
+            docs[doc] = did
+        known = self.state.count()
+        if known > 100 and stored < known // 2:
+            logger.error(f"ZH doc-id sidecar holds {stored} stored documents vs {known} "
+                         "known ids — refusing half-seeded mode, legacy")
+            self._held = {}
+            return
+        self._docids = docs
+
+    def _mark_docid(self, doc_id: str, decision_id: str, day: str, pdf_url: str) -> None:
+        if self._docids is None or not doc_id or doc_id in self._docids:
+            return                                              # legacy never writes
+        self._docids[doc_id] = decision_id
+        if decision_id != "-":
+            self._held.setdefault(_DATED_ID_RE.sub("", decision_id), []).append((day, pdf_url))
+        with open(self._docid_sidecar(), "a", encoding="utf-8") as f:
+            f.write(f"{doc_id}\t{decision_id}\t{day}\t{pdf_url}\n")
+
+    def _identity(self, stub: dict) -> str | None:
+        """decision_id to fetch this listing entry under, or None to skip it."""
+        base = stub["decision_id"]
+        if self._docids is None:
+            return None if self.state.is_known(base) else base
+        doc = str(stub.get("doc_id") or "")
+        if doc in self._docids:
+            return None
+        if not self.state.is_known(base) and base not in self._claimed:
+            self._claimed.add(base)
+            return base
+        if stub["decision_date"] is None:
+            return None             # undated entry under a held docket: nothing to tell it by
+        day = stub["decision_date"].isoformat()
+        held = self._held.get(base, [])
+        if any(pdf == stub["pdf_url"] for _, pdf in held):
+            self._mark_docid(doc, "-", day, stub["pdf_url"])    # the same file listed again
+            return None
+        if not held:
+            return None             # id known from an earlier scheme, no document on file
+        if any(d == day for d, _ in held):
+            logger.info(f"ZH {stub['docket_number']}: further document {doc} of {day} under a "
+                        "held ruling of that day — another rendering, not fetched")
+            self._mark_docid(doc, "-", day, stub["pdf_url"])
+            return None
+        dated = f"{base}_d{day.replace('-', '')}"
+        if self.state.is_known(dated) or dated in self._claimed:
+            return None
+        if self._collisions >= self.MAX_NEW_COLLISIONS:
+            if self._collisions == self.MAX_NEW_COLLISIONS:
+                logger.error(f"ZH: more than {self.MAX_NEW_COLLISIONS} unknown documents under "
+                             "held dockets in one run — did the portal renumber its documents? "
+                             "Holding the rest back.")
+                self._collisions += 1
+            return None
+        self._collisions += 1
+        self._claimed.add(dated)
+        return dated
+
     def discover_new(self, since_date=None) -> Iterator[dict]:
         """
         Discover all ZH decisions via date-windowed API calls.
@@ -276,6 +504,8 @@ class ZHGerichteScraper(BaseScraper):
         """
         if since_date and isinstance(since_date, str):
             since_date = parse_date(since_date)
+
+        self._load_docids()
 
         # Determine start date
         start = since_date if since_date else EARLY_START
@@ -293,7 +523,9 @@ class ZHGerichteScraper(BaseScraper):
             try:
                 for stub in self._fetch_window("", "01.01.1980"):
                     total_found += 1
-                    if not self.state.is_known(stub["decision_id"]):
+                    did = self._identity(stub)
+                    if did is not None:
+                        stub["decision_id"] = did
                         total_new += 1
                         yield stub
             except Exception as e:
@@ -317,7 +549,9 @@ class ZHGerichteScraper(BaseScraper):
                 for stub in self._fetch_window(von_str, bis_str):
                     window_count += 1
                     total_found += 1
-                    if not self.state.is_known(stub["decision_id"]):
+                    did = self._identity(stub)
+                    if did is not None:
+                        stub["decision_id"] = did
                         window_new += 1
                         total_new += 1
                         yield stub
@@ -350,6 +584,11 @@ class ZHGerichteScraper(BaseScraper):
             logger.debug(f"ZH window {von}–{bis}: empty response")
             return
 
+        yield from self._parse_window(html, f"{von}–{bis}")
+
+    def _parse_window(self, html: str, label: str = "") -> Iterator[dict]:
+        """Stubs of one livesearch response. Network-free: the metadata
+        migration (scripts/migrate_zh_portal_metadata.py) replays it."""
         soup = BeautifulSoup(html, "html.parser")
 
         # Parse count from <div id="entscheideText"><strong>N</strong>
@@ -359,7 +598,7 @@ class ZHGerichteScraper(BaseScraper):
             if strong:
                 try:
                     count = int(strong.get_text(strip=True))
-                    logger.debug(f"ZH window {von}–{bis}: {count} decisions")
+                    logger.debug(f"ZH window {label}: {count} decisions")
                 except ValueError:
                     pass
 
@@ -373,7 +612,7 @@ class ZHGerichteScraper(BaseScraper):
 
         if len(entscheide) != len(details_divs):
             logger.warning(
-                f"ZH window {von}–{bis}: mismatched counts: "
+                f"ZH window {label}: mismatched counts: "
                 f"{len(entscheide)} entscheide vs {len(details_divs)} details"
             )
 
@@ -409,21 +648,12 @@ class ZHGerichteScraper(BaseScraper):
         """Parse a single entscheid + details pair into a stub dict."""
 
         # Geschäftsnummer (docket number)
+        # 9 entries have none; for four the PDF file name carries it (below).
         num = _get_detail_field(details_div, "Geschäftsnummer")
-        if not num:
-            logger.warning(f"ZH no Geschäftsnummer for doc_id={doc_id}")
-            return None
 
-        # Entscheiddatum
-        edatum_str = _get_detail_field(details_div, "Entscheiddatum")
-        if not edatum_str:
-            logger.warning(f"ZH no Entscheiddatum for {num} (doc_id={doc_id})")
-            return None
-
-        edatum = _parse_date_ddmmyyyy(edatum_str)
-        if not edatum:
-            logger.warning(f"ZH unparseable date {edatum_str!r} for {num}")
-            return None
+        # Entscheiddatum. 7 entries say "n/A": the stub goes on without a date
+        # and fetch_decision reads it from the ruling's caption.
+        edatum = _parse_date_ddmmyyyy(_get_detail_field(details_div, "Entscheiddatum") or "")
 
         # Gericht/Behörde
         gericht = _get_detail_field(details_div, "Gericht/Behörde") or ""
@@ -438,22 +668,24 @@ class ZHGerichteScraper(BaseScraper):
         titel = ""
         strong = entscheid_div.find("strong")
         if strong:
-            titel = strong.get_text(strip=True)
+            titel = _tidy(strong.get_text(" ", strip=True)).replace("\n", " ")
 
-        # Leitsatz (italic text in entscheid div)
-        leitsatz = ""
-        em = entscheid_div.find("em")
-        if em:
-            leitsatz = em.get_text(strip=True)
+        # Leitsatz. A few entries only repeat the title or say "(Volltext)" /
+        # "Muster" there; that is not a headnote.
+        leitsatz = _extract_headnote(details_div)
+        if len(leitsatz) < MIN_HEADNOTE_CHARS or leitsatz == titel:
+            leitsatz = ""
 
         # Entscheidart
-        entscheidart = _get_detail_field(details_div, "Entscheidart") or ""
+        entscheidart = _value_or_none(_get_detail_field(details_div, "Entscheidart")) or ""
 
-        # Verweise (Weiterzug)
-        verweise = _get_detail_field(details_div, "Verweise") or ""
+        # Verweise (Weiterzug, verwandte Geschäfte)
+        verweise = _value_or_none(_get_detail_field(details_div, "Verweise")) or ""
 
-        # Gesetz/e
-        gesetze = _get_detail_field(details_div, "Gesetz/e, Verordnung/en etc") or ""
+        # Gesetz/e (the label ends in a dot; without it nothing ever matched)
+        gesetze = _value_or_none(
+            _get_detail_field(details_div, "Gesetz/e, Verordnung/en etc.")
+        ) or ""
 
         # PDF URL
         pdf_link = details_div.find("a", class_="pdf-icon")
@@ -480,6 +712,13 @@ class ZHGerichteScraper(BaseScraper):
         if not pdf_url:
             logger.warning(f"ZH no PDF URL for {num} (doc_id={doc_id})")
             return None
+
+        if not num:
+            num = _docket_from_pdf(pdf_url)
+            if not num:
+                # circulars, statute texts, letters: not a ruling with a docket
+                logger.info(f"ZH no Geschäftsnummer for doc_id={doc_id} ({pdf_url})")
+                return None
 
         # Build decision ID
         decision_id = make_decision_id(court_code, num)
@@ -542,6 +781,12 @@ class ZHGerichteScraper(BaseScraper):
             if not full_text:
                 full_text = f"[PDF text extraction failed for {num}]"
 
+        # No date on the portal ("n/A"): the caption has it.
+        if stub["decision_date"] is None:
+            own = caption_dates(full_text)
+            if len(own) == 1:
+                stub["decision_date"] = date.fromisoformat(next(iter(own)))
+
         # Language detection
         language = detect_language(full_text) if len(full_text) > 100 else "de"
 
@@ -554,8 +799,14 @@ class ZHGerichteScraper(BaseScraper):
         # Decision type
         decision_type = stub.get("entscheidart") or None
 
-        # Weiterzug / references
-        stub.get("verweise") or None
+        # Weiterzug / references ("Weiterzug ans Bundesgericht, 6B_122/2024")
+        appeal_info = stub.get("verweise") or None
+
+        # Recorded now, counted only once the id is in state (after the durable
+        # write), so a crash in between retries the document.
+        if getattr(self, "_docids", None) is not None:
+            day = stub["decision_date"].isoformat() if stub["decision_date"] else ""
+            self._mark_docid(str(stub["doc_id"]), stub["decision_id"], day, pdf_url)
 
         return Decision(
             decision_id=stub["decision_id"],
@@ -571,6 +822,7 @@ class ZHGerichteScraper(BaseScraper):
             source_url=stub["source_url"],
             pdf_url=pdf_url,
             decision_type=decision_type,
+            appeal_info=appeal_info,
             cited_decisions=extract_citations(full_text) if len(full_text) > 200 else [],
             external_id=f"zh_gerichte_{stub['doc_id']}",
         )

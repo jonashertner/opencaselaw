@@ -25,6 +25,7 @@ from datetime import date, datetime, timezone
 from typing import Iterator
 
 from base_scraper import BaseScraper
+from scrapers import pdf_ocr
 from models import (
     Decision,
     detect_language,
@@ -209,9 +210,18 @@ class FINMAVersicherungsrechtScraper(BaseScraper):
 
         # Extract text from PDF
         full_text = _extract_pdf_text(pdf_data)
-        if not full_text or len(full_text.strip()) < 50:
-            logger.warning(f"[finma_vr] No text extracted from {docket} ({len(pdf_data)} bytes)")
-            return None
+        if not full_text or len(full_text.strip()) < pdf_ocr.MIN_TEXT_CHARS:
+            # Image-only scans (2 of 2,585 on the portal, 2026-09-24): OCR before
+            # giving up, as elcom/postcom/eschk do.
+            full_text = pdf_ocr.ocr_pdf_bytes(pdf_data)
+            if len(full_text) < pdf_ocr.MIN_TEXT_CHARS:
+                logger.warning(
+                    f"[finma_vr] No text extracted from {docket} "
+                    f"({len(pdf_data)} bytes PDF, OCR included) — cached as gap for "
+                    f"{self.state.GAP_TTL_DAYS} days"
+                )
+                self.state.mark_gap(decision_id)
+                return None
 
         full_text = self.clean_text(full_text)
 

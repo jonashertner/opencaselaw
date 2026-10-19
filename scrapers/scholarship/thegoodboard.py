@@ -32,6 +32,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from ._atomic import atomic_jsonl
+
 log = logging.getLogger("scholarship.thegoodboard")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -185,7 +187,7 @@ def harvest(*, max_records: int | None = None,
     scraped = 0
     skipped = 0
     failed = 0
-    with out_path.open("w", encoding="utf-8") as fh:
+    with atomic_jsonl(out_path) as fh:
         for url, lastmod in urls:
             pub_type, lang = _classify_url(url)
             if pub_type is None:

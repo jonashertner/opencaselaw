@@ -19,6 +19,8 @@ import sqlite3
 import urllib.parse
 from pathlib import Path
 
+import decision_ref
+import appeal_refs
 import ecthr_docket
 
 logger = logging.getLogger("swiss-caselaw-mcp")
@@ -214,7 +216,61 @@ _COURT_NAMES = {
     "vs_gerichte": "Wallis", "zg_obergericht": "Zug OG",
     "zh_obergericht": "Zürich OG", "zh_verwaltungsgericht": "Zürich VerwG",
     "zh_sozialversicherungsgericht": "Zürich SozVersG",
+    "zh_handelsgericht": "Handelsgericht Zürich",
+    "zh_kassationsgericht": "Kassationsgericht Zürich",
+    "zh_steuerrekursgericht": "Steuerrekursgericht Zürich",
+    "zh_baurekursgericht": "Baurekursgericht Zürich",
+    # The Arbeitsgericht / Mietgericht of the Bezirksgericht Zürich; the other
+    # districts' divisions are a chamber of their district court.
+    "zh_arbeitsgericht": "Arbeitsgericht Zürich",
+    "zh_mietgericht": "Mietgericht Zürich",
+    "zh_bezirksgericht_zuerich": "Bezirksgericht Zürich",
+    "zh_bezirksgericht_winterthur": "Bezirksgericht Winterthur",
+    "zh_bezirksgericht_uster": "Bezirksgericht Uster",
+    "zh_bezirksgericht_pfaeffikon": "Bezirksgericht Pfäffikon",
+    "zh_bezirksgericht_meilen": "Bezirksgericht Meilen",
+    "zh_bezirksgericht_horgen": "Bezirksgericht Horgen",
+    "zh_bezirksgericht_hinwil": "Bezirksgericht Hinwil",
+    "zh_bezirksgericht_dietikon": "Bezirksgericht Dietikon",
+    "zh_bezirksgericht_dielsdorf": "Bezirksgericht Dielsdorf",
+    "zh_bezirksgericht_buelach": "Bezirksgericht Bülach",
+    "zh_bezirksgericht_andelfingen": "Bezirksgericht Andelfingen",
+    "zh_bezirksgericht_affoltern": "Bezirksgericht Affoltern",
 }
+
+
+def _appeal_html(row) -> str:
+    """The court's appeal note for the page header: its own wording, with the
+    dockets it names linked where the corpus holds exactly that decision."""
+    text = appeal_refs.appeal_info_of(row)
+    if not text:
+        return ""
+    refs: list[dict] = []
+    try:
+        conn = _get_db()
+        try:
+            refs = appeal_refs.resolve(conn, text, row["court"], row["decision_id"])
+        finally:
+            conn.close()
+    except Exception as e:  # a missing link must never cost the page
+        logger.debug("appeal references not resolved for %s: %s", row["decision_id"], e)
+    out = _esc(" · ".join(ln for ln in text.splitlines() if ln.strip()))
+    for ref in refs:
+        docket = _esc(ref["docket"])
+        href = _esc(f"{BASE_URL}/entscheid/{urllib.parse.quote(ref['decision_id'])}")
+        out = out.replace(docket, f'<a href="{href}">{docket}</a>', 1)
+    return out
+
+
+def _court_display_name(court_code: str) -> str:
+    """Court name for a decision page. A code without an entry keeps its
+    canton prefix in capitals ("ZH Arbeitsgericht", never "Zh Arbeitsgericht")."""
+    if court_code in _COURT_NAMES:
+        return _COURT_NAMES[court_code]
+    prefix, _, rest = court_code.partition("_")
+    if len(prefix) == 2 and rest:
+        return f"{prefix.upper()} {rest.replace('_', ' ').title()}"
+    return court_code.replace("_", " ").title()
 
 
 def _get_db():
@@ -398,7 +454,7 @@ _COURT_SHORT = {
     "ecthr_committee": "EGMR",
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA-VR", "weko": "WEKO",
     "edoeb": "EDÖB", "ubi": "UBI", "elcom": "ElCom", "postcom": "PostCom",
-    "comcom": "ComCom", "ta_sst": "TA-SST", "emark": "EMARK",
+    "comcom": "ComCom", "emark": "EMARK",
 }
 
 
@@ -419,6 +475,10 @@ def _short_decision_label(did: str) -> str:
         return "BGE " + rest.replace("_", " ")
     if did.startswith("BGE_"):
         return "BGE " + did[4:].replace("_", " ")
+    # Schweizer Sportgericht: the docket is the tribunal's own citation form
+    # ("SSG 2025/E/60", "TSS 2025/E/64"); no court label in front of it.
+    if did.startswith("ta_sst_"):
+        return did[len("ta_sst_"):].replace("_", "/")
     # Try the longest court-prefix match.
     for prefix in sorted(_COURT_SHORT, key=len, reverse=True):
         if did.startswith(prefix + "_"):
@@ -508,12 +568,20 @@ def render_decision_page(
     *,
     highlight: str | None = None,
     e_focus: str | None = None,
+    resolve_reference=None,
 ) -> tuple[str, int, str | None]:
     """Render an HTML page for a single decision.
 
     Returns ``(html, status_code, redirect_location)``. ``redirect_location``
-    is non-None only for the 301 docket-redirect case below; the caller must
+    is non-None only for the 301 redirect cases below; the caller must
     send it as the ``Location`` header instead of ``html`` when present.
+
+    ``resolve_reference``: optional ``callable(str) -> decision_id | None``
+    for a path that is a written reference rather than an id ("BGE 73 II 6",
+    "4C.230/2006"). The server passes mcp_server._resolve_reference_unique,
+    the resolution behind the ``cite`` tool with every tie refused, so this
+    module needs no second copy of the docket grammar. It must return an id
+    only when exactly one decision carries the reference.
 
     Optional ``highlight``: a verbatim substring that, if found in the
     Erwägung whose ``e_number`` matches ``e_focus``, is wrapped in
@@ -531,6 +599,36 @@ def render_decision_page(
         if row:
             return _render_decision(row, highlight=highlight, e_focus=e_focus), 200, None
 
+        # An id the row carried before a re-key (decision_id_aliases, e.g. the
+        # BS Gerichte case-number ids of before 2026-09-17): exact, one target,
+        # so indexed links and bookmarks 301 to the same decision. Joined on
+        # decisions and guarded against a DB without the table.
+        try:
+            prev = conn.execute(
+                "SELECT a.decision_id FROM decision_id_aliases a "
+                "JOIN decisions d ON d.decision_id = a.decision_id "
+                "WHERE a.previous_id = ?",
+                (decision_id,),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            prev = None
+        if prev:
+            location = "/entscheid/" + urllib.parse.quote(str(prev[0]), safe="")
+            return "", 301, location
+
+        # A BGE is stored under the direct scraper's id ("bge_140 III 244")
+        # and, while the entscheidsuche feed is served, "bge_BGE_140_III_244"
+        # as well. Links minted with either form (cite(), cli:ch, indexed
+        # pages) 301 to the one that exists (#40). Exact (volume, division,
+        # page) candidates only.
+        for cand in decision_ref.bge_id_candidates(decision_id):
+            hit = conn.execute(
+                "SELECT decision_id FROM decisions WHERE decision_id = ?", (cand,)
+            ).fetchone()
+            if hit:
+                location = "/entscheid/" + urllib.parse.quote(str(hit[0]), safe="")
+                return "", 301, location
+
         # P1.4: no LIKE %...% substring fallback here any more — that let
         # /entscheid/1 resolve to an unrelated decision with HTTP 200 via
         # nondeterministic substring matching. An EXACT docket_number match
@@ -546,6 +644,21 @@ def render_decision_page(
             canonical_id = docket_matches[0]["decision_id"]
             location = "/entscheid/" + urllib.parse.quote(str(canonical_id), safe="")
             return "", 301, location
+
+        # Every other spelling of a reference (BGE/ATF/DTF labels, the federal
+        # docket separators, joined dockets): the cite tool's resolution,
+        # unique matches only. Also asked when the exact docket above is
+        # shared by several rows, which may be one decision stored twice; a
+        # docket shared by different decisions stays a 404 there too.
+        if resolve_reference is not None:
+            try:
+                resolved_id = resolve_reference(decision_id)
+            except Exception:  # noqa: BLE001 — a resolver fault is a 404, not a 500
+                logger.exception("reference resolution failed for %r", decision_id)
+                resolved_id = None
+            if resolved_id and resolved_id != decision_id:
+                location = "/entscheid/" + urllib.parse.quote(str(resolved_id), safe="")
+                return "", 301, location
 
         return _render_404(decision_id), 404, None
     finally:
@@ -603,7 +716,11 @@ def _render_decision(
 ) -> str:
     did = row["decision_id"]
     court = row["court"] or ""
-    court_name = _COURT_NAMES.get(court, court.replace("_", " ").title())
+    court_name = _court_display_name(court)
+    appeal_html = _appeal_html(row)
+    # The division that decided (e.g. the Arbeitsgericht of a Bezirksgericht).
+    chamber = (row["chamber"] if "chamber" in row.keys() else None) or ""
+    chamber = chamber.strip() if chamber.strip() not in ("", "-") else ""
     canton = row["canton"] or ""
     # ECtHR dockets carry a _yyyymmdd key suffix that must never reach a page
     # title, an og:title or the Schema.org LegalCase name.
@@ -854,6 +971,8 @@ def _render_decision(
     home_label = breadcrumb_labels.get(language, "Home")
     source_label = sources_labels.get(language, "Source")
     pdf_label = pdf_labels.get(language, "Original PDF")
+    appeal_label = {"de": "Weiterzug / Verweise", "fr": "Recours / renvois",
+                    "it": "Ricorso / rinvii"}.get(language, "Appeal / references")
     export_label = export_labels.get(language, "Export")
 
     return f"""<!DOCTYPE html>
@@ -946,6 +1065,10 @@ def _render_decision(
         align-items: baseline; font-size: var(--t-sm);
         margin-top: var(--s-3);
     }}
+    .decision-appeal {{
+        font-size: var(--t-sm); color: var(--text-2); margin: 0 0 var(--s-4);
+    }}
+    .decision-appeal .label {{ color: var(--text-3); margin-right: var(--s-2); }}
     .decision-actions a {{
         color: var(--text); text-decoration: none;
         padding-bottom: 1px;
@@ -1177,12 +1300,14 @@ def _render_decision(
     {f'<p class="decision-subtitle">{_esc(title)}</p>' if title else ''}
     <div class="decision-meta">
       <span><strong>{_esc(court_name)}</strong></span>
+      {f'<span class="sep">·</span><span>{_esc(chamber)}</span>' if chamber else ''}
       <span class="sep">·</span>
       <span>{_esc(date)}</span>
       <span class="sep">·</span>
       <span>{_esc(lang_label)}</span>
       {f'<span class="canton">{_esc(canton)}</span>' if canton else ''}
     </div>
+    {f'<p class="decision-appeal"><span class="label">{_esc(appeal_label)}</span> {appeal_html}</p>' if appeal_html else ''}
     <div class="decision-actions">
       <span class="group">
         <span class="label">{_esc(source_label)}</span>

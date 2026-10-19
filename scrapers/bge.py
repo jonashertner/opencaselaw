@@ -34,6 +34,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator
@@ -50,6 +51,7 @@ from models import (
     parse_date,
 )
 from incapsula_bypass import IncapsulaCookieManager
+from scrapers.refusal import PortalRefused, is_refusal
 
 logger = logging.getLogger(__name__)
 
@@ -102,22 +104,173 @@ _MONATE_FR = [
     "janvier", "février", "mars", "avril", "mai", "juin",
     "juillet", "août", "septembre", "octobre", "novembre", "décembre",
 ]
-_ALL_MONTHS = "|".join(_MONATE_DE + _MONATE_FR)
+_MONATE_IT = [
+    "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
+    "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre",
+]
+_ALL_MONTHS = "|".join(_MONATE_DE + _MONATE_FR + _MONATE_IT)
 
 RE_META = re.compile(
-    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du))\s+"
-    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause)\s+[^_]+\s+"
+    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du)|sentenza della)\s+"
+    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause|nella causa)\s+[^_]+\s+"
     r"(?P<Num2>\d+[A-F]?(?:_|\.)\d+/(?:19|20)\d\d)\s+(?:[^_]+\s+)?"
-    r"(?:vom|du)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
+    r"(?:vom|du|del)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
 )
 
 RE_META_OHNE_GN = re.compile(
-    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du))\s+"
-    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause)\s+[^_]+\s+"
-    r"(?:vom|du)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
+    r"^\d+\.\s+(?P<formal>.+(?:Urteil der|arrêt (?:de la|du)|sentenza della)\s+"
+    r"(?P<VKammer>.+)\s+(?:i\.S\.|dans la cause|nella causa)\s+[^_]+\s+"
+    r"(?:vom|du|del)\s+(?P<Datum>\d\d?\.?(?:er)?\s*(?:" + _ALL_MONTHS + r")\s+(?:19|20)\d\d))$"
 )
 
 RE_META_SIMPLE = re.compile(r"^\d+\s?\.\s+(?P<Rest>.+)$")
+
+# ── Urteilskopf fallbacks (2026-09-10, BGE decision-date audit) ──────────
+# The CLIR page splits the Urteilskopf over SEVERAL <div class="paraatf">
+# blocks: "37. Auszug aus dem Urteil der II. zivilrechtlichen Abteilung i.S.
+# A. gegen B. (Beschwerde in Zivilsachen)" and, in a second block,
+# "5A_691/2023 vom 13. August 2024". soup.find() returned only the first,
+# so RE_META never saw "vom <Datum>", every direct row fell through to the
+# 1 January placeholder and chamber/docket_2 stayed NULL. The old French
+# and Italian forms put the date BEFORE the parties ("Extrait de l'arrêt de
+# la Ire Cour civile du 13 juillet 1993 dans la cause ..."), which the
+# anchored RE_META cannot express either. The ruling date is the LAST
+# "vom/du/del <Datum>" token of the joined Urteilskopf; a lower-court date
+# never appears in the Urteilskopf, only in the Sachverhalt.
+RE_KOPF_DATUM = re.compile(
+    r"(?:\bvom|\bdu|\bdes|\bdel|\bdell['’])\s*(?P<Datum>\d{1,2}(?:\.|er|°)?\s*(?:"
+    + _ALL_MONTHS + r")\s+(?:18|19|20)\d\d)",
+    re.IGNORECASE,
+)
+# "dell'11 settembre 2024" has no space after the apostrophe (BGE 150 IV 481,
+# 142 I 26, 131 I 52 kept wrong dates); "des 14 juillet et 1er septembre 2005"
+# names two session dates, the first is the ruling's (BGE 131 III 601).
+RE_SECOND_SESSION = re.compile(
+    r"(\d{1,2}(?:\.|er|°)?\s*(?:" + _ALL_MONTHS + r"))\s+(?:et|und|e)\s+"
+    r"\d{1,2}(?:\.|er|°)?\s*(?:" + _ALL_MONTHS + r")(?=\s+(?:18|19|20)\d\d)",
+    re.IGNORECASE,
+)
+RE_KOPF_DOCKET = re.compile(r"\b(?P<Num2>\d{1,2}[A-F]?[._]\d+/(?:19|20)\d\d)\b")
+RE_KOPF_KAMMER = re.compile(
+    r"(?:Urteil|Entscheid|Beschluss|arrêt|sentenza|decisione)\s+"
+    r"(?:der|des|de la|du|della|del)\s+(?P<VKammer>.+?)\s+"
+    r"(?:i\.S\.|in Sachen|dans la cause|nella causa|vom|du|del)\b",
+    re.IGNORECASE,
+)
+
+
+# A ruling is printed in its own volume or the next one, but the collection
+# also carries late publications: BGE 149 IV 97 is 6B_1079/2021 of 22.11.2021
+# in the 2023 volume, BGE 98 Ib 396 an arrêt of 12.12.1970 in the 1972 volume.
+# A header date may therefore trail the volume year by up to three years;
+# it can never FOLLOW it by more than one (a 1985 date in volume 84 = 1958 is
+# a source typo). The read-side warning keeps its symmetric ±1 window.
+BGE_VOLUME_EPOCH = 1874
+BGE_HEADER_LAG_YEARS = 3
+
+
+def trilingual_regeste(regesten: dict) -> str | None:
+    """The Regeste field of a BGE: the German, French and Italian Regeste, in
+    that order, joined by a blank line (the shape of the entscheidsuche feed's
+    rows). Until 2026-10-14 only the German one went into `regeste`; the French
+    and Italian sat in abstract_fr / abstract_it, which neither the FTS index
+    nor get_regeste reads, so a French or Italian query never reached them."""
+    parts = [str(regesten.get(lang) or "").strip() for lang in SPRACHEN]
+    parts = [p for p in parts if p]
+    return "\n\n".join(parts) if parts else None
+
+
+def header_date_plausible(d: date | None, volume_year: int | None) -> bool:
+    """Volume gate for a date taken from a decision's OWN Urteilskopf/Kopfzeile."""
+    if d is None:
+        return False
+    if not volume_year:
+        return True
+    return volume_year - BGE_HEADER_LAG_YEARS <= d.year <= volume_year + 1
+
+
+def urteilskopf_text(soup: BeautifulSoup) -> str:
+    """The Urteilskopf as ONE space-joined string: every <div class="paraatf">
+    that precedes <div id="regeste">. Regeste, Sachverhalt and Erwägungen
+    reuse the same class further down, so stop at the first block that
+    sits after the Regeste anchor; without an anchor (older pages) stop
+    at the first long block, which is never a header line."""
+    parts: list[str] = []
+    for div in soup.find_all("div", class_="paraatf"):
+        if div.find_previous("div", id="regeste") is not None:
+            break
+        text = RE_DOUBLE_SPACES.sub(" ", div.get_text(" ", strip=True)).strip()
+        if not text:
+            continue
+        if len(text) > 400 and parts:
+            break
+        parts.append(text)
+    return " ".join(parts)
+
+
+def parse_urteilskopf(header: str, volume_year: int | None = None) -> dict:
+    """Ruling date, underlying docket and chamber from a joined Urteilskopf.
+
+    Pure text function, shared by the scraper and the shard repair. RE_META
+    stays the primary path (it matched 90 % of the joined headers in the
+    2026-09-10 shard simulation); the fallbacks take the LAST "vom/du/del
+    <Datum>" token, the first BGG-form docket and the chamber phrase.
+    ``volume_year`` (BGE volume N collects year N + 1874) vetoes a header
+    date outside [volume_year - 3, volume_year + 1] (header_date_plausible):
+    the cite tool's decision_date_warning applies ±1 on the read side; the
+    source-side gate allows the rare late publication but never a date after
+    the volume, so the placeholder is preferred over a wrong year.
+    """
+    meta: dict = {}
+    header = RE_DOUBLE_SPACES.sub(" ", header or "").strip()
+    if not header:
+        return meta
+    candidates: list[date] = []
+    m = RE_META.search(header)
+    if m:
+        meta["chamber"] = m.group("VKammer")
+        meta["docket_2"] = m.group("Num2").replace(".", "_")
+        d = parse_date(m.group("Datum"))
+        if d:
+            candidates.append(d)
+    else:
+        m2 = RE_META_OHNE_GN.search(header)
+        if m2:
+            meta["chamber"] = m2.group("VKammer")
+            d = parse_date(m2.group("Datum"))
+            if d:
+                candidates.append(d)
+    # Fallback tokens in text order. Where a header carries two dates the
+    # ruling date comes FIRST ("arrêt de la Ire Cour civile du 15 mai 2000
+    # dans la cause X contre la décision du 31 janvier 2000 ...", "Urteil vom
+    # 16. März 1978 i.S. Z. betreffend Erläuterung des Urteils vom 5.
+    # September 1977"); 6 of 20,867 shard headers, all of that shape.
+    for tok in RE_KOPF_DATUM.findall(RE_SECOND_SESSION.sub(r"\1", header)):
+        d = parse_date(tok.replace("°", ""))          # "1° settembre"
+        if d and d not in candidates:
+            candidates.append(d)
+    if not meta.get("docket_2"):
+        m3 = RE_KOPF_DOCKET.search(header)
+        if m3:
+            meta["docket_2"] = m3.group("Num2").replace(".", "_")
+    if not meta.get("chamber"):
+        m4 = RE_KOPF_KAMMER.search(header)
+        if m4:
+            meta["chamber"] = m4.group("VKammer").strip()
+    # First candidate that is consistent with the volume year wins; a statute
+    # or referenced-decision date in the header is skipped, not taken.
+    for d in candidates:
+        if header_date_plausible(d, volume_year):
+            meta["decision_date"] = d
+            break
+    else:
+        if candidates:
+            logger.warning(
+                "Urteilskopf date %s contradicts BGE volume year %s — dropping it: %r",
+                candidates[0], volume_year, header[:120],
+            )
+            meta["date_rejected"] = candidates[0]
+    return meta
 
 # HTML cleanup regex: removes div/span/a/artref tags and dangling <br>
 RE_REMOVE_DIVS = re.compile(
@@ -195,6 +348,29 @@ class BGELeitentscheideScraper(BaseScraper):
     # Session management
     # ---------------------------------------------------------------
 
+    def _refresh_incapsula(self) -> None:
+        """Harvest fresh search.bger.ch cookies through the session's own egress
+        (the residential tunnel when there is one, 2026-10-14) and send the
+        harvesting browser's User-Agent from then on."""
+        self._incapsula.proxy = self.session.proxies.get("https") or self.session.proxies.get("http") or None
+        incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
+        self.session.cookies.update(incap_cookies)
+        self._session_cookies.update(incap_cookies)
+        ua = self._incapsula.user_agent("search.bger.ch")
+        if ua:
+            self.session.headers["User-Agent"] = ua
+
+    def _get_or_challenge(self, url: str, **kwargs):
+        """(response, challenged): a 403/404 refusal or a challenge page counts as
+        challenged; the response is None for a refusal."""
+        try:
+            resp = self.get(url, **kwargs)
+        except Exception as e:  # noqa: BLE001
+            if is_refusal(e, listing=True):
+                return None, True
+            raise
+        return resp, self._incapsula.is_incapsula_blocked(resp.text)
+
     def _establish_session(self) -> None:
         """
         Establish session: Incapsula bypass + CLIR session cookie.
@@ -204,9 +380,11 @@ class BGELeitentscheideScraper(BaseScraper):
         2. Apply to requests.Session
         3. Hit CLIR initial URL to get session cookies
         """
-        # Step 1: Incapsula cookies — skipped when egressing via a residential
-        # proxy (not challenged; harvesting would only hammer the blocked IP).
-        if self.session.proxies.get("http") or self.session.proxies.get("https"):
+        # Step 1: Incapsula cookies — skipped up front when egressing via the
+        # residential proxy; a challenge there is answered by a harvest through
+        # the proxy below (never from the datacenter address).
+        self._incapsula.proxy = self.session.proxies.get("https") or self.session.proxies.get("http") or None
+        if self._incapsula.proxy:
             logger.info("Egress via proxy (residential) — skipping Incapsula harvest")
         else:
             try:
@@ -219,17 +397,18 @@ class BGELeitentscheideScraper(BaseScraper):
         # Step 2: CLIR session
         logger.info("Establishing CLIR session...")
         url = self._make_url(INITIAL_URL)
-        response = self.get(url)
+        response, challenged = self._get_or_challenge(url)
 
-        # Check for Incapsula block
-        if self._incapsula.is_incapsula_blocked(response.text):
+        # Check for Incapsula block (a challenge page or a 403/404 refusal)
+        if challenged:
             logger.warning("Incapsula block on CLIR, force-refreshing cookies")
             try:
-                incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
-                self.session.cookies.update(incap_cookies)
+                self._refresh_incapsula()
                 response = self.get(url)
             except Exception as e:
                 logger.error(f"Incapsula refresh failed: {e}")
+        if response is None:
+            raise PortalRefused("CLIR start page refused")
 
         # Store any cookies from the response (use items() to avoid CookieConflictError
         # when multiple cookies share the same name across domains)
@@ -248,18 +427,21 @@ class BGELeitentscheideScraper(BaseScraper):
         If blocked, refreshes cookies via Playwright and retries.
         """
         kwargs.setdefault("cookies", self._session_cookies)
-        resp = self.get(url, **kwargs)
+        resp, challenged = self._get_or_challenge(url, **kwargs)
 
-        if self._incapsula.is_incapsula_blocked(resp.text) and retry < max_retries:
+        if challenged and retry < max_retries:
             logger.info(f"Incapsula block on BGE request, refreshing ({retry+1}/{max_retries})")
             try:
-                incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
-                self.session.cookies.update(incap_cookies)
-                self._session_cookies.update(incap_cookies)
+                self._refresh_incapsula()
             except Exception as e:
                 logger.error(f"Incapsula refresh failed: {e}")
             return self._safe_get(url, retry + 1, max_retries, **kwargs)
 
+        if challenged:
+            # Still the block page after the cookie refreshes. Returning it
+            # made the caller parse it as a listing with no entries: a blocked
+            # run looked like a quiet one.
+            raise PortalRefused("Incapsula block page")
         return resp
 
     # ---------------------------------------------------------------
@@ -395,37 +577,31 @@ class BGELeitentscheideScraper(BaseScraper):
         """
         Extract metadata from a decision document page.
 
-        XPath: //div[@class='paraatf']/text()
-        Uses three regex levels:
+        XPath: //div[@class='paraatf'] (every block before //div[@id='regeste'],
+        space-joined — see urteilskopf_text). Uses parse_urteilskopf:
         1. RE_META: full match (chamber, docket, date)
         2. RE_META_OHNE_GN: match without docket number
-        3. RE_META_SIMPLE: minimal match
+        3. RE_KOPF_* fallbacks: last "vom/du/del <Datum>", first docket, chamber
+        4. RE_META_SIMPLE + 1 January placeholder when no ruling date parses
 
         Also: //div[@id='highlight_content']/div[@class='content'] for full text.
         """
         soup = BeautifulSoup(html, "html.parser")
         meta = {}
 
-        # Parse metadata from paraatf div
-        paraatf = soup.find("div", class_="paraatf")
-        if paraatf:
-            meta_string = paraatf.get_text(strip=True)
-
-            m = RE_META.search(meta_string)
-            if m:
-                meta["chamber"] = m.group("VKammer")
-                meta["docket_2"] = m.group("Num2").replace(".", "_")
-                meta["decision_date"] = parse_date(m.group("Datum"))
-            else:
-                m2 = RE_META_OHNE_GN.search(meta_string)
-                if m2:
-                    meta["chamber"] = m2.group("VKammer")
-                    meta["decision_date"] = parse_date(m2.group("Datum"))
-                else:
-                    m3 = RE_META_SIMPLE.search(meta_string)
-                    if m3:
-                        meta["formal"] = m3.group("Rest")
-                    meta["decision_date"] = date(year, 1, 1)
+        # Parse metadata from the Urteilskopf — ALL its paraatf blocks, not
+        # only the first (the ruling date sits in the second block).
+        header = urteilskopf_text(soup)
+        if header:
+            meta.update(parse_urteilskopf(header, volume_year=year))
+            if not meta.get("decision_date"):
+                m3 = RE_META_SIMPLE.search(header)
+                if m3:
+                    meta["formal"] = m3.group("Rest")
+                # Placeholder, NOT a ruling date: 1 January of the volume
+                # year keeps the row year-correct until a re-parse.
+                meta["decision_date"] = date(year, 1, 1)
+                meta["date_is_placeholder"] = True
 
         # Extract full text HTML
         content = soup.find("div", id="highlight_content")
@@ -461,39 +637,146 @@ class BGELeitentscheideScraper(BaseScraper):
     # Discovery
     # ---------------------------------------------------------------
 
+    LISTING_RETRY_PAUSE = 60.0
+
+    # Daily runs list only the volumes that can still grow; the full walk from
+    # 1954 runs once a week. New BGE appear only in the current year's volume
+    # (and, early in a year, the previous one), yet every run listed all ~356
+    # volumes, three times a day; on 2026-09-28 and 09-29 search.bger.ch's
+    # Incapsula refused the tunnel address in the 09:00-10:30 window when that
+    # traffic peaks. The weekly walk still catches anything a daily run missed.
+    # The marker holds the date of the last full walk whose listings all
+    # loaded; a walk with a listing that failed twice does not count, so the
+    # next run walks fully again. OCL_SCRAPER_RESCAN_ALL=1 forces a full walk.
+    FULL_WALK_EVERY_DAYS = 7
+    RECENT_YEARS = 2
+    # Listings refused (403/429) in a row before the walk stops for this run.
+    # During a block every further listing is refused too; carrying on only
+    # adds refused requests (304 of them at 01:00 on 2026-09-30).
+    REFUSAL_LIMIT = 5
+
+    def _fullwalk_marker(self) -> Path:
+        return Path(self.state.state_file).with_name(f"{self.court_code}.fullwalk")
+
+    def _full_walk_due(self, today: date) -> bool:
+        if os.environ.get("OCL_SCRAPER_RESCAN_ALL"):
+            return True
+        try:
+            last = date.fromisoformat(self._fullwalk_marker().read_text().strip())
+        except (OSError, ValueError):
+            return True
+        return (today - last).days >= self.FULL_WALK_EVERY_DAYS
+
+    def _mark_full_walk(self, today: date) -> None:
+        marker = self._fullwalk_marker()
+        tmp = marker.with_name(marker.name + ".tmp")
+        tmp.write_text(today.isoformat() + "\n")
+        os.replace(tmp, marker)
+
+    def _stop_refused(self, refused: list) -> None:
+        """Log the refused streak as failed listings (run_all_scrapers counts
+        them, so the run reads as failed) and say why the walk ends here."""
+        for year, volume, e in refused:
+            logger.error(f"Failed to fetch listing {year}/{volume}: {e}")
+        self._log_stop(len(refused))
+
+    @staticmethod
+    def _log_stop(n: int) -> None:
+        logger.error(
+            f"search.bger.ch refused {n} listings in a row — stopping this "
+            f"run's walk (no further listings, no EGMR listing); the next run "
+            f"tries again"
+        )
+
+    def _volume_stubs(self, year: int, volume: str) -> list[dict]:
+        """Unknown stubs of one volume listing. Raises if the fetch fails."""
+        response = self._safe_get(self._volume_url(year, volume))
+        stubs = self._parse_volume_listing(response.text, year, volume)
+        return [
+            s for s in stubs
+            if not self.state.is_known(make_decision_id("bge", s["docket_number"]))
+        ]
+
     def discover_new(self, since_date=None) -> Iterator[dict]:
         """
         Discover all BGE Leitentscheide.
 
-        Iterates year-by-year from AUFSETZ_JAHR (1954) to current year,
-        volumes I-V per year. Optionally also EGMR decisions.
+        Iterates year-by-year, newest first, volumes I-V per year: the last
+        RECENT_YEARS years on a daily run, every year from AUFSETZ_JAHR (1954)
+        once a week or with since_date. Optionally also EGMR decisions.
         """
         # Establish session first
         self._establish_session()
 
-        current_year = date.today().year
+        today = date.today()
+        current_year = today.year
         start_year = AUFSETZ_JAHR
+        full_walk = False
 
         if since_date:
             if isinstance(since_date, str):
                 since_date = parse_date(since_date) or date(AUFSETZ_JAHR, 1, 1)
             start_year = max(since_date.year, AUFSETZ_JAHR)
+        elif self._full_walk_due(today):
+            full_walk = True
+            logger.info(f"Full walk of all volumes since {AUFSETZ_JAHR}")
+        else:
+            start_year = current_year - self.RECENT_YEARS + 1
+            logger.info(
+                f"Daily walk: volumes {start_year}-{current_year} "
+                f"(full walk every {self.FULL_WALK_EVERY_DAYS} days)"
+            )
 
-        # Iterate years (newest first for incremental scraping)
+        # Iterate years (newest first for incremental scraping). A listing that
+        # fails is held back and retried once after a pause: since 2026-09-26
+        # search.bger.ch drops a handful of listing requests per run
+        # (RemoteDisconnected during the 20 req/min bursts), which is enough
+        # for the health check to flag the whole run as portal-down. Only a
+        # listing that fails again is logged as an error.
+        failed: list[tuple[int, str]] = []
+        refused: list[tuple[int, str, Exception]] = []
         for year in range(current_year, start_year - 1, -1):
             for volume in VOLUMES:
-                url = self._volume_url(year, volume)
                 try:
-                    response = self._safe_get(url)
-                    stubs = self._parse_volume_listing(response.text, year, volume)
-                    for stub in stubs:
-                        # Check if already scraped
-                        decision_id = make_decision_id("bge", stub["docket_number"])
-                        if self.state.is_known(decision_id):
-                            continue
-                        yield stub
+                    yield from self._volume_stubs(year, volume)
+                    refused.clear()
                 except Exception as e:
+                    if is_refusal(e, listing=True):
+                        refused.append((year, volume, e))
+                        if len(refused) >= self.REFUSAL_LIMIT:
+                            self._stop_refused(refused)
+                            return
+                    else:
+                        refused.clear()
+                    logger.warning(
+                        f"Listing {year}/{volume} failed ({type(e).__name__}), "
+                        f"retrying at end of run"
+                    )
+                    failed.append((year, volume))
+
+        if failed:
+            logger.info(
+                f"Retrying {len(failed)} failed listings after "
+                f"{self.LISTING_RETRY_PAUSE:.0f}s pause"
+            )
+            time.sleep(self.LISTING_RETRY_PAUSE)
+            still_failed: list[tuple[int, str]] = []
+            streak = 0
+            for year, volume in failed:
+                try:
+                    yield from self._volume_stubs(year, volume)
+                    streak = 0
+                except Exception as e:
+                    still_failed.append((year, volume))
                     logger.error(f"Failed to fetch listing {year}/{volume}: {e}")
+                    streak = streak + 1 if is_refusal(e, listing=True) else 0
+                    if streak >= self.REFUSAL_LIMIT:
+                        self._log_stop(streak)
+                        return
+            failed = still_failed
+
+        if full_walk and not failed:
+            self._mark_full_walk(today)
 
         # EGMR decisions
         if self.include_egmr:
@@ -568,7 +851,7 @@ class BGELeitentscheideScraper(BaseScraper):
                 decision_date=decision_date,
                 language=lang,
                 title=stub.get("case_name"),
-                regeste=regesten.get("de") or regesten.get("fr"),
+                regeste=trilingual_regeste(regesten),
                 abstract_de=regesten.get("de"),
                 abstract_fr=regesten.get("fr"),
                 abstract_it=regesten.get("it"),

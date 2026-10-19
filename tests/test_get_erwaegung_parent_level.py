@@ -97,3 +97,48 @@ def test_genuinely_absent_number_still_errors(monkeypatch):
     r = m._handle_get_erwaegung(decision_id="BGE 132 III 389", e_number="9")
     assert "error" in r
     assert "2.1" in r["available_e_numbers"]
+
+
+# Report 2026-10-13, BGE 138 III 67: E. 2.2 is stored as its own introductory
+# paragraph AND has stored sub-Erwägungen. A request for E. 2.2 returned only the
+# introduction, with no hint that 2.2.1 / 2.2.2 carry the reasoning.
+PARAS_WITH_INTRO = [
+    {"e_number": "2.2", "parent": "2", "depth": 2, "text": "Einleitung."},
+    {"e_number": "2.2.1", "parent": "2.2", "depth": 3, "text": "Begruendung A."},
+    {"e_number": "2.2.2", "parent": "2.2", "depth": 3, "text": "Begruendung B."},
+    {"e_number": "2.3", "parent": "2", "depth": 2, "text": "Naechste Erwaegung."},
+    {"e_number": "2.21", "parent": "2", "depth": 2, "text": "Nicht dazu."},
+]
+
+
+def _patch_intro(monkeypatch):
+    _patch(monkeypatch)
+    monkeypatch.setattr(m, "_fetch_structure_paragraphs", lambda _id: PARAS_WITH_INTRO)
+
+
+def test_parent_with_intro_serves_its_subtree(monkeypatch):
+    _patch_intro(monkeypatch)
+    r = m._handle_get_erwaegung(decision_id="BGE 138 III 67", e_number="2.2")
+    assert "error" not in r, r
+    assert r["e_number"] == "2.2"
+    assert r["composed_of"] == ["2.2", "2.2.1", "2.2.2"]
+    assert r["text"] == "Einleitung.\n\nBegruendung A.\n\nBegruendung B."
+    assert [p["e_number"] for p in r["parts"]] == ["2.2", "2.2.1", "2.2.2"]
+    assert "sub-Erwägungen" in r["_composed_note"]
+    assert "E. 2.2" in r["citation_string_de"]
+
+
+def test_parent_with_intro_keeps_real_siblings(monkeypatch):
+    # Siblings come from the stored parent ("2"), not from every number at the
+    # same depth, and a trailing-dot prefix keeps 2.21 out of the subtree.
+    _patch_intro(monkeypatch)
+    r = m._handle_get_erwaegung(decision_id="BGE 138 III 67", e_number="2.2")
+    assert r["siblings"] == ["2.2", "2.3", "2.21"]
+    assert "Nicht dazu" not in r["text"]
+
+
+def test_leaf_under_intro_parent_is_untouched(monkeypatch):
+    _patch_intro(monkeypatch)
+    r = m._handle_get_erwaegung(decision_id="BGE 138 III 67", e_number="2.2.1")
+    assert r["text"] == "Begruendung A."
+    assert "composed_of" not in r

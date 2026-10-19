@@ -154,15 +154,27 @@ class AIGerichteScraper(BaseScraper):
             return None
 
         full_text = ""
+        fetched = False
         try:
             r = self.get(pdf_url, timeout=30)
             if r.status_code == 200 and len(r.content) > 1000:
+                fetched = True
                 full_text = self._extract_pdf_text(r.content)
         except Exception as e:
             logger.warning(f"AI: PDF download failed for {stub['docket_number']}: {e}")
 
+        # No placeholder rows (until 2026-09-14 the title, or "[Text extraction
+        # failed …]", was stored as the full text): a failed download is retried
+        # next run, a fetched PDF without a text layer is cached as a gap.
+        if not fetched:
+            return None
         if not full_text or len(full_text) < 50:
-            full_text = stub.get("title", "") or f"[Text extraction failed for {stub['docket_number']}]"
+            logger.warning(
+                f"AI: no usable text for {stub['docket_number']} — cached as gap for "
+                f"{self.state.GAP_TTL_DAYS} days"
+            )
+            self.state.mark_gap(stub["decision_id"])
+            return None
 
         decision_date = stub.get("decision_date")
         if not decision_date:

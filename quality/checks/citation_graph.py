@@ -47,8 +47,10 @@ def check_top_cited_known_leader(conn: sqlite3.Connection, **_) -> CheckResult:
             message="reference_graph.db absent — skipped",
         )
     try:
-        # Look for any of the known canonical id forms for BGE 125 V 351
-        candidates = ("bge_BGE_125_V_351", "BGE 125 V 351", "BGE_125_V_351")
+        # Look for any of the known canonical id forms for BGE 125 V 351: the
+        # entscheidsuche id and the direct scraper's id, which is the only
+        # one left once es_bge.jsonl is retired (#40)
+        candidates = ("bge_BGE_125_V_351", "bge_125 V 351", "BGE 125 V 351", "BGE_125_V_351")
         n_max = 0
         for cid in candidates:
             try:

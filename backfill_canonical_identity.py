@@ -15,23 +15,30 @@ dates are replaced, and every change is provenance-stamped.
 from __future__ import annotations
 
 import argparse
+import re
 import sqlite3
 import sys
 from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bge_historical_segment as seg  # noqa: E402
 import derive_from_text as d  # noqa: E402
 
 FEDERAL = ("bge", "bger", "bvger", "bstger", "bpatger", "mkg")
 
 
-def _enrich_row(court, stored_date, docket, full_text, max_year, max_date=None):
+def _enrich_row(court, stored_date, docket, full_text, max_year, max_date=None,
+                decision_id=None, docket_2=None):
     """Return (best_date, provenance, norm_docket, ecli)."""
     if stored_date and not d.is_synthetic_date(stored_date):
         best, prov = stored_date, "source_metadata"
     else:
         best, prov = d.derive_date(stored_date, full_text, max_year=max_year, max_date=max_date)
+        gated, gprov = gate_bge_text_date(court, decision_id, docket, full_text, best, prov, max_year)
+        if (gated, gprov) != (best, prov):
+            # a rejected text date leaves the volume placeholder (ECLI year)
+            best, prov = gated or stored_date, gprov
     # For BGE the docket_number field holds the BGE CITATION ('152 II 1'), not the
     # originating federal docket. The canonical key must be the FEDERAL docket
     # (it is what the paired docket row also yields), so always read it from the
@@ -40,9 +47,79 @@ def _enrich_row(court, stored_date, docket, full_text, max_year, max_date=None):
         uk = d.extract_urteilskopf(full_text, max_year=max_year)
         if uk.get("docket"):
             docket = uk["docket"]
+        # The scraper's docket_number_2 comes from the court's own metadata. A
+        # consolidated proceeding prints several dockets ("1E_15/2007 /
+        # 1E_16/2007") and neither the first nor the last is always the one the
+        # judgment is filed under (2026-10-16: first = docket_number_2 in 278
+        # of 312 joined captions); docket_number_2 is, so it wins where set.
+        d2 = d.normalize_docket(docket_2) if docket_2 else None
+        if d2 and d.docket_year(d2):
+            docket = d2
     nd = d.normalize_docket(docket) if docket else None
     ecli = d.build_ecli(court, best, nd)
     return best, prov, nd, ecli
+
+
+# Volume N of the BGE collects the rulings of year N + 1874. A ruling's own
+# date may trail its volume by up to three years (late publications such as
+# BGE 149 IV 97 = 6B_1079/2021 of 22.11.2021) but never follow it by more than
+# one. Same window as scrapers.bge.header_date_plausible (not imported: that
+# module pulls in the scraper stack); tests/test_apply_canonical_dates.py pins
+# the constants to it.
+BGE_VOLUME_EPOCH = 1874
+BGE_HEADER_LAG_YEARS = 3
+_BGE_VOLUME_RE = re.compile(r"^(?:bge_)?(?:BGE[ _]|historical_)?(\d{1,3})[ _][IVX]+[abAB]?[ _]\d+$")
+
+
+def bge_date_in_volume(iso: str | None, docket: str | None, decision_id: str | None,
+                       lag: int = BGE_HEADER_LAG_YEARS) -> bool:
+    """True when `iso` can be the ruling date of the BGE named by `docket` /
+    `decision_id`, or when neither yields a volume (nothing to check against).
+    `lag` is how many years the date may trail the volume: the late-publication
+    allowance for a date read from the ruling's own header, 1 for any other
+    text date."""
+    for s in (docket, decision_id):
+        m = _BGE_VOLUME_RE.match((s or "").strip())
+        if m:
+            break
+    else:
+        return True
+    if not iso or not str(iso)[:4].isdigit():
+        return False
+    volume_year = int(m.group(1)) + BGE_VOLUME_EPOCH
+    return volume_year - lag <= int(str(iso)[:4]) <= volume_year + 1
+
+
+def gate_bge_text_date(court, decision_id, docket, full_text, dd, dprov, max_year):
+    """(decision_date, provenance) after the BGE checks on a date taken from text.
+
+    Volumes 1-79 hold the DFR page range a ruling is printed on, so the first
+    date of the text can belong to the ruling before it: BGE 78 IV 83 was dated
+    17 July 1951 by a letter quoted in No 21, while its header reads "vom 3.
+    Juni 1952" (report 2026-10-07). For those volumes only the date written in
+    the ruling's own header counts (bge_historical_segment). For later volumes a
+    text date must fall in the volume window: the late-publication allowance for
+    the docket-validated Urteilskopf date, one year for any other text date (a
+    body date trailing the volume by 2-3 years was the lower court's in 206 of
+    208 cases, 2026-09-27 replica). A real stored date is never touched.
+    """
+    if court != "bge" or dprov == "source_metadata":
+        return dd, dprov
+    vp = seg.volume_and_page(docket) or seg.volume_and_page(decision_id)
+    if vp is not None:
+        own = seg.segment(full_text or "", vp[1])
+        hd = seg.header_date(own.header, vp[0]) if own is not None else None
+        if hd is not None:
+            return hd.isoformat(), "extracted_from_text"
+        if dprov == "extracted_from_text":
+            return None, "volume_synthetic"
+        return dd, dprov
+    if dprov == "extracted_from_text":
+        from_header = d.extract_urteilskopf(full_text, max_year=max_year).get("date") == dd
+        lag = BGE_HEADER_LAG_YEARS if from_header else 1
+        if not bge_date_in_volume(dd, docket, decision_id, lag=lag):
+            return None, "volume_synthetic"
+    return dd, dprov
 
 
 def apply_to_db(conn, max_date: str | None = None) -> tuple[int, int]:
@@ -61,12 +138,17 @@ def apply_to_db(conn, max_date: str | None = None) -> tuple[int, int]:
     if "date_provenance" not in cols:
         conn.execute("ALTER TABLE decisions ADD COLUMN date_provenance TEXT")
     rows = conn.execute(
-        "SELECT decision_id, decision_date, publication_date, full_text FROM decisions "
+        "SELECT decision_id, docket_number, decision_date, publication_date, full_text FROM decisions "
         "WHERE court='bge' AND (decision_date IS NULL OR decision_date='' OR decision_date LIKE '%-01-01')"
     ).fetchall()
     n_date = n_pub = 0
-    for did, sd, spub, ft in rows:
+    for did, docket, sd, spub, ft in rows:
         dd, dprov, pd, pprov = d.derive_dates(sd, spub, ft, max_year=yr, max_date=md)
+        # A text date outside the volume window is not this ruling's date: a
+        # statute, a lower-court ruling or an OCR misreading (volume 1 = 1875
+        # took "2020-03-15"); in volumes 1-79 only the own header's date counts.
+        # The placeholder stays.
+        dd, dprov = gate_bge_text_date("bge", did, docket, ft, dd, dprov, yr)
         sets, params = ["date_provenance = ?"], [dprov]
         if dprov == "extracted_from_text" and dd:        # only high-confidence, docket-validated
             sets.append("decision_date = ?"); params.append(dd); n_date += 1
@@ -180,13 +262,19 @@ def run_write(src_path: str, out_path: str, max_year: int) -> None:
     flush()
 
     # Pass 2 — everything needing text extraction: synthetic/NULL dates + all bge.
-    q2 = ("SELECT decision_id,court,decision_date,publication_date,docket_number,full_text "
-          "FROM decisions WHERE court='bge' OR decision_date IS NULL OR decision_date='' "
+    has_d2 = "docket_number_2" in {r[1] for r in src.execute("PRAGMA table_info(decisions)")}
+    q2 = ("SELECT decision_id,court,decision_date,publication_date,docket_number,full_text,"
+          + ("docket_number_2" if has_d2 else "NULL")
+          + " FROM decisions WHERE court='bge' OR decision_date IS NULL OR decision_date='' "
           "OR decision_date LIKE '%-01-01'")
-    for did, court, sd, spub, docket, ft in src.execute(q2):
+    for did, court, sd, spub, docket, ft, docket_2 in src.execute(q2):
         scanned += 1
         dd, dprov, pd, pprov = d.derive_dates(sd, spub, ft, max_year=max_year, max_date=today)
-        _, _, nd, ecli = _enrich_row(court, sd, docket, ft, max_year, today)
+        # Same checks as the in-build pass (apply_to_db): the served sidecar
+        # carried BGE 78 IV 83's neighbour date because this path had none.
+        dd, dprov = gate_bge_text_date(court, did, docket, ft, dd, dprov, max_year)
+        _, _, nd, ecli = _enrich_row(court, sd, docket, ft, max_year, today, decision_id=did,
+                                     docket_2=docket_2)
         ck = ecli
         # only write rows that actually carry enrichment
         if dprov == "extracted_from_text" or pprov == "volume_year" or ecli:

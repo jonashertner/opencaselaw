@@ -76,6 +76,7 @@ class SearchDecisionsResponse(ResearchModel):
     condensed_terms: list[str] | None = None
     note: str | None = None
     degraded: bool | None = Field(default=None, description="True when the search hit its time budget and skipped ranking strategies; the page is a degraded ranking, not the best matches.")
+    publication_window_decided_from: str | None = Field(default=None, description="Set on a publication-date query (published_from / sort=published_desc): the earliest decision_date it considered. Decisions decided earlier are not in the result; pass an earlier date_from to include them.")
     decisions: list[dict[str, Any]] | None = Field(default=None, description="Legacy MCP widget records, retained alongside results.")
 
 
@@ -191,6 +192,8 @@ class LookupResponse(ResearchModel):
     total: int = Field(description="Returned hits, not an uncapped count; inspect all hits for ambiguity and treat a full page conservatively.")
     results: list[LookupHit]
     hint: str | None = None
+    match: str | None = Field(default=None, description="Without exact=true: 'exact' when the hits carry the reference as their own docket or BGE label, 'search' when nothing matched exactly and the hits are near or related numbers.")
+    partial: bool | None = Field(default=None, description="True when the fallback search was cut short under load: the hits are incomplete, never proof of absence. With no hits the endpoint answers 503 instead.")
 
 
 RESEARCH_MODELS: dict[str, type[ResearchModel]] = {

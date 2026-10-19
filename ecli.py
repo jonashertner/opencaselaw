@@ -79,7 +79,7 @@ _COURT_TO_ECLI: dict[str, str] = {
     "ecthr": "ECHR",          # European Court of Human Rights
     "hudoc_ch": "ECHR",
     "emark": "EMARK",         # Eidg. Migrationskommission (legacy)
-    "ta_sst": "TASST",        # Tribunal Arbitral du Sport (Swiss subset)
+    "ta_sst": "TASST",        # Schweizer Sportgericht (Swiss Sports Tribunal, sportstribunal.ch)
     # Canton-prefixed cantonal codes are derived dynamically from the
     # court field below — no exhaustive list needed.
 }

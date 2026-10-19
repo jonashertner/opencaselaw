@@ -30,6 +30,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ._atomic import atomic_jsonl
+
 log = logging.getLogger("scholarship.repositorium_ch")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -131,7 +133,7 @@ def harvest(*, max_records: int | None = None,
     failed = 0
     offset = 0
     PAGE = 200
-    with out_path.open("w", encoding="utf-8") as fh:
+    with atomic_jsonl(out_path) as fh:
         while True:
             try:
                 batch = _fetch_json(

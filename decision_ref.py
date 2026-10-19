@@ -145,7 +145,8 @@ DOTTED_SERIAL_COURTS = (
     "ag_anwaltskommission", "ag_aufsichtskommission", "ag_justizgericht",
     "sg_kantonsgericht", "sg_gerichte", "sg_verwaltungsgericht", "sg_versicherungsgericht",
     "sg_handelsgericht", "sg_verwaltungsrekurskommission", "sg_publikationen",
-    "bs_appellationsgericht", "bs_gerichte", "bl_gerichte",
+    "bs_appellationsgericht", "bs_sozialversicherungsgericht", "bs_zivilgericht",
+    "bs_gerichte", "bl_gerichte",
 )
 # Vaud CDAP/CREP files ('PE.2026.0063', four-digit serial).
 VD_DOTTED_COURTS = ("vd_gerichte", "vd_findinfo", "vd_omni")
@@ -275,7 +276,23 @@ def _expand_year(y: str) -> str:
 
 
 def _bge_ids(vol: str, div: str, page: str) -> list[str]:
-    return [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    out = [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    if div != div.upper():
+        # the direct scraper's Ia/Ib id is upper-case: "bge_116 IA 28" (#40)
+        out.append(f"bge_{vol} {div.upper()} {page}")
+    return out
+
+
+def bge_id_candidates(decision_id: str | None) -> list[str]:
+    """The OTHER stored ids a BGE decision_id may go by ("bge_BGE_140_III_244"
+    <-> "bge_140 III 244", Ia/Ib in either case), in resolution order; [] for
+    anything that is not a BGE id. The page is exact: 131 III 12 never yields
+    131 III 121 (#40)."""
+    m = re.match(r"^bge_(?:BGE_)?(\d{1,3})[ _]([IVX]+)([abAB]?)[ _](\d{1,4})$", decision_id or "")
+    if not m:
+        return []
+    ids = _bge_ids(m.group(1), m.group(2) + m.group(3).lower(), m.group(4))
+    return [i for i in ids if i != decision_id]
 
 
 # ── Grammar inference on a bare docket ───────────────────────────────────
@@ -354,6 +371,12 @@ def _grammar_candidates(core: str, courts: set[str] | None = None, canton: str |
             order.append("zh_kassationsgericht")
         order += list(ZH_SIX_DIGIT_COURTS)
         out += [f"{court}_{docket}" for court in _dedupe(order)]
+        # "-O" is the Obergericht's own letter (Handelsgericht too), printed in
+        # every caption and every BGer header ("LA210028-O/U"), while the rows
+        # are stored without it. One court, so dropping it is never ambiguous;
+        # a district letter ("-G" Meilen) is identity and is kept.
+        if suffix.startswith("-O"):
+            out += [f"{court}_{prefix}{digits}" for court in _dedupe(order)]
 
     m = _SLASH_RE.match(core) or _GE_SPACED_RE.match(core)
     if m:
@@ -453,7 +476,7 @@ def _rest_as_docket(rest: str) -> str:
         if re.fullmatch(r"[A-Z]{1,5}", head) and head not in EVG_CHAMBERS:
             return f"{head}/{m.group(2)}/{m.group(3)}"
         return f"{head}{sep}{m.group(2)}/{m.group(3)}"
-    if re.match(r"^(?:BGE_)?\d{1,3}_[IVXab]+_\d{1,4}$", rest):
+    if re.match(r"^(?:BGE_)?\d{1,3}_[IVX]+[abAB]?_\d{1,4}$", rest):
         return rest.replace("_", " ")
     return rest
 
@@ -490,7 +513,32 @@ def resolve_decision_ref(text: str | None) -> list[str]:
         appno = application_number(core)
         if appno:
             out.append(f"hudoc_ch_{appno.replace('/', '_')}")
+        # BS decision numbers ('AG.2014.40', 'SVG.2018.352', 'ZG.2026.4'): the
+        # id since 2026-09-17. Their prefixes read as the cantons Aargau and
+        # Zug to the head/canton logic above, which would filter the Basel
+        # candidates out, so they are added here, after any canton-restricted
+        # candidates so a real Aargau/Zug id still wins the ordered PK lookups.
+        out += _bs_decision_number_candidates(bare) or _bs_decision_number_candidates(core)
     return [c for c in _dedupe(out) if c != raw]
+
+
+# The court's own decision number on rechtsprechung.gerichte.bs.ch, unique per
+# decision and the decision_id since 2026-09-17 (the cited case number, e.g.
+# 'SB.2013.5', is docket_number and resolves through the DB's docket lookup).
+_BS_DECISION_NUMBER_RE = re.compile(r"^(AG|SVG|ZG)\.(\d{4})\.(\d{1,5})$")
+_BS_DECISION_NUMBER_COURTS = {
+    "AG": "bs_appellationsgericht",
+    "SVG": "bs_sozialversicherungsgericht",
+    "ZG": "bs_zivilgericht",
+}
+
+
+def _bs_decision_number_candidates(core: str) -> list[str]:
+    m = _BS_DECISION_NUMBER_RE.match((core or "").strip())
+    if not m:
+        return []
+    prefix, year, n = m.group(1), m.group(2), m.group(3)
+    return [f"{_BS_DECISION_NUMBER_COURTS[prefix]}_{prefix}.{year}.{n}"]
 
 
 def application_number(text: str | None) -> str | None:

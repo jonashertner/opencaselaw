@@ -65,14 +65,24 @@ class BGEEGMRScraper(BaseScraper):
     # Session management (same as BGE scraper)
     # ---------------------------------------------------------------
 
+    def _apply_ua(self) -> None:
+        ua = self._incapsula.user_agent("search.bger.ch")
+        if ua:
+            self.session.headers["User-Agent"] = ua
+
     def _establish_session(self) -> None:
-        """Establish CLIR session with Incapsula cookies."""
-        try:
-            incap_cookies = self._incapsula.get_cookies("search.bger.ch")
-            self.session.cookies.update(incap_cookies)
-            logger.info(f"Applied {len(incap_cookies)} Incapsula cookies")
-        except Exception as e:
-            logger.warning(f"Incapsula cookie harvest failed: {e}")
+        """Establish CLIR session with Incapsula cookies. Through the residential
+        proxy no cookies are harvested up front; a challenge is answered by a
+        harvest through the proxy, never from the datacenter address."""
+        self._incapsula.proxy = self.session.proxies.get("https") or self.session.proxies.get("http") or None
+        if not self._incapsula.proxy:
+            try:
+                incap_cookies = self._incapsula.get_cookies("search.bger.ch")
+                self.session.cookies.update(incap_cookies)
+                self._apply_ua()
+                logger.info(f"Applied {len(incap_cookies)} Incapsula cookies")
+            except Exception as e:
+                logger.warning(f"Incapsula cookie harvest failed: {e}")
 
         response = self.get(INITIAL_URL)
 
@@ -81,6 +91,7 @@ class BGEEGMRScraper(BaseScraper):
             try:
                 incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
                 self.session.cookies.update(incap_cookies)
+                self._apply_ua()
                 response = self.get(INITIAL_URL)
             except Exception as e:
                 logger.error(f"Incapsula refresh failed: {e}")
@@ -97,9 +108,11 @@ class BGEEGMRScraper(BaseScraper):
         if self._incapsula.is_incapsula_blocked(resp.text) and retry < max_retries:
             logger.info(f"Incapsula block, refreshing ({retry+1}/{max_retries})")
             try:
+                self._incapsula.proxy = self.session.proxies.get("https") or self.session.proxies.get("http") or None
                 incap_cookies = self._incapsula.refresh_cookies("search.bger.ch")
                 self.session.cookies.update(incap_cookies)
                 self._session_cookies.update(incap_cookies)
+                self._apply_ua()
             except Exception as e:
                 logger.error(f"Incapsula refresh failed: {e}")
             return self._safe_get(url, retry + 1, max_retries)

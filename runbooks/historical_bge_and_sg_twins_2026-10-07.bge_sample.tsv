@@ -1,0 +1,49 @@
+stratum	id	api_date_2026-10-07	branch_d364e0b_date	final_outcome	final_method	final_date	verdict
+A_own_changed_from_real	bge_historical_47_I_54	1920-04-09	1921-03-04	placed	own_header	1921-03-04	ok: No 7 on p. 54 (scan, left page); served date is an arrete of 9 April 1920
+A_own_changed_from_real	bge_historical_59_I_3	1932-12-22	1933-02-03	placed	own_header	1933-02-03	ok: No 2 on p. 3 (scan, right page)
+A_own_changed_from_real	bge_historical_30_II_103	1903-07-04	1904-01-29	placed	own_header	1904-01-29	ok: No 14 on p. 103 (scan); cut at No 15
+A_own_changed_from_real	bge_historical_52_III_191	1926-02-20	1926-12-10	placed	own_header	1926-12-10	ok: No 48 on p. 191; served date is No 47's
+A_own_changed_from_real	bge_historical_76_III_75	1949-12-23	1950-09-16	placed	own_header	1950-09-16	ok: No 18 on p. 75
+A_own_changed_from_real	bge_historical_77_I_183	1951-07-25	1951-10-03	placed	own_header	1951-10-03	ok: No 31 on p. 183; served date is a ruling cited in No 30
+A_own_changed_from_real	bge_historical_73_IV_75	1947-04-18	1947-03-07	placed	own_header	1947-03-07	ok: No 22 on p. 75; served date is No 21's
+A_own_changed_from_real	bge_historical_40_II_109	1914-02-05	1914-04-03	placed	placeholder	1914-01-01	ok now: scan reads 2 aprile 1914, OCR '!3 aprile' -> placeholder (branch code: 1914-04-03, wrong)
+B_own_from_placeholder	bge_historical_64_I_183	1938-01-01	1938-07-01	placed	own_header	1938-07-01	ok: No 34 on p. 183
+B_own_from_placeholder	bge_historical_43_II_443	1917-01-01	1917-05-11	placed	own_header	1917-05-11	ok: No 55 on p. 443
+B_own_from_placeholder	bge_historical_79_IV_115	1950-02-07	1953-07-02	placed	own_header	1953-07-02	ok: No 28 on p. 115; served 1950-02-07 is a body date
+B_own_from_placeholder	bge_historical_40_III_355	1914-01-01	1914-10-02	placed	placeholder	1914-01-01	ok now: scan reads 22 ottobre 1914, OCR 'a2 ottobre' -> placeholder (branch code: 1914-10-02, wrong)
+C_own_same	bge_historical_12_I_186	1886-03-19	1886-03-19	placed	own_header	1886-03-19	ok: text opens with No 22
+C_own_same	bge_historical_48_III_172	1922-09-18	1922-09-18	placed	own_header	1922-09-18	ok: No 48 on p. 172
+C_own_same	bge_historical_2_I_206	1876-06-02	1876-06-02	placed	own_header	1876-06-02	ok: text opens with No 52
+C_own_same	bge_historical_79_II_123	1953-06-25	(not placed) 1953-06-25	placed	own_header	1953-06-25	ok: No 19 on p. 123
+D_placeholder_from_real	bge_historical_42_III_70	1915-12-10	1916-01-01	placed	placeholder	1916-01-01	ok: header day unreadable ('B. Maerz 1916'); served 1915 date is wrong
+D_placeholder_from_real	bge_historical_40_II_68	1913-07-08	1914-01-01	placed	placeholder	1914-01-01	ok: month unreadable ('4. Kirz 1914'); served 1913 date is wrong
+D_placeholder_from_real	bge_historical_60_III_66	1934-03-27	1934-01-01	placed	placeholder	1934-01-01	ok: 'Ma.i' unreadable; served date is wrong
+D_placeholder_from_real	bge_historical_42_I_92	1915-11-23	1916-01-01	placed	placeholder	1916-01-01	ok: 'fhrier' unreadable; served 1915 date is wrong
+D_placeholder_from_real	bge_historical_42_II_144	1915-05-18	1916-01-01	placed	placeholder	1916-01-01	ok: day unreadable ('S avril1916'); served 1915 date is wrong
+D_placeholder_from_real	bge_historical_40_I_123	1913-12-22	1914-01-01	placed	placeholder	1914-01-01	ok: 'AprU' unreadable; served 1913 date is wrong
+E_placeholder_from_placeholder	bge_historical_53_II_7	1927-01-01	1927-01-01	placed	placeholder	1927-01-01	ok: day unreadable ('2S. Februar')
+E_placeholder_from_placeholder	bge_historical_46_III_10	1917-01-05	1920-01-01	placed	placeholder	1920-01-01	ok: date unreadable; served 1917-01-05 is wrong
+F_keep	bge_historical_71_II_272	1945-12-11	1945-12-11	placed	keep	1945-12-11	ok: keep 11 Dec 1945 ('11. De- zember 1945')
+F_keep	bge_historical_60_I_108	1934-02-23	1934-02-23	placed	keep	1934-02-23	ok: keep 23 Feb 1934
+F_keep	bge_historical_54_II_464	1928-10-12	1928-10-12	placed	placeholder	1928-01-01	ok now: header '12~ Dezember 1928', stored 1928-10-12 no longer kept (branch code kept the wrong month)
+G_not_placed_1-9	bge_historical_1_I_532	1875-01-01	(not placed) 1875-01-01	own_header_not_placed	-	1875-01-01	ok: not placed (Fraktur section start)
+G_not_placed_31-39	bge_historical_31_I_33	1905-02-02	(not placed) 1905-02-02	placed	own_header	1905-02-02	ok now: 'Arteil' OCR placed, 2 Feb 1905
+G_not_placed_31-39	bge_historical_38_II_745	1912-07-10	(not placed) 1912-07-10	placed	own_header	1912-10-18	ok now: 'Arteil' placed, scan 18. Oktober 1912; served 1912-07-10 is wrong
+G_not_placed_40-64	bge_historical_54_III_221	1928-02-23	(not placed) 1928-02-23	own_header_not_placed	-	1928-02-23	ok: not placed, p. 221 holds a Kreisschreiben, no ruling
+G_not_placed_40-64	bge_historical_51_II_122	1920-10-01	(not placed) 1925-01-01	placed	placeholder	1925-01-01	ok now: 'Orteil' No 25 (running head N0 25); date unreadable
+G_not_placed_40-64	bge_historical_42_II_155	1912-08-12	(not placed) 1916-01-01	placed	own_header	1916-04-15	ok now: 'Orteil' No 24, scan 15. April 1916; served 1912-08-12 is wrong
+G_not_placed_65-79	bge_historical_69_I_257	1941-08-22	(not placed) 1943-01-01	own_header_not_placed	-	1943-01-01	ok: not placed, text kept whole
+H_ruleA_gained	bge_historical_71_IV_65	1945-01-24	(not placed) 1945-01-24	placed	placeholder	1945-01-01	ok: rule A; header year OCR '1949' -> placeholder
+H_ruleA_gained	bge_historical_29_I_15	1903-01-29	(not placed) 1903-01-29	placed	own_header	1903-01-29	ok: rule A; No 3 on p. 15
+H_ruleA_gained	bge_historical_26_II_159	1900-01-31	(not placed) 1900-01-31	placed	own_header	1900-01-31	ok: rule A; No 22 on p. 159
+H_ruleA_gained	bge_historical_33_II_5	1907-03-27	(not placed) 1907-03-27	placed	own_header	1907-03-27	ok: rule A; No 2 on p. 5; Fraktur tail kept (cut too little)
+I_outlier_own<30%	bge_historical_25_II_543	1899-01-01	(not placed) 1899-01-01	placed	own_header	1899-04-21	ok: No 64 on p. 543, short ruling, cut at No 65
+I_outlier_own<30%	bge_historical_1_I_520	1875-01-01	1875-09-24	own_header_not_placed	-	1875-01-01	ok now: not placed; branch code took No 142 (= BGE 1 I 521) and its date
+I_outlier_own<30%	bge_historical_67_III_53	1940-12-02	1941-03-12	placed	own_header	1941-03-12	ok: No 16 on p. 53
+J_serial_break	bge_historical_45_I_55	1918-07-07	(not placed) 1918-07-07	placed	placeholder	1919-01-01	ok: No 8 on p. 55; date unreadable
+J_serial_break	bge_historical_21_I_927	1895-10-23	1895-10-23	placed	own_header	1895-10-23	ok: serial OCR (122 read 22)
+J_serial_break	bge_historical_47_III_116	1921-07-30	1921-07-30	own_header_not_placed	-	1921-07-30	ok now: not placed; branch code took No 36 (p. 117) and dated it 30 July 1921, own No 35 (scan) garbled
+J_serial_break	bge_historical_68_II_339	1942-11-26	1942-11-26	placed	own_header	1942-11-26	ok: No 63 read as 53
+K_known	bge_historical_78_IV_83	1951-07-17	1952-06-03	placed	own_header	1952-06-03	ok: No 22, 3 June 1952, cut before No 23 (Friedlin)
+K_known	bge_historical_14_I_479	1888-09-21	1888-08-31	placed	own_header	1888-09-21	ok now: No 73 (scan top of p. 479); branch code took No 74 and dated it 31 Aug 1888
+K_known	bge_historical_70_II_75	1944-03-23	1944-03-30	placed	own_header	1944-03-23	ok now: No 12; branch code took No 13 and dated it 30 March 1944

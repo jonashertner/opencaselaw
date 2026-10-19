@@ -1,0 +1,119 @@
+{
+ "schema": "opencaselaw.posters.v1",
+ "weeks": [
+  {
+   "week": "2026-W42",
+   "from": "2026-10-09",
+   "to": "2026-10-15",
+   "added": 806,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "abstimmung",
+     "file": "2026-w42/de-abstimmung.webp",
+     "caption": "Woche 42 in der Schweizer Rechtsprechung: 806 neue Entscheide. opencaselaw.ch"
+    },
+    {
+     "lang": "fr",
+     "design": "releve",
+     "file": "2026-w42/fr-releve.webp",
+     "caption": "Semaine 42 de la jurisprudence suisse : 806 nouvelles décisions. opencaselaw.ch"
+    },
+    {
+     "lang": "it",
+     "design": "francobolli",
+     "file": "2026-w42/it-francobolli.webp",
+     "caption": "Settimana 42 della giurisprudenza svizzera: 806 nuove decisioni. opencaselaw.ch"
+    },
+    {
+     "lang": "rm",
+     "design": "alpabzug",
+     "file": "2026-w42/rm-alpabzug.webp",
+     "caption": "Emna 42: 806 novas decisiuns. opencaselaw.ch"
+    },
+    {
+     "lang": "en",
+     "design": "piste",
+     "file": "2026-w42/en-piste.webp",
+     "caption": "Week 42 in Swiss case law: 806 new decisions. opencaselaw.ch"
+    }
+   ]
+  },
+  {
+   "week": "2026-W41",
+   "from": "2026-10-02",
+   "to": "2026-10-08",
+   "added": 801,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "board",
+     "file": "2026-w41/de-board.webp",
+     "caption": "Woche 41 in der Schweizer Rechtsprechung: 801 neue Entscheide. opencaselaw.ch"
+    },
+    {
+     "lang": "fr",
+     "design": "rose",
+     "file": "2026-w41/fr-rose.webp",
+     "caption": "Semaine 41 de la jurisprudence suisse: 801 nouvelles décisions. opencaselaw.ch"
+    },
+    {
+     "lang": "it",
+     "design": "mosaic",
+     "file": "2026-w41/it-mosaic.webp",
+     "caption": "Settimana 41 della giurisprudenza svizzera: 801 nuove decisioni. opencaselaw.ch"
+    },
+    {
+     "lang": "rm",
+     "design": "sgraffito",
+     "file": "2026-w41/rm-sgraffito.webp",
+     "caption": "Emna 41: 801 novas decisiuns. opencaselaw.ch"
+    },
+    {
+     "lang": "en",
+     "design": "forecast",
+     "file": "2026-w41/en-forecast.webp",
+     "caption": "Week 41 in Swiss case law: 801 new decisions. opencaselaw.ch"
+    }
+   ]
+  },
+  {
+   "week": "2026-W40",
+   "from": "2026-09-25",
+   "to": "2026-10-02",
+   "added": 876,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "topo",
+     "file": "2026-w40/de-topo.webp",
+     "caption": "Woche 40 in der Schweizer Rechtsprechung, als Karte gezeichnet: 876 Entscheide sind zwischen dem 25.9. und dem 2.10. neu bei OpenCaseLaw dazugekommen. Jeder Gipfel ist ein Gerichtssitz, seine Höhe die Zahl der neuen Entscheide.\n\nDer Korpus umfasst jetzt 1’078’887 Entscheide zurück bis 1875, frei durchsuchbar, zitierbar und herunterladbar: opencaselaw.ch"
+    },
+    {
+     "lang": "fr",
+     "design": "sediment",
+     "file": "2026-w40/fr-sediment.webp",
+     "caption": "La semaine 40 de la jurisprudence suisse: 876 décisions ont rejoint OpenCaseLaw entre le 25.9. et le 2.10. Elles s’ajoutent à 151 ans de jurisprudence, une ligne par année.\n\nLe corpus compte désormais 1’078’887 décisions depuis 1875, libres à consulter, citer et télécharger: opencaselaw.ch"
+    },
+    {
+     "lang": "it",
+     "design": "score",
+     "file": "2026-w40/it-score.webp",
+     "caption": "La settimana 40 della giurisprudenza svizzera, scritta come una partitura: 876 decisioni sono entrate in OpenCaseLaw tra il 25.9. e il 2.10., cantone per cantone e notte per notte.\n\nIl corpus conta ora 1’078’887 decisioni dal 1875, da consultare, citare e scaricare liberamente: opencaselaw.ch"
+    },
+    {
+     "lang": "rm",
+     "design": "fields",
+     "file": "2026-w40/rm-fields.webp",
+     "caption": "Emna 40: 876 novas decisiuns da dretgiras en il corpus avert dad OpenCaseLaw, dals 25.9. fin ils 2.10.\n\nIl corpus cumpiglia ussa 1’078’887 decisiuns dapi il 1875: opencaselaw.ch"
+    },
+    {
+     "lang": "en",
+     "design": "receipt",
+     "file": "2026-w40/en-receipt.webp",
+     "caption": "Week 40 in Swiss case law, itemised: 876 decisions entered OpenCaseLaw between 25 Sep and 2 Oct. Price: CHF 0.00.\n\nThe corpus now holds 1,078,887 decisions back to 1875, free to search, cite and download: opencaselaw.ch"
+    }
+   ]
+  }
+ ]
+}

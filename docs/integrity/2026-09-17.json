@@ -1,0 +1,16 @@
+{
+  "date": "2026-09-17",
+  "root": "d77b0c1a9f9f9bad7a669d5ecc8d9919f91ad5ea7fa6d64a91ab9980d6f46066",
+  "algorithm": "RFC6962-SHA256",
+  "leaf_encoding": "decision_id\\ncli_ch\\necli\\ncontent_hash\\ndecision_date",
+  "decisions_count": 1080540,
+  "skipped_no_content_hash": 0,
+  "first_decision_id": "ag_anwaltskommission_AGVE_2000_18",
+  "last_decision_id": "zh_verwaltungsgericht__VR.2025.00002",
+  "build_started_at": "2026-09-17T19:35:22.910694+00:00",
+  "build_finished_at": "2026-09-17T20:15:52.089393+00:00",
+  "build_duration_s": 2429.2,
+  "iter_duration_s": 2428.3,
+  "merkle_duration_s": 0.9,
+  "ots_stamp": "2026-09-17.root.ots"
+}

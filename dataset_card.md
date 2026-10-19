@@ -27,7 +27,10 @@ configs:
   - config_name: default
     data_files:
       - split: train
-        path: data/*.parquet
+        # Court files only: data/delta-YYYY-MM-DD.parquet (ends in a digit) has
+        # other columns, and load_dataset fails on a split whose files differ.
+        # scripts/check_hf_unmanaged_parquet.py checks that this reads every court.
+        path: "data/*[!0-9].parquet"
 ---
 
 # Swiss Case Law Dataset
@@ -58,7 +61,7 @@ The largest open collection of Swiss court decisions: 1,050,000+ decision record
 - **12.4 million statute-decision links** in `graph/statute_references.parquet` (e.g., which decisions cite Art. 41 OR)
 - **34 structured fields** per decision in Parquet; 27 in the FTS5 search index
 
-**What this Parquet dataset contains:** the decisions corpus (`data/`), the citation and statute-reference graph (`graph/`), and structured decision sections (`structure/`).
+**What this Parquet dataset contains:** the decisions corpus (`data/`), the citation and statute-reference graph (`graph/`), and structured decision sections (`structure/`). `structure/` is refreshed only when its export fits the nightly build's time budget, so it can lag `data/` by days; the live sidecar behind the MCP tools is always current.
 
 **Not included as bulk Parquet — served live via the [MCP API](https://mcp.opencaselaw.ch) and [dashboard](https://opencaselaw.ch):** the full **law texts** and **legislative materials**. These are queried in real time (`get_law`, `search_laws`, `get_legislation`, `get_materialien`) and sourced from Fedlex SPARQL (5,525 federal laws / 132,586 articles in DE/FR/IT), direct cantonal-portal scraping with LexFind fallback (15,600 cantonal laws / 353,464 articles), and a verbatim Botschaft/Materialien corpus (references for ~33,000 statute articles, digests for BV and BGFA, and Amtliches-Bulletin debate transcripts for the BV). The statute-decision *links* above are included in the download; the article *texts* are not.
 
@@ -257,6 +260,11 @@ The Parquet files use a 34-field schema. The 24 columns available in the FTS5 se
 
 Full 34-field Parquet export schema: [`export_parquet.py`](https://github.com/jonashertner/opencaselaw/blob/main/export_parquet.py)
 
+### `structure/` files
+
+- `structure/structure.parquet`: one row per decision whose sections were extracted, ordered by `decision_id`. It carries `court` and `language`; the flags `has_sachverhalt`, `has_erwaegungen` and `has_dispositiv`; the extraction method of each section; and `erwaegungen_paragraph_count`, which is the number of rows `erwaegungen_paragraphs.parquet` holds for that decision.
+- `structure/erwaegungen_paragraphs.parquet` (refreshed weekly): one row per Erwägung, with `decision_id`, `e_number` (`1`, `1.1`, `2a`, `3c/aa`, …), `depth`, `parent` and the verbatim `text`. If a decision's Erwägungen carry no numbers, its reasoning appears as a single row with `e_number` `"0"` and `depth` 0. That number is not in the decision, so it cannot be cited as a pinpoint; filter on `depth >= 1` to keep only numbered Erwägungen.
+
 ## Court Coverage
 
 ### Federal Courts (20)
@@ -318,6 +326,12 @@ Decisions appearing in multiple sources are deduplicated by `decision_id` (a det
 ## Update Frequency
 
 The dataset is updated daily via automated pipeline. New decisions are scraped, deduplicated, exported to Parquet, and uploaded to HuggingFace.
+
+## Changelog
+
+- 2026-10-12: Removed 99 parquet files from the repository root, left over from manual uploads on 2026-03-03 and 2026-03-14. They were never part of the `load_dataset` configuration, but direct downloads of them returned the March 2026 corpus. Current files are under `data/`; the old ones remain available at revision `b4746827`.
+- 2026-10-11: The structure data was rebuilt on 10–11 October. `erwaegungen_paragraphs.parquet` of 2026-10-11 is the first built from it, and `structure/structure.parquet` is written every night again since 2026-10-12; it had not been updated since 2026-09-10. Its historical BGE rows now use the same `bge_*` ids as `erwaegungen_paragraphs.parquet`, where the old file had `bge_historical_*`. `erwaegungen_paragraph_count` now equals the rows of the paragraph file, and unnumbered Erwägungen are exported as `e_number` `"0"` (see "`structure/` files" under Schema). Details: [docs/MIGRATIONS.md](https://github.com/jonashertner/opencaselaw/blob/main/docs/MIGRATIONS.md).
+- 2026-10-08: The default configuration now reads the court files only (`data/*[!0-9].parquet`). Before, `data/*.parquet` also matched the daily `data/delta-YYYY-MM-DD.parquet`, whose columns differ from the court files, so `load_dataset("voilaj/swiss-caselaw")` failed with a cast error ("column names don't match"). The daily deltas remain available under `artifacts/parquet/deltas/`, listed in `artifacts/manifest.json`.
 
 ## Legal Basis
 

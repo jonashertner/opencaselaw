@@ -235,7 +235,7 @@ _HTML_TEMPLATE = """<!doctype html>
   <footer>
     Generated <span id="when"></span>. Data source:
     <code>logs/llm_usage.jsonl</code>. Pricing: claude-sonnet-4-6 $3/$15 per M,
-    claude-haiku-4-5 $0.80/$4 per M.
+    claude-haiku-4-5 $1/$5 per M, claude-haiku-5-5 $0.10/$0.50 per M.
   </footer>
 </div>
 

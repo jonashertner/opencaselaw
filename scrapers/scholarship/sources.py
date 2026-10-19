@@ -49,7 +49,10 @@ class ScholarshipSource:
     # chains — UNIGE ends its chain ~21k records into ~124k with a clean
     # "no token", indistinguishable from completion (found 2026-08-22, the
     # source had been frozen at datestamp<=2012 for months). Enable for any
-    # IR with >20k records.
+    # IR with >20k records. Windowing also makes a full re-harvest resumable
+    # across weekly runs (the window stack is the cursor — see
+    # scrapers/scholarship/incremental.py), so every DSpace IR above that
+    # size is windowed (2026-10-11).
     windowed: bool = False
     active: bool = True
     # For 'custom' kind: module path (e.g. "scrapers.scholarship.leges")
@@ -178,6 +181,7 @@ SOURCES: list[ScholarshipSource] = [
         homepage="https://libra.unine.ch/",
         notes="UniNE repository (DSpace 7). ~31k records (earliest 2025-09 — "
               "newly launched repo). Filtered to law-keyword subjects.",
+        windowed=True,
         active=True,
     ),
 
@@ -249,6 +253,35 @@ SOURCES: list[ScholarshipSource] = [
               "reference articles + commentary + agenda briefings + glossary. "
               "Sitemap-driven scrape (no OAI-PMH).",
         active=True,
+    ),
+
+    # Attribution-only entry: the shard is built once from the publisher's
+    # ePub by scripts/build_shk_kommentar_shard.py (a static 2021 edition), so
+    # there is nothing to harvest weekly — hence active=False.
+    ScholarshipSource(
+        key="shk_kommentar",
+        name="Kommentar zur Schaffhauser Verwaltungsrechtspflege "
+             "(Meyer/Herrmann/Bilger, Hrsg.; EIZ Publishing 2021)",
+        kind="custom",
+        license_default="CC-BY-SA",
+        license_url_default=None,
+        attribution=(
+            "© 2021 the respective authors. Kilian Meyer / Oliver Herrmann / "
+            "Stefan Bilger (Hrsg.), Kommentar zur Schaffhauser "
+            "Verwaltungsrechtspflege, EIZ Publishing 2021, "
+            "https://doi.org/10.36862/eiz-411. Imprint: \"CC BY-NC-ND (Werk), "
+            "CC BY-SA (Text)\" — the text served here is CC BY-SA. Cite as: "
+            "BearbeiterIn, in: Meyer/Herrmann/Bilger (Hrsg.), Kommentar zur "
+            "Schaffhauser Verwaltungsrechtspflege, 2021, Art. X VRG/JG N. X."
+        ),
+        homepage="https://eizpublishing.ch/publikationen/"
+                 "kommentar-zur-schaffhauser-verwaltungsrechtspflege/",
+        notes="One record per Kommentierung (98 articles of VRG + JG), two "
+              "essays, three checklists. Parsed from the ePub; margin numbers "
+              "and text verified against the PDF edition. Editors and "
+              "authors confirmed their agreement to the ingest (J. Hertner, "
+              "2026-09-22).",
+        active=False,
     ),
 
     # ── Standalone OA law journals (small but high-quality) ─────────────
@@ -370,7 +403,7 @@ SOURCES: list[ScholarshipSource] = [
         key="alexandria_law",
         name="UniSG Alexandria — law + business law content",
         kind="oai_pmh",
-        base_url="https://www.alexandria.unisg.ch/server/oai/request",
+        base_url="https://alexandria.unisg.ch/server/oai/request",
         set_spec=None,
         subject_filter=(
             "340", "law", "Recht", "Rechtswiss", "droit", "diritto",
@@ -383,7 +416,11 @@ SOURCES: list[ScholarshipSource] = [
         ),
         homepage="https://www.alexandria.unisg.ch/",
         notes="UniSG repository (DSpace). Filtered post-hoc to law-keyword "
-              "subjects (~61k total records).",
+              "subjects (~61k total records). Bare host, not www.: the www "
+              "301 re-encodes the '/'-laden resumption token and every "
+              "page-2 request came back badResumptionToken (found "
+              "2026-10-11; the shard had been stuck at page 1, 13 records).",
+        windowed=True,
         active=True,
     ),
     ScholarshipSource(
@@ -406,6 +443,7 @@ SOURCES: list[ScholarshipSource] = [
         notes="ETH RC (DSpace). Mostly STEM; filtered to law-relevant subjects "
               "to catch legal-tech, regulation, ethics, governance research "
               "(~113k total records, expect ~1-3% match rate).",
+        windowed=True,
         active=True,
     ),
 
@@ -429,6 +467,7 @@ SOURCES: list[ScholarshipSource] = [
         homepage="https://edoc.unibas.ch/",
         notes="UniBas repository (DSpace 7, handle prefix 20.500.14716). "
               "~162k total records; filtered to law-keyword subjects.",
+        windowed=True,
         active=True,
     ),
     ScholarshipSource(
@@ -451,6 +490,7 @@ SOURCES: list[ScholarshipSource] = [
         notes="ZHAW UAS repository (DSpace 7). ~36k records; mostly applied "
               "sciences; expect ~200-500 law-relevant records (legal-tech, "
               "regulation, compliance research).",
+        windowed=True,
         active=True,
     ),
     ScholarshipSource(
@@ -471,6 +511,7 @@ SOURCES: list[ScholarshipSource] = [
         homepage="https://irf.fhnw.ch/",
         notes="FHNW UAS repository (DSpace 7). ~34k records; mostly applied / "
               "business; expect ~300-800 law/business-law records.",
+        windowed=True,
         active=True,
     ),
 
@@ -576,6 +617,7 @@ SOURCES: list[ScholarshipSource] = [
         homepage="https://boris-portal.unibe.ch/",
         notes="UniBE repository (DSpace 7, migrated from EPrints). ~167k "
               "total records; filtered to law-keyword subjects.",
+        windowed=True,
         active=True,
     ),
     ScholarshipSource(
@@ -832,6 +874,19 @@ def license_usage_hint(license_code: str | None) -> dict:
             "released under CC-BY-SA-4.0 (Share-Alike). Indexing/search "
             "is a §3(b) collection — not a derivative — so the index "
             "itself need not be CC-BY-SA. Quotation downstream is fine."
+        )
+        return base
+    if code == "CC-BY-SA":
+        # The licensor named the licence without a version (the Schaffhausen
+        # commentary imprint: "CC BY-SA (Text)"). Attribution and share-alike
+        # are common to every version, so those terms are stated; the
+        # version-specific details are not invented.
+        base["share_alike_required"] = True
+        base["note"] = (
+            "CC BY-SA, version not stated by the licensor: attribution "
+            "required (author, work, licence, link). Adaptations must be "
+            "released under CC BY-SA (Share-Alike); these two conditions hold "
+            "in every CC BY-SA version. Quotation with attribution is fine."
         )
         return base
     if code == "CC-BY-ND-4.0":

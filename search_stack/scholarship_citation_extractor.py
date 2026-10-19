@@ -3,7 +3,8 @@ pub_citations_decisions + pub_citations_statutes in legal_scholarship.db.
 
 Two outputs per scholarship publication:
   1. Case citations resolved against decisions.db (BGE, BGer, BVGer, BStGer,
-     BPatGer dockets). Unresolvable refs are silently dropped.
+     BPatGer dockets, and Schaffhausen Obergericht "OGE 60/2017/43").
+     Unresolvable refs are silently dropped.
   2. Statute references resolved via statutes.db's abbreviation → sr_number
      map (Art. 41 OR → SR 220, Art. 8 BV → SR 101, etc.).
 
@@ -21,6 +22,7 @@ import sqlite3
 import time
 from typing import Optional
 
+from search_stack import oge_citation
 from search_stack.reference_extraction import (
     extract_case_citations,
     extract_statute_references,
@@ -91,6 +93,32 @@ def load_decision_lookups(decisions_db_path: str) -> dict[str, str]:
     return lookups
 
 
+def load_sh_dockets(decisions_db_path: str) -> dict[str, list[tuple[str, str, str]]]:
+    """Schaffhausen Obergericht docket -> [(decision_id, decision_date, court)].
+
+    Literature cites it as "OGE 60/2017/43 vom …". A docket may carry several
+    rulings and every ruling is held twice (sh_gerichte "Nr. 60/2017/43",
+    sh_obergericht "60/2017/43"), so the rows are kept and the citation's own
+    date picks among them (oge_citation.pick)."""
+    out: dict[str, list[tuple[str, str, str]]] = {}
+    conn = sqlite3.connect(
+        f"file:{decisions_db_path}?mode=ro&immutable=1", uri=True
+    )
+    try:
+        for decision_id, docket, date, court in conn.execute(
+            "SELECT decision_id, docket_number, decision_date, court FROM decisions "
+            "WHERE court IN ('sh_gerichte', 'sh_obergericht') "
+            "AND docket_number IS NOT NULL"
+        ):
+            m = oge_citation.SH_DOCKET_RE.fullmatch((docket or "").strip())
+            if m:
+                out.setdefault(m.group(1), []).append((decision_id, date or "", court))
+    finally:
+        conn.close()
+    log.info("sh docket lookups: %d dockets", len(out))
+    return out
+
+
 def load_law_abbr_lookups(statutes_db_path: str) -> dict[str, str]:
     """Build map: law abbreviation (de/fr/it) → sr_number."""
     lookups: dict[str, str] = {}
@@ -127,6 +155,7 @@ def extract_for_publication(
     full_text: str,
     decision_lookups: dict[str, str],
     law_lookups: dict[str, str],
+    sh_dockets: Optional[dict[str, list[tuple[str, str, str]]]] = None,
 ) -> tuple[list[tuple[str, Optional[str]]], list[tuple[str, str, Optional[str]]]]:
     """Extract resolved citations from one publication's full_text.
 
@@ -152,6 +181,20 @@ def extract_for_publication(
             continue
         seen_decisions.add(decision_id)
         decisions.append((decision_id, _snippet_for(full_text, cit.raw)))
+
+    # "OGE 60/2017/43 vom 10. Januar 2020": linked only to a ruling of the
+    # written date when one is written (a docket can carry several rulings).
+    for m in oge_citation.OGE_RE.finditer(full_text) if sh_dockets else ():
+        date = oge_citation.cited_date(full_text[m.end():m.end() + 60])
+        decision_id = oge_citation.pick(sh_dockets.get(m.group(1), ()), date)
+        if not decision_id or decision_id in seen_decisions:
+            continue
+        seen_decisions.add(decision_id)
+        # the snippet shows THIS occurrence (with its date), not the first
+        # mention of the docket, which may cite another ruling under it
+        start = max(0, m.start() - 60)
+        snip = " ".join(full_text[start:m.end() + 60].split())[:140] or None
+        decisions.append((decision_id, snip))
 
     for ref in extract_statute_references(full_text):
         sr = law_lookups.get(ref.law_code.upper())
@@ -180,6 +223,7 @@ def extract_all(
     """
     t_start = time.time()
     decision_lookups = load_decision_lookups(decisions_db_path)
+    sh_dockets = load_sh_dockets(decisions_db_path)
     law_lookups = load_law_abbr_lookups(statutes_db_path)
     log.info(
         "lookups loaded in %.1fs (%d decisions, %d law abbrevs)",
@@ -198,7 +242,7 @@ def extract_all(
     for i, (db_id, pub_id, full_text) in enumerate(rows):
         n_pubs += 1
         decisions, statutes = extract_for_publication(
-            full_text, decision_lookups, law_lookups
+            full_text, decision_lookups, law_lookups, sh_dockets
         )
         if decisions or statutes:
             n_with += 1

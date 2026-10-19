@@ -588,8 +588,10 @@ def render_atom_feed(court: str, court_label: str,
 
     `decisions` is an iterable of dicts with at least `decision_id`,
     `decision_date`, `citation_string_de` (or fallback fields), and
-    optionally `regeste` for the entry summary. Caller is responsible
-    for ordering by date desc and capping the count.
+    optionally `publication_date` and `regeste` for the entry summary.
+    An entry is dated by its publication_date (when the court released it),
+    falling back to decision_date. Caller is responsible for ordering and
+    capping the count.
     """
     feed_url = f"{base_url}/atom/{court}.xml"
     site_url = f"{base_url}/courts/{court}"
@@ -619,7 +621,7 @@ def render_atom_feed(court: str, court_label: str,
             or d.get("citation_string")
             or _short_title(d)
         )
-        date = d.get("decision_date") or now[:10]
+        date = (d.get("publication_date") or "")[:10] or d.get("decision_date") or now[:10]
         # Atom requires RFC 3339 timestamp
         if re.match(r"^\d{4}-\d{2}-\d{2}$", date):
             date_full = f"{date}T00:00:00Z"

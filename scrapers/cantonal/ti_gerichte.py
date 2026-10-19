@@ -69,7 +69,10 @@ RE_NX40_KEY = re.compile(r"nX40_KEY=(\d+)")
 RE_DATE = re.compile(r"(\d{2})\.(\d{2})\.(\d{4})")
 RE_AUTORITA = re.compile(r"Autorit[àa]:\s*(\w+)")
 RE_DOCKET = re.compile(r"(\d+\.\d{4}\.\d+)")
-RE_DATA_DEC = re.compile(r"data decisione:\s*(\d{2}\.\d{2}\.\d{4})")
+# Listing: "Autorità: TCA, data decisione: 26.05.2026, data pubblicazione: 14.09.2026".
+# Document page: label and value sit in two cells, "Data decisione, Autorità:" /
+# "26.05.2026, TCA" — capital D, no colon before the date (see fetch_decision).
+RE_DATA_DEC = re.compile(r"(?i)data decisione[^\d]{0,40}(\d{2}\.\d{2}\.\d{4})")
 RE_DATA_PUB = re.compile(r"data pubblicazione:\s*(\d{2}\.\d{2}\.\d{4})")
 
 
@@ -83,6 +86,10 @@ def _parse_swiss_date(text):
         except ValueError:
             pass
     return None
+
+
+_BLOCK_TAGS = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
+_WS_RE = re.compile(r"\s+")
 
 
 def _extract_document_text(soup):
@@ -104,9 +111,19 @@ def _extract_document_text(soup):
     if not content:
         return ""
 
+    # Every block element, in document order. Until 2026-10-14 only
+    # <p class="MsoNormal"> was kept, but the Word exports file the body under
+    # their own styles ("R1", "R2", ...): 52.2023.477 came out as 677 characters
+    # of heading and signature, 15,234 with all blocks (report 2026-10-13/14;
+    # 15,140 shard rows had no "in fatto"/"in diritto" at all). The same defect
+    # as bs_gerichte (fixed 2026-09-17). Whitespace is taken as written and then
+    # collapsed: get_text(strip=True) dropped the spaces between runs, which
+    # produced "In nomedella Repubblica".
     paragraphs = []
-    for p in content.find_all("p", class_="MsoNormal"):
-        text = p.get_text(strip=True)
+    for block in content.find_all(_BLOCK_TAGS):
+        if block.find_parent(_BLOCK_TAGS) is not None:
+            continue                      # nested: its text is in the outer block
+        text = _WS_RE.sub(" ", block.get_text()).strip()
         if text:
             paragraphs.append(text)
 
@@ -256,8 +273,12 @@ class TIGerichteScraper(BaseScraper):
             if m_docket:
                 docket = m_docket.group(1)
 
-            # Try to extract metadata from surrounding text
-            parent = a.find_parent("tr") or a.find_parent("div")
+            # Metadata sits in the SIBLING rows of the per-result table
+            # (<table cellpadding="0">: row 1 = title link, row 2 = "Autorità: …,
+            # data decisione: …, data pubblicazione: …", row 3 = docket). Until
+            # 2026-09-14 this looked at the link's own <tr> only, so every stub
+            # left discovery undated (796 NULL-date TI rows, freshness invisible).
+            parent = a.find_parent("table") or a.find_parent("tr") or a.find_parent("div")
             if parent:
                 parent_text = parent.get_text()
 
@@ -355,14 +376,23 @@ class TIGerichteScraper(BaseScraper):
                     m = RE_DOCKET.search(val)
                     if m:
                         docket = m.group(1)
-            # Date and authority
+            # Date and authority: "Data decisione, Autorità:" | "26.05.2026, TCA"
+            # (label and value in two cells; the old code searched the label only).
             if "data decisione" in text.lower():
-                m = RE_DATA_DEC.search(text)
-                if m:
-                    decision_date = _parse_swiss_date(m.group(1))
-                m = RE_AUTORITA.search(text)
-                if m:
-                    autorita = m.group(1)
+                val = text
+                if not RE_DATE.search(text):
+                    next_td = td.find_next("td")
+                    if next_td:
+                        val = f"{text} {next_td.get_text(' ', strip=True)}"
+                m_date = RE_DATE.search(val)
+                if m_date:
+                    decision_date = _parse_swiss_date(m_date.group(0))
+                m_aut = (
+                    re.search(r"\d{2}\.\d{2}\.\d{4}\s*,\s*([A-Za-z]{2,8})", val)
+                    or RE_AUTORITA.search(val)
+                )
+                if m_aut and not m_aut.group(1).isdigit():
+                    autorita = m_aut.group(1)
             # Title
             if "Titolo" in text:
                 next_td = td.find_next("td")
@@ -379,9 +409,15 @@ class TIGerichteScraper(BaseScraper):
         # Extract full text
         full_text = _extract_document_text(soup)
         if not full_text or len(full_text) < 50:
-            logger.warning(f"TI: text too short for {docket}: {len(full_text or '')} chars")
-            if not full_text:
-                full_text = f"[Text extraction failed for {docket}]"
+            # No placeholder rows ("[Text extraction failed for …]" was stored as the
+            # decision text until 2026-09-14); the page was fetched, so cache the id as
+            # a gap and let the TTL re-probe it.
+            logger.warning(
+                f"TI: text too short for {docket}: {len(full_text or '')} chars — "
+                f"cached as gap for {self.state.GAP_TTL_DAYS} days"
+            )
+            self.state.mark_gap(make_decision_id("ti_gerichte", docket))
+            return None
 
         if not decision_date:
             logger.warning(f"TI: no date for {docket}")

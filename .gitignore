@@ -54,6 +54,15 @@ reply_*.txt
 *.eml
 *.msg
 *.pst
+# Drafted notifications to courts (failed anonymization, citation anomalies)
+# name a decision and the personal data left in it. They live in the mailbox's
+# drafts folder, never in a repository. tests/test_notification_drafts_guard.py
+court-notifications/
+notifications/
+notification_*
+meldung_*
+entwurf_*
+draft_*
 
 # Client-specific nginx rules, live configuration copies, and machine-specific
 # tunnel helpers are private or host-local operational state.

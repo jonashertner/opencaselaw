@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import shutil
 import subprocess
 import sys
@@ -102,6 +103,57 @@ TUNNEL_DEPENDENT: set[str] = {
 }
 
 
+# Scrapers the 10:20 late run (--source manual) only retries: when today's
+# earlier run of the same scraper succeeded there is nothing to retry, and
+# running it again only adds load on a portal that has started refusing the
+# tunnel address (bger.ch, 2026-09-28 onwards). Value = (health file of the
+# earlier run, what to call it in the note):
+#   bge   the 09:00 federal run;
+#   bger  the 01:00 nightly run (14 Neuheiten pages + 46 AZA search windows,
+#         repeated in full at 10:20). The hourly poller reads the day's
+#         Neuheiten page from 05:00 to 16:00 UTC and fetches what is new, so
+#         a second full walk the same morning finds nothing the poller does not.
+RETRY_ONLY_IF_EARLIER_FAILED: dict[str, tuple[str, str]] = {
+    "bge": ("scraper_health_federal.json", "federal"),
+    "bger": ("scraper_health.json", "nightly"),
+}
+
+
+def _clean_run_today(court: str, health_file: str, logs_dir: Path | None = None,
+                     today: str | None = None) -> str | None:
+    """The time (HH:MM UTC) at which today's run recorded in `health_file`
+    finished with a clean result for `court`, else None. A run that was itself
+    skipped (tunnel down) or carries an error or note is not a clean result."""
+    path = (logs_dir or REPO_DIR / "logs") / health_file
+    try:
+        health = json.loads(path.read_text())
+        run_at = datetime.fromisoformat(health["run_at"])
+        entry = health["scrapers"][court]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    today = today or datetime.now(timezone.utc).date().isoformat()
+    run_at = run_at.astimezone(timezone.utc)
+    if run_at.date().isoformat() != today:
+        return None
+    if (not entry.get("success") or entry.get("timed_out")
+            or entry.get("error") or entry.get("note")):
+        return None
+    return run_at.strftime("%H:%M")
+
+
+def _clean_federal_run_today(court: str, logs_dir: Path | None = None,
+                             today: str | None = None) -> str | None:
+    return _clean_run_today(court, "scraper_health_federal.json", logs_dir, today)
+
+
+def _skipped_result(court: str, note: str) -> dict:
+    return {
+        "court": court, "success": True, "new_count": 0, "skip_count": 0,
+        "error_count": 0, "none_count": 0, "duration": 0.0,
+        "error": None, "note": note,
+    }
+
+
 def _socks_tunnel_up(host: str = "127.0.0.1", port: int = 1080) -> bool:
     """True if something is listening on the reverse-SOCKS tunnel port."""
     import socket
@@ -110,6 +162,35 @@ def _socks_tunnel_up(host: str = "127.0.0.1", port: int = 1080) -> bool:
             return True
     except OSError:
         return False
+
+
+# A listing or search page the portal REFUSED (the scraper's own terminal ERROR
+# after its retries). requests words these "403 Client Error: Forbidden",
+# "503 Server Error: ...", which none of the connection-failure markers match,
+# so a run with every listing refused reported "+0 new, Errors: 0" as success:
+# bge 2026-09-28 09:00 (356/356 listings 403), bger 10:20 (both hosts 403).
+# Replaying every run in logs/*.log on 2026-09-28: 12 runs flip to FAILED, all
+# bge/bger, all real refusals (two bger runs predate the "via host" wording). Per-
+# document errors are left out on purpose (listing/search lines only), and so
+# is bger's first host: "via https://www.bger.ch" falls through to
+# search.bger.ch, so a refusal there is only a failure when the fallback fails
+# too, which logs its own line.
+# 404 joined on 2026-10-02: bger.ch now also refuses with a 404 error page on
+# index/listing/search URLs that always exist. No scraper log on the host had
+# ever carried a 404 on a listing or search line, so nothing else changes.
+# "portal refused" is scrapers.refusal.PortalRefused: a block or challenge page
+# served with status 200 where a listing was asked for.
+_HTTP_REFUSAL = re.compile(
+    r"\b(403|404|429|502|503|504) (Client|Server) Error|portal refused")
+
+
+def _is_listing_refusal(line: str) -> bool:
+    return (
+        " ERROR " in line
+        and _HTTP_REFUSAL.search(line) is not None
+        and ("listing" in line.lower() or " Search " in line)
+        and "via https://www.bger.ch" not in line
+    )
 
 # Scrapers where a high none_count (>=200) is expected and not a portal failure.
 #
@@ -289,6 +370,7 @@ def run_single_scraper(court: str, timeout: int) -> dict:
                             " ERROR " in line
                             and "search failed" in line.lower()
                         )
+                        or _is_listing_refusal(line)
                     ):
                         discovery_errors += 1
 
@@ -478,6 +560,16 @@ def main():
     # Run scrapers with controlled parallelism
     results = []
     total_start = time.time()
+
+    if args.source == "manual":
+        for court in [c for c in courts if c in RETRY_ONLY_IF_EARLIER_FAILED]:
+            health_file, run_name = RETRY_ONLY_IF_EARLIER_FAILED[court]
+            clean_at = _clean_run_today(court, health_file)
+            if clean_at:
+                courts.remove(court)
+                note = f"skipped: today's {clean_at} UTC {run_name} run succeeded"
+                logger.info(f"  [SKIP] {court}: {note}")
+                results.append(_skipped_result(court, note))
 
     with ProcessPoolExecutor(max_workers=args.parallel) as executor:
         futures = {}

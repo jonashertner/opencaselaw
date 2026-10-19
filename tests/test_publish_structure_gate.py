@@ -4,6 +4,13 @@ import sqlite3
 from pathlib import Path
 
 import publish
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_disk_settle_wait(monkeypatch):
+    # A faked full disk must fail at once here; the settle wait has its own tests.
+    monkeypatch.setattr(publish, "DISK_FREE_SETTLE_S", 0)
 
 
 def _decisions(path, ids):
@@ -38,6 +45,8 @@ def _setup(tmp_path, monkeypatch, old_ids, new_ids, ok=True):
     calls = []
     def fake_run_cmd(cmd, description, dry_run=False, **kwargs):
         calls.append((cmd, description, kwargs))
+        if any("warm_structure_sidecar.py" in str(part) for part in cmd):
+            return True          # the post-swap warm-up is a separate child
         if ok:
             shutil.copy(new, out / "decision_structure.db.tmp")
         return ok
@@ -52,8 +61,26 @@ def test_served_text_sidecar_is_swapped_in_when_coverage_holds(tmp_path, monkeyp
     assert publish.step_2g_build_decision_structure() is True
     cmd = calls[0][0]
     assert "extract_decision_structure_incremental.py" in cmd[1] and "--output" in cmd and cmd[-1].endswith("decision_structure.db.tmp")
-    assert calls[0][2]["timeout"] == 14400 and not fallback
+    assert calls[0][2]["timeout"] == publish.STRUCTURE_TIMEOUT_S == 18000 and not fallback
     assert not (out / "decision_structure.db.tmp").exists()
+    assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 4
+    # the swapped-in sidecar is cold: its indexes are warmed right after the
+    # swap, by a bounded, low-I/O-priority child that cannot fail the step
+    warm = calls[1][0]
+    assert warm[:5] == ["ionice", "-c", "2", "-n", "7"]
+    assert any("warm_structure_sidecar.py" in p for p in warm)
+    assert str(out / "decision_structure.db") in warm and calls[1][2]["timeout"] == 1200
+
+
+def test_warm_up_failure_does_not_fail_the_swap(tmp_path, monkeypatch):
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a", "b", "c"], new_ids=["a", "b", "c", "d"])
+    real = publish.run_cmd
+    def failing_warm(cmd, description, dry_run=False, **kwargs):
+        if any("warm_structure_sidecar.py" in str(p) for p in cmd):
+            raise OSError("ionice: command not found")
+        return real(cmd, description, dry_run, **kwargs)
+    monkeypatch.setattr(publish, "run_cmd", failing_warm)
+    assert publish.step_2g_build_decision_structure() is True
     assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 4
 
 
@@ -62,6 +89,7 @@ def test_coverage_gate_keeps_the_old_sidecar(tmp_path, monkeypatch):
     assert publish.step_2g_build_decision_structure() is False
     assert not (out / "decision_structure.db.tmp").exists() and not fallback
     assert publish._structure_coverage(out / "decision_structure.db", out / "decisions.db") == 5
+    assert len(calls) == 1   # no swap, nothing to warm
 
 
 def test_failed_extractor_falls_back_to_the_shard_build_only_without_a_sidecar(tmp_path, monkeypatch):
@@ -142,3 +170,48 @@ def test_not_enough_free_space_keeps_the_current_sidecar(tmp_path, monkeypatch):
     monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: usage(100, 100, 0))
     assert publish.step_2g_build_decision_structure() is False
     assert calls == [] and fallback == []
+
+
+def test_the_extractors_working_copy_counts_as_free_space(tmp_path, monkeypatch):
+    """A bootstrap killed by the step timeout leaves its working copy beside
+    the step's tmp; the next run resumes it, so step 2g must not refuse the
+    run for lack of space those bytes already provide."""
+    from search_stack.extract_decision_structure_incremental import working_copy
+    out, calls, fallback = _setup(tmp_path, monkeypatch, old_ids=["a"], new_ids=["a", "b"])
+    need = int((out / "decision_structure.db").stat().st_size * 1.2)
+    wc = working_copy(out / "decision_structure.db.tmp")
+    assert wc.name == ".decision_structure.db.tmp.tmp"
+    wc.write_bytes(b"\0" * need)
+    import collections
+    usage = collections.namedtuple("usage", "total used free")
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: usage(100, 100, 0))
+    assert publish.step_2g_build_decision_structure() is True
+    assert "extract_decision_structure_incremental.py" in calls[0][0][1] and not fallback
+
+    calls.clear()
+    wc.write_bytes(b"\0" * (need - 1))
+    assert publish.step_2g_build_decision_structure() is False
+    assert calls == []
+
+
+def test_free_space_check_waits_for_a_just_deleted_file_to_free_its_blocks(monkeypatch):
+    # 2026-10-10: the cleanup deleted the kept 73 GB build and the pre-flight in the same
+    # second still saw 50.5 GB; the space showed up moments later.
+    reads = iter([50, 50, 124])
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(450, 0, next(reads)))
+    monkeypatch.setattr(publish.time, "sleep", lambda s: None)
+    assert publish._free_bytes_settled("/x", 80, wait_s=60) == 124
+
+
+def test_free_space_check_gives_up_after_the_wait(monkeypatch):
+    clock = iter(range(0, 1000, 10))
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(450, 0, 50))
+    monkeypatch.setattr(publish.time, "sleep", lambda s: None)
+    monkeypatch.setattr(publish.time, "monotonic", lambda: next(clock))
+    assert publish._free_bytes_settled("/x", 80, wait_s=60) == 50
+
+
+def test_enough_space_is_not_waited_for(monkeypatch):
+    monkeypatch.setattr(publish.shutil, "disk_usage", lambda p: shutil._ntuple_diskusage(450, 0, 124))
+    monkeypatch.setattr(publish.time, "sleep", lambda s: (_ for _ in ()).throw(AssertionError("slept")))
+    assert publish._free_bytes_settled("/x", 80) == 124

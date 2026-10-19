@@ -16,7 +16,14 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from scrapers.cantonal.zh_gerichte import _map_court
+from bs4 import BeautifulSoup
+
+from scrapers.cantonal.zh_gerichte import (
+    _extract_headnote,
+    _get_detail_field,
+    _map_court,
+    _value_or_none,
+)
 
 
 def test_arbeitsgericht_as_kammer_of_bezirksgericht():
@@ -46,3 +53,126 @@ def test_upper_courts_unchanged():
 
 def test_unknown_court_falls_back_to_generic():
     assert _map_court("Friedensrichteramt Zürich", "") == ("zh_gerichte", None)
+
+
+# 2026-10-02: every district has its own Arbeitsgericht / Mietgericht. Filing
+# them all under the Zürich codes showed a Dielsdorf ruling (AH260006) as
+# "Arbeitsgericht ZH" and merged the docket series of different courts.
+
+def test_district_arbeitsgericht_stays_with_its_district_court():
+    assert _map_court("Bezirksgericht Dielsdorf", "Arbeitsgericht") == (
+        "zh_bezirksgericht_dielsdorf", "Arbeitsgericht")
+    assert _map_court("Bezirksgericht Bülach", "Arbeitsgericht") == (
+        "zh_bezirksgericht_buelach", "Arbeitsgericht")
+    assert _map_court("Bezirksgericht Uster", "Arbeitsgerichtspräsidium als Einzelgericht") == (
+        "zh_bezirksgericht_uster", "Arbeitsgerichtspräsidium als Einzelgericht")
+
+
+def test_district_mietgericht_stays_with_its_district_court():
+    assert _map_court("Bezirksgericht Winterthur", "Mietgericht") == (
+        "zh_bezirksgericht_winterthur", "Mietgericht")
+    assert _map_court("Mietgericht des Bezirkes Horgen", "-") == (
+        "zh_bezirksgericht_horgen", "Mietgericht")
+
+
+def test_old_zurich_shape_with_einzelgericht():
+    assert _map_court("Mietgericht Zürich", "Einzelgericht") == ("zh_mietgericht", "Einzelgericht")
+
+
+def test_dash_is_not_a_chamber():
+    assert _map_court("Handelsgericht des Kantons Zürich", "-") == ("zh_handelsgericht", None)
+    assert _map_court("Bezirksgericht Hinwil", "-") == ("zh_bezirksgericht_hinwil", None)
+
+
+_DETAILS = """
+<div class="entscheidDetails container_2331">
+  <p><b><span lang="DE-CH">§§ 430 Abs. 1 Ziff. 4 und 5 StPO/ZH. </span></b><br />
+     <span lang="DE-CH">Kein Nachweis eines Nich\xadtigkeitsgrundes (Erw. III).</span></p>
+  <div class="pdf"><p><a class="pdf-icon" href="/fileadmin/x/AC110002.pdf"></a></p></div>
+  <p>&nbsp;</p>
+  <p><span class="titel">Gericht/Behörde</span><span>Kassationsgericht des Kantons Zürich</span></p>
+  <p><span class="titel">Gesetz/e, Verordnung/en etc.</span><span class="text">StGB 12;
+StGB 25<br></span></p>
+  <p><span class="titel">Verweise</span><span class="text">Weiterzug ans Bundesgericht,<br>6B_122/2024</span></p>
+</div>
+"""
+
+
+def _details():
+    return BeautifulSoup(_DETAILS, "html.parser").find("div")
+
+
+def test_headnote_is_the_unlabelled_text_of_the_details_block():
+    head = _extract_headnote(_details())
+    assert head == ("§§ 430 Abs. 1 Ziff. 4 und 5 StPO/ZH. "
+                    "Kein Nachweis eines Nichtigkeitsgrundes (Erw. III).")
+
+
+def test_no_headnote_when_the_block_has_only_fields():
+    soup = BeautifulSoup(
+        '<div><p><span class="titel">Verweise</span><span class="text"></span></p></div>',
+        "html.parser").find("div")
+    assert _extract_headnote(soup) == ""
+
+
+def test_verweise_and_gesetze_are_read_with_their_real_labels():
+    d = _details()
+    assert _get_detail_field(d, "Verweise") == "Weiterzug ans Bundesgericht,\n6B_122/2024"
+    assert _get_detail_field(d, "Gesetz/e, Verordnung/en etc.") == "StGB 12;\nStGB 25"
+
+
+def test_portal_placeholders_are_not_values():
+    assert _value_or_none("keine") is None
+    assert _value_or_none("-") is None
+    assert _value_or_none("n/A") is None
+    assert _value_or_none("Entscheid wurde nicht angefochten") == "Entscheid wurde nicht angefochten"
+
+
+def test_a_title_or_a_stub_in_the_headnote_slot_is_not_a_headnote():
+    from scrapers.cantonal.zh_gerichte import ZHGerichteScraper
+
+    def stub(head):
+        html = (
+            '<div class="entscheid entscheid_nummer_7"><p><strong>Forderung</strong></p></div>'
+            f'<div class="entscheidDetails container_7"><p>{head}</p>'
+            '<div class="pdf"><p><a class="pdf-icon" href="/f/X.pdf"></a></p></div>'
+            '<p><span class="titel">Gericht/Behörde</span><span>Bezirksgericht Uster</span></p>'
+            '<p><span class="titel">Abteilung/Kammer</span><span>-</span></p>'
+            '<p><span class="titel">Entscheiddatum</span><span>09.06.2026</span></p>'
+            '<p><span class="titel">Geschäftsnummer</span><span>CG260001</span></p></div>'
+        )
+        sc = ZHGerichteScraper.__new__(ZHGerichteScraper)
+        return next(iter(sc._parse_window(html)))
+
+    assert stub("(Volltext)")["leitsatz"] == ""
+    assert stub("Forderung")["leitsatz"] == ""
+    long = "Die Wahrung der Rechtsmittelfrist ist von Amtes wegen zu prüfen (E. 2)."
+    assert stub(long)["leitsatz"] == long
+    assert stub(long)["chamber"] is None
+
+
+def test_docket_is_read_from_the_pdf_name_when_the_portal_has_none():
+    from scrapers.cantonal.zh_gerichte import _docket_from_pdf
+    assert _docket_from_pdf("https://x/oeffentlich/VO110048-O1.pdf") == "VO110048"
+    assert _docket_from_pdf("https://x/60259F69CB005C13C1256EC20039F2A1_UK040072.pdf") == "UK040072"
+    assert _docket_from_pdf("https://x/AA110010.pdf") == "AA110010"
+    assert _docket_from_pdf("https://x/Brief_an_BGP_-_Postkontrolle.pdf") is None
+    assert _docket_from_pdf("https://x/011BA36C3B2D8C16C1256C5600566264_Geschwind1.pdf") is None
+
+
+def test_undated_entry_is_kept_and_dated_from_the_caption():
+    from scrapers.cantonal.zh_gerichte import ZHGerichteScraper, caption_dates
+    html = (
+        '<div class="entscheid entscheid_nummer_9"><p><strong>Betrug</strong></p></div>'
+        '<div class="entscheidDetails container_9">'
+        '<div class="pdf"><p><a class="pdf-icon" href="/f/SB160213-O1.pdf"></a></p></div>'
+        '<p><span class="titel">Gericht/Behörde</span><span>Obergericht des Kantons Zürich</span></p>'
+        '<p><span class="titel">Abteilung/Kammer</span><span>I. Strafkammer</span></p>'
+        '<p><span class="titel">Entscheiddatum</span><span>n/A</span></p>'
+        '<p><span class="titel">Geschäftsnummer</span><span></span></p></div>'
+    )
+    sc = ZHGerichteScraper.__new__(ZHGerichteScraper)
+    stub = next(iter(sc._parse_window(html)))
+    assert stub["decision_date"] is None
+    assert stub["docket_number"] == "SB160213" and stub["decision_id"] == "zh_obergericht_SB160213"
+    assert caption_dates("Obergericht\nUrteil vom 3. März 2017\nin Sachen") == {"2017-03-03"}

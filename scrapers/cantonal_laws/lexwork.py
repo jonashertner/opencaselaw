@@ -21,7 +21,7 @@ from typing import Iterator
 
 import requests
 
-from scrapers.cantonal_laws import CANTON_LANG, LEXWORK_HOSTS
+from scrapers.cantonal_laws import CANTON_LANG, LEXWORK_HOSTS, mount_retries
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ class LexWorkScraper:
         self.lang = CANTON_LANG[canton]
         self.base_url = f"https://{self.host}"
         self.session = requests.Session()
+        mount_retries(self.session)
         self.session.headers.update({
             "User-Agent": USER_AGENT,
             "Accept": "application/json",

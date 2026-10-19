@@ -65,6 +65,19 @@ SWAP_MIN_RETAIN_FRACTION = 0.95
 # (~4,917 rows, 0.5% of corpus) are left to the global gate by design.
 PER_COURT_MIN_RETAIN_FRACTION = 0.80
 PER_COURT_MIN_SIZE = 500
+# Courts the per-court gate does not guard. zh_gerichte is not a court: it is
+# the bucket the entscheidsuche copies of Zürich rulings fall into when no
+# court is known. Each of its rows is a copy the direct gerichte-zh.ch scrape
+# has, or will have, under the court that decided, so the bucket is meant to
+# drain (1,438 rows on 2026-10-02; the backfill of that day takes it below
+# 80% in one night). OCL_SWAP_GATE_EXEMPT adds courts for a run
+# (comma-separated) without switching the gate off for everything else.
+PER_COURT_GATE_EXEMPT = frozenset({"zh_gerichte"})
+
+
+def _per_court_gate_exempt() -> frozenset:
+    extra = os.environ.get("OCL_SWAP_GATE_EXEMPT", "")
+    return PER_COURT_GATE_EXEMPT | {c.strip() for c in extra.split(",") if c.strip()}
 
 
 def _date_inversion_guard_inline(decision_date, publication_date):
@@ -112,10 +125,68 @@ def _check_swap_row_gate(new_count: int, old_count: int,
         )
 
 
+def _norm_docket(docket) -> str:
+    return re.sub(r"[^0-9A-Z]", "", str(docket or "").upper())
+
+
+def _fold_dockets(court, docket, docket2) -> set:
+    """The docket keys a row can be folded under: its normalised docket_number and
+    the key _cross_court_dedup groups by (decision number for
+    DECISION_NUMBER_COURTS, TG without the "Nr." noise)."""
+    keys = {_norm_docket(docket)}
+    key = _norm_docket(_dedup_docket({"court": court, "docket_number": docket,
+                                      "docket_number_2": docket2}))
+    keys.add(key)
+    if str(court or "").startswith("tg_"):
+        keys.add(re.sub(r"NR(?=\d)", "", key))
+    keys.discard("")
+    return keys
+
+
+def _rows_answered_by_alias(new_db: Path, live_db: Path, court: str) -> int:
+    """Live rows of ``court`` that the new build no longer holds under their own
+    id but still answers: their id is a ``decision_id_aliases.previous_id`` in the
+    new build, pointing at a row it holds under the same docket. That is what a
+    cross-court fold (_record_folded_id: two copies of one ruling, the fuller one
+    kept) and a re-key (previous_decision_id) leave behind. A row lost the way the
+    gate was built for (2026-04 SG collision: INSERT OR IGNORE dropped it) has no
+    alias and is not counted. Read-only on both files; 0 on any error."""
+    try:
+        new = sqlite3.connect(f"file:{new_db}?mode=ro&immutable=1", uri=True)
+    except sqlite3.Error:
+        return 0
+    try:
+        live = sqlite3.connect(f"file:{live_db}?mode=ro&immutable=1", uri=True)
+    except sqlite3.Error:
+        new.close()
+        return 0
+    answered = 0
+    try:
+        for did, docket, docket2 in live.execute(
+                "SELECT decision_id, docket_number, docket_number_2 FROM decisions WHERE court = ?",
+                (court,)):
+            if new.execute("SELECT 1 FROM decisions WHERE decision_id = ?", (did,)).fetchone():
+                continue
+            row = new.execute(
+                "SELECT d.court, d.docket_number, d.docket_number_2 FROM decision_id_aliases a "
+                "JOIN decisions d ON d.decision_id = a.decision_id WHERE a.previous_id = ?",
+                (did,)).fetchone()
+            if row and _fold_dockets(court, docket, docket2) & _fold_dockets(*row):
+                answered += 1
+    except sqlite3.Error as e:
+        logger.warning("per-court gate: alias check for %s failed (%s); counting none", court, e)
+        return 0
+    finally:
+        new.close()
+        live.close()
+    return answered
+
+
 def _check_swap_per_court_gate(
         new_by_court: dict, live_by_court: dict,
         fraction: float = PER_COURT_MIN_RETAIN_FRACTION,
-        min_live_rows: int = PER_COURT_MIN_SIZE) -> None:
+        min_live_rows: int = PER_COURT_MIN_SIZE,
+        answered_by_alias=None) -> None:
     """Raise RuntimeError if ANY court with >= ``min_live_rows`` live rows would
     shrink below ``fraction`` of its live count in the new build. Catches a
     per-court collapse (the SG dedup-collision class) that the global
@@ -124,21 +195,43 @@ def _check_swap_per_court_gate(
     short-circuit. Honours the SAME OCL_SKIP_SWAP_GATE=1 escape hatch — a
     deliberate court retirement/rename trips this by design and is the intended
     operator-override case. New courts (present in new_by_court, absent from
-    live_by_court) are correctly ignored: the loop iterates over live_by_court."""
+    live_by_court) are correctly ignored: the loop iterates over live_by_court.
+
+    ``answered_by_alias(court) -> int``, asked only for a court below the floor,
+    counts its live rows the new build still answers through an alias under the
+    same docket (see _rows_answered_by_alias). Those are folded or re-keyed, not
+    lost: 2026-10-09 the St. Gallen twin dates let the cross-court dedup fold
+    1,152 short sg_gerichte copies into their full-text twins, and the gate
+    refused the swap (3,141 -> 1,989) although every one still resolved."""
     if not live_by_court:
         return
     if os.environ.get("OCL_SKIP_SWAP_GATE") == "1":
         logger.warning(
             "pre-swap per-court gate OVERRIDDEN via OCL_SKIP_SWAP_GATE")
         return
+    exempt = _per_court_gate_exempt()
     for court, live_n in sorted(live_by_court.items()):
         if live_n < min_live_rows:
             continue
         new_n = new_by_court.get(court, 0)
+        if court in exempt:
+            if new_n < live_n * fraction:
+                logger.warning("pre-swap per-court gate: %s %d → %d rows, exempt",
+                               court, live_n, new_n)
+            continue
         if new_n < live_n * fraction:
+            folded = answered_by_alias(court) if answered_by_alias else 0
+            if folded and new_n + folded >= live_n * fraction:
+                logger.warning(
+                    "pre-swap per-court gate: %s %d → %d rows, %d more answered through "
+                    "an alias under the same docket (folded or re-keyed, not lost); "
+                    "passes at %.1f%%", court, live_n, new_n, folded,
+                    100 * (new_n + folded) / live_n)
+                continue
             raise RuntimeError(
                 f"pre-swap per-court gate: refusing to swap — court "
                 f"{court!r} collapsed {live_n:,} → {new_n:,} rows "
+                f"(+{folded:,} answered through an alias) "
                 f"({(new_n / live_n) if live_n else 0:.1%} of live, "
                 f"< {fraction:.0%}). Live DB left untouched; temp DB kept for "
                 f"inspection. Set OCL_SKIP_SWAP_GATE=1 to force an intentional "
@@ -180,6 +273,11 @@ def _fmt_dur(seconds: float) -> str:
         return f"{m}m {s:02d}s"
     h, m = divmod(m, 60)
     return f"{h}h {m:02d}m"
+
+
+def _early_stats_push_enabled() -> bool:
+    """True only when the caller asked for the early dashboard push (publish.py Step 2 does)."""
+    return os.environ.get("OCL_EARLY_STATS_PUSH", "0").strip().lower() in {"1", "true", "yes"}
 
 
 def _spawn_early_stats_push(swapped_db: Path) -> None:
@@ -676,10 +774,22 @@ _COURT_OVERLAP_GROUPS: list[set[str]] = [
     # VD: historical findinfo/omni vs current scraper
     {"vd_findinfo", "vd_gerichte", "vd_omni"},
     # BS: entscheidsuche → bs_gerichte, direct scraper → sub-courts
-    {"bs_gerichte", "bs_appellationsgericht", "bs_sozialversicherungsgericht"},
+    {"bs_gerichte", "bs_appellationsgericht", "bs_sozialversicherungsgericht",
+     "bs_zivilgericht"},
     # BE: steuerrekurs overlaps with verwaltungsgericht
     {"be_steuerrekurs", "be_verwaltungsgericht"},
 ]
+
+# Collection buckets inside an overlap group: a code that names no court.
+# When such a row and a row filed under the deciding court are the same
+# decision, the attributed row is the one to serve. "Longest wins" alone let
+# the federation copy win on a few characters of extraction difference: 125
+# Zürich rulings were served as "ZH Gerichte" with their direct row deleted
+# (measured 2026-10-02 on the production shards; the direct row had a median
+# 98% of the copy's content). A copy that is substantially fuller still wins,
+# so a truncated direct row never displaces a complete one.
+_GENERIC_BUCKET_COURTS = frozenset({"zh_gerichte"})
+ATTRIBUTED_ROW_MIN_CONTENT = 0.9
 
 # Build a lookup: court_code → frozenset of group members
 _COURT_TO_GROUP: dict[str, frozenset[str]] = {}
@@ -687,6 +797,22 @@ for _group in _COURT_OVERLAP_GROUPS:
     _frozen = frozenset(_group)
     for _code in _group:
         _COURT_TO_GROUP[_code] = _frozen
+
+
+def _record_folded_id(conn: sqlite3.Connection, dropped_id: str, kept_id: str) -> None:
+    """Keep the id of a deleted twin resolving to the copy that was kept
+    (decision_id_aliases, the table re-keyed rows use). A ruling held as both
+    sg_gerichte_VZ.2004.35 and sg_publikationen_VZ.2004.35 is served once; a
+    link, attest ledger or dataset row naming the other id must still find it.
+    Never fails the build (a fixture without the table just skips it)."""
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO decision_id_aliases (previous_id, decision_id, source) "
+            "VALUES (?, ?, 'cross_court_dedup')",
+            (dropped_id, kept_id),
+        )
+    except sqlite3.OperationalError as e:
+        logger.debug("decision_id_aliases not recorded for %s: %s", dropped_id, e)
 
 
 def _cross_court_dedup(conn: sqlite3.Connection) -> int:
@@ -706,7 +832,8 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
     placeholders = ",".join("?" * len(overlap_courts))
     rows = conn.execute(
         f"SELECT decision_id, court, docket_number, decision_date, "
-        f"LENGTH(COALESCE(full_text, '')), LENGTH(COALESCE(regeste, '')) "
+        f"LENGTH(COALESCE(full_text, '')), LENGTH(COALESCE(regeste, '')), "
+        f"docket_number_2 "
         f"FROM decisions "
         f"WHERE court IN ({placeholders}) "
         f"AND docket_number IS NOT NULL AND LENGTH(TRIM(docket_number)) > 0",
@@ -714,18 +841,21 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
     ).fetchall()
 
     # Group by (overlap_group_id, normalized_docket)
-    groups: dict[str, list[tuple[str, int, int]]] = defaultdict(list)
-    for did, court, docket, date, tlen, rlen in rows:
+    groups: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
+    for did, court, docket, date, tlen, rlen, docket2 in rows:
         group = _COURT_TO_GROUP.get(court)
         if not group:
             continue
+        # BS: several decisions share a case number; the decision number
+        # (docket_number_2) is the identity, on the direct and the es rows alike.
+        docket = _dedup_docket({"court": court, "docket_number": docket, "docket_number_2": docket2})
         docket_norm = re.sub(r"[^A-Z0-9]", "", (docket or "").upper())
         if "tg_gerichte" in group:
             docket_norm = re.sub(r"NR(?=\d)", "", docket_norm)  # TG "Nr." noise
         # Include date to avoid false matches across years
         date_compact = (date or "").replace("-", "")[:8]
         key = f"{id(group)}|{docket_norm}|{date_compact}"
-        groups[key].append((did, tlen, rlen))
+        groups[key].append((did, tlen, rlen, court))
 
     deleted = 0
     for entries in groups.values():
@@ -733,12 +863,83 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
             continue
         # Keep version with the most total content (full_text + regeste)
         entries.sort(key=lambda x: -(x[1] + x[2]))
-        for did, _, _ in entries[1:]:
+        if entries[0][3] in _GENERIC_BUCKET_COURTS:
+            floor = (entries[0][1] + entries[0][2]) * ATTRIBUTED_ROW_MIN_CONTENT
+            for i, e in enumerate(entries[1:], start=1):
+                if e[3] not in _GENERIC_BUCKET_COURTS and e[1] + e[2] >= floor:
+                    entries.insert(0, entries.pop(i))
+                    break
+        for did, _, _, _ in entries[1:]:
             conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+            _record_folded_id(conn, did, entries[0][0])
             deleted += 1
+
+    deleted += _generic_bucket_twin_dedup(conn)
 
     if deleted:
         conn.commit()
+    return deleted
+
+
+# Share of 60-character windows of one text found in the other, both ways, at
+# or above which two rows of one docket are the same ruling.
+BUCKET_TWIN_MIN_OVERLAP = 0.9
+_TWIN_WINDOW = 60
+
+
+def _same_ruling_text(a: str, b: str) -> bool:
+    """Identical after normalisation, or near-identical both ways (two
+    extractions of one PDF differ by hyphenation and page furniture)."""
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+
+    def share(x: str, y: str) -> float:
+        wins = [x[i:i + _TWIN_WINDOW] for i in range(0, max(len(x) - _TWIN_WINDOW, 1), _TWIN_WINDOW // 2)]
+        return sum(1 for w in wins if w in y) / len(wins)
+
+    return share(a, b) >= BUCKET_TWIN_MIN_OVERLAP and share(b, a) >= BUCKET_TWIN_MIN_OVERLAP
+
+
+def _generic_bucket_twin_dedup(conn: sqlite3.Connection) -> int:
+    """Delete a generic-bucket row whose text the corpus also holds under the
+    deciding court and the same docket, whatever the date says.
+
+    The date-keyed pass above cannot see these: the federation copy carries
+    another date than the court's own entry (measured 2026-10-02 on the
+    production Zürich shards: of 1,180 zh_gerichte rows left after that pass,
+    1,027 had text identical to a direct row of the same docket and 117
+    near-identical — every one of them a ruling served twice, once without a
+    court). The text decides, so a different ruling of the same docket stays.
+    """
+    if not _GENERIC_BUCKET_COURTS:
+        return 0
+    marks = ",".join("?" * len(_GENERIC_BUCKET_COURTS))
+    bucket = conn.execute(
+        f"SELECT decision_id, court, docket_number, full_text FROM decisions "
+        f"WHERE court IN ({marks}) AND docket_number IS NOT NULL "
+        f"AND LENGTH(TRIM(docket_number)) > 0",
+        list(_GENERIC_BUCKET_COURTS),
+    ).fetchall()
+    deleted = 0
+    for did, court, docket, text in bucket:
+        peers = [c for c in _COURT_TO_GROUP.get(court, ()) if c not in _GENERIC_BUCKET_COURTS]
+        if not peers:
+            continue
+        norm = _norm_for_dedup(text)
+        if not norm:
+            continue
+        pmarks = ",".join("?" * len(peers))
+        twins = conn.execute(
+            f"SELECT full_text FROM decisions WHERE docket_number = ? AND court IN ({pmarks})",
+            [docket, *peers],
+        ).fetchall()
+        if any(_same_ruling_text(norm, _norm_for_dedup(t[0])) for t in twins):
+            conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+            deleted += 1
+    if deleted:
+        logger.info(f"  Generic-bucket twins (same docket, same text, other date): removed {deleted}")
     return deleted
 
 
@@ -1666,6 +1867,45 @@ def _derive_bge_docket2_inline(full_text, decision_date):
     return None
 
 
+# Courts whose decision_id is minted from the court's own decision number
+# (docket_number_2) while docket_number holds the cited case number, which
+# several decisions can share (BS Gerichte since 2026-09-17: SB.2013.5 carries
+# AG.2014.40 and AG.2020.102). Dedup keys on the decision number for them.
+DECISION_NUMBER_COURTS = frozenset({
+    "bs_appellationsgericht", "bs_sozialversicherungsgericht", "bs_zivilgericht",
+    # the entscheidsuche leftovers carry the same bracketed number
+    "bs_gerichte",
+})
+
+
+def _dedup_docket(row: dict) -> str:
+    """The docket the dedup passes identify a row by: the decision number for
+    DECISION_NUMBER_COURTS when the row has one, else the docket_number."""
+    if row.get("court") in DECISION_NUMBER_COURTS:
+        d2 = (row.get("docket_number_2") or "").strip()
+        if d2:
+            return d2
+    return row.get("docket_number", "") or ""
+
+
+def _record_previous_id(conn: sqlite3.Connection, row: dict) -> None:
+    """Keep the id a re-keyed row used to carry (decision_id_aliases), so the
+    old id keeps resolving to this exact decision. No-op for rows without one;
+    never fails the insert (a fixture without the table just skips it)."""
+    prev = (row.get("previous_decision_id") or "").strip()
+    did = row.get("decision_id") or ""
+    if not prev or not did or prev == did:
+        return
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO decision_id_aliases (previous_id, decision_id, source) "
+            "VALUES (?, ?, ?)",
+            (prev, did, row.get("previous_id_source") or "rekey"),
+        )
+    except sqlite3.OperationalError as e:
+        logger.debug("decision_id_aliases not recorded for %s: %s", did, e)
+
+
 def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
     """Insert a single decision. Returns True if inserted, False if
     skipped (duplicate or stub).
@@ -1815,9 +2055,12 @@ def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
         # json_data: full row as JSON blob (after cleaning)
         row["json_data"] = json.dumps(row, default=str)
 
-        # Canonical key for dedup (aggressive normalization of court+docket+date)
+        # Canonical key for dedup (aggressive normalization of court+docket+date).
+        # Courts whose identity is a decision number distinct from the cited
+        # case number key on that number: two BS decisions under one case
+        # number on the same day are two decisions, not a duplicate.
         row["canonical_key"] = make_canonical_key(
-            row.get("court", ""), row.get("docket_number", ""), row.get("decision_date"),
+            row.get("court", ""), _dedup_docket(row), row.get("decision_date"),
         )
 
         # Build values tuple matching INSERT_COLUMNS order.
@@ -1834,6 +2077,7 @@ def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
 
         cursor = conn.execute(INSERT_OR_IGNORE_SQL, values)
         if cursor.rowcount > 0:
+            _record_previous_id(conn, row)
             return True
 
         # ── Collision disambiguation ───────────────────────────────────
@@ -2329,6 +2573,29 @@ def build_database(
                     pass
                 logger.warning("bger chamber correction skipped (non-fatal): %s", _bc_err)
 
+    # BVGer Abteilung substring bug (scrapers/bvger.py, fixed 2026-09-17):
+    # "Abt. I" matched Abt. II/III/IV and "Abt. V" matched Abt. VI, so
+    # 59,124 Weblaw-era rows (Feb-Sep 2026) carry the wrong Abteilung and
+    # ~14,800 older rows have NULL / bare-letter chambers. Header-first,
+    # docket-letter fallback; same defensive contract: can never fail the
+    # build. quick_publish (incremental nights) copies and inserts only, so
+    # stored rows are corrected here, at the full rebuild.
+    if total_imported > 0:
+        with _phase_timer("bvger chamber correction"):
+            try:
+                import backfill_bvger_chambers as _bvc
+                _n_rl, _n_fl, _n_un = _bvc.apply_to_db(conn)
+                logger.info(
+                    "bvger chambers: %d labels corrected from the judgment "
+                    "header/docket letter, %d NULL/bare-letter/raw values "
+                    "filled, %d left unresolved", _n_rl, _n_fl, _n_un)
+            except Exception as _bvc_err:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                logger.warning("bvger chamber correction skipped (non-fatal): %s", _bvc_err)
+
     if not no_optimize and total_imported > 0:
         with _phase_timer("FTS5 optimize"):
             # heartbeat-wrapped so the publish stall-watchdog doesn't false-kill this ~4h
@@ -2389,7 +2656,10 @@ def build_database(
                 live_row_count = 0  # unreadable live DB → don't block recovery
                 live_by_court = {}
         _check_swap_row_gate(new_row_count, live_row_count)
-        _check_swap_per_court_gate(new_by_court, live_by_court)
+        _check_swap_per_court_gate(
+            new_by_court, live_by_court,
+            answered_by_alias=lambda court: _rows_answered_by_alias(
+                db_path, final_db_path, court))
         logger.info("pre-swap row gate OK: new=%d, live=%d",
                     new_row_count, live_row_count)
         logger.info("pre-swap per-court gate OK: %d live courts checked "
@@ -2412,7 +2682,13 @@ def build_database(
         #       immutable=1 and tried to apply the stale May-2 WAL.
         # Workers using immutable=1 don't open the WAL at all, so removing
         # these sidecars under their reads is safe.
-        for ext in ("-wal", "-shm"):
+        # A hot rollback -journal is the same hazard in DELETE mode: SQLite
+        # replays its page images into whatever file is at the path, so one
+        # left by a killed writer would corrupt the new DB on its first
+        # read-write open (the graph builder hit this on 2026-10-11). The
+        # build committed and closed before the swap, so no journal here
+        # belongs to a live transaction.
+        for ext in ("-wal", "-shm", "-journal"):
             for stale_path in (
                 Path(str(db_path) + ext),         # source: .tmp-wal / .tmp-shm
                 Path(str(final_db_path) + ext),   # destination: stale from previous build
@@ -2461,8 +2737,11 @@ def build_database(
         # final Step 5/6 in publish.py still runs at the end (with full
         # graph aggregations) so this is purely an early-update; no data
         # is lost if the subprocess fails.
-        # Disable with OCL_EARLY_STATS_PUSH=0.
-        if os.environ.get("OCL_EARLY_STATS_PUSH", "1") not in {"0", "false", "no"}:
+        # Opt-in: only with OCL_EARLY_STATS_PUSH=1, which publish.py Step 2
+        # sets for the nightly. A manual or test build must not publish its
+        # own counts: on 2026-10-02 three local test builds each pushed a
+        # 37k-row stats.json to main and the live site showed that total.
+        if _early_stats_push_enabled():
             try:
                 _spawn_early_stats_push(final_db_path)
             except Exception as _e:

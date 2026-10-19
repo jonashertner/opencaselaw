@@ -101,20 +101,39 @@ BVGER_ABTEILUNGEN = {
 }
 _PREFIX_MAP = {"A": "I", "B": "II", "C": "III", "D": "IV", "E": "V", "F": "VI"}
 
+# Panel numeral in the Weblaw `panel` field ("Abt. II (...);;Cour II (...);;
+# Corte II (...)") or a jurispub-style "Abteilung II". The trailing \b is what
+# makes this correct: a plain substring test ("Abt. I" in raw) matched
+# Abt. II/III/IV as Abt. I and Abt. VI as Abt. V, so every Weblaw-sourced
+# decision of Abteilung II/III/IV/VI was labelled I or V (bug found
+# 2026-09-17; Weblaw has been the primary mode since Feb 2026).
+_RE_ABTEILUNG = re.compile(
+    r"\b(?:Abt\.|Abteilung|Cour|Corte)\s*(I{1,3}|IV|VI?)\b"
+)
+# Only the ordinary "A-1234/2025" series carries the Abteilung in its letter.
+# The published-collection series ("BVGE 2007/10", "BVGE 2014 IV/3") starts
+# with "B" too and must never fall through to Abteilung II.
+_RE_DOCKET_PREFIX = re.compile(r"^([A-Fa-f])-\d")
+
 
 def _detect_abteilung(docket: str, raw: str | None = None) -> str | None:
-    """Detect BVGer Abteilung from docket prefix or raw panel string."""
+    """Detect BVGer Abteilung from the raw panel string, else the docket prefix.
+
+    The raw panel string wins when it names exactly one Abteilung. When it
+    names none, or more than one (ambiguous), the docket prefix
+    (A→I … F→VI) is the tie-breaker. Neither → None.
+    """
     if raw:
+        found: set[str] = set()
         for k, v in BVGER_ABTEILUNGEN.items():
-            if v in raw:
-                return v
-            # Panel field has multilingual: "Abt. VI (...);;Cour VI (...);;..."
-            if f"Abt. {k}" in raw:
-                return v
-    if docket:
-        k = _PREFIX_MAP.get(docket[0].upper())
-        if k:
-            return BVGER_ABTEILUNGEN[k]
+            if v in raw:  # full canonical label, unique via its parenthetical
+                found.add(k)
+        found.update(_RE_ABTEILUNG.findall(raw))
+        if len(found) == 1:
+            return BVGER_ABTEILUNGEN[found.pop()]
+    m = _RE_DOCKET_PREFIX.match(docket or "")
+    if m:
+        return BVGER_ABTEILUNGEN[_PREFIX_MAP[m.group(1).upper()]]
     return None
 
 

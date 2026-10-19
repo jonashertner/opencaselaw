@@ -38,8 +38,11 @@ def test_run_step_normal_exit_is_unchanged():
     assert "timed_out" not in rec
 
 
-def test_run_step_default_cap_is_four_hours():
-    assert mod.STEP_TIMEOUT_S == 14400
+def test_run_step_default_cap_outlasts_publish_step_2g():
+    # 5.5 h: publish.py --step 2g must be stopped by its own 5 h clock (which keeps
+    # the resumable working copy), never by the orchestrator's first.
+    import publish
+    assert mod.STEP_TIMEOUT_S == 19800 > publish.STRUCTURE_TIMEOUT_S == 18000
 
 
 def test_served_text_structure_switch(monkeypatch):

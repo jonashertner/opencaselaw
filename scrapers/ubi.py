@@ -8,7 +8,7 @@ for Radio and Television (UBI) at ubi.admin.ch.
 Architecture:
 - TYPO3 CMS with tx_ubidb_list extension
 - Single listing page at /de/entscheide with paginated AJAX results
-- 10 decisions per page, ~78 pages, ~777 total decisions (as of 2026)
+- 10 decisions per page: 668 decisions on about 67 pages (2026-09-15)
 - Each page shows a table with rich metadata per decision
 - All decisions are PDFs, two URL patterns:
   - /inhalte/entscheide/b_NNNN.pdf (main pattern)
@@ -35,6 +35,7 @@ Rate limiting: 2.0 seconds (admin.ch government site)
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date, datetime, timezone
 from typing import Iterator
@@ -320,13 +321,19 @@ class UBIScraper(BaseScraper):
                 return urljoin(BASE_URL, href)
         return None
 
-    def discover_new(self, since_date=None) -> Iterator[dict]:
-        """Discover UBI decisions by paginating through the listing.
+    # Safety cap for the "Naechster" chain (about 67 pages on 2026-09-15).
+    MAX_PAGES = 200
 
-        Pages through all results starting from the newest decisions.
-        Stops when reaching already-known decisions or when since_date
-        is exceeded.
+    def discover_new(self, since_date=None) -> Iterator[dict]:
+        """Discover UBI decisions by paginating through the listing, newest first.
+
+        The nightly run stops at the first page after page 1 whose entries are all
+        known. A decision listed behind known ones is only reached by a full walk,
+        which OCL_SCRAPER_RESCAN_ALL=1 enables: on 2026-09-15 the listing held 668
+        decisions and production 667; the missing one, b.980 of 16.05.2024, sat behind
+        known pages. A full walk takes about 14 minutes, so it is not the nightly default.
         """
+        rescan_all = bool(os.environ.get("OCL_SCRAPER_RESCAN_ALL"))
         url = LISTING_URL
         page_num = 1
         total_found = 0
@@ -378,9 +385,13 @@ class UBIScraper(BaseScraper):
             )
 
             # If all decisions on this page were known and we're doing
-            # incremental scraping, we can stop early
-            if all_known and page_num > 1:
+            # incremental scraping, we can stop early (never on a full rescan)
+            if all_known and page_num > 1 and not rescan_all:
                 logger.info(f"[ubi] All entries on page {page_num} already known, stopping")
+                break
+
+            if page_num >= self.MAX_PAGES:
+                logger.warning(f"[ubi] Stopping at the {self.MAX_PAGES}-page safety cap")
                 break
 
             # Get next page URL

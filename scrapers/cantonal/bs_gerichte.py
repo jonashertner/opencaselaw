@@ -6,22 +6,38 @@ rechtsprechung.gerichte.bs.ch.
 
 Architecture:
 - POST to /cgi-bin/nph-omniscgi.exe with form data -> result list
-- Two sources (Herkunft):
-    AG  = Appellationsgericht Basel-Stadt (8,299 decisions)
-    SVG = Sozialversicherungsgericht Basel-Stadt (2,085 decisions)
-- Pagination via W10_KEY extracted from "next page" links
+- Three sources (Instanz), each written under its own court code:
+    AG  = Appellationsgericht Basel-Stadt (8,781 rows on 2026-09-17; includes
+          the 30 Aufsichtskommission über die Anwältinnen und Anwälte rows,
+          which the portal files under the Appellationsgericht as well)
+    SVG = Sozialversicherungsgericht Basel-Stadt (2,221)
+    ZG  = Zivilgericht Basel-Stadt (3)
+- One request per (Instanz, Geschäftsjahr) with a 2,000-row page; a year that
+  still exceeds the page is split by Geschäftsart (the W10_KEY pagination
+  cursor expires almost immediately, so paging is not an option)
 - Each result links to a document page with full HTML text
 - Document text lives in div.WordSection1
+
+Identity (changed 2026-09-17, see scripts/migrate_bs_gerichte_ids.py):
+  Every listing row carries two numbers: the case number ("SB.2013.5", the
+  form lawyers cite, stored as docket_number) and the court's decision number
+  in brackets ("AG.2014.40", stored as docket_number_2). One case number can
+  carry several decisions (judgment, later Kostenerlass, Erläuterung ...), so
+  decision_id is minted from the decision number, which is unique across the
+  portal. Ids minted from the case number collapsed 373 decisions into their
+  siblings; the build maps those old ids to the re-keyed rows via
+  decision_id_aliases.
 
 Platform: Omnis/FindInfo (JurisWeb)
 Rate limiting: 2 seconds between requests.
 
-HTML structure (confirmed by live probe 2026-02-10):
+HTML structure (confirmed by live probe 2026-02-10, re-checked 2026-09-17):
   Result page:
+    - Hit count: "... von N gefundenen Geschäft(en)"
     - Decision tables: <table border=0 style="border-top: 1px solid ...">
-    - Each table has: link with docket, nowrap TD with docket(secondary),
-      title in colspan=2 TD, pub date in last TD
-    - Decision date is NOT in listing — only extractable from document
+    - Each table has: link with case number, nowrap TD with "(decision
+      number)", "Entscheiddatum: DD.MM.YYYY" TD, title in colspan=2 TD,
+      "Erstpublikationsdatum: DD.MM.YYYY" TD
   Document page:
     - Full text in <div class="WordSection1">
     - Paragraphs in <p class="MsoNormal">
@@ -55,7 +71,27 @@ HOST = "https://rechtsprechung.gerichte.bs.ch"
 CGI_PATH = "/cgi-bin/nph-omniscgi.exe"
 CGI_URL = HOST + CGI_PATH
 
-RESULTS_PER_PAGE = 500  # Large to avoid pagination (CGI sessions expire fast)
+# One page per (Instanz, Geschäftsjahr). The server honours this size (verified
+# 2026-09-17: a 793-hit year came back complete at 1000 and 2000 rows); the
+# largest year is 793 rows. Pagination is not an option: the W10_KEY cursor
+# expires almost immediately. A year that still exceeds the page is split by
+# Geschäftsart (see _discover_source); a split that still overflows is logged
+# as a "search failed" ERROR so run_all_scrapers counts it as a discovery error.
+RESULTS_PER_PAGE = 2000
+
+# Earliest Geschäftsjahr searched. The portal's own year dropdown starts at
+# 2008 and no earlier year has ever answered; the margin costs a few requests.
+START_YEAR = 2005
+
+# The Geschäftsart (case-type) codes the search form offers, used only to split
+# a year whose hit count exceeds RESULTS_PER_PAGE. Taken from search.html on
+# 2026-09-17; a code missing here shows up as a "search failed" ERROR because
+# the split then lists fewer rows than the year's hit count.
+GESCHAEFTSARTEN = (
+    "AH", "AK", "AL", "AS", "AUS", "AZ", "BE", "BES", "BEZ", "BO", "BV", "DG",
+    "DGS", "DGV", "DGZ", "EL", "EO", "FZ", "HB", "IV", "K3", "K5", "KE", "KR",
+    "KV", "MV", "SB", "SG", "UV", "VD", "VG", "ZB", "ZK", "ZS", "ZV", "ZZ",
+)
 
 # Base form data for search POST
 FORMDATA_TEMPLATE = {
@@ -122,7 +158,17 @@ SOURCES = [
         "name": "Sozialversicherungsgericht Basel-Stadt",
         "court_code": "bs_sozialversicherungsgericht",
     },
+    {
+        "key": "ZG",
+        "name": "Zivilgericht Basel-Stadt",
+        "court_code": "bs_zivilgericht",
+    },
 ]
+
+# The decision number's prefix is the Instanz key ("AG.2014.40", "SVG.2018.352",
+# "ZG.2025.1"); no Geschäftsart code equals one of them, so an id whose docket
+# part starts with one of these is on the decision-number scheme.
+_NEW_SCHEME_PREFIXES = tuple(f"{s['court_code']}_{s['key']}." for s in SOURCES)
 
 # ============================================================
 # Regex patterns
@@ -177,6 +223,11 @@ def _parse_long_date(text):
     return None
 
 
+# Block elements the Word export uses for body text (headings included: the
+# SVG export files whole paragraphs under <h2>).
+_BLOCK_TAGS = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"]
+
+
 def _extract_document_text(soup):
     """Extract full text from div.WordSection1 (confirmed by probe)."""
     content = soup.find("div", class_="WordSection1")
@@ -196,9 +247,15 @@ def _extract_document_text(soup):
     if not content:
         return ""
 
+    # Every block in document order. The Word export names paragraphs by
+    # style — MsoNormal, but also Entscheidtext, aaText, aaDispositiv,
+    # NummerierungTatsachen, MsoBodyText — and puts whole body paragraphs in
+    # <h2>. Checked 2026-09-17: a Zivilgericht ruling had 75 MsoNormal and 106
+    # other paragraphs (MsoNormal-only kept 1,612 of 41,302 characters); an
+    # SVG ruling kept 1,695 of 33,269, with 6,952 characters in <h2>.
     paragraphs = []
-    for p in content.find_all("p", class_="MsoNormal"):
-        text = p.get_text(strip=True)
+    for p in content.find_all(_BLOCK_TAGS):
+        text = p.get_text(" ", strip=True)
         if text:
             paragraphs.append(text)
 
@@ -213,8 +270,8 @@ def _extract_decision_date_from_doc(soup):
     Extract decision date from document page.
     Looks for "vom 5. August 2025" or "vom DD.MM.YYYY" in first paragraphs.
     """
-    for p in soup.find_all("p", class_="MsoNormal")[:20]:
-        text = p.get_text(strip=True)
+    for p in soup.find_all(_BLOCK_TAGS)[:20]:
+        text = p.get_text(" ", strip=True)
         if not text:
             continue
         d = _parse_long_date(text)
@@ -247,8 +304,9 @@ class BSGerichteScraper(BaseScraper):
     """
     Scraper for Basel-Stadt court decisions via Omnis/FindInfo.
 
-    Sources: AG (Appellationsgericht, ~8300) + SVG (Sozialversicherungsgericht, ~2100)
-    Total: ~10,400 decisions
+    Sources: AG (Appellationsgericht, 8,781) + SVG (Sozialversicherungsgericht,
+    2,221) + ZG (Zivilgericht, 3) — 11,005 rows on 2026-09-17, one per
+    decision number.
     """
 
     REQUEST_DELAY = 2.0
@@ -259,10 +317,31 @@ class BSGerichteScraper(BaseScraper):
     def court_code(self):
         return "bs_gerichte"
 
+    def _assert_state_migrated(self):
+        """Refuse to run against a state file that still holds only case-number
+        ids. Every listing row would then be "new": the run would re-fetch the
+        whole portal and append 11,000 duplicate rows to the shard, which the
+        migration afterwards could not tell from the originals. An empty state
+        (fresh install, tests) is fine."""
+        seen = getattr(self.state, "_seen", None) or set()
+        if not seen:
+            return
+        if any(did.startswith(_NEW_SCHEME_PREFIXES) for did in seen):
+            return
+        raise RuntimeError(
+            "bs_gerichte: state holds only case-number ids (pre-2026-09-17 scheme); "
+            "run scripts/migrate_bs_gerichte_ids.py before scraping"
+        )
+
     def discover_new(self, since_date=None):
         if since_date and isinstance(since_date, str):
             since_date = parse_date(since_date)
 
+        self._assert_state_migrated()
+
+        # Summed from every year's hit count so run_scraper prints
+        # "our/portal (gap N)" and scraper_health.json carries portal_count.
+        self.portal_count = 0
         total_yielded = 0
         for source in SOURCES:
             logger.info(f"BS: starting {source['key']} ({source['name']})")
@@ -278,53 +357,90 @@ class BSGerichteScraper(BaseScraper):
 
         logger.info(f"BS discovery complete: {total_yielded} new stubs total")
 
+    def _search(self, source, year, art=""):
+        """One listing request for (Instanz, Geschäftsjahr[, Geschäftsart]).
+
+        Returns (hit_count, stubs). hit_count is None when the request failed
+        or the page carried no count (already logged), 0 when the portal
+        answered "keine Treffer".
+        """
+        formdata = dict(FORMDATA_TEMPLATE)
+        formdata[f"bInstanzInt_{source['key']}"] = source["key"]
+        formdata["cGeschaeftsjahr"] = str(year)
+        formdata["cGeschaeftsart"] = art
+        label = f"BS {source['key']} year {year}" + (f" art {art}" if art else "")
+        try:
+            resp = self.post(CGI_URL, data=formdata)
+        except Exception as e:
+            # "search failed" at ERROR level is what run_all_scrapers counts as
+            # a discovery error (invariant 7); keep the wording.
+            logger.error(f"{label} search failed: {e}")
+            return None, []
+        html = resp.text
+        if len(html) < 200:
+            logger.error(f"{label} search failed: short response ({len(html)} chars)")
+            return None, []
+        total_hits = self._parse_hit_count(html)
+        if not total_hits:
+            logger.debug(f"{label}: no results")
+            return total_hits, []
+        stubs = list(self._parse_result_page(html, source))
+        logger.info(f"{label}: {total_hits} hits, {len(stubs)} parsed")
+        return total_hits, stubs
+
+    def _search_split_by_art(self, source, year, year_hits):
+        """A year with more hits than one page holds: one request per
+        Geschäftsart, merged on decision_id. Anything still missing at the end
+        is a discovery error, never a silent gap."""
+        merged = {}
+        for art in GESCHAEFTSARTEN:
+            hits, stubs = self._search(source, year, art)
+            if hits and hits > RESULTS_PER_PAGE:
+                logger.error(
+                    f"BS {source['key']} year {year} art {art} search failed: "
+                    f"{hits} hits exceed the {RESULTS_PER_PAGE}-row page"
+                )
+            for stub in stubs:
+                merged.setdefault(stub["decision_id"], stub)
+        if len(merged) < year_hits:
+            logger.error(
+                f"BS {source['key']} year {year} search failed: {year_hits} hits "
+                f"but only {len(merged)} rows listed after splitting by Geschäftsart "
+                f"(a case-type code missing from GESCHAEFTSARTEN?)"
+            )
+        return list(merged.values())
+
     def _discover_source(self, source, since_date):
         """
-        Discover decisions by searching year-by-year.
+        Discover decisions by searching year-by-year (Geschäftsjahr of the
+        case number), newest first.
 
-        The Omnis/FindInfo CGI has session-bound W10_KEYs that expire
-        almost immediately, making pagination impossible with plain HTTP.
-        Instead, we search each year separately using cGeschaeftsjahr.
-        With 500 results per page, each year fits in a single response
-        (~415 decisions/year for AG, ~100 for SVG).
-
-        If any year returns exactly 500 results (potential truncation),
-        we subdivide by cGeschaeftsart (case type prefix).
+        The Omnis/FindInfo CGI has session-bound W10_KEYs that expire almost
+        immediately, making pagination impossible with plain HTTP. Each year
+        is therefore fetched as one RESULTS_PER_PAGE-row page; a year whose
+        hit count exceeds the page is re-fetched per Geschäftsart.
         """
         import datetime as dt
         current_year = dt.date.today().year
-        start_year = since_date.year if since_date else 1990
+        start_year = since_date.year if since_date else START_YEAR
 
         for year in range(current_year, start_year - 1, -1):  # newest first
-            formdata = dict(FORMDATA_TEMPLATE)
-            formdata[f"bInstanzInt_{source['key']}"] = source["key"]
-            formdata["cGeschaeftsjahr"] = str(year)
-
             logger.info(f"BS {source['key']}: searching year {year}")
-            try:
-                resp = self.post(CGI_URL, data=formdata)
-            except Exception as e:
-                logger.error(f"BS {source['key']} year {year} failed: {e}")
+            total_hits, stubs = self._search(source, year)
+            if not total_hits:
                 continue
-
-            html = resp.text
-            if len(html) < 200:
-                logger.debug(f"BS {source['key']} year {year}: short response, skipping")
-                continue
-
-            total_hits = self._parse_hit_count(html)
-            if total_hits is None or total_hits == 0:
-                logger.debug(f"BS {source['key']} year {year}: no results")
-                continue
-
-            stubs = list(self._parse_result_page(html, source))
-            logger.info(f"BS {source['key']} year {year}: {total_hits} hits, {len(stubs)} parsed")
-
-            # Check for truncation
-            if total_hits > RESULTS_PER_PAGE and len(stubs) >= RESULTS_PER_PAGE:
+            if self.portal_count is not None:
+                self.portal_count += total_hits
+            if total_hits > RESULTS_PER_PAGE:
                 logger.warning(
-                    f"BS {source['key']} year {year}: {total_hits} hits exceeds "
-                    f"{RESULTS_PER_PAGE} per page — some decisions may be missing"
+                    f"BS {source['key']} year {year}: {total_hits} hits exceed the "
+                    f"{RESULTS_PER_PAGE}-row page — splitting by Geschäftsart"
+                )
+                stubs = self._search_split_by_art(source, year, total_hits)
+            elif len(stubs) < total_hits:
+                logger.error(
+                    f"BS {source['key']} year {year} search failed: {total_hits} hits "
+                    f"but only {len(stubs)} rows parsed"
                 )
 
             for stub in stubs:
@@ -426,7 +542,15 @@ class BSGerichteScraper(BaseScraper):
                 break
 
         court_code = source["court_code"]
-        decision_id = make_decision_id(court_code, docket)
+        # Identity = the court's decision number (unique); the case number is
+        # what gets cited and stays in docket_number. A row without the
+        # bracketed number has never been seen on this portal; fall back to
+        # the case number rather than drop it, and say so.
+        if docket_number_2:
+            decision_id = make_decision_id(court_code, docket_number_2)
+        else:
+            logger.warning(f"BS {source['key']}: no decision number for {docket}, id from case number")
+            decision_id = make_decision_id(court_code, docket)
 
         return {
             "decision_id": decision_id,

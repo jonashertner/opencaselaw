@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
@@ -110,11 +111,104 @@ def _representation_dual_count(db_path: Path, conn) -> dict:
         "duplicate_representations": dup,
         "unique_decisions_status": "current",
     })
+    by_court = _duplicates_by_court(manifest, conn)
+    if by_court:
+        out["duplicates_by_court"] = by_court
     return out
+
+
+def _duplicates_by_court(manifest: Path, conn) -> dict:
+    """Duplicate representations per court: manifest member rows that are not their
+    own canonical, joined onto decisions.decision_id for the court code. The
+    manifest carries only the canton, and ch_vb / edoeb / nw / ur share codes, so
+    the join is the only exact way to attribute them. Read-only: the manifest is
+    ATTACHed immutable onto the caller's connection and detached again. {} on any
+    failure — the stats page then falls back to its approximate third tier."""
+    try:
+        conn.execute("ATTACH DATABASE ? AS repmani",
+                     (f"file:{manifest}?mode=ro&immutable=1",))
+    except sqlite3.Error as e:  # pragma: no cover - defensive
+        logger.warning("representation manifest could not be attached: %s", e)
+        return {}
+    try:
+        rows = conn.execute(
+            "SELECT d.court, COUNT(*) FROM repmani.decision_representations r "
+            "JOIN decisions d ON d.decision_id = r.member_decision_id "
+            "WHERE r.member_decision_id != r.canonical_decision_id "
+            "GROUP BY d.court"
+        ).fetchall()
+        return {r[0]: int(r[1]) for r in rows if r[0]}
+    except sqlite3.Error as e:  # pragma: no cover - defensive
+        logger.warning("duplicates_by_court skipped: %s", e)
+        return {}
+    finally:
+        try:
+            conn.execute("DETACH DATABASE repmani")
+        except sqlite3.Error:
+            pass
+
+
+def _practice_coverage(repo_dir: Path) -> dict | None:
+    """Administrative practice (Verwaltungspraxis) counts from practice.db —
+    BSV Wegleitungen, FINMA Rundschreiben, SECO ArG commentary and the rest.
+    Same guard as materialien: missing file, missing table or any sqlite error
+    returns None and the stats page hides the card. Path: output/practice.db
+    (a symlink onto the data volume in production), else the server's
+    SWISS_CASELAW_PRACTICE_DB override."""
+    path = repo_dir / "output" / "practice.db"
+    if not path.exists():
+        env = os.environ.get("SWISS_CASELAW_PRACTICE_DB")
+        if not env or not Path(env).exists():
+            return None
+        path = Path(env)
+    try:
+        p = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=10)
+    except sqlite3.Error:
+        return None
+    try:
+        tables = {r[0] for r in p.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        if "practice" not in tables:
+            return None
+        cols = {r[1] for r in p.execute("PRAGMA table_info(practice)").fetchall()}
+        total = int(p.execute("SELECT COUNT(*) FROM practice").fetchone()[0])
+        if total <= 0:
+            return None
+        def _group(col):
+            if col not in cols:
+                return {}
+            return {str(r[0]): int(r[1]) for r in p.execute(
+                f"SELECT {col}, COUNT(*) FROM practice GROUP BY {col} ORDER BY 2 DESC"
+            ).fetchall() if r[0]}
+        return {
+            "total_documents": total,
+            "sources": len(_group("source")),
+            "by_source": _group("source"),
+            "by_authority": _group("issuing_authority"),
+            "by_language": _group("language"),
+        }
+    except sqlite3.Error:
+        return None
+    finally:
+        p.close()
 
 
 def stats_total(conn) -> int:
     return conn.execute("SELECT COUNT(*) FROM decisions").fetchone()[0]
+
+
+# Federal Supreme Court rulings decided in Luzern: the two social-law divisions
+# (dockets 8C_/9C_ since 2007), the former Federal Insurance Court's single-letter
+# dockets ("I 123/04"), and BGE part V. Every other division sits in Lausanne.
+_LUZERN_SQL = ("SUM(CASE WHEN court IN ('bger', 'bge') AND (docket_number GLOB '[89]C_*' "
+               "OR docket_number GLOB '[A-Z] [0-9]*' "
+               "OR (court = 'bge' AND docket_number GLOB '* V *')) THEN 1 ELSE 0 END)")
+
+
+def _federal_seats(rows) -> dict:
+    """{court: {"LU": n, "VD": n}} for bger and bge from the by_court rows' luzern column."""
+    return {r["court"]: {"LU": r["luzern"], "VD": r["count"] - r["luzern"]}
+            for r in rows if r["court"] in ("bger", "bge") and r["canton"] == "CH"}
 
 
 def generate_stats(db_path: Path) -> dict:
@@ -133,7 +227,9 @@ def generate_stats(db_path: Path) -> dict:
     # Additive dual-count (never replaces `total`); {} when the sidecar is absent.
     stats.update(_representation_dual_count(db_path, conn))
 
-    # By court (with date ranges and languages)
+    # By court (with date ranges and languages). The luzern column rides on the
+    # same scan, so the per-seat split costs no extra reads.
+    has_docket = any(r[1] == "docket_number" for r in conn.execute("PRAGMA table_info(decisions)"))
     courts = conn.execute("""
         SELECT
             court,
@@ -144,11 +240,12 @@ def generate_stats(db_path: Path) -> dict:
             MAX(CASE WHEN decision_date IS NOT NULL AND decision_date != 'None'
                      AND decision_date > '1800-01-01' AND decision_date <= ? THEN decision_date END) as latest,
             MAX(scraped_at) as last_scraped,
-            GROUP_CONCAT(DISTINCT language) as languages
+            GROUP_CONCAT(DISTINCT language) as languages,
+            {luzern} as luzern
         FROM decisions
         GROUP BY court, canton
         ORDER BY count DESC
-    """, (today_iso, today_iso)).fetchall()
+    """.replace("{luzern}", _LUZERN_SQL if has_docket else "0"), (today_iso, today_iso)).fetchall()
     stats["by_court"] = [
         {
             "court": r["court"],
@@ -161,6 +258,12 @@ def generate_stats(db_path: Path) -> dict:
         }
         for r in courts
     ]
+
+    # Federal Supreme Court by seat, so the weekly poster can place new rulings
+    # where they were decided: Luzern for the social-law divisions, Lausanne for
+    # every other division. See _federal_seats.
+    if has_docket:
+        stats["federal_seats"] = _federal_seats(courts)
 
     # By canton (exclude CH — federal courts are not a canton)
     cantons = conn.execute("""
@@ -336,7 +439,7 @@ _FEDERAL_COURT_EXCLUDE = (
     'bger', 'bge', 'bvger', 'bstger', 'bpatger', 'bge_egmr', 'bge_historical',
     'finma', 'finma_versicherungsrecht', 'weko', 'edoeb', 'ubi', 'elcom',
     'postcom', 'comcom', 'ta_sst', 'emark', 'hudoc_ch', 'ch_bundesrat',
-    'ch_vb', 'sav_international', 'sav_kantone',
+    'ch_vb',
 )
 
 
@@ -690,6 +793,7 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
           "language_split":      {de_pct, fr_pct, it_pct, total},
           "graph_size":          {decision_edges, statute_edges, total},
           "regeste_coverage":    {pct, with_regeste, total},
+          "practice_coverage":   {total_documents, sources, by_source, by_authority, by_language},
         }
     Each field is best-effort — failures hide the corresponding card via
     the renderer rather than failing the publish.
@@ -1106,6 +1210,11 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
         except sqlite3.Error:
             pass
 
+    # ── 10b. Administrative practice — Verwaltungspraxis documents ───────
+    practice = _practice_coverage(repo_dir)
+    if practice:
+        out["practice_coverage"] = practice
+
     # ── 11. Temporal span — how far back the corpus reaches per court ────
     # Adds richness to oldest_decision: which courts cover what era?
     if decisions_db.exists():
@@ -1408,6 +1517,28 @@ def collect_scraper_health(repo_dir: Path) -> dict | None:
     return result
 
 
+def _write_json_atomic(path: Path, payload: dict) -> None:
+    """Write JSON to a sibling temp file, then os.replace it over ``path``.
+
+    build_fts5's early-stats-push and publish.py Step 5 both run this script
+    on docs/stats.json at the same time; with a plain open(path, "w") the two
+    writers tore the file on 2026-09-05 (duplicated 16 KiB block, invalid
+    JSON, pushed to the dashboard). Each writer now owns its temp file
+    (pid-suffixed) and readers only ever see a complete document.
+    """
+    path = Path(path)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate stats.json from FTS5 database")
     parser.add_argument(
@@ -1469,7 +1600,7 @@ def main():
         except Exception as e:
             logger.error(f"collect_interesting_stats failed: {e}")
             sys.exit(1)
-        output_path.write_text(json.dumps(existing, indent=2, ensure_ascii=False))
+        _write_json_atomic(output_path, existing)
         logger.info(f"Wrote interesting_stats block → {output_path}")
         return
 
@@ -1662,8 +1793,7 @@ def main():
             "corpus": {}, "previous_generated_at": None,
         }
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(stats, f, indent=2, ensure_ascii=False)
+    _write_json_atomic(output_path, stats)
 
     delta_total = stats["delta"]["total"]
     delta_str = f" (+{delta_total} new)" if delta_total > 0 else ""

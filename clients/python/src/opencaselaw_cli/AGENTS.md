@@ -41,6 +41,7 @@ It bundles `pypdf`, so `ocl check filing.pdf` works there without pip.
 | check quotations | `ocl quotes check --input quotes.jsonl --format jsonl` |
 | a citation string to copy | `ocl cite '<reference>' --pinpoint 2.3` |
 | find decisions | `ocl decisions search '<terms>' --max-results 20 --format jsonl` |
+| newly published decisions (alerts) | `ocl decisions search '<terms>' --court bger --published-from <3 days ago> --sort published_desc --format jsonl` (publication date, not decision date; skip ids already seen) |
 | read a decision / a passage | `ocl decisions get <id>` · `ocl decisions passage <id> 2.3` |
 | statutes | `ocl laws get OR --article 336 [--as-of YYYY-MM-DD]` |
 | citation graph | `ocl citations list <id> --direction incoming` |

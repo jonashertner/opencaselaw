@@ -30,6 +30,8 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from models import make_decision_id
+
 logger = logging.getLogger("run_scraper")
 
 
@@ -211,8 +213,6 @@ SCRAPERS = {
     "hudoc_ch": ("scrapers.hudoc", "HUDOCScraper"),
     "ecthr": ("scrapers.hudoc", "HUDOCFullScraper"),
     # Attorney discipline — SAV portal
-    "sav_kantone": ("scrapers.sav_kantone", "SAVKantoneScraper"),
-    "sav_international": ("scrapers.sav_international", "SAVInternationalScraper"),
     # Attorney discipline — TG Anwaltskommission
     "tg_anwaltskommission": ("scrapers.cantonal.tg_anwaltskommission", "TGAnwaltskommissionScraper"),
     # Attorney discipline — FR Anwaltsaufsicht
@@ -308,6 +308,37 @@ def _load_written_ids_and_years(jsonl_path: Path) -> tuple[set[str], dict[int, s
     return written_ids, ids_by_year
 
 
+# Seconds to wait before the 2nd, 3rd and 4th snapshot attempt when another scraper
+# holds coverage.db past busy_timeout. On 2026-09-16, the first night with bounded event
+# transactions, 14 retries fired and 5 of the ~12 parallel scrapers still gave up: a
+# rollback-journal database allows one writer at a time and grants no fairness, so a
+# loser can starve. WAL (see _open_coverage_db) plus one more step closes that.
+_SNAPSHOT_LOCK_RETRIES = (20, 40, 80)
+
+
+def _open_coverage_db(db_path: Path) -> sqlite3.Connection:
+    """Open coverage.db for writing: WAL journal, 30 s busy timeout.
+
+    WAL lets the readers (gap detector, freshness check) run while a scraper writes and
+    shortens the window in which concurrent writers collide. Until 2026-09-16 the database
+    used the delete journal, where every writer blocked every reader and 10-20 courts a
+    night lost their coverage snapshot. The mode is stored in the database file, so the
+    first connection converts it; if another connection holds a lock at that moment, the
+    next one converts instead.
+    """
+    conn = sqlite3.connect(str(db_path), timeout=30.0)
+    conn.execute("PRAGMA busy_timeout = 30000")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+    except sqlite3.OperationalError as e:
+        logger.debug(f"coverage.db journal mode unchanged: {e}")
+    # In WAL mode synchronous=NORMAL syncs the log only at checkpoints, so a commit is
+    # an append and _RunEventWriter can afford one per event. A power cut can lose the
+    # last few events, never corrupt the database (2026-09-17).
+    conn.execute("PRAGMA synchronous = NORMAL")
+    return conn
+
+
 def _record_coverage_snapshots(
     *,
     scraper_key: str,
@@ -315,7 +346,34 @@ def _record_coverage_snapshots(
     ids_by_year: dict[int, set[str]],
     changed_years: set[int],
 ) -> None:
-    """Persist per-year source snapshots for this scraper into coverage tables."""
+    """Persist per-year source snapshots, retrying while coverage.db is locked."""
+    for attempt, delay in enumerate((*_SNAPSHOT_LOCK_RETRIES, None)):
+        try:
+            _record_coverage_snapshots_once(
+                scraper_key=scraper_key,
+                output_dir=output_dir,
+                ids_by_year=ids_by_year,
+                changed_years=changed_years,
+            )
+            return
+        except sqlite3.OperationalError as e:
+            if delay is None or "locked" not in str(e).lower():
+                raise
+            logger.info(
+                f"[{scraper_key}] coverage.db locked, retrying snapshot in {delay}s "
+                f"({attempt + 1}/{len(_SNAPSHOT_LOCK_RETRIES) + 1})"
+            )
+            time.sleep(delay)
+
+
+def _record_coverage_snapshots_once(
+    *,
+    scraper_key: str,
+    output_dir: Path,
+    ids_by_year: dict[int, set[str]],
+    changed_years: set[int],
+) -> None:
+    """One attempt at persisting per-year source snapshots into coverage tables."""
     if not ids_by_year:
         return
 
@@ -323,8 +381,7 @@ def _record_coverage_snapshots(
 
     db_path = _coverage_db_path(output_dir)
     _maybe_migrate_coverage_from_main_db(db_path, output_dir)
-    conn = sqlite3.connect(str(db_path), timeout=30.0)
-    conn.execute("PRAGMA busy_timeout = 30000")
+    conn = _open_coverage_db(db_path)
     conn.row_factory = sqlite3.Row
     try:
         ensure_coverage_tables(conn)
@@ -364,13 +421,23 @@ def _record_coverage_snapshots(
 class _RunEventWriter:
     """Persist discovery/fetch events and maintain gap queue for one run."""
 
+    # Every event is committed on its own. coverage.db is shared by ~12 parallel
+    # scrapers and a WAL database has one writer at a time: a write transaction
+    # holds that lock until it commits. Until 2026-09-17 the writer committed
+    # lazily, on the *next* event once the transaction was 2 s old or 200 events
+    # deep, so a scraper that logged one event and then spent minutes in a slow
+    # fetch or a long discovery request held the lock for those minutes, and two
+    # courts a night still lost their coverage snapshot after the 30 s busy
+    # timeout plus three retries (20/40/80 s). With synchronous=NORMAL (see
+    # _open_coverage_db) a WAL commit is an append without an fsync, so a commit
+    # per event costs nothing measurable.
+
     def __init__(self, *, output_dir: Path, source_key: str, run_id: str):
         self.output_dir = output_dir
         self.source_key = source_key
         self.run_id = run_id
         self._conn: sqlite3.Connection | None = None
         self._attempt_counts: dict[str, int] = defaultdict(int)
-        self._pending = 0
         self._enabled = False
         self._init_db()
 
@@ -383,8 +450,7 @@ class _RunEventWriter:
             # Still keeping the 30s busy_timeout even though the dedicated
             # coverage DB eliminates the decisions.db contention — parallel
             # scrapers writing to the same coverage.db also need serialisation.
-            conn = sqlite3.connect(str(db_path), timeout=30.0)
-            conn.execute("PRAGMA busy_timeout = 30000")
+            conn = _open_coverage_db(db_path)
             ensure_coverage_tables(conn)
             self._conn = conn
             self._enabled = True
@@ -392,20 +458,18 @@ class _RunEventWriter:
             logger.warning(f"[{self.source_key}] Event tracking disabled: {e}")
             self._enabled = False
 
-    def _maybe_commit(self) -> None:
-        if not self._conn:
-            return
-        self._pending += 1
-        if self._pending >= 200:
+    def _commit(self) -> None:
+        """Commit the event just written, so no transaction outlives the call."""
+        if self._conn:
             self._conn.commit()
-            self._pending = 0
 
     def close(self) -> None:
         if not self._conn:
             return
         try:
-            if self._pending:
-                self._conn.commit()
+            # A no-op unless an earlier per-event commit failed while the
+            # database was locked and left its event pending.
+            self._conn.commit()
         except sqlite3.OperationalError as e:
             # Don't crash the scraper if the coverage DB was locked at commit time
             logger.warning(f"[{self.source_key}] Event commit failed (non-fatal): {e}")
@@ -445,7 +509,7 @@ class _RunEventWriter:
                     stub_json[:20000],
                 ),
             )
-            self._maybe_commit()
+            self._commit()
         except Exception as e:
             logger.debug(f"[{self.source_key}] discovery event logging failed: {e}")
 
@@ -516,7 +580,7 @@ class _RunEventWriter:
                         retry_delay_days=1,
                     )
 
-            self._maybe_commit()
+            self._commit()
         except Exception as e:
             logger.debug(f"[{self.source_key}] fetch event logging failed: {e}")
 
@@ -686,6 +750,20 @@ def run_with_persistence(
                         f"[{scraper_key}] fetch_decision returned None ({none_count}): "
                         f"{stub.get('docket_number', '?')}"
                     )
+                    # Scrapers that enumerate numbered ranges or list image-only
+                    # scans (emark, bge_historical, hudoc, elcom) opt in with
+                    # CACHE_NONE_AS_GAP: a None is a 404 / text-less file that
+                    # would otherwise be re-fetched every night. Same rule as
+                    # BaseScraper.run — which production never calls, so until
+                    # 2026-09-14 the flag was dead here (bge_historical re-probed
+                    # the same 161 ids nightly, hudoc_ch 71, elcom 8). Gaps
+                    # expire after ScraperState.GAP_TTL_DAYS.
+                    if getattr(scraper, "CACHE_NONE_AS_GAP", False):
+                        gap_id = stub.get("decision_id") or make_decision_id(
+                            scraper.court_code, stub.get("docket_number", "") or ""
+                        )
+                        if gap_id and "_" in gap_id:
+                            scraper.state.mark_gap(gap_id)
                     # Consecutive Nones beyond a threshold suggest a systemic issue
                     max_none = getattr(scraper, "MAX_NONE_RETURNS", 200)
                     if none_count >= max_none:

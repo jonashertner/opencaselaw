@@ -236,6 +236,14 @@ def _resolve_relevant_id(
     if relevant_id in cache:
         return cache[relevant_id]
 
+    # A BGE golden id in the other stored form ("bge_BGE_140_III_244" vs the
+    # direct scraper's "bge_140 III 244", #40): exact candidates first.
+    import decision_ref
+    for cand in decision_ref.bge_id_candidates(relevant_id):
+        if conn.execute("SELECT 1 FROM decisions WHERE decision_id = ?", (cand,)).fetchone():
+            cache[relevant_id] = cand
+            return cand
+
     for docket in _candidate_dockets_from_relevant_id(relevant_id):
         resolved = _lookup_decision_id_by_docket(conn, docket)
         if resolved:

@@ -188,8 +188,8 @@ SPIDER_MAP = {
     "AI_Aktuell":       ("ai_gerichte",  "AI", "AI Gerichte",   "cantonal"),
     "AI_Bericht":       ("ai_gerichte",  "AI", "AI Gerichte",   "cantonal"),
 
-    # ── TA (Tagesanzeiger Strafsentencing) ──
-    "TA_SST":           ("ta_sst",       "CH", "TA Strafsentencing", "other"),
+    # TA_SST (Schweizer Sportgericht) retired from the es path 2026-09-14:
+    # scrapers/ta_sst.py reads sportstribunal.ch/rechtsprechung directly.
 }
 
 

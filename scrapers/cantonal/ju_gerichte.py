@@ -14,6 +14,7 @@ HTML retrieval is not available for JU; all content is fetched via PDF fallback.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from scrapers.cantonal.sz_gerichte import SZGerichteScraper
 
@@ -66,6 +67,10 @@ class JUGerichteScraper(SZGerichteScraper):
 
     # HTML retrieval is NOT available for JU — all content via PDF fallback
     HTML_TPL = ""
+
+    # Verified doc_id -> decision_id map (2026-09-26 classification, see
+    # SZGerichteScraper "Document-aware identity"); seeds state/ju_gerichte.docids.txt.
+    DOCID_SEED = Path(__file__).resolve().parent / "seeds" / "ju_gerichte.docids.tsv"
 
     # Path decrypt templates
     DECRYPT_START = (

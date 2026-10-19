@@ -135,6 +135,13 @@ test-addin:
 	fi
 
 .PHONY: test-addin
+
+# Each opencaselaw.ch page in each of its languages as plain HTML (docs/<page>/<lang>/),
+# from the German page and its dictionary; run after editing a page. The tests fail until you do.
+site-languages:  ## write the per-language copies of the docs/ pages and the sitemap
+	@node scripts/build_page_languages.mjs
+
+.PHONY: site-languages
 .PHONY: paper
 paper:
 	@cd $(PAPER_DIR) && tectonic paper.tex 2>&1 | tail -3
@@ -190,3 +197,7 @@ smoke:
 .PHONY: check-playbook
 check-playbook:  ## live re-verification of every statute reference in the Claude for Legal playbook (~10 requests)
 	@$(PYTHON) scripts/check_playbook_refs.py
+
+.PHONY: check-bger-withdrawn
+check-bger-withdrawn:  ## live: re-fetch recent BGer rows at search.bger.ch, list withdrawal candidates; writes nothing, posts nothing (~200 requests, ~8 min)
+	@$(PYTHON) scripts/check_bger_withdrawn.py --dry-run --no-ntfy

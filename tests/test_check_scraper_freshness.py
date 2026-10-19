@@ -150,6 +150,38 @@ def test_near_matching_portal_count_suppresses_fast_zero_new_warning(tmp_path):
     assert "All checks passed" in result.stdout
 
 
+def _fast_zero_stdout(tmp_path, court):
+    coverage_db = tmp_path / "coverage.db"
+    health_file = tmp_path / "scraper_health.json"
+    now = datetime.now(timezone.utc)
+    _write_snapshot_db(coverage_db, court=court, snapshot_date=now.date().isoformat())
+    _write_health(
+        health_file,
+        run_at=now,
+        scrapers={court: {"success": True, "new_count": 0, "our_count": 14500, "duration_s": 6}},
+    )
+    result = subprocess.run(
+        [sys.executable, "scripts/check_scraper_freshness.py", "--health-file", str(health_file),
+         "--alert-log", str(tmp_path / "alerts.log"), "--state-dir", str(tmp_path), "--no-ntfy"],
+        cwd=Path(__file__).resolve().parent.parent,
+        env={**os.environ, "OCL_COVERAGE_DB": str(coverage_db)},
+        text=True, capture_output=True, check=False,
+    )
+    return result.stdout
+
+
+def test_closed_historical_collection_is_exempt_from_the_fast_zero_rule(tmp_path):
+    """bge_historical (BGE 1-79, 1875-1953) never publishes anything new, and since its 161
+    image-only rulings are gap-cached every run is a fast zero. 2026-09-17: that tripped
+    "possible API outage". The same record under another name must still warn."""
+    control = tmp_path / "control"
+    control.mkdir()
+    assert "possible API outage" in _fast_zero_stdout(control, "test_court")
+    exempt = tmp_path / "exempt"
+    exempt.mkdir()
+    assert "possible API outage" not in _fast_zero_stdout(exempt, "bge_historical")
+
+
 # ── A4: registry-vs-health reconciliation ────────────────────────────────
 
 

@@ -27,7 +27,9 @@ from __future__ import annotations
 import logging
 import os
 import re
+import unicodedata
 from datetime import date
+from pathlib import Path
 from typing import Iterator
 
 from base_scraper import BaseScraper
@@ -49,6 +51,47 @@ _RE_DECRYPT_V2 = re.compile(
     r'(?P<p1>[^"]+_)(?P<p2>[^"_]+)","(?P<p3>dossiernummer)","(?P<p4>[^"]+)'
 )
 _RE_HEX_DECODE = re.compile(r"\\x([0-9A-Fa-f]{2})")
+
+# Date of a document from its own head (2026-09-26). The Tribuna listing stamps
+# the DOSSIER's date on every document in it (JU ADM 2024 211: listed 27.5.2025,
+# "DÉCISION DU 5 FEVRIER 2025" on the page) or no date at all (0000-00-00), so a
+# second document under a held docket needs the date it states itself. The
+# EARLIEST heading or place-and-date line wins; dates cited later in the text
+# (earlier rulings, filings) are never reached first.
+_FR_MONTHS = {m: i for i, m in enumerate(
+    "janvier fevrier mars avril mai juin juillet aout septembre octobre "
+    "novembre decembre".split(), 1)}
+_RE_HEAD_DECISION = re.compile(
+    r"\b(?:arret|decision|ordonnance|jugement|prononce)(?:\s*/\s*[a-z]+)?"
+    r"(?:\s+[a-z]+)?\s+du\s+(\d{1,2})(?:er)?\s+([a-z]+)\s+((?:19|20)\d{2})\b")
+_RE_HEAD_PLACE = re.compile(
+    r"\b(?:porrentruy|delemont|saignelegier),?\s+le\s+(\d{1,2})(?:er)?\s+"
+    r"([a-z]+)\s+((?:19|20)\d{2})\b")
+
+
+def _fold(text: str) -> str:
+    t = unicodedata.normalize("NFKD", text)
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", t.lower())
+
+
+def header_date(text: str, head_chars: int = 3000) -> date | None:
+    """Decision date stated in a document's head, or None."""
+    head = _fold((text or "")[:head_chars])
+    best = None
+    for rx in (_RE_HEAD_DECISION, _RE_HEAD_PLACE):
+        for m in rx.finditer(head):
+            month = _FR_MONTHS.get(m.group(2))
+            if not month:
+                continue
+            try:
+                d = date(int(m.group(3)), month, int(m.group(1)))
+            except ValueError:
+                continue
+            if best is None or m.start() < best[0]:
+                best = (m.start(), d)
+            break
+    return best[1] if best else None
 
 
 class SZGerichteScraper(BaseScraper):
@@ -139,10 +182,138 @@ class SZGerichteScraper(BaseScraper):
         999_999 if os.environ.get("OCL_SCRAPER_RESCAN_ALL") else 200
     )
 
+    # ───────────────────────────────────────────────────────────────────────
+    # Document-aware identity (2026-09-26)
+    # ───────────────────────────────────────────────────────────────────────
+    # A Tribuna portal lists every document of a dossier as its own row with
+    # its own doc_id: interim rulings (effet suspensif, recusal), the final
+    # judgment, written reasons. decision_id is docket-keyed, so once a docket
+    # was held every further document under it was skipped for good. JU,
+    # classified 2026-09-26 (all 1,192 rows, PDF texts compared): 12 real
+    # rulings lost that way, three of them the main judgment of the dossier.
+    # Mirrors the NE per-fiche fix (f4b146c9) and BGer (e555b27f).
+    #
+    # Sidecar state/<court>.docids.txt holds "doc_id<TAB>decision_id" pairs;
+    # a pair counts only if its decision_id is in state (state is marked after
+    # the durable corpus write), so a crash between fetch and write self-heals.
+    # A further document of a held docket gets "<docket>-T<doc_id[:8]>";
+    # docket_number stays REAL, and its date comes from its own head (see
+    # header_date) so build_fts5's exact (court, docket, date) dedup cannot
+    # fold it into the held record. LEGACY MODE (no sidecar and no seed) is
+    # byte-for-byte the old behaviour and never writes.
+    #
+    # DOCID_SEED: a verified doc_id -> decision_id map shipped with the code.
+    # When the sidecar is absent it is created from the seed together with a
+    # "<court>.docids.fullwalk" marker; while the marker exists discovery walks
+    # the whole listing (no early stop), and the marker is removed only when a
+    # walk has covered every row — so an interrupted walk resumes next run.
+    # Only set it for a court whose portal was classified document by
+    # document; an unverified seed would refetch the corpus.
+    DOCID_SEED: Path | None = None
+    # A doc_id scheme change on the portal would make every held document look
+    # new. Cap what one run may treat as hidden documents.
+    MAX_NEW_COLLISIONS = 60
+
+    _docids: set | None = None
+    _full_walk = False
+
+    @property
+    def CACHE_NONE_AS_GAP(self) -> bool:  # noqa: N802 — base_scraper reads it
+        # Zero-byte portal files (JU: 16) come back as None on every walk; in
+        # doc-id mode cache them as gaps (re-probed after GAP_TTL_DAYS).
+        return self._docids is not None
+
+    def _docid_sidecar(self) -> Path:
+        return Path(self.state.state_file).with_name(f"{self.court_code}.docids.txt")
+
+    def _fullwalk_marker(self) -> Path:
+        return Path(self.state.state_file).with_name(f"{self.court_code}.docids.fullwalk")
+
+    def _load_docids(self) -> None:
+        self._docids = None
+        self._full_walk = False
+        self._claimed_ids: set = set()
+        self._collisions = 0
+        if getattr(self, "state", None) is None:
+            return
+        side = self._docid_sidecar()
+        if (not side.exists() or side.stat().st_size == 0) and self.DOCID_SEED:
+            seed = Path(self.DOCID_SEED)
+            if seed.exists():
+                tmp = side.with_name(side.name + ".tmp")
+                tmp.write_text(seed.read_text(encoding="utf-8"), encoding="utf-8")
+                self._fullwalk_marker().write_text("seeded\n", encoding="utf-8")
+                os.replace(tmp, side)
+                logger.info(f"[{self.court_code}] doc-id sidecar seeded from {seed.name}; "
+                            "this run walks the whole listing")
+        if not side.exists() or side.stat().st_size == 0:
+            return                                   # legacy
+        try:
+            text = side.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as e:
+            logger.error(f"[{self.court_code}] unreadable doc-id sidecar ({e}) — legacy")
+            return
+        known, dropped = set(), 0
+        for line in text.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            doc, _, did = line.partition("\t")
+            if not did or not self.state.is_known(did):
+                dropped += 1                         # crash-window pair: retried
+                continue
+            known.add(doc)
+        state_n = len(getattr(self.state, "_seen", []) or [])
+        if state_n > 100 and len(known) < state_n // 2:
+            logger.error(f"[{self.court_code}] doc-id sidecar holds {len(known)} documents vs "
+                         f"{state_n} known ids — refusing half-seeded mode, legacy")
+            return
+        if dropped:
+            logger.info(f"[{self.court_code}] {dropped} doc-id pairs not in state — retried")
+        self._docids = known
+        self._full_walk = self._fullwalk_marker().exists()
+
+    def _mark_docid(self, doc_id: str, decision_id: str) -> None:
+        if self._docids is None or not doc_id or doc_id in self._docids:
+            return                                   # legacy never writes
+        self._docids.add(doc_id)
+        with open(self._docid_sidecar(), "a", encoding="utf-8") as f:
+            f.write(f"{doc_id}\t{decision_id}\n")
+
+    def _identity(self, stub: dict) -> str | None:
+        """decision_id to fetch this row under, or None when it is held."""
+        base = make_decision_id(self.court_code, stub["docket_number"])
+        doc = stub.get("doc_id")
+        if self._docids is None or not doc:
+            return None if self.state.is_known(base) else base
+        claimed = self._claimed_ids
+        # Plain id unknown first: a crash-window pair must never suppress a
+        # new docket's only document.
+        if not self.state.is_known(base) and base not in claimed:
+            claimed.add(base)
+            return base
+        if doc in self._docids:
+            return None
+        alt = make_decision_id(self.court_code, f"{stub['docket_number']}-T{doc[:8]}")
+        if self.state.is_known(alt) or alt in claimed:
+            return None
+        if self._collisions >= self.MAX_NEW_COLLISIONS:
+            if self._collisions == self.MAX_NEW_COLLISIONS:
+                logger.error(f"[{self.court_code}] more than {self.MAX_NEW_COLLISIONS} "
+                             "unknown documents under held dockets in one run — did the "
+                             "portal renumber its doc_ids? Holding the rest back.")
+                self._collisions += 1
+            return None
+        self._collisions += 1
+        claimed.add(alt)
+        return alt
+
     def discover_new(self, since_date=None) -> Iterator[dict]:
         if since_date and isinstance(since_date, str):
             since_date = date.fromisoformat(since_date)
 
+        self._load_docids()
+        known_limit = 999_999 if self._full_walk else self.CONSECUTIVE_KNOWN_LIMIT
         total = None
         page_nr = 0
         total_yielded = 0
@@ -169,7 +340,7 @@ class SZGerichteScraper(BaseScraper):
                     known = self.state.count()
                     self.portal_count = total
                     logger.info(f"[{self.court_code}] Portal: {total}, Known: {known}")
-                    if total <= known:
+                    if total <= known and not self._full_walk:
                         logger.info(
                             f"[{self.court_code}] No new decisions on portal "
                             f"(portal={total}, known={known}), skipping full scan"
@@ -196,17 +367,17 @@ class SZGerichteScraper(BaseScraper):
                     page_nr += 1
                     continue
 
-            did = make_decision_id(self.court_code, stub["docket_number"])
-            if not self.state.is_known(did):
+            did = self._identity(stub)
+            if did is not None:
                 stub["decision_id"] = did
                 total_yielded += 1
                 consecutive_known = 0
                 yield stub
             else:
                 consecutive_known += 1
-                if consecutive_known >= self.CONSECUTIVE_KNOWN_LIMIT:
+                if consecutive_known >= known_limit:
                     logger.info(
-                        f"[{self.court_code}] {self.CONSECUTIVE_KNOWN_LIMIT} consecutive "
+                        f"[{self.court_code}] {known_limit} consecutive "
                         f"known decisions, stopping early (yielded {total_yielded} new)"
                     )
                     break
@@ -215,6 +386,9 @@ class SZGerichteScraper(BaseScraper):
 
             if total and page_nr >= total:
                 logger.info(f"[{self.court_code}] All {total} results covered")
+                if self._full_walk:
+                    self._fullwalk_marker().unlink(missing_ok=True)
+                    logger.info(f"[{self.court_code}] doc-id full walk complete")
                 break
 
             if page_nr % 200 == 0:
@@ -327,9 +501,23 @@ class SZGerichteScraper(BaseScraper):
             return None
 
         dd = parse_date(stub.get("decision_date", ""))
+        if self._docids is not None:
+            own = header_date(full_text)
+            base = make_decision_id(self.court_code, docket)
+            if stub["decision_id"] != base:
+                # A further document of a held docket: the listing date is the
+                # dossier's, so only the date it states itself is usable.
+                if not own:
+                    logger.warning(f"[{self.court_code}] document under held docket "
+                                   f"{docket} states no date — skipped (dedup would fold it)")
+                    return None
+                dd = own
+            elif not dd and own:
+                dd = own
         if not dd:
             logger.warning(f"[{self.court_code}] No date for {stub['docket_number']}")
 
+        self._mark_docid(doc_id, stub["decision_id"])
         return Decision(
             decision_id=stub["decision_id"],
             court=self.court_code,

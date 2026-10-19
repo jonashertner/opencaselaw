@@ -24,7 +24,6 @@ KNOWN_NULL_DATE_FLOORS = {
     "mkg": 542,            # 1914-2010 archive; dates only in scanned images
     "ti_gerichte": 549,    # PDFs truncated at ~1.5K chars (no body)
     "hudoc_ch": 246,       # ECHR metadata-only docs
-    "sav_kantone": 36,     # Aufsichtsbehörden — no PDF, only metadata
     "fr_gerichte": 80,     # post-recovery residual
     # post-recovery residual (80) + up to ~188 Praxis-digest rows whose
     # text-recovered dates were junk and are NULLed by

@@ -40,13 +40,29 @@ _MONTHS: dict[str, int] = {
 _MONTH_ALT = "|".join(sorted((re.escape(m) for m in _MONTHS), key=len, reverse=True))
 
 _DOCKET_RE = r"\d[A-Za-z]{1,3}[_.]\d{1,5}/\d{4}"
-_MARK = r"\s+(?:vom|du|del|dell['’]a?)\s+"   # DE 'vom' / FR 'du' / IT 'del'
+# Federal Insurance Court (EVG) dockets until 2006: "P 71/01", "I 189/02",
+# "U 49/98". Only taken where the ruling's date follows directly, never as a
+# bare match: "A 12/34" is too common a shape in running text.
+_EVG_DOCKET_RE = r"[A-Z]{1,2}\s\d{1,4}/\d{2}"
+# DE 'vom' / FR 'du', 'des' (two session dates) / IT 'del', "dell'11" (no
+# space after the apostrophe).
+_MARK = r"\s+(?:vom|du|des|del(?:l['’])?)\s*"
+# "1er septembre", "1° settembre"; a second session date ("des 14 juillet et
+# 1er septembre 2005", BGE 131 III 601) is skipped: the first is the ruling's.
+_DAY = r"(\d{1,2})(?:er|°)?\.?"
+_SECOND = r"(?:\s+(?:et|und|e)\s+\d{1,2}(?:er|°)?\.?\s+(?:" + _MONTH_ALT + r"))?"
+
+# A consolidated proceeding lists its dockets before the date ("2C_36/2023 /
+# 2C_38/2023 du 5 juin 2024", BGE 151 I 3): group 1 is the FIRST, the lead
+# under which the judgment is filed.
+_ANY_DK = r"(?:" + _DOCKET_RE + r"|" + _EVG_DOCKET_RE + r")"
+_DK_CHAIN = r"(" + _ANY_DK + r")(?:\s*/\s*" + _ANY_DK + r")*"
 
 # Precise: the decision's date immediately after its docket ('<docket> vom <date>').
 _DK_DATE_TEXT = re.compile(
-    r"(" + _DOCKET_RE + r")" + _MARK + r"(\d{1,2})\.?\s+(" + _MONTH_ALT + r")\s+(\d{4})\b", re.IGNORECASE)
+    _DK_CHAIN + _MARK + _DAY + r"\s*(" + _MONTH_ALT + r")" + _SECOND + r"\s+(\d{4})\b", re.IGNORECASE)
 _DK_DATE_NUM = re.compile(
-    r"(" + _DOCKET_RE + r")" + _MARK + r"(\d{1,2})\.(\d{1,2})\.(\d{4})\b", re.IGNORECASE)
+    _DK_CHAIN + _MARK + r"(\d{1,2})\.(\d{1,2})\.(\d{4})\b", re.IGNORECASE)
 # Fallback: any plausible date / docket in the head.
 _TEXT_DATE = re.compile(r"\b(\d{1,2})\.?\s+(" + _MONTH_ALT + r")\s+(\d{4})\b", re.IGNORECASE)
 _NUM_DATE = re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b")

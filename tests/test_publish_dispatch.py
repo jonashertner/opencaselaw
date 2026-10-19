@@ -3,6 +3,22 @@ from __future__ import annotations
 import sys
 
 import publish
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _no_real_ntfy(monkeypatch):
+    """Never post to the real ntfy topic from the test suite.
+
+    Three tests in this file drive publish.main() through the success branch
+    with fake STEPS. Until 2026-09-16 that reached the real _notify() and
+    pushed "Publish OK / ? decisions, 0 min" to ntfy.sh/opencaselaw-publish on
+    every local and CI run - operator-alert noise on the same channel that
+    carries "Publish FAILED", observed as three messages per suite run.
+    Tests that assert on notifications patch _notify again themselves; their
+    patch is applied later and still wins.
+    """
+    monkeypatch.setattr(publish, "_notify", lambda *a, **k: None)
 
 
 def test_publish_manual_weekly_step_forces_execution(monkeypatch):
@@ -183,7 +199,7 @@ def _capture(monkeypatch, tmp_path):
     monkeypatch.setattr(publish, "_notify", lambda *a, **k: notes.append(a))
     monkeypatch.setattr(publish, "_clear_checkpoint", lambda: events.__setitem__("clear", events["clear"] + 1))
     monkeypatch.setattr(publish, "_save_checkpoint", lambda *a, **k: events.__setitem__("save", events["save"] + 1))
-    monkeypatch.setattr(publish, "_load_checkpoint", lambda: None)
+    monkeypatch.setattr(publish, "_load_checkpoint", lambda *a, **k: None)
     monkeypatch.setattr(publish, "_append_run_record", lambda rec: None)
     monkeypatch.setattr(publish, "STEPS", [("5b", "Generate RSS Feeds", _fake_ok_step)])
     return notes, events

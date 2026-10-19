@@ -75,3 +75,32 @@ CANTON_LANG: dict[str, str] = {
     "TI": "it", "UR": "de", "VD": "fr", "VS": "de", "ZG": "de",
     "ZH": "de",
 }
+
+
+def mount_retries(session, total: int = 3, backoff_factor: float = 5.0) -> None:
+    """Retry transient upstream failures before a law counts as an error.
+
+    5xx responses, connection resets and read timeouts are retried up to
+    `total` times with exponential backoff (5 s, 10 s, 20 s at the default
+    factor; a Retry-After header is honoured). 4xx is not retried, so the
+    callers' 404 handling is unchanged, and a 5xx that survives every retry
+    still comes back as a normal response for raise_for_status().
+
+    Why: on 2026-09-02 zh.ch answered four detail pages with 500 inside two
+    minutes. Each was a one-shot error, the canton was marked FAIL, the
+    monthly unit exited 1 and the DB rebuild was skipped for all 26 cantons.
+    All four pages served normally minutes later.
+    """
+    from requests.adapters import HTTPAdapter
+    from urllib3.util import Retry
+
+    retry = Retry(
+        total=total, connect=total, read=total, status=total,
+        backoff_factor=backoff_factor,
+        status_forcelist=(500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    session.mount("http://", HTTPAdapter(max_retries=retry))

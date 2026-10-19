@@ -161,3 +161,30 @@ def test_collapsed_echr_count_does_not_zero_the_page(tmp_path):
     proc, out = run(tmp_path, stats=stats)
     assert proc.returncode == 0
     assert 'id="f-echr">8&#8217;900 <span' in out
+
+
+def _with_delta(n: int) -> dict:
+    return {**FIXTURE_STATS, "delta": {"total": n}}
+
+
+def test_new_today_carries_one_sign_never_plus_minus(tmp_path):
+    """A clean-up night has a negative delta; the fixed "+" in the markup read "+-2409"."""
+    proc, out = run(tmp_path, stats=_with_delta(-2409))
+    assert proc.returncode == 0, proc.stderr
+    assert '>−<span id="d-today">2409</span>' in out
+    assert "+<span" not in out and "-2409" not in out.split('id="d-today"')[1][:20]
+
+    proc, out = run(tmp_path, stats=_with_delta(229))
+    assert '>+<span id="d-today">229</span>' in out
+
+    proc, out = run(tmp_path, stats=_with_delta(0))
+    assert 'tnum"><span id="d-today">0</span>' in out
+
+
+def test_check_mode_sees_a_stale_sign(tmp_path):
+    proc, out = run(tmp_path, stats=_with_delta(-5))
+    synced = out
+    proc, _ = run(tmp_path, "--check", html=synced, stats=_with_delta(-5))
+    assert proc.returncode == 0, proc.stdout
+    proc, _ = run(tmp_path, "--check", html=synced, stats=_with_delta(5))
+    assert proc.returncode == 1

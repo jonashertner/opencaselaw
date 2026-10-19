@@ -54,3 +54,22 @@ def test_rab_discover(monkeypatch, tmp_path):
 def test_rab_since_filter(monkeypatch, tmp_path):
     stubs = list(_scraper(monkeypatch, tmp_path).discover_new(since_date=date(2021, 1, 1)))
     assert stubs == []                                  # the 2020 decision is filtered out
+
+
+def test_rab_stops_when_pager_repeats_the_tile_block(monkeypatch, tmp_path):
+    # rab-asr.ch renders the same 5 "Leading Cases" tiles on every ?page=N (the pager
+    # belongs to the enforcement digests). Before 2026-09-14 the loop fetched 30 pages.
+    s = RABScraper(state_dir=tmp_path)
+    fetched = []
+
+    def fake_get(url, **k):
+        fetched.append(url)
+
+        class R:
+            text = TILE
+        return R()
+
+    monkeypatch.setattr(s, "get", fake_get)
+    stubs = list(s.discover_new())
+    assert len(stubs) == 1
+    assert len(fetched) == 2          # page 0 (new tiles) + page 1 (same tiles → stop)

@@ -71,7 +71,10 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import concurrent.futures
 import contextvars
+import functools
+import itertools
 import jsonschema
 import copy
 import hashlib
@@ -231,9 +234,12 @@ class ReflectRequest(BaseModel):
 # Add repo root to path so db_schema can be imported when run from any directory
 sys.path.insert(0, str(Path(__file__).parent))
 from db_schema import SCHEMA_SQL, INSERT_OR_IGNORE_SQL, INSERT_COLUMNS  # noqa: E402
+import appeal_refs  # noqa: E402  (the court's appeal note, read from json_data)
 import docket_aliases  # noqa: E402  (joined-docket resolution, issue #41)
+import decision_suppression  # noqa: E402  (host-local privacy takedowns, served at once)
 import reference_parser
 import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; honest not-found reasons)
+import source_defects  # references whose stored text is another ruling's
 import ecthr_docket  # noqa: E402  (shared ECtHR docket display form)
 
 # Set to True when running with --remote (SSE transport).
@@ -260,6 +266,18 @@ MAX_SNIPPET_LEN = 500  # chars per snippet
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 2000           # FTS searches with reranking
 FILTER_MAX_LIMIT = 10000   # filter-only queries (no FTS, no reranking)
+# Publication-date filters/sort (published_from, published_to,
+# sort="published_desc") only consider decisions DECIDED within this many days
+# before the publication window opens. publication_date has no index, so the
+# bound lets idx_decisions_date drive the scan (~62k rows for 18 months, 1-3.5 s
+# cold, 0.1 s warm, measured on prod 2026-10-16) instead of reading every row
+# of a court. BGer publishes most rulings within weeks; 4A_524/2025 (decided
+# 2026-05-11, published 2026-10-16) is the late case the feature exists for.
+PUBLICATION_LAG_WINDOW_DAYS = 548
+# (court, publication_date) index from db_schema.py. When the served DB has it,
+# per-court publication queries walk it and drop the window above; queries
+# without a court filter keep the window.
+PUBLICATION_INDEX = "idx_decisions_court_pub"
 MAX_FACT_DECISION_LIMIT = 20
 MAX_RERANK_CANDIDATES = 2500
 MIN_CANDIDATE_POOL = 60
@@ -371,8 +389,42 @@ _LLM_PRICING = {
     "claude-sonnet-4-6-1m":       (6.00, 22.50),
     "claude-haiku-4-5":           (1.00, 5.00),
     "claude-haiku-4-5-20251001":  (1.00, 5.00),
+    # Haiku 5.5 has two rate cards: $0.10/$0.50 for prompts up to 100K
+    # tokens, $0.50/$2.50 above. Every Haiku prompt here is a few thousand
+    # tokens at most, so only the lower card applies.
+    "claude-haiku-5-5":           (0.10, 0.50),
     "claude-opus-4-7":            (5.00, 25.00),
 }
+
+# Model for the short, latency-bound Haiku calls (query parse, expansion,
+# rerank). OCL_HAIKU_MODEL=claude-haiku-4-5-20251001 rolls back.
+HAIKU_MODEL = os.environ.get("OCL_HAIKU_MODEL", "claude-haiku-5-5")
+
+
+def _haiku_request_fields() -> dict:
+    """Request fields that keep Haiku 5.5 on the old latency profile.
+
+    Haiku 5.5 runs adaptive thinking unless told otherwise, which would
+    eat the 2-3 s budgets these calls run under and the small max_tokens
+    caps. Thinking off is accepted at effort low/medium/high. Haiku 4.5
+    rejects `effort`, so nothing is added when rolled back to it.
+    """
+    if HAIKU_MODEL.startswith("claude-haiku-4"):
+        return {}
+    return {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}
+
+
+def _messages_text(resp_json: dict) -> str:
+    """First text block of a Messages API response, by type, not position.
+
+    A response can lead with a thinking block, and a refusal
+    (stop_reason "refusal") can carry no text at all; both yield "" here
+    rather than an IndexError/KeyError.
+    """
+    for block in resp_json.get("content") or []:
+        if block.get("type") == "text":
+            return block.get("text", "")
+    return ""
 
 
 def _llm_usage_log(*, model: str, feature: str, response_json: dict | None,
@@ -430,7 +482,7 @@ def _llm_usage_log(*, model: str, feature: str, response_json: dict | None,
         # edge-originated calls; internal batches carry no IP. Retention is
         # enforced by logrotate (deploy/logrotate/ocl-llm-ledger, maxage 90).
         _ip = _ctx_client_ip.get("")
-        if _ip and _src in ("mcp", "rest"):
+        if _ip and _src in ("mcp", "rest") and not _ctx_no_retention.get():
             with open(LLM_LEDGER_LOG_PATH, "a", encoding="utf-8") as f:
                 f.write(json.dumps({
                     "ts": record["ts"], "ip_pseudonym": _ip_pseudonym(_ip),
@@ -675,6 +727,305 @@ PINPOINT_MAX_WORKERS = int(os.environ.get("OCL_PINPOINT_WORKERS", "5"))
 # instead of an indefinite hang. Generous so only pathological calls trip it.
 TOOL_DISPATCH_TIMEOUT_S = float(os.environ.get("OCL_TOOL_TIMEOUT_S", "120"))
 
+# ── Admission control: execution lanes ────────────────────────────
+# Every blocking call used to share one thread pool per worker, nothing bounded
+# the work a worker accepted, and queued work ran long after its caller had
+# gone: on 2026-09-30 get_law, a key read, averaged 55 s behind searches and
+# exports. A request now carries a lane, set where it enters (MCP dispatch,
+# REST middleware), and its asyncio.to_thread work runs on that lane's pool:
+#   fast  - primary-key reads (a law article, a decision, an Erwägung);
+#   heavy - search, export, anything that scans or calls out; admission-
+#           controlled, refused at once when a new call could not start in time;
+#   other - work outside a request (SEO pages, startup): the old behaviour.
+# OCL_LANES=0 restores the single pool and the single timeout exactly.
+OCL_LANES = os.environ.get("OCL_LANES", "1") != "0"
+LANE_FAST_THREADS = int(os.environ.get("OCL_LANE_FAST_THREADS", "8"))
+LANE_HEAVY_THREADS = int(os.environ.get("OCL_LANE_HEAVY_THREADS", "12"))
+LANE_OTHER_THREADS = int(os.environ.get("OCL_LANE_OTHER_THREADS", "20"))
+# Queue-delay admission: refuse new heavy work once the oldest queued job has
+# waited this long. It adapts to how fast jobs are finishing; a fixed queue
+# length cannot tell 24 one-second jobs from 24 one-minute ones. The length
+# cap is only a safety net.
+HEAVY_MAX_QUEUE_WAIT_S = float(os.environ.get("OCL_HEAVY_MAX_QUEUE_WAIT_S", "10"))
+LANE_HEAVY_QUEUE = int(os.environ.get("OCL_LANE_HEAVY_QUEUE", "64"))
+# REST fairness: heavy requests in flight per client IP, per worker, enforced
+# only while the heavy lane is full, so one harvester cannot take a full lane
+# from everyone else. Not applied to MCP: claude.ai's egress is a single /24
+# shared by all of its users.
+HEAVY_PER_CLIENT = int(os.environ.get("OCL_HEAVY_PER_CLIENT", "2"))
+HEAVY_TIMEOUT_S = float(os.environ.get("OCL_HEAVY_TIMEOUT_S", "60"))
+BUSY_RETRY_AFTER_S = int(os.environ.get("OCL_BUSY_RETRY_AFTER_S", "10"))
+
+_ctx_lane: contextvars.ContextVar = contextvars.ContextVar("ocl_lane", default=None)
+# Absolute time.monotonic() by which the current request is over.
+_ctx_request_deadline: contextvars.ContextVar = contextvars.ContextVar(
+    "ocl_request_deadline", default=None)
+
+
+class _LaneDeadlineExpired(Exception):
+    """Queued work whose request deadline passed before a thread was free."""
+
+
+class _LaneExecutor(concurrent.futures.ThreadPoolExecutor):
+    """asyncio's default executor, routing each job to its request's lane.
+
+    It must BE a ThreadPoolExecutor: loop.set_default_executor rejects anything
+    else. Its own threads are the `other` lane; it owns the fast and heavy pools.
+    submit() runs on the event-loop thread inside the caller's task context
+    (asyncio.to_thread -> run_in_executor), which is how the lane and deadline
+    arrive without touching any call site.
+    """
+
+    def __init__(self, fast: int, heavy: int, other: int):
+        super().__init__(max_workers=other, thread_name_prefix="lane-other")
+        self._fast = concurrent.futures.ThreadPoolExecutor(fast, thread_name_prefix="lane-fast")
+        self._heavy = concurrent.futures.ThreadPoolExecutor(heavy, thread_name_prefix="lane-heavy")
+        self._sizes = {"fast": fast, "heavy": heavy, "other": other}
+        self._lock = threading.Lock()
+        self._seq = itertools.count()
+        # job id -> enqueue time. FIFO like the pools, so the first entry is
+        # the job that has waited longest.
+        self._pending = {lane: collections.OrderedDict() for lane in self._sizes}
+        self._stats = {lane: collections.Counter() for lane in self._sizes}
+
+    def submit(self, fn, /, *args, **kwargs):
+        lane = _ctx_lane.get()
+        if lane not in ("fast", "heavy"):
+            lane = "other"
+        deadline = _ctx_request_deadline.get()
+        job = next(self._seq)
+        with self._lock:
+            self._pending[lane][job] = time.monotonic()
+        try:
+            if lane == "fast":
+                fut = self._fast.submit(self._run, lane, job, deadline, fn, args, kwargs)
+            elif lane == "heavy":
+                fut = self._heavy.submit(self._run, lane, job, deadline, fn, args, kwargs)
+            else:
+                fut = super().submit(self._run, lane, job, deadline, fn, args, kwargs)
+        except BaseException:
+            with self._lock:
+                self._pending[lane].pop(job, None)
+            raise
+        # A job cancelled before it starts (its awaiting coroutine was
+        # cancelled by a dispatch timeout) is skipped by the pool, so _run never
+        # sees it; without this the queued count would leak and the lane would
+        # end up refusing everything. Only a job that never started can be
+        # cancelled, so this is exact.
+        fut.add_done_callback(functools.partial(self._on_done, lane, job))
+        return fut
+
+    def _run(self, lane, job, deadline, fn, args, kwargs):
+        with self._lock:
+            self._pending[lane].pop(job, None)
+            self._stats[lane]["running"] += 1
+        try:
+            if deadline is not None and time.monotonic() > deadline:
+                with self._lock:
+                    self._stats[lane]["expired"] += 1
+                raise _LaneDeadlineExpired(
+                    f"{lane} lane: the request deadline passed while this work was queued")
+            result = fn(*args, **kwargs)
+            with self._lock:
+                self._stats[lane]["completed"] += 1
+            return result
+        finally:
+            with self._lock:
+                self._stats[lane]["running"] -= 1
+
+    def _on_done(self, lane, job, fut):
+        if fut.cancelled():
+            with self._lock:
+                if self._pending[lane].pop(job, None) is not None:
+                    self._stats[lane]["cancelled"] += 1
+
+    def queued(self, lane: str) -> int:
+        with self._lock:
+            return len(self._pending[lane])
+
+    def saturated(self, lane: str) -> bool:
+        """Every thread of the lane busy, or work already waiting."""
+        with self._lock:
+            return (bool(self._pending[lane])
+                    or self._stats[lane]["running"] >= self._sizes[lane])
+
+    def oldest_wait(self, lane: str) -> float:
+        with self._lock:
+            pending = self._pending[lane]
+            if not pending:
+                return 0.0
+            return time.monotonic() - next(iter(pending.values()))
+
+    def note_rejected(self, lane: str) -> None:
+        with self._lock:
+            self._stats[lane]["rejected"] += 1
+
+    def snapshot(self) -> dict:
+        now = time.monotonic()
+        out = {}
+        with self._lock:
+            for lane, size in self._sizes.items():
+                pending = self._pending[lane]
+                stats = self._stats[lane]
+                out[lane] = {
+                    "threads": size,
+                    "queued": len(pending),
+                    "running": stats["running"],
+                    "completed": stats["completed"],
+                    "expired": stats["expired"],
+                    "cancelled": stats["cancelled"],
+                    "rejected": stats["rejected"],
+                    "oldest_wait_s": round(now - next(iter(pending.values())), 3) if pending else 0.0,
+                }
+        return out
+
+    def shutdown(self, wait=True, *, cancel_futures=False):
+        self._fast.shutdown(wait=wait, cancel_futures=cancel_futures)
+        self._heavy.shutdown(wait=wait, cancel_futures=cancel_futures)
+        super().shutdown(wait=wait, cancel_futures=cancel_futures)
+
+
+# Installed as the running loop's default executor in main_remote's lifespan.
+# Pools start no threads until first use, so stdio mode and imports pay nothing.
+_LANES = _LaneExecutor(LANE_FAST_THREADS, LANE_HEAVY_THREADS, LANE_OTHER_THREADS)
+_LANES_INSTALLED = False
+# REST client IP -> heavy requests in flight. Touched only on the event loop.
+_heavy_client_inflight: dict = {}
+
+_FAST_TOOLS = frozenset({
+    "get_law", "get_decision", "get_erwaegung", "get_regeste",
+    "get_decision_structure", "list_courts",
+})
+
+
+def _lane_for_tool(name: str, arguments: dict | None = None) -> str:
+    """Lane for an MCP tool call. Only primary-key reads are fast; anything
+    unlisted is heavy, the safe side. `cite` is heavy because a miss falls
+    through to a full search_fts5 (Haiku parse, rerank); cantonal get_law is
+    heavy because it queries lexfind.ch live."""
+    name = _TOOL_NAME_ALIASES.get(name, name)
+    if name not in _FAST_TOOLS:
+        return "heavy"
+    args = arguments or {}
+    if name == "get_law" and _is_cantonal_law_request(args.get("abbreviation"), args.get("canton")):
+        return "heavy"
+    return "fast"
+
+
+def _is_cantonal_law_request(abbreviation, canton) -> bool:
+    """Would get_law take its cantonal (lexfind.ch live) branch? canton 'CH'
+    or empty is federal; a canton-prefixed name ('ZH/StG') is cantonal
+    whatever `canton` says, as in get_law."""
+    if str(canton or "").strip().upper() not in ("", "CH"):
+        return True
+    return "/" in str(abbreviation or "")
+
+
+# Never refused: no thread-pool work, or must not fail (the Stripe webhook).
+_REST_EXEMPT_RE = re.compile(
+    r"^/(?:openapi[^/]*|docs|redoc|research/openapi\.json|tool|integrity/.+|"
+    r"scraper-health|scholarship/licenses|quota/usage|billing/.+)$")
+_REST_FAST_RE = re.compile(
+    r"^/(?:laws/(?!search$)[^/]+|decisions/[^/]+|erwaegung/[^/]+/[^/]+|"
+    r"regeste/[^/]+|structure/[^/]+|courts)$")
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def _lane_for_rest(path: str, query) -> str | None:
+    """Lane for a REST request; None = exempt from lanes and admission.
+    Accepts the path with or without the /api mount prefix. POST /tool/{name}
+    is classified by name only (a cantonal get_law there runs fast)."""
+    p = path[4:] if path.startswith("/api/") else path
+    if _REST_EXEMPT_RE.match(p):
+        return None
+    if p == "/lookup":
+        return "fast" if str(query.get("exact", "")).lower() in _TRUTHY else "heavy"
+    if p.startswith("/tool/"):
+        return _lane_for_tool(p[len("/tool/"):], {})
+    if _REST_FAST_RE.match(p):
+        if p.startswith("/laws/") and _is_cantonal_law_request(
+                urllib.parse.unquote(p[len("/laws/"):]), query.get("canton")):
+            return "heavy"
+        return "fast"
+    return "heavy"
+
+
+def _heavy_admit(client_key: str | None = None) -> bool:
+    """May a new heavy request start? Counts real thread occupancy: a request
+    that timed out while its thread still runs still holds capacity. A soft
+    gate (check, then submit), so a burst can overshoot by the number of
+    simultaneous entries; the thread count stays the hard bound. The
+    per-client cap is work-conserving: it applies only while the lane is full,
+    so an integrator's parallel searches all run on a worker with spare threads."""
+    if not OCL_LANES:
+        return True
+    if (client_key and _heavy_client_inflight.get(client_key, 0) >= HEAVY_PER_CLIENT
+            and _LANES.saturated("heavy")):
+        return False
+    if _LANES.queued("heavy") >= LANE_HEAVY_QUEUE:
+        return False
+    return _LANES.oldest_wait("heavy") <= HEAVY_MAX_QUEUE_WAIT_S
+
+
+def _lane_timeout(lane: str | None) -> float:
+    """Dispatch timeout for a lane. Heavy is capped by the global timeout too,
+    so lowering OCL_TOOL_TIMEOUT_S still lowers every lane."""
+    if lane == "heavy":
+        return min(HEAVY_TIMEOUT_S, TOOL_DISPATCH_TIMEOUT_S)
+    return TOOL_DISPATCH_TIMEOUT_S
+
+
+def _busy_payload(tool: str | None = None, *, rest: bool = False) -> dict:
+    """The refusal a heavy call gets when it could not start in time. Written
+    for the model reading it: what happened, what still works, and not to loop."""
+    still_works = ("GET /api/decisions/{id}, /api/laws/{abbreviation}, /api/lookup?exact=true"
+                   if rest else "get_decision, get_law, get_erwaegung")
+    payload = {
+        "error": "server_busy",
+        "retry_after_seconds": BUSY_RETRY_AFTER_S,
+        "message": (
+            "The search service is at capacity right now, so this call was not "
+            f"started. Retry after about {BUSY_RETRY_AFTER_S} s. Lookups of a known "
+            f"decision or statute ({still_works}) are unaffected. If this persists, "
+            "tell the user the search service is busy rather than retrying in a loop."
+        ),
+    }
+    if tool:
+        payload["tool"] = tool
+    return payload
+
+
+def _lanes_snapshot() -> dict:
+    return {"enabled": OCL_LANES, "installed": _LANES_INSTALLED, **_LANES.snapshot()}
+
+
+def _install_lanes(loop) -> None:
+    """Make the lane executor the default executor of the loop that serves
+    requests (uvicorn's, from lifespan). No-op when OCL_LANES=0."""
+    global _LANES_INSTALLED
+    if not OCL_LANES:
+        logger.info("Execution lanes OFF (OCL_LANES=0): asyncio default executor")
+        return
+    loop.set_default_executor(_LANES)
+    _LANES_INSTALLED = True
+    logger.info(
+        "Execution lanes: fast=%d heavy=%d other=%d threads; heavy refused after %.0fs "
+        "queue wait or %d queued, %d per REST client; heavy timeout %.0fs",
+        LANE_FAST_THREADS, LANE_HEAVY_THREADS, LANE_OTHER_THREADS,
+        HEAVY_MAX_QUEUE_WAIT_S, LANE_HEAVY_QUEUE, HEAVY_PER_CLIENT, _lane_timeout("heavy"))
+
+
+def _search_deadline(t0: float) -> float | None:
+    """Soft deadline for one search: its own SEARCH_DEADLINE_MS budget from t0,
+    capped at the request's hard deadline when one is set. Not "arrival +
+    budget": tools that run several searches per call would then degrade their
+    later searches with no contention at all."""
+    own = (t0 + SEARCH_DEADLINE_MS / 1000.0) if SEARCH_DEADLINE_MS > 0 else None
+    request_deadline = _ctx_request_deadline.get()
+    if request_deadline is not None and (own is None or request_deadline < own):
+        return request_deadline
+    return own
+
 # ── In-client UI widgets (Tier B, flag-gated, default OFF) ────────
 # When OCL_UI_WIDGETS is on, search_laws/search_legislation advertise an
 # MCP-Apps law-search widget and search_decisions a decision-search widget
@@ -868,6 +1219,12 @@ STRUCTURED_PARSE_PROMPT = (
     "StPO, ZPO, SchKG, BV, AIG, IRSG, AsylG, BGG, VwVG, EMRK (CEDH), SVG, UVG, KVG, AHVG, IVG, etc.\n"
     "- Even for semantic queries without 'Art.', infer the most relevant statute provisions.\n"
     "- If unsure about a BGE, omit it from leading_bge rather than guessing.\n"
+    # Haiku 5.5 answered ~5% of odd inputs in prose without this line
+    # (2026-10-07, 300 traced queries); a JSON schema fixes it too but
+    # pushed p95 past the 3 s client timeout.
+    "- Whatever the input (a bare number, a docket number, a date, a list of "
+    "citations), reply with the JSON object and nothing else; leave fields "
+    "empty where nothing applies. Never answer in prose.\n"
     "- Output ONLY valid JSON, no markdown fences, no explanation.\n"
     "Examples:\n"
     '  "Hundebiss" -> {"statutes":["OR 56"],"doctrine":"Tierhalterhaftung",'
@@ -925,8 +1282,9 @@ def _parse_query_structured(query: str) -> dict:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-haiku-4-5-20251001",
-                    "max_tokens": 300,
+                    "model": HAIKU_MODEL,
+                    "max_tokens": 400,
+                    **_haiku_request_fields(),
                     # DO NOT add prompt caching here. Tried and reverted
                     # 2026-08-24, measured in production: 12 consecutive
                     # calls, zero cache reads.
@@ -939,15 +1297,19 @@ def _parse_query_structured(query: str) -> dict:
                     # no error, just cache_creation_input_tokens: 0.
                     # Caching would need either a 4x longer prompt (absurd)
                     # or a different model (defeats the point of Haiku).
+                    # UPDATE 2026-10-07: Haiku 5.5's minimum is 512, so
+                    # this prompt is now cacheable. Not enabled yet; if
+                    # tried, confirm cache_read_input_tokens > 0 in
+                    # production as above.
                     "system": STRUCTURED_PARSE_PROMPT,
                     "messages": [{"role": "user", "content": query}],
                 },
             )
             resp.raise_for_status()
             _resp_json = resp.json()
-            _llm_usage_log(model="claude-haiku-4-5-20251001",
+            _llm_usage_log(model=HAIKU_MODEL,
                             feature="query_parse", response_json=_resp_json)
-            text = _resp_json["content"][0]["text"].strip()
+            text = _messages_text(_resp_json).strip()
             # Strip markdown fences if present
             if text.startswith("```"):
                 text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
@@ -1430,11 +1792,14 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherungsrecht",
     "weko": "WEKO", "edoeb": "EDÖB", "ubi": "UBI",
     "elcom": "ElCom", "postcom": "PostCom", "comcom": "ComCom",
+    "ta_sst": "Schweizer Sportgericht",
     "ag_gerichte": "AG Gerichte", "ag_verwaltungsgericht": "AG Verwaltungsgericht",
     "ai_gerichte": "AI Gerichte", "ar_gerichte": "AR Gerichte",
     "be_verwaltungsgericht": "BE Verwaltungsgericht",
     "be_zivilstraf": "BE Obergericht", "be_steuerrekurs": "BE Steuerrekursgericht",
     "bl_gerichte": "BL Gerichte", "bs_appellationsgericht": "BS Appellationsgericht",
+    "bs_sozialversicherungsgericht": "BS Sozialversicherungsgericht",
+    "bs_zivilgericht": "BS Zivilgericht",
     "fr_gerichte": "FR Kantonsgericht", "ge_gerichte": "GE Cour de justice",
     "gl_gerichte": "GL Gerichte", "gr_gerichte": "GR Gerichte",
     "ju_gerichte": "JU Tribunal cantonal", "lu_gerichte": "LU Gerichte",
@@ -1456,11 +1821,20 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "zh_baurekursgericht": "ZH Baurekursgericht",
     "zh_arbeitsgericht": "ZH Arbeitsgericht", "zh_mietgericht": "ZH Mietgericht",
     "zh_bezirksgericht_zuerich": "ZH Bezirksgericht Zürich",
+    "zh_bezirksgericht_winterthur": "ZH Bezirksgericht Winterthur",
+    "zh_bezirksgericht_uster": "ZH Bezirksgericht Uster",
+    "zh_bezirksgericht_pfaeffikon": "ZH Bezirksgericht Pfäffikon",
+    "zh_bezirksgericht_meilen": "ZH Bezirksgericht Meilen",
+    "zh_bezirksgericht_horgen": "ZH Bezirksgericht Horgen",
+    "zh_bezirksgericht_hinwil": "ZH Bezirksgericht Hinwil",
+    "zh_bezirksgericht_dietikon": "ZH Bezirksgericht Dietikon",
+    "zh_bezirksgericht_dielsdorf": "ZH Bezirksgericht Dielsdorf",
+    "zh_bezirksgericht_buelach": "ZH Bezirksgericht Bülach",
+    "zh_bezirksgericht_andelfingen": "ZH Bezirksgericht Andelfingen",
+    "zh_bezirksgericht_affoltern": "ZH Bezirksgericht Affoltern",
     "zh_handelsgericht": "ZH Handelsgericht", "zh_kassationsgericht": "ZH Kassationsgericht",
     # Attorney law (Anwaltsrecht)
     "be_anwaltsaufsicht": "BE Anwaltsaufsicht",
-    "sav_kantone": "SAV Kantonale Aufsichtsentscheide",
-    "sav_international": "SAV Internationale Entscheide",
     "tg_anwaltskommission": "TG Anwaltskommission",
     "fr_anwaltsaufsicht": "FR Commission du barreau",
 }
@@ -1741,8 +2115,12 @@ QUERY_STATUTE_INVALID_LAWS = {
     "QUINQUIES",
     "SEXIES",
 }
+# ATF/DTF are the official French/Italian names of the BGE collection (#43),
+# and 'Ia'/'Ib' are real divisions (BGE 116 Ia 28) — both must count as a
+# case-number query, or the search runs the slow natural-language path on
+# them and never pins the decision itself (2026-09-22, ATF 73 II 6).
 QUERY_BGE_PATTERN = re.compile(
-    r"\bBGE\s+\d{2,3}\s+[IVX]{1,4}\s+\d{1,4}\b",
+    r"\b(?:BGE|ATF|DTF)\s+\d{2,3}\s+[IVX]{1,4}[ab]?\s+\d{1,4}\b",
     flags=re.IGNORECASE,
 )
 QUERY_BVGE_PATTERN = re.compile(
@@ -1796,17 +2174,18 @@ def _expand_query_with_llm(query: str) -> list[str]:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-haiku-4-5-20251001",
-                    "max_tokens": 150,
+                    "model": HAIKU_MODEL,
+                    "max_tokens": 200,
+                    **_haiku_request_fields(),
                     "system": EXPANSION_SYSTEM_PROMPT,
                     "messages": [{"role": "user", "content": query}],
                 },
             )
             resp.raise_for_status()
             _resp_json = resp.json()
-            _llm_usage_log(model="claude-haiku-4-5-20251001",
+            _llm_usage_log(model=HAIKU_MODEL,
                             feature="query_expansion", response_json=_resp_json)
-            text = _resp_json["content"][0]["text"]
+            text = _messages_text(_resp_json)
             terms = [t.strip() for t in text.strip().split("\n") if t.strip()]
             terms = terms[:6]
             _LLM_EXPANSION_CACHE.set(cache_key, terms)
@@ -1999,6 +2378,25 @@ except Exception as _mcp_quota_err:                     # noqa: BLE001
     _MCP_QUOTA_AVAILABLE = False
 _ctx_client_ua = contextvars.ContextVar("client_ua", default="")
 _ctx_session_id = contextvars.ContextVar("session_id", default="")
+
+# No-retention endpoint (2026-09-25). The Microsoft 365 Copilot agent
+# (tools/copilot-agent) calls /mcp-edu instead of /mcp, so that a
+# university's data-protection officer can be told the plain fact: its
+# users' queries are not kept. On this path nothing per request is
+# written past the technical logs — no full capture (_capture_event), no
+# search traces (_log_search_trace), no per-IP cost ledger (_llm_usage_log).
+# The Anthropic and LexFind calls themselves are unchanged. The flag is
+# set in MCPRootApp and reaches the tool handler because the stateless
+# Streamable HTTP transport runs each request in a copy of the POST's
+# context; asyncio.to_thread copies it on into the search workers.
+# /mcp-copilot was the first name (agent 1.1.0, 2026-09-25); kept so that
+# tenants that installed 1.1.0 keep the same guarantee.
+_NO_RETENTION_PATHS = frozenset({"/mcp-edu", "/mcp-copilot"})
+_ctx_no_retention = contextvars.ContextVar("no_retention", default=False)
+
+
+def _is_no_retention_path(path: str) -> bool:
+    return (path or "").rstrip("/") in _NO_RETENTION_PATHS
 
 # One opaque id per live MCP connection, minted on first use.
 #
@@ -2427,7 +2825,7 @@ def _traffic_class(client: str | None, src: str, tool: str | None,
 
 def _capture_event(record: dict) -> None:
     """Append one full-capture record. Never raises; never blocks."""
-    if not _FULL_CAPTURE:
+    if not _FULL_CAPTURE or _ctx_no_retention.get():
         return
     try:
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -2890,6 +3288,8 @@ def _start_metrics_flusher():
 
 def _log_search_trace(trace: dict):
     """Append a search trace to the daily research log (non-blocking)."""
+    if _ctx_no_retention.get():
+        return
     try:
         _RESEARCH_LOG_DIR.mkdir(parents=True, exist_ok=True)
         day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -2976,6 +3376,7 @@ def _get_metrics() -> dict:
             "skipped": _metrics["haiku_rerank_skipped"],
             "changed_top": _metrics["haiku_rerank_changed_top"],
         },
+        "lanes": _lanes_snapshot(),
         "search_result_cache": {
             "hits": _metrics["search_result_cache_hits"],
             "misses": _metrics["search_result_cache_misses"],
@@ -3393,6 +3794,8 @@ def search_fts5(
     offset: int = 0,
     sort: str | None = None,
     meta: dict | None = None,
+    published_from: str | None = None,
+    published_to: str | None = None,
 ) -> tuple[list[dict], int]:
     """
     Full-text search using SQLite FTS5 with BM25 ranking.
@@ -3426,7 +3829,7 @@ def search_fts5(
             cache_key = _search_result_cache_key((
                 query, court, canton, language, date_from, date_to,
                 chamber, decision_type, legal_area, marked_for_publication,
-                limit, offset, sort,
+                limit, offset, sort, published_from, published_to,
             ))
             cached = _SEARCH_RESULT_CACHE.get(cache_key)
             if cached is not None:
@@ -3447,26 +3850,60 @@ def search_fts5(
             limit, offset, sort=sort,
             marked_for_publication=marked_for_publication,
             meta=inner_meta,
+            published_from=published_from,
+            published_to=published_to,
         )
-        # Surface the BGE-bound flag on each result (BGer Neuheiten "*" =
-        # "für die Publikation vorgesehen"). Single guarded lookup — the column
-        # exists only after a post-schema-change rebuild; pre-rebuild → omitted.
-        if results and _sqlite_has_column(conn, "decisions", "marked_for_publication"):
-            ids = [r.get("decision_id") for r in results if r.get("decision_id")]
-            if ids:
-                ph = ",".join("?" * len(ids))
-                flags = {
-                    row[0]: row[1]
-                    for row in conn.execute(
-                        f"SELECT decision_id, marked_for_publication "
-                        f"FROM decisions WHERE decision_id IN ({ph})",
-                        ids,
-                    )
-                }
-                for r in results:
-                    v = flags.get(r.get("decision_id"))
-                    if v is not None:
-                        r["marked_for_publication"] = bool(v)
+        # A hit on a source-defect reference matched another ruling's text
+        # (source_defects.py). When hits are dropped, refill the page from a
+        # slightly larger query: a short page reads as the last one. `total`
+        # stays the index's (approximate) count, so it is the same on every page.
+        def _stored_text(did):
+            row = conn.execute(
+                "SELECT full_text FROM decisions WHERE decision_id = ?", (did,)
+            ).fetchone()
+            return row[0] if row else ""
+        kept, _dropped = source_defects.filter_hits(results, _stored_text)
+        if _dropped:
+            more, _ = _search_fts5_inner(
+                conn, query, court, canton, language,
+                date_from, date_to, chamber, decision_type, legal_area,
+                limit + _dropped, offset, sort=sort,
+                marked_for_publication=marked_for_publication,
+                meta={},
+                published_from=published_from,
+                published_to=published_to,
+            )
+            kept = source_defects.filter_hits(more, _stored_text)[0][:limit]
+        results = kept
+        # One primary-key lookup adds two row facts the search SELECTs omit:
+        # publication_date (when the court released it; None where it
+        # publishes none), so a client can tell a late-published ruling from
+        # an old one without a get_decision call, and the BGE-bound flag (BGer
+        # Neuheiten "*" = "für die Publikation vorgesehen"). Each column is
+        # guarded: marked_for_publication exists only after a post-schema-change
+        # rebuild; pre-rebuild → omitted.
+        _extra = [c for c in ("publication_date", "marked_for_publication")
+                  if results and _sqlite_has_column(conn, "decisions", c)]
+        ids = list(dict.fromkeys(r.get("decision_id") for r in results if r.get("decision_id")))
+        if _extra and ids:
+            facts: dict = {}
+            for i in range(0, len(ids), 900):
+                chunk = ids[i:i + 900]
+                ph = ",".join("?" * len(chunk))
+                for row in conn.execute(
+                    f"SELECT decision_id, {', '.join(_extra)} "
+                    f"FROM decisions WHERE decision_id IN ({ph})",
+                    chunk,
+                ):
+                    facts[row[0]] = dict(zip(_extra, tuple(row)[1:]))
+            for r in results:
+                f = facts.get(r.get("decision_id"))
+                if not f:
+                    continue
+                if "publication_date" in f and "publication_date" not in r:
+                    r["publication_date"] = f["publication_date"]
+                if f.get("marked_for_publication") is not None:
+                    r["marked_for_publication"] = bool(f["marked_for_publication"])
         if meta is not None:
             meta.update(inner_meta)
         # A deadline-partial pool is a degraded result the next identical
@@ -3544,6 +3981,92 @@ def _date_arg_error(date_from: str | None, date_to: str | None) -> str | None:
     return None
 
 
+def _published_arg_error(published_from: str | None, published_to: str | None) -> str | None:
+    """Error message for an unparseable publication-date filter, or for
+    published_to without published_from (an open lower end cannot be bounded
+    to the decision-date window, so it would read every row), else None."""
+    bad = [f"{lbl}={v!r}" for lbl, v in (("published_from", published_from),
+                                          ("published_to", published_to))
+           if v and str(v).strip() and _parse_date_param(str(v)) is None]
+    if bad:
+        return ("Unrecognized publication-date filter (" + ", ".join(bad) +
+                "). Use ISO YYYY-MM-DD or Swiss DD.MM.YYYY. The filter was NOT "
+                "applied — re-issue with a valid date rather than trusting these results.")
+    if published_to and str(published_to).strip() and not (
+            published_from and str(published_from).strip()):
+        return ("published_to requires published_from: give the start of the "
+                "publication window too (e.g. published_from=2026-10-01).")
+    return None
+
+
+def _publication_window_floor(published_from: str | None) -> str:
+    """Earliest decision_date a publication-date query considers: published_from
+    (or today, for a bare sort='published_desc') minus PUBLICATION_LAG_WINDOW_DAYS."""
+    start = datetime.strptime(published_from, "%Y-%m-%d") if published_from else datetime.now()
+    return (start - timedelta(days=PUBLICATION_LAG_WINDOW_DAYS)).strftime("%Y-%m-%d")
+
+
+def _publication_filters(
+    alias: str,
+    published_from: str | None,
+    published_to: str | None,
+    date_from: str | None,
+    bound_window: bool,
+) -> tuple[list[str], list, str | None]:
+    """SQL fragments for the publication-date filters.
+
+    Returns (filters, params, window_floor). window_floor is the decision_date
+    lower bound added for the scan; None when the caller gave date_from, which
+    then is the bound (an earlier one widens the window, at the cost of a
+    longer scan). published_to is inclusive of the whole day, so a timestamped
+    publication_date on that day still matches.
+    """
+    filters: list[str] = []
+    params: list = []
+    if published_from:
+        filters.append(f"{alias}publication_date >= ?")
+        params.append(published_from)
+    if published_to:
+        next_day = (datetime.strptime(published_to, "%Y-%m-%d")
+                    + timedelta(days=1)).strftime("%Y-%m-%d")
+        filters.append(f"{alias}publication_date < ?")
+        params.append(next_day)
+    floor = None
+    if bound_window and not date_from:
+        floor = _publication_window_floor(published_from)
+        filters.append(f"{alias}decision_date >= ?")
+        params.append(floor)
+    return filters, params, floor
+
+
+def _has_publication_index(conn: sqlite3.Connection) -> bool:
+    """Whether the served DB carries PUBLICATION_INDEX (built from 2026-10 on)."""
+    try:
+        return conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?",
+            (PUBLICATION_INDEX,),
+        ).fetchone() is not None
+    except sqlite3.Error:
+        return False
+
+
+def _publication_dates(conn: sqlite3.Connection, ids: list[str]) -> dict[str, str | None]:
+    """{decision_id: publication_date} by primary key; {} on a DB without the column."""
+    ids = [i for i in dict.fromkeys(ids) if i]
+    if not ids or not _sqlite_has_column(conn, "decisions", "publication_date"):
+        return {}
+    out: dict[str, str | None] = {}
+    for i in range(0, len(ids), 900):
+        chunk = ids[i:i + 900]
+        ph = ",".join("?" * len(chunk))
+        for row in conn.execute(
+            f"SELECT decision_id, publication_date FROM decisions WHERE decision_id IN ({ph})",
+            chunk,
+        ):
+            out[row[0]] = row[1]
+    return out
+
+
 def _search_fts5_inner(
     conn: sqlite3.Connection,
     query: str,
@@ -3560,6 +4083,8 @@ def _search_fts5_inner(
     sort: str | None = None,
     marked_for_publication: bool | None = None,
     meta: dict | None = None,
+    published_from: str | None = None,
+    published_to: str | None = None,
 ) -> tuple[list[dict], int]:
     """Inner search logic. Returns (results, total_count). Caller closes conn.
 
@@ -3569,7 +4094,7 @@ def _search_fts5_inner(
     if meta is not None:
         meta["total_is_lower_bound"] = False
     _trace_t0 = time.monotonic()
-    _deadline = (_trace_t0 + SEARCH_DEADLINE_MS / 1000.0) if SEARCH_DEADLINE_MS > 0 else None
+    _deadline = _search_deadline(_trace_t0)
     _trace = {
         # Privacy contract (/datenschutz/): search query CONTENT is never
         # persisted. Search traces are kept for latency/strategy analysis, so we
@@ -3606,11 +4131,14 @@ def _search_fts5_inner(
     # correct (issue #45); Swiss DD.MM.YYYY now works, unparseable -> dropped.
     date_from = _parse_date_param(date_from)
     date_to = _parse_date_param(date_to)
+    published_from = _parse_date_param(published_from)
+    published_to = _parse_date_param(published_to) if published_from else None
 
     fts_query = _sanitize_fts5(query)
     if not fts_query.strip():
         # No search query — return recent decisions with filters
-        return _list_recent(conn, court, canton, language, date_from, date_to, chamber, decision_type, limit, offset, sort=sort, marked_for_publication=marked_for_publication)
+        return _list_recent(conn, court, canton, language, date_from, date_to, chamber, decision_type, limit, offset, sort=sort, marked_for_publication=marked_for_publication,
+                            published_from=published_from, published_to=published_to, meta=meta)
 
     # Build WHERE clause for filters (applied to main table via JOIN)
     filters = []
@@ -3641,12 +4169,31 @@ def _search_fts5_inner(
     # so the query never references the column on a pre-rebuild served DB.
     if marked_for_publication and _sqlite_has_column(conn, "decisions", "marked_for_publication"):
         filters.append("d.marked_for_publication = 1")
+    # Publication-date window. FTS drives this path, so the decision-date floor
+    # is not needed for speed; it is applied anyway so a query returns the same
+    # set whether or not it carries search terms.
+    if published_from:
+        _pf, _pp, _floor = _publication_filters(
+            "d.", published_from, published_to, date_from,
+            bound_window=not (court and _has_publication_index(conn)))
+        filters.extend(_pf)
+        params.extend(_pp)
+        if meta is not None and _floor:
+            meta["publication_window_floor"] = _floor
     # legal_area is NOT a WHERE filter — too many decisions lack this field.
     # Instead it's used as a reranking boost (see _rerank_rows).
 
     where = (" AND " + " AND ".join(filters)) if filters else ""
 
     is_docket_query = _looks_like_docket_query(fts_query)
+    # The sanitizer turns "4A_82/2024" into "4A_82 2024", which no longer looks
+    # like a docket, so every federal docket took the 5-50 s full-text path and
+    # citing decisions and near numbers ranked with or above it (2026-10-01,
+    # 2026-10-10). Gate on the raw query too, and look the docket up raw.
+    raw_query = (query or "").strip()
+    sanitized_is_docket = is_docket_query
+    raw_is_docket = (not _condensed_info) and _looks_like_docket_query(raw_query)
+    is_docket_query = is_docket_query or raw_is_docket
     # Explicit-syntax detection runs on the ORIGINAL query: the sanitizer
     # rewrites 'Art. 335 OR' into 'Art 335 "OR"', which defeated the statute
     # mask AND tripped the quote-count branch, cutting every statute-citing
@@ -3660,21 +4207,81 @@ def _search_fts5_inner(
         inline_docket_candidates.insert(0, collapsed)
     inline_docket_results: list[dict] = []
     query_preferred_courts = _detect_query_preferred_courts(fts_query)
+    # A BGE/ATF/DTF or bare '73 II 6' reference names ONE ruling; resolve it by
+    # exact tuple through the primary key and pin it first, whatever the rest
+    # of the search returns. The raw query, not fts_query: the sanitizer may
+    # rewrite a pinpoint suffix, and the tuple parser ignores it anyway.
+    bge_pinned = _search_bge_tuple(conn, query, where, params)
+
+    # A BGE reference: the ruling, then the decisions citing it, from the
+    # citation graph (indexed). Until 2026-10-10 the citing list came from full
+    # text over the reference's tokens ("147", "I", "1"), which matched
+    # millions of rows: "BGE 147 I 1" took 10-23 s on a calm server and timed
+    # out at 60 s under load, and it also listed decisions that merely
+    # contained the numbers. Design of 2026-10-02 kept: ruling first, citing
+    # decisions after. Without the graph the ruling alone answers, at once.
+    if is_docket_query and bge_pinned and _bge_ref_candidates(raw_query):
+        citing = _bge_citing_rows(conn, bge_pinned[0]["decision_id"], where, params, offset + limit)
+        if citing is None:
+            if meta is not None:
+                meta["citing_unavailable"] = True
+            return bge_pinned[offset:offset + limit], len(bge_pinned)
+        merged = _dedupe_results_by_decision_id(bge_pinned + citing["rows"])
+        if where:
+            total = len(merged)
+            if meta is not None:
+                meta["total_is_lower_bound"] = len(citing["rows"]) >= offset + limit
+        else:
+            total = len(bge_pinned) + citing["total"]
+        return merged[offset:offset + limit], total
 
     # Docket-style lookups should prioritize exact/near-exact docket matches.
     if is_docket_query:
         # Extract just the docket portion from mixed queries like "BGer 4A_291/2017"
-        docket_search_query = inline_docket_candidates[0] if inline_docket_candidates else fts_query
+        raw_candidates = _extract_inline_docket_candidates(raw_query) if raw_is_docket else []
+        if raw_candidates:
+            docket_search_query = raw_candidates[0]
+        elif raw_is_docket:
+            docket_search_query = raw_query
+        else:
+            docket_search_query = inline_docket_candidates[0] if inline_docket_candidates else fts_query
         try:
             docket_results = _search_by_docket(
                 conn, docket_search_query, where, params, offset + limit,
                 preferred_courts=query_preferred_courts,
             )
+            if docket_results and bge_pinned:
+                docket_results = _dedupe_results_by_decision_id(bge_pinned + docket_results)
+            # Exact = the stored docket is one of the variants (docket_rank 0,
+            # relevance 100); the rest are the related docket family (near
+            # numbers). BGE references keep their design (2026-10-02): the
+            # pinned ruling first, then the full-text list of decisions citing
+            # it, so they are left to the paths below untouched.
+            if (not bge_pinned and not _bge_ref_candidates(raw_query)
+                    and not any(r.get("relevance_score") == 100.0 for r in docket_results)):
+                # A docket stored with a space ("6B 1070/2018") is not among the
+                # variants, and the near numbers must never stand in for it
+                # (2026-10-10: 6B_1069/1071/... returned without the ruling).
+                exact_rows = _search_exact_docket_rows(
+                    conn, raw_query, where, params, offset + limit)
+                if exact_rows:
+                    docket_results = _dedupe_results_by_decision_id(exact_rows + docket_results)
+                elif not sanitized_is_docket:
+                    # Gated on the raw query only and nothing holds the docket:
+                    # full text, exactly as before the raw gate existed.
+                    docket_results = []
             if docket_results:
                 if sort in ("date_desc", "date_asc"):
                     reverse = sort == "date_desc"
                     docket_results.sort(
                         key=lambda r: r.get("decision_date") or "", reverse=reverse,
+                    )
+                elif sort == "published_desc":
+                    _pub = _publication_dates(conn, [r.get("decision_id") for r in docket_results])
+                    docket_results.sort(
+                        key=lambda r: (_pub.get(r.get("decision_id")) or "",
+                                       r.get("decision_date") or ""),
+                        reverse=True,
                     )
                 total = len(docket_results)
                 return docket_results[offset:offset + limit], total
@@ -3694,6 +4301,10 @@ def _search_fts5_inner(
                 logger.debug("Inline docket lookup failed for %s: %s", candidate, e)
                 continue
         inline_docket_results = _dedupe_results_by_decision_id(inline_docket_results)
+    if bge_pinned:
+        # Pinned ahead of every inline-docket and full-text hit; the merge
+        # below keeps primary rows first and drops the ruling's other id.
+        inline_docket_results = _dedupe_results_by_decision_id(bge_pinned + inline_docket_results)
 
     _bm25_weights = ", ".join(
         str(SCORING_CONFIG[k]) for k in [
@@ -4104,22 +4715,40 @@ def _search_fts5_inner(
     LLM_BGE_RRF_WEIGHT = SCORING_CONFIG["llm_bge_rrf_weight"]
     STRUCTURED_BGE_RRF_WEIGHT = SCORING_CONFIG["structured_bge_rrf_weight"]
     if not is_docket_query:
-        bge_pattern = re.compile(r"BGE\s+(\d{1,3})\s+([IVX]{1,4})\s+(\d{1,4})", re.IGNORECASE)
-        llm_bge_ids: list[str] = []
-        structured_bge_ids: list[str] = []
+        bge_pattern = re.compile(r"BGE\s+(\d{1,3})\s+([IVX]{1,4}[ab]?)\s+(\d{1,4})", re.IGNORECASE)
+        llm_bge_refs: list[str] = []
+        structured_bge_refs: list[str] = []
         # From structured parse (deterministic)
         for bge_ref in (structured_parse.get("leading_bge") or []):
             m = bge_pattern.search(bge_ref)
             if m:
-                candidate_id = f"bge_BGE_{m.group(1)}_{m.group(2).upper()}_{m.group(3)}"
-                structured_bge_ids.append(candidate_id)
+                structured_bge_refs.append(f"BGE {m.group(1)} {m.group(2)} {m.group(3)}")
         # From LLM free-text expansion (stochastic, fallback)
         if llm_terms:
             for term in llm_terms:
                 for m in bge_pattern.finditer(term):
-                    candidate_id = f"bge_BGE_{m.group(1)}_{m.group(2).upper()}_{m.group(3)}"
-                    if candidate_id not in structured_bge_ids:
-                        llm_bge_ids.append(candidate_id)
+                    ref = f"BGE {m.group(1)} {m.group(2)} {m.group(3)}"
+                    if ref not in structured_bge_refs:
+                        llm_bge_refs.append(ref)
+        # Each reference -> the id the BGE is stored under: bge_BGE_ while the
+        # entscheidsuche rows are served, the direct scraper's id otherwise
+        # ("bge_140 III 244", Ia/Ib upper-case) (#40). One indexed lookup.
+        _ref_cands = {ref: _bge_ref_candidates(ref)
+                      for ref in dict.fromkeys(structured_bge_refs + llm_bge_refs)}
+        _flat = [c for cands in _ref_cands.values() for c in cands]
+        _stored: set[str] = set()
+        if _flat:
+            _stored = {r["decision_id"] for r in conn.execute(
+                f"SELECT decision_id FROM decisions WHERE decision_id IN "
+                f"({','.join('?' for _ in _flat)})", _flat).fetchall()}
+
+        def _stored_id(ref: str) -> str:
+            cands = _ref_cands.get(ref) or [ref]
+            return next((c for c in cands if c in _stored), cands[0])
+
+        structured_bge_ids = list(dict.fromkeys(_stored_id(r) for r in structured_bge_refs))
+        llm_bge_ids = [i for i in dict.fromkeys(_stored_id(r) for r in llm_bge_refs)
+                       if i not in structured_bge_ids]
         all_bge_ids = structured_bge_ids + llm_bge_ids
         if all_bge_ids:
             # Fetch rows for BGE IDs not already in pool
@@ -4156,6 +4785,10 @@ def _search_fts5_inner(
 
     if candidate_meta:
         rows_for_rerank = [m["row"] for m in candidate_meta.values()]
+        _rerank_pub_dates = (
+            _publication_dates(conn, list(candidate_meta.keys()))
+            if sort == "published_desc" else None
+        )
         fusion_scores = {
             did: {
                 "rrf_score": float(meta["rrf_score"]),
@@ -4178,6 +4811,7 @@ def _search_fts5_inner(
                 sort=sort,
                 is_docket_query=is_docket_query,
                 deadline=_deadline,
+                publication_dates=_rerank_pub_dates,
             )
             merged = _merge_priority_results(
                 primary=inline_docket_results,
@@ -4202,6 +4836,7 @@ def _search_fts5_inner(
             is_docket_query=is_docket_query,
             deadline=_deadline,
             signal_sink=_signal_sink,
+            publication_dates=_rerank_pub_dates,
         )
         reranked = _dedupe_results_by_decision_id(reranked)
         # Per-signal contributions for what actually surfaced. Only the
@@ -4213,7 +4848,7 @@ def _search_fts5_inner(
             for r in reranked[:10] if r.get("decision_id") in _signal_sink
         }
         # Soft boost: if legal_area filter given, promote matching results
-        if legal_area and reranked:
+        if legal_area and reranked and sort != "published_desc":
             la_lower = legal_area.lower()
             if la_lower == "anwaltsrecht":
                 # Use Anwaltsrecht tags DB for hard filtering
@@ -4243,7 +4878,9 @@ def _search_fts5_inner(
         # Cross-lingual interleaving: ensure FR/IT results appear in top results
         # when the query language differs from result language.
         # Reserve ~20% of slots for cross-lingual results if available.
-        if reranked and not language:  # only when no language filter is set
+        # Not under sort="published_desc": interleaving would break the
+        # newest-published order a feed/alert client pages through.
+        if reranked and not language and sort != "published_desc":  # only when no language filter is set
             query_lang = _detect_query_languages(fts_query)
             primary_lang = query_lang[0] if query_lang else "de"
             cross = [r for r in reranked if r.get("language", "") != primary_lang]
@@ -4447,6 +5084,73 @@ def _search_by_docket(
     return results[:limit]
 
 
+def _search_bge_tuple(
+    conn: sqlite3.Connection,
+    raw_query: str,
+    where: str,
+    params: list,
+) -> list[dict]:
+    """The decision a BGE/ATF/DTF or bare 'vol division page' reference names,
+    resolved by exact tuple through the primary key — never by text.
+
+    Volumes 1–79 (14,578 rulings) are stored as 'bge_73_II_6' with docket
+    '73_II_6', later volumes as 'bge_BGE_140_III_115' with 'BGE 140 III 115',
+    and 12,367 rulings exist under a prefixed AND a spaced id. The docket
+    fast path only re-separates the query with / _ . - and so never produced
+    the early shapes; the reference fell through to full text, which ranked
+    the decisions CITING it above the ruling itself (ATF 73 II 6, 2026-09-22).
+    Returns at most one row per tuple, preferring the prefixed id: on every
+    sampled dual ruling that copy carries the fuller text. Honors the caller's
+    WHERE filters (court, language, dates) exactly like the docket path.
+    Returns [] for anything that is not a BGE reference."""
+    ids = _bge_ref_candidates(raw_query)
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    sql = f"""
+        SELECT
+            d.decision_id,
+            d.court,
+            d.canton,
+            d.chamber,
+            d.docket_number,
+            d.decision_date,
+            d.language,
+            d.title,
+            d.regeste,
+            NULL as snippet,
+            d.source_url,
+            d.pdf_url
+        FROM decisions d
+        WHERE d.decision_id IN ({placeholders}){where}
+    """
+    try:
+        rows = conn.execute(sql, [*ids, *params]).fetchall()
+    except sqlite3.OperationalError as e:
+        logger.debug("BGE tuple lookup failed for %r: %s", raw_query, e)
+        return []
+    if not rows:
+        return []
+    rank = {did: i for i, did in enumerate(ids)}
+    rows = sorted(rows, key=lambda r: rank.get(r["decision_id"], len(ids)))
+    r = rows[0]
+    return [{
+        "decision_id": r["decision_id"],
+        "court": r["court"],
+        "canton": r["canton"],
+        "chamber": r["chamber"],
+        "docket_number": r["docket_number"],
+        "decision_date": r["decision_date"],
+        "language": r["language"],
+        "title": r["title"],
+        "regeste": _truncate(r["regeste"], MAX_SNIPPET_LEN) if r["regeste"] else None,
+        "snippet": r["snippet"],
+        "source_url": r["source_url"],
+        "pdf_url": r["pdf_url"],
+        "relevance_score": 100.0,
+    }]
+
+
 def _search_related_docket_family(
     conn: sqlite3.Connection,
     *,
@@ -4591,6 +5295,111 @@ def _extract_docket_serial(docket: str, *, prefix: str, year: str) -> int | None
         return None
 
 
+# Minimum graph confidence for a decision listed as citing a BGE in search.
+BGE_CITING_MIN_CONFIDENCE = 0.5
+
+
+def _bge_citing_rows(conn: sqlite3.Connection, decision_id: str, where: str, params: list,
+                     need: int) -> dict | None:
+    """Search rows of the decisions citing `decision_id`, newest first, from the
+    reference graph, honouring the caller's WHERE filters; plus the graph's
+    total of distinct citing decisions. None when the graph is unavailable."""
+    g = _get_graph_conn()
+    if g is None:
+        return None
+    variants = _decision_id_variants(decision_id)
+    ph = ",".join("?" for _ in variants)
+    try:
+        total = g.execute(
+            f"SELECT COUNT(DISTINCT source_decision_id) FROM citation_targets "
+            f"WHERE target_decision_id IN ({ph}) AND confidence_score >= ?",
+            (*variants, BGE_CITING_MIN_CONFIDENCE)).fetchone()[0]
+        ids = [r[0] for r in g.execute(
+            f"""SELECT ct.source_decision_id FROM citation_targets ct
+                JOIN decisions d ON d.decision_id = ct.source_decision_id
+                WHERE ct.target_decision_id IN ({ph}) AND ct.confidence_score >= ?
+                GROUP BY ct.source_decision_id
+                ORDER BY MAX(d.decision_date) DESC, ct.source_decision_id
+                LIMIT ?""",
+            (*variants, BGE_CITING_MIN_CONFIDENCE, max(need, 1) * (4 if where else 1))).fetchall()]
+    except sqlite3.Error as e:
+        logger.debug("citing lookup for %s failed: %s", decision_id, e)
+        return None
+    finally:
+        g.close()
+    ids = [i for i in ids if i not in set(variants)]
+    if not ids:
+        return {"rows": [], "total": total}
+    rows = _search_rows_for_ids(conn, ids, where, params, relevance=50.0)
+    return {"rows": rows[:max(need, 1)], "total": total}
+
+
+def _search_rows_for_ids(conn: sqlite3.Connection, ids: list[str], where: str, params: list,
+                         *, relevance: float) -> list[dict]:
+    """Search-result rows for `ids` in that order, honouring the WHERE filters."""
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    try:
+        rows = conn.execute(
+            f"""SELECT d.decision_id, d.court, d.canton, d.chamber, d.docket_number, d.decision_date,
+                       d.language, d.title, d.regeste, d.source_url, d.pdf_url
+                FROM decisions d WHERE d.decision_id IN ({placeholders}){where}""",
+            [*ids, *params]).fetchall()
+    except sqlite3.OperationalError as e:
+        logger.debug("search rows for ids failed: %s", e)
+        return []
+    order = {did: i for i, did in enumerate(ids)}
+    out = [{
+        "decision_id": r["decision_id"], "court": r["court"], "canton": r["canton"],
+        "chamber": r["chamber"], "docket_number": r["docket_number"],
+        "decision_date": r["decision_date"], "language": r["language"], "title": r["title"],
+        "regeste": _truncate(r["regeste"], MAX_SNIPPET_LEN) if r["regeste"] else None,
+        "snippet": None, "source_url": r["source_url"], "pdf_url": r["pdf_url"],
+        "relevance_score": relevance,
+    } for r in rows]
+    out.sort(key=lambda r: order.get(r["decision_id"], len(order)))
+    return out
+
+
+def _search_exact_docket_rows(
+    conn: sqlite3.Connection, raw_query: str, where: str, params: list, limit: int,
+) -> list[dict]:
+    """Search rows for the decisions _lookup_exact resolves `raw_query` to (its
+    own docket, separator-agnostic, joined-docket aliases), honouring the
+    caller's WHERE filters, in the shape _search_by_docket returns. [] when
+    nothing resolves or the lookup fails: the caller falls back to full text."""
+    try:
+        ids = [h["decision_id"] for h in (_lookup_exact(raw_query, max(1, min(limit, 25))) or {}).get("results", [])
+               if h.get("decision_id")]
+    except Exception as e:  # noqa: BLE001 - a fast path, never a failure
+        logger.debug("exact docket lookup failed for %r: %s", raw_query, e)
+        return []
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    try:
+        rows = conn.execute(
+            f"""SELECT d.decision_id, d.court, d.canton, d.chamber, d.docket_number, d.decision_date,
+                       d.language, d.title, d.regeste, d.source_url, d.pdf_url
+                FROM decisions d WHERE d.decision_id IN ({placeholders}){where}""",
+            [*ids, *params]).fetchall()
+    except sqlite3.OperationalError as e:
+        logger.debug("exact docket rows failed for %r: %s", raw_query, e)
+        return []
+    order = {did: i for i, did in enumerate(ids)}
+    out = [{
+        "decision_id": r["decision_id"], "court": r["court"], "canton": r["canton"],
+        "chamber": r["chamber"], "docket_number": r["docket_number"],
+        "decision_date": r["decision_date"], "language": r["language"], "title": r["title"],
+        "regeste": _truncate(r["regeste"], MAX_SNIPPET_LEN) if r["regeste"] else None,
+        "snippet": None, "source_url": r["source_url"], "pdf_url": r["pdf_url"],
+        "relevance_score": 100.0,
+    } for r in rows]
+    out.sort(key=lambda r: order.get(r["decision_id"], len(order)))
+    return out
+
+
 def _build_docket_variants(raw_query: str) -> set[str]:
     q = re.sub(r"\s+", "", (raw_query or ""))
     if not q:
@@ -4671,6 +5480,7 @@ def _dedupe_results_by_decision_id(rows: list[dict]) -> list[dict]:
     out: list[dict] = []
     seen_ids: set[str] = set()
     seen_canonical: set[str] = set()
+    seen_bge_tuples: set[str] = set()
     for row in rows:
         did = row.get("decision_id")
         if not did or did in seen_ids:
@@ -4681,9 +5491,18 @@ def _dedupe_results_by_decision_id(rows: list[dict]) -> list[dict]:
         # Skip canonical dedup for empty-docket keys (format: court||date)
         if ckey and "||" not in ckey and ckey in seen_canonical:
             continue
+        # One BGE ruling stored under two ids ('bge_BGE_112_IV_74' and
+        # 'bge_112 IV 74') is one result; the canonical key above cannot see
+        # it because the docket_number spellings differ ('BGE 112 IV 74' vs
+        # '112 IV 74'). First (highest-ranked) spelling wins.
+        tkey = _bge_tuple_key(did)
+        if tkey and tkey in seen_bge_tuples:
+            continue
         seen_ids.add(did)
         if ckey and "||" not in ckey:
             seen_canonical.add(ckey)
+        if tkey:
+            seen_bge_tuples.add(tkey)
         out.append(row)
     return out
 
@@ -4808,6 +5627,156 @@ def _canonical_for(decision_id: str | None) -> dict | None:
         return None
     finally:
         conn.close()
+
+
+# BGE ids per canonical_key, read once from the sidecar and re-read when the
+# sidecar file is replaced. A BGE and the Federal Supreme Court judgment it
+# publishes share one key ("ECLI:CH:BGER:2026:4A_149.2025"); the BGE row names
+# its judgment (underlying_docket), the judgment did not name its BGE, so a
+# lookup of 4A_149/2025 never mentioned BGE 152 III 240 (LinkedIn, 2026-10-16).
+# decisions.docket_number_2 carries the docket on the BGE row but is not
+# indexed, and full-text search for the docket takes minutes on the live
+# table; the sidecar is ~0.2 s to read whole.
+_bge_by_key: dict[str, list[str]] = {}
+_bge_by_key_sig: tuple | None = None
+_bge_by_key_lock = threading.Lock()
+_OLD_BGE_ID_RE = re.compile(r"^bge_BGE_(\d+)_([IVX]+[ab]?)_(\d+)$")
+
+
+def _bge_ids_for_key(key: str | None) -> list[str]:
+    global _bge_by_key, _bge_by_key_sig
+    if not key or not key.startswith("ECLI:CH:BGER:"):
+        return []
+    try:
+        st = CANONICAL_DB_PATH.stat()
+    except OSError:
+        return []
+    sig = (st.st_ino, st.st_mtime_ns, st.st_size)
+    if sig != _bge_by_key_sig:
+        with _bge_by_key_lock:
+            if sig != _bge_by_key_sig:
+                conn = _get_canonical_conn()
+                if conn is None:
+                    return []
+                m: dict[str, list[str]] = {}
+                try:
+                    for did, k in conn.execute(
+                            "SELECT decision_id, canonical_key FROM canonical_identity "
+                            "WHERE decision_id LIKE 'bge\\_%' ESCAPE '\\' "
+                            "AND canonical_key LIKE 'ECLI:CH:BGER:%'"):
+                        # Ids from before the BGE one-id change (2026-10-15)
+                        # name the live row "bge_146 I 126".
+                        o = _OLD_BGE_ID_RE.match(did)
+                        did = f"bge_{o[1]} {o[2]} {o[3]}" if o else did
+                        if did not in m.setdefault(k, []):
+                            m[k].append(did)
+                except sqlite3.Error:
+                    return []
+                finally:
+                    conn.close()
+                _bge_by_key, _bge_by_key_sig = m, sig
+    return _bge_by_key.get(key, [])
+
+
+def _bger_key(docket: str | None, decision_date: str | None) -> str | None:
+    """The canonical_key a BGer judgment carries: ECLI:CH:BGER:<year>:<docket
+    with '/' as '.'>; None without a docket or year."""
+    docket, year = (docket or "").strip(), str(decision_date or "")[:4]
+    if not docket or not year.isdigit():
+        return None
+    # The sidecar's own normalisation: "9C 292/2007", "4C.215/2005" -> "_",
+    # EVG "P 71/01" -> "P71/01".
+    docket = _dft.normalize_docket(docket) if _dft is not None else \
+        re.sub(r"^(\d[A-Z])[ .]", r"\1_", docket)
+    return f"ECLI:CH:BGER:{year}:{docket.replace('/', '.')}"
+
+
+def _published_as_bge(result: dict) -> list[dict]:
+    """The BGE(s) publishing this BGer judgment: same canonical key, same
+    decision date, and (where the BGE row names one) the same docket or one
+    joined to it. A docket
+    can carry an interim order and the judgment in one year, so the date must
+    match. Point lookups only; [] when there is none or the sidecar is absent."""
+    if (result.get("court") or "").lower() != "bger":
+        return []
+    date = str(result.get("decision_date") or "")[:10]
+    if not date:
+        return []
+    # A consolidated proceeding is filed under its lead docket; its BGE can be
+    # keyed on a joined one (BGE 151 I 3: "2C_36/2023 / 2C_38/2023", keyed
+    # 2C_38, judgment stored as 2C_36).
+    dockets = [result.get("docket_number") or "", *(result.get("joined_dockets") or [])]
+    keys = [result.get("canonical_key"), *(_bger_key(d, date) for d in dockets)]
+    ids: list[str] = []
+    for k in keys:
+        for bid in _bge_ids_for_key(k):
+            if bid not in ids:
+                ids.append(bid)
+    if not ids:
+        return []
+    own = {_normalize_docket(d) for d in dockets if d}
+    out: list[dict] = []
+    conn = get_db()
+    try:
+        for bid in ids:
+            row = conn.execute(
+                "SELECT decision_id, court, docket_number, docket_number_2, decision_date "
+                "FROM decisions WHERE decision_id = ?", (bid,)).fetchone()
+            if not row:
+                continue
+            row = dict(row)
+            if (row.get("court") or "") != "bge" or str(row.get("decision_date") or "")[:10] != date:
+                continue
+            d2 = row.get("docket_number_2")
+            if d2 and _normalize_docket(d2) not in own:
+                continue
+            cs = _build_citation_strings(row)
+            out.append({"decision_id": row["decision_id"],
+                        "citation_string_de": cs["citation_string_de"],
+                        "citation_string_fr": cs["citation_string_fr"],
+                        "citation_string_it": cs["citation_string_it"],
+                        "canonical_url": cs["canonical_url"]})
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+    return out
+
+
+def _full_decision_for_bge(result: dict, docket: str | None) -> dict | None:
+    """The BGer judgment a BGE publishes: a bger row under the BGE's own docket
+    with the BGE's date (indexed docket lookup); None when not held. The
+    caption writes "9C_292/2007"; 66,456 bger rows store "9C 292/2007", the
+    pre-2007 ones "4C.215/2005"."""
+    date = str(result.get("decision_date") or "")[:10]
+    if not docket or not date:
+        return None
+    forms = {docket, *(re.sub(r"^(\d[A-Z])[_ .]", r"\1" + sep, docket) for sep in "_ .")}
+    forms.add(re.sub(r"^([A-Z]{1,2})\s?(\d{1,4}/\d{2})$", r"\1 \2", docket))   # EVG "P71/01" -> "P 71/01"
+    forms = sorted(forms)
+    conn = get_db()
+    try:
+        # No court term in SQL: with "AND court = 'bger'" SQLite picks
+        # idx_decisions_court and walks every bger row (2026-10-16: the disk
+        # sat at its IOPS cap within minutes of the deploy). Filter here.
+        rows = conn.execute(
+            "SELECT decision_id, court, docket_number, decision_date FROM decisions "
+            f"INDEXED BY idx_decisions_docket WHERE docket_number IN ({','.join('?' * len(forms))})",
+            forms).fetchall()
+    except sqlite3.Error:
+        return None
+    finally:
+        conn.close()
+    hits = [dict(r) for r in rows
+            if r["court"] == "bger" and str(r["decision_date"] or "")[:10] == date]
+    if len(hits) != 1:
+        return None
+    cs = _build_citation_strings(hits[0])
+    return {"decision_id": hits[0]["decision_id"],
+            "citation_string_de": cs["citation_string_de"],
+            "citation_string_fr": cs["citation_string_fr"],
+            "citation_string_it": cs["citation_string_it"],
+            "canonical_url": cs["canonical_url"]}
 
 
 _manifest_warned = False
@@ -6595,7 +7564,10 @@ def _bge_ref_candidates(ref: str) -> list[str]:
     # "mkg_MKGE_16_Nr_1") still fail that regex and yield [] exactly as before,
     # and the expansion stays keyed on the exact (vol, division, page) tuple,
     # so widening the input cannot resolve to a different decision.
-    r = re.sub(r"^bge_(?:BGE_)?", "", r, flags=re.IGNORECASE).replace("_", " ")
+    # "bge_historical_78_IV_83" is the scraper's id for volumes 1-79, which the
+    # build serves as "bge_78_IV_83" (build_fts5.ID_PREFIX_REMAP); a dataset or
+    # structure-parquet consumer holds the scraper form (user report 2026-10-07).
+    r = re.sub(r"^bge_(?:BGE_|historical_)?", "", r, flags=re.IGNORECASE).replace("_", " ")
     # Division = roman numeral + optional 'a'/'b' suffix (BGE 116 Ia 28). Roman
     # part upper-cased, suffix lower-cased, to match the stored 'Ia'/'III' form.
     m = re.match(r"(?:(?:BGE|ATF|DTF)\s+)?(\d+)\s+([IVX]+)([ab]?)\s+(\d+)\s*$",
@@ -6605,7 +7577,24 @@ def _bge_ref_candidates(ref: str) -> list[str]:
     vol = m.group(1)
     div = m.group(2).upper() + m.group(3).lower()
     page = m.group(4)
-    return [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    out = [f"bge_BGE_{vol}_{div}_{page}", f"bge_{vol}_{div}_{page}", f"bge_{vol} {div} {page}"]
+    if div != div.upper():
+        # The direct scraper stores Ia/Ib upper-case ("bge_116 IA 28"); ids
+        # are matched exactly, so without this the ruling is found only
+        # through the entscheidsuche rows (#40).
+        out.append(f"bge_{vol} {div.upper()} {page}")
+    return out
+
+
+def _bge_tuple_key(decision_id: str | None) -> str | None:
+    """The one key shared by every stored spelling of a BGE ruling (its
+    prefixed id, 'bge_BGE_112_IV_74'), or None for any other decision. The
+    corpus holds 12,367 BGE rulings under two ids at once (prefixed and
+    spaced, 2026-09-22); a result list must show such a ruling once."""
+    if not decision_id or not decision_id.startswith("bge_"):
+        return None
+    cands = _bge_ref_candidates(decision_id)
+    return cands[0] if cands else None
 
 
 def _docket_is_prefix_of_longer(inp: str, docket: str | None) -> bool:
@@ -6685,6 +7674,128 @@ def _lookup_docket_alias(conn: sqlite3.Connection, reference: str | None) -> lis
     except sqlite3.OperationalError:
         return []  # alias table not present yet
     return [r[0] for r in rows]
+
+
+def _lookup_previous_id(conn: sqlite3.Connection, reference: str | None) -> str | None:
+    """The current decision_id of a row that used to carry ``reference`` as its
+    id before a re-key (decision_id_aliases; BS Gerichte moved from the case
+    number to the court's decision number on 2026-09-17). Exact, indexed, and
+    joined on decisions so an alias whose target was deduplicated away falls
+    through. Guarded: None when the table is absent (a server on a pre-rebuild
+    DB or a minimal fixture), so this can never raise."""
+    ref = (reference or "").strip()
+    if not ref:
+        return None
+    try:
+        row = conn.execute(
+            "SELECT a.decision_id FROM decision_id_aliases a "
+            "JOIN decisions d ON d.decision_id = a.decision_id "
+            "WHERE a.previous_id = ?",
+            (ref,),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    return row[0] if row else None
+
+
+def _lookup_padded_id(conn: sqlite3.Connection, reference: str | None) -> str | None:
+    """The stored id of ``reference`` written without (or with other) trailing
+    underscores. Ids minted from a docket that ended in a newline and spaces
+    carry one underscore per character ('vd_findinfo_353___________': 2,722
+    vd_findinfo rows, 11,700 ch_vb, ~300 elsewhere on 2026-10-13); the docket was
+    trimmed at build time, the id was not, so the id a reader derives from the
+    docket ('vd_findinfo_353') answered "not found". Primary-key lookups only:
+    the bare base, then the range base+'_' .. base+'_'*64, which holds every
+    base-plus-underscores id (and the few other base_* ids, filtered out).
+    Unique match only.
+    """
+    reference = (reference or "").strip()
+    base = reference.rstrip("_")
+    if not base or "_" not in base:
+        return None
+    hits: list[str] = []
+    row = conn.execute(
+        "SELECT decision_id FROM decisions WHERE decision_id = ?", (base,)
+    ).fetchone()
+    if row and row[0] != reference:
+        hits.append(row[0])
+    hits += [
+        r[0] for r in conn.execute(
+            "SELECT decision_id FROM decisions WHERE decision_id >= ? "
+            "AND decision_id <= ? LIMIT 256",
+            (base + "_", base + "_" * 64),
+        )
+        if r[0].rstrip("_") == base and r[0] != reference
+    ]
+    return hits[0] if len(hits) == 1 else None
+
+
+_DOCKET_HOMONYM_SCAN = 500   # rows read per docket; the count says "500+" beyond
+_DOCKET_HOMONYMS_LISTED = 10  # entries shown in other_decisions_with_docket
+
+
+def _docket_homonyms(conn: sqlite3.Connection, docket: str | None,
+                     chosen_id: str | None, limit: int = _DOCKET_HOMONYM_SCAN) -> list[dict]:
+    """Other decisions stored under exactly ``docket``, newest first, excluding
+    ``chosen_id`` and its known duplicate representations.
+
+    A bare docket is not unique across courts or years: '353' is both a VD
+    Tribunal cantonal ruling of 4 September 2023 and one of 27 December 2011
+    (report 2026-10-13). The lookup serves the newest, which is the long-standing
+    behaviour; this lets the response say that it chose, and among what, instead
+    of presenting one of several rulings as the only reading. Indexed
+    (idx_decisions_docket); never raises."""
+    docket = (docket or "").strip()
+    if not docket or not chosen_id:
+        return []
+    try:
+        rows = conn.execute(
+            "SELECT decision_id, court, decision_date FROM decisions "
+            "WHERE docket_number = ? AND decision_id != ? "
+            "ORDER BY decision_date DESC LIMIT ?",
+            (docket, chosen_id, limit + 1),
+        ).fetchall()
+    except sqlite3.Error:
+        return []
+    if not rows:
+        return []
+    same: set[str] = set()
+    rep = _representation_info(chosen_id)
+    if rep:
+        same.add(rep.get("canonical_decision_id") or "")
+        same.update(m.get("decision_id") or "" for m in rep.get("members") or [])
+    return [
+        {"decision_id": r[0], "court": r[1], "decision_date": r[2]}
+        for r in rows if r[0] not in same
+    ][:limit + 1]  # one past the cap, so the caller can say "more than"
+
+
+def _attach_docket_ambiguity(result: dict, docket: str | None, others: list[dict]) -> None:
+    """Mark a response resolved from a docket that other decisions share.
+
+    ``others`` is the whole scan (up to _DOCKET_HOMONYM_SCAN + 1 rows); the
+    response lists the newest _DOCKET_HOMONYMS_LISTED and states the total, so
+    a capped list is never presented as all of them (docket '353' is carried by
+    more than ten VD records; the reported 2011 ruling was the eleventh)."""
+    shown = others[:_DOCKET_HOMONYMS_LISTED]
+    total = (f"more than {_DOCKET_HOMONYM_SCAN}" if len(others) > _DOCKET_HOMONYM_SCAN
+             else str(len(others)))
+    result["docket_ambiguous"] = True
+    result["other_decisions_with_docket"] = shown
+    result["other_decisions_with_docket_total"] = (
+        len(others) if len(others) <= _DOCKET_HOMONYM_SCAN else f">{_DOCKET_HOMONYM_SCAN}")
+    listed = ("all listed" if len(shown) == len(others)
+              else f"the newest {len(shown)} listed in other_decisions_with_docket")
+    result["docket_ambiguity_note"] = (
+        f"Docket {docket!r} is also carried by {total} other record(s) "
+        f"({listed}), so the docket alone does not identify "
+        "this one: usually another ruling in the same case (an interim order, a "
+        "revision), sometimes another court's case with the same number, and "
+        "where court code differs but the date matches, possibly the same ruling "
+        "filed twice. Check court and date before relying on it, narrow by court "
+        "or date (search_decisions) to find an older one, fetch another by its "
+        "decision_id, and cite whichever you use through cite(decision_id)."
+    )
 
 
 def _joined_dockets_for(conn: sqlite3.Connection, decision_id: str | None) -> list[str]:
@@ -6789,6 +7900,46 @@ def _decision_exists(decision_id: str | None) -> bool:
         conn.close()
 
 
+# "OGE 60/2017/43 vom 10. Januar 2020" — a Schaffhausen Obergericht ruling as
+# the cantonal literature cites it (Obergerichtsentscheid + Abteilung/Jahr/
+# Nummer). A docket can carry several rulings, so a written date must match
+# (search_stack/oge_citation.py, shared with the scholarship extractor).
+_OGE_REF_RE = re.compile(r"^\s*OGE\s+(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)(?![\d/])")
+
+
+def _oge_ref(reference: str) -> tuple[str, str | None] | None:
+    """(docket, cited date / None / UNREADABLE) of an OGE reference, or None."""
+    m = _OGE_REF_RE.match(reference or "")
+    if not m:
+        return None
+    from search_stack.oge_citation import cited_date
+    return m.group(1), cited_date(reference[m.end():])
+
+
+def _oge_unreadable() -> str:
+    from search_stack.oge_citation import UNREADABLE
+    return UNREADABLE
+
+
+def _lookup_oge(conn, reference: str) -> str | None:
+    """decision_id for an "OGE" reference: among the rows carrying the docket
+    (both SH twins), the one of the written date, else the sh_gerichte row
+    when no date is written. One indexed docket lookup; None when the
+    reference is not in OGE form, not held, or no ruling has its date."""
+    ref = _oge_ref(reference)
+    if ref is None:
+        return None
+    docket, date = ref
+    from search_stack.oge_citation import pick
+    rows = conn.execute(
+        "SELECT decision_id, decision_date, court FROM decisions "
+        "WHERE docket_number IN (?, ?) "
+        "AND court IN ('sh_gerichte', 'sh_obergericht')",
+        (f"Nr. {docket}", docket),
+    ).fetchall()
+    return pick([(r[0], r[1], r[2]) for r in rows], date)
+
+
 def _resolve_decision_id(decision_id: str) -> str:
     """Resolve a user-supplied decision_id to the actual stored decision_id.
 
@@ -6813,6 +7964,17 @@ def _resolve_decision_id(decision_id: str) -> str:
             ).fetchone()
             if row:
                 return row[0]
+        _oge_hit = _lookup_oge(conn, decision_id)
+        if _oge_hit:
+            return _oge_hit
+        # An id the row carried before a re-key (decision_id_aliases): exact,
+        # so it comes before any docket fallback.
+        _prev_hit = _lookup_previous_id(conn, decision_id)
+        if _prev_hit:
+            return _prev_hit
+        _pad_hit = _lookup_padded_id(conn, decision_id)
+        if _pad_hit:
+            return _pad_hit
         # Fallback: exact docket — always tried.
         row = conn.execute(
             "SELECT decision_id FROM decisions WHERE docket_number = ? "
@@ -6916,6 +8078,139 @@ def _resolve_parsed_reference(conn, reference: str) -> str | None:
     return None
 
 
+def _existing_decision_ids(conn: sqlite3.Connection, candidates) -> list[str]:
+    """The candidates that are stored decision_ids, in candidate order (PK lookups)."""
+    out: list[str] = []
+    for cid in candidates:
+        row = conn.execute(
+            "SELECT decision_id FROM decisions WHERE decision_id = ?", (cid,)
+        ).fetchone()
+        if row and row[0] not in out:
+            out.append(row[0])
+    return out
+
+
+def _decision_ids_by_docket(conn: sqlite3.Connection, docket: str) -> list[str]:
+    """Every decision stored under exactly this docket_number, newest first —
+    the order _resolve_decision_id picks from (idx_decisions_docket)."""
+    return [r[0] for r in conn.execute(
+        "SELECT decision_id FROM decisions WHERE docket_number = ? "
+        "ORDER BY decision_date DESC LIMIT 8", (docket,),
+    ).fetchall()]
+
+
+def _parsed_reference_ids(conn: sqlite3.Connection, reference: str) -> tuple[list[str], bool]:
+    """_resolve_parsed_reference without its tie-break: every decision the
+    step could have picked, plus whether the step picks the first of several
+    (a BGE label, a stored docket) or resolves a unique hit only (the alias)."""
+    try:
+        parsed = reference_parser.parse_reference(reference)
+    except Exception:  # noqa: BLE001 — a parser fault must not break resolution
+        return [], True
+    if parsed.bge_label and parsed.bge_label != reference.strip():
+        ids = _existing_decision_ids(conn, _bge_ref_candidates(parsed.bge_label))
+        if ids:
+            return ids, True
+    primary = parsed.primary_docket
+    if not primary or (parsed.bge_label and parsed.bge_first):
+        return [], True
+    for variant in reference_parser.docket_variants(primary):
+        rows = conn.execute(
+            "SELECT decision_id, court, canton FROM decisions WHERE docket_number = ? "
+            "ORDER BY decision_date DESC LIMIT 8", (variant,),
+        ).fetchall()
+        if not rows:
+            continue
+        records = [dict(zip(("decision_id", "court", "canton"), tuple(r))) for r in rows]
+        if parsed.courts or parsed.canton:
+            scoped = [r["decision_id"] for r in records if parsed.in_scope(r)]
+            if scoped:
+                return scoped, True
+            continue
+        return [r["decision_id"] for r in records], True
+    return _lookup_docket_alias(conn, primary), False
+
+
+def _reference_id_tiers(conn: sqlite3.Connection, ref: str):
+    """The exact steps of _resolve_decision_id, in its order, each as
+    (every decision_id the step matches, step_picks_first). Lazy, so a hit in
+    an early step never pays for the later ones. The LIKE scan is not a step
+    here: a substring is not an identity (P1.4)."""
+    yield _existing_decision_ids(conn, _bge_ref_candidates(ref)), True
+    prev = _lookup_previous_id(conn, ref)
+    yield ([prev] if prev else []), True
+    yield _decision_ids_by_docket(conn, ref), True
+    ext = _extract_single_docket(ref)
+    yield (_decision_ids_by_docket(conn, ext) if ext and ext != ref else []), True
+    yield _parsed_reference_ids(conn, ref)
+    yield _lookup_ecthr_appno(conn, ref), False
+    yield _lookup_docket_alias(conn, ref), False
+    yield _existing_decision_ids(conn, decision_ref.resolve_decision_ref(ref)), True
+    appno = decision_ref.application_number(ref)
+    yield (_lookup_ecthr_appno(conn, appno) if appno and appno != ref else []), False
+
+
+def _one_decision(ids: list[str]) -> str | None:
+    """The id to serve when every id in ``ids`` is the SAME decision, else None.
+
+    Two spellings of one BGE (vol, division, page) tuple are one decision: the
+    direct and the es-era scrape stored 15,038 of production's 35,455 BGE
+    tuples twice ('bge_BGE_100_Ia_106' and 'bge_100 IA 106', measured
+    2026-09-22), and _bge_ref_candidates already names the preferred spelling
+    first. So are ids the representation manifest links to one canonical
+    (GE procedure/decision numbers, VD dual scrapes). The id returned is
+    always one of ``ids`` — the manifest's canonical when it is among them,
+    else the first, which is the one _resolve_decision_id picks."""
+    ids = list(dict.fromkeys(ids))
+    if len(ids) <= 1:
+        return ids[0] if ids else None
+    tuples = {tuple(_bge_ref_candidates(i)) for i in ids}
+    if len(tuples) == 1 and tuples != {()}:
+        return ids[0]
+    links = _canonical_links_for(ids) or {}
+    canonicals = {links.get(i) or i for i in ids}
+    if len(canonicals) == 1:
+        canonical = next(iter(canonicals))
+        return canonical if canonical in ids else ids[0]
+    return None
+
+
+def _resolve_reference_unique(reference: str) -> str | None:
+    """The one decision a written reference names, or None.
+
+    The resolver behind the public /entscheid/<reference> redirect. It walks
+    the same exact steps as _resolve_decision_id (the resolver behind `cite`)
+    and accepts the result under the same rule, _cite_identity, but where that
+    resolver breaks a tie by date, this one refuses: a step matching several
+    different decisions ends the walk with None, and the page 404s rather than
+    redirecting to one of them. No LIKE scan, indexed lookups only, so an
+    unknown path costs a crawler-heavy route a handful of index probes."""
+    ref = (reference or "").strip()
+    if not ref or len(ref) > 200:
+        return None
+    conn = get_db()
+    try:
+        hit = None
+        for ids, picks_first in _reference_id_tiers(conn, ref):
+            if not ids:
+                continue
+            hit = _one_decision(ids)
+            if hit or picks_first:
+                break
+        if not hit:
+            return None
+        row = conn.execute("SELECT * FROM decisions WHERE decision_id = ?", (hit,)).fetchone()
+        if not row:
+            return None
+        decision = dict(row)
+        decision["joined_dockets"] = _joined_dockets_for(conn, hit)
+    except sqlite3.OperationalError:
+        return None
+    finally:
+        conn.close()
+    return hit if _cite_identity(ref, decision) else None
+
+
 def _decision_id_variants(decision_id: str) -> list[str]:
     """Generate ID variants for graph DB lookups.
 
@@ -6948,6 +8243,115 @@ def _decision_id_variants(decision_id: str) -> list[str]:
                 f"bge_BGE_{core_under}",
             ])
     return list(variants)
+
+
+# BGE dual ids (#40). One BGE is served under two decision_ids: the direct
+# search.bger.ch scraper's "bge_140 III 244" (scrapers/bge.py, the printed
+# reference as docket) and the frozen entscheidsuche feed's
+# "bge_BGE_140_III_244" (es_bge.jsonl). build_fts5's dedup keeps both whenever
+# their dates differ at insert time: 15,038 BGEs in a 2026-09-27 replica of
+# the served build (15,029 pairs, 9 triples), 6,813 of them still dated
+# differently after the build's date correction. Until the representation merge lands, the read paths that
+# list decisions fold a pair into one entry.
+# Divisions Ia/Ib come in either case: the direct scraper stores
+# "bge_116 IA 28", the entscheidsuche feed both "bge_BGE_116_Ia_28" and
+# "bge_BGE_116_IA_28" — a BGE can carry three ids.
+_BGE_TWIN_ID_RE = re.compile(r"^bge_(?:BGE_)?(\d+)[ _]([IVX]+)([abAB]?)[ _](\d+)$")
+
+
+def _bge_twin_key(decision_id: str | None) -> str | None:
+    """The (volume, division, page) key all ids of one BGE share, else None.
+    The division is folded the way _bge_ref_candidates spells it ('Ia')."""
+    m = _BGE_TWIN_ID_RE.match(decision_id or "")
+    if not m:
+        return None
+    return f"{m.group(1)}|{m.group(2)}{m.group(3).lower()}|{m.group(4)}"
+
+
+def _bge_twin_rank(decision_id: str | None) -> int:
+    """Order of the surviving id: the bge_BGE_ form with the division as
+    _bge_ref_candidates (cite, get_decision) spells it first ('Ia', not
+    'IA'), then any other bge_BGE_ form, then the direct scraper's id."""
+    m = _BGE_TWIN_ID_RE.match(decision_id or "")
+    if not m or not decision_id.startswith("bge_BGE_"):
+        return 2
+    return 0 if m.group(3) in ("", "a", "b") else 1
+
+
+def _bge_date_credible(value, decision_id: str | None) -> bool:
+    """A date that can be the ruling date of this BGE: not the 1 January
+    volume placeholder, and inside the window scrapers.bge.
+    header_date_plausible applies to a header date (volume year -3 .. +1)."""
+    key = _bge_twin_key(decision_id)
+    iso = str(value or "")
+    if not key or not iso or iso.endswith("-01-01"):
+        return False
+    try:
+        year = int(iso[:4])
+    except ValueError:
+        return False
+    volume_year = int(key.split("|")[0]) + _BGE_VOLUME_EPOCH
+    return volume_year - 3 <= year <= volume_year + 1
+
+
+def _bge_twin_date(rows) -> str | None:
+    """decision_date of a folded BGE pair: the first credible date in
+    surviving-id order, else the surviving row's own date.
+
+    Measured on the 2026-09-27 replica against the Urteilskopf date: 95.6% of
+    the groups right (98.7% once the pending BGE shard date repair has run),
+    against 70.9% for always taking the bge_BGE_ row's date — its feed carries
+    1 January placeholders for most of the pairs whose dates disagree."""
+    ordered = sorted(rows, key=lambda r: _bge_twin_rank(_row_get(r, "decision_id")))
+    for r in ordered:
+        if _bge_date_credible(_row_get(r, "decision_date"), _row_get(r, "decision_id")):
+            return _row_get(r, "decision_date")
+    return _row_get(ordered[0], "decision_date") if ordered else None
+
+
+def _fold_bge_twin_candidates(
+    candidates: list[tuple[str, int]], global_by_id: dict[str, int],
+) -> tuple[list[tuple[str, int]], dict[str, int]]:
+    """Fold the two ids of one BGE in a ranked (decision_id, count) list into
+    the first, better-ranked one. Counts take the MAXIMUM, never the sum: the
+    graph resolves most citing decisions to BOTH ids (BGE 140 III 244: 256 and
+    214 edges, 198 citing decisions shared), so a sum double-counts them."""
+    out: list[list] = []
+    glob = dict(global_by_id)
+    at: dict[str, int] = {}
+    for did, cnt in candidates:
+        key = _bge_twin_key(did)
+        if key is None or key not in at:
+            if key is not None:
+                at[key] = len(out)
+            out.append([did, cnt])
+            continue
+        kept = out[at[key]]
+        kept[1] = max(kept[1], cnt)
+        if did in glob:
+            glob[kept[0]] = max(glob.get(kept[0], 0), glob[did])
+    return [(did, cnt) for did, cnt in out], glob
+
+
+def _fold_bge_twin_row(kept, twin):
+    """The search row a folded BGE pair is served as: the better-ranked
+    row's score and snippet under the bge_BGE_ id and the credible date
+    (#40). Returns `kept` itself when nothing changes or the two rows are
+    not one BGE."""
+    kid, tid = _row_get(kept, "decision_id"), _row_get(twin, "decision_id")
+    if not _bge_twin_key(kid) or _bge_twin_key(kid) != _bge_twin_key(tid):
+        return kept
+    pair = [kept, twin]
+    best_id = min((kid, tid), key=_bge_twin_rank)
+    best_date = _bge_twin_date(pair)
+    if best_id == kid and best_date == _row_get(kept, "decision_date"):
+        return kept
+    out = dict(kept) if isinstance(kept, dict) else {k: kept[k] for k in kept.keys()}
+    out["decision_id"] = best_id
+    out["decision_date"] = best_date
+    if best_id == tid:
+        out["docket_number"] = _row_get(twin, "docket_number", out.get("docket_number"))
+    return out
 
 
 def _count_citations(decision_id: str) -> tuple[int, int]:
@@ -7157,7 +8561,8 @@ def _find_appeal_chain(
         visited_up: set[str] = set()
 
         # Walk DOWN: find prior instances (what this decision appealed)
-        _walk_chain(conn, decision_id, "down", result["chain"], min_confidence, visited=visited_down)
+        _walk_chain(conn, decision_id, "down", result["chain"], min_confidence, visited=visited_down,
+                    node_date=src["decision_date"] if src else None)
 
         # For BGE decisions: the prior-instance info is usually on the
         # corresponding bger record (the non-BGE version of the same case,
@@ -7186,14 +8591,16 @@ def _find_appeal_chain(
                     ).fetchone()
                     if bger_row:
                         bger_id = bger_row["decision_id"]
-                        _walk_chain(conn, bger_id, "down", result["chain"], min_confidence, visited=visited_down)
+                        _walk_chain(conn, bger_id, "down", result["chain"], min_confidence, visited=visited_down,
+                                    node_date=src["decision_date"])
             except sqlite3.Error:
                 pass
             finally:
                 fts_conn.close()
 
         # Walk UP: find subsequent instances (decisions that appealed this one)
-        _walk_chain(conn, decision_id, "up", result["chain"], min_confidence, visited=visited_up)
+        _walk_chain(conn, decision_id, "up", result["chain"], min_confidence, visited=visited_up,
+                    node_date=src["decision_date"] if src else None)
 
         # Sort chain by date
         result["chain"].sort(key=lambda x: x.get("decision_date") or "")
@@ -7206,6 +8613,14 @@ def _find_appeal_chain(
         conn.close()
 
 
+def _chain_dates_ordered(lower_date: str | None, upper_date: str | None) -> bool:
+    """False only when both dates are known and the lower instance is later."""
+    lo, up = (lower_date or "")[:10], (upper_date or "")[:10]
+    if len(lo) < 10 or len(up) < 10:
+        return True
+    return lo <= up
+
+
 def _walk_chain(
     conn: sqlite3.Connection,
     decision_id: str,
@@ -7214,8 +8629,16 @@ def _walk_chain(
     min_confidence: float,
     visited: set[str],
     depth: int = 0,
+    node_date: str | None = None,
 ) -> None:
-    """Recursively walk the appeal chain in one direction."""
+    """Recursively walk the appeal chain in one direction.
+
+    ``node_date`` is the date of ``decision_id``. A link whose lower instance
+    is dated after its higher one is not an appeal: the docket the higher
+    court named belongs to a different case under the same number (ZH
+    Obergericht LA210028 of 28 Sep 2021 appealed an AN210006-L ruling of
+    3 Aug 2021; the AN210006-L we hold is a different case of 22 Jul 2022).
+    """
     if depth > 5:  # safety limit
         return
     if decision_id in visited:
@@ -7248,6 +8671,8 @@ def _walk_chain(
             target_id = row["target_decision_id"]
             if target_id in visited:
                 continue
+            if not _chain_dates_ordered(row["decision_date"], node_date):
+                continue
             chain.append({
                 "decision_id": target_id,
                 "docket_number": row["docket_number"],
@@ -7259,7 +8684,8 @@ def _walk_chain(
                 "appealed_by": decision_id,
             })
             # Recurse down
-            _walk_chain(conn, target_id, "down", chain, min_confidence, visited, depth + 1)
+            _walk_chain(conn, target_id, "down", chain, min_confidence, visited, depth + 1,
+                        node_date=row["decision_date"])
 
     elif direction == "up":
         # Find subsequent instances: decisions that appealed this one
@@ -7287,6 +8713,8 @@ def _walk_chain(
             source_id = row["source_decision_id"]
             if source_id in visited:
                 continue
+            if not _chain_dates_ordered(node_date, row["decision_date"]):
+                continue
             chain.append({
                 "decision_id": source_id,
                 "docket_number": row["docket_number"],
@@ -7298,7 +8726,8 @@ def _walk_chain(
                 "appeals": decision_id,
             })
             # Recurse up
-            _walk_chain(conn, source_id, "up", chain, min_confidence, visited, depth + 1)
+            _walk_chain(conn, source_id, "up", chain, min_confidence, visited, depth + 1,
+                        node_date=row["decision_date"])
 
 
 def _text_matches_any_statute_hint(text: str, statutes: set[str]) -> bool:
@@ -7361,6 +8790,7 @@ def _rerank_rows(
     is_docket_query: bool = False,
     deadline: float | None = None,
     signal_sink: dict | None = None,
+    publication_dates: dict[str, str | None] | None = None,
 ) -> list[dict]:
     """
     Re-rank lexical FTS candidates with lightweight query-intent signals.
@@ -7587,7 +9017,7 @@ def _rerank_rows(
     # date sort their entire output is overwritten by the re-sort below, so a
     # date-sorted search was paying a ~3 s synchronous Haiku round-trip for a
     # score boost that was provably discarded (integration evaluation latency audit).
-    if sort not in ("date_desc", "date_asc"):
+    if sort not in ("date_desc", "date_asc", "published_desc"):
         scored = _apply_cross_encoder_boosts(scored, raw_query, deadline=deadline)
         scored = _apply_llm_rerank(scored, raw_query, is_docket_query=is_docket_query, deadline=deadline)
     scored.sort(key=lambda x: (-x[0], x[1], x[2]))
@@ -7596,6 +9026,11 @@ def _rerank_rows(
     if sort in ("date_desc", "date_asc"):
         reverse = sort == "date_desc"
         scored.sort(key=lambda x: (x[3]["decision_date"] or ""), reverse=reverse)
+    elif sort == "published_desc":
+        # Undated rows (no publication_date) sort last, newest decision first.
+        _pub = publication_dates or {}
+        scored.sort(key=lambda x: (_pub.get(x[3]["decision_id"]) or "",
+                                   x[3]["decision_date"] or ""), reverse=True)
 
     # ── Enrich results with graph + metadata ──
     # Deduplicate BEFORE paginating (#77). The caller ran
@@ -7615,6 +9050,7 @@ def _rerank_rows(
     _seen_ids: set[str] = set()
     _seen_keys: set[str] = set()
     _seen_dockets: set[str] = set()
+    _docket_at: dict[str, int] = {}
     _deduped: list = []
     for _entry in scored:
         _row = _entry[3]
@@ -7636,12 +9072,18 @@ def _rerank_rows(
             _dn = re.sub(r"^(?:CH)?(?:BGE|ATF|DTF)", "", _dn)
         _dkey = f"{_court}|{_dn}"
         if _dn and _dkey in _seen_dockets:
+            if _court == "bge":
+                _i = _docket_at[_dkey]
+                _k = _deduped[_i]
+                _deduped[_i] = (*_k[:3], _fold_bge_twin_row(_k[3], _row))
+                _seen_ids.add(_did)
             continue
         _seen_ids.add(_did)
         if _ckey and "||" not in _ckey:
             _seen_keys.add(_ckey)
         if _dn:
             _seen_dockets.add(_dkey)
+            _docket_at.setdefault(_dkey, len(_deduped))
         _deduped.append(_entry)
     scored = _deduped
     result_slice = scored[offset:offset + limit]
@@ -8613,6 +10055,11 @@ def _looks_like_docket_query(query: str) -> bool:
 
     if QUERY_BGE_PATTERN.fullmatch(q):
         return True
+    # Anything the BGE resolver parses (ATF/DTF, 'Ia' divisions, a stored id
+    # shape, a trailing pinpoint) is a case number: skip the Haiku parse and
+    # let _search_bge_tuple pin the ruling.
+    if _bge_ref_candidates(q):
+        return True
     if QUERY_BVGE_PATTERN.fullmatch(q):
         return True
     for pattern in QUERY_DOCKET_PATTERNS:
@@ -8867,17 +10314,18 @@ def _apply_llm_rerank(
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-haiku-4-5-20251001",
-                    "max_tokens": 400,
+                    "model": HAIKU_MODEL,
+                    "max_tokens": 520,
+                    **_haiku_request_fields(),
                     "system": LLM_RERANK_PROMPT,
                     "messages": [{"role": "user", "content": user_msg}],
                 },
             )
             resp.raise_for_status()
             _resp_json = resp.json()
-            _llm_usage_log(model="claude-haiku-4-5-20251001",
+            _llm_usage_log(model=HAIKU_MODEL,
                             feature="search_rerank", response_json=_resp_json)
-            text = _resp_json["content"][0]["text"].strip()
+            text = _messages_text(_resp_json).strip()
 
             # Parse JSON array of decision_ids
             if text.startswith("```"):
@@ -8937,7 +10385,7 @@ def _apply_llm_rerank(
         "candidates": top_n,
         "candidate_ids": [r["decision_id"] for _s, _b, _i, r in rerank_subset],
         "llm_order": [d for d in ranked_ids if isinstance(d, str)][:top_n],
-        "judge": {"model": "claude-haiku-4-5-20251001",
+        "judge": {"model": HAIKU_MODEL,
                   "prompt_v": _RERANK_PROMPT_V},
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
@@ -9154,6 +10602,30 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             if row:
                 break
 
+    _via_previous_id = False
+    if not row:
+        # An id the row carried before a re-key (decision_id_aliases): exact,
+        # so it comes before the docket fallback, which for a BS case number
+        # would pick one sibling among several.
+        _prev_hit = _lookup_previous_id(conn, decision_id)
+        if _prev_hit:
+            row = conn.execute(
+                "SELECT * FROM decisions WHERE decision_id = ?", (_prev_hit,)
+            ).fetchone()
+            _via_previous_id = bool(row)
+
+    _via_padded_id = False
+    if not row:
+        # The id written without the trailing underscores a padded docket left
+        # in it ('vd_findinfo_353' for 'vd_findinfo_353___________').
+        _pad_hit = _lookup_padded_id(conn, decision_id)
+        if _pad_hit:
+            row = conn.execute(
+                "SELECT * FROM decisions WHERE decision_id = ?", (_pad_hit,)
+            ).fetchone()
+            _via_padded_id = bool(row)
+
+    _docket_hit: str | None = None
     if not row:
         # Try searching by docket number — prefer newest decision
         row = conn.execute(
@@ -9161,6 +10633,8 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             "ORDER BY decision_date DESC LIMIT 1",
             (decision_id,),
         ).fetchone()
+        if row:
+            _docket_hit = decision_id
 
     if not row:
         # Robustness (#44): resolve a DECORATED form of the tool's own printed
@@ -9172,6 +10646,8 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                 "SELECT * FROM decisions WHERE docket_number = ? "
                 "ORDER BY decision_date DESC LIMIT 1", (_ext,),
             ).fetchone()
+            if row:
+                _docket_hit = _ext
 
     _via_alias = False
     if not row:
@@ -9218,6 +10694,13 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                 break
 
     _joined = _joined_dockets_for(conn, row["decision_id"]) if row else []
+    _homonyms = (_docket_homonyms(conn, _docket_hit, row["decision_id"])
+                 if row and _docket_hit else [])
+    # What the court says happened next ("Weiterzug ans Bundesgericht,
+    # 6B_122/2024"), verbatim, and the decisions it names that we hold.
+    _appeal = appeal_refs.appeal_info_of(row) if row else None
+    _appeal_links = (appeal_refs.resolve(conn, _appeal, row["court"], row["decision_id"])
+                     if _appeal else [])
     conn.close()
 
     if not row:
@@ -9226,6 +10709,10 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     result = dict(row)
     # Remove json_data blob from response (redundant)
     result.pop("json_data", None)
+    if _appeal:
+        result["appeal_info"] = _appeal
+        if _appeal_links:
+            result["appeal_references"] = _appeal_links
     # The caller typed something other than the stored id (a docket, a
     # citation string, a percent-encoded or differently-separated id): say
     # what was resolved so a client can tell normalisation from a mismatch.
@@ -9245,17 +10732,33 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     # Joined-docket resolution (#41): the caller looked up a secondary docket of
     # a consolidated proceeding; surface that the returned decision is the lead,
     # so downstream consumers don't treat the docket mismatch as an error.
+    if _via_previous_id:
+        result["resolved_via"] = "previous_decision_id"
+        result["queried_id"] = decision_id
     if _via_alias:
         result["resolved_via"] = "joined_docket_alias"
         result["queried_docket"] = decision_id
         result["canonical_docket"] = result.get("docket_number")
+    if _via_padded_id:
+        result["resolved_via"] = "padded_decision_id"
+        result["queried_id"] = decision_id
+    if _homonyms:
+        _attach_docket_ambiguity(result, _docket_hit, _homonyms)
 
     # Canonical-identity enrichment (C-2): a text-verified decision date overrides
     # a synthetic YYYY-01-01 placeholder; publication_date and ECLI are added; a
     # date_is_estimated flag lets consumers tell a real date from a placeholder.
     # Never overrides a real (source_metadata) date — the sidecar holds no entry
     # for those. Degrades gracefully when the sidecar is absent.
+    # The sidecar is written by hand (backfill_canonical_identity --write), so it
+    # can outlive a shard repair: BGE 78 IV 83 kept a body-text date of No 21
+    # (1951-07-17) after its row was given the header date. A sidecar date that
+    # disagrees with a real row date is stale, and so is its date-bearing key.
     ci = _canonical_for(result.get("decision_id"))
+    _row_dd = str(result.get("decision_date") or "")[:10]
+    if ci and _row_dd and not _row_dd.endswith("-01-01") \
+            and str(ci.get("decision_date") or "")[:10] != _row_dd:
+        ci = None
     if ci:
         if ci.get("decision_date") and ci.get("decision_date_provenance") == "extracted_from_text":
             result["decision_date"] = ci["decision_date"]
@@ -9266,11 +10769,20 @@ def get_decision_by_id(decision_id: str) -> dict | None:
             result["publication_date_provenance"] = ci.get("publication_date_provenance")
         if ci.get("canonical_key"):
             result["canonical_key"] = ci["canonical_key"]  # internal logical-decision key
+    # A reference whose stored text is another ruling's (source_defects.py,
+    # verified on the source scans) is served without that text, on its volume
+    # placeholder date, with a note — after the sidecar, whose date came from
+    # the same foreign text.
+    result = source_defects.apply(result)
     _dd = result.get("decision_date") or ""
     _prov = result.get("date_provenance")
     result["date_is_estimated"] = bool(
         (not _dd or _dd.endswith("-01-01")) and _prov != "extracted_from_text"
     )
+    _future = _future_date_warning(_dd)
+    if _future:
+        result["date_is_implausible"] = True
+        result["decision_date_warning"] = _future
     # cli:ch — the Swiss-native caselaw identifier (Switzerland is not an ECLI
     # member; cli:ch is the appropriate identifier). Minted on the fly from the row.
     if _mint_cli_ch is not None:
@@ -9290,8 +10802,31 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                     if dcid:
                         result["underlying_docket"] = cap
                         result["cli_ch_full_decision"] = dcid
+                    # A consolidated proceeding's caption can lead with a
+                    # joined docket (BGE 151 I 3: "2C_36/2023 / 2C_38/2023"
+                    # read as 2C_38); the row's docket_number_2 is the lead.
+                    d2 = (result.get("docket_number_2") or "").strip()
+                    full = _full_decision_for_bge(result, cap) or (
+                        _full_decision_for_bge(result, d2) if d2 and d2 != cap else None)
+                    if full:
+                        result["full_decision"] = full
             except Exception:
                 pass
+    # The other direction: a BGer judgment published in the official
+    # collection names its BGE, which is what a brief cites.
+    try:
+        _bge = _published_as_bge(result)
+    except Exception:
+        _bge = []
+    if _bge:
+        result["published_as_bge"] = _bge
+        result["published_as_bge_note"] = (
+            "This judgment is published in the official collection as "
+            + " and ".join(b["citation_string_de"] for b in _bge)
+            + ". Cite the BGE (copy its citation_string verbatim); the BGE "
+            "carries the Regeste and may abridge the reasons, so quote from "
+            "the version you read."
+        )
 
     # BGE-bound flag: DB stores 0/1/NULL; present it as a real bool (or None
     # when unknown). The column exists only after a post-schema-change rebuild,
@@ -9307,7 +10842,8 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     result["court_name"] = _get_court_display_name(court)
     result["court_level"] = _get_court_level(court)
 
-    statutes_map = _batch_fetch_statutes([did], limit_per=8)
+    # The statutes were extracted from the stored text: none for a source defect.
+    statutes_map = {} if result.get("source_defect") else _batch_fetch_statutes([did], limit_per=8)
     statutes = statutes_map.get(did, [])
     if statutes:
         result["statutes"] = statutes
@@ -9376,9 +10912,29 @@ def find_citations(
     incoming_total, outgoing_total = _count_citations_filtered(
         decision_id, min_confidence=min_confidence,
     )
+    # A source defect's outgoing edges were extracted from another ruling's
+    # text (source_defects.py); the incoming ones cite this reference itself.
+    _defect = source_defects.lookup(decision_id)
+    if _defect:
+        # A recovered reference gets its recovery note; its outgoing edges stay
+        # withheld (the graph may still hold the ones from the other text).
+        _stored = None
+        if _defect.recovered_sha256:
+            try:
+                _c = get_db()
+                try:
+                    _r = _c.execute("SELECT full_text FROM decisions WHERE decision_id = ?",
+                                    (decision_id,)).fetchone()
+                    _stored = _r[0] if _r else None
+                finally:
+                    _c.close()
+            except Exception:  # noqa: BLE001 — the note falls back to the defect's own
+                _stored = None
+        result["source_defect"] = source_defects.served_dict(_defect, _stored)
+        outgoing_total = 0
 
     if direction in ("both", "outgoing"):
-        rows = _find_outgoing_citations(
+        rows = [] if _defect else _find_outgoing_citations(
             decision_id, min_confidence=min_confidence, limit=limit, offset=offset,
         )
         result["outgoing"] = rows
@@ -9506,6 +11062,118 @@ def _known_law_codes() -> frozenset[str]:
     return _known_law_codes_cache
 
 
+# find_leading_cases, free-text mode: the most-cited matches are re-ranked
+# by how much of the query their regeste and title carry. Ranking every
+# text match by citation count alone put megacases that mention the topic
+# in passing on top (live 2026-09-24: "résiliation abusive du bail" ->
+# BGE 141 IV 1, standing of the private plaintiff, 4,885 citations). The
+# regeste is the court's own statement of what a case decides, and BGE
+# carry it in DE/FR/IT, so the check works across languages. Measured on
+# production over 32 topic queries, each mapped to its governing
+# provision: the share of the top 10 applying that provision rose from
+# 53% to 66%; over 133 queries (32 topic + 101 from the capture log, 33 of
+# them on the relaxed-OR page), top-10 results with >2,000 citations and
+# no query term in their regeste fell from 120 to 1, at unchanged warm
+# latency (median 0.04 s). The partial-match weight lets a much-cited BGE
+# whose regeste carries most of the query outrank a barely cited ruling
+# that carries all of it; below the partial tier, citations never lift a
+# case.
+_LEADING_TOPIC_HEAD = 100
+_LEADING_TOPIC_PARTIAL = 0.4          # share of query terms for the partial tier
+_LEADING_TOPIC_PARTIAL_WEIGHT = 0.2   # its citation weight against a full match
+# Citation and statute tokens that are not topic words.
+_LEADING_TOPIC_SKIP = frozenset({"art", "abs", "lit", "let", "ziff", "cpv", "and", "or", "not", "near"})
+
+
+def _fold_ascii(text: str) -> str:
+    """Lower-case `text` with diacritics dropped ("Kündigung" -> "kundigung")."""
+    t = (text or "").lower().replace("ß", "ss").replace("æ", "ae").replace("œ", "oe")
+    return unicodedata.normalize("NFKD", t).encode("ascii", "ignore").decode("ascii")
+
+
+def _leading_topic_terms(query: str) -> list[str]:
+    """The topic words of a free-text query, folded and lightly stemmed —
+    the last two letters dropped, never below four — so "abusive" meets
+    "abusif" and "Kündigung" meets "Kündigungsschutz"."""
+    terms: list[str] = []
+    for tok in re.findall(r"\w+", query or ""):
+        low = tok.lower()
+        if (len(low) < 3 or low.isdigit() or low in _FTS5_OR_STOPWORDS
+                or low in _LEADING_TOPIC_SKIP):
+            continue
+        folded = _fold_ascii(low)
+        stem = folded[:max(4, len(folded) - 2)]
+        if stem and stem not in terms:
+            terms.append(stem)
+    return terms
+
+
+def _regeste_term_share(terms: list[str], text: str) -> float | None:
+    """Share of `terms` that begin a word of `text`; None when there is no
+    regeste or title to judge by."""
+    if not terms or len((text or "").strip()) < 20:
+        return None
+    words = re.findall(r"[0-9a-z]+", _fold_ascii(text))
+    lengths = {len(t) for t in terms}
+    prefixes = {w[:n] for w in words for n in lengths}
+    return sum(1 for t in terms if t in prefixes) / len(terms)
+
+
+def _leading_topic_key(share: float | None, count: int) -> tuple:
+    """Sort key of a free-text leading-case candidate. Full and partial
+    regeste matches (every query term / at least _LEADING_TOPIC_PARTIAL
+    of them) share a band, ranked by citations with partial matches
+    weighted down; then fewer terms or no regeste to judge by; last a
+    regeste without any query term — the text only mentions the topic."""
+    if share is not None and share >= 1:
+        return (0, -count)
+    if share is not None and share >= _LEADING_TOPIC_PARTIAL:
+        return (0, -count * _LEADING_TOPIC_PARTIAL_WEIGHT)
+    if share is None or share > 0:
+        return (1, -count)
+    return (2, -count)
+
+
+def _rank_leading_by_regeste(
+    candidates: list[tuple[str, int]], query: str,
+) -> tuple[list[tuple[str, int]], dict[str, float | None]]:
+    """Re-rank citation-ordered free-text candidates by _leading_topic_key
+    and collapse the two ids a BGE can carry ("bge_133 III 61" /
+    "bge_BGE_133_III_61") into the better-cited one, the better regeste
+    speaking for both.
+
+    The caller bounds the candidates (the _LEADING_TOPIC_HEAD most cited,
+    or `limit` if larger). Returns the ranked candidates and each kept
+    id's regeste share. On a lookup failure, or a query without topic
+    words, the citation order stands.
+    """
+    terms = _leading_topic_terms(query)
+    if not terms or not candidates:
+        return candidates, {}
+    try:
+        rows = _fetch_decision_rows_by_ids([did for did, _ in candidates])
+    except sqlite3.Error as e:
+        logger.debug("Regeste lookup for leading cases failed: %s", e)
+        return candidates, {}
+    rows_by_id: dict = {r["decision_id"]: r for r in rows}
+    for r in rows:
+        for v in _decision_id_variants(r["decision_id"]):
+            rows_by_id.setdefault(v, r)
+    groups: dict[str, list] = {}  # key -> [decision_id, count, share]
+    for did, cnt in candidates:
+        row = rows_by_id.get(did) or {}
+        share = _regeste_term_share(
+            terms, f"{row.get('regeste') or ''} {row.get('title') or ''}")
+        key = f"{row.get('court') or ''}|{_norm_cite_ref(row.get('docket_number') or did)}"
+        g = groups.get(key)
+        if g is None:
+            groups[key] = [did, cnt, share]
+        elif share is not None and (g[2] is None or share > g[2]):
+            g[2] = share
+    ranked = sorted(groups.values(), key=lambda g: _leading_topic_key(g[2], g[1]))
+    return [(g[0], g[1]) for g in ranked], {g[0]: g[2] for g in ranked}
+
+
 def _rerank_candidates_by_query_or(
     candidates: list[tuple[str, int]], query: str,
 ) -> list[tuple[str, int]]:
@@ -9615,6 +11283,7 @@ def _find_leading_cases(
     try:
         candidates: list[tuple[str, int]] = []  # (decision_id, ranking_count)
         global_by_id: dict[str, int] = {}       # decision_id -> global citation count
+        regeste_share: dict[str, float | None] = {}  # free-text mode only
 
         if law_code and article:
             # Statute path: candidates are decisions applying this provision, ranked
@@ -9624,7 +11293,8 @@ def _find_leading_cases(
             # 2026-06-28: BGE 126 I 97, right-to-be-heard, 6,535 global cites). The
             # global count is kept for context. Graph DB uses uppercase law codes.
             law_code = law_code.upper()
-            overfetch = limit * 3 if query else limit
+            # x2: each BGE may fill two rows (#40), folded below.
+            overfetch = (limit * 3 if query else limit) * 2
             _statute_sub = (
                 "SELECT ds.decision_id FROM decision_statutes ds "
                 "JOIN statutes s ON s.statute_id = ds.statute_id "
@@ -9691,6 +11361,19 @@ def _find_leading_cases(
                 fts_rows = fts_conn.execute(fts_sql + " LIMIT 5000",
                                             tuple(fts_params)).fetchall()
                 fts_ids = [r["decision_id"] for r in fts_rows]
+                if len(fts_ids) >= 5000:
+                    # The cap cut the match set at an arbitrary rowid; the
+                    # decisions whose regeste or title carries the query
+                    # must not be among those cut off.
+                    try:
+                        _reg_rows = fts_conn.execute(
+                            fts_sql + " LIMIT 5000",
+                            (f"{{title regeste}} : ({safe_q})", *fts_params[1:]),
+                        ).fetchall()
+                        fts_ids = list(dict.fromkeys(
+                            [r["decision_id"] for r in _reg_rows] + fts_ids))
+                    except sqlite3.Error as e:
+                        logger.debug("Regeste-scoped leading-case pool failed: %s", e)
                 if not fts_ids:
                     # Strict AND matched nothing: the ranked-OR form, BM25
                     # ordered and bounded, gives the nearest neighbours.
@@ -9752,13 +11435,14 @@ def _find_leading_cases(
                         ORDER BY cite_count DESC
                         LIMIT ?
                         """,
-                        (*fts_ids, limit),
+                        (*fts_ids, max(limit, _LEADING_TOPIC_HEAD)),
                     ).fetchall()
                     candidates = [(r["decision_id"], int(r["cite_count"])) for r in rows]
                 except sqlite3.Error as e:
                     logger.debug("Graph citation lookup failed: %s", e)
                 finally:
                     graph2.close()
+            candidates, regeste_share = _rank_leading_by_regeste(candidates, query)
             # Skip the post-hoc FTS filter since we already started from FTS
             query = None  # prevent double-filtering below
         else:
@@ -9783,7 +11467,7 @@ def _find_leading_cases(
             if conditions:
                 sql += " WHERE " + " AND ".join(conditions)
             sql += " GROUP BY ct.target_decision_id ORDER BY cite_count DESC LIMIT ?"
-            params.append(limit)
+            params.append(limit * 2)  # BGE pairs fold below (#40)
             rows = conn.execute(sql, tuple(params)).fetchall()
             candidates = [(r["decision_id"], int(r["cite_count"])) for r in rows]
     except sqlite3.Error as e:
@@ -9839,6 +11523,11 @@ def _find_leading_cases(
             candidates = _rerank_candidates_by_query_or(statute_ranked, query)
             filters_relaxed = True
 
+    # Fold the two ids a BGE can carry (#40) before the page is cut, so the
+    # pair costs one slot, not two. Free-text candidates arrive folded by
+    # _rank_leading_by_regeste already.
+    candidates, global_by_id = _fold_bge_twin_candidates(candidates, global_by_id)
+
     # Truncate to limit
     candidates = candidates[:limit]
 
@@ -9849,6 +11538,11 @@ def _find_leading_cases(
     # Build rows_by_id with all ID variants as keys so graph-format IDs
     # (e.g. "bge_126 I 97") resolve to the FTS5 row ("bge_BGE_126_I_97").
     candidate_ids = [c[0] for c in candidates]
+    # The id variants keep the division's case; add the 'Ia'-spelled id so an
+    # Ia/Ib ruling's pair is found from its 'IA' twin (#40).
+    for _key in filter(None, map(_bge_twin_key, list(candidate_ids))):
+        _vol, _div, _page = _key.split("|")
+        candidate_ids.append(f"bge_BGE_{_vol}_{_div}_{_page}")
     rows = _fetch_decision_rows_by_ids(candidate_ids)
     rows_by_id: dict = {}
     for r in rows:
@@ -9856,12 +11550,25 @@ def _find_leading_cases(
         for v in _decision_id_variants(r["decision_id"]):
             rows_by_id.setdefault(v, r)
 
+    twin_rows: dict[str, list] = {}
+    for r in rows:
+        key = _bge_twin_key(r["decision_id"])
+        if key:
+            twin_rows.setdefault(key, []).append(r)
+
     results = []
     for did, cite_count in candidates:
         row = rows_by_id.get(did, {})
+        ranked_did = did
+        pair = twin_rows.get(_bge_twin_key(did) or "", [])
+        if len(pair) > 1:
+            # Serve the pair under the bge_BGE_ id with the credible date (#40).
+            row = dict(min(pair, key=lambda r: _bge_twin_rank(r["decision_id"])))
+            row["decision_date"] = _bge_twin_date(pair)
+            did = row["decision_id"]
         url = _canonical_decision_url(did)
         docket = row.get("docket_number", did)
-        glob = global_by_id.get(did)
+        glob = global_by_id.get(ranked_did)
         entry = {
             "decision_id": did,
             "docket_number": docket,
@@ -9877,6 +11584,9 @@ def _find_leading_cases(
         }
         if glob is not None:
             entry["topic_citation_count"] = cite_count
+        if ranked_did in regeste_share:
+            share = regeste_share[ranked_did]
+            entry["regeste_match"] = None if share is None else round(share, 2)
         results.append(entry)
 
     out = {
@@ -9914,10 +11624,14 @@ def _find_leading_cases(
         else:
             out["note"] = (
                 f"No decision matched every term of \"{_shown}\"; listed instead "
-                "are the most-cited decisions matching any of the terms "
+                "are the most-cited decisions matching any of the terms, "
+                "those whose regeste carries more of them first "
                 "(filters_relaxed, ranked OR). Treat them as nearest neighbours, "
                 "not as authority on the whole query."
             )
+    # A source defect matched on another ruling's text or statutes (source_defects.py).
+    if isinstance(out.get("results"), list):
+        out["results"] = source_defects.filter_hits(out["results"])[0]
     return out
 
 
@@ -11374,20 +13088,41 @@ def _list_recent(
     offset: int = 0,
     sort: str | None = None,
     marked_for_publication: bool | None = None,
+    published_from: str | None = None,
+    published_to: str | None = None,
+    meta: dict | None = None,
 ) -> tuple[list[dict], int]:
     """List recent decisions without FTS query (just filters).
-    Returns (results, total_count) with exact count."""
+    Returns (results, total_count) with exact count.
+
+    A publication-date query (published_from / sort="published_desc") with a
+    court filter walks PUBLICATION_INDEX when the DB has it. Otherwise it is
+    bounded to decisions decided within PUBLICATION_LAG_WINDOW_DAYS before the
+    window, so idx_decisions_date can drive it: without sqlite_stat1 the
+    planner prefers any equality index, and court=bger would read every BGer
+    row, so the court / canton / language equalities are written as unary-plus
+    terms (not indexable) unless the court is smaller than the date window."""
     filters = []
     params: list = []
+    by_publication = bool(published_from) or sort == "published_desc"
+    pub_indexed = bool(by_publication and court and _has_publication_index(conn))
+    source = f"decisions INDEXED BY {PUBLICATION_INDEX}" if pub_indexed else "decisions"
+    court_eq = canton_eq = language_eq = ""
+    if by_publication:
+        canton_eq = language_eq = "+"
+        scan_floor = date_from or _publication_window_floor(published_from)
+        if (court and not pub_indexed
+                and not _court_smaller_than_window(conn, court.lower(), scan_floor)):
+            court_eq = "+"
 
     if court:
-        filters.append("court = ?")
+        filters.append(f"{court_eq}court = ?")
         params.append(court.lower())
     if canton:
-        filters.append("canton = ?")
+        filters.append(f"{canton_eq}canton = ?")
         params.append(canton.upper())
     if language:
-        filters.append("language = ?")
+        filters.append(f"{language_eq}language = ?")
         params.append(language.lower())
     if date_from:
         filters.append("decision_date >= ?")
@@ -11403,24 +13138,129 @@ def _list_recent(
         params.append(f"%{decision_type}%")
     if marked_for_publication and _sqlite_has_column(conn, "decisions", "marked_for_publication"):
         filters.append("marked_for_publication = 1")
+    if by_publication:
+        _pf, _pp, _floor = _publication_filters(
+            "", published_from, published_to, date_from, bound_window=not pub_indexed)
+        filters.extend(_pf)
+        params.extend(_pp)
+        if meta is not None and _floor:
+            meta["publication_window_floor"] = _floor
 
     where = ("WHERE " + " AND ".join(filters)) if filters else ""
 
     total_count = conn.execute(
-        f"SELECT COUNT(*) FROM decisions {where}", params,
+        f"SELECT COUNT(*) FROM {source} {where}", params,
     ).fetchone()[0]
 
-    order_dir = "ASC" if sort == "date_asc" else "DESC"
+    if sort == "published_desc":
+        order_by = "publication_date DESC, decision_date DESC, decision_id DESC"
+    elif sort == "date_asc":
+        order_by = "decision_date ASC"
+    else:
+        order_by = "decision_date DESC"
+    pub_col = ", publication_date" if by_publication else ""
     rows = conn.execute(
         f"""SELECT decision_id, court, canton, chamber, docket_number,
-            decision_date, language, title, regeste, source_url, pdf_url
-        FROM decisions {where}
-        ORDER BY decision_date {order_dir}
+            decision_date, language, title, regeste, source_url, pdf_url{pub_col}
+        FROM {source} {where}
+        ORDER BY {order_by}
         LIMIT ? OFFSET ?""",
         params + [limit, offset],
     ).fetchall()
 
     return [dict(r) for r in rows], total_count
+
+
+def _court_smaller_than_window(conn: sqlite3.Connection, court: str, floor: str) -> bool:
+    """True when the court has fewer rows than the decision-date window, so the
+    court index is the cheaper driver. Both counts are index-only."""
+    try:
+        n_court = conn.execute(
+            "SELECT COUNT(*) FROM decisions WHERE court = ?", (court,)).fetchone()[0]
+        n_window = conn.execute(
+            "SELECT COUNT(*) FROM decisions WHERE decision_date >= ?", (floor,)).fetchone()[0]
+    except sqlite3.Error:
+        return False
+    return n_court < n_window
+
+
+def _atom_feed_rows(conn: sqlite3.Connection, court: str, limit: int = 50) -> list:
+    """Rows for /atom/{court}.xml: newest by publication date (decision_date
+    where the court publishes none), so a ruling released months after it was
+    decided enters the feed on the day it appears instead of being ranked below
+    everything decided since."""
+    if _has_publication_index(conn):
+        return _atom_feed_rows_indexed(conn, court, limit)
+    # No index: the decision-date floor keeps the scan on idx_decisions_date
+    # (see PUBLICATION_LAG_WINDOW_DAYS); a court with fewer than `limit`
+    # rulings in that window is topped up by decision date.
+    floor = _publication_window_floor(None)
+    court_eq = "" if _court_smaller_than_window(conn, court, floor) else "+"
+    rows = conn.execute(
+        f"SELECT {_ATOM_COLS} FROM decisions "
+        f"WHERE {court_eq}court = ? AND decision_date >= ? "
+        "ORDER BY COALESCE(NULLIF(substr(publication_date, 1, 10), ''), decision_date) DESC, "
+        "decision_date DESC, decision_id DESC LIMIT ?",
+        (court, floor, limit),
+    ).fetchall()
+    if len(rows) < limit:
+        rows += conn.execute(
+            f"SELECT {_ATOM_COLS} FROM decisions "
+            "WHERE court = ? AND decision_date < ? "
+            "ORDER BY decision_date DESC LIMIT ?",
+            (court, floor, limit - len(rows)),
+        ).fetchall()
+    return rows
+
+
+_ATOM_COLS = ("decision_id, court, decision_date, publication_date, "
+              "docket_number, regeste, language")
+
+
+def _atom_effective_date(row) -> str:
+    return (row["publication_date"] or "")[:10] or (row["decision_date"] or "")
+
+
+def _atom_feed_rows_indexed(conn: sqlite3.Connection, court: str, limit: int) -> list:
+    """Bounded reads merged by effective date: the dated rows published on or
+    after the day of the `limit`-th newest one (walks of PUBLICATION_INDEX;
+    the whole cut-off day, so same-day ties rank by decision_date as in the
+    plain ordering), and the newest undated rows decided on or after that day.
+    Exact: an undated row decided earlier ranks below every dated row taken,
+    and a dated row not taken was published before the cut-off day."""
+    dated = conn.execute(
+        f"SELECT {_ATOM_COLS} FROM decisions INDEXED BY {PUBLICATION_INDEX} "
+        "WHERE court = ? AND publication_date > '' "
+        "ORDER BY publication_date DESC LIMIT ?",
+        (court, limit),
+    ).fetchall()
+    undated_sql = (f"SELECT {_ATOM_COLS} FROM decisions "
+                   "WHERE {court_term} AND (publication_date IS NULL OR publication_date = '')"
+                   "{cut_term} ORDER BY decision_date DESC, decision_id DESC LIMIT ?")
+    if len(dated) == limit:
+        cut = _atom_effective_date(dated[-1])
+        dated = conn.execute(
+            f"SELECT {_ATOM_COLS} FROM decisions INDEXED BY {PUBLICATION_INDEX} "
+            "WHERE court = ? AND publication_date >= ?",
+            (court, cut),
+        ).fetchall()
+        court_term = ("court = ?" if _court_smaller_than_window(conn, court, cut)
+                      else "+court = ?")
+        undated = conn.execute(
+            undated_sql.format(court_term=court_term, cut_term=" AND decision_date >= ?"),
+            (court, cut, limit),
+        ).fetchall()
+    else:
+        undated = conn.execute(
+            undated_sql.format(court_term="court = ?", cut_term=""),
+            (court, limit),
+        ).fetchall()
+    merged = sorted(
+        dated + undated,
+        key=lambda r: (_atom_effective_date(r), r["decision_date"] or "", r["decision_id"]),
+        reverse=True,
+    )
+    return merged[:limit]
 
 
 def _truncate(text: str | None, max_len: int) -> str | None:
@@ -11975,7 +13815,11 @@ server = Server(
         "the corpus look stale when it is not. `get_decision` returns "
         "both `decision_date` (when decided) and `publication_date` "
         "(when the court released it) — use publication_date to reason "
-        "about recency of publication.\n\n"
+        "about recency of publication. For NEWLY PUBLISHED decisions "
+        "(daily alerts, 'what came out this week') use "
+        "`search_decisions(published_from=..., sort=\"published_desc\")`, "
+        "never date_from: the Federal Supreme Court often publishes months "
+        "after it rules.\n\n"
 
         "══════════════════════════════════════════════════════════════\n"
         "CITATION WORKFLOW — THE ONLY LEGITIMATE PATH\n"
@@ -12262,7 +14106,7 @@ server = Server(
         "Code: MIT (github.com/jonashertner/opencaselaw). Data: CC0 1.0 "
         "(public domain). Attribution appreciated: \"Source: "
         "OpenCaseLaw.ch\". Nonprofit, open-access, no cookies, no user "
-        "accounts, no query logging. Privacy policy: "
+        "accounts. Privacy policy: "
         "https://opencaselaw.ch/datenschutz/"
     ),
 )
@@ -12337,6 +14181,8 @@ def _structure_id_candidates(decision_id: str) -> list[str]:
 
 def _fetch_structure_row(decision_id: str) -> dict | None:
     """Look up the structure-DB row for a decision_id, with id-variant fallback."""
+    if source_defects.withholds_structure(decision_id):
+        return None         # extracted from another ruling's text
     conn = _get_structure_conn()
     if not conn:
         return None
@@ -12355,6 +14201,8 @@ def _fetch_structure_row(decision_id: str) -> dict | None:
 
 def _fetch_structure_paragraphs(decision_id: str) -> list[dict]:
     """Return ordered Erwägungen-paragraphs for a decision_id."""
+    if source_defects.withholds_structure(decision_id):
+        return []           # extracted from another ruling's text
     conn = _get_structure_conn()
     if not conn:
         return []
@@ -12874,8 +14722,12 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
     # Arbeitsgericht Zürich yearbook: the docket IS the court's Zitiervorschlag
     # ("AGer-Z 2023 Nr. 7"); prefixing a court label would double the court
     # and the volume year already dates it. The judgment date, where the
-    # trailer supplied one, follows as usual.
-    if docket.startswith("AGer-Z "):
+    # trailer supplied one, follows as usual. Same for the Schweizer
+    # Sportgericht, whose dockets carry the tribunal's own abbreviation in the
+    # decision's language ("SSG 2025/E/60", "TSS 2025/E/64", "TDS 2024/E/40";
+    # "DK"/"CD" for the predecessor Disziplinarkammer) — the generic branch
+    # printed "Gericht CH SSG 2025/E/60 vom ...".
+    if docket.startswith("AGer-Z ") or court == "ta_sst":
         reliable = _citation_date_reliable(decision_date)
         date_de = _format_date_localized(decision_date, "de") if reliable else ""
         date_fr = _format_date_localized(decision_date, "fr") if reliable else ""
@@ -12981,6 +14833,34 @@ _BGE_VOLUME_EPOCH = 1874
 # ±1 absorbs the genuine edge: a decision taken late in one year and printed
 # in the next volume.
 _BGE_YEAR_TOLERANCE = 1
+
+
+def _future_date_warning(iso_date: str | None) -> dict | None:
+    """Flag a stored decision date that lies after today in Switzerland.
+
+    Report 2026-10-13: three fr_gerichte rows were served on 2026-10-15,
+    2026-10-26 and 2027-07-27; the first two are the portal's entry or
+    legal-force date (the Tribuna string table is read positionally), the third
+    is a typo in the court's own document. A ruling cannot postdate the day it
+    is read. Detection only: the stored value is not replaced, because the
+    response cannot know the real date. Today is taken at UTC+2 so that a
+    ruling of the Swiss calendar day is never flagged late in the evening.
+    """
+    if not iso_date:
+        return None
+    stored = str(iso_date)[:10]
+    today = (datetime.now(timezone.utc) + timedelta(hours=2)).date().isoformat()
+    if len(stored) != 10 or stored <= today:
+        return None
+    return {
+        "stored_date": stored,
+        "checked_on": today,
+        "note": (
+            f"Stored date {stored} lies in the future, so it is not the date of the "
+            "ruling. Take the date from the decision's own heading (get_decision with "
+            "full_text) before stating it or computing a deadline from it."
+        ),
+    }
 
 
 def _bge_volume_year_mismatch(citation_text: str,
@@ -13121,10 +15001,14 @@ def _handle_get_decisions(
             meta.append(f"court: {result['court']}")
         if result.get("decision_date"):
             meta.append(f"date: {result['decision_date']}")
+        if result.get("publication_date"):
+            meta.append(f"published: {result['publication_date']}")
         if result.get("language"):
             meta.append(f"language: {result['language']}")
         if meta:
             parts.append(" · ".join(meta))
+        if result.get("source_defect"):
+            parts.append(f"⚠️ **Source defect.** {result['source_defect']['note']}")
         if result.get("title"):
             parts.append(f"**{result['title']}**")
         parts.append(
@@ -13155,6 +15039,10 @@ def _handle_get_decisions(
     if missing:
         header += ("\n\nNot found: " + ", ".join(missing) +
                    " — check the id, or use search_decisions to locate them.")
+        for _mid in missing:
+            _defect = source_defects.lookup(_mid)
+            if _defect:
+                header += f"\n\n⚠️ {_mid}: {_defect.note}"
     if not full_text and blocks:
         header += ("\n\nRegeste + metadata only. Re-call with full_text=true "
                    "(short id list) or get_decision for one complete judgment.")
@@ -13392,6 +15280,29 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
     target = para_map.get(e_clean) if not text_fallback else fallback
     composed_of: list[str] | None = None
     composed_parts: list[dict] | None = None
+    composed_with_intro = False
+    if target and not text_fallback:
+        # Report 2026-10-13: BGE 138 III 67 stores E. 2.2 as its introductory
+        # paragraph and E. 2.2.1 / 2.2.2 as separate rows, so a request for
+        # "E. 2.2" (the Regeste's own pinpoint) returned 574 characters of
+        # introduction and no hint that the reasoning follows. A pinpoint to a
+        # parent covers its sub-Erwägungen, so serve the subtree: the stored
+        # paragraph first, then its descendants, same rules as the composed
+        # parent below (trailing-dot prefix, document order, verbatim).
+        kids = sorted(
+            (p for p in paragraphs if p["e_number"].startswith(e_clean + ".")),
+            key=lambda p: _e_number_sort_key(p["e_number"]),
+        )
+        if kids:
+            whole = [target] + kids
+            composed_of = [p["e_number"] for p in whole]
+            composed_parts = [
+                {"e_number": p["e_number"],
+                 "text": _auto_link_citations(p["text"])} for p in whole
+            ]
+            target = {**target,
+                      "text": "\n\n".join(p["text"] for p in whole if p.get("text"))}
+            composed_with_intro = True
     if not target:
         # GitHub #86: the official Regeste cites Erwägungen at parent level
         # ("Begriff des Ordre public ... (E. 2)") but only leaf paragraphs are
@@ -13446,7 +15357,7 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         }
     if text_fallback:
         siblings = sorted(para_map.keys(), key=_e_number_sort_key)
-    elif composed_of:
+    elif composed_of and not composed_with_intro:
         # Siblings of a composed parent are the other subtrees at its level,
         # derived from the leaves (E. 2 -> ['2', '3']); the stored `parent`
         # field cannot answer this because the parent rows do not exist.
@@ -13522,6 +15433,11 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         **({"composed_of": composed_of,
             "parts": composed_parts,
             "_composed_note": (
+                f"E. {target['e_number']} has sub-Erwägungen. `text` is its introductory "
+                f"paragraph followed by E. {', '.join(composed_of[1:])}, concatenated in "
+                f"order, verbatim and unmodified. Cite it as E. {target['e_number']}, or "
+                f"quote one entry from `parts` and cite that sub-number instead."
+            ) if composed_with_intro else (
                 f"E. {target['e_number']} is not stored as a single paragraph. "
                 f"`text` is E. {', '.join(composed_of)} concatenated in order, "
                 f"verbatim and unmodified. Cite it as E. "
@@ -13897,6 +15813,8 @@ def _compute_pinpoint(
     claim = claim.strip()
     if len(claim) < 3 or not decision_id:
         return None
+    if source_defects.withholds_structure(decision_id):
+        return None         # its Erwägungen came from another ruling's text
 
     # A pasted document used as a claim is
     # useless as a phrase and pathological as an OR chain. Condense long
@@ -14366,6 +16284,18 @@ def _handle_find_relevant_erwaegung(
     resolved = _resolve_decision_id(decision_id.strip())
     if not resolved:
         return {"error": f"Decision not found: {decision_id!r}"}
+    _defect = source_defects.lookup(resolved)
+    if _defect:
+        # Its indexed Erwägungen came from another ruling's text (source_defects.py).
+        return {
+            "decision_id": resolved,
+            "claim": claim,
+            "matches": [],
+            "no_match": True,
+            "source_defect": _defect.as_dict(),
+            "_note": (f"{_defect.note} No Erwägung of this decision can be pinpointed "
+                      "from this server; do not guess a pinpoint number."),
+        }
 
     conn = _get_structure_conn()
     if not conn:
@@ -15430,6 +17360,30 @@ def _cite_identity(reference: str, decision: dict) -> dict | None:
         return None
     carried = [decision.get(name) for name in ("docket_number", "docket_number_2") if isinstance(decision.get(name), str)]
     carried += [d for d in (decision.get("joined_dockets") or []) if isinstance(d, str)]
+    oge = _oge_ref(reference)
+    if oge:
+        # "OGE" names the Schaffhausen Obergericht: another court's docket of
+        # the same shape is never the ruling the reference means, and a
+        # written date that differs names another ruling under the docket.
+        docket_ref, date_ref = oge
+        if not str(decision.get("court") or "").startswith("sh_"):
+            return None
+        if date_ref and (date_ref == _oge_unreadable() or
+                         str(decision.get("decision_date") or "")[:10] != date_ref):
+            return None
+        for docket in carried:
+            if re.sub(r"^Nr\.\s*", "", docket.strip()) == docket_ref:
+                return {"method": "exact_docket", "label": docket}
+        return None
+    # The reference is a stored docket, written whole ('BRGE I Nr. 0167/2014',
+    # 'AI 12/14 - 140/2014'): the strongest docket identity there is, whatever
+    # the parser reads out of a shape it does not know (measured 2026-09-22:
+    # the exact-docket step found these rows and this rule then refused them).
+    core_key_docket = reference_parser.fold_docket(core)
+    for docket in carried:
+        if reference_parser.fold_docket(docket) == core_key_docket:
+            method = "exact_docket" if docket == decision.get("docket_number") else "exact_joined_docket"
+            return {"method": method, "label": docket}
     primary = parsed.primary_docket
     if primary is not None:
         key = reference_parser.fold_docket(primary)
@@ -15500,6 +17454,23 @@ def _handle_cite(
         # FTS only for non-docket references.
         close_matches: list[dict] = []
         bge_parsed = _parse_bge_ref_text(ref)
+        _defect = source_defects.lookup(ref) or (
+            source_defects.lookup_parts(*bge_parsed) if bge_parsed is not None else None)
+        if _defect:
+            # Withheld on purpose (source_defects.py): the reference is real but
+            # its source holds another ruling. Say so, and suggest nothing — a
+            # neighbouring ruling is not the one cited.
+            return {
+                "exists": False,
+                "queried": ref,
+                "resolved_id": resolved_id,
+                "close_matches": [],
+                "not_found_reason": "source_defect",
+                "reason": _defect.note,
+                "source_defect": _defect.as_dict(),
+                "_note": (f"Reference not served: {_defect.note} Do not present its text "
+                          "or holding as verified."),
+            }
         if proposal is not None:
             _pc = _build_citation_strings(proposal)
             close_matches.append({
@@ -15605,7 +17576,7 @@ def _handle_cite(
     rule = _rule_statement(decision, pinpoint_text=pinpoint_text)
     _date_warning = _bge_volume_year_mismatch(
         citation["citation_string_de"], decision.get("decision_date"),
-    )
+    ) or _future_date_warning(decision.get("decision_date"))
 
     result = {
         "exists": True,
@@ -15633,6 +17604,17 @@ def _handle_cite(
             "excerpt — do not paraphrase inside quotation marks)."
         ),
     }
+    if decision.get("source_defect"):
+        # The stored source holds another ruling (source_defects.py): the
+        # reference stands, its content does not come from this server.
+        result["source_defect"] = decision["source_defect"]
+        result["text_available"] = decision.get("text_available", True)
+        if decision.get("text_available") is False:
+            result["rule_statement"] = None
+            result["_note"] = (
+                f"{decision['source_defect']['note']} citation_string is the reference as "
+                "published; use it only for what you have verified from another source."
+            )
     if decision.get("decision_id") and decision.get("decision_id") != ref:
         result["resolved_from"] = ref
     if pin_verdict is not None:
@@ -15666,11 +17648,22 @@ def _handle_cite(
         result["decision_date_warning"] = _date_warning
     if identity:
         result["identity"] = identity
+        if identity.get("method") == "exact_docket":
+            # A bare docket can name several rulings ('353': VD 2011 and 2023);
+            # cite picked the newest. Say so rather than certify it as unique.
+            _conn = get_db()
+            try:
+                _others = _docket_homonyms(_conn, identity.get("label"), decision.get("decision_id"))
+            finally:
+                _conn.close()
+            if _others:
+                _attach_docket_ambiguity(result, identity.get("label"), _others)
     # Identity exposure: the decision's joined (secondary) dockets and its
     # canonical representation, so a client can tell a consolidated or
     # duplicated ruling from an unrecognised one. Additive: decision_id and
     # the citation strings are exactly what the pipeline built above.
-    for _key in ("joined_dockets", "canonical_decision_id", "is_canonical"):
+    for _key in ("joined_dockets", "canonical_decision_id", "is_canonical",
+                 "published_as_bge", "published_as_bge_note", "full_decision"):
         if decision.get(_key) is not None:
             result[_key] = decision[_key]
     if rule is None and (decision.get("full_text") or decision.get("regeste")):
@@ -16094,6 +18087,11 @@ def _resolve_decision_id_strict(decision_id: str) -> str | None:
             ).fetchone()
             if row:
                 return row[0]
+        # An id the row carried before a re-key: exact and indexed, so an
+        # attest ledger holding a pre-2026-09-17 BS id is not flagged as fabricated.
+        _prev_hit = _lookup_previous_id(conn, decision_id)
+        if _prev_hit:
+            return _prev_hit
         # Exact docket-number match only (no LIKE)
         row = conn.execute(
             "SELECT decision_id FROM decisions WHERE docket_number = ? "
@@ -16135,7 +18133,7 @@ def _get_decision_strict(decision_id: str) -> dict | None:
             "full_text, regeste, language FROM decisions WHERE decision_id = ?",
             (decision_id,),
         ).fetchone()
-        return dict(row) if row else None
+        return source_defects.apply(dict(row)) if row else None
     finally:
         conn.close()
 
@@ -17376,7 +19374,8 @@ def _handle_strengthen(*, redacted_text: str, lang: str = "de") -> dict:
     commentary_excerpts: list[dict] = []
     for law, article in statute_hits[:2]:
         try:
-            ck = search_commentaries(query=f"Art. {article} {law}", limit=2, language=lang)
+            ck = search_commentaries(query=f"Art. {article} {law}", limit=2, language=lang,
+                                     include_cantonal=False)
         except Exception:
             continue
         for c in (ck.get("results") or [])[:2]:
@@ -18968,7 +20967,7 @@ def _find_leading_cases_by_fts_fallback(query: str, limit: int) -> list[dict]:
                 "citation_count": 0,
                 "regeste": (row["regeste"] or "")[:300],
             })
-        return result
+        return source_defects.filter_hits(result)[0]
     except Exception as e:
         logger.debug("FTS fallback for doctrine concept path failed: %s", e)
         return []
@@ -19013,6 +21012,91 @@ def _build_doctrine_summary(leading_cases: list[dict], law_code: str) -> dict:
         )
 
     return summary
+
+
+# Abbreviations whose full stop does not end a regeste sentence ("Art. 41 OR",
+# "Abs. 2", "E. 3.2", "lit. a", "Ziff. 2", "z.B.", "consid. 4", "cpv. 1").
+_RULE_ABBREV_RE = re.compile(
+    r"\b(Art|Abs|Ziff|lit|Bst|let|cpv|al|ch|consid|cons|E|S|Nr|N|Rz|bzw|vgl|ff|act|Prot|"
+    r"z\.B|u\.a|d\.h|i\.V\.m|i\.S\.v|m\.w\.H|n|no)\.", re.IGNORECASE)
+
+
+_RULE_CITE_WORDS = frozenset({
+    "art", "abs", "lit", "ziff", "al", "bst", "let", "cpv", "ch", "und", "et", "e", "sowie",
+    "bis", "ter", "quater", "i", "v", "m", "n", "s", "f", "ff", "iv", "vi", "aart", "abis"})
+
+
+def _rule_is_citation(text: str) -> bool:
+    """True when `text` is statute references only ("Art. 122 Abs. 1, 126 Abs.
+    1 lit. a StPO", "Art. 305 bis Ziff. 2 StGB"): no word is left once the
+    statute tokens, numbers and act abbreviations are taken out."""
+    for w in re.findall(r"[^\W\d_]+", text):
+        if w.lower() in _RULE_CITE_WORDS or _rule_is_act(w):
+            continue
+        if len(w) > 2:
+            return False
+    return True
+
+
+def _rule_is_act(word: str) -> bool:
+    """An act's abbreviation: OR, ZGB, StPO, SchKG, VVG (two or more capitals)."""
+    return len(word) <= 8 and sum(ch.isupper() for ch in word) >= 2
+
+
+def _doctrine_rule_summary(regeste: str, terms: list[str] | None = None,
+                           max_len: int = 150) -> str:
+    """The clause of a regeste that states its rule, for get_doctrine.
+
+    Until 2026-10-10 the summary was the text up to the first full stop, so
+    "Art. 135 Ziff. 2 und Art. 138 Abs. 1 OR, Unterbrechung der Verjährung"
+    became "Art", and "Streitwert (Art. 46 OG). Täuschung" became
+    "Streitwert (Art". Now:
+      * sentences end at a full stop that is not an abbreviation's;
+      * clauses are the regeste's ";"-separated headings and its sentences;
+      * statute references leading a clause ("Art. 33 VVG, Auslegung ...")
+        are dropped, and a clause of references only is skipped;
+      * with topic `terms` (a concept query) the first clause carrying one of
+        them wins, so a regeste on several questions is summarised by the one
+        the user asked about; else the first substantive clause;
+      * a one- or two-word heading ("Tierhalterhaftung") is joined with the
+        clause after it.
+    """
+    clean = re.sub(r"(?m)^\s*Regest[eo][^\n]*\n", "", regeste or "").strip()
+    if not clean:
+        return ""
+    protected = _RULE_ABBREV_RE.sub(lambda m: m.group(0)[:-1] + "\u2024", clean)
+    clauses: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", protected):
+        for part in re.split(r";\s*", sentence):
+            part = part.replace("\u2024", ".").strip().rstrip(".").strip()
+            # "(E. 1.2.4)" / "(consid. 3)": where the regeste found it, not the rule.
+            part = re.sub(r"\s*\((?:E|consid|cons)\.[^)]*\)", "", part).strip()
+            pieces = part.split(", ")
+            while pieces and _rule_is_citation(pieces[0]):
+                pieces.pop(0)
+            part = ", ".join(pieces).strip()
+            if len(part) >= 4 and not _rule_is_citation(part):
+                clauses.append(part)
+    if not clauses:
+        return ""
+    idx = 0
+    if terms:
+        lengths = {len(t) for t in terms}
+        for i, c in enumerate(clauses):
+            words = re.findall(r"[0-9a-z]+", _fold_ascii(c))
+            prefixes = {w[:n] for w in words for n in lengths}
+            if any(t in prefixes for t in terms):
+                idx = i
+                break
+    chosen = clauses[idx]
+    content_words = [w for w in re.findall(r"[^\W\d_]+", chosen) if len(w) > 2
+                     and w.lower() not in _RULE_CITE_WORDS and not _rule_is_act(w)]
+    if len(content_words) <= 2 and idx + 1 < len(clauses):
+        chosen = f"{chosen}: {clauses[idx + 1]}"
+    if len(chosen) > max_len:
+        cut = chosen[:max_len].rsplit(" ", 1)[0]
+        chosen = cut.rstrip(" ,;:(") + " …"
+    return chosen
 
 
 def _handle_get_doctrine(*, query: str) -> dict:
@@ -19080,25 +21164,24 @@ def _handle_get_doctrine(*, query: str) -> dict:
         if not raw_cases and "error" in lc_result:
             raw_cases = _find_leading_cases_by_fts_fallback(query=q, limit=8)
 
-    # Enrich each case with authority count and rule_summary
+    # Enrich each case with authority count and rule_summary. The leading-case
+    # lookup hands over the first 300 characters of each regeste; the rule a
+    # concept query asks about often sits later (BGE 143 IV 500: "Vertrauens-
+    # prinzip" is in its third part), so read the full regestes once.
+    full_regeste: dict[str, str] = {}
+    try:
+        for r in _fetch_decision_rows_by_ids([c.get("decision_id", "") for c in raw_cases]):
+            for v in _decision_id_variants(r["decision_id"]):
+                full_regeste.setdefault(v, r.get("regeste") or "")
+    except sqlite3.Error as e:
+        logger.debug("get_doctrine: full regeste lookup failed: %s", e)
+    summary_terms = None if statute_refs else _leading_topic_terms(q)
     for case in raw_cases:
         did = case.get("decision_id", "")
         incoming, _ = _count_citations(did)
         regeste = case.get("regeste") or ""
-        # rule_summary: first substantive clause of regeste, max 150 chars.
-        # Strip "Regeste" header line that appears at the start of some BGE fields.
-        clean = re.sub(r"^Regeste[^\n]*\n\s*", "", regeste).strip()
-        # BGE regeste often starts with "Art. 41 OR (...); widerrechtlich..." —
-        # skip leading statute citation segments (start with Art./Abs./§) and
-        # use the first non-citation segment as rule_summary.
-        first_sentence = ""
-        for seg in re.split(r";\s*", clean):
-            seg = seg.strip()
-            if seg and not re.match(r"^(?:Art|Abs|§|Ziff)\b", seg, re.I):
-                first_sentence = seg.split(".")[0].strip()[:150]
-                break
-        if not first_sentence and clean:
-            first_sentence = clean.split(".")[0].strip()[:150]
+        first_sentence = _doctrine_rule_summary(
+            full_regeste.get(did) or regeste, summary_terms)
         leading_cases.append({
             "decision_id": did,
             "bge_ref": case.get("docket_number", ""),
@@ -19178,6 +21261,50 @@ def _handle_get_doctrine(*, query: str) -> dict:
         except Exception as e:
             logger.debug("OK commentary lookup failed: %s", e)
 
+    # A cantonal act named with its canton ("Art. 6 VRG SH", "SH/VRG",
+    # "Schaffhauser VRG"): the Kommentierung from the scholarship corpus.
+    cantonal_cases_note: str | None = None
+    if commentary_info is None and statute_refs and article and law_code:
+        try:
+            cant = next((t for t in re.findall(r"\b([A-Z]{2})\b", q)
+                         if t in _CANTON_CODES), None)
+            if cant is None and re.search(r"schaffhaus", q, re.IGNORECASE):
+                cant = "SH"
+            key = _cantonal_commentary_key(law_code, None, cant) if cant else None
+            if key:
+                # Leading cases are keyed on the bare abbreviation, and "VRG"
+                # is an act of several cantons: keep only that canton's own
+                # rulings, never another canton's act of the same name.
+                prefix = f"{key[0].lower()}_"
+                kept = [c for c in leading_cases
+                        if str(c.get("decision_id") or "").startswith(prefix)]
+                if len(kept) != len(leading_cases):
+                    leading_cases[:] = kept
+                    refs = {c["bge_ref"] for c in kept}
+                    timeline[:] = [t for t in timeline if t.get("bge_ref") in refs]
+                    cantonal_cases_note = (
+                        f"Leading cases are limited to {key[0]} rulings: "
+                        f"'{key[1]}' names acts of several cantons, so decisions "
+                        "matched on the abbreviation alone are not shown.")
+                c = _cantonal_commentary(key, article)
+                if c.get("found"):
+                    commentary_info = {
+                        "title": c["title"],
+                        "excerpt": (c.get("content_text") or "")[:800],
+                        "authors": c.get("authors") or [],
+                        "html_link": c.get("html_link"),
+                        "suggested_citation": c.get("suggested_citation"),
+                        "source": (c.get("attribution") or {}).get("name") or c.get("source"),
+                        "license": c.get("license"),
+                        "pub_id": c.get("pub_id"),
+                        "full_text": (f"get_commentary(canton='{key[0]}', "
+                                      f"abbreviation='{key[1]}', article='{article}')"),
+                        "statute": (f"get_law(canton='{key[0]}', sr_number="
+                                    f"'{c['systematic_number']}', article='{article}')"),
+                    }
+        except Exception as e:  # noqa: BLE001
+            logger.debug("cantonal commentary lookup failed: %s", e)
+
     # Enrich with Materialien (Botschaft legislative intent) if available
     materialien_info = None
     if statute_refs and article and law_code:
@@ -19198,6 +21325,8 @@ def _handle_get_doctrine(*, query: str) -> dict:
         "commentary": commentary_info,
         "materialien": materialien_info,
     }
+    if cantonal_cases_note is not None:
+        out["leading_cases_note"] = cantonal_cases_note
     if concept_relaxed_note is not None:
         out["filters_relaxed"] = True
         out["note"] = concept_relaxed_note
@@ -19374,13 +21503,260 @@ def _commentary_fallback(
     return out
 
 
+# Cantonal commentaries held in the scholarship corpus, one record per
+# Kommentierung (pub_id "<source>:<prefix>-art-<article>"). Keyed by canton
+# and the act's usual abbreviation; the systematic number is the canton's own
+# (SHR), not an SR number.
+_CANTONAL_COMMENTARIES: dict[tuple[str, str], dict] = {
+    ("SH", "VRG"): {"source": "shk_kommentar", "prefix": "vrg", "number": "172.200",
+                    "act": "Gesetz über den Rechtsschutz in Verwaltungssachen "
+                           "(Verwaltungsrechtspflegegesetz, VRG)"},
+    ("SH", "JG"): {"source": "shk_kommentar", "prefix": "jg", "number": "173.200",
+                   "act": "Justizgesetz (JG)"},
+}
+
+
+def _cantonal_request(
+    abbreviation: str | None, sr_number: str | None, canton: str | None,
+) -> tuple[str, str, str]:
+    """(canton, law, number) as written; canton '' for a federal request.
+    See _cantonal_commentary_key for the accepted forms."""
+    cant = (canton or "").strip().upper()
+    if cant == "CH":
+        cant = ""
+    law = ""
+    parts = [x for x in re.split(r"[\s/_-]+", (abbreviation or "").strip().upper()) if x]
+    for x in parts:
+        if x in _CANTON_CODES and (len(parts) > 1 or cant):
+            cant = cant or x
+        else:
+            law = law or x
+    sr = (sr_number or "").strip().upper()
+    m = re.fullmatch(r"([A-Z]{2})R\s*([\d.]+)", sr)  # "SHR 172.200"
+    if m and m.group(1) in _CANTON_CODES:
+        cant, sr = cant or m.group(1), m.group(2)
+    return cant, law, sr
+
+
+def _cantonal_commentary_key(
+    abbreviation: str | None, sr_number: str | None, canton: str | None,
+) -> tuple[str, str] | None:
+    """(canton, law) of a cantonal commentary the corpus holds, or None.
+
+    Accepts the forms get_law uses ('SH/VRG', 'VRG/SH') plus 'VRG SH',
+    'VRG-SH', canton='SH' with 'VRG', and canton='SH' (or 'SHR 172.200')
+    with the systematic number. A bare '172.200' without a canton stays
+    federal: SR and SHR numbers overlap in form.
+    """
+    cant, law, sr = _cantonal_request(abbreviation, sr_number, canton)
+    if not cant:
+        return None
+    for (c, name), spec in _CANTONAL_COMMENTARIES.items():
+        if c == cant and (law == name or (not law and sr == spec["number"])):
+            return (c, name)
+    return None
+
+
+def _cite_surnames(authors_field) -> str:
+    """'RIHS/BAECKERT' from the stored authors (JSON list or plain string;
+    a co-authored byline 'A und B' counts as two authors)."""
+    names: list[str] = []
+    raw = authors_field
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (ValueError, TypeError):
+            raw = [raw]
+    for a in raw or []:
+        names.extend(p for p in re.split(r"\s+und\s+|;\s*", str(a)) if p.strip())
+    return "/".join(n.split()[-1].upper() for n in names if n.split())
+
+
+def _cantonal_commentary(
+    key: tuple[str, str], article: str | None,
+) -> dict:
+    """get_commentary for a cantonal act whose commentary is in the
+    scholarship corpus. Same payload shape as the OnlineKommentar answer
+    (detail / list / found:false), plus pub_id, licence and attribution.
+    The text is the record's verbatim full text; nothing is composed."""
+    canton, law = key
+    spec = _CANTONAL_COMMENTARIES[key]
+    law_label = f"{law} {canton}"
+    conn = _get_scholarship_conn()
+    if conn is None:
+        return {"error": "Legal scholarship database not available."}
+    prefix = f"{spec['source']}:{spec['prefix']}-art-"
+    art = None
+    if article:
+        art = re.sub(r"^(?:art\.?|§)\s*", "", article.strip(), flags=re.IGNORECASE).lower()
+        # the article number only: "6 Abs. 1" and "36b lit. a" are Art. 6, 36b
+        m_art = re.match(r"(\d+[a-z]*)", art)
+        art = m_art.group(1) if m_art else re.sub(r"\s+", "", art)
+    try:
+        # The index of the act first (~100 short rows); the full text only
+        # for the one record asked for.
+        rows = conn.execute(
+            "SELECT pub_id, title, authors, language "
+            "FROM publications WHERE source = ? AND substr(pub_id, 1, ?) = ?",
+            (spec["source"], len(prefix), prefix),
+        ).fetchall()
+        # "vrg-art-36c-37" is one record for Art. 36c and 37 (repealed together).
+        by_article: dict[str, sqlite3.Row] = {}
+        for r in rows:
+            for a in r["pub_id"][len(prefix):].split("-"):
+                by_article.setdefault(a.lower(), r)
+        hit = by_article.get(art) if art else None
+        full = conn.execute(
+            "SELECT pub_id, title, authors, full_text, license, license_url, "
+            "url, pdf_url, doi, year, language FROM publications WHERE pub_id = ?",
+            (hit["pub_id"],),
+        ).fetchone() if hit is not None else None
+    except sqlite3.Error as e:
+        logger.error("cantonal commentary lookup error: %s", e)
+        return {"error": f"Database error: {e}"}
+    finally:
+        conn.close()
+    base = {
+        "law": law_label, "canton": canton, "systematic_number": spec["number"],
+        "act": spec["act"], "source": spec["source"],
+        "attribution": _scholarship_attribution(spec["source"]),
+    }
+    if not article:
+        seen: set[str] = set()
+        articles = []
+        for a, r in sorted(by_article.items(), key=lambda kv: _article_sort_key(kv[0])):
+            if r["pub_id"] in seen:
+                continue
+            seen.add(r["pub_id"])
+            articles.append({"article_num": a, "title": r["title"],
+                             "language": r["language"], "pub_id": r["pub_id"],
+                             "authors": _authors_list(r["authors"])})
+        if not articles:
+            return {**base, "found": False, "no_commentary": True, "article": None,
+                    "note": f"The commentary on the {law_label} is not in the "
+                            "deployed scholarship database."}
+        return {**base, "article_count": len(articles), "articles": articles,
+                "sources": (base["attribution"] or {}).get("name") or spec["source"]}
+    r = full
+    if r is None:
+        held = sorted({a for a in by_article}, key=_article_sort_key)
+        return {**base, "article": article, "found": False, "no_commentary": True,
+                "commented_articles": held,
+                "note": (f"The commentary on the {law_label} has no Kommentierung "
+                         f"of Art. {article}. Commented articles: "
+                         f"{', '.join(held) if held else 'none'}. The statute "
+                         f"text is at get_law(canton='{canton}', "
+                         f"sr_number='{spec['number']}', article='{article}').")}
+    surnames = _cite_surnames(r["authors"])
+    shown_art = r["pub_id"][len(prefix):].replace("-", " und ")
+    return {
+        **base,
+        "found": True,
+        "article": art,
+        "title": r["title"],
+        "language": r["language"],
+        "date": str(r["year"]) if r["year"] else None,
+        "authors": _authors_list(r["authors"]),
+        "editors": ["Kilian Meyer", "Oliver Herrmann", "Stefan Bilger"]
+        if spec["source"] == "shk_kommentar" else [],
+        # The imprint's citation form, filled with this record's authors;
+        # the margin number is the caller's pinpoint ("N 12" in the text).
+        "suggested_citation": (
+            f"{surnames or 'BEARBEITER/IN'}, in: Meyer/Herrmann/Bilger (Hrsg.), "
+            f"Kommentar zur Schaffhauser Verwaltungsrechtspflege, 2021, "
+            f"Art. {shown_art} {law} N. …") if spec["source"] == "shk_kommentar" else None,
+        "pinpoint_note": ("Margin numbers appear in the text as 'N 1', 'N 2', …; "
+                          "cite them as 'N. 12'."),
+        "pub_id": r["pub_id"],
+        "html_link": r["url"],
+        "pdf_link": r["pdf_url"],
+        "doi": r["doi"],
+        "license": r["license"],
+        "license_url": r["license_url"],
+        "license_usage": _scholarship_license_hint(r["license"]),
+        "content_text": r["full_text"],
+        "legal_text": None,
+    }
+
+
+def _cantonal_commentary_pointer(
+    canton: str, number: str | None, article: str | None,
+) -> dict | None:
+    """What get_law adds to a cantonal act the corpus holds a commentary on:
+    the Kommentierung of the article (pub_id, authors, citation form) or, for
+    the whole act, how many articles are commented. None otherwise, and None
+    rather than an error when the scholarship DB is unavailable."""
+    key = next((k for k, spec in _CANTONAL_COMMENTARIES.items()
+                if k[0] == canton and spec["number"] == (number or "").strip()), None)
+    if key is None:
+        return None
+    try:
+        res = _cantonal_commentary(key, article)
+    except Exception as e:  # noqa: BLE001 — an enrichment must not break get_law
+        logger.debug("commentary pointer failed: %s", e)
+        return None
+    if res.get("error"):
+        return None
+    name = (res.get("attribution") or {}).get("name") or res.get("source")
+    call = (f"get_commentary(canton='{key[0]}', abbreviation='{key[1]}'"
+            + (f", article='{article}')" if article else ")"))
+    if article:
+        if not res.get("found"):
+            return None
+        return {"law": key[1], "source": name, "pub_id": res["pub_id"],
+                "title": res["title"], "authors": res["authors"],
+                "suggested_citation": res.get("suggested_citation"),
+                "license": res.get("license"), "get": call}
+    if not res.get("articles"):
+        return None
+    return {"law": key[1], "source": name, "article_count": res["article_count"],
+            "get": call}
+
+
+def _authors_list(field) -> list[str]:
+    if not field:
+        return []
+    if isinstance(field, list):
+        return [str(a) for a in field]
+    try:
+        v = json.loads(field)
+        if isinstance(v, list):
+            return [str(a) for a in v]
+    except (ValueError, TypeError):
+        pass
+    return [a.strip() for a in str(field).split(";") if a.strip()]
+
+
+def _article_sort_key(a: str) -> tuple:
+    m = re.match(r"(\d+)(.*)", a or "")
+    return (int(m.group(1)), m.group(2)) if m else (10**9, a or "")
+
+
 def get_commentary(
     abbreviation: str | None = None,
     sr_number: str | None = None,
     article: str | None = None,
     language: str = "de",
+    canton: str | None = None,
 ) -> dict:
-    """Fetch OnlineKommentar commentary for a statute article."""
+    """Fetch OnlineKommentar commentary for a statute article — or, for a
+    cantonal act listed in _CANTONAL_COMMENTARIES, the Kommentierung from the
+    scholarship corpus."""
+    ckey = _cantonal_commentary_key(abbreviation, sr_number, canton)
+    if ckey is not None:
+        return _cantonal_commentary(ckey, article)
+    cant, law, number = _cantonal_request(abbreviation, sr_number, canton)
+    if cant:
+        # A cantonal act without a commentary here: say so, rather than
+        # falling through to a federal act of the same abbreviation.
+        held = ", ".join(f"{n} {c}" for c, n in _CANTONAL_COMMENTARIES)
+        what = f"{law or number} {cant}".strip()
+        return {"law": what, "canton": cant, "article": article,
+                "found": False, "no_commentary": True,
+                "note": (f"No open-access commentary on {what} is in the corpus. "
+                         f"Cantonal commentaries held: {held}. The statute text "
+                         f"is at get_law(canton='{cant}', ...); "
+                         "search_scholarship covers cantonal literature by topic.")}
     conn = _get_ok_conn()
     if conn is None:
         return {"error": "OnlineKommentar commentaries database not available."}
@@ -19484,25 +21860,127 @@ def get_commentary(
         conn.close()
 
 
+_OK_SOURCE_LABEL = "OnlineKommentar.ch (CC-BY-4.0)"
+
+
+def _cantonal_commentary_scope(abbreviation: str | None) -> tuple[list[tuple[str, str]], bool]:
+    """Which cantonal commentaries a search_commentaries call covers, and
+    whether the federal (OnlineKommentar) side still runs.
+
+    No abbreviation: every cantonal commentary plus the federal side. A
+    cantonal form ('SH/VRG', 'VRG SH') or the bare name of a held cantonal act
+    that no federal commentary uses ('VRG', 'JG'): that commentary only. Any
+    other abbreviation ('OR'): the federal side only."""
+    if not abbreviation or not abbreviation.strip():
+        return list(_CANTONAL_COMMENTARIES), True
+    key = _cantonal_commentary_key(abbreviation, None, None)
+    if key is not None:
+        return [key], False
+    bare = abbreviation.strip().upper()
+    named = [k for k in _CANTONAL_COMMENTARIES if k[1] == bare]
+    if named and bare not in _OK_ABBR_TO_SR:
+        return named, False
+    return [], True
+
+
+def _search_cantonal_commentaries(
+    fts_query: str, keys: list[tuple[str, str]], language: str | None, limit: int,
+) -> list[dict]:
+    """search_commentaries hits from the cantonal commentaries held in the
+    scholarship corpus (one record per Kommentierung), rank-ordered, each with
+    its BM25 score so the caller can merge them with the OnlineKommentar hits.
+    [] when there is nothing to search or the scholarship DB is unavailable."""
+    if not keys or not fts_query:
+        return []
+    conn = _get_scholarship_conn()
+    if conn is None:
+        return []
+    by_prefix = {f"{_CANTONAL_COMMENTARIES[k]['source']}:{_CANTONAL_COMMENTARIES[k]['prefix']}-art-": k
+                 for k in keys}
+    sources = sorted({_CANTONAL_COMMENTARIES[k]["source"] for k in keys})
+    try:
+        sql = (
+            "SELECT p.pub_id, p.source, p.title, p.authors, p.language, p.url, "
+            "       snippet(publications_fts, -1, '>>>', '<<<', '...', 40) AS snippet, "
+            "       f.rank AS score "
+            "FROM publications_fts f JOIN publications p ON p.id = f.rowid "
+            f"WHERE f.publications_fts MATCH ? AND p.source IN ({','.join('?' * len(sources))})"
+            + (" AND p.language = ?" if language else "")
+            + " ORDER BY f.rank LIMIT ?"
+        )
+        params: list = [fts_query, *sources, *([language] if language else []), limit * 3]
+        rows = conn.execute(sql, params).fetchall()
+    except sqlite3.Error as e:
+        logger.debug("cantonal commentary search failed: %s", e)
+        return []
+    finally:
+        conn.close()
+    out: list[dict] = []
+    for r in rows:
+        pid = r["pub_id"]
+        prefix = next((p for p in by_prefix if pid.startswith(p)), None)
+        if prefix is None:
+            continue  # essays, checklists, front matter: not a Kommentierung
+        canton, law = by_prefix[prefix]
+        spec = _CANTONAL_COMMENTARIES[(canton, law)]
+        attribution = _scholarship_attribution(spec["source"]) or {}
+        out.append({
+            "abbreviation": f"{law} {canton}",
+            "sr_number": None,
+            "canton": canton,
+            "systematic_number": spec["number"],
+            "article_num": pid[len(prefix):].replace("-", " und "),
+            "title": r["title"],
+            "authors": _authors_list(r["authors"]),
+            "language": r["language"],
+            "snippet": r["snippet"],
+            "html_link": r["url"],
+            "pub_id": pid,
+            "source": attribution.get("name") or spec["source"],
+            "license": "CC-BY-SA" if spec["source"] == "shk_kommentar" else None,
+            "get": f"get_commentary(canton='{canton}', abbreviation='{law}', "
+                   f"article='{pid[len(prefix):].split('-')[0]}')",
+            "_score": r["score"],
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
 def search_commentaries(
     query: str,
     abbreviation: str | None = None,
     language: str | None = None,
     limit: int = 10,
+    include_cantonal: bool = True,
 ) -> dict:
-    """Full-text search across OnlineKommentar commentaries."""
+    """Full-text search across the article-anchored commentaries: the
+    OnlineKommentar / OpenLegalCommentary corpus and the cantonal
+    commentaries in _CANTONAL_COMMENTARIES (from the scholarship corpus)."""
+    limit = min(max(1, limit), 50)
+    raw_query = query
+    cantonal_keys, run_federal = (_cantonal_commentary_scope(abbreviation)
+                                  if include_cantonal else ([], True))
+    if not run_federal:
+        q = _sanitize_fts5(query)
+        hits = _search_cantonal_commentaries(q, cantonal_keys, language, limit)
+        relaxed = False
+        if not hits:
+            _or_q = _fts5_or_query(raw_query)
+            if _or_q and _or_q != q:
+                hits = _search_cantonal_commentaries(_or_q, cantonal_keys, language, limit)
+                relaxed = bool(hits)
+        return _commentary_search_payload(q, raw_query, [], hits, limit, relaxed)
+
     conn = _get_ok_conn()
     if conn is None:
         return {"error": "OnlineKommentar commentaries database not available."}
-
-    limit = min(max(1, limit), 50)
-    raw_query = query
 
     try:
         # Sanitize and build FTS5 query with optional filters
         query = _sanitize_fts5(query)
         if not query:
-            return {"query": query, "count": 0, "results": [], "source": "OnlineKommentar.ch (CC-BY-4.0)"}
+            return {"query": query, "count": 0, "results": [], "source": _OK_SOURCE_LABEL}
         conditions = ["commentaries_fts MATCH ?"]
         params: list = [query]
 
@@ -19522,15 +22000,17 @@ def search_commentaries(
 
         _sql = f"""SELECT c.sr_number, c.abbr, c.article_num, c.title,
                        c.authors, c.language, c.html_link,
-                       snippet(commentaries_fts, 4, '>>>', '<<<', '...', 40) AS snippet
+                       snippet(commentaries_fts, 4, '>>>', '<<<', '...', 40) AS snippet,
+                       f.rank AS score
                 FROM commentaries_fts f
                 JOIN commentaries c ON c.id = f.rowid
                 WHERE {where}
                 ORDER BY f.rank
                 LIMIT ?"""
         rows = conn.execute(_sql, params).fetchall()
+        cantonal = _search_cantonal_commentaries(query, cantonal_keys, language, limit)
         relaxed = False
-        if not rows:
+        if not rows and not cantonal:
             # ~1,170 commentaries: a strict AND over that many texts is
             # empty for most multi-term questions. Rank the sections that
             # carry any of the terms and say so; the abbreviation and
@@ -19538,7 +22018,8 @@ def search_commentaries(
             _or_q = _fts5_or_query(raw_query)
             if _or_q and _or_q != query:
                 rows = conn.execute(_sql, [_or_q, *params[1:]]).fetchall()
-                relaxed = bool(rows)
+                cantonal = _search_cantonal_commentaries(_or_q, cantonal_keys, language, limit)
+                relaxed = bool(rows or cantonal)
 
         # One commentary is indexed as several sections, so an article that
         # matches well fills the whole result page with itself: a limit-5
@@ -19562,29 +22043,64 @@ def search_commentaries(
                 "language": r["language"],
                 "snippet": r["snippet"],
                 "html_link": r["html_link"],
+                "source": _OK_SOURCE_LABEL,
+                "_score": dict(r).get("score", 0.0),
             })
             if len(results) >= limit:
                 break
 
-        out = {
-            "query": query,
-            "count": len(results),
-            "results": results,
-            "source": "OnlineKommentar.ch (CC-BY-4.0)",
-        }
-        if relaxed:
-            out["filters_relaxed"] = True
-            out["note"] = (
-                f"No commentary section contains every term of \"{raw_query}\"; "
-                "listed instead are the sections matching any of the terms, "
-                "best matches first (filters_relaxed, ranked OR)."
-            )
-        return out
+        return _commentary_search_payload(query, raw_query, results, cantonal, limit, relaxed)
     except sqlite3.Error as e:
         logger.error("OK commentary search error: %s", e)
         return {"error": f"Database error: {e}"}
     finally:
         conn.close()
+
+
+def _commentary_search_payload(
+    query: str, raw_query: str, federal: list[dict], cantonal: list[dict],
+    limit: int, relaxed: bool,
+) -> dict:
+    """One ranked list from the two commentary indexes. Both rank by FTS5
+    BM25 over a commentary's text, so the scores are merged directly (lower
+    is better); each list keeps its own order. The response names every
+    source that contributed and carries the attribution the cantonal
+    commentary's licence requires."""
+    merged: list[dict] = []
+    i = j = 0
+    while len(merged) < limit and (i < len(federal) or j < len(cantonal)):
+        take_cantonal = j < len(cantonal) and (
+            i >= len(federal) or cantonal[j]["_score"] < federal[i]["_score"])
+        if take_cantonal:
+            merged.append(cantonal[j])
+            j += 1
+        else:
+            merged.append(federal[i])
+            i += 1
+    for r in merged:
+        r.pop("_score", None)
+    labels = []
+    for r in merged:
+        if r["source"] not in labels:
+            labels.append(r["source"])
+    out = {
+        "query": query,
+        "count": len(merged),
+        "results": merged,
+        "source": "; ".join(labels) if labels else _OK_SOURCE_LABEL,
+    }
+    cantonal_sources = sorted({_CANTONAL_COMMENTARIES[(r["canton"], r["abbreviation"].split()[0])]["source"]
+                               for r in merged if r.get("canton")})
+    if cantonal_sources:
+        out["attribution"] = [_scholarship_attribution(s) for s in cantonal_sources]
+    if relaxed:
+        out["filters_relaxed"] = True
+        out["note"] = (
+            f"No commentary section contains every term of \"{raw_query}\"; "
+            "listed instead are the sections matching any of the terms, "
+            "best matches first (filters_relaxed, ranked OR)."
+        )
+    return out
 
 
 # ── Legal scholarship (OA Swiss law publications) ─────────────────────
@@ -19932,13 +22448,23 @@ def find_scholarship_citing_decision(
         # same normalization every graph tool applies. Without this the query
         # silently returned 0 for any non-exact id form.
         variants = _decision_id_variants(decision_id) or [decision_id]
+        # A ruling held under two ids (SH twin courts, GE/VD dual numbers) is
+        # linked once, under whichever id the build resolved; the
+        # representation manifest makes either id find it.
+        rep = _representation_info(decision_id)
+        if rep:
+            for twin in [rep["canonical_decision_id"],
+                         *(m["decision_id"] for m in rep["members"])]:
+                variants.extend(_decision_id_variants(twin))
+        variants = list(dict.fromkeys(variants))
         placeholders = ",".join("?" for _ in variants)
         rows = conn.execute(
             f"""SELECT p.pub_id, p.source, p.pub_type, p.title, p.authors,
-                      p.language, p.year, p.url, pcd.snippet
+                      p.language, p.year, p.url, MIN(pcd.snippet) AS snippet
                FROM pub_citations_decisions pcd
                JOIN publications p ON p.id = pcd.pub_id
                WHERE pcd.decision_id IN ({placeholders})
+               GROUP BY p.id
                ORDER BY p.year DESC NULLS LAST
                LIMIT ?""",
             (*variants, limit),
@@ -20302,6 +22828,15 @@ def _format_get_scholarship_response(result: dict) -> str:
         text += "\n## Cites statutes\n"
         for s in result["cites_statutes"][:50]:
             text += f"- SR {s['sr_number']} Art. {s['article'] or '?'}\n"
+    decs = result.get("cites_decisions") or []
+    if decs:
+        # Ids and links only: a citation string comes from cite() (R1).
+        text += (f"\n## Cites decisions held in the corpus ({len(decs)})\n"
+                 "Pass a decision_id to cite() for its citation string.\n")
+        for d in decs[:100]:
+            text += f"- {_md_link(d, _canonical_decision_url(d))}\n"
+        if len(decs) > 100:
+            text += f"- … {len(decs) - 100} more (in `cites_decisions`)\n"
     a = result.get("attribution") or {}
     if a.get("attribution") or a.get("name"):
         text += "\n---\n**Attribution:** "
@@ -20431,15 +22966,21 @@ def _format_get_commentary_response(result: dict) -> str:
             text += "\n"
         return text
 
+    # Cantonal commentaries (scholarship corpus) carry their own source name,
+    # licence and attribution; OnlineKommentar answers do not.
+    attr = result.get("attribution") if isinstance(result.get("attribution"), dict) else None
+    source_name = (attr or {}).get("name") or "OnlineKommentar"
+
     # List mode
     if "articles" in result and "content_text" not in result:
-        text = f"# OnlineKommentar — {result['law']}\n"
+        text = f"# {source_name} — {result['law']}\n"
         text += f"**{result['article_count']} commentaries available**\n"
-        text += f"Source: {result.get('source', 'OnlineKommentar.ch')}\n\n"
+        text += f"Source: {result.get('sources') or result.get('source', 'OnlineKommentar.ch')}\n\n"
         for art in result["articles"]:
             authors = ", ".join(art.get("authors", []))
             author_str = f" ({authors})" if authors else ""
-            text += f"- **Art. {art['article_num']}** — {art['title']}{author_str} [{art['language']}]\n"
+            pid = f" — `{art['pub_id']}`" if art.get("pub_id") else ""
+            text += f"- **Art. {art['article_num']}** — {art['title']}{author_str} [{art['language']}]{pid}\n"
         return text
 
     # Detail mode
@@ -20447,13 +22988,24 @@ def _format_get_commentary_response(result: dict) -> str:
     text = f"# {result['title']}\n"
     if authors:
         text += f"**Authors:** {authors}\n"
+    if result.get("editors") and attr:
+        text += f"**Editors:** {', '.join(result['editors'])}\n"
     text += f"**Language:** {result.get('language', '?')} | "
     text += f"**Date:** {result.get('date', '?')}\n"
     if result.get("suggested_citation"):
         text += f"**Citation:** {result['suggested_citation']}\n"
+    if result.get("pinpoint_note"):
+        text += f"**Pinpoint:** {result['pinpoint_note']}\n"
     if result.get("html_link"):
-        text += f"**Link:** {_md_link('OnlineKommentar', result['html_link'])}\n"
-    text += f"Source: {result.get('source', 'OnlineKommentar.ch')}\n\n"
+        label = "OnlineKommentar" if not attr else "Publisher"
+        text += f"**Link:** {_md_link(label, result['html_link'])}\n"
+    if result.get("doi"):
+        text += f"**DOI:** {result['doi']}\n"
+    if result.get("pub_id"):
+        text += f"**pub_id:** `{result['pub_id']}`\n"
+    if result.get("license"):
+        text += f"**License:** {result['license']}\n"
+    text += f"Source: {source_name if attr else result.get('source', 'OnlineKommentar.ch')}\n\n"
 
     if result.get("legal_text"):
         text += "## Gesetzestext\n\n"
@@ -20462,6 +23014,12 @@ def _format_get_commentary_response(result: dict) -> str:
     if result.get("content_text"):
         text += "## Kommentar\n\n"
         text += result["content_text"] + "\n"
+
+    if attr and attr.get("attribution"):
+        text += f"\n---\n**Attribution:** {attr['attribution']}\n"
+    lu = result.get("license_usage") or {}
+    if lu.get("note"):
+        text += f"**License usage:** {lu['note']}\n"
 
     return text
 
@@ -20481,9 +23039,17 @@ def _format_search_commentaries_response(result: dict) -> str:
         author_str = f" ({authors})" if authors else ""
         text += f"**{i}. Art. {r['article_num']} {r['abbreviation']}** — {r['title']}{author_str} [{r['language']}]\n"
         text += f"   {_render_fts_snippet(r['snippet'])}\n"
+        if r.get("canton"):
+            text += f"   Source: {r.get('source')} — `{r.get('pub_id')}`; full text: {r.get('get')}\n"
         if r.get("html_link"):
-            text += f"   Link: {_md_link('OnlineKommentar', r['html_link'])}\n"
+            label = "OnlineKommentar" if not r.get("canton") else "Publisher"
+            text += f"   Link: {_md_link(label, r['html_link'])}\n"
         text += "\n"
+
+    for a in result.get("attribution") or []:
+        line = a.get("attribution") if isinstance(a, dict) else None
+        if line:
+            text += f"---\n**Attribution:** {a.get('name') or a.get('source')}\n{line}\n"
 
     return text
 
@@ -20762,6 +23328,13 @@ def _get_law_cantonal(
                     if row:
                         sr_number = row["sr_number"]
             if not sr_number:
+                # Acts whose abbreviation the canton does not publish but a
+                # commentary we hold uses (SH: VRG = SHR 172.200, JG = 173.200).
+                spec = _CANTONAL_COMMENTARIES.get(
+                    (canton_u, abbreviation.strip().upper()))
+                if spec:
+                    sr_number = spec["number"]
+            if not sr_number:
                 # Never a bare dead end: the law is usually in the corpus and
                 # only the name we were given does not reach it. Hand back
                 # real laws so the caller can pick one, rather than an
@@ -20848,6 +23421,10 @@ def _get_law_cantonal(
                 {"article_num": a["article_num"], "heading": a["heading"]}
                 for a in articles_rows
             ]
+        ptr = _cantonal_commentary_pointer(canton_u, result["sr_number"], article)
+        if ptr:
+            result["abbreviation"] = result["abbreviation"] or ptr["law"]
+            result["commentary"] = ptr
         return result
     except sqlite3.Error as e:
         logger.error("Cantonal law lookup error: %s", e)
@@ -23760,6 +26337,17 @@ def _format_get_law_response(result: dict) -> str:
                  f"{am.get('method', 'closest')} matches {', '.join(am.get('matched') or [])}.\n")
     if result.get("note"):
         text += f"Note: {result['note']}\n"
+    cm = result.get("commentary")
+    if cm:
+        if cm.get("pub_id"):
+            who = ", ".join(cm.get("authors") or [])
+            text += (f"Commentary: {cm.get('title')}"
+                     + (f" ({who})" if who else "")
+                     + f" — full text via {cm.get('get')}; "
+                     f"cite as {cm.get('suggested_citation')}\n")
+        else:
+            text += (f"Commentary: {cm.get('source')} comments "
+                     f"{cm.get('article_count')} articles of this act — {cm.get('get')}\n")
     if result.get("also_in_sections"):
         blocks = result["also_in_sections"]
         names = "; ".join(b.get("section_heading") or b.get("section") or "?" for b in blocks)
@@ -25520,7 +28108,9 @@ def _list_tools() -> list[Tool]:
                 "range, chamber. Results are relevance-ranked and enriched "
                 "with citation counts, statute references and "
                 "is_leading_case. Use offset to page. Most recent decisions: "
-                "empty query + sort='date_desc' + court filter. "
+                "empty query + sort='date_desc' + court filter. Newly "
+                "PUBLISHED decisions (alerts): published_from + "
+                "sort='published_desc'. "
                 "Not for statutes (search_laws), commentary "
                 "(search_scholarship), or administrative guidance "
                 "(search_practice)."
@@ -25590,6 +28180,36 @@ def _list_tools() -> list[Tool]:
                         "type": "string",
                         "description": "End date (YYYY-MM-DD)",
                     },
+                    "published_from": {
+                        "type": "string",
+                        "description": (
+                            "Only decisions the court PUBLISHED on or after this "
+                            "date (YYYY-MM-DD) — publication_date, not "
+                            "decision_date. Use this, not date_from, for a "
+                            "'what is newly published' alert: the Federal Supreme "
+                            "Court often publishes weeks or months after it rules. "
+                            "May be limited to decisions decided up to 18 months "
+                            "before published_from (always without a court "
+                            "filter); the response then names the limit in "
+                            "publication_window_decided_from, and an earlier "
+                            "date_from widens it. "
+                            "publication_date exists for BGer "
+                            "rulings published since May 2026, BVGer, BStGer and "
+                            "several cantonal courts (VD, VS, BS, SG and others); "
+                            "decisions without one never match. BGer rulings are "
+                            "indexed the day they are published, other courts with "
+                            "the nightly rebuild, up to two days later: for a "
+                            "recurring alert, start each run's window 3 days back "
+                            "and skip decision_ids already reported."
+                        ),
+                    },
+                    "published_to": {
+                        "type": "string",
+                        "description": (
+                            "Only decisions published on or before this date "
+                            "(YYYY-MM-DD, inclusive). Requires published_from."
+                        ),
+                    },
                     "chamber": {
                         "type": "string",
                         "description": (
@@ -25621,8 +28241,13 @@ def _list_tools() -> list[Tool]:
                     },
                     "sort": {
                         "type": "string",
-                        "description": "Sort order: 'relevance' (default for FTS), 'date_desc', 'date_asc'.",
-                        "enum": ["relevance", "date_desc", "date_asc"],
+                        "description": (
+                            "Sort order: 'relevance' (default for FTS), "
+                            "'date_desc' / 'date_asc' (decision_date), "
+                            "'published_desc' (newest publication_date first; "
+                            "decisions without one last)."
+                        ),
+                        "enum": ["relevance", "date_desc", "date_asc", "published_desc"],
                     },
                     "fields": {
                         "type": "string",
@@ -25835,7 +28460,10 @@ def _list_tools() -> list[Tool]:
             title="Find leading cases",
             description=(
                 "Find the most-cited decisions for a topic or statute. "
-                "Authority ranking based on citation graph. "
+                "Authority ranking based on citation graph; a free-text topic "
+                "ranks decisions whose regeste carries the query terms first "
+                "(`regeste_match`: share of terms found, null without a "
+                "regeste). "
                 "Filter by statute (law_code + article), topic query, court, and date range. "
                 "Top-3 results auto-attach a `pinpoint` field "
                 "{e_number, matched_sentence, confidence, url, score, source} "
@@ -26075,7 +28703,8 @@ def _list_tools() -> list[Tool]:
                 "Verbatim text of ONE numbered Erwägung — the citable unit in Swiss practice "
                 "(e.g. 'BGE 136 III 513 E. 2.3'). Use when the user already gave an e_number. "
                 "If only a claim was given (no e_number): use find_relevant_erwaegung — never guess. "
-                "Returns text + sibling Erwägung numbers. e_number: '1', '4.1', '5.2.1', …"
+                "Returns text + sibling Erwägung numbers; a parent (E. 2.2) includes its "
+                "sub-Erwägungen in order, each also under `parts`. e_number: '1', '4.1', '5.2.1', …"
             ),
             inputSchema={
                 "type": "object",
@@ -26778,6 +29407,10 @@ def _list_tools() -> list[Tool]:
                 "for a Swiss federal law article. Without article: lists available commentaries "
                 "for that law. With article: returns the full commentary text, authors, and citation. "
                 "Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more. "
+                "Cantonal: the Kommentar zur Schaffhauser Verwaltungsrechtspflege (Meyer/Herrmann/"
+                "Bilger, 2021; CC BY-SA text) for the Schaffhausen VRG (SHR 172.200) and JG "
+                "(SHR 173.200), article by article with margin numbers — pass canton='SH' and "
+                "abbreviation 'VRG' or 'JG' (or 'SH/VRG'). "
                 "Where no commentary exists (most provisions: the corpus holds only the "
                 "open-access OnlineKommentar.ch / OpenLegalCommentary.ch commentaries) the "
                 "answer is flagged `found: false` / `no_commentary: true` and lists what the "
@@ -26804,6 +29437,10 @@ def _list_tools() -> list[Tool]:
                         "description": "Preferred language (de, en, fr, it). Falls back to de if unavailable.",
                         "default": "de",
                     },
+                    "canton": {
+                        "type": "string",
+                        "description": "Two-letter canton code for a cantonal act (e.g. 'SH' with abbreviation 'VRG' or 'JG'). Omit for federal law.",
+                    },
                 },
             },
         ),
@@ -26812,13 +29449,16 @@ def _list_tools() -> list[Tool]:
             name="search_commentaries",
             title="Search commentaries",
             description=(
-                "Use this tool ONLY for article-anchored commentary from "
-                "OnlineKommentar.ch — doctrinal discussion tied to a specific "
-                "statute article. For the full OA scholarship corpus (which "
-                "includes OnlineKommentar) use search_scholarship. "
+                "Use this tool ONLY for article-anchored commentary — doctrinal "
+                "discussion tied to a specific statute article: OnlineKommentar.ch / "
+                "OpenLegalCommentary.ch (federal law) and the Kommentar zur "
+                "Schaffhauser Verwaltungsrechtspflege (Schaffhausen VRG and JG; "
+                "abbreviation 'VRG SH' / 'JG SH'). For the full OA scholarship corpus "
+                "(which includes all of these) use search_scholarship. "
                 "Searches commentary text, titles, and article numbers. "
-                "Returns ranked results with snippets, authors, and links. "
-                "Useful for finding doctrinal discussion of a legal concept across multiple laws."
+                "Returns ranked results with snippets, authors, links and each "
+                "hit's source. Useful for finding doctrinal discussion of a legal "
+                "concept across multiple laws."
             ),
             inputSchema={
                 "type": "object",
@@ -26829,7 +29469,7 @@ def _list_tools() -> list[Tool]:
                     },
                     "abbreviation": {
                         "type": "string",
-                        "description": "Filter by law abbreviation (e.g., 'OR', 'StGB').",
+                        "description": "Filter by law abbreviation (e.g., 'OR', 'StGB'; 'VRG SH' or 'JG SH' for the Schaffhausen commentary).",
                     },
                     "language": {
                         "type": "string",
@@ -27535,11 +30175,13 @@ def _lookup_exact(qn: str, limit: int = 25) -> dict:
 def _lookup_case_number(q: str, limit: int = 8, exact: bool = False) -> dict:
     """Instant case-number / docket lookup for the public site search box.
 
-    Guards to docket-style input via _looks_like_docket_query, so it never triggers the
-    Haiku query-parse / rerank path — a case number resolves in tens of ms via search_fts5's
-    exact-docket fast-path. Returns lean hits with /entscheid/ links. R1-safe: citation
-    strings come from _build_citation_strings (the pipeline), never constructed here. A
-    non-case-number input returns instantly with a hint, not a slow full-text fallback.
+    Guards to docket-style input via _looks_like_docket_query. A reference that IS a
+    stored docket or BGE label resolves through _lookup_exact (indexed, tens of ms);
+    only when nothing matches exactly (a partial or near number) does it fall back to
+    search_fts5. Returns lean hits with /entscheid/ links; `match` says which path
+    answered. R1-safe: citation strings come from _build_citation_strings (the
+    pipeline), never constructed here. A non-case-number input returns instantly with
+    a hint, not a slow full-text fallback.
     """
     qn = (q or "").strip()
     if not qn:
@@ -27558,7 +30200,22 @@ def _lookup_case_number(q: str, limit: int = 8, exact: bool = False) -> dict:
     if not _looks_like_docket_query(qn):
         return {"query": qn, "is_case_number": False, "total": 0, "results": [],
                 "hint": "Not a recognised Swiss case number — use full-text search for topics."}
-    rows, _total = search_fts5(query=qn, limit=max(1, min(int(limit), 25)))
+    lim = max(1, min(int(limit), 25))
+    # Exact first. search_fts5's docket fast path misses BGE citations (it strips
+    # the spaces the stored docket keeps) and slash dockets (the sanitiser removes
+    # the slash before the docket gate), so this used to run the full search:
+    # 5-10 s, citing decisions mixed in, and an empty answer when the search
+    # deadline cut it short under load (2026-09-30: "BGE 140 III 86", 22 s, 0 hits).
+    try:
+        exact_hit = _lookup_exact(qn, lim)
+    except Exception as exc:
+        logger.debug("exact-first lookup unavailable, falling back to search: %s", exc)
+        exact_hit = None
+    if exact_hit and exact_hit.get("results"):
+        return {"query": qn, "is_case_number": True, "match": "exact",
+                "total": exact_hit["total"], "results": exact_hit["results"]}
+    _meta: dict = {}
+    rows, _total = search_fts5(query=qn, limit=lim, meta=_meta)
     out = []
     try:
         conn = get_db()  # for the joined-docket lookups; the hits come from search_fts5
@@ -27588,7 +30245,13 @@ def _lookup_case_number(q: str, limit: int = 8, exact: bool = False) -> dict:
         if conn is not None:
             conn.close()
     _attach_canonical_ids(out)
-    return {"query": qn, "is_case_number": True, "total": len(out), "results": out}
+    res = {"query": qn, "is_case_number": True, "match": "search", "total": len(out), "results": out}
+    if _meta.get("deadline_partial"):
+        # The search ran out of time: "nothing found" would be a false negative.
+        res["partial"] = True
+        res["hint"] = ("The search was cut short under load, so this result is incomplete. "
+                       "Retry, or pass exact=true to resolve a full case number directly.")
+    return res
 
 
 def _deep_research_search(query: str, limit: int = DEEP_RESEARCH_SEARCH_LIMIT) -> dict:
@@ -27647,6 +30310,10 @@ def _deep_research_fetch(doc_id: str) -> dict:
     title = f"{label} — {dec['title']}" if dec.get("title") else label
     url = cit.get("canonical_url") or _canonical_decision_url(canonical)
     full = dec.get("full_text") or ""
+    if dec.get("source_defect"):
+        # The client reads `text` as THE document: say what is missing and why.
+        _note = f"[Source defect: {dec['source_defect']['note']}]"
+        full = f"{full}\n\n{_note}" if full else _note
     total_chars = len(full)
     truncated = total_chars > _FETCH_TEXT_CAP
     if truncated:
@@ -27675,6 +30342,7 @@ def _deep_research_fetch(doc_id: str) -> dict:
         "url": url,
         "metadata": {
             **({"copyright": _ECHR_ATTRIBUTION} if _echr else {}),
+            **({"source_defect": dec["source_defect"]} if dec.get("source_defect") else {}),
             "court": dec.get("court"),
             "decision_date": dec.get("decision_date"),
             "docket_number": dec.get("docket_number"),
@@ -27856,21 +30524,37 @@ def _capture_outcome(name: str, outcome: str, started: float,
 
 
 async def _dispatch_with_timeout(name: str, arguments: dict):
-    """Run one tool dispatch under TOOL_DISPATCH_TIMEOUT_S. On timeout, return a
-    clean error payload instead of letting the client hang indefinitely. (wait_for
-    cancels the awaiting coroutine; the underlying to_thread thread finishes in the
-    background, but the request is freed.) Separate from the decorated wrapper so
-    it is unit-testable."""
+    """Run one tool dispatch in its lane, under that lane's timeout. A heavy
+    call that could not start in time is refused at once (server_busy); on
+    timeout, return a clean error payload instead of letting the client hang.
+    (wait_for cancels the awaiting coroutine, which also drops its queued
+    to_thread work; a thread already running finishes in the background, but
+    the request is freed.) Separate from the decorated wrapper so it is
+    unit-testable."""
     _started = time.monotonic()
     # Before dispatch, so an aliased argument reaches the handler under the
     # name it expects and an unrecognised one is reported rather than
     # silently discarded.
     _unknown = _normalise_tool_args(_TOOL_NAME_ALIASES.get(name, name),
                                     arguments)
+    _lane = _lane_for_tool(name, arguments) if OCL_LANES else None
+    _timeout = _lane_timeout(_lane)
+    if _lane == "heavy" and not _heavy_admit():
+        _LANES.note_rejected("heavy")
+        logger.info("tool dispatch refused: %s (heavy lane at capacity)", name)
+        _record_tool_outcome(name, "busy")
+        _capture_outcome(name, "busy", _started, error="heavy lane at capacity",
+                         unknown=_unknown)
+        return [TextContent(type="text", text=json.dumps(
+            _busy_payload(name), ensure_ascii=False))]
+    _tokens = []
+    if _lane is not None:
+        _tokens = [(_ctx_lane, _ctx_lane.set(_lane)),
+                   (_ctx_request_deadline, _ctx_request_deadline.set(_started + _timeout))]
     try:
         result = await asyncio.wait_for(
             _handle_call_tool_inner(name, arguments),
-            timeout=TOOL_DISPATCH_TIMEOUT_S,
+            timeout=_timeout,
         )
         result = _prepend_arg_warning(
             result, _TOOL_NAME_ALIASES.get(name, name), _unknown)
@@ -27886,22 +30570,25 @@ async def _dispatch_with_timeout(name: str, arguments: dict):
         _capture_outcome(name, _outcome, _started, result=result,
                          unknown=_unknown)
         return result
-    except asyncio.TimeoutError:
+    except (asyncio.TimeoutError, _LaneDeadlineExpired):
         logger.warning(
             "tool dispatch aborted: %s exceeded %ss server-side timeout (load/backlog)",
-            name, TOOL_DISPATCH_TIMEOUT_S,
+            name, _timeout,
         )
         _capture_outcome(name, "timeout", _started,
-                         error=f"exceeded {TOOL_DISPATCH_TIMEOUT_S}s",
+                         error=f"exceeded {_timeout}s",
                          unknown=_unknown)
         return [TextContent(type="text", text=json.dumps({
             "error": "server_timeout",
             "tool": name,
-            "timeout_seconds": TOOL_DISPATCH_TIMEOUT_S,
+            "timeout_seconds": _timeout,
+            "retry_after_seconds": BUSY_RETRY_AFTER_S,
             "message": (
-                f"This call exceeded the server-side limit of {int(TOOL_DISPATCH_TIMEOUT_S)}s "
+                f"This call exceeded the server-side limit of {_timeout:g}s "
                 "and was aborted so your connection is not left hanging. The server may be "
-                "under temporary load — please retry; typical calls return in 1-10s."
+                f"under temporary load; retry after about {BUSY_RETRY_AFTER_S} s. Typical "
+                "calls return in 1-10s, and lookups of a known decision or statute are "
+                "served separately from searches."
             ),
         }, ensure_ascii=False))]
     except Exception as exc:
@@ -27912,6 +30599,9 @@ async def _dispatch_with_timeout(name: str, arguments: dict):
                          error=f"{type(exc).__name__}: {exc}",
                          unknown=_unknown)
         raise
+    finally:
+        for _var, _tok in reversed(_tokens):
+            _var.reset(_tok)
 
 
 _UI_WIDGETS = [m for m in (law_widget, decision_widget) if m is not None]
@@ -27968,10 +30658,11 @@ _RESEARCH_COMPACT_KEYS = (
     "decision_id", "docket_number", "court", "language", "decision_date",
     "citation_string_de", "canonical_url",
 )
-# Identity keys a compact row keeps WHEN PRESENT: set by _attach_canonical_ids
-# only while the representation manifest is loaded, so a client can collapse
-# duplicate representations without a second request.
-_RESEARCH_COMPACT_OPTIONAL_KEYS = ("canonical_decision_id", "is_canonical")
+# Keys a compact row keeps WHEN PRESENT: the identity keys are set by
+# _attach_canonical_ids only while the representation manifest is loaded, so a
+# client can collapse duplicate representations without a second request;
+# publication_date is set by search_fts5 where the court publishes one.
+_RESEARCH_COMPACT_OPTIONAL_KEYS = ("canonical_decision_id", "is_canonical", "publication_date")
 _DECISION_MCP_TEXT_CAP = 200_000
 
 
@@ -28187,7 +30878,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                             "sr_number", "article", "court", "language",
                             "date_from", "date_to", "canton", "chamber",
                             "limit", "offset", "sort", "e_number",
-                            "lexfind_id", "systematic_number")
+                            "lexfind_id", "systematic_number",
+                            "published_from", "published_to")
     _log_args = {k: v for k, v in arguments.items() if k in _STRUCTURAL_LOG_KEYS}
     # No IP, User-Agent or session id on this line. /datenschutz/ describes
     # three log tiers; the systemd journal is none of them and journald
@@ -28296,7 +30988,9 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 )
                 return ([TextContent(type="text", text=json.dumps({"error": _msg}, ensure_ascii=False))],
                         {"error": _msg})
-            _derr = _date_arg_error(arguments.get("date_from"), arguments.get("date_to"))
+            _derr = (_date_arg_error(arguments.get("date_from"), arguments.get("date_to"))
+                     or _published_arg_error(arguments.get("published_from"),
+                                             arguments.get("published_to")))
             if _derr:
                 return ([TextContent(type="text", text=json.dumps({"error": _derr}, ensure_ascii=False))],
                         {"error": _derr})
@@ -28322,6 +31016,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 offset=req_offset,
                 sort=sort_arg,
                 meta=_search_meta,
+                published_from=arguments.get("published_from"),
+                published_to=arguments.get("published_to"),
             )
             # Apply the REST response bounds before rendering either text or
             # widget data. Copy rows: snippet and pinpoint rendering must not
@@ -28419,14 +31115,19 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
 
                 # Each result is rendered as a Markdown link so the LLM
                 # propagates a clickable citation to the user-facing answer.
+                def _pub_tag(r: dict) -> str:
+                    # Only when it differs: a same-day publication adds nothing.
+                    pd = (r.get("publication_date") or "")[:10]
+                    return f" (published {pd})" if pd and pd != r.get("decision_date") else ""
+
                 if fields_arg == "compact":
                     for i, r in enumerate(results, 1):
                         link = _md_link(r['docket_number'], _canonical_decision_url(r.get('decision_id', '')))
-                        text += f"{i}. {link} ({r['decision_date']}) [{r['court']}] [{r['language']}]\n"
+                        text += f"{i}. {link} ({r['decision_date']}){_pub_tag(r)} [{r['court']}] [{r['language']}]\n"
                 else:
                     for i, r in enumerate(results, 1):
                         link = _md_link(r['docket_number'], _canonical_decision_url(r.get('decision_id', '')))
-                        text += f"**{i}.** {link} ({r['decision_date']}) [{r['court']}] [{r['language']}]\n"
+                        text += f"**{i}.** {link} ({r['decision_date']}){_pub_tag(r)} [{r['court']}] [{r['language']}]\n"
                         if r.get("title"):
                             text += f"   Title: {r['title']}\n"
                         if r.get("regeste"):
@@ -28478,10 +31179,17 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
             if _search_meta.get("query_condensed"):
                 _struct["query_condensed"] = True
                 _struct["condensed_terms"] = _search_meta.get("condensed_terms", [])
-            if _condense_note or _page_note or _degraded_note:
-                _struct["note"] = " ".join(p.strip() for p in (_condense_note, _page_note, _degraded_note) if p)
-            if _page_note or _degraded_note:
-                text += "\n" + " ".join(p.strip() for p in (_page_note, _degraded_note) if p) + "\n"
+            _pubwin_note = ""
+            if _search_meta.get("publication_window_floor"):
+                _struct["publication_window_decided_from"] = _search_meta["publication_window_floor"]
+                _pubwin_note = (
+                    "Publication-date results cover decisions decided on or after "
+                    f"{_search_meta['publication_window_floor']}; pass an earlier "
+                    "date_from to reach older ones.")
+            if _condense_note or _page_note or _degraded_note or _pubwin_note:
+                _struct["note"] = " ".join(p.strip() for p in (_condense_note, _page_note, _degraded_note, _pubwin_note) if p)
+            if _page_note or _degraded_note or _pubwin_note:
+                text += "\n" + " ".join(p.strip() for p in (_page_note, _degraded_note, _pubwin_note) if p) + "\n"
             if _DECISION_TOOL_META is not None:
                 # Preserve every legacy widget field while adding the shared
                 # research records and pagination independently of the flag.
@@ -28524,6 +31232,15 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                     result = _overlay_row
                     _fresh_publication = True
             if not result:
+                # A reference whose source holds another ruling (source_defects.py)
+                # is withheld on purpose: say why, not just "not found".
+                _defect = source_defects.lookup(_did_arg)
+                if _defect:
+                    return _research_tool_result(
+                        f"Decision not found: {_did_arg}\n\n{_defect.note}",
+                        {"error": f"Decision not found: {_did_arg}",
+                         "source_defect": _defect.as_dict()},
+                    )
                 # A federal-looking docket the coverage notes explain (pre-2000
                 # BGer shape: never published online; pre-2007 EVG shape: backlog
                 # only partly ingested; or a shape ambiguous with a cantonal
@@ -28566,6 +31283,10 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 + (f"**Full decision:** `{result['cli_ch_full_decision']}` "
                    f"(docket {result['underlying_docket']})\n"
                    if result.get("cli_ch_full_decision") else "")
+                + ("**Published in the official collection as:** "
+                   + ", ".join(f"`{b['citation_string_de']}`" for b in result["published_as_bge"])
+                   + " — cite the BGE\n"
+                   if result.get("published_as_bge") else "")
                 + "\n"
                 f"## Citation — copy verbatim (do NOT reconstruct)\n"
                 f"- DE: `{citation['citation_string_de']}`\n"
@@ -28583,6 +31304,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                     f"citation-graph links, cross-references and structured Erwägungen "
                     f"are not yet available for this decision.\n"
                 )
+            if result.get("source_defect"):
+                text += f"\n> ⚠️ **Source defect.** {result['source_defect']['note']}\n"
             if result.get("chamber"):
                 text += f"\n**Chamber:** {result['chamber']}\n"
             if result.get("title"):
@@ -28657,6 +31380,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 text += f"\n**Citations:** {', '.join(_cited)}\n"
             # Add citation graph counts
             incoming, outgoing = _count_citations(result["decision_id"])
+            if result.get("source_defect"):
+                outgoing = 0    # extracted from another ruling's text
             if incoming > 0 or outgoing > 0:
                 text += f"\n**Citation graph:** Cited by {incoming} decisions | Cites {outgoing} decisions\n"
             try:
@@ -28961,6 +31686,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 sr_number=arguments.get("sr_number"),
                 article=arguments.get("article"),
                 language=arguments.get("language", "de"),
+                canton=arguments.get("canton"),
             )
             return _text_and_payload(result, _format_get_commentary_response(result))
 
@@ -29176,6 +31902,11 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
+    except _LaneDeadlineExpired:
+        # Not a tool failure: the request ran out of time while its work was
+        # queued. _dispatch_with_timeout answers it as a timeout.
+        _tool_error = True
+        raise
     except FileNotFoundError as e:
         _tool_error = True
         return [TextContent(
@@ -29193,6 +31924,10 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
         _record_tool_call(name, (time.monotonic() - _tool_start) * 1000, error=_tool_error)
 
 
+# Privacy takedowns take effect here, not at the next rebuild: every caller
+# (_dispatch_with_timeout, _call_tool_json) resolves this name at call time.
+_handle_call_tool_inner = decision_suppression.wrap_tool_handler(
+    _handle_call_tool_inner, _ctx_tool_payload, TextContent)
 
 
 # ── Main ──────────────────────────────────────────────────────
@@ -29368,13 +32103,13 @@ def main_remote(host: str, port: int):
     # Silence client-disconnect noise so worker journals surface real errors.
     logging.getLogger("uvicorn.error").addFilter(_ClientDisconnectNoiseFilter())
 
-    # Size thread pool for concurrent DB queries (default is too small)
-    import concurrent.futures
-    pool_size = max(32, (os.cpu_count() or 4) * 4)
+    # Blocking work runs on the lane executor (_LaneExecutor), installed on
+    # uvicorn's own loop in lifespan below. An executor set on this loop was
+    # never used: uvicorn.run starts a fresh loop through asyncio.run, so until
+    # 2026-09-30 production ran on asyncio's lazy default pool of 20 threads
+    # while this line logged 64.
     loop = asyncio.new_event_loop()
-    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=pool_size))
     asyncio.set_event_loop(loop)
-    logger.info(f"Thread pool: {pool_size} workers")
 
     sse = SseServerTransport("/messages/")
 
@@ -29427,6 +32162,7 @@ def main_remote(host: str, port: int):
             _ctx_client_ip.set(ip)
             _ctx_client_ua.set(ua)
             _ctx_llm_source.set("mcp")
+            _ctx_no_retention.set(_is_no_retention_path(path))
 
             # Extract and track session_id
             qs = scope.get("query_string", b"").decode("utf-8", errors="ignore")
@@ -30098,6 +32834,33 @@ setInterval(load, 30000);
     )
 
     @rest_api.middleware("http")
+    async def _rest_suppression(request: Request, call_next):
+        # Privacy takedowns (decision_suppression): a request naming a
+        # suppressed decision gets 410; JSON naming one in passing is
+        # filtered. No list on the host → one cached stat, nothing else.
+        s = decision_suppression.current()
+        if not s.ids:
+            return await call_next(request)
+        target = urllib.parse.unquote(
+            request.url.path + "?" + request.url.query)
+        if s.mentions(target):
+            return JSONResponse(status_code=410,
+                                content=decision_suppression.NOT_AVAILABLE)
+        response = await call_next(request)
+        if "application/json" not in response.headers.get("content-type", ""):
+            return response
+        body = b"".join([chunk async for chunk in response.body_iterator])
+        text = body.decode("utf-8", errors="replace")
+        scrubbed = s.scrub_text(text)
+        if scrubbed is not text:
+            body = scrubbed.encode("utf-8")
+        out = Response(content=body, status_code=response.status_code)
+        out.raw_headers = [(k, v) for k, v in response.raw_headers
+                           if k.lower() != b"content-length"]
+        out.headers["content-length"] = str(len(body))
+        return out
+
+    @rest_api.middleware("http")
     async def _rest_llm_provenance(request: Request, call_next):
         # Every REST request stamps provenance + identity contextvars, so
         # Haiku/Sonnet calls made while serving it (rerank, query-parse,
@@ -30109,6 +32872,50 @@ setInterval(load, 30000);
         _ctx_client_ip.set(_client_ip(request))
         _ctx_client_ua.set(request.headers.get("user-agent", ""))
         return await call_next(request)
+
+    @rest_api.middleware("http")
+    async def _rest_admission(request: Request, call_next):
+        # Lane + deadline for the request's to_thread work (see _LaneExecutor),
+        # and a fast 503 when a heavy request could not start in time or this
+        # client already has its share of heavy requests in flight.
+        if not OCL_LANES:
+            return await call_next(request)
+        lane = _lane_for_rest(request.url.path, request.query_params)
+        if lane is None:
+            return await call_next(request)
+        started = time.monotonic()
+        client = None
+        if lane == "heavy":
+            client = _client_ip(request) or None
+            if not _heavy_admit(client):
+                _LANES.note_rejected("heavy")
+                return JSONResponse(
+                    status_code=503, content=_busy_payload(rest=True),
+                    headers={"Retry-After": str(BUSY_RETRY_AFTER_S)})
+            if client:
+                _heavy_client_inflight[client] = _heavy_client_inflight.get(client, 0) + 1
+        t_lane = _ctx_lane.set(lane)
+        t_deadline = _ctx_request_deadline.set(started + _lane_timeout(lane))
+        try:
+            return await call_next(request)
+        finally:
+            _ctx_request_deadline.reset(t_deadline)
+            _ctx_lane.reset(t_lane)
+            if client:
+                left = _heavy_client_inflight.get(client, 1) - 1
+                if left > 0:
+                    _heavy_client_inflight[client] = left
+                else:
+                    _heavy_client_inflight.pop(client, None)
+
+    async def _lane_deadline_expired(request: Request, exc: Exception):
+        # Work queued past its request deadline is the server's overload, not
+        # the client's error: same answer as a refusal.
+        return JSONResponse(
+            status_code=503, content=_busy_payload(rest=True),
+            headers={"Retry-After": str(BUSY_RETRY_AFTER_S)})
+
+    rest_api.add_exception_handler(_LaneDeadlineExpired, _lane_deadline_expired)
 
     # ── Per-IP daily quota for expensive (LLM-backed) endpoints ────
     # Defense against commercial-tool inner-loop integration costs (see
@@ -31035,7 +33842,8 @@ setInterval(load, 30000);
                   summary="Instant case-number lookup",
                   description="Resolve a Swiss case number / docket (e.g. 'BGE 140 III 86', "
                               "'4A_636/2025', 'WBE.2026.33') straight to the matching "
-                              "decision(s) — no Haiku, no rerank, tens of ms. Returns lean "
+                              "decision(s) — an indexed exact match first (tens of ms), a "
+                              "search only for partial or near numbers (`match` says which). Returns lean "
                               "hits with citation + /entscheid/ link. Use /decisions for "
                               "topic search; `is_case_number=false` when the input is not a "
                               "recognised docket. `total` counts returned hits, not all matches; "
@@ -31048,7 +33856,15 @@ setInterval(load, 30000);
         exact: bool = Query(False, description="Only decisions whose own docket or BGE label is the reference "
                                                "(separator-agnostic, alias-aware); no related or citing decisions."),
     ):
-        return await asyncio.to_thread(_lookup_case_number, (q or query or ""), limit, exact)
+        result = await asyncio.to_thread(_lookup_case_number, (q or query or ""), limit, exact)
+        if result.get("partial") and not result.get("results"):
+            # Unanswered, not "not found": a client must not read this as absence.
+            return JSONResponse(
+                status_code=503,
+                content={"error": "search_incomplete", "query": result.get("query"),
+                         "retry_after_seconds": BUSY_RETRY_AFTER_S, "message": result["hint"]},
+                headers={"Retry-After": str(BUSY_RETRY_AFTER_S)})
+        return result
 
     @rest_api.post("/tool/{name}", tags=["Research"],
                    summary="Call any research tool and get its structured payload",
@@ -31118,7 +33934,9 @@ setInterval(load, 30000);
         marked_for_publication: bool = Query(None, description="If true, return only Federal Supreme Court rulings flagged for the official BGE collection (Neuheiten '*' = 'für die Publikation vorgesehen') — future leading cases, flagged before the BGE number is assigned. Populated for BGer decisions from mid-2026 onward."),
         limit: int = Query(50, ge=1, le=2000, description="Max results to return"),
         offset: int = Query(0, ge=0, description="Skip results for pagination"),
-        sort: str = Query(None, description="Sort: relevance (default), date_desc, date_asc"),
+        sort: str = Query(None, description="Sort: relevance (default), date_desc, date_asc (decision_date), published_desc (newest publication_date first)"),
+        published_from: str = Query(None, description="Only decisions PUBLISHED on or after this date (YYYY-MM-DD; publication_date, not decision_date). Use for 'newly published' alerts. May be limited to decisions decided up to 18 months earlier (always without a court filter); publication_window_decided_from then names the limit, and an earlier date_from widens it. Decisions without a publication_date never match."),
+        published_to: str = Query(None, description="Only decisions published on or before this date (YYYY-MM-DD, inclusive). Requires published_from."),
         fields: str = Query("full", description="Detail level: full or compact"),
         include_pinpoint: bool = Query(True, description=(
             "Attach a pinpoint Erwägung citation to the top 5 full-fields "
@@ -31147,7 +33965,8 @@ setInterval(load, 30000);
                 detail=(f"Unsupported search filter(s): {', '.join(_unsupported)}. "
                         "Corpus metadata is too sparse to apply them honestly; express "
                         "the concept in `query`, or filter by `court` / `chamber`."))
-        _derr = _date_arg_error(date_from, date_to)
+        _derr = (_date_arg_error(date_from, date_to)
+                 or _published_arg_error(published_from, published_to))
         if _derr:
             raise HTTPException(status_code=422, detail=_derr)  # #45: no silent drop
         _search_meta: dict = {}
@@ -31157,6 +33976,7 @@ setInterval(load, 30000);
             chamber=chamber,
             marked_for_publication=marked_for_publication,
             limit=limit, offset=offset, sort=sort, meta=_search_meta,
+            published_from=published_from, published_to=published_to,
         )
         results = copy.deepcopy(results)
         # Duplicate representations: canonical_decision_id + is_canonical on every
@@ -31246,6 +34066,12 @@ setInterval(load, 30000);
                 "For best results send 3-8 precise terms per legal issue."
             )
             note = ((note + " ") if note else "") + _cnote
+        if _search_meta.get("publication_window_floor"):
+            resp["publication_window_decided_from"] = _search_meta["publication_window_floor"]
+            note = ((note + " ") if note else "") + (
+                "Publication-date results cover decisions decided on or after "
+                f"{_search_meta['publication_window_floor']}; pass an earlier "
+                "date_from to reach older ones.")
         if note:
             resp["note"] = note
         # Name the miss precisely where the arguments allow it. Only two
@@ -31255,7 +34081,7 @@ setInterval(load, 30000);
         # case is not attributable, and says so rather than guessing.
         _filtered = any(v not in (None, "") for v in (
             court, canton, language, date_from, date_to, chamber,
-            marked_for_publication))
+            marked_for_publication, published_from, published_to))
         if returned:
             _reason = None
         elif total:
@@ -31288,7 +34114,10 @@ setInterval(load, 30000);
                 result = overlay
                 fresh_publication = True
         if not result:
-            raise HTTPException(status_code=404, detail=f"Decision not found: {decision_id}")
+            _defect = source_defects.lookup(decision_id)
+            raise HTTPException(status_code=404, detail=(
+                f"Decision not found: {decision_id}. {_defect.note}" if _defect
+                else f"Decision not found: {decision_id}"))
         result = copy.deepcopy(result)
         if not full_text:
             result.pop("full_text", None)
@@ -31829,7 +34658,7 @@ setInterval(load, 30000);
 
     @rest_api.get("/commentaries/search", tags=["Commentaries"],
                   summary="Search commentaries",
-                  description="Search OnlineKommentar.ch scholarly commentaries on Swiss law.")
+                  description="Search the article-anchored commentaries: OnlineKommentar.ch / OpenLegalCommentary.ch and the Kommentar zur Schaffhauser Verwaltungsrechtspflege.")
     async def api_search_commentaries(
         response: Response,
         query: str = Query(None, description="Search query"),
@@ -31859,12 +34688,13 @@ setInterval(load, 30000);
         sr_number: str = Query(None, description="SR number"),
         article: str = Query(None, description="Article number"),
         language: str = Query("de", description="Language: de, fr, it"),
+        canton: str = Query(None, description="Canton code for a cantonal act (e.g. SH with VRG or JG)"),
     ):
         return _declare_outcome(
             response,
             await asyncio.to_thread(
                 get_commentary, abbreviation=abbreviation, sr_number=sr_number,
-                article=article, language=language,
+                article=article, language=language, canton=canton,
             ),
             "article_not_found" if article else "id_not_found")
 
@@ -32198,6 +35028,26 @@ setInterval(load, 30000);
     # Copilot Studio / Azure Function integrations get the same safety net
     # that Claude-side MCP clients get.
 
+    # ── Suggestions from opencaselaw.ch/vorschlag/ (suggestions.py) ──
+    # Off the OpenAPI schema on purpose: a form endpoint, not a research tool.
+    @rest_api.post("/suggestions", include_in_schema=False)
+    async def api_submit_suggestion(request: Request):
+        import suggestions as _sg
+        if int(request.headers.get("content-length") or 0) > 20_000:
+            return JSONResponse(status_code=413, content={"error": "too_large"})
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "invalid_json"})
+        code, body = await asyncio.to_thread(_sg.submit, payload, _client_ip(request))
+        return JSONResponse(status_code=code, content=body, headers={"Cache-Control": "no-store"})
+
+    @rest_api.get("/suggestions/{token}", include_in_schema=False)
+    async def api_suggestion_status(token: str):
+        import suggestions as _sg
+        code, body = await asyncio.to_thread(_sg.status, token)
+        return JSONResponse(status_code=code, content=body, headers={"Cache-Control": "no-store"})
+
     @rest_api.get("/cite", tags=["Citation Integrity"],
                   summary="Build a canonical Swiss citation",
                   description="Given any Swiss case reference (decision_id, BGE ref, docket number), "
@@ -32404,8 +35254,10 @@ setInterval(load, 30000);
 
     @rest_api.get("/atom/{court}.xml", tags=["Exports"],
                   summary="Atom feed of newest decisions for a court",
-                  description="Atom 1.0 feed of the 50 most recent decisions "
-                              "from a given court. Subscribe in any feed reader "
+                  description="Atom 1.0 feed of the 50 most recently published "
+                              "decisions from a given court, newest publication "
+                              "date first (decision date where the court publishes "
+                              "none). Subscribe in any feed reader "
                               "(NetNewsWire, Inoreader, Feedbin, etc.) to get a "
                               "daily digest of newly published decisions.",
                   response_class=_FastAPIResponse)
@@ -32422,12 +35274,7 @@ setInterval(load, 30000);
         def _build():
             conn = get_db()
             try:
-                rows = conn.execute(
-                    "SELECT decision_id, court, decision_date, docket_number, "
-                    "regeste, language FROM decisions "
-                    "WHERE court = ? ORDER BY decision_date DESC LIMIT 50",
-                    (court,),
-                ).fetchall()
+                rows = _atom_feed_rows(conn, court)
                 decisions = []
                 for r in rows:
                     d = dict(r)
@@ -33036,6 +35883,7 @@ setInterval(load, 30000);
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
+        _install_lanes(asyncio.get_running_loop())
         async with session_manager.run():
             logger.info("Streamable HTTP session manager started")
             yield
@@ -33081,6 +35929,9 @@ setInterval(load, 30000);
 
     async def handle_decision_page(request):
         decision_id = request.path_params["decision_id"]
+        if decision_suppression.current().mentions(urllib.parse.unquote(decision_id)):
+            return Response("This decision is not available on OpenCaseLaw.\n",
+                            status_code=410, media_type="text/plain")
         # ?highlight=<verbatim substring> tags one Erwägung sentence with
         # <mark> after the page is rendered. Used by find_relevant_erwaegung
         # display_urls so the lawyer landing on the page sees the matched
@@ -33092,9 +35943,10 @@ setInterval(load, 30000);
         e_focus = request.query_params.get("e") or None
         html_content, status, redirect_location = await asyncio.to_thread(
             render_decision_page, decision_id, highlight=highlight, e_focus=e_focus,
+            resolve_reference=_resolve_reference_unique,
         )
         if redirect_location:
-            # Unique exact-docket match (P1.4) — 301 to the canonical
+            # Unique reference match (P1.4; any spelling cite resolves) — 301 to the canonical
             # /entscheid/<decision_id> URL instead of serving content at a
             # non-canonical one.
             return Response(status_code=status, headers={"Location": redirect_location})

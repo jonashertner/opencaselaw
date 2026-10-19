@@ -95,7 +95,7 @@ _FEDERAL_COURTS: dict[str, str] = {
 _NON_SWISS_COURTS = frozenset({
     "ecthr",          # European Court of Human Rights
     "hudoc_ch",       # ECHR Swiss-related (HUDOC mirror)
-    "ta_sst",         # Tribunal Arbitral du Sport (international body)
+    "ta_sst",         # Schweizer Sportgericht (Swiss Sports Tribunal, Bern)
 })
 
 # ISO 3166-2:CH canton codes.

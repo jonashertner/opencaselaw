@@ -48,3 +48,12 @@ def test_anomaly_explicit_url_still_wins(monkeypatch):
     m = _reload("scripts.citation_anomaly_report", monkeypatch,
                 OCL_ANOMALY_NTFY=None, NTFY_TOPIC="ops-test-topic")
     assert m.NTFY_URL == "https://ntfy.sh/ops-test-topic"
+
+
+def test_bger_withdrawn_topic_env(monkeypatch):
+    m = _reload("scripts.check_bger_withdrawn", monkeypatch,
+                NTFY_TOPIC="ops-test-topic")
+    assert m.NTFY_URL == "https://ntfy.sh/ops-test-topic"
+    m = _reload("scripts.check_bger_withdrawn", monkeypatch,
+                NTFY_TOPIC=None)
+    assert m.NTFY_URL.endswith("/opencaselaw-scrapers")  # legacy fallback

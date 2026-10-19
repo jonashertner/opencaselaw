@@ -71,36 +71,84 @@ def test_one_row_per_docket_not_per_doc_id():
     assert len(decs) == len([x for x in _strings() if _RE_DOCKET.match(x)]) == 20
 
 
-def test_every_row_gets_its_own_date_not_its_neighbour_s():
-    """Derived independently from the raw bytes, by span, not by the parser."""
-    from scrapers.cantonal.base_tribuna import _RE_DOCKET, _RE_DATE
-    a = _strings()
-    dock = [(i, x) for i, x in enumerate(a) if _RE_DOCKET.match(x)]
-    _, decs = _parse()
-    for n, (lo, docket) in enumerate(dock):
-        hi = dock[n + 1][0] if n + 1 < len(dock) else len(a)
-        expected = [x for i, x in enumerate(a)
-                    if lo <= i < hi and _RE_DATE.match(x) and x != "0000-00-00"]
-        got = decs[n]["decision_date"]
-        assert decs[n]["docket_number"] == docket
-        assert got == (expected[0] if expected else ""), (
-            f"{docket}: got {got!r}, span says {expected[:1]}")
+FIXTURE_FR = REPO / "tests" / "fixtures" / "tribuna_fr_page0_base64path_20260914.txt"
+
+
+def _parse_fr():
+    from scrapers.cantonal.fr_gerichte import FRGerichteScraper as S
+    s = S.__new__(S)
+    return S._parse_search_response(s, FIXTURE_FR.read_text(encoding="utf-8"))
+
+
+# Checked 2026-09-27 against the date each judgment states in its own text
+# ("Urteil vom 13. Juli 2026", "Arrêt du 28 juillet 2026", ...), read from
+# the stored corpus rows. The docket-span reading had 9 of these 18 empty
+# and 3 wrong: 100 2026 142 -> 2026-08-18, 602 2025 79 -> 2026-09-24,
+# 604 2025 175 -> 2026-09-15 (createDate / Rechtskraft date).
+TEXT_DATES_BE_VG = {
+    "200 2026 110": "2026-07-24", "100 2026 142": "2026-07-13",
+    "200 2025 500": "2026-07-24", "200 2025 523": "2026-07-27",
+    "200 2024 785": "2026-07-24", "200 2025 117": "2026-07-29",
+    "200 2025 251": "2026-07-23", "200 2024 305": "2026-07-28",
+}
+TEXT_DATES_FR = {
+    "601 2025 172": "2026-08-13", "102 2025 35": "2026-08-14",
+    "102 2026 179": "2026-08-17", "608 2026 41": "2026-08-12",
+    "602 2025 79": "2026-08-17", "602 2025 13": "2026-08-13",
+    "602 2025 11": "2026-08-13", "602 2024 201": "2026-08-13",
+    "604 2025 175": "2026-07-28",
+    # The ruling itself says "27 juillet 2027" — a typo; the portal is right.
+    "605 2025 140": "2026-07-27",
+}
+
+
+def test_the_string_table_is_deduplicated_which_is_why_spans_fail():
+    """If the portal ever stops deduplicating, the span reading would be
+    right again and this explanation would no longer hold."""
+    from scrapers.cantonal.base_tribuna import _RE_DATE
+    for fx in (FIXTURE, FIXTURE_FR):
+        dates = [x for x in re.findall(r'"([^"]*)"', fx.read_text(encoding="utf-8"))
+                 if _RE_DATE.match(x)]
+        assert len(dates) == len(set(dates))
+
+
+@pytest.mark.parametrize("parse,truth", [
+    (_parse, TEXT_DATES_BE_VG), (_parse_fr, TEXT_DATES_FR)])
+def test_every_row_gets_the_date_its_judgment_states(parse, truth):
+    _, decs = parse()
+    by = {d["docket_number"]: d["decision_date"] for d in decs}
+    wrong = {k: (by.get(k), v) for k, v in truth.items() if by.get(k) != v}
+    assert not wrong, f"(got, judgment text): {wrong}"
+
+
+def test_no_row_is_left_undated_on_either_page():
+    for parse in (_parse, _parse_fr, _parse_2011):
+        _, decs = parse()
+        assert all(d["decision_date"] for d in decs), (
+            [d["docket_number"] for d in decs if not d["decision_date"]])
+
+
+def test_row_records_are_found_for_every_docket():
+    """The stream reading, not the span fallback, must carry every row."""
+    from scrapers.cantonal.base_tribuna import _row_dates_from_stream
+    from scrapers.cantonal.be_verwaltungsgericht import BEVerwaltungsgerichtScraper as S
+    for fx in (FIXTURE, FIXTURE_FR, FIXTURE_2011):
+        text = fx.read_text(encoding="utf-8")
+        _, decs = S._parse_search_response(S.__new__(S), text)
+        assert set(_row_dates_from_stream(text)) == {d["docket_number"] for d in decs}, fx.name
+
+
+def test_no_decision_date_lies_after_the_page_was_captured():
+    """The span reading gave 604 2025 175 its Rechtskraft date; live rows got
+    dates up to five weeks in the future (2026-10-26 for a 1 Sept ruling)."""
+    for parse, captured in ((_parse, "2026-08-27"), (_parse_fr, "2026-09-14")):
+        _, decs = parse()
+        assert max(d["decision_date"] for d in decs) <= captured
 
 
 def test_the_rechtskraft_sentinel_never_becomes_a_decision_date():
     _, decs = _parse()
     assert all(d["decision_date"] != "0000-00-00" for d in decs)
-
-
-def test_a_row_with_no_date_in_its_span_is_empty_not_borrowed():
-    """Honest emptiness beats a confidently wrong neighbour's date.
-
-    fetch_decision warns and still ingests (base_tribuna ~:655), so this
-    costs no coverage.
-    """
-    _, decs = _parse()
-    empty = [d["docket_number"] for d in decs if not d["decision_date"]]
-    assert empty == ["200 2025 523", "200 2025 500", "100 2026 142"]
 
 
 def test_enc_path_is_per_row_and_complete():

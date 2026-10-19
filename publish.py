@@ -61,6 +61,56 @@ def _notify(title: str, message: str, *, priority: str = "default"):
         pass  # notification failure must never break the pipeline
 
 
+_STEP2_REASON_MARKERS = ("refusing to swap", "PRE-FLIGHT FAILED", "RuntimeError", "timed out",
+                         "Traceback", "disk is full", "database disk image")
+
+
+def _step2_failure_message(log_path: Path | None = None, data_volume: str | None = None) -> str:
+    """What an operator needs the moment step 2 fails: why, how old the data
+    users are getting is, and whether a complete new build is waiting.
+
+    On 2026-10-09 the per-court gate refused the swap at 12:21; the only page
+    came at 20:58, when the whole run ended, too late to swap the kept build in
+    by hand that day, and the 03:30 run then deleted it. Best-effort: any part
+    it cannot read is left out."""
+    parts = []
+    log_path = log_path or (REPO_DIR / "logs" / "publish.log")
+    try:
+        with open(log_path, "rb") as fh:
+            fh.seek(0, 2)
+            fh.seek(max(0, fh.tell() - 200_000))
+            tail = fh.read().decode("utf-8", "replace").splitlines()
+        reason = next((ln for ln in reversed(tail)
+                       if any(m in ln for m in _STEP2_REASON_MARKERS)), "")
+        if reason:
+            parts.append("Reason: " + reason.split("| ", 1)[-1].strip()[:400])
+    except OSError:
+        pass
+    out = Path(data_volume or DATA_VOLUME) / "output"
+    try:
+        import sqlite3
+        conn = sqlite3.connect(f"file:{out / 'decisions.db'}?mode=ro&immutable=1", uri=True)
+        try:
+            gen = conn.execute("PRAGMA user_version").fetchone()[0]
+        finally:
+            conn.close()
+        if gen:
+            parts.append(f"Users keep the previous database, {(time.time() - gen) / 3600:.0f} h old.")
+    except Exception:  # noqa: BLE001 — a message part, never a failure
+        pass
+    kept = out / "decisions.db.tmp"
+    try:
+        st = kept.stat()
+        parts.append(
+            f"A new build is kept at {kept} ({st.st_size / 1e9:.1f} GB, "
+            f"{(time.time() - st.st_mtime) / 3600:.1f} h old). If the refusal is an intended "
+            "fold or re-key, swap it in by hand before the next 03:30 run, which deletes it "
+            "(memory: swap-gate-rekey-trap).")
+    except OSError:
+        parts.append("No new build was kept: the next run starts from scratch.")
+    return " ".join(parts) or "Step 2 failed; see logs/publish.log."
+
+
 def _append_run_record(record: dict) -> None:
     """Append one JSON line to state/publish_runs.jsonl.
 
@@ -91,8 +141,16 @@ def _save_checkpoint(step_num, results: dict):
     }))
 
 
-def _load_checkpoint() -> dict | None:
+def _load_checkpoint(resume_requested: bool = False) -> dict | None:
     """Load checkpoint from prior crashed run (if any).
+
+    A checkpoint whose database rebuild (step 2) completed is honoured only
+    when the run asks for it (``--resume``). 2026-10-07: Tuesday's build ended
+    at 23:41 UTC with only the early stats step red; the 03:30 timer run found
+    the checkpoint ten minutes before it expired, "resumed", reran that one
+    step and skipped the rebuild, so a day of scraped decisions, a
+    migration and two de-listings did not reach the site. A scheduled run
+    starts fresh unless the rebuild itself is what failed.
 
     TTL is 4h (was 12h). The daily timer fires every ~24h, so a 12h TTL
     leaves a wide window where yesterday's checkpoint can be re-used by
@@ -106,6 +164,12 @@ def _load_checkpoint() -> dict | None:
             data = json.loads(CHECKPOINT_PATH.read_text())
             age_hours = (datetime.now(timezone.utc) - datetime.fromisoformat(data["timestamp"])).total_seconds() / 3600
             if age_hours < 4:
+                if not resume_requested and data.get("results", {}).get("2") is True:
+                    logging.getLogger("publish").info(
+                        "  Ignoring checkpoint from %s: its database rebuild (step 2) "
+                        "completed, so this run starts fresh (--resume continues it)",
+                        data.get("timestamp"))
+                    return None
                 return data
         except Exception:
             pass
@@ -132,6 +196,27 @@ HF_REPO_ID = "voilaj/swiss-caselaw"
 # volume during the brief window before the .tmp is replaced.
 DATA_VOLUME = "/mnt/HC_Volume_104655575"
 BUILD_DISK_REQUIRED_GB = 80
+# How long a free-space check waits for space a just-deleted file still holds.
+DISK_FREE_SETTLE_S = 120
+# Step 2g wall clock (see step_2g_build_decision_structure).
+STRUCTURE_TIMEOUT_S = 18000
+
+
+def _free_bytes_settled(path, need: int, wait_s: float | None = None, poll_s: float = 5.0) -> int:
+    """Free bytes on ``path``'s volume, re-read for up to ``wait_s`` while short of ``need``.
+
+    Deleting a file does not free its blocks at once on the data volume. On
+    2026-10-10 the step-2 cleanup removed the kept 73 GB decisions.db.tmp and
+    the pre-flight in the same second saw 50.5 GB free (about 124 GB moments
+    later), so the night's build failed at once. Only the path that would fail
+    waits; a volume that is really full fails ``wait_s`` later than before."""
+    wait_s = DISK_FREE_SETTLE_S if wait_s is None else wait_s
+    free = shutil.disk_usage(path).free
+    deadline = time.monotonic() + wait_s
+    while free < need and time.monotonic() < deadline:
+        time.sleep(poll_s)
+        free = shutil.disk_usage(path).free
+    return free
 
 
 
@@ -381,7 +466,7 @@ def _preflight_disk_check() -> bool:
     if not Path(DATA_VOLUME).exists():
         logger.warning(f"  Pre-flight: {DATA_VOLUME} not present, skipping check")
         return True
-    free_gb = shutil.disk_usage(DATA_VOLUME).free / 1e9
+    free_gb = _free_bytes_settled(DATA_VOLUME, int(BUILD_DISK_REQUIRED_GB * 1e9)) / 1e9
     if free_gb < BUILD_DISK_REQUIRED_GB:
         logger.error(
             f"PRE-FLIGHT FAILED: {DATA_VOLUME} has {free_gb:.1f} GB free, "
@@ -542,6 +627,10 @@ def step_2_build_fts5(
     #                  quick_publish can run DURING this window, which
     #                  adds disk contention and is the reason the
     #                  previous cap got hit.
+    # build_fts5 refreshes the public stats.json right after the swap only
+    # when asked to; this is the production build, so ask. setdefault keeps
+    # an operator's explicit OCL_EARLY_STATS_PUSH=0 in force.
+    os.environ.setdefault("OCL_EARLY_STATS_PUSH", "1")
     return run_cmd(cmd, "Build FTS5 database", dry_run,
                    timeout=timeout, stall_timeout=14400,
                    on_line=on_line)
@@ -734,11 +823,24 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
         if stale.exists():
             stale.unlink()
     if live_real.exists():
-        free = shutil.disk_usage(live_real.parent).free
         need = int(live_real.stat().st_size * 1.2)
-        if free < need:
-            logger.error(f"  {live_real.parent} has {free / 1e9:.1f} GB free, the sidecar rebuild "
-                         f"needs ~{need / 1e9:.1f} GB; keeping the current sidecar")
+        # A bootstrap killed by the step timeout leaves its working copy beside
+        # `tmp` for the next run to resume; the extractor reuses those bytes
+        # (or deletes them first), so they count as available. Without this
+        # credit a resumable bootstrap never resumes on a volume with less
+        # than 1.2 x the sidecar to spare (review finding 2026-09-08).
+        try:
+            from search_stack.extract_decision_structure_incremental import reclaimable_bytes
+            reusable = reclaimable_bytes(tmp)
+        except Exception as e:  # noqa: BLE001 — the credit is an optimisation, never a failure
+            logger.warning(f"  could not measure the extractor's working copy ({e}); not crediting it")
+            reusable = 0
+        # The stale tmp and journal were deleted just above: let their space settle.
+        free = _free_bytes_settled(live_real.parent, need - reusable)
+        if free + reusable < need:
+            logger.error(f"  {live_real.parent} has {free / 1e9:.1f} GB free"
+                         + (f" (+{reusable / 1e9:.1f} GB in the extractor's working copy)" if reusable else "")
+                         + f", the sidecar rebuild needs ~{need / 1e9:.1f} GB; keeping the current sidecar")
             return False
     if os.environ.get("OCL_STRUCTURE_FORCE_FULL") == "1":
         logger.warning("  OCL_STRUCTURE_FORCE_FULL=1 is set: full re-extraction of every decision "
@@ -754,8 +856,12 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
     # OCL_STRUCTURE_FORCE_FULL=1 keeps a manual override for a one-off.
     if os.environ.get("OCL_STRUCTURE_FORCE_FULL") == "1":
         cmd.append("--force-full")
+    # 5 h (was 4): a full re-extraction (a new extractor version) took 13,487 s on
+    # 2026-10-08 and its finishing pass (indexes, FTS) was still running when the
+    # 14,400 s wall clock stopped it; the resume then had to wait a day for disk.
+    # A normal night diffs in under an hour, so the cap only bounds the rare full run.
     ok = run_cmd(cmd, "Build decision_structure sidecar (served text, incremental)", dry_run,
-                 timeout=14400, stall_timeout=9000)
+                 timeout=STRUCTURE_TIMEOUT_S, stall_timeout=9000)
     if dry_run:
         return True
     if not ok or not tmp.exists():
@@ -785,7 +891,29 @@ def step_2g_build_decision_structure(dry_run: bool = False, full_rebuild: bool =
         return False
     logger.info(f"  structure coverage: {old if old is not None else '?'} -> {new:,} current decisions; swapping")
     os.replace(tmp, live_real)
+    _warm_structure_sidecar(live_real, dry_run)
     return True
+
+
+def _warm_structure_sidecar(sidecar: Path, dry_run: bool = False) -> None:
+    """After a sidecar swap the new 52 GB file has no page cache; the pinpoint
+    attach in search_decisions then does random reads per top result and
+    fresh searches took 80-96 s (2026-09-10 00:20 UTC). Reading the covering
+    indexes once (index-only queries, ~100 s) brings that back to seconds.
+    Never fails the step: the swap already happened and is correct."""
+    script = REPO_DIR / "scripts" / "warm_structure_sidecar.py"
+    if not script.exists():
+        logger.warning("  warm_structure_sidecar.py not found; sidecar stays cold until first use")
+        return
+    cmd = ["ionice", "-c", "2", "-n", "7", sys.executable, str(script),
+           "--structure-db", str(sidecar), "--budget-s", "900"]
+    try:
+        ok = run_cmd(cmd, "Warm decision_structure sidecar indexes", dry_run, timeout=1200)
+    except Exception as e:  # noqa: BLE001 — warm-up is best effort
+        ok = False
+        logger.warning(f"  sidecar warm-up raised {type(e).__name__}: {e}")
+    if not ok:
+        logger.warning("  sidecar warm-up did not complete; searches stay slow until the cache fills")
 
 
 def _step_2g_from_shards(dry_run: bool = False) -> bool:
@@ -868,7 +996,17 @@ def step_3_export_parquet(dry_run: bool = False) -> bool:
         logger.error("  export_parquet.py not found")
         return False
 
-    cmd = [sys.executable, str(script),
+    # Step 3 is distribution only (nothing users see waits on it), and the
+    # decisions + graph exports alone take ~49 min (2026-09-10). The structure
+    # add-ons in export_parquet.py budget themselves against
+    # OCL_EXPORT_WALLCLOCK_BUDGET_S, kept 5 min under the timeout here: 2 h
+    # gives the Sunday paragraphs export (4.8 GB, ~12 min) and the nightly
+    # structure metadata (~30-75 min on the served-text sidecar) room without
+    # ever letting the step itself time out and cascade-skip the HuggingFace
+    # upload and the git pushes (2026-09-09 incident).
+    step_timeout_s = 7200
+    cmd = ["env", f"OCL_EXPORT_WALLCLOCK_BUDGET_S={step_timeout_s - 300}",
+           sys.executable, str(script),
            "--input", str(OUTPUT_DIR / "decisions"),
            "--output", str(DATASET_DIR)]
     # The erwaegungen-paragraphs artifact is 4.8 GB (P1.4) — weekly cadence
@@ -876,7 +1014,7 @@ def step_3_export_parquet(dry_run: bool = False) -> bool:
     # structure.parquet + graph exports ride every run.
     if datetime.now(timezone.utc).weekday() == 6:
         cmd.append("--structure-paragraphs")
-    return run_cmd(cmd, "Export Parquet", dry_run)
+    return run_cmd(cmd, "Export Parquet", dry_run, timeout=step_timeout_s)
 
 
 def step_3b_build_verification_pack(dry_run: bool = False) -> bool:
@@ -1371,10 +1509,38 @@ def _sync_homepage_fallbacks(dry_run: bool = False) -> None:
         logger.warning("  homepage sync failed (non-fatal): %s", e)
 
 
+def _append_stats_history(dry_run: bool = False) -> None:
+    """Append today's headline figures to docs/stats/history.json (the growth
+    series on /stats/). Idempotent per day, so running at both push points
+    (6a early, 6 final) leaves one point carrying the later values. WARN-only:
+    a stale growth chart is cosmetic, a failed publish is not."""
+    script = REPO_DIR / "scripts" / "append_stats_history.py"
+    if not script.exists():
+        logger.warning("  append_stats_history.py missing — growth series not "
+                       "extended this run")
+        return
+    if dry_run:
+        logger.info("  [dry-run] would append today's point to docs/stats/history.json")
+        return
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(script)],
+            capture_output=True, text=True, timeout=30, cwd=str(REPO_DIR),
+        )
+        line = (proc.stdout or proc.stderr or "").strip().splitlines()
+        logger.info("  stats history: %s", line[-1] if line else f"exit {proc.returncode}")
+        if proc.returncode != 0:
+            logger.warning("  stats history exited %s — docs/stats/history.json "
+                           "not extended this run", proc.returncode)
+    except Exception as e:  # noqa: BLE001 - never let this fail the publish
+        logger.warning("  stats history skipped: %s", e)
+
+
 def step_6_git_push(dry_run: bool = False) -> bool:
     """Step 6: Git commit + push docs/stats.json + docs/feed.xml + docs/feeds/
     + docs/integrity/ (the daily Merkle root from Step 5f) + docs/index.html
-    (homepage fallbacks re-derived from stats.json)."""
+    (homepage fallbacks re-derived from stats.json) + docs/stats/history.json
+    (the /stats/ growth series, one point per day)."""
     logger.info("Step 6: Git commit + push stats.json + feeds + integrity")
 
     stats_file = DOCS_DIR / "stats.json"
@@ -1390,6 +1556,10 @@ def step_6_git_push(dry_run: bool = False) -> bool:
     # publish is not. See docs/proposals/homepage-fallback-regeneration.md.
     _sync_homepage_fallbacks(dry_run)
 
+    # Growth series for /stats/: one point per day from the stats.json just
+    # generated. Non-fatal by the same contract as the homepage sync.
+    _append_stats_history(dry_run)
+
     # Files we publish on every cycle. The diff check below short-circuits
     # if none of them changed.
     paths = ["docs/stats.json", "docs/feed.xml", "docs/feeds",
@@ -1398,7 +1568,10 @@ def step_6_git_push(dry_run: bool = False) -> bool:
              # was omitted here, so the public integrity page froze at the
              # 2026-05-21 commit while the nightly kept regenerating it
              # uncommitted. Including it keeps the provenance root current.
-             "docs/integrity"]
+             "docs/integrity",
+             # docs/stats/history.json = the daily growth series behind the
+             # public /stats/ page, appended by _append_stats_history above.
+             "docs/stats/history.json"]
 
     # Check if any of these have unstaged changes
     result = subprocess.run(
@@ -1792,7 +1965,7 @@ STEP_TO_DAG_TARGET: dict[int | str, str] = {
 
 # Steps whose outright failure is logged FAILED but must not exit 1 / turn the
 # systemd unit red. Rationale per step sits with NON_FATAL_STEPS in main().
-_NON_FATAL_STEPS = frozenset({"2e", "5d", "5e", "2g", "2c", "5b", "3b"})
+_NON_FATAL_STEPS = frozenset({"2e", "5d", "5e", "2g", "2c", "5b", "3b", "5a"})
 
 
 STEPS = [
@@ -1946,7 +2119,7 @@ def _run_via_dag(args, manual_step_mode: bool) -> int:
         # explicitly wants to run that one step regardless).
         if manual_step_mode:
             return None
-        cp = _load_checkpoint()
+        cp = _load_checkpoint(getattr(args, "resume", False))
         if not cp:
             return None
         # cp["results"] is keyed by step (str numbers like "2", "5c"); the
@@ -2043,6 +2216,12 @@ def main():
         help="Stop after FTS5 build + early stats push (skip graph, Parquet, HF upload). "
              "The site shows today's date in ~3.5h instead of ~6h."
     )
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Continue a checkpoint whose database rebuild (step 2) completed. "
+             "Without it such a checkpoint is ignored; one whose rebuild failed "
+             "is always resumed."
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -2110,7 +2289,7 @@ def main():
         "type": "run_start", "run_id": run_id,
         "full_rebuild": bool(args.full_rebuild), "dry_run": bool(args.dry_run),
         "steps_requested": [str(n) for n, _, _ in STEPS],
-        "resumed_from_checkpoint": bool(_load_checkpoint()),
+        "resumed_from_checkpoint": bool(_load_checkpoint(args.resume)),
         # A `--step N` run is one step, not a publish: consumers of this file
         # (runtime trends, freshness probes) filter on it.
         "manual_step": str(args.step) if manual_step_mode else None,
@@ -2149,6 +2328,10 @@ def main():
     # 5b (rss_feeds) added 2026-09-04: convenience artifact, stale feeds keep
     # being served on a miss (see step_5b_generate_feeds). The DAG marks
     # rss_feeds non_fatal too — keep in sync.
+    # 5a (early stats.json) added 2026-10-07, like 5e: a dashboard artifact;
+    # the previous stats.json stays served and 5e regenerates it after the
+    # graph. Its 3600 s timeout under load turned a shipped run red and left
+    # the checkpoint that made the next 03:30 run skip the rebuild.
     NON_FATAL_STEPS = _NON_FATAL_STEPS
     # Steps after the fast tier — skipped with --fast-only
     SLOW_STEPS = {"2d", "2e", "2b", "2c", "2f", "2g", 3, 4, 5, 6}
@@ -2170,7 +2353,7 @@ def main():
         )
 
     # Resume from checkpoint if prior run crashed
-    checkpoint = _load_checkpoint() if not manual_step_mode else None
+    checkpoint = _load_checkpoint(args.resume) if not manual_step_mode else None
     if checkpoint:
         logger.info(f"  Resuming from checkpoint (last completed: step {checkpoint['last_completed_step']})")
         for k, v in checkpoint["results"].items():
@@ -2310,6 +2493,12 @@ def main():
                 # before 2c/2g write their .tmp files.
                 if ok and not args.dry_run and args.full_rebuild:
                     _recycle_mcp_workers(dry_run=args.dry_run)
+                # Page now, not when the whole run ends hours later (see
+                # _step2_failure_message): a refused swap can be fixed by hand
+                # the same day, a deleted kept build cannot.
+                if not ok and not args.dry_run:
+                    _notify("OpenCaseLaw: step 2 failed, users keep the old data",
+                            _step2_failure_message(), priority="high")
             elif num in ("2b", "2c", "2d", "2e", "2f", "2g"):
                 ok = func(
                     dry_run=args.dry_run,

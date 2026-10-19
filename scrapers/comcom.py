@@ -108,13 +108,33 @@ class ComComScraper(BaseScraper):
     def court_code(self) -> str:
         return "comcom"
 
+    def _date_ranges(self) -> list[tuple[int, int]]:
+        """Two-year range pages, newest first: the static list plus whatever
+        /de/entscheide links today. DATE_RANGES was hard-coded up to 2024-2025, so
+        the day the portal adds entscheide-2026-2027 nothing would have looked
+        there (found in the 2026-09-14 scraper walkthrough; ComCom's newest
+        decision, 19.12.2024, is still the last one published)."""
+        ranges = set(DATE_RANGES)
+        try:
+            resp = self.get(f"{BASE_URL}/de/entscheide")
+            # The index is a hydrated Vue page: the slugs sit in JSON payload strings
+            # as well as in <a href>, so match the slug itself, not only href="…".
+            for a, b in re.findall(r"/de/entscheide-(\d{4})-(\d{4})\b", resp.text):
+                ranges.add((int(a), int(b)))
+        except Exception as e:  # noqa: BLE001 — the static list still runs
+            logger.warning(f"[comcom] range index unreadable ({e}); using the static list")
+        found = ranges - set(DATE_RANGES)
+        if found:
+            logger.info(f"[comcom] range pages beyond the static list: {sorted(found)}")
+        return sorted(ranges, reverse=True)
+
     def discover_new(self, since_date=None) -> Iterator[dict]:
         """
         Discover ComCom decisions from date-range listing pages.
         """
         seen_dam_ids = set()
 
-        for start_year, end_year in DATE_RANGES:
+        for start_year, end_year in self._date_ranges():
             # Skip old ranges if since_date is set
             if since_date:
                 if isinstance(since_date, str):

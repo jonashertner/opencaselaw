@@ -47,7 +47,8 @@ class _InnerSpy:
 
     def __call__(self, conn, query, court, canton, language, date_from,
                  date_to, chamber, decision_type, legal_area, limit, offset,
-                 sort=None, marked_for_publication=None, meta=None):
+                 sort=None, marked_for_publication=None, meta=None,
+                 published_from=None, published_to=None):
         self.calls += 1
         if meta is not None:
             meta["total_is_lower_bound"] = False
@@ -92,7 +93,8 @@ def test_any_filter_change_misses(spy):
     mcp_server.search_fts5("Notwehr", court="bge")
     mcp_server.search_fts5("Notwehr", court="bger", offset=50)
     mcp_server.search_fts5("Notwehr", court="bger", sort="date_desc")
-    assert spy.calls == 4
+    mcp_server.search_fts5("Notwehr", court="bger", published_from="2026-10-01")
+    assert spy.calls == 5
 
 
 def test_mutating_returned_rows_does_not_poison_cache(spy):

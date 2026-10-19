@@ -75,7 +75,10 @@ logger = logging.getLogger("incremental_nightly")
 # nothing to stop it — subprocess.run() had no timeout, so the wedge lasted
 # until a human killed it. publish.py's run_cmd has had a wall-clock cap and
 # a stall watchdog since May; this is the same backstop for the orchestrator.
-STEP_TIMEOUT_S = int(os.environ.get("OCL_INCREMENTAL_STEP_TIMEOUT_S", "14400"))
+# 5.5 h (was 4): above publish.py's 5 h step-2g wall clock plus its coverage check,
+# so `publish.py --step 2g` is stopped by its own clock, which keeps the resumable
+# working copy, and never by this one first.
+STEP_TIMEOUT_S = int(os.environ.get("OCL_INCREMENTAL_STEP_TIMEOUT_S", "19800"))
 
 
 def _served_text_structure_disabled() -> bool:

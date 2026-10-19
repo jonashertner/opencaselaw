@@ -1,0 +1,68 @@
+name: Weekly posters
+
+# Every Friday evening: draw the week in five designs (one per site language) and
+# add them to the archive at opencaselaw.ch/posters/. Reads only the committed
+# docs/stats.json history; no database, no scraping.
+
+on:
+  schedule:
+    - cron: '30 18 * * 5'  # Fri 18:30 UTC, after the nightly build has pushed its stats
+  workflow_dispatch:
+    inputs:
+      end:
+        description: 'Last day of the week to draw (YYYY-MM-DD, default: newest snapshot)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-posters
+  cancel-in-progress: false
+
+jobs:
+  posters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0       # the week is a diff over a month of stats.json commits
+          filter: blob:none
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install renderer
+        run: |
+          pip install playwright numpy pillow
+          playwright install --with-deps chromium
+
+      - name: Draw and archive the week
+        run: |
+          ARGS="--archive"
+          if [ -n "${{ github.event.inputs.end }}" ]; then
+            ARGS="$ARGS --end ${{ github.event.inputs.end }}"
+          fi
+          python scripts/weekly_poster_editions.py $ARGS
+
+      - name: Commit the archive
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/posters
+          if git diff --cached --quiet; then
+            echo "archive unchanged"
+            exit 0
+          fi
+          WEEK=$(python -c "import json; print(json.load(open('docs/posters/index.json'))['weeks'][0]['week'])")
+          git commit -m "posters: $WEEK"
+          # the VPS pushes stats to main through the day; rebase onto whatever landed meanwhile
+          for attempt in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 20
+          done
+          exit 1

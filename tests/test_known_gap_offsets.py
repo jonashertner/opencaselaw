@@ -4,6 +4,7 @@ the claim can be re-tested; the persistent-gap alert must stay quiet while
 the measured gap does not grow past it."""
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -21,14 +22,25 @@ def test_every_known_offset_is_evidenced():
         assert entry["verified"] >= "2026-08-01", court
         ev = entry["evidence"]
         assert "RESCAN_ALL" in ev, court
-        assert "+0" in ev or "0 new" in ev, court      # the rescan returned nothing
+        # the walk's result is stated: nothing came back, or what did and what remained
+        assert re.search(r"\+0|0 new|\+\d+ new, gap \d+", ev), court
 
 
-def test_fribourg_offset_matches_the_2026_09_05_rescan():
+def test_fribourg_offset_matches_the_2026_09_15_rescan():
+    """2026-09-05 read the first two base64-path rows as 'rows without a
+    download link'; 2026-09-15 corrected that after the fix recovered 25."""
     fr = KNOWN_GAP_OFFSETS["fr_gerichte"]
     assert fr["gap"] == 11
-    assert fr["verified"] == "2026-09-05"
-    assert "14685" in fr["evidence"] and "14674" in fr["evidence"]
+    assert fr["verified"] == "2026-09-15"
+    assert "14708" in fr["evidence"] and "+25 new, gap 9" in fr["evidence"]
+    assert "CORRECTION" in fr["evidence"]
+
+
+def test_bern_offset_is_the_duplicate_rows_not_the_backlog():
+    be = KNOWN_GAP_OFFSETS["be_verwaltungsgericht"]
+    assert be["gap"] == 15 and be["verified"] == "2026-09-15"
+    assert "11633" in be["evidence"] and "11600" in be["evidence"]
+    assert "0 unknown ids" in be["evidence"]
 
 
 def _health(gap: int) -> dict:

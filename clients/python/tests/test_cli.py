@@ -339,7 +339,7 @@ def test_completion_candidates_follow_the_parser():
     level = cli.complete(parser, ["decisions", ""])
     assert {"get", "passage", "search", "--help", "--format"} <= set(level) and "__complete" not in level
     assert "--max-results" in cli.complete(parser, ["decisions", "search", "--"])
-    assert cli.complete(parser, ["decisions", "search", "--sort", ""]) == ["date_asc", "date_desc", "relevance"]
+    assert cli.complete(parser, ["decisions", "search", "--sort", ""]) == ["date_asc", "date_desc", "published_desc", "relevance"]
     assert cli.complete(parser, ["decisions", "search", "--sort", "date_desc", "--m"]) == ["--marked-for-publication", "--max-results"]
     assert "--sort" not in cli.complete(parser, ["decisions", "search", "--sort", "date_desc", "--"])
     for shell in ("bash", "zsh", "fish"):
@@ -480,3 +480,22 @@ def test_heading_only_statute_text_is_unresolved(monkeypatch, capsys):
     ok = {**flagged, "text_status": "ok", "articles": [{"article_num": "336c", "text": "1 Nach Ablauf der Probezeit ...", "text_status": "ok"}]}
     _, code, _ = invoke(monkeypatch, capsys, ["laws", "get", "OR", "--article", "336c", "--as-of", "2010-01-01", "--format", "json"], [dict(ok)])
     assert code == 0
+
+
+def test_search_passes_publication_filters_and_sort(monkeypatch, capsys):
+    client, code, _ = invoke(monkeypatch, capsys, [
+        "decisions", "search", "--court", "bger", "--published-from", "2026-10-13",
+        "--published-to", "2026-10-16", "--sort", "published_desc", "--format", "jsonl"],
+        [page(["a"], more=False, total=1, lower=False)])
+    assert code == 0
+    path, params = client.calls[0]
+    assert path == "/api/decisions"
+    assert params["published_from"] == "2026-10-13" and params["published_to"] == "2026-10-16"
+    assert params["sort"] == "published_desc"
+
+
+def test_search_without_publication_filters_sends_none(monkeypatch, capsys):
+    client, _, _ = invoke(monkeypatch, capsys, ["decisions", "search", "--court", "bger"],
+                          [page(["a"], more=False, total=1, lower=False)])
+    params = client.calls[0][1]
+    assert params["published_from"] is None and params["published_to"] is None  # dropped by Client.get

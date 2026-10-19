@@ -18,7 +18,10 @@ Source: https://bl.swisslex.ch
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
+import re
 from datetime import date, timedelta
 from typing import Iterator
 
@@ -116,6 +119,23 @@ def _build_search_body(page: int, date_from: str | None = None) -> dict:
     return body
 
 
+def _docket_key(docket: str) -> tuple[str, str, tuple[int, ...]] | None:
+    """(chamber code, four-digit year, numbers) of a BL docket, format-independent.
+
+    The portal writes one docket several ways over the years: "470 24 21" and
+    "470 2024 21", "810 2012 179 _ 180" and "810 2012 179 _180", "460 23 19 a". A
+    whole-corpus walk on 2026-09-15 listed three held decisions under such variants
+    next to nine genuinely unheld ones, so identity for skipping is this key.
+    """
+    nums = re.findall(r"\d+", docket or "")
+    if len(nums) < 3:
+        return None
+    year = nums[1]
+    if len(year) == 2:
+        year = ("20" if int(year) < 50 else "19") + year
+    return nums[0], year, tuple(int(n) for n in nums[2:])
+
+
 # ============================================================
 # Scraper
 # ============================================================
@@ -160,8 +180,18 @@ class BLGerichteScraper(BaseScraper):
         # Determine the date_from filter for the API query.
         # For daily runs (no since_date): look back DAILY_LOOKBACK_DAYS.
         # For explicit since_date: use that date.
+        # OCL_SCRAPER_RESCAN_ALL=1: walk the whole corpus without the early stop. The daily
+        # window (DAILY_LOOKBACK_DAYS) never reaches decisions the portal lists late or with
+        # an old date: 9 of them (2011-2024) were missing on 2026-09-15.
+        rescan_all = bool(os.environ.get("OCL_SCRAPER_RESCAN_ALL"))
+        known_limit = 10**9 if rescan_all else self.CONSECUTIVE_KNOWN_LIMIT
+        held_keys = self._held_docket_keys()
+
         if since_date:
             date_from_filter = since_date.strftime("%Y-%m-%d")
+        elif rescan_all:
+            date_from_filter = None
+            logger.info("BL: OCL_SCRAPER_RESCAN_ALL: whole corpus, no early stop")
         else:
             lookback = date.today() - timedelta(days=self.DAILY_LOOKBACK_DAYS)
             date_from_filter = lookback.strftime("%Y-%m-%d")
@@ -195,7 +225,7 @@ class BLGerichteScraper(BaseScraper):
             did = stub["decision_id"]
             if did in seen_ids:
                 continue  # in-run duplicate (multi-docket), don't count toward early stop
-            if self.state.is_known(did):
+            if self.state.is_known(did) or _docket_key(stub["docket_number"]) in held_keys:
                 consecutive_known += 1
                 continue
             seen_ids.add(did)
@@ -205,7 +235,7 @@ class BLGerichteScraper(BaseScraper):
 
         # Remaining pages
         for page in range(2, total_pages + 1):
-            if consecutive_known >= self.CONSECUTIVE_KNOWN_LIMIT:
+            if consecutive_known >= known_limit:
                 logger.info(
                     f"BL: {consecutive_known} consecutive known — stopping early at page {page}"
                 )
@@ -226,7 +256,7 @@ class BLGerichteScraper(BaseScraper):
                 did = stub["decision_id"]
                 if did in seen_ids:
                     continue  # in-run duplicate (multi-docket), don't count toward early stop
-                if self.state.is_known(did):
+                if self.state.is_known(did) or _docket_key(stub["docket_number"]) in held_keys:
                     consecutive_known += 1
                     continue
                 seen_ids.add(did)
@@ -238,6 +268,27 @@ class BLGerichteScraper(BaseScraper):
             logger.info(f"BL: page {page}/{total_pages}: {page_yielded} new stubs")
 
         logger.info(f"BL: discovery complete: {total_yielded} new stubs")
+
+    def _held_docket_keys(self) -> set[tuple[str, str, tuple[int, ...]]]:
+        """Format-independent keys of every id in state (see _docket_key)."""
+        keys: set[tuple[str, str, tuple[int, ...]]] = set()
+        prefix = f"{self.court_code}_"
+        try:
+            with open(self.state.state_file, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("{"):
+                        try:
+                            line = str(json.loads(line).get("decision_id") or "")
+                        except ValueError:
+                            continue
+                    if line.startswith(prefix):
+                        key = _docket_key(line[len(prefix):])
+                        if key:
+                            keys.add(key)
+        except OSError:
+            pass
+        return keys
 
     def _search_page(self, page: int, date_from: str | None = None) -> dict | None:
         """Execute a search request for the given page number."""

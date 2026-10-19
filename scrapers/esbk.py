@@ -1,8 +1,13 @@
 """
 ESBK Scraper (Eidgenössische Spielbankenkommission / Federal Gambling Board)
 ============================================================================
-Scrapes published Strafbescheide / Verfügungen (gambling-law enforcement
-decisions) from esbk.admin.ch/de/rechtsprechung.
+Scrapes published Strafbescheide / Strafverfügungen / Einziehungsbescheide and
+Verwaltungssanktionen (gambling-law enforcement decisions) from esbk.admin.ch.
+
+Since 2026 /de/rechtsprechung is only a hub ("Mehr über Strafrecht / Verwaltungsrecht")
+without download tiles; the decisions live on /de/strafrecht and /de/verwaltungsrecht.
+Reading the hub alone yielded "Found 0 new" with exit 0 for months (12 decisions missed
+by 2026-09-14), so a listing without a single tile is now an error, not a quiet zero.
 
 Same admin.ch DAM "download-item" component as ElCom (scrapers/elcom.py) — so the
 DAM content-hash dedup and the PDF-text extraction are reused directly:
@@ -31,8 +36,26 @@ from scrapers.elcom import PUB_DATE_PATTERN, _extract_content_hash, _extract_pdf
 
 logger = logging.getLogger(__name__)
 
-LISTING_URL = "https://www.esbk.admin.ch/de/rechtsprechung"
 BASE_URL = "https://www.esbk.admin.ch"
+LISTING_URL = f"{BASE_URL}/de/rechtsprechung"  # hub page since 2026: no tiles, kept for reference
+LISTING_URLS = (
+    f"{BASE_URL}/de/strafrecht",         # Strafbescheide, Strafverfügungen, Einziehungsbescheide
+    f"{BASE_URL}/de/verwaltungsrecht",   # Verwaltungssanktionen (Art. 100 BGS)
+)
+
+# Most specific first ("Strafverfügung" before "Verfügung").
+_TYPE_WORDS = (
+    "Einziehungsbescheid", "Einstellungsverfügung", "Strafbescheid", "Strafverfügung",
+    "Verwaltungssanktion", "Verfügung",
+)
+
+
+def _decision_type(*texts: str) -> str | None:
+    for text in texts:
+        for word in _TYPE_WORDS:
+            if word in text:
+                return word
+    return None
 
 # ESBK docket in the title / filename: 62-2021-021-01  (prefix-year-number-sub)
 DOCKET_PATTERN = re.compile(r"(\d{2}-\d{4}-\d{2,4}(?:-\d{1,2})?)")
@@ -49,12 +72,28 @@ class ESBKScraper(BaseScraper):
         return "esbk"
 
     def discover_new(self, since_date=None) -> Iterator[dict]:
-        response = self.get(LISTING_URL)
-        soup = BeautifulSoup(response.text, "html.parser")
-
         seen_hashes: set[str] = set()
         found = 0
-        for a in soup.find_all("a", class_="download-item", href=True):
+        tiles_total = 0
+        for listing_url in LISTING_URLS:
+            response = self.get(listing_url)
+            soup = BeautifulSoup(response.text, "html.parser")
+            tiles = soup.find_all("a", class_="download-item", href=True)
+            tiles_total += len(tiles)
+            if not tiles:
+                logger.warning(f"[esbk] no download-item tiles on {listing_url} (page restructured?)")
+            for stub in self._stubs_from_tiles(tiles, seen_hashes, since_date):
+                found += 1
+                yield stub
+        if tiles_total == 0:
+            raise RuntimeError(
+                "[esbk] no download-item tiles on any listing page — esbk.admin.ch "
+                "restructured again? (2026: /de/rechtsprechung became a hub)"
+            )
+        logger.info(f"[esbk] Found {found} new decisions ({len(seen_hashes)} unique PDFs on {len(LISTING_URLS)} pages)")
+
+    def _stubs_from_tiles(self, tiles, seen_hashes: set[str], since_date) -> Iterator[dict]:
+        for a in tiles:
             href = a["href"]
             if not href.endswith(".pdf"):
                 continue
@@ -76,14 +115,15 @@ class ESBKScraper(BaseScraper):
 
             desc_p = a.find("p", class_="download-item__description")
             desc = desc_p.get_text(" ", strip=True) if desc_p else ""
+            title_text = h4.get_text(" ", strip=True) if h4 else ""
+            # Strafrecht tiles: date in the description ("Strafbescheid der ESBK vom
+            # 4. Februar 2026 ..."); Verwaltungssanktion tiles: date in the title
+            # ("Verwaltungssanktion der ESBK vom 23. Februar 2021 (Art. 100 BGS)").
             decision_date_str = None
-            pm = PUB_DATE_PATTERN.search(desc)
+            pm = PUB_DATE_PATTERN.search(desc) or PUB_DATE_PATTERN.search(title_text)
             if pm:
                 decision_date_str = f"{pm.group(1)}. {pm.group(2)} {pm.group(3)}"
-            decision_type = (
-                "Strafbescheid" if "Strafbescheid" in desc
-                else "Verfügung" if "Verfügung" in desc else None
-            )
+            decision_type = _decision_type(desc, title_text)
 
             decision_id = make_decision_id("esbk", docket)
             if self.state.is_known(decision_id):
@@ -93,7 +133,6 @@ class ESBKScraper(BaseScraper):
                 if parsed and parsed < since_date:
                     continue
 
-            found += 1
             yield {
                 "docket_number": docket,
                 "decision_date": decision_date_str or "",
@@ -101,8 +140,6 @@ class ESBKScraper(BaseScraper):
                 "title": desc or docket,
                 "decision_type": decision_type,
             }
-
-        logger.info(f"[esbk] Found {found} new decisions ({len(seen_hashes)} unique PDFs on page)")
 
     def fetch_decision(self, stub: dict) -> Decision | None:
         pdf_url = stub["pdf_url"]
