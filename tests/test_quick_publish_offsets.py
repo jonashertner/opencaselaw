@@ -177,6 +177,23 @@ def test_shard_the_full_build_never_saw_is_read_whole(wired):
     assert _new_ids() == ["g1", "g2"]
 
 
+def test_direct_shard_is_read_before_its_es_twin(wired):
+    db, jsonl, checkpoint = wired
+    direct, es = jsonl / "zh_gerichte.jsonl", jsonl / "es_zh_gerichte.jsonl"
+    direct.write_bytes(_line("a"))
+    es.write_bytes(_line("a", "es_zh"))
+    _make_db(db, ["a"])
+    _full_build(checkpoint, {direct: direct.stat().st_size, es: es.stat().st_size})
+    with open(es, "ab") as f:
+        f.write(_line("b", "es_zh"))
+    with open(direct, "ab") as f:
+        f.write(_line("b"))
+
+    rows = qp._read_new_jsonl(None, qp_existing())
+    assert [(r["decision_id"], r["court"]) for r in rows] == [
+        ("b", "zh_gerichte"), ("b", "es_zh")]  # insert_decision keeps the first
+
+
 def test_checkpoint_without_tail_hash_resumes_at_the_offset(wired):
     db, jsonl, checkpoint = wired
     shard = jsonl / "zh_gerichte.jsonl"

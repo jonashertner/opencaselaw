@@ -244,7 +244,11 @@ def _read_new_jsonl(courts: list[str] | None, existing_ids: set[str]) -> list[di
 
     new_rows: list[dict] = []
     rewritten: list[str] = []
-    for jf in sorted(JSONL_DIR.glob("*.jsonl")):
+    # Direct shards before es_* shards, as build_fts5.import_jsonl reads them:
+    # when both carry an id, the direct row (chamber-specific court code) wins.
+    shards = sorted(JSONL_DIR.glob("*.jsonl"),
+                    key=lambda p: (p.name.startswith("es_"), p.name))
+    for jf in shards:
         if courts and jf.stem not in courts:
             continue
         try:
