@@ -355,6 +355,23 @@ def migrate_volume_key(conn: sqlite3.Connection) -> dict:
     return {"migrated": True, "rows": before[0], "collisions_reset": reset}
 
 
+def repair_c1_titles(conn: sqlite3.Connection) -> dict:
+    """One-off: restore the C1 control codes in stored titles
+    (fix_cp1252_controls). Run on a copy (search_stack.materialien_swap)."""
+    from scrapers.fedlex_materialien import fix_cp1252_controls
+    rows = conn.execute("SELECT botschaft_id, title FROM botschaft_documents "
+                        "WHERE title IS NOT NULL").fetchall()
+    changed = 0
+    for bid, title in rows:
+        fixed = fix_cp1252_controls(title)
+        if fixed != title:
+            conn.execute("UPDATE botschaft_documents SET title=? WHERE botschaft_id=?",
+                         (fixed, bid))
+            changed += 1
+    conn.commit()
+    return {"titles_repaired": changed}
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
     migrate_additive(conn)
@@ -1383,6 +1400,11 @@ def main() -> int:
         help="just create the new tables and exit",
     )
     parser.add_argument(
+        "--repair-c1-titles", action="store_true",
+        help="restore C1 control codes (cp1252 dashes etc.) in stored titles; "
+             "run on a COPY (search_stack.materialien_swap), then exit",
+    )
+    parser.add_argument(
         "--migrate-volume-key", action="store_true",
         help="rebuild botschaft_documents keyed on (year, volume, page, language) "
              "and reset historical 'collision' rows; run on a COPY "
@@ -1541,6 +1563,10 @@ def main() -> int:
 
     if args.migrate_volume_key:
         print(json.dumps(migrate_volume_key(conn)))
+        return 0
+
+    if args.repair_c1_titles:
+        print(json.dumps(repair_c1_titles(conn)))
         return 0
 
     if args.schema_only:

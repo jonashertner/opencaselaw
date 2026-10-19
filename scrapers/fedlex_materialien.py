@@ -713,12 +713,36 @@ def _fga_candidate(
     return (year, page, act_uri, title)
 
 
+_C1_RE = re.compile("[\x80-\x9f]")
+
+
+def fix_cp1252_controls(text: str | None) -> str | None:
+    """Restore the characters Fedlex stores as C1 control codes.
+
+    290 of 6,202 Botschaft titles (2026-10-19) carry U+0096 for an en dash,
+    U+009C for "œ", U+0084 / U+008B / U+009B for „ ‹ › — cp1252 bytes read as
+    Latin-1 somewhere upstream; fedlex.admin.ch itself displays the dash. A
+    C1 code is never text, so each is decoded through cp1252 (the five that
+    cp1252 leaves undefined stay as they are). Nothing else is touched."""
+    if not text or not _C1_RE.search(text):
+        return text
+
+    def _one(m: re.Match) -> str:
+        try:
+            return m.group(0).encode("latin-1").decode("cp1252")
+        except UnicodeDecodeError:
+            return m.group(0)
+
+    return _C1_RE.sub(_one, text)
+
+
 def _clean_title(title: str | None) -> str | None:
-    """Fedlex titles verbatim, whitespace only normalised (they carry a
-    trailing blank and occasional line breaks). Never rewritten."""
+    """Fedlex titles verbatim, whitespace normalised (they carry a trailing
+    blank and occasional line breaks) and C1 control codes restored
+    (fix_cp1252_controls). Never rewritten otherwise."""
     if not title:
         return None
-    t = " ".join(title.split())
+    t = " ".join(fix_cp1252_controls(title).split())
     return t or None
 
 
@@ -1092,7 +1116,7 @@ def classify_file_host(file_url: str | None) -> str:
 def _untyped_candidate(row: dict, language: str) -> UntypedBotschaft | None:
     """Map one SPARQL row of the untyped query to a candidate, or None."""
     act = _val(row, "act")
-    title = (_val(row, "title") or "").strip()
+    title = (fix_cp1252_controls(_val(row, "title")) or "").strip()
     if not act or not title:
         return None
     doc_type = classify_historical_title(title, language)

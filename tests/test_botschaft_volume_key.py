@@ -122,3 +122,22 @@ def test_fresh_database_has_the_new_key(tmp_path):
     idx = {r[1] for r in conn.execute("PRAGMA index_list(botschaft_documents)")}
     assert "ux_bd_citation" in idx
     conn.close()
+
+
+
+def test_c1_control_codes_are_restored(tmp_path):
+    from scrapers.fedlex_materialien import _clean_title, fix_cp1252_controls
+    assert _clean_title("Organspende fördern \x96 Leben retten ") == "Organspende fördern – Leben retten"
+    assert fix_cp1252_controls("Plan 2022\x962024, man\x9cuvre, \x84so\x93") == "Plan 2022–2024, manœuvre, „so“"
+    assert fix_cp1252_controls("\x81 undefined stays") == "\x81 undefined stays"
+    assert fix_cp1252_controls("plain – text") == "plain – text"
+    conn = sqlite3.connect(tmp_path / "m.db")
+    bbc.ensure_schema(conn)
+    conn.execute("INSERT INTO botschaft_documents (bbl_year, bbl_page, bbl_citation, title, "
+                 "source_url, format, language, ingested_at) VALUES "
+                 "(2020, 1, 'BBl 2020 1', 'Voranschlag 2021\x962024', 'u', 'pdf', 'de', 'now')")
+    conn.commit()
+    assert bbc.repair_c1_titles(conn) == {"titles_repaired": 1}
+    assert conn.execute("SELECT title FROM botschaft_documents").fetchone()[0] == "Voranschlag 2021–2024"
+    assert bbc.repair_c1_titles(conn) == {"titles_repaired": 0}
+    conn.close()

@@ -73,6 +73,7 @@ from search_stack.build_botschaft_corpus import (  # noqa: E402
     http_status_of,
 )
 from search_stack.botschaft_historical import _join_hyphen  # noqa: E402
+from scrapers.fedlex_materialien import fix_cp1252_controls  # noqa: E402
 
 log = logging.getLogger("build_consultation_corpus")
 
@@ -440,9 +441,9 @@ def discover(conn: sqlite3.Connection, *,
             tl = _v(r, "tl")
             if tl in ("de", "fr", "it"):
                 if _v(r, "title"):
-                    p["title"].setdefault(tl, _v(r, "title"))
+                    p["title"].setdefault(tl, fix_cp1252_controls(_v(r, "title")))
                 if _v(r, "desc"):
-                    p["desc"].setdefault(tl, _v(r, "desc"))
+                    p["desc"].setdefault(tl, fix_cp1252_controls(_v(r, "desc")))
         sleep(pause)
         for r in sparql(q_phases(year)):
             p = procs.get(_v(r, "c") or "")
