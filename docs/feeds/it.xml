@@ -5,9 +5,37 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sun, 18 Oct 2026 12:17:56 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 19 Oct 2026 13:40:06 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 4A_545/2025 vom 2026-08-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_545_2025</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+4A_545/2025
+
+Sentenza del 24 agosto 2026
+
+I Corte di diritto civile
+
+Composizione
+
+Giudici federali Hurni, Presidente,
+
+Kiss, Pontarolo, Giudice supplente,
+
+Cancelliere G. Piatti.…</description>
+      <pubDate>Mon, 19 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_545.2025</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesgericht 6B_355/2026 vom 2026-09-28</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_355_2026</link>
@@ -1308,41 +1336,6 @@ Raffaele Guffi,Ivano Ranzanici
 cancel…</description>
       <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ti_gerichte_80.2025.182</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 80.2025.338 vom 2026-03-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_80.2025.338</link>
-      <description>Incarto n.80.2025.338
-
-Lugano
-
-2 marzo 2026
-
-In nomedella Repubblica e CantoneTicino
-
-Il presidente della Camera di diritto tributario del
-
-Tribunale dappello
-
-giudice
- Andrea Pedroli
-
-cancelliere
-
-Francesco
- Sciuchetti
-
-parti
-
-RI
- 1
-
-contro
-
-RS…</description>
-      <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_80.2025.338</guid>
       <category>ti_gerichte</category>
     </item>
   </channel>
