@@ -462,12 +462,16 @@ def collect_recent_decisions(db_path: Path, per_group: int = 10) -> dict:
     conn.row_factory = sqlite3.Row
     today_iso = datetime.now(timezone.utc).date().isoformat()
     try:
+        # `+court` keeps the planner off the court index: with it, SQLite
+        # fetched every BGer/BGE row (~230k) and read its full_text overflow
+        # chain to sort them all for ten rows (2026-10-19). Walking the date
+        # index newest-first stops after the first ten matches.
         bge_rows = conn.execute(
             """
             SELECT decision_id, docket_number, decision_date, court, language,
                    regeste, title
             FROM decisions
-            WHERE court IN ('bger','bge')
+            WHERE +court IN ('bger','bge')
               AND decision_date IS NOT NULL
               AND decision_date != ''
               AND decision_date <= ?
@@ -1011,9 +1015,11 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
                 "ecthr_chamber", "ecthr_committee", "ecthr_grand_chamber",
             )
             placeholders = ",".join("?" * len(ECHR_COURTS))
+            # `+canton` below keeps these on the court index (~10k ECtHR
+            # rows); on the canton index they walked all ~385k CH rows.
             total = d.execute(
                 f"SELECT COUNT(*) AS n FROM decisions "
-                f"WHERE court IN ({placeholders}) AND canton='CH'",
+                f"WHERE court IN ({placeholders}) AND +canton='CH'",
                 ECHR_COURTS,
             ).fetchone()["n"]
             corpus_total = d.execute(
@@ -1027,14 +1033,14 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
             this_year = datetime.now(timezone.utc).year
             current_year = d.execute(
                 f"SELECT COUNT(*) AS n FROM decisions "
-                f"WHERE court IN ({placeholders}) AND canton='CH' "
+                f"WHERE court IN ({placeholders}) AND +canton='CH' "
                 f"AND decision_date >= ?",
                 (*ECHR_COURTS, f"{this_year}-01-01"),
             ).fetchone()["n"]
             most_recent = d.execute(
                 f"SELECT decision_id, decision_date, docket_number, regeste "
                 f"FROM decisions "
-                f"WHERE court IN ({placeholders}) AND canton='CH' "
+                f"WHERE court IN ({placeholders}) AND +canton='CH' "
                 f"ORDER BY decision_date DESC LIMIT 1",
                 ECHR_COURTS,
             ).fetchone()
@@ -1525,6 +1531,110 @@ def _write_json_atomic(path: Path, payload: dict) -> None:
             tmp.unlink()
 
 
+def _load_previous_stats(output_path: Path, repo_dir: Path, today_iso: str) -> dict:
+    """The most recent stats.json generated on an earlier calendar day, or {}."""
+    # Using the file currently on disk breaks intra-day re-runs (second run
+    # compares to the first run of the same day and shows delta=0). Instead,
+    # pick the most recent git-tracked revision of stats.json whose
+    # generated_at is on an earlier calendar day.
+    prev: dict = {}
+
+    # Try git history first — walk commits and pick the first one from an
+    # earlier day.
+    try:
+        import subprocess
+        # Resolve the output path relative to the repo (handle abs paths or
+        # paths that don't sit inside repo_dir cleanly).
+        try:
+            rel_path = output_path.resolve().relative_to(repo_dir.resolve())
+        except ValueError:
+            # Fall back to a sensible default path inside the repo.
+            rel_path = Path("docs/stats.json")
+        result = subprocess.run(
+            ["git", "-C", str(repo_dir), "log", "--pretty=%H",
+             "-n", "14", "--", str(rel_path)],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0:
+            for commit_hash in result.stdout.strip().split("\n"):
+                if not commit_hash:
+                    continue
+                show = subprocess.run(
+                    ["git", "-C", str(repo_dir), "show",
+                     f"{commit_hash}:{rel_path}"],
+                    capture_output=True, text=True, timeout=15,
+                )
+                if show.returncode != 0:
+                    continue
+                try:
+                    candidate = json.loads(show.stdout)
+                except json.JSONDecodeError:
+                    continue
+                cand_ts = candidate.get("generated_at", "")
+                cand_date = cand_ts[:10] if cand_ts else ""
+                if cand_date and cand_date < today_iso:
+                    prev = candidate
+                    logger.info(
+                        f"Loaded stats.json from commit {commit_hash[:8]} "
+                        f"(generated {cand_ts}) for delta computation"
+                    )
+                    break
+    except Exception as e:
+        logger.warning(f"Git history lookup failed: {e}")
+
+    # Fallback: current file on disk — but only if its date is earlier.
+    if not prev and output_path.exists():
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
+                candidate = json.load(f)
+            cand_date = candidate.get("generated_at", "")[:10]
+            if cand_date and cand_date < today_iso:
+                prev = candidate
+                logger.info("Using current stats.json on disk (earlier date) for delta")
+        except Exception as e:
+            logger.warning(f"Could not load previous stats.json: {e}")
+
+    return prev
+
+
+def _parse_utc(ts: str | None) -> datetime | None:
+    if not ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _base_is_current(existing: dict, base_since: str | None) -> bool:
+    """True when `existing` carries a decisions block generated at or after
+    `base_since`. No timestamp, an unparsable one, or a block without by_court
+    all mean "not current", so the caller regenerates in full."""
+    since = _parse_utc(base_since)
+    generated = _parse_utc(existing.get("generated_at"))
+    if since is None or generated is None or not existing.get("by_court"):
+        return False
+    return generated >= since
+
+
+def _corpus_delta(prev_corpus: dict | None, now_corpus: dict | None) -> dict:
+    """Day-over-day change of the corpus counters (nonzero keys only)."""
+    prev_corpus = prev_corpus or {}
+    now_corpus = now_corpus or {}
+    delta_corpus = {}
+    for key in (
+        "federal_laws", "federal_law_articles",
+        "cantonal_laws", "cantonal_law_articles",
+        "commentaries", "citation_edges", "statute_edges",
+    ):
+        if key in now_corpus and key in prev_corpus:
+            d = now_corpus[key] - prev_corpus[key]
+            if d != 0:
+                delta_corpus[key] = d
+    return delta_corpus
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate stats.json from FTS5 database")
     parser.add_argument(
@@ -1546,6 +1656,19 @@ def main():
         "--interesting-stats-only", action="store_true",
         help="Recompute only the interesting_stats block, merge into the "
              "existing stats.json, and exit. Used by the weekly timer.",
+    )
+    parser.add_argument(
+        "--post-graph", action="store_true",
+        help="Refresh only the reference-graph-derived blocks (corpus, "
+             "interesting_stats, delta.corpus) on top of the existing "
+             "stats.json, provided its decisions block was generated at or "
+             "after --base-since. Otherwise falls back to a full regenerate. "
+             "Used by publish.py Step 5e.",
+    )
+    parser.add_argument(
+        "--base-since", type=str, default=None,
+        help="ISO timestamp (publish run start) the existing stats.json "
+             "must postdate for --post-graph to reuse its decisions block.",
     )
     args = parser.parse_args()
 
@@ -1589,6 +1712,33 @@ def main():
         _write_json_atomic(output_path, existing)
         logger.info(f"Wrote interesting_stats block → {output_path}")
         return
+
+    # ── Post-graph mode (publish Step 5e): the decisions block was computed
+    # by Step 5a against this run's swapped decisions.db; only the graph-
+    # derived blocks are stale. Recomputing the decisions block here repeated
+    # a scan of most of the 72 GB file (by_court's MAX(scraped_at) sits after
+    # full_text) and ran into the 3600 s cap (2026-10-05, 2026-10-18).
+    if args.post_graph:
+        if _base_is_current(existing, args.base_since):
+            existing["corpus"] = collect_corpus_snapshot(repo_dir) or existing.get("corpus", {})
+            try:
+                existing["interesting_stats"] = collect_interesting_stats(repo_dir)
+            except Exception as e:
+                logger.warning(f"collect_interesting_stats failed: {e}")
+            today_iso = datetime.now(timezone.utc).date().isoformat()
+            prev = _load_previous_stats(output_path, repo_dir, today_iso)
+            if prev and isinstance(existing.get("delta"), dict):
+                existing["delta"]["corpus"] = _corpus_delta(
+                    prev.get("corpus"), existing.get("corpus"))
+            _write_json_atomic(output_path, existing)
+            logger.info(
+                "Refreshed graph-derived blocks on the decisions block generated "
+                f"{existing.get('generated_at')} → {output_path}")
+            return
+        logger.info(
+            "--post-graph: existing stats.json (generated "
+            f"{existing.get('generated_at')}) predates --base-since "
+            f"{args.base_since}; running the full regenerate")
 
     stats = generate_stats(db_path)
 
@@ -1646,67 +1796,8 @@ def main():
         logger.warning(f"collect_upcoming_amendments failed: {e}")
 
     # ── Compute deltas vs a stats snapshot from a previous day ──
-    # Using the file currently on disk breaks intra-day re-runs (second run
-    # compares to the first run of the same day and shows delta=0). Instead,
-    # pick the most recent git-tracked revision of stats.json whose
-    # generated_at is on an earlier calendar day.
-    prev = {}
     today_iso = datetime.now(timezone.utc).date().isoformat()
-
-    # Try git history first — walk commits and pick the first one from an
-    # earlier day.
-    try:
-        import subprocess
-        # Resolve the output path relative to the repo (handle abs paths or
-        # paths that don't sit inside repo_dir cleanly).
-        try:
-            rel_path = output_path.resolve().relative_to(repo_dir.resolve())
-        except ValueError:
-            # Fall back to a sensible default path inside the repo.
-            rel_path = Path("docs/stats.json")
-        result = subprocess.run(
-            ["git", "-C", str(repo_dir), "log", "--pretty=%H",
-             "-n", "14", "--", str(rel_path)],
-            capture_output=True, text=True, timeout=15,
-        )
-        if result.returncode == 0:
-            for commit_hash in result.stdout.strip().split("\n"):
-                if not commit_hash:
-                    continue
-                show = subprocess.run(
-                    ["git", "-C", str(repo_dir), "show",
-                     f"{commit_hash}:{rel_path}"],
-                    capture_output=True, text=True, timeout=15,
-                )
-                if show.returncode != 0:
-                    continue
-                try:
-                    candidate = json.loads(show.stdout)
-                except json.JSONDecodeError:
-                    continue
-                cand_ts = candidate.get("generated_at", "")
-                cand_date = cand_ts[:10] if cand_ts else ""
-                if cand_date and cand_date < today_iso:
-                    prev = candidate
-                    logger.info(
-                        f"Loaded stats.json from commit {commit_hash[:8]} "
-                        f"(generated {cand_ts}) for delta computation"
-                    )
-                    break
-    except Exception as e:
-        logger.warning(f"Git history lookup failed: {e}")
-
-    # Fallback: current file on disk — but only if its date is earlier.
-    if not prev and output_path.exists():
-        try:
-            with open(output_path, "r", encoding="utf-8") as f:
-                candidate = json.load(f)
-            cand_date = candidate.get("generated_at", "")[:10]
-            if cand_date and cand_date < today_iso:
-                prev = candidate
-                logger.info("Using current stats.json on disk (earlier date) for delta")
-        except Exception as e:
-            logger.warning(f"Could not load previous stats.json: {e}")
+    prev = _load_previous_stats(output_path, repo_dir, today_iso)
 
     if prev:
         prev_total = prev.get("total", 0)
@@ -1753,18 +1844,7 @@ def main():
                 delta_by_canton[canton] = d
 
         # Corpus delta (federal laws, cantonal laws, commentaries, citations)
-        prev_corpus = prev.get("corpus", {}) or {}
-        now_corpus = stats.get("corpus", {}) or {}
-        delta_corpus = {}
-        for key in (
-            "federal_laws", "federal_law_articles",
-            "cantonal_laws", "cantonal_law_articles",
-            "commentaries", "citation_edges", "statute_edges",
-        ):
-            if key in now_corpus and key in prev_corpus:
-                d = now_corpus[key] - prev_corpus[key]
-                if d != 0:
-                    delta_corpus[key] = d
+        delta_corpus = _corpus_delta(prev.get("corpus"), stats.get("corpus"))
 
         stats["delta"] = {
             "total": delta_total,
