@@ -15,6 +15,46 @@ def _exec_start(unit: str) -> str:
     return m.group(1).replace("\\\n", " ")
 
 
+def _guard_line(text: str) -> str:
+    return next(l for l in text.splitlines() if l.startswith("ExecCondition="))
+
+
+def _assert_guard(text: str, units: list[str]) -> None:
+    """The guard skips the run in EVERY non-idle state of the units: a
+    oneshot build is "activating" while it runs, never "active"."""
+    g = _guard_line(text)
+    for u in units:
+        assert u in g
+    assert "activating" in g and "deactivating" in g and "exit 1" in g
+    assert "--quiet" not in g          # the old `! is-active --quiet` test
+    assert "$$(systemctl is-active $$u)" in g  # escaped for systemd
+
+
+def _run_guard(text: str, states: dict[str, str]) -> int:
+    """Execute the guard with a fake systemctl reporting ``states``."""
+    import os, subprocess, tempfile
+    g = _guard_line(text)[len("ExecCondition="):]
+    script = g.split("-c ", 1)[1].strip()[1:-1].replace("$$", "$")
+    with tempfile.TemporaryDirectory() as d:
+        fake = Path(d) / "systemctl"
+        cases = "".join(f'  {u}) echo {s};;\n' for u, s in states.items())
+        fake.write_text("#!/bin/sh\ncase \"$2\" in\n" + cases + "  *) echo inactive;;\nesac\n")
+        fake.chmod(0o755)
+        env = dict(os.environ, PATH=f"{d}:{os.environ['PATH']}")
+        return subprocess.run(["/bin/sh", "-c", script], env=env).returncode
+
+
+def test_guard_skips_while_the_build_is_activating():
+    text = (SD / "opencaselaw-vernehmlassungen.service").read_text()
+    assert _run_guard(text, {"opencaselaw-publish.service": "activating"}) != 0
+    assert _run_guard(text, {"opencaselaw-publish.service": "active"}) != 0
+    assert _run_guard(text, {"opencaselaw-publish.service": "inactive"}) == 0
+    assert _run_guard(text, {"opencaselaw-publish.service": "failed"}) == 0
+    hist = (SD / "opencaselaw-materialien-historical.service").read_text()
+    assert _run_guard(hist, {"opencaselaw-materialien.service": "activating"}) != 0
+    assert _run_guard(hist, {}) == 0
+
+
 def test_vernehmlassungen_unit():
     text = (SD / "opencaselaw-vernehmlassungen.service").read_text()
     cmd = _exec_start("opencaselaw-vernehmlassungen.service")
@@ -22,7 +62,7 @@ def test_vernehmlassungen_unit():
     assert "--max-seconds" in cmd and "--rate-limit 0.5" in cmd
     # work DB and served DB on the data volume, never the root disk
     assert "--work-db /mnt/HC_Volume_" in cmd and "--out /mnt/HC_Volume_" in cmd
-    assert "ExecCondition=/bin/sh -c '! systemctl is-active --quiet opencaselaw-publish.service'" in text
+    _assert_guard(text, ["opencaselaw-publish.service"])
     assert "check_materialien_completeness.py" in text and "ExecStartPost=-" in text
     timer = (SD / "opencaselaw-vernehmlassungen.timer").read_text()
     assert "Persistent=false" in timer and timer.count("OnCalendar=") == 2
@@ -37,7 +77,7 @@ def test_historical_unit_runs_on_a_copy_inside_the_window():
     # shell variables escaped for systemd ($$), else systemd expands them to ""
     assert "$$lang" in cmd and "$$?" in cmd
     assert re.search(r"(?<!\$)\$lang", cmd) is None
-    assert "opencaselaw-publish.service" in text and "opencaselaw-materialien.service" in text
+    _assert_guard(text, ["opencaselaw-publish.service", "opencaselaw-materialien.service"])
     timer = (SD / "opencaselaw-materialien-historical.timer").read_text()
     assert "OnCalendar=*-*-* 00:20:00 UTC" in timer and "Persistent=false" in timer
 

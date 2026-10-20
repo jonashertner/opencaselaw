@@ -10,7 +10,10 @@ Environment=PYTHONPATH=/opt/caselaw/repo
 # but the publish snapshot writes the whole corpus (several GB) and would
 # compete with the build for the page cache. A skipped run is harmless; the
 # timer fires twice a day.
-ExecCondition=/bin/sh -c '! systemctl is-active --quiet opencaselaw-publish.service'
+# The full build is a oneshot: while it runs, `systemctl is-active` says
+# "activating", not "active" — a guard testing for "active" alone let the
+# 2026-10-20 17:45 run start mid-build. Any non-idle state skips the run.
+ExecCondition=/bin/sh -c 'for u in opencaselaw-publish.service; do case "$$(systemctl is-active $$u)" in active|activating|deactivating|reloading|refreshing) exit 1;; esac; done; exit 0'
 Nice=10
 CPUWeight=20
 IOWeight=20

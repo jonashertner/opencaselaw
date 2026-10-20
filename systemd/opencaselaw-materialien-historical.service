@@ -8,7 +8,10 @@ WorkingDirectory=/opt/caselaw/repo
 Environment=PYTHONPATH=/opt/caselaw/repo
 # The quiet window (runbooks/materialien_historical_backfill.md): never with
 # the full build or the 04:30 Botschaft unit, both of which use materialien.db.
-ExecCondition=/bin/sh -c '! systemctl is-active --quiet opencaselaw-publish.service && ! systemctl is-active --quiet opencaselaw-materialien.service'
+# The full build is a oneshot: while it runs, `systemctl is-active` says
+# "activating", not "active" — a guard testing for "active" alone let the
+# 2026-10-20 17:45 run start mid-build. Any non-idle state skips the run.
+ExecCondition=/bin/sh -c 'for u in opencaselaw-publish.service opencaselaw-materialien.service; do case "$$(systemctl is-active $$u)" in active|activating|deactivating|reloading|refreshing) exit 1;; esac; done; exit 0'
 CPUWeight=20
 IOWeight=20
 # materialien_swap: the backfill writes a private copy (the workers read the
