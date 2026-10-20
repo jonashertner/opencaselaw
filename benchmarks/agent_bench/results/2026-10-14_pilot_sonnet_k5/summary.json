@@ -1,0 +1,285 @@
+{
+  "overall": {
+    "questions": 10,
+    "runs": 50,
+    "mean_score": 0.739,
+    "spread": 0.0245,
+    "pass_rate": 0.7,
+    "s1_run_rate": 0.12,
+    "worst_of_k_s1": 0.3,
+    "all_k_pass": 0.5
+  },
+  "by_type": {
+    "cross_lingual": {
+      "questions": 2,
+      "runs": 10,
+      "mean_score": 0.9167,
+      "spread": 0.0,
+      "pass_rate": 1.0,
+      "s1_run_rate": 0.0,
+      "worst_of_k_s1": 0.0,
+      "all_k_pass": 1.0
+    },
+    "doctrine": {
+      "questions": 2,
+      "runs": 10,
+      "mean_score": 0.0,
+      "spread": 0.0,
+      "pass_rate": 0.0,
+      "s1_run_rate": 0.2,
+      "worst_of_k_s1": 0.5,
+      "all_k_pass": 0.0
+    },
+    "pinpoint": {
+      "questions": 2,
+      "runs": 10,
+      "mean_score": 0.94,
+      "spread": 0.049,
+      "pass_rate": 0.9,
+      "s1_run_rate": 0.0,
+      "worst_of_k_s1": 0.0,
+      "all_k_pass": 0.5
+    },
+    "praxisaenderung": {
+      "questions": 2,
+      "runs": 10,
+      "mean_score": 0.9633,
+      "spread": 0.0733,
+      "pass_rate": 1.0,
+      "s1_run_rate": 0.0,
+      "worst_of_k_s1": 0.0,
+      "all_k_pass": 1.0
+    },
+    "temporal": {
+      "questions": 2,
+      "runs": 10,
+      "mean_score": 0.875,
+      "spread": 0.0,
+      "pass_rate": 0.6,
+      "s1_run_rate": 0.4,
+      "worst_of_k_s1": 1.0,
+      "all_k_pass": 0.0
+    }
+  },
+  "per_question": {
+    "cl-001": {
+      "type": "cross_lingual",
+      "scores": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "s1_runs": 0,
+      "passed_runs": 5
+    },
+    "cl-005": {
+      "type": "cross_lingual",
+      "scores": [
+        0.8333,
+        0.8333,
+        0.8333,
+        0.8333,
+        0.8333
+      ],
+      "s1_runs": 0,
+      "passed_runs": 5
+    },
+    "pa-001": {
+      "type": "praxisaenderung",
+      "scores": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.8
+      ],
+      "s1_runs": 0,
+      "passed_runs": 5
+    },
+    "pa-003": {
+      "type": "praxisaenderung",
+      "scores": [
+        1.0,
+        0.8333,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "s1_runs": 0,
+      "passed_runs": 5
+    },
+    "pp-001": {
+      "type": "pinpoint",
+      "scores": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "s1_runs": 0,
+      "passed_runs": 4
+    },
+    "pp-003": {
+      "type": "pinpoint",
+      "scores": [
+        0.8,
+        1.0,
+        0.8,
+        0.8,
+        1.0
+      ],
+      "s1_runs": 0,
+      "passed_runs": 5
+    },
+    "rb-019": {
+      "type": "doctrine",
+      "scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "s1_runs": 0,
+      "passed_runs": 0
+    },
+    "rb-024": {
+      "type": "doctrine",
+      "scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "s1_runs": 2,
+      "passed_runs": 0
+    },
+    "tv-001": {
+      "type": "temporal",
+      "scores": [
+        0.75,
+        0.75,
+        0.75,
+        0.75,
+        0.75
+      ],
+      "s1_runs": 3,
+      "passed_runs": 2
+    },
+    "tv-002": {
+      "type": "temporal",
+      "scores": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "s1_runs": 1,
+      "passed_runs": 4
+    }
+  },
+  "failures": [
+    {
+      "check": "unknown_statute",
+      "severity": "S1",
+      "runs": 4,
+      "questions": 2,
+      "example": "tv-001#1: Art. 49 al. 1 Tit: law_abbreviation_unknown"
+    },
+    {
+      "check": "unverified_quote",
+      "severity": "S1",
+      "runs": 2,
+      "questions": 1,
+      "example": "tv-001#3: « Lorsque le nouveau droit prévoit des délais de prescription plus longs que l'ancien droit, le nouveau droit s'applique dès lors que la prescription n'est pas …: quote_not_in_cited_sources"
+    },
+    {
+      "check": "wrong_answer",
+      "severity": "S1",
+      "runs": 2,
+      "questions": 1,
+      "example": "rb-024#0: Selon l'art. 221 al. 2 CPP, la détention provisoire pour risque de passage à l'acte exige (i) de forts soupçons que l'auteur ait commis ou soit sur le point de commettre une infraction grave et (ii) u"
+    },
+    {
+      "check": "incomplete_answer",
+      "severity": "S2",
+      "runs": 8,
+      "questions": 2,
+      "example": "rb-019#0: not_met: Nach ständiger bundesgerichtlicher Rechtsprechung kann ein verpflichtender Vertrauensschutz nach Art. 9 BV begründet werden, wenn (i) die Behörde, die die Auskunft erteilt hat, daf"
+    },
+    {
+      "check": "missing_authority",
+      "severity": "S2",
+      "runs": 1,
+      "questions": 1,
+      "example": "pp-001#0: bge_BGE_149_III_105"
+    },
+    {
+      "check": "statute_not_named",
+      "severity": "S3",
+      "runs": 19,
+      "questions": 6,
+      "example": "pa-001#2: Art. 4 IVG"
+    },
+    {
+      "check": "overruled_authority",
+      "severity": "S3",
+      "runs": 7,
+      "questions": 2,
+      "example": "pa-001#0: bge_BGE_130_V_352 (overruled by BGE 141 V 281 E. 3.5 (Aufgabe der Überwindbarkeitsvermutung; Regeste: Änderung der Rechtsprechung, E. 3.4 und 3.5; Ersetzung durch strukturierten Prüfungsraster E. 3.6))"
+    },
+    {
+      "check": "pinpoint_missing",
+      "severity": "S3",
+      "runs": 4,
+      "questions": 2,
+      "example": "pa-001#0: bge_BGE_141_V_281: cited ['2.1', '4.1'], gold E. 3.5"
+    },
+    {
+      "check": "cited_without_retrieval",
+      "severity": "S3",
+      "runs": 1,
+      "questions": 1,
+      "example": "pa-003#0: bger_4A_554_2019"
+    },
+    {
+      "check": "no_closing_attest",
+      "severity": "S3",
+      "runs": 1,
+      "questions": 1,
+      "example": "tv-001#4: attest_response never called"
+    }
+  ],
+  "cost": {
+    "total_usd": 19.3,
+    "mean_usd_per_run": 0.386,
+    "mean_tool_calls": 13.4,
+    "tool_calls": {
+      "get_erwaegung": 170,
+      "get_law": 144,
+      "attest_response": 80,
+      "search_decisions": 73,
+      "cite": 34,
+      "get_regeste": 33,
+      "check_claim_support": 27,
+      "find_relevant_erwaegung": 23,
+      "find_leading_cases": 17,
+      "search_laws": 17,
+      "search_botschaft": 17,
+      "get_case_brief": 10,
+      "get_decision_structure": 10,
+      "find_citations": 5,
+      "get_decision": 3,
+      "get_article_purpose": 3,
+      "get_legislation": 2,
+      "browse_legislation_changes": 1,
+      "get_materialien": 1,
+      "get_article_history": 1
+    }
+  }
+}
