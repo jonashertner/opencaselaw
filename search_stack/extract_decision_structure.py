@@ -241,6 +241,16 @@ _NOT_A_MARKER_AFTER = re.compile(
     r"et|und|e|ed|oder|ou|o)\b", re.IGNORECASE)
 
 
+# A top-level number written as a heading: "4.", "3 - ..." or, in Ticino
+# exports, "1\n.\u00a0 Il ..." (the dot on the next line). Not "4 Verwahrt das
+# Amt ..." (a quoted statute's paragraph number), "10000" (a table cell) or
+# "10.–" over another figure (an amount in a table). "2.-\nAux termes ..." is
+# the heading form of the older French BGE.
+_TOP_HEADING_FORM = re.compile(
+    r"[ \t]*\d+(?:\.(?!\d|[ \t]*[\-\u2013\u2014\u0096]+[ \t]*\n[ \t]*\d)"
+    r"|[ \t]*[\-\u2013\u2014](?=[ \t])|[ \t\u00a0]*\n[ \t\u00a0]*\.(?!\d))")
+
+
 def _erw_candidates(text: str) -> list[tuple[int, int, str]]:
     seen = {}
     for pat in (ERW_PARA_RE, ERW_PARA_RE_INLINE):
@@ -248,7 +258,26 @@ def _erw_candidates(text: str) -> list[tuple[int, int, str]]:
             if pat is ERW_PARA_RE_INLINE and "." not in m.group(1) and _NOT_A_MARKER_AFTER.match(text[m.end():m.end() + 12]):
                 continue
             seen.setdefault(m.start(), (m.end(), m.group(1)))
-    return sorted([(s, e, n) for s, (e, n) in seen.items()])
+    out = sorted([(s, e, n) for s, (e, n) in seen.items()])
+    # When the block writes its top level as headings ("4.", "5."), a bare top
+    # number is running text: the paragraph numbers of a quoted statute ("2 Die
+    # Gebühr ..."), table cells ("10000", "10"), page numbers of a PDF export
+    # and a page turn mid-sentence ("et\nBGE 142 III 521 S. 532\n6 par. 1
+    # CEDH"). Report 2026-10-20: BGE 99 III 71 served its E. 5 reasoning as an
+    # "E. 10", BGE 142 III 521 an "E. 6". A bare number whose next candidate is
+    # its own sub-number ("2\n2.1 Il convient ...", Vaud) stays a heading, and
+    # so does a "1" that opens the block ("1\nL'art. 129 ...", then "2.").
+    headed = {n for s, _, n in out if "." not in n and _TOP_HEADING_FORM.match(text, s)}
+    if len(headed) >= 2:
+        out = [(s, e, n) for i, (s, e, n) in enumerate(out)
+               if "." in n or _TOP_HEADING_FORM.match(text, s)
+               or (i + 1 < len(out) and out[i + 1][2].startswith(n + "."))
+               or (i == 0 and n == "1")]
+    return out
+
+
+def _e_key(e_num: str) -> tuple[int, ...]:
+    return tuple(int(x) for x in e_num.split("."))
 
 
 def _validate_erw_run(markers: list[tuple[int, int, str]]) -> list[tuple[int, int, str]]:
@@ -281,7 +310,16 @@ def _validate_erw_run(markers: list[tuple[int, int, str]]) -> list[tuple[int, in
                 if out and first_n == last_top and parent.count(".") == 0 and any(p.startswith(parent + ".") for p in seen_paths):
                     pass  # sibling under an implicit parent already opened
                 elif out and first_n == last_top:
-                    continue
+                    # A missing intermediate level under the open top number:
+                    # the excerpt prints "6." then "6.3.2" (BGE 140 III 312) or
+                    # "4." then "4.3.1" (BGE 146 III 290). Taken when an
+                    # ancestor is open and the number advances the sequence;
+                    # dropping it left E. 6 / E. 4 as one block and cite
+                    # called the Regeste's own pinpoint invalid.
+                    anc = parent.split(".")
+                    if not (any(".".join(anc[:i]) in seen_paths for i in range(1, len(anc)))
+                            and _e_key(e_num) > _e_key(out[-1][2])):
+                        continue
                 parts = parent.split(".")
                 for i in range(1, len(parts) + 1):
                     seen_paths.add(".".join(parts[:i]))
@@ -577,7 +615,10 @@ def extract(full_text: str, language: str = "de", decision_id: str = "") -> Deci
     if out.erwaegungen is None:
         candidates = _validate_erw_sequence(_erw_candidates(text))
         top_level = [c for c in candidates if "." not in c[2]]
-        if len(top_level) >= 3:
+        # Three top numbers, or two with sub-numbers under them ("1.\n1.1 ...
+        # 2.\n2.1 ..."): a two-part Vaud ruling passed only while a stray
+        # page or statute number made up the third.
+        if len(top_level) >= 3 or (len(top_level) >= 2 and len(candidates) >= len(top_level) + 2):
             first_start = top_level[0][0]
             tail_end = disp_start if disp_start is not None and disp_start > first_start else len(text)
             body = text[first_start:tail_end]

@@ -252,3 +252,33 @@ def test_docketnorm_fix_resolves_2008_bger(tmp_path):
         assert target[0] == "BGER_8C_862_2008"
     finally:
         conn.close()
+
+
+def test_a_bge_s_own_page_head_reference_is_not_a_citation_of_its_neighbour(tmp_path):
+    """Report 2026-10-20: every BGE prints its own reference in its page
+    heads ("BGE 139 III 120 S. 121"). The pin-cite pass skipped the source
+    and resolved that reference to the nearest *other* first page, so BGE
+    139 III 120 "cited" BGE 139 III 110 (17 of 18 sampled BGE). A reference
+    into the source's own pages, its first page or a later one, is no edge."""
+    rows = [
+        {"decision_id": "BGE_139_III_110", "docket_number": "BGE 139 III 110", "court": "bge",
+         "canton": "CH", "language": "de", "decision_date": "2013-02-05",
+         "full_text": "Zuständigkeit für Patentverletzungsklagen gegen den Bund."},
+        {"decision_id": "BGE_139_III_120", "docket_number": "BGE 139 III 120", "court": "bge",
+         "canton": "CH", "language": "de", "decision_date": "2013-02-26",
+         "full_text": "BGE 139 III 120 S. 121\nAus den Erwägungen (vgl. BGE 139 III 112).\n"
+                      "BGE 139 III 120 S. 122\nund weiter auf BGE 139 III 123."},
+    ]
+    src_db = _make_decisions_db(tmp_path, rows)
+    graph_db = tmp_path / "graph.db"
+    build_graph(input_dir=tmp_path, db_path=graph_db, source_db=src_db)
+    conn = sqlite3.connect(graph_db)
+    try:
+        edges = dict(conn.execute(
+            "SELECT target_ref, target_decision_id FROM citation_targets "
+            "WHERE source_decision_id = ?", ("BGE_139_III_120",)).fetchall())
+    finally:
+        conn.close()
+    assert "BGE 139 III 120" not in edges
+    assert "BGE 139 III 123" not in edges          # a page of its own
+    assert edges.get("BGE 139 III 112") == "BGE_139_III_110"  # a real pin-cite still resolves

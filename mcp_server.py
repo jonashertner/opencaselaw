@@ -8734,6 +8734,24 @@ def _count_citations(decision_id: str) -> tuple[int, int]:
         conn.close()
 
 
+# A BGE prints its own reference in every page header ("BGE 139 III 120 S.
+# 121"), so the extractor records it as an outgoing citation. The exact pass
+# skips a decision's own docket, and the graph's pin-cite pass then resolved
+# the reference to the nearest *other* first page in the volume: every BGE
+# "cited" its predecessor (BGE 139 III 120 -> 139 III 110; 17 of 18 sampled
+# BGE, report 2026-10-20). A decision's own reference is not a citation, so
+# both directions drop it here until the graph is rebuilt without it.
+# `sd` is the citing decision's row in the graph's decisions table.
+_NOT_OWN_BGE_REF_OUT = (
+    "NOT (sd.court IN ('bge', 'bge_historical') AND sd.docket_norm IS NOT NULL"
+    " AND (dc.target_ref = sd.docket_norm OR dc.target_ref = 'BGE ' || sd.docket_norm))"
+)
+_NOT_OWN_BGE_REF_IN = (
+    "NOT (ct.match_type = 'bge_pincite' AND d.docket_norm IS NOT NULL"
+    " AND (ct.target_ref = d.docket_norm OR ct.target_ref = 'BGE ' || d.docket_norm))"
+)
+
+
 def _find_outgoing_citations(
     decision_id: str, *, min_confidence: float = 0.3, limit: int = 50, offset: int = 0
 ) -> list[dict]:
@@ -8757,8 +8775,11 @@ def _find_outgoing_citations(
              AND ct.target_ref = dc.target_ref
             LEFT JOIN decisions d
               ON d.decision_id = ct.target_decision_id
+            LEFT JOIN decisions sd
+              ON sd.decision_id = dc.source_decision_id
             WHERE dc.source_decision_id IN ({placeholders})
               AND (ct.confidence_score IS NULL OR ct.confidence_score >= ?)
+              AND {_NOT_OWN_BGE_REF_OUT}
             ORDER BY dc.mention_count DESC, ct.confidence_score DESC,
                      dc.target_ref, ct.target_decision_id, dc.source_decision_id
             LIMIT ? OFFSET ?
@@ -8792,8 +8813,11 @@ def _count_citations_filtered(
             LEFT JOIN citation_targets ct
               ON ct.source_decision_id = dc.source_decision_id
              AND ct.target_ref = dc.target_ref
+            LEFT JOIN decisions sd
+              ON sd.decision_id = dc.source_decision_id
             WHERE dc.source_decision_id IN ({ph})
               AND (ct.confidence_score IS NULL OR ct.confidence_score >= ?)
+              AND {_NOT_OWN_BGE_REF_OUT}
             """,
             (*variants, min_confidence),
         ).fetchone()
@@ -8809,6 +8833,7 @@ def _count_citations_filtered(
               ON d.decision_id = ct.source_decision_id
             WHERE ct.target_decision_id IN ({ph})
               AND ct.confidence_score >= ?
+              AND {_NOT_OWN_BGE_REF_IN}
             """,
             (*variants, min_confidence),
         ).fetchone()
@@ -8846,6 +8871,7 @@ def _find_incoming_citations(
               ON d.decision_id = ct.source_decision_id
             WHERE ct.target_decision_id IN ({placeholders})
               AND ct.confidence_score >= ?
+              AND {_NOT_OWN_BGE_REF_IN}
             ORDER BY d.decision_date DESC, ct.confidence_score DESC,
                      ct.source_decision_id, ct.target_ref, ct.target_decision_id
             LIMIT ? OFFSET ?
@@ -15474,22 +15500,73 @@ _DISPOSITIVE_RE = re.compile(
     re.IGNORECASE | re.MULTILINE)
 
 
-_SENTENCE_END = re.compile(r"[.:;!?»\"”)\]]\s*$")
+# A line that ends a sentence (or a clause, a heading colon, a closing
+# bracket). Not `_SENTENCE_END`: that name belongs to the grounding audit's
+# sentence splitter further down, which rebinds it at import.
+_LINE_ENDS_SENTENCE = re.compile(r"[.:;!?»\"”)\]]\s*$")
+
+# The running head of a printed BGE page ("BGE 146 III 290 S. 296"), on a line
+# of its own wherever the page turns, mid-sentence as often as not.
+_BGE_PAGE_HEADER_LINE = re.compile(
+    r"^[ \t]*(?:BGE|ATF|DTF)[ \t]+\d{1,3}[ \t]+(?:I[ab]?|II|III|IV|V)[ \t]+\d{1,4}"
+    r"[ \t]+(?:S|p)\.[ \t]*\d{1,4}[ \t]*$")
+_PREFIXED_NUMBER = re.compile(r"^[ \t]*(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*\d")
+# "E. 2.1 S. 216 f." / "consid. 3 p. 399": a pinpoint with a page is a citation.
+_PINPOINT_WITH_PAGE = re.compile(
+    r"^[ \t]*(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*\d+(?:\.\d+)*[a-z]{0,2}\.?"
+    r"[ \t]+(?:S|p|pag)\.[ \t]*\d")
+_BARE_NUMBER_LINE = re.compile(r"^[ \t]*\d+(?:\.\d+)*\.?[ \t]*$")
+# "10.–" alone on its line is an amount in francs, not "10." with a dash heading.
+_AMOUNT_LINE = re.compile(r"^[ \t]*\d+(?:\.\d+)*\.?[ \t]*[-\u2013\u2014\x96]+[ \t]*$")
+
+
+def _previous_text_line(text: str, pos: int) -> tuple[str, bool]:
+    """The last non-empty line before the line starting at `pos`, skipping BGE
+    page headers, and whether a page header was skipped on the way."""
+    across_page = False
+    cut = pos
+    while cut > 0:
+        start = text.rfind("\n", 0, cut - 1) + 1
+        line = text[start:cut].strip()
+        cut = start
+        if not line:
+            continue
+        if _BGE_PAGE_HEADER_LINE.match(line):
+            across_page = True
+            continue
+        return line, across_page
+    return "", across_page
 
 
 def _heading_is_a_wrapped_citation(text: str, match: "re.Match[str]") -> bool:
-    """A heading candidate at a line start that is really the tail of a citation
-    wrapped over two lines ("... (vgl. BGE 120 Ib 1\nE. 2a mit Hinweisen)."): the
-    previous line ends mid-sentence, or the prefixed number is followed by
-    lowercase prose."""
-    before = text[:match.start()].rstrip(" \t")
-    if before and not before.endswith("\n"):
-        previous = before.rsplit("\n", 1)[-1].strip()
-        if previous and not _SENTENCE_END.search(previous):
+    """A heading candidate at a line start that is really part of the running
+    text. The served text breaks a line at every linked reference, so a cited
+    pinpoint starts a line of its own: "(vgl. BGE 130 III 213\nE. 2.1 S. 216 f.)".
+
+    Reports 2026-10-15 and 2026-10-20 (BGE 140 III 409 "E. 2.1", BGE 144 III
+    298 "E. 3", BGE 146 III 290 cut at "BGE 142 III 102\nE. 6 S. 110"): the
+    check this replaces stripped only blanks before looking for the previous
+    line, so it never saw one and every such line passed for a heading.
+
+    Not a heading: a pinpoint followed by a page; any line after a line that
+    ends in another decision's reference; a prefixed number ("E. 2a") after a
+    line that ends mid-sentence or followed by lowercase prose; a line that
+    continues a sentence across a page header ("et\nBGE 142 III 521 S. 532\n6
+    par. 1 CEDH"); an amount ("10.–"); and a bare number standing alone after
+    a line that does not end a sentence (the cells of a table:
+    "10.–\n10000\n100000.–")."""
+    eol = text.find("\n", match.start())
+    line = text[match.start():eol if eol != -1 else len(text)]
+    if _PINPOINT_WITH_PAGE.match(line) or _AMOUNT_LINE.match(line):
+        return True
+    previous, across_page = _previous_text_line(text, match.start())
+    if previous and _CROSS_CITATION_TAIL_RE.search(previous):
+        return True
+    prefixed = bool(_PREFIXED_NUMBER.match(line))
+    if previous and not _LINE_ENDS_SENTENCE.search(previous) and not _BARE_NUMBER_LINE.match(previous):
+        if prefixed or across_page or _BARE_NUMBER_LINE.match(line):
             return True
-    line = text[match.start():text.find("\n", match.start()) if text.find("\n", match.start()) != -1 else len(text)]
-    prefixed = re.match(r"^[ \t]*(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*\S+[ \t]+([a-zà-ÿ])", line)
-    return bool(prefixed)
+    return bool(prefixed and re.match(r"^[ \t]*(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*\S+[ \t]+([a-zà-ÿ])", line))
 
 
 def _lettered_from_block(parent_block: dict, e_number: str, letter: str, sub: str | None) -> dict | None:
@@ -15555,16 +15632,26 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
         break
     if not start:
         return None
-    # next heading: a line-leading number with depth <= requested that is not a descendant
-    next_heading = re.compile(r"^[ \t]*(?:(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*)?(\d+(?:\.\d+)*)\.?(?=[ \t]+[A-Za-zÀ-ÿ(«\"']|[ \t]*[-–—:])", re.MULTILINE)
+    # next heading: a line-leading number with depth <= requested that is not a
+    # descendant, comes after the requested one and is not running text. A
+    # number alone on its line counts: BGE print "4.3.3\nDass ..." that way.
+    next_heading = re.compile(r"^[ \t]*(?:(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*)?(\d+(?:\.\d+)*)\.?(?=[ \t]+[A-Za-zÀ-ÿ(«\"']|[ \t]*[-–—:]|[ \t]*$)", re.MULTILINE)
+    own_key = _e_number_sort_key(e_number)
+    own_top = int(e_number.split(".")[0])
     end = len(text)
     for m in next_heading.finditer(text, start.end()):
         num = m.group(1)
         if num == e_number or num.startswith(e_number + "."):
             continue
-        if num.count(".") <= depth:
-            end = m.start()
-            break
+        if num.count(".") > depth:
+            continue
+        # "10000" from a table or a running case number is no successor of E. 5.
+        if _e_number_sort_key(num) <= own_key or int(num.split(".")[0]) > own_top + 5:
+            continue
+        if _heading_is_a_wrapped_citation(text, m):
+            continue
+        end = m.start()
+        break
     disp = _DISPOSITIVE_RE.search(text, start.end())
     if disp and disp.start() < end:
         end = disp.start()
@@ -15574,6 +15661,23 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
     return {"e_number": e_number, "depth": depth + 1,
             "parent": e_number.rsplit(".", 1)[0] if "." in e_number else None,
             "text": block[:60000]}
+
+
+def _text_heading_fits_structure(e_number: str, paragraphs: list[dict] | None) -> bool:
+    """A heading found in the text for a number the structure index lacks is
+    taken only when its top level lies within the index's own numbering. An
+    excerpt that starts at E. 5 has no E. 3, whatever line of the text reads
+    "E. 3 S. 399;" (BGE 144 III 298, report 2026-10-20). Without numbered rows
+    there is nothing to check against."""
+    tops = set()
+    for p in paragraphs or []:
+        m = re.match(r"\d+", p.get("e_number") or "")
+        if m and m.group() != "0":
+            tops.add(int(m.group()))
+    m = re.match(r"\d+", e_number or "")
+    if not tops or not m:
+        return True
+    return min(tops) <= int(m.group()) <= max(tops) + 1
 
 
 # HTTP status per `error_code` returned by _handle_get_erwaegung. An unknown
@@ -15686,7 +15790,7 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         # stored as coarser blocks. Look for the heading in the served text.
         main_for_text = get_decision_by_id(resolved)
         fallback = _erwaegung_from_text((main_for_text or {}).get("full_text"), e_clean)
-        if fallback:
+        if fallback and _text_heading_fits_structure(e_clean, paragraphs):
             target, text_fallback = fallback, True
     if not target:
         # State 2: structure rows exist, the pinpoint is neither one of them
@@ -17992,6 +18096,7 @@ def _handle_cite(
             primary = citation[f"citation_string_{language}"]
         else:
             # Best-effort: fetch the referenced Erwägung if available.
+            pinpoint_text = pin_verdict.get("text")
             for p in paras:
                 if p["e_number"] == pin_clean:
                     pinpoint_text = p["text"]
@@ -18059,6 +18164,13 @@ def _handle_cite(
                 "citation — do not append this pinpoint to them. Pick one "
                 "of valid_pinpoints, or call find_relevant_erwaegung with "
                 "the claim to locate the right Erwägung."
+            )
+        elif pin_verdict.get("method") == "full_text_heading":
+            result["pinpoint_source"] = "full_text_heading"
+            result["pinpoint_note"] = (
+                f"E. {pin_clean} is not a row in the structure index; it was "
+                "found as a heading in the decision text. get_erwaegung serves "
+                "that block as a text fallback (text_source full_text_heading)."
             )
         elif pin_verdict["status"] == PINPOINT_UNVERIFIED:
             result["pinpoint_note"] = (
@@ -18638,9 +18750,14 @@ def _pinpoint_in_text(full_text: str, pinpoint: str) -> bool:
 #                 get_erwaegung composes those parents, so a parent MUST
 #                 count as valid); or, with no structure at all, the
 #                 tightened text check found the decision's own heading.
+#                 Also verified (method "full_text_heading"): structure rows
+#                 exist without this number, and the served text carries
+#                 its heading within the index's numbering — the block
+#                 get_erwaegung then serves as a text fallback.
 #   invalid     — the decision HAS structure rows and the pinpoint is
-#                 neither among them nor a parent prefix of one. This is
-#                 the only state that may be reported as an error.
+#                 neither among them, nor a parent prefix of one, nor a
+#                 heading in the text. This is the only state that may be
+#                 reported as an error.
 #   unverified  — no structure rows and no heading in the body. A warning:
 #                 we cannot confirm it, and we must not deny it.
 PINPOINT_VERIFIED = "verified"
@@ -18657,7 +18774,8 @@ def _verify_pinpoint(pinpoint: str | None, *, paragraphs: list[dict],
     verdict here always has a retrievable Erwägung behind it.
 
     Returns {status, method, valid_pinpoints}: `method` is
-    "structure" | "structure_parent" | "text" | "none", `valid_pinpoints`
+    "structure" | "structure_parent" | "full_text_heading" | "text" | "none"
+    (a "full_text_heading" verdict also carries the block as `text`), `valid_pinpoints`
     the stored e_numbers (empty when the decision has no structure).
     """
     pin = _strip_erw_prefix(pinpoint)
@@ -18674,6 +18792,15 @@ def _verify_pinpoint(pinpoint: str | None, *, paragraphs: list[dict],
         if any(vp.startswith(pin + ".") for vp in valid):
             return {"status": PINPOINT_VERIFIED, "method": "structure_parent",
                     "valid_pinpoints": valid}
+        # The index lacks the number but the text carries its heading: the
+        # same block get_erwaegung serves (report 2026-10-20: cite called
+        # BGE 140 III 312 E. 6.3.2, which the Regeste itself cites, invalid
+        # while get_erwaegung returned it). Only the heading rules of
+        # _erwaegung_from_text count here, never a marker in running text.
+        block = _erwaegung_from_text(full_text, pin) if full_text else None
+        if block and _text_heading_fits_structure(pin, paragraphs):
+            return {"status": PINPOINT_VERIFIED, "method": "full_text_heading",
+                    "valid_pinpoints": valid, "text": block["text"]}
         return {"status": PINPOINT_INVALID, "method": "structure",
                 "valid_pinpoints": valid}
     if _pinpoint_in_text(full_text or "", pin):
@@ -20311,8 +20438,9 @@ def _attest_ledger(*, citations_found: int = 0, resolved: int = 0,
     pinpoints.found counts pinpoints on citations that resolved (an
     unresolved citation has nothing to verify a pinpoint against);
     verified_structure covers _verify_pinpoint's "structure" and
-    "structure_parent" methods, verified_text the body-text fallback
-    used only when a decision has no structure rows."""
+    "structure_parent" methods, verified_text the body-text checks: the
+    marker check when a decision has no structure rows, and a heading in
+    the text ("full_text_heading") for a number the index lacks."""
     q = dict(_quote_ledger_defaults())
     q.update(quotations or {})
     q["audited"] = bool(quotes_audited)
@@ -20496,9 +20624,10 @@ def _handle_attest_response(*, draft_text: str,
             issues.append(detail)
         elif pinpoint:
             # Three-state contract — see _verify_pinpoint. The body-text
-            # fallback is reached only when the decision has NO structure
-            # rows; inside a structured decision, structure decides, because
-            # the body quotes other cases' pinpoints all day long.
+            # marker check is reached only when the decision has NO structure
+            # rows, because the body quotes other cases' pinpoints all day
+            # long; inside a structured decision only a heading of the text
+            # (the get_erwaegung fallback) can add to the index.
             verdict = _verify_pinpoint(
                 pinpoint,
                 paragraphs=_fetch_structure_paragraphs(resolved),
@@ -20510,7 +20639,7 @@ def _handle_attest_response(*, draft_text: str,
                 pinpoint_ledger["invalid"] += 1
             elif pinpoint_state == PINPOINT_UNVERIFIED:
                 pinpoint_ledger["unverified"] += 1
-            elif verdict.get("method") == "text":
+            elif verdict.get("method") in ("text", "full_text_heading"):
                 pinpoint_ledger["verified_text"] += 1
             else:
                 # method "structure" (exact E. number) and

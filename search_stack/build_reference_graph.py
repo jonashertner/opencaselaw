@@ -643,9 +643,15 @@ def _resolve_citation_targets(conn: sqlite3.Connection) -> None:
         for first_page, did, t_court, t_canton, t_date in candidates:
             if first_page > page:
                 break
-            if first_page <= page and (page - first_page) <= _PIN_DISTANCE and did != src_id:
+            if (page - first_page) <= _PIN_DISTANCE:
                 best = (first_page, did, t_court, t_canton, t_date)
-        if best is None:
+        # The page belongs to the nearest preceding first page, the citing
+        # decision's own included. A BGE prints its own reference in every
+        # page head ("BGE 139 III 120 S. 121"); skipping the source here
+        # resolved that reference to the decision before it in the volume,
+        # so every BGE "cited" its predecessor (report 2026-10-20: 17 of 18
+        # sampled BGE). A reference into the source's own pages is no citation.
+        if best is None or any(c[0] == best[0] and c[1] == src_id for c in candidates):
             continue
         first_page, target_did, t_court, t_canton, t_date = best
         confidence = _citation_confidence(
