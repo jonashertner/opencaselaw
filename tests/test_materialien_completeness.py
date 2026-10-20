@@ -48,7 +48,8 @@ def _consultations(tmp_path):
     c = bcc.connect_work_db(db)
     c.execute("INSERT INTO consultation_procedures (procedure_uri, event_id, year, start_date, "
               "discovered_at, updated_at) VALUES ('P', 'proj/2023/1/cons_1', 2023, '2023-01-10', 'n', 'n')")
-    c.execute("INSERT INTO consultation_documents VALUES ('D', 'P', 12, 'erlaeuternder_bericht', NULL, NULL, NULL)")
+    c.execute("INSERT INTO consultation_documents (document_uri, procedure_uri, doc_type_code, "
+              "doc_type) VALUES ('D', 'P', 12, 'erlaeuternder_bericht')")
     c.execute("INSERT INTO consultation_files (document_uri, language, text_policy, status, publication_date) "
               "VALUES ('D', 'de', 'text', 'done', '2023-01-10')")
     c.execute("INSERT INTO consultation_files (document_uri, language, text_policy, status, publication_date) "
@@ -136,3 +137,70 @@ def test_missing_consultations_db_is_a_gap(tmp_path):
                           sparql=_sparql, discover_typed=lambda l, t: _typed("fr", t),
                           discover_untyped=_untyped, today=date(2026, 10, 20))
     assert gap and report["vernehmlassungen"]["error"]
+
+
+def _with_archive_rows(c):
+    """An archive-created procedure, an archive document on a Fedlex procedure
+    of 1999 (pending) and a second one never archived."""
+    con = sqlite3.connect(c)
+    con.execute("INSERT INTO consultation_procedures (procedure_uri, event_id, year, discovered_at, "
+                "updated_at) VALUES ('F99', 'proj/1999/4/cons_1', 1999, 'n', 'n')")
+    con.execute("INSERT INTO consultation_procedures (procedure_uri, event_id, year, discovered_at, "
+                "updated_at, source) VALUES ('urn:opencaselaw:admin_pc_wayback:1998/h1', "
+                "'admin_pc_wayback/1998/h1', 1998, 'n', 'n', 'admin_pc_wayback')")
+    con.execute("INSERT INTO consultation_documents (document_uri, procedure_uri, doc_type_code, "
+                "doc_type, title_de, source) VALUES ('AD', 'F99', 12, 'erlaeuternder_bericht', "
+                "'Bericht', 'admin_pc_wayback')")
+    con.execute("INSERT INTO consultation_files (document_uri, language, file_url, text_policy, "
+                "status, source, original_url) VALUES ('AD', 'de', 'https://web.archive.org/web/"
+                "20070101000000/http://www.admin.ch/x.pdf', 'text', 'pending', 'admin_pc_wayback', "
+                "'http://www.admin.ch/x.pdf')")
+    con.execute("INSERT INTO consultation_files (document_uri, language, text_policy, status, "
+                "source, original_url) VALUES ('AD', 'fr', 'text', 'not_archived', "
+                "'admin_pc_wayback', 'http://www.admin.ch/y.pdf')")
+    con.execute("INSERT INTO consultation_archive_entries (entry_id, source, year, page_urls_json, "
+                "procedure_uri, match_method, documents, discovered_at) VALUES "
+                "('admin_pc_wayback:1999/1', 'admin_pc_wayback', 1999, '{}', 'F99', "
+                "'deadline_title', 1, 'n'), ('admin_pc_wayback:1998/h1', 'admin_pc_wayback', 1998, "
+                "'{}', 'urn:opencaselaw:admin_pc_wayback:1998/h1', 'created', 0, 'n')")
+    con.commit()
+    con.close()
+
+
+def _sparql_three(q):
+    if "COUNT(DISTINCT ?c)" in q:
+        return [{"n": {"value": "2"}}]  # P and F99: the archive procedure is not Fedlex's
+    return _sparql(q)
+
+
+def test_archive_sources_reported_apart_from_fedlex(tmp_path):
+    m, c = _materialien(tmp_path), _consultations(tmp_path)
+    _with_archive_rows(c)
+    con = sqlite3.connect(c)
+    con.execute("UPDATE consultation_files SET status='done' WHERE source IS NULL")
+    con.commit(); con.close()
+    report, gap = cmc.run(_args(tmp_path, m, c, no_ntfy=True, skip_historical=True),
+                          sparql=_sparql_three, discover_typed=lambda l, t: _typed("fr", t),
+                          discover_untyped=_untyped, today=date(2026, 10, 20))
+    v = report["vernehmlassungen"]
+    # the archive procedure, document and files do not hide or fake Fedlex lag
+    assert v["held"]["procedures"] == 2 and v["discovery_lag"]["procedures"] == 0
+    assert v["held"]["documents"] == {"erlaeuternder_bericht": 1}
+    assert v["text"]["backlog"] == 0 and v["gap"] == 0
+    a = report["archive_sources"]
+    src = a["sources"]["admin_pc_wayback"]
+    assert src["entries"] == 2 and src["entries_by_match"] == {"created": 1, "deadline_title": 1}
+    assert src["files_by_status"] == {"not_archived": 1, "pending": 1}
+    assert a["backlog"] == 1
+    assert a["fedlex_before_2005"] == {"procedures": 1, "with_fedlex_document": 0,
+                                       "with_any_document": 1,
+                                       "by_year": {"1999": {"procedures": 1,
+                                                            "with_fedlex_document": 0,
+                                                            "with_any_document": 1}}}
+    assert not gap   # the one-off backfill is not a nightly gap ...
+    report, gap = cmc.run(_args(tmp_path, m, c, no_ntfy=True, skip_historical=True,
+                                archive_strict=True),
+                          sparql=_sparql_three, discover_typed=lambda l, t: _typed("fr", t),
+                          discover_untyped=_untyped, today=date(2026, 10, 20))
+    assert gap and report["gap"] == 1   # ... unless asked
+    assert any("before 2005: 1/1" in line for line in report["summary"])

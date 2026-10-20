@@ -30,6 +30,12 @@ pages per procedure. Two files:
   (``?mode=ro&immutable=1``, one connection per call) never see a
   half-written database.
 
+Documents Fedlex does not hold (the Chancellery's 1995-2004 index and the
+BJ legislative projects, live and from the Wayback Machine) are discovered
+into the same work DB by search_stack/consultation_archive.py and fetched
+here like Fedlex's, each host at its own pace (HOST_MIN_INTERVAL); their
+rows carry their provenance (source, original_url, source_page_url).
+
 Text policy: the documents that carry legal reasoning or the draft itself are
 ingested verbatim (Erläuternder Bericht, Ergebnisbericht, Vorlage, synoptic
 table, Diverses, Stellungnahmen); cover letters, address lists, answer forms
@@ -90,7 +96,17 @@ LANG_FROM_URI = {
 
 USER_AGENT = ("opencaselaw-materialien/0.4 (Vernehmlassungen; "
               "+https://opencaselaw.ch)")
-ALLOWED_FILE_HOSTS = frozenset({"fedlex.data.admin.ch"})
+FEDLEX_FILE_HOST = "fedlex.data.admin.ch"
+# Fedlex's file store, plus the two sources of search_stack.consultation_archive:
+# Wayback copies of the admin.ch and bj.admin.ch pages Fedlex never took over,
+# and the live bj.admin.ch file store.
+ALLOWED_FILE_HOSTS = frozenset({FEDLEX_FILE_HOST, "web.archive.org", "www.bj.admin.ch"})
+# Minimum seconds after a request to a host before the next request of the
+# run (one connection; the Internet Archive asks for >= 2 s between requests).
+HOST_MIN_INTERVAL: dict[str, float] = {"web.archive.org": 2.0, "www.bj.admin.ch": 1.0}
+# The Wayback Machine answers 403 for a single capture excluded from replay:
+# that file is final (not_archived), only 429 is a refusal of the client.
+WAYBACK_HOST = "web.archive.org"
 
 # draft-document-type code → slug. Labels are never synthesised: they are
 # read from Fedlex's vocabulary at discovery time (consultation_vocab).
@@ -131,9 +147,10 @@ ST_NOT_FOUND = "not_found"        # file store answered 404/410
 ST_TOO_LARGE = "too_large"
 ST_PARSE_ERROR = "parse_error"    # downloaded but unreadable (corrupt / encrypted)
 ST_ERROR = "error"                # retried until MAX_ATTEMPTS
+ST_NOT_ARCHIVED = "not_archived"  # linked by an archived page, never captured by the Wayback Machine
 FINAL_STATUSES = frozenset({ST_DONE, ST_SAME_AS, ST_NO_TEXT, ST_LINK_ONLY,
                             ST_UNSUPPORTED, ST_NOT_FOUND, ST_TOO_LARGE,
-                            ST_PARSE_ERROR})
+                            ST_PARSE_ERROR, ST_NOT_ARCHIVED})
 
 
 # ── Schema ─────────────────────────────────────────────────────────────
@@ -240,7 +257,49 @@ CREATE TABLE IF NOT EXISTS meta (
     key              TEXT PRIMARY KEY,
     value            TEXT
 );
+
+-- One row per procedure entry read from a non-Fedlex source page
+-- (search_stack.consultation_archive): what the page said, where it was read,
+-- and how it was matched to a procedure. Kept for every entry, matched or
+-- not, so a match can be audited and re-done.
+CREATE TABLE IF NOT EXISTS consultation_archive_entries (
+    entry_id         TEXT PRIMARY KEY,       -- <source>:<key>
+    source           TEXT NOT NULL,
+    year             INTEGER,
+    title_de         TEXT, title_fr TEXT, title_it TEXT,
+    opened           TEXT,                   -- as printed on the page (ISO date)
+    deadline         TEXT,
+    department       TEXT,
+    page_urls_json   TEXT NOT NULL,          -- {lang: page URL (Wayback snapshot or live)}
+    procedure_uri    TEXT,                   -- matched or created procedure; NULL when ambiguous
+    match_method     TEXT NOT NULL,          -- fedlex_link | deadline_title | opened_title | opened_institution | title | document_date | bj_live_twin | created | ambiguous | no_documents | documents_dated
+    match_score      REAL,
+    documents        INTEGER NOT NULL DEFAULT 0,
+    discovered_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_cae_proc ON consultation_archive_entries(procedure_uri);
 """
+
+# Provenance of rows that do not come from Fedlex (2026-10-20). Added with
+# ALTER TABLE so a work database from before keeps its rows; NULL = Fedlex.
+#   source           admin_pc_wayback | bj | bj_wayback
+#   original_url     the file's own URL on the source site (dead for Wayback rows)
+#   source_page_url  the page that linked it (Wayback snapshot or live page)
+# consultation_files.file_url is what is fetched and shown: the Wayback
+# snapshot URL for archived files, the live URL otherwise.
+ARCHIVE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "consultation_procedures": ("source", "source_url"),
+    "consultation_documents": ("source",),
+    "consultation_files": ("source", "original_url", "source_page_url"),
+}
+
+
+def ensure_archive_columns(conn: sqlite3.Connection) -> None:
+    for table, cols in ARCHIVE_COLUMNS.items():
+        have = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        for col in cols:
+            if col not in have:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
 
 
 def connect_work_db(path: str | Path) -> sqlite3.Connection:
@@ -250,6 +309,7 @@ def connect_work_db(path: str | Path) -> sqlite3.Connection:
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA_SQL)
+    ensure_archive_columns(conn)
     conn.commit()
     return conn
 
@@ -827,9 +887,23 @@ class _TooLarge(Exception):
         self.size = size
 
 
-def _file_host_allowed(url: str | None) -> bool:
+def _host_of(url: str | None) -> str:
     from urllib.parse import urlsplit
-    return bool(url) and urlsplit(url).netloc.lower() in ALLOWED_FILE_HOSTS
+    return urlsplit(url or "").netloc.lower()
+
+
+def _file_host_allowed(url: str | None) -> bool:
+    return bool(url) and _host_of(url) in ALLOWED_FILE_HOSTS
+
+
+_WAYBACK_SNAPSHOT_RE = re.compile(r"^(https://web\.archive\.org/web/\d{14})/")
+
+
+def download_url(file_url: str) -> str:
+    """The URL whose bytes are the file. A Wayback snapshot URL (the one
+    shown to users) answers with the replay frame; the ``id_`` form of the
+    same snapshot answers with the archived bytes as captured."""
+    return _WAYBACK_SNAPSHOT_RE.sub(r"\1id_/", file_url, count=1)
 
 
 # ── Fetch ──────────────────────────────────────────────────────────────
@@ -881,7 +955,10 @@ def fetch_one(conn: sqlite3.Connection, row, http: _Http) -> str:
     try:
         # Same bytes as another language's file of this document? Stellungnahmen
         # and many Ergebnisberichte are one PDF filed under all three languages.
-        siblings = _sibling_done(conn, row["document_uri"], fid)
+        # (Fedlex only: the archive sources file one PDF per language, and a
+        # HEAD + range request would be two more Wayback requests per file.)
+        siblings = (_sibling_done(conn, row["document_uri"], fid)
+                    if _host_of(url) == FEDLEX_FILE_HOST else [])
         if siblings:
             size = http.head_length(url)
             match = [s for s in siblings if s["byte_size"] == size]
@@ -899,7 +976,7 @@ def fetch_one(conn: sqlite3.Connection, row, http: _Http) -> str:
                              _now(), _now(), fid))
                         conn.commit()
                         return ST_SAME_AS
-        data = http.get(url, MAX_FILE_BYTES)
+        data = http.get(download_url(url), MAX_FILE_BYTES)
     except _TooLarge as e:
         conn.execute("UPDATE consultation_files SET status=?, byte_size=?, attempts=attempts+1, "
                      "last_attempt_at=?, error=? WHERE file_id=?",
@@ -907,6 +984,13 @@ def fetch_one(conn: sqlite3.Connection, row, http: _Http) -> str:
         conn.commit()
         return ST_TOO_LARGE
     except urllib.error.HTTPError as e:
+        if e.code == 403 and _host_of(url) == WAYBACK_HOST:
+            conn.execute("UPDATE consultation_files SET status=?, http_status=?, "
+                         "attempts=attempts+1, last_attempt_at=?, error=? WHERE file_id=?",
+                         (ST_NOT_ARCHIVED, 403, _now(), "capture excluded from replay (HTTP 403)",
+                          fid))
+            conn.commit()
+            return ST_NOT_ARCHIVED
         if e.code in FATAL_HTTP_STATUSES:
             raise SourceUnavailable(f"GET {url} answered HTTP {e.code}", status=e.code) from e
         status = ST_NOT_FOUND if e.code in (404, 410) else ST_ERROR
@@ -939,6 +1023,22 @@ def fetch_one(conn: sqlite3.Connection, row, http: _Http) -> str:
                      (ST_PARSE_ERROR, len(data), sha, psha, _now(), f"parse: {e}"[:500], fid))
         conn.commit()
         return ST_PARSE_ERROR
+    if _host_of(url) != FEDLEX_FILE_HOST:
+        # Archive sources: one trilingual PDF is often linked from each
+        # language's page under its own path, and a BJ project page can list
+        # the very file Fedlex holds; index the text once (any document).
+        twin = conn.execute(
+            f"SELECT file_id FROM consultation_files WHERE file_id<>? AND sha256=? "
+            f"AND status='{ST_DONE}' ORDER BY (source IS NOT NULL), file_id LIMIT 1",
+            (fid, sha)).fetchone()
+        if twin is not None:
+            conn.execute(
+                """UPDATE consultation_files SET status=?, same_as_file_id=?, byte_size=?,
+                   sha256=?, prefix_sha256=?, attempts=attempts+1, last_attempt_at=?,
+                   error=NULL, http_status=NULL, ingested_at=? WHERE file_id=?""",
+                (ST_SAME_AS, twin[0], len(data), sha, psha, _now(), _now(), fid))
+            conn.commit()
+            return ST_SAME_AS
     paragraphs = list(segment_blocks(pages, lang, paginated=paginated))
     chars = sum(p["text_length"] for p in paragraphs)
     empty = sum(1 for blocks in pages if sum(len(b.strip()) for b in blocks) < 20)
@@ -966,13 +1066,17 @@ def fetch(conn: sqlite3.Connection, *, rate_limit: float = 0.5,
     """Work the queue in priority order under the Fedlex fetch policy: stop
     at once on 429/403, after N consecutive failures, or at the time/file
     budget; back off exponentially after a failure. Every file commits on its
-    own, so a stopped run resumes where it ended."""
+    own, so a stopped run resumes where it ended.
+
+    The archive hosts (Wayback, bj.admin.ch) are paced by HOST_MIN_INTERVAL
+    and stopped on their own: a refusal or a failure streak there ends that
+    host's files for the run (``stopped_hosts``), never the Fedlex files."""
     http = http or _Http(cache_dir=cache_dir)
     queue = _queue(conn)
     stats: dict = {"queued": len(queue), "processed": 0, "stopped": None,
-                   "by_status": {}, "errors": 0}
+                   "by_status": {}, "errors": 0, "stopped_hosts": {}}
     t0 = clock()
-    consecutive = 0
+    consecutive: dict[str, int] = {}
     for i, row in enumerate(queue, 1):
         if max_files is not None and stats["processed"] >= max_files:
             stats["stopped"] = "max_files"
@@ -980,26 +1084,38 @@ def fetch(conn: sqlite3.Connection, *, rate_limit: float = 0.5,
         if max_seconds is not None and clock() - t0 >= max_seconds:
             stats["stopped"] = "max_seconds"
             break
-        pause = rate_limit
+        host = _host_of(row["file_url"])
+        if host in stats["stopped_hosts"]:
+            continue
+        # Fedlex keeps the run-wide semantics (one streak, one stop for all).
+        key = host if host in HOST_MIN_INTERVAL else ""
+        pause = max(rate_limit, HOST_MIN_INTERVAL.get(host, 0.0))
         failed = False
         if hasattr(http, "last_from_cache"):
             http.last_from_cache = False
         try:
             st = fetch_one(conn, row, http)
             stats["by_status"][st] = stats["by_status"].get(st, 0) + 1
-            consecutive = 0
+            consecutive[key] = 0
         except Exception as e:  # noqa: BLE001
             failed = True
             stats["errors"] += 1
-            consecutive += 1
+            consecutive[key] = n_fail = consecutive.get(key, 0) + 1
             code = http_status_of(e)
             log.warning("  %s (%s) failed: %s", row["document_uri"], row["language"], e)
+            reason = None
             if code in FATAL_HTTP_STATUSES:
-                stats["stopped"] = f"http_{code}"
-            elif consecutive >= max_consecutive_failures:
-                stats["stopped"] = f"{consecutive}_consecutive_failures"
+                reason = f"http_{code}"
+            elif n_fail >= max_consecutive_failures:
+                reason = f"{n_fail}_consecutive_failures"
             else:
-                pause = min(BACKOFF_MAX_SECONDS, BACKOFF_BASE_SECONDS * 2 ** (consecutive - 1))
+                pause = max(pause, min(BACKOFF_MAX_SECONDS,
+                                       BACKOFF_BASE_SECONDS * 2 ** (n_fail - 1)))
+            if reason and key:
+                stats["stopped_hosts"][host] = reason
+                log.error("  %s stopped (%s); its files wait for the next run", host, reason)
+            elif reason:
+                stats["stopped"] = reason
         stats["processed"] += 1
         if stats["stopped"]:
             log.error("  stopping (%s) at %d/%d; the next run resumes", stats["stopped"],
@@ -1067,12 +1183,17 @@ def status_summary(conn: sqlite3.Connection) -> dict:
         "documents": conn.execute("SELECT COUNT(*) FROM consultation_documents").fetchone()[0],
         "paragraphs": conn.execute("SELECT COUNT(*) FROM consultation_paragraphs").fetchone()[0],
         "files": {},
+        "by_source": {},
     }
     for r in conn.execute(
             """SELECT d.doc_type, f.status, COUNT(*) n FROM consultation_files f
                JOIN consultation_documents d USING(document_uri)
                GROUP BY 1, 2 ORDER BY 1, 2"""):
         out["files"].setdefault(r["doc_type"], {})[r["status"]] = r["n"]
+    for r in conn.execute(
+            """SELECT COALESCE(source, 'fedlex') src, status, COUNT(*) n
+               FROM consultation_files GROUP BY 1, 2 ORDER BY 1, 2"""):
+        out["by_source"].setdefault(r["src"], {})[r["status"]] = r["n"]
     return out
 
 

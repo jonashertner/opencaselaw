@@ -17,7 +17,15 @@ compared with what the served databases hold:
    consultations.db (discovery lag is a GAP), and the text backlog — files
    under the text policy still pending or failed for longer than
    ``--grace-days`` are a GAP; scans without text (OCR backlog), corrupt
-   files and too-large files are listed, never hidden.
+   files and too-large files are listed, never hidden. Only Fedlex rows
+   count here.
+4. **Vernehmlassungen outside Fedlex** (search_stack/consultation_archive.py:
+   the Chancellery's 1995-2004 index and the BJ project pages, live and
+   Wayback): entries per source and how they matched, documents by type,
+   files by status (pending, done, not archived, ...), and how many of the
+   procedures Fedlex lists before 2005 still have no document from any
+   source. Reported; the fetch backlog is a gap only with
+   ``--archive-strict`` (the backfill is one-off and runs at Wayback pace).
 
 Writes ``--report`` (JSON, atomic), prints a summary, sends ONE ntfy message
 when there is a gap (unless ``--no-ntfy``), exits 1 with ``--fail-on-gap``.
@@ -178,6 +186,13 @@ SELECT ?dt (COUNT(DISTINCT ?doc) AS ?n) WHERE {{
 }} GROUP BY ?dt"""
 
 
+def _has_source_column(cconn) -> bool:
+    try:
+        return "source" in {r[1] for r in cconn.execute("PRAGMA table_info(consultation_files)")}
+    except sqlite3.Error:
+        return False
+
+
 def check_vernehmlassungen(cconn, sparql: Callable, today: date, grace_days: int) -> dict:
     from search_stack.build_consultation_corpus import DOC_TYPES, FINAL_STATUSES
 
@@ -196,12 +211,18 @@ def check_vernehmlassungen(cconn, sparql: Callable, today: date, grace_days: int
         out["error"] = "consultations.db not available"
         out["gap"] = fed_procs
         return out
-    held_procs = cconn.execute("SELECT COUNT(*) FROM consultation_procedures").fetchone()[0]
+    # Rows from the archive sources (source IS NOT NULL) are not Fedlex's:
+    # counting them here would hide a Fedlex discovery lag.
+    fed = _has_source_column(cconn)
+    p_only = " WHERE source IS NULL" if fed else ""
+    d_only = " AND d.source IS NULL AND f.source IS NULL" if fed else ""
+    held_procs = cconn.execute("SELECT COUNT(*) FROM consultation_procedures" + p_only).fetchone()[0]
     held_docs = dict(cconn.execute(
-        "SELECT doc_type, COUNT(*) FROM consultation_documents GROUP BY 1").fetchall())
+        "SELECT doc_type, COUNT(*) FROM consultation_documents" + p_only + " GROUP BY 1").fetchall())
     held_files = {lang: dict(cconn.execute(
         "SELECT d.doc_type, COUNT(*) FROM consultation_files f JOIN consultation_documents d "
-        "USING(document_uri) WHERE f.language=? GROUP BY 1", (lang,)).fetchall()) for lang in LANGS}
+        "USING(document_uri) WHERE f.language=?" + d_only + " GROUP BY 1",
+        (lang,)).fetchall()) for lang in LANGS}
     out["held"] = {"procedures": held_procs, "documents": held_docs, "files": held_files}
     lag = {"procedures": max(0, fed_procs - held_procs)}
     lag["documents"] = {t: n - held_docs.get(t, 0) for t, n in fed_docs.items()
@@ -215,25 +236,26 @@ def check_vernehmlassungen(cconn, sparql: Callable, today: date, grace_days: int
 
     cutoff = (today - timedelta(days=grace_days)).isoformat()
     by_status = {}
+    f_only = " AND f.source IS NULL" if fed else ""
     for r in cconn.execute(
             "SELECT d.doc_type, f.status, COUNT(*) n FROM consultation_files f "
-            "JOIN consultation_documents d USING(document_uri) WHERE f.text_policy='text' "
-            "GROUP BY 1, 2"):
+            "JOIN consultation_documents d USING(document_uri) WHERE f.text_policy='text'"
+            + f_only + " GROUP BY 1, 2"):
         by_status.setdefault(r["doc_type"], {})[r["status"]] = r["n"]
     backlog = cconn.execute(
         f"""SELECT f.document_uri, f.language, f.status, f.error, d.doc_type,
                    COALESCE(f.publication_date, p.start_date, p.year || '-12-31') AS d
             FROM consultation_files f JOIN consultation_documents d USING(document_uri)
             JOIN consultation_procedures p ON p.procedure_uri = d.procedure_uri
-            WHERE f.text_policy='text'
+            WHERE f.text_policy='text'{f_only}
               AND f.status NOT IN ({','.join('?' * len(FINAL_STATUSES))})""",
         tuple(sorted(FINAL_STATUSES))).fetchall()
     aged = [r for r in backlog if (r["d"] or "")[:10] <= cutoff]
     problems = cconn.execute(
         "SELECT d.doc_type, f.status, f.document_uri, f.language, f.error "
         "FROM consultation_files f JOIN consultation_documents d USING(document_uri) "
-        "WHERE f.status IN ('no_text', 'parse_error', 'too_large', 'not_found') "
-        "ORDER BY f.status, f.document_uri LIMIT ?", (SAMPLE,)).fetchall()
+        "WHERE f.status IN ('no_text', 'parse_error', 'too_large', 'not_found')" + f_only
+        + " ORDER BY f.status, f.document_uri LIMIT ?", (SAMPLE,)).fetchall()
     out["text"] = {
         "by_type_and_status": by_status,
         "backlog": len(backlog), "backlog_past_grace": len(aged),
@@ -241,6 +263,51 @@ def check_vernehmlassungen(cconn, sparql: Callable, today: date, grace_days: int
         "without_text_sample": [dict(r) for r in problems],
     }
     out["gap"] = n_lag + len(aged)
+    return out
+
+
+# ── 4. Vernehmlassungen outside Fedlex ─────────────────────────────────
+
+ARCHIVE_BEFORE_YEAR = 2005   # Fedlex's Erläuternde Berichte start in 2005
+
+
+def check_archive_sources(cconn) -> dict:
+    """What the archive sources added (per source, from the rows), the fetch
+    backlog of their files, and the procedures Fedlex lists before 2005 that
+    still have no document from any source."""
+    from search_stack.build_consultation_corpus import FINAL_STATUSES
+    from search_stack.consultation_archive import census
+    out: dict = {"sources": {}, "backlog": 0}
+    if cconn is None or not _has_source_column(cconn):
+        out["error"] = "consultations.db has no archive sources yet"
+        return out
+    out["sources"] = census(cconn)
+    marks = ",".join("?" * len(FINAL_STATUSES))
+    out["backlog_by_source"] = {r[0]: r[1] for r in cconn.execute(
+        f"SELECT source, COUNT(*) FROM consultation_files WHERE source IS NOT NULL "
+        f"AND text_policy='text' AND status NOT IN ({marks}) GROUP BY 1",
+        tuple(sorted(FINAL_STATUSES)))}
+    out["backlog"] = sum(out["backlog_by_source"].values())
+    early = cconn.execute(
+        """SELECT p.year,
+                  COUNT(*) AS procedures,
+                  SUM(EXISTS (SELECT 1 FROM consultation_documents d
+                              WHERE d.procedure_uri = p.procedure_uri AND d.source IS NULL))
+                      AS with_fedlex_document,
+                  SUM(EXISTS (SELECT 1 FROM consultation_documents d
+                              WHERE d.procedure_uri = p.procedure_uri)) AS with_any_document
+           FROM consultation_procedures p
+           WHERE p.source IS NULL AND p.year < ?
+           GROUP BY p.year ORDER BY p.year""", (ARCHIVE_BEFORE_YEAR,)).fetchall()
+    out["fedlex_before_2005"] = {
+        "procedures": sum(r["procedures"] for r in early),
+        "with_fedlex_document": sum(r["with_fedlex_document"] for r in early),
+        "with_any_document": sum(r["with_any_document"] for r in early),
+        "by_year": {str(r["year"]): {"procedures": r["procedures"],
+                                     "with_fedlex_document": r["with_fedlex_document"],
+                                     "with_any_document": r["with_any_document"]}
+                    for r in early},
+    }
     return out
 
 
@@ -275,6 +342,16 @@ def summarise(report: dict) -> list[str]:
                      f"{c.get('fedlex', {}).get('procedures')} procedures, discovery lag "
                      f"{c.get('discovery_lag')}, text backlog {c.get('text', {}).get('backlog')} "
                      f"({c.get('text', {}).get('backlog_past_grace')} past grace)")
+    a = report.get("archive_sources", {})
+    for src, v in a.get("sources", {}).items():
+        lines.append(f"Vernehmlassungen {src}: {v['entries']} entries "
+                     f"{v['entries_by_match']}, {v['documents']} documents, "
+                     f"files {v['files_by_status']}")
+    early = a.get("fedlex_before_2005")
+    if early:
+        lines.append(f"Vernehmlassungen before 2005: {early['with_any_document']}/"
+                     f"{early['procedures']} Fedlex procedures with a document "
+                     f"({early['with_fedlex_document']} from Fedlex)")
     return lines
 
 
@@ -295,13 +372,16 @@ def run(args, *, sparql=None, discover_typed=None, discover_untyped=None,
         if not args.skip_historical:
             report["bundesblatt_historical"] = check_historical(mconn, discover_untyped)
         report["vernehmlassungen"] = check_vernehmlassungen(cconn, sparql, today, args.grace_days)
+        report["archive_sources"] = check_archive_sources(cconn)
     finally:
         for c in (mconn, cconn):
             if c is not None:
                 c.close()
     gap = (report["bundesblatt_typed"]["gap"] + report["vernehmlassungen"]["gap"]
            + (report.get("bundesblatt_historical", {}).get("not_stored", 0)
-              if args.historical_strict else 0))
+              if args.historical_strict else 0)
+           + (report["archive_sources"].get("backlog", 0)
+              if getattr(args, "archive_strict", False) else 0))
     report["gap"] = gap
     report["summary"] = summarise(report)
     if args.report:
@@ -323,6 +403,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--grace-days", type=int, default=7)
     ap.add_argument("--skip-historical", action="store_true")
     ap.add_argument("--historical-strict", action="store_true")
+    ap.add_argument("--archive-strict", action="store_true",
+                    help="the archive sources' fetch backlog counts as a gap")
     ap.add_argument("--no-ntfy", action="store_true")
     ap.add_argument("--fail-on-gap", action="store_true")
     args = ap.parse_args(argv)

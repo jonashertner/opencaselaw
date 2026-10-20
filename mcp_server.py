@@ -6184,6 +6184,16 @@ _CONSULTATION_DOC_TYPES: tuple[str, ...] = (
 _SEARCH_BOTSCHAFT_DOC_TYPES: tuple[str, ...] = (
     _MATERIALIEN_DOC_TYPES + _CONSULTATION_DOC_TYPES)
 _CONSULTATION_PASSAGE_MAX = 2000
+# Rows from search_stack/consultation_archive.py (consultation_files.source;
+# NULL = Fedlex): the Federal Chancellery's 1995-2004 consultation index and
+# the old BJ archive, both read from the Wayback Machine, and the live
+# bj.admin.ch legislative-project pages. Their document label is the source
+# page's own link text (consultation_documents.title_*), not a Fedlex label.
+_CONSULTATION_SOURCES: dict[str, str] = {
+    "admin_pc_wayback": "admin_ch_vernehmlassung_wayback",
+    "bj": "bj_rechtsetzungsprojekt",
+    "bj_wayback": "bj_rechtsetzungsprojekt_wayback",
+}
 _CONSULTATION_PROGRESS_STEPS = 20000  # SQLite VM steps between deadline checks
 
 
@@ -6249,11 +6259,23 @@ def _pick_lang(row, prefix: str, language: str | None) -> str | None:
     return None
 
 
+def _consultation_has_archive(conn: sqlite3.Connection) -> bool:
+    """True when consultations.db carries the provenance columns of the
+    archive sources (absent from a database built before 2026-10-20)."""
+    try:
+        return "original_url" in {r[1] for r in conn.execute(
+            "PRAGMA table_info(consultation_files)")}
+    except sqlite3.Error:
+        return False
+
+
 def _consultation_procedure_meta(row, vocab: dict, language: str | None) -> dict:
     """The procedure fields every Vernehmlassung answer carries. Titles,
     dates, status and institution are Fedlex's own; the ELI URI resolves to
-    the procedure's page on fedlex.admin.ch."""
-    return {
+    the procedure's page on fedlex.admin.ch. A procedure Fedlex does not
+    list (from an archive source) has an opencaselaw URN instead, and says
+    which source and page it was read from."""
+    meta = {
         "procedure_id": row["event_id"],
         "procedure_uri": row["procedure_uri"],
         "procedure_title": _pick_lang(row, "title", language),
@@ -6263,6 +6285,29 @@ def _consultation_procedure_meta(row, vocab: dict, language: str | None) -> dict
         "status": _vocab_label(vocab, row["status_uri"], language),
         "institution": _vocab_label(vocab, row["institution_uri"], language),
     }
+    src = _row_get(row, "proc_source") or _row_get(row, "source")
+    if src:
+        meta["procedure_source"] = _CONSULTATION_SOURCES.get(src, src)
+        meta["procedure_page"] = _row_get(row, "proc_source_url") or _row_get(row, "source_url")
+    return meta
+
+
+def _consultation_file_provenance(row, language: str | None) -> dict:
+    """Source fields of a document from an archive source: the label the
+    source page printed, the file's original URL, the page that linked it.
+    Empty for a Fedlex document."""
+    src = _row_get(row, "file_source")
+    if not src:
+        return {}
+    out = {"source": _CONSULTATION_SOURCES.get(src, src),
+           "original_url": _row_get(row, "original_url"),
+           "linked_from": _row_get(row, "source_page_url")}
+    label = _pick_lang(row, "doc_title", language)
+    if label:
+        out["doc_type_label"] = label
+    if src.endswith("_wayback"):
+        out["archived_copy"] = "Wayback Machine snapshot of a page no longer online"
+    return out
 
 
 def _search_consultations(
@@ -6274,11 +6319,16 @@ def _search_consultations(
     carries the WHOLE paragraph (capped at _CONSULTATION_PASSAGE_MAX chars,
     flagged `text_truncated`) so it can be quoted verbatim, plus the page of
     the PDF it is on and the procedure it belongs to."""
-    sql = """
+    prov = ("cf.source AS file_source, cf.original_url, cf.source_page_url, "
+            "cd.title_de AS doc_title_de, cd.title_fr AS doc_title_fr, "
+            "cd.title_it AS doc_title_it, pr.source AS proc_source, "
+            "pr.source_url AS proc_source_url,"
+            if _consultation_has_archive(conn) else "")
+    sql = f"""
         SELECT cp.paragraph_id, cp.page_number, cp.section_path, cp.article_anchor,
                cp.text,
                cf.language, cf.file_url, cf.publication_date,
-               cd.document_uri, cd.doc_type,
+               cd.document_uri, cd.doc_type, {prov}
                pr.procedure_uri, pr.event_id, pr.year, pr.status_uri,
                pr.title_de, pr.title_fr, pr.title_it, pr.start_date, pr.end_date,
                pr.institution_uri,
@@ -6338,6 +6388,7 @@ def _search_consultations(
             "text": text[:_CONSULTATION_PASSAGE_MAX],
             "snippet": _render_fts_snippet(r["snippet"]),
         }
+        hit.update(_consultation_file_provenance(r, r["language"]))
         if len(text) > _CONSULTATION_PASSAGE_MAX:
             hit["text_truncated"] = True
         hits.append(hit)
@@ -6366,25 +6417,41 @@ def _consultations_for_sr(
     vocab = _consultation_vocab(
         conn, [u for r in procs for u in (r["status_uri"], r["institution_uri"])])
     out = []
+    prov = ("cf.source AS file_source, cf.original_url, cf.source_page_url, "
+            "cd.title_de AS doc_title_de, cd.title_fr AS doc_title_fr, "
+            "cd.title_it AS doc_title_it,"
+            if _consultation_has_archive(conn) else "")
     for pr in procs:
         docs: dict[str, dict] = {}
         for d in conn.execute(
-                """SELECT cd.document_uri, cd.doc_type, cf.language, cf.file_url,
+                f"""SELECT cd.document_uri, cd.doc_type, {prov} cf.language, cf.file_url,
                           cf.status, cf.text_policy
                    FROM consultation_documents cd
                    LEFT JOIN consultation_files cf ON cf.document_uri = cd.document_uri
                    WHERE cd.procedure_uri = ?
                    ORDER BY cd.doc_type_code, cd.document_uri, cf.language""",
                 (pr["procedure_uri"],)):
-            e = docs.setdefault(d["document_uri"], {
-                "document_uri": d["document_uri"],
-                "doc_type": d["doc_type"],
-                "doc_type_label": _consultation_doc_type_label(d["doc_type"], language),
-                "files": [],
-                "text_searchable": False,
-            })
+            e = docs.get(d["document_uri"])
+            if e is None:
+                e = docs[d["document_uri"]] = {
+                    "document_uri": d["document_uri"],
+                    "doc_type": d["doc_type"],
+                    "doc_type_label": _consultation_doc_type_label(d["doc_type"], language),
+                    "files": [],
+                    "text_searchable": False,
+                }
+                prov_fields = _consultation_file_provenance(d, language)
+                if prov_fields:
+                    e["source"] = prov_fields["source"]
+                    e["doc_type_label"] = prov_fields.get("doc_type_label", e["doc_type_label"])
             if d["language"]:
-                e["files"].append({"language": d["language"], "url": d["file_url"]})
+                f = {"language": d["language"], "url": d["file_url"]}
+                if _row_get(d, "file_source"):
+                    f["original_url"] = d["original_url"]
+                    f["linked_from"] = d["source_page_url"]
+                    if d["status"] == "not_archived":
+                        f["note"] = "listed by the source page; never archived, no copy found"
+                e["files"].append(f)
             if d["status"] in ("done", "same_as"):
                 e["text_searchable"] = True
         entry = {**_consultation_procedure_meta(pr, vocab, language),
