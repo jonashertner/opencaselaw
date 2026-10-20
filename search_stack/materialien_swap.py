@@ -198,8 +198,14 @@ def main(argv: list[str] | None = None) -> int:
     # A deadline SIGTERM is a normal end for a budgeted writer.
     if args.deadline_seconds:
         ok = ok + (-signal.SIGTERM,)
-    return swap_run(args.db, command, deadline=args.deadline_seconds,
-                    allow_shrink=args.allow_shrink, lock_file=args.lock_file, ok_codes=ok)
+    rc = swap_run(args.db, command, deadline=args.deadline_seconds,
+                  allow_shrink=args.allow_shrink, lock_file=args.lock_file, ok_codes=ok)
+    if args.deadline_seconds and rc == -signal.SIGTERM:
+        # Stopped by the deadline and swapped in: the night's normal end, not
+        # a failed unit (systemd would otherwise record exit 241).
+        log.info("stopped at the deadline; copy swapped in")
+        return 0
+    return rc
 
 
 if __name__ == "__main__":

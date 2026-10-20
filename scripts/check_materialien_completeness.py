@@ -137,12 +137,19 @@ def check_historical(mconn, discover: Callable) -> dict:
             st = state.get(c.eli_uri, "never_attempted")
             by_status[st] = by_status.get(st, 0) + 1
         stored = len(uris & held)
+        # 'collision' = a second Fedlex work for a document already stored
+        # under the same (year, volume, page): checked 2026-10-20, all 18 of
+        # the first night were Fedlex duplicates with identical titles.
+        dupes = by_status.pop("collision", 0)
+        if dupes:
+            by_status["fedlex_duplicate_of_stored"] = dupes
         out["by_language"][lang] = {
-            "fedlex": len(uris), "stored": stored, "not_stored": len(uris) - stored,
+            "fedlex": len(uris), "stored": stored,
+            "accounted": stored + dupes, "not_stored": len(uris) - stored - dupes,
             "not_stored_by_state": by_status, "fedlex_by_type": by_type,
             "without_fedlex_citation": sum(1 for c in cands if not c.citation),
         }
-        out["not_stored"] += len(uris) - stored
+        out["not_stored"] += len(uris) - stored - dupes
     return out
 
 
@@ -260,7 +267,7 @@ def summarise(report: dict) -> list[str]:
                      f"{v['missing']} missing ({v['missing_past_grace']} past grace)")
     h = report.get("bundesblatt_historical", {})
     for lang, v in h.get("by_language", {}).items():
-        lines.append(f"BBl 1850-1999 {lang}: {v['stored']}/{v['fedlex']} stored, "
+        lines.append(f"BBl 1850-1999 {lang}: {v['accounted']}/{v['fedlex']} stored or duplicate, "
                      f"not stored by state {v['not_stored_by_state']}")
     c = report.get("vernehmlassungen", {})
     if c:

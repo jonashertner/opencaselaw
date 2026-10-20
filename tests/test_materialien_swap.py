@@ -100,7 +100,7 @@ def test_deadline_stops_the_writer_and_keeps_committed_work(live, tmp_path):
         time.sleep(30)
     """)
     rc = ms.main(["--db", str(live), "--deadline-seconds", "2", "--"] + cmd)
-    assert rc < 0  # terminated by the deadline, still swapped
+    assert rc == 0  # stopped by the deadline and swapped in: a normal end
     c = sqlite3.connect(live)
     assert [r[0] for r in c.execute("SELECT t FROM botschaft_documents")] == ["a", "b", "done"]
     c.close()
@@ -131,7 +131,7 @@ def test_deadline_stops_a_shell_chain_as_a_whole(live, tmp_path):
     """)
     chain = f"{py[0]} {py[1]} {{db}} && touch {marker}"
     rc = ms.main(["--db", str(live), "--deadline-seconds", "2", "--", "/bin/bash", "-c", chain])
-    assert rc < 0 and not marker.exists()
+    assert rc == 0 and not marker.exists()
     c = sqlite3.connect(live)
     assert [r[0] for r in c.execute("SELECT t FROM botschaft_documents")] == ["a", "b", "first"]
     c.close()
