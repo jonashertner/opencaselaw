@@ -107,6 +107,47 @@ def test_pc_index_1995_mostly_without_files():
     assert all(e.deadline for e in es)
 
 
+def test_pc_index_last_entry_ends_with_its_list_not_the_page_footer():
+    """The 2016+ template's footer (impressum, disclaimer, contact) follows the
+    last entry's list; its links belong to no entry."""
+    name, _, url = PC["de"]
+    html = page(name)
+    before = ca.parse_pc_index(html, lang="de", year=2004, base_url=url)[-1]
+    footer = ('<a href="/gov/de/start/dokumentation/impressum.html">Impressum</a>'
+              '<a href="https://www.disclaimer.admin.ch/index.html">Rechtliches</a>'
+              '<a href="https://www.admin.ch/ch/d/gg/pc/documents/9999/Footer_d.pdf">PDF</a>')
+    last = ca.parse_pc_index(html.replace("</body>", footer + "</body>"), lang="de", year=2004,
+                             base_url=url)[-1]
+    assert [lk.url for lk in last.links] == [lk.url for lk in before.links]
+    assert last.other_links == before.other_links
+
+
+def test_pc_index_links_of_the_2005_captures_carry_the_port():
+    """The 2005 captures' original is http://www.admin.ch:80/...: relative
+    links resolve with the port and are still documents."""
+    body = ('<ul><li><strong>Bahnreform 2</strong> Frist: 30.04.2004 '
+            '<a href="/ch/d/gg/pc/documents/1040/Ergebnisse_d.pdf">Ergebnisse</a>'
+            '</li></ul>')
+    e = ca.parse_pc_index(body, lang="de", year=2003,
+                          base_url="http://www.admin.ch:80/ch/d/gg/pc/ind2003.html")[0]
+    assert [lk.url for lk in e.links] == [
+        "http://www.admin.ch:80/ch/d/gg/pc/documents/1040/Ergebnisse_d.pdf"]
+    assert ca.pc_document_key(e.links[0].url) == ("1040/Ergebnisse", "de")
+
+
+def test_cdx_query_drops_the_default_port():
+    """The CDX answers nothing for www.admin.ch:80/bj/vernehm/bgg/prod.pdf
+    and its two 1999 captures for the URL without the port."""
+    web = FakeWeb({}, {"www.admin.ch/bj/vernehm/bgg/prod.pdf": [
+        _cdx_row("http://www.admin.ch:80/bj/vernehm/bgg/prod.pdf", "19990221221911", "unk")]})
+    http = ca.ArchiveHttp(opener=web, intervals={})
+    rows = ca.cdx_query(http, "www.admin.ch:80/bj/vernehm/bgg/prod.pdf")
+    assert [r["timestamp"] for r in rows] == ["19990221221911"]
+    assert ca.cdx_query(http, "http://www.admin.ch:80/x.pdf") == []
+    q = urllib.parse.parse_qs(urllib.parse.urlsplit(web.calls[-1]).query)
+    assert q["url"] == ["http://www.admin.ch/x.pdf"]
+
+
 def test_document_key_joins_language_versions():
     k = ca.pc_document_key
     assert k("http://www.admin.ch/ch/d/gg/pc/documents/1105/Bericht_d.pdf") == ("1105/Bericht", "de")
@@ -428,6 +469,9 @@ def test_admin_pc_discovery_is_idempotent(work):
                         ).fetchone()[0] == "done"
     assert work.execute("SELECT COUNT(*) FROM consultation_procedures WHERE source IS NOT NULL"
                         ).fetchone()[0] == 2
+    methods = sorted(r[0] for r in work.execute(
+        "SELECT match_method FROM consultation_archive_entries"))
+    assert methods.count("created") == 2   # a re-run does not relabel what it created
 
 
 def test_census_counts_per_source(work):
@@ -827,3 +871,90 @@ def test_an_archive_file_identical_to_a_fedlex_file_is_not_indexed_twice(work):
     twin = work.execute("SELECT f2.source FROM consultation_files f JOIN consultation_files f2 "
                         "ON f2.file_id = f.same_as_file_id WHERE f.file_url=?", (url,)).fetchone()
     assert twin[0] is None   # the Fedlex file
+
+
+# ── curated entries ──────────────────────────────────────────────────────
+
+HAAGER = "https://fedlex.data.admin.ch/eli/dl/proj/6997/2/cons_1"
+TIERE = "https://fedlex.data.admin.ch/eli/dl/proj/6998/4/cons_1"
+
+
+def _no_network(url):
+    raise AssertionError("curated discovery must not use the network: " + url)
+
+
+def _seed_curated_fedlex(conn):
+    for uri, eid, start, end in [(HAAGER, "proj/1997/2/cons_1", "1997-02-12", "1997-07-01"),
+                                 (TIERE, "proj/1998/4/cons_1", "1998-03-02", "1998-08-31")]:
+        conn.execute("INSERT INTO consultation_procedures (procedure_uri, event_id, year, "
+                     "title_de, start_date, end_date, discovered_at, updated_at) "
+                     "VALUES (?,?,?,?,?,?,'n','n')", (uri, eid, int(eid[5:9]), "Fedlex", start, end))
+    conn.commit()
+
+
+def _discover_curated(conn):
+    return ca.discover(conn, [ca.SOURCE_CURATED],
+                       ca.ArchiveHttp(opener=_no_network, intervals={}))[ca.SOURCE_CURATED]
+
+
+def test_curated_data_file_is_the_two_reviewed_procedures():
+    procs = ca.curated_procedures()
+    assert [p.fedlex_event_ids for p in procs] == [["proj/1997/2/cons_1"], ["proj/1998/4/cons_1"]]
+    hag, tiere = procs
+    assert [(lg, f.snapshot is not None) for d in hag.documents for lg, f in d.files.items()] \
+        == [("de", True), ("fr", True), ("it", True)]
+    assert hag.documents[0].titles == {"de": "Entwurf", "fr": "Projet", "it": "Disegno"}
+    d = tiere.documents[0]
+    assert d.doc_type_code == 12
+    assert d.titles == {"de": "Vorentwurf und Bericht",
+                        "fr": "Avant-projet et apport explicatif"}   # verbatim, typo included
+    assert d.files["fr"].snapshot is None
+    for p in procs:
+        for doc in p.documents:
+            for f in doc.files.values():
+                assert f.original_url.startswith("http://www.admin.ch/bj/vernehm/")
+                assert f.source_page_url.startswith("https://web.archive.org/web/199")
+                assert f.snapshot is None or f.snapshot.startswith("https://web.archive.org/web/199")
+
+
+def test_curated_entries_attach_to_fedlex_survive_rediscovery_and_suppress(work):
+    _seed_curated_fedlex(work)
+    st = _discover_curated(work)
+    assert st["match_methods"] == {"fedlex_link": 2} and st["procedures_created"] == 0
+    assert st["files_by_status"] == {"pending": 4, "not_archived": 1}
+    rows = {(r["document_uri"], r["language"]): r for r in work.execute(
+        "SELECT f.*, d.procedure_uri, d.doc_type, d.title_fr FROM consultation_files f "
+        "JOIN consultation_documents d USING(document_uri) WHERE f.source='curated_wayback'")}
+    de = rows[("urn:opencaselaw:curated_wayback:doc:bj-vernehm/hag/ent", "de")]
+    assert de["procedure_uri"] == HAAGER and de["doc_type"] == "vernehmlassungsvorlage"
+    assert de["file_url"] == ("https://web.archive.org/web/19990129054117/"
+                              "http://www.admin.ch:80/bj/vernehm/hag/entd.pdf")
+    assert de["original_url"] == "http://www.admin.ch/bj/vernehm/hag/entd.pdf"
+    assert de["source_page_url"].endswith("/19970726222921/http://www.admin.ch:80/bj/vernehm/vernehmd.htm")
+    fr = rows[("urn:opencaselaw:curated_wayback:doc:bj-vernehm/hTiere/ent-ber", "fr")]
+    assert (fr["procedure_uri"], fr["status"], fr["file_url"]) == (TIERE, "not_archived", None)
+    assert fr["title_fr"] == "Avant-projet et apport explicatif"
+    # a re-run adds nothing and keeps the fetch state
+    work.execute("UPDATE consultation_files SET status='done' WHERE file_url LIKE '%entd.pdf'")
+    work.commit()
+    n = work.execute("SELECT COUNT(*) FROM consultation_files").fetchone()[0]
+    st = _discover_curated(work)
+    assert st["files_new"] == 0 and st["files_requeued"] == 0
+    assert work.execute("SELECT COUNT(*) FROM consultation_files").fetchone()[0] == n
+    assert work.execute("SELECT status FROM consultation_files WHERE file_url LIKE '%entd.pdf'"
+                        ).fetchone()[0] == "done"
+    # a takedown stays down
+    uri = "urn:opencaselaw:curated_wayback:doc:bj-vernehm/hag/ent"
+    assert ca.suppress_document(work, uri)["files_deleted"] == 3
+    assert _discover_curated(work)["documents_suppressed"] == 1
+    assert not work.execute("SELECT 1 FROM consultation_documents WHERE document_uri=?",
+                            (uri,)).fetchone()
+
+
+def test_curated_entry_without_its_fedlex_procedure_is_created(work):
+    st = _discover_curated(work)
+    assert st["procedures_created"] == 2
+    created = dict(work.execute("SELECT procedure_uri, title_de FROM consultation_procedures "
+                                "WHERE source='curated_wayback'").fetchall())
+    assert created["urn:opencaselaw:curated_wayback:bj-vernehm-1998-tiere-keine-sachen"] \
+        == "Tiere sind keine Sachen"

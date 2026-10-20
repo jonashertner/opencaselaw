@@ -6186,13 +6186,14 @@ _SEARCH_BOTSCHAFT_DOC_TYPES: tuple[str, ...] = (
 _CONSULTATION_PASSAGE_MAX = 2000
 # Rows from search_stack/consultation_archive.py (consultation_files.source;
 # NULL = Fedlex): the Federal Chancellery's 1995-2004 consultation index and
-# the old BJ archive, both read from the Wayback Machine, and the live
-# bj.admin.ch legislative-project pages. Their document label is the source
+# the old BJ archive, both read from the Wayback Machine, the live
+# bj.admin.ch legislative-project pages, and hand-checked Wayback entries. Their document label is the source
 # page's own link text (consultation_documents.title_*), not a Fedlex label.
 _CONSULTATION_SOURCES: dict[str, str] = {
     "admin_pc_wayback": "admin_ch_vernehmlassung_wayback",
     "bj": "bj_rechtsetzungsprojekt",
     "bj_wayback": "bj_rechtsetzungsprojekt_wayback",
+    "curated_wayback": "admin_ch_page_wayback_curated",
 }
 _CONSULTATION_PROGRESS_STEPS = 20000  # SQLite VM steps between deadline checks
 

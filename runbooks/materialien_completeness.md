@@ -127,6 +127,7 @@ Fedlex's (no unit change). Discovery is a manual, occasional step.
 | `admin_pc_wayback` | the Federal Chancellery's index `admin.ch/ch/{d,f,i}/gg/pc/ind<YEAR>.html`, 1995–2004: per procedure the deadline and the documents of the opening ("Eröffnung": Vorlage, Bericht) and the result ("Ergebnis") | Wayback: latest capture + latest pre-2006 capture (that layout links the offices' own sites) of each page; files via one CDX prefix query per language + one exact query per office file |
 | `bj` | bj.admin.ch legislative projects, `/{de,fr,it}/{laufende,abgeschlossene}-rechtsetzungsprojekte-*` (the live site carries the old archive too) | live, server-rendered; DE/FR/IT pages joined by the Nuxt page record's translation slugs |
 | `bj_wayback` | the old BJ archive `bj.admin.ch/bj/<lang>/home/<area>/gesetzgebung/archiv/<slug>.html`: only files the live project page no longer lists, and projects the live site dropped | Wayback: CDX prefix per area and language |
+| `curated_wayback` | hand-checked entries, `search_stack/consultation_archive_curated.json`: documents a reviewer read off an archived page that no source reads (2026-10-20: the BJ's 1997/98 list `www.admin.ch/bj/vernehm/vernehm{d,f,i}.htm` — Haager Adoptions-Übereinkommen 1997, "Tiere sind keine Sachen" 1998) | the data file (snapshot, original URL, linking page and the page's own label per file; no network) |
 
 Provenance on every row: `consultation_files.source`, `original_url` (the
 file's own, now dead, URL), `source_page_url` (the capture or page that
@@ -179,18 +180,42 @@ All three sources discovered into a copy of the Mac mini's 10-19 work DB
 | entries read | 305 procedures 1995–2004 (DE/FR/IT pages merged) | 169 projects | 170 old project pages, 68 fully covered by the live site |
 | matched to Fedlex | 304 (303 deadline + title, 1 title); every match has identical titles — Fedlex's pre-2005 records were migrated from this index | 56 page-level (32 opened date + title, 13 title, 7 opened date + office, 4 Fedlex link) + 87 procedures the documents date themselves to | 32 via the live twin, 6 title |
 | procedures added (Fedlex lacks) | 1 (UVEK, "Verordnungsänderungen im Strassenverkehr", 2003) | 97 BJ project procedures (incl. `/rest`: documents outside every matched consultation's window) | 14 |
-| documents already on Fedlex (skipped) | 113 (218 files): the Chancellery's 2006+ document store went to Fedlex | 585 (1,631 files) | 111 (195 files) |
+| documents already on Fedlex (skipped) | 114 (278 files): the Chancellery's 2006+ document store went to Fedlex | 585 (1,631 files) | 111 (195 files) |
 | documents added | **12** (Vorlage 1, Bericht 1, Diverses 10 = hearing minutes) | **635** (Erl. Bericht 184, Vorlage 53, Ergebnisbericht 49, Stellungnahmen 121, Diverses 228) | **94** |
-| files added | 17: 6 archived, 11 never captured | 1,871, all live | 178: 122 archived, 56 never captured |
+| files added | 22: 11 archived, 11 never captured (17 / 6 before the port fix below) | 1,871, all live | 178: 122 archived, 56 never captured |
+
+Plus `curated_wayback`: 2 procedures (both on Fedlex without any document:
+`proj/1997/2/cons_1`, `proj/1998/4/cons_1`), 2 documents, 5 files (4
+archived — each fetched once on 10-20 and checked to be the PDF the page
+names, 8–11 pages — and the French "Avant-projet et apport explicatif" of
+1998, linked but never captured).
 
 Fedlex procedures before 2005 with a document: 124 of 408 from Fedlex,
-**133** with these sources. The rest never had a file online at the
-Chancellery: 260 of the 305 index entries link no PDF ("Unterlagen können
-bezogen werden bei …"); 126 of those link an office web page instead (often
-the office's home page) — following those one hop in the Wayback Machine is
-the remaining lead, not built. One old BJ capture answers HTTP 500
+**135** with these sources (133 with the Chancellery index and BJ, +2
+curated). The rest never had a file online at the Chancellery ("Unterlagen
+können bezogen werden bei …"). One old BJ capture answers HTTP 500
 persistently (`archiv/lohngleichheit.html`, reported in `pages_failed`; the
 live page covers the project).
+
+Parser fixes (2026-10-20, second pass): the 2005 captures' original is
+`http://www.admin.ch:80/...`, so their relative links carry the port — they
+were not taken for documents, and the CDX answers nothing for a URL with
+`:80` (`www.admin.ch:80/bj/vernehm/bgg/prod.pdf`: 0 rows; without: 2).
+`cdx_query` drops a default port and a document link's host is read without
+it. And an entry ends with its own `</ul>`: the 2016+ template's footer
+(disclaimer, impressum, contact) had joined the last entry. Effect: the same
+12 documents, +5 archived files (the German hearing minutes of the
+Entlastungsprogramm 2003, `proj/2003/113/cons_1`, linked only from the 2005
+capture).
+
+Office pages one hop (measured 2026-10-20 in a separate session, not built,
+Jonas: drop it): 205 of the 305 entries link no PDF in either layout; 148
+distinct office pages read at the capture nearest each deadline carry 546
+PDF links, 322 captured; 62 of them attributable to 26 procedures by the
+page section's deadline and title words, but only 6 Fedlex procedures would
+gain a first document, 2 of them cleanly (now in `curated.json`), and the
+strictest attribution rule still admits a wrong document (a speech, a
+workshop note). The listing pages carry many consultations' files.
 
 End-to-end check (2026-10-20): the 6 archived Chancellery files fetched
 through `build_consultation_corpus.fetch_one` (Wayback `id_`, 2 s pacing):
@@ -223,6 +248,22 @@ publishes.
 
 Re-run `--source bj` every few months for new BJ projects (the live
 `laufende-*` pages change); the Wayback sources are static.
+
+Applying the second pass (port + footer fixes, curated entries) to a work
+DB discovered with 2dc578eb: re-run only the two sources it touches
+(`--source admin-pc,curated`; with the 10-20 run's `--cache-dir` it costs a
+few dozen Wayback requests at most — 0 here — ~20 min with an empty cache;
+the curated part needs no network). Expected on the 10-20 census copy: admin-pc +5 files
+(pending, German, `proj/2003/113/cons_1`), curated +2 documents / +5 files
+(4 pending, 1 not_archived), nothing requeued, no procedure added; a second
+run adds nothing.
+
+Adding a curated entry: append it to `search_stack/consultation_archive_curated.json`
+(the Fedlex event id when there is one; per file the language, the page's
+own label verbatim, `original_url`, `snapshot` (null = never captured) and
+`source_page_url`), fetch each snapshot once to check it is the document,
+add a test, `discover --source curated`. A takedown is `suppress` as for
+every source.
 
 ### Operation
 

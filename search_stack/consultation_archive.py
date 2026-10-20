@@ -25,6 +25,13 @@ Fedlex procedure it belongs to, or adds a procedure Fedlex lacks:
     Vernehmlassungs compilations from ZPO 2003 on. The live site carries
     the old archive projects too, so it is the primary source.
 
+``curated`` -- hand-checked entries in search_stack/consultation_archive_curated.json:
+    documents a reviewer read off an archived page no source here reads
+    (2026-10-20: two procedures from the BJ's own 1997/98 consultation list,
+    www.admin.ch/bj/vernehm/vernehm{d,f,i}.htm). Every file carries its
+    snapshot, original URL, linking page and the page's own label; no
+    network at discovery.
+
 ``bj-wayback`` -- the old BJ archive pages
     (``www.bj.admin.ch/bj/<lang>/home/<area>/gesetzgebung/archiv/<slug>.html``,
     live 404, archived to 2025-12): only the files the live project page no
@@ -92,7 +99,11 @@ log = logging.getLogger("consultation_archive")
 SOURCE_ADMIN_PC = "admin_pc_wayback"
 SOURCE_BJ = "bj"
 SOURCE_BJ_WAYBACK = "bj_wayback"
-SOURCES = (SOURCE_ADMIN_PC, SOURCE_BJ, SOURCE_BJ_WAYBACK)
+SOURCE_CURATED = "curated_wayback"
+SOURCES = (SOURCE_ADMIN_PC, SOURCE_BJ, SOURCE_BJ_WAYBACK, SOURCE_CURATED)
+# Hand-checked entries (search_stack/consultation_archive_curated.json): documents a
+# reviewer read off an archived page that no source above reads.
+CURATED_PATH = Path(__file__).resolve().with_name("consultation_archive_curated.json")
 
 USER_AGENT = ("opencaselaw-materialien/0.5 (Vernehmlassungen archive; "
               "+https://opencaselaw.ch)")
@@ -231,12 +242,16 @@ def decode_html(data: bytes) -> str:
 # ── Wayback CDX ────────────────────────────────────────────────────────
 
 CDX_FIELDS = ("urlkey", "timestamp", "original", "mimetype", "statuscode", "digest")
+_DEFAULT_PORT_RE = re.compile(r"^((?:https?://)?[^/:]+):(?:80|443)(?=/|$)", re.IGNORECASE)
 
 
 def cdx_query(http: ArchiveHttp, url: str, *, match_type: str | None = None,
               collapse: str | None = None, ok_only: bool = True,
               page_size: int = 5000) -> list[dict]:
-    """All CDX rows for ``url`` (resume-key paging), as dicts of CDX_FIELDS."""
+    """All CDX rows for ``url`` (resume-key paging), as dicts of CDX_FIELDS.
+    A default port is dropped: the CDX answers nothing for
+    www.admin.ch:80/bj/vernehm/bgg/prod.pdf and two captures without it."""
+    url = _DEFAULT_PORT_RE.sub(r"\1", url)
     rows: list[dict] = []
     resume = None
     while True:
@@ -482,7 +497,9 @@ def _is_document_link(url: str) -> bool:
     low = url.lower().split("?")[0]
     if _OFFICIAL_PUB_RE.search(low):
         return False          # Bundesblatt / AS / SR: Fedlex and materialien.db hold them
-    host = urllib.parse.urlsplit(url).netloc.lower()
+    # the 2005 captures' original is http://www.admin.ch:80/...: links
+    # resolved against it carry the port
+    host = urllib.parse.urlsplit(url).netloc.lower().split("@")[-1].split(":")[0]
     if not host.endswith("admin.ch") and not host.endswith("fedpol.ch") and \
             not host.endswith("bakom.ch"):
         return False
@@ -501,6 +518,11 @@ def parse_pc_index(page: str, *, lang: str, year: int, base_url: str) -> list[Pc
         nxt_dept = next((p for p, _, _ in depts if st < p < end), None)
         if nxt_dept is not None:
             end = nxt_dept
+        # the last entry ends with its list, not with the page footer
+        # (disclaimer, impressum and contact links of the 2016+ template)
+        list_end = page.find("</ul>", st, end)
+        if list_end != -1:
+            end = list_end
         body = page[st:end]
         m = re.search(r"<strong>(.*?)</strong>", body, re.IGNORECASE | re.DOTALL)
         title = one_line(m.group(1)) if m else ""
@@ -887,6 +909,9 @@ def store_procedure(conn: sqlite3.Connection, ap: ArchiveProcedure, match: Match
     entry_id = f"{ap.source}:{ap.key}"
     proc_uri = match.procedure_uri
     method = match.method
+    if proc_uri == f"{URN}:{ap.source}:{ap.key}":
+        # a re-run matched the procedure this entry created: still "created"
+        proc_uri, method = None, "unmatched"
     if proc_uri is None and not ap.documents and ap.source != SOURCE_ADMIN_PC:
         # a BJ project page is not a consultation: without documents and
         # without a Fedlex match it is recorded (entry row), never a procedure
@@ -1081,7 +1106,7 @@ def split_for_match(conn: sqlite3.Connection, ap: ArchiveProcedure, m: Match,
     the anchor whose opening it follows within BJ_WINDOW_DAYS (the nearest),
     an undated one to ``m`` on a STRONG match; the rest stays on the
     project's own procedure (suffix "/rest")."""
-    if ap.source == SOURCE_ADMIN_PC:
+    if ap.source in (SOURCE_ADMIN_PC, SOURCE_CURATED):
         return [(None, m, list(ap.documents))]
     anchors: dict[str, tuple[Match, str | None]] = {}
     if m.procedure_uri:
@@ -1666,10 +1691,43 @@ def bj_wayback_procedures(http: ArchiveHttp, live: list[ArchiveProcedure],
     return out
 
 
+# ── source 4: curated entries ──────────────────────────────────────────
+
+def curated_procedures(path: str | Path = CURATED_PATH) -> list[ArchiveProcedure]:
+    """ArchiveProcedures from the reviewed data file. A file without a
+    snapshot was linked but never captured (not_archived)."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    out = []
+    for e in data["procedures"]:
+        docs = []
+        for d in e["documents"]:
+            doc = ArchiveDocument(key=d["key"], doc_type_code=int(d["doc_type_code"]))
+            for f in d["files"]:
+                lang = f["language"]
+                doc.titles[lang] = f["label"]
+                doc.files[lang] = ArchiveFile(
+                    language=lang, original_url=f["original_url"],
+                    source_page_url=f["source_page_url"], snapshot=f.get("snapshot"),
+                    file_name=urllib.parse.unquote(f["original_url"].rsplit("/", 1)[-1]),
+                    publication_date=f.get("publication_date"))
+            docs.append(doc)
+        pages = {}
+        for d in e["documents"]:
+            for f in d["files"]:
+                pages.setdefault(f["language"], f["source_page_url"])
+        out.append(ArchiveProcedure(
+            source=SOURCE_CURATED, key=e["key"], year=e.get("year"),
+            titles={lg: e["titles"].get(lg) for lg in LANGS}, opened=e.get("opened"),
+            deadline=e.get("deadline"), department=e.get("department"), pages=pages,
+            documents=docs,
+            fedlex_event_ids=[e["fedlex_event_id"]] if e.get("fedlex_event_id") else []))
+    return out
+
+
 # ── driver ─────────────────────────────────────────────────────────────
 
 def discover(conn: sqlite3.Connection, sources: Iterable[str], http: ArchiveHttp,
-             *, years: Iterable[int] = PC_YEARS) -> dict:
+             *, years: Iterable[int] = PC_YEARS, curated_path: str | Path = CURATED_PATH) -> dict:
     """Discover the given sources into the work DB. BJ live first, so the
     old BJ archive only adds what the live site lacks."""
     report: dict = {}
@@ -1720,6 +1778,10 @@ def discover(conn: sqlite3.Connection, sources: Iterable[str], http: ArchiveHttp
         store_all(conn, procs, st)
         st["requests"] = http.requests - before
         report[SOURCE_ADMIN_PC] = st
+    if SOURCE_CURATED in srcs:
+        st = _new_stats()
+        store_all(conn, curated_procedures(curated_path), st)
+        report[SOURCE_CURATED] = st
     bcc.set_meta(conn, "last_archive_discovery", {"at": bcc._now(), **{
         k: {kk: vv for kk, vv in v.items() if kk != "pages"} for k, v in report.items()}})
     conn.commit()
@@ -1768,13 +1830,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("command", choices=["discover", "census", "suppress"])
     ap.add_argument("--work-db", required=True)
     ap.add_argument("--source", default="all",
-                    help="admin-pc, bj, bj-wayback or all (comma-separated)")
+                    help="admin-pc, bj, bj-wayback, curated or all (comma-separated)")
     ap.add_argument("--years", help="admin-pc years, e.g. 1995,1996 (default 1995-2004)")
     ap.add_argument("--cache-dir", help="keep every page and CDX answer here")
     ap.add_argument("--report", help="write the discovery stats + census as JSON")
     ap.add_argument("--document-uri", help="suppress: the archive document to take down")
     args = ap.parse_args(argv)
-    names = {"admin-pc": SOURCE_ADMIN_PC, "bj": SOURCE_BJ, "bj-wayback": SOURCE_BJ_WAYBACK}
+    names = {"admin-pc": SOURCE_ADMIN_PC, "bj": SOURCE_BJ, "bj-wayback": SOURCE_BJ_WAYBACK,
+             "curated": SOURCE_CURATED}
     wanted = list(SOURCES) if args.source == "all" else \
         [names[s.strip()] for s in args.source.split(",")]
     conn = bcc.connect_work_db(args.work_db)

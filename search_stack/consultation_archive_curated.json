@@ -1,0 +1,81 @@
+{
+  "_about": "Vernehmlassung documents added by hand to consultations.db (search_stack/consultation_archive.py, source curated_wayback). Each entry was read off the Federal Office of Justice's consultation list pages (www.admin.ch/bj/vernehm/vernehm{d,f,i}.htm) in the Wayback Machine during the 2026-10-20 office-page census (runbooks/materialien_completeness.md), and each archived file was fetched once and checked to be the PDF the page names. Labels are the page's own link texts, verbatim (the French 'apport' is the page's). snapshot = the Wayback capture of the file (null: linked, never captured); source_page_url = the capture of the list page that links it. Jonas, 2026-10-20: add exactly these two; the office-page crawl itself is not a source.",
+  "procedures": [
+    {
+      "key": "bj-vernehm-1997-haager-adoption",
+      "fedlex_event_id": "proj/1997/2/cons_1",
+      "year": 1997,
+      "opened": "1997-02-12",
+      "deadline": "1997-07-01",
+      "department": "EJPD",
+      "titles": {
+        "de": "Ratifikation des Haager Übereinkommens vom 29.5.93 über den Schutz von Kindern und die Zusammenarbeit auf dem Gebiet der internationalen Adoption/Bundesgesetz zum Haager Adoptions-Übereinkommen",
+        "fr": "Ratification de la Convention de La Haye du 29.5.93 sur la protection des enfants et la coopération en matière d'adoption internationale/Loi fédérale relative à la Convention de La Haye sur l'adoption",
+        "it": "Ratificazione della Convenzione dell'Aia del 29.5.93 concernente la cooperazione internazionale e la protezione dei fanciulli in materia d'adozione transnazionale/Legge federale concernente la Convenzione dell'Aia sulle adozioni"
+      },
+      "documents": [
+        {
+          "key": "bj-vernehm/hag/ent",
+          "doc_type_code": 11,
+          "files": [
+            {
+              "language": "de",
+              "label": "Entwurf",
+              "original_url": "http://www.admin.ch/bj/vernehm/hag/entd.pdf",
+              "snapshot": "https://web.archive.org/web/19990129054117/http://www.admin.ch:80/bj/vernehm/hag/entd.pdf",
+              "source_page_url": "https://web.archive.org/web/19970726222921/http://www.admin.ch:80/bj/vernehm/vernehmd.htm"
+            },
+            {
+              "language": "fr",
+              "label": "Projet",
+              "original_url": "http://www.admin.ch/bj/vernehm/hag/entf.pdf",
+              "snapshot": "https://web.archive.org/web/19981201175757/http://www.admin.ch:80/bj/vernehm/hag/entf.pdf",
+              "source_page_url": "https://web.archive.org/web/19970726222943/http://www.admin.ch:80/bj/vernehm/vernehmf.htm"
+            },
+            {
+              "language": "it",
+              "label": "Disegno",
+              "original_url": "http://www.admin.ch/bj/vernehm/hag/enti.pdf",
+              "snapshot": "https://web.archive.org/web/19981206070952/http://www.admin.ch:80/bj/vernehm/hag/enti.pdf",
+              "source_page_url": "https://web.archive.org/web/19970726222956/http://www.admin.ch:80/bj/vernehm/vernehmi.htm"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "bj-vernehm-1998-tiere-keine-sachen",
+      "fedlex_event_id": "proj/1998/4/cons_1",
+      "year": 1998,
+      "opened": "1998-03-02",
+      "deadline": "1998-08-31",
+      "department": "EJPD",
+      "titles": {
+        "de": "Tiere sind keine Sachen",
+        "fr": "Les animaux ne sont pas des choses"
+      },
+      "documents": [
+        {
+          "key": "bj-vernehm/hTiere/ent-ber",
+          "doc_type_code": 12,
+          "files": [
+            {
+              "language": "de",
+              "label": "Vorentwurf und Bericht",
+              "original_url": "http://www.admin.ch/bj/vernehm/hTiere/ent-ber-d.pdf",
+              "snapshot": "https://web.archive.org/web/19981207023245/http://www.admin.ch:80/bj/vernehm/hTiere/ent-ber-d.pdf",
+              "source_page_url": "https://web.archive.org/web/19980713165132/http://www.admin.ch:80/bj/vernehm/vernehmd.htm"
+            },
+            {
+              "language": "fr",
+              "label": "Avant-projet et apport explicatif",
+              "original_url": "http://www.admin.ch/bj/vernehm/hTiere/ent-ber-f.pdf",
+              "snapshot": null,
+              "source_page_url": "https://web.archive.org/web/19980713165156/http://www.admin.ch:80/bj/vernehm/vernehmf.htm"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
