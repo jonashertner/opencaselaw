@@ -55,8 +55,12 @@ jobs:
         run: |
           # `--no-isolation` reuses the runner's Python env, which is fast
           # but means setuptools + wheel must be present (otherwise:
-          # "Backend 'setuptools.build_meta' is not available").
-          pip install --quiet build setuptools wheel
+          # "Backend 'setuptools.build_meta' is not available"). It also
+          # checks pyproject's exact setuptools pin, so install the same
+          # hash-pinned toolchain release.yml uses, not the latest release.
+          pip install --quiet --disable-pip-version-check \
+            --only-binary=:all: --require-hashes \
+            -r .github/release-build-requirements.txt
           python -m build --wheel --no-isolation
           python - <<'PY'
           import pathlib, sys, tomllib, zipfile
