@@ -429,7 +429,7 @@ python3 scripts/check_materialien_completeness.py --no-ntfy      # text.text_sou
 The first open of the work DB by the new code adds the columns. Workers need
 the rolling restart for the server flag (`scripts/rolling_restart_workers.sh`);
 consultations.db itself is swapped as always. Expect ~+690 files done and ~+95 same_as,
-~6,500 OCR pages. Then the partial pass, if wanted, in 3-hour slices
+~6,500 OCR pages. Then the partial pass: since 2026-10-21 a one-hour `ocr --scope no_text,partial` slice runs after every unit run (ExecStartPost; ~1 week for the ~53k pages); by hand: 3-hour slices
 (`--scope partial --max-seconds 10800`), or as a step of the unit after
 `run` (a unit change: `ExecStartPost=-/usr/bin/python3 -m
 search_stack.build_consultation_corpus ocr --work-db … --scope no_text,partial
@@ -446,4 +446,4 @@ carry an OCR text layer, so nothing is scanned without text yet; an OCR
 pass there would need a `text_source` on botschaft_paragraphs (materialien.db
 schema, step 2f) and is not built. But that text IS the Bundesarchiv's OCR:
 the completeness report now labels it `text_source: bar_ocr_layer`;
-search_botschaft does not yet flag historical hits as OCR (follow-up, R2).
+since 42860b92 search_botschaft, get_article_purpose and get_materialien flag every historical passage `text_source` / `verbatim_quotation: ocr` with a note (R2).

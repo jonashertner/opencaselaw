@@ -91,3 +91,16 @@ def test_daily_botschaft_unit_writes_a_copy():
     assert cmd.count("--db {db}") == 4
     assert cmd.count("/opt/caselaw/repo/output/materialien.db") == 1  # the swap's own --db
     assert "Environment=PYTHONPATH=/opt/caselaw/repo" in text
+
+
+
+def test_vernehmlassungen_unit_runs_an_ocr_slice_after_the_run():
+    text = (SD / "opencaselaw-vernehmlassungen.service").read_text()
+    post = [l for l in text.replace("\\\n", " ").splitlines() if l.startswith("ExecStartPost=")]
+    ocr = [l for l in post if "build_consultation_corpus ocr" in l]
+    assert len(ocr) == 1
+    line = ocr[0]
+    assert line.startswith("ExecStartPost=-")          # a failed slice never fails the unit
+    assert "--max-seconds 3600" in line and "--scope no_text,partial" in line
+    assert "--no-unit-check" in line and "nice -n 19" in line
+    assert text.index("build_consultation_corpus ocr") < text.index("check_materialien_completeness.py")

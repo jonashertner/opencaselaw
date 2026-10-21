@@ -27,6 +27,15 @@ ExecStart=/usr/bin/python3 -m search_stack.build_consultation_corpus run \
     --work-db /mnt/HC_Volume_104655575/output/consultations_work.db \
     --out /mnt/HC_Volume_104655575/output/consultations.db \
     --rate-limit 0.5 --max-seconds 10800
+# OCR in slices (2026-10-21): one hour per run of the scanned pages still
+# without text — whole files first, then the empty pages inside files that
+# have text (scanned submissions in Stellungnahmen collections, ~53k pages in
+# total). Lowest CPU priority, two Tesseract processes; every file commits on
+# its own, a cut file starts again next time. Its text goes live with the
+# next run's publish. --no-unit-check: this IS the unit the check guards.
+ExecStartPost=-/usr/bin/nice -n 19 /usr/bin/python3 -m search_stack.build_consultation_corpus ocr \
+    --work-db /mnt/HC_Volume_104655575/output/consultations_work.db \
+    --scope no_text,partial --max-seconds 3600 --workers 2 --no-unit-check
 # The nightly completeness report (Bundesblatt typed + historical +
 # Vernehmlassungen vs a fresh Fedlex census) and one ntfy push on a gap.
 # "-": a gap is reported, not a failed unit.
@@ -34,6 +43,6 @@ ExecStartPost=-/usr/bin/python3 /opt/caselaw/repo/scripts/check_materialien_comp
     --materialien-db /opt/caselaw/repo/output/materialien.db \
     --consultations-db /mnt/HC_Volume_104655575/output/consultations.db \
     --report /opt/caselaw/repo/logs/materialien_completeness.json
-TimeoutStartSec=4h
+TimeoutStartSec=5h30min
 StandardOutput=append:/opt/caselaw/repo/logs/vernehmlassungen.log
 StandardError=append:/opt/caselaw/repo/logs/vernehmlassungen.log
