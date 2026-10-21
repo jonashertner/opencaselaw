@@ -978,14 +978,17 @@ class _Unsupported(Exception):
 
 
 class TextPart:
-    """One unit of text of a file: the file itself, or one ZIP member / one
-    Excel sheet (``member``)."""
-    __slots__ = ("member", "pages", "paginated", "ocr_pages")
+    """One unit of text of a file: the file itself, or one ZIP member / PDF
+    attachment / Excel sheet (``member``). ``src`` is the PDF of a paginated
+    part (bytes or path), kept for the OCR pass."""
+    __slots__ = ("member", "pages", "paginated", "ocr_pages", "src")
 
-    def __init__(self, member: str | None, pages: list[list[str]], paginated: bool):
+    def __init__(self, member: str | None, pages: list[list[str]], paginated: bool,
+                 src: bytes | str | Path | None = None):
         self.member = member
         self.pages = pages
         self.paginated = paginated
+        self.src = src
         self.ocr_pages: set[int] = set()   # 1-based page numbers whose blocks are OCR
 
 
@@ -1017,7 +1020,7 @@ def extract_parts(src: bytes | str | Path, fmt: str | None, *, depth: int = 0,
             head = fh.read(1024)
         real = sniff_format(head, fmt)
         if real == "pdf":
-            return [TextPart(prefix or None, pdf_page_blocks(src), True)], {"format": "pdf"}
+            return _pdf_parts(src, {"format": "pdf"}, depth, prefix)
         if head[:4] == b"PK\x03\x04":
             # a streamed archive is read member by member from disk
             return _zip_parts(src, {"format": "zip"}, depth, prefix)
@@ -1026,7 +1029,7 @@ def extract_parts(src: bytes | str | Path, fmt: str | None, *, depth: int = 0,
     real = sniff_format(data[:1024], fmt, whole=data)
     info: dict = {"format": real}
     if real == "pdf":
-        return [TextPart(prefix or None, pdf_page_blocks(data), True)], info
+        return _pdf_parts(data, info, depth, prefix)
     if real == "docx":
         return [TextPart(prefix or None, docx_page_blocks(data), False)], info
     if real == "doc":
@@ -1052,41 +1055,131 @@ def _zip_parts(zsrc, info: dict, depth: int, prefix: str) -> tuple[list[TextPart
     if depth >= MAX_ZIP_DEPTH:
         raise _Unsupported("ZIP nested too deep")
     import zipfile
-    parts: list[TextPart] = []
-    members, skipped = [], []
     with zipfile.ZipFile(zsrc) as z:
         infos = [i for i in z.infolist() if not i.is_dir()]
         if len(infos) > MAX_ZIP_MEMBERS:
             raise ValueError(f"ZIP has {len(infos)} members > {MAX_ZIP_MEMBERS}")
         if sum(i.file_size for i in infos) > MAX_ZIP_TOTAL_BYTES:
             raise ValueError("ZIP expands beyond MAX_ZIP_TOTAL_BYTES")
-        for i in sorted(infos, key=lambda i: _zip_member_name(i)):
-            name = _zip_member_name(i)
-            if _ZIP_SKIP_RE.search(name):
-                continue
-            if i.file_size > MAX_FILE_BYTES:
-                skipped.append({"member": name, "reason": f"{i.file_size} bytes"})
-                continue
-            ext = name.rsplit(".", 1)[-1].lower() if "." in name else None
-            try:
-                sub, sub_info = extract_parts(z.read(i), ext, depth=depth + 1,
-                                              prefix=f"{prefix}{name}/")
-            except _Unsupported as e:
-                skipped.append({"member": name, "reason": str(e)})
-                continue
-            except Exception as e:  # noqa: BLE001 - one broken member, not the archive
-                skipped.append({"member": name, "reason": f"unreadable: {e}"[:200]})
-                continue
-            for p in sub:
-                # a member that is itself one part is named by the member
-                if p.member == f"{prefix}{name}/":
-                    p.member = f"{prefix}{name}"
-            parts.extend(sub)
-            members.append({"member": name, "format": sub_info.get("format")})
-    info["members"] = members
-    if skipped:
-        info["skipped"] = skipped
+        items = [(_zip_member_name(i), i.file_size, (lambda i=i: z.read(i))) for i in infos]
+        parts = _member_parts(items, info, depth, prefix)
     return parts, info
+
+
+def _member_parts(items: list, info: dict, depth: int, prefix: str) -> list[TextPart]:
+    """Parts of the members of a container (ZIP archive, PDF attachments):
+    ``items`` = (name, size, read()) in any order; read in name order, each
+    part named by the member path; unreadable or unsupported members are
+    listed in info['skipped'], never fatal."""
+    parts: list[TextPart] = []
+    members, skipped = [], []
+    for name, size, read in sorted(items, key=lambda t: t[0]):
+        if _ZIP_SKIP_RE.search(name):
+            continue
+        if size > MAX_FILE_BYTES:
+            skipped.append({"member": name, "reason": f"{size} bytes"})
+            continue
+        ext = name.rsplit(".", 1)[-1].lower() if "." in name else None
+        try:
+            sub, sub_info = extract_parts(read(), ext, depth=depth + 1, prefix=f"{prefix}{name}/")
+        except _Unsupported as e:
+            skipped.append({"member": name, "reason": str(e)})
+            continue
+        except Exception as e:  # noqa: BLE001 - one broken member, not the container
+            skipped.append({"member": name, "reason": f"unreadable: {e}"[:200]})
+            continue
+        for p in sub:
+            # a member that is itself one part is named by the member
+            if p.member == f"{prefix}{name}/":
+                p.member = f"{prefix}{name}"
+        parts.extend(sub)
+        members.append({"member": name, "format": sub_info.get("format")})
+    info["members"] = info.get("members", []) + members
+    if skipped:
+        info["skipped"] = info.get("skipped", []) + skipped
+    return parts
+
+
+def _fix_mojibake(name: str) -> str:
+    """UTF-8 file names read as Latin-1 ("SantÃ© et addiction")."""
+    if any(ch in name for ch in "ÃÂâ"):
+        try:
+            return name.encode("latin-1").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return name
+
+
+def pdf_attachments(src: bytes | str | Path) -> tuple[bool, list[tuple[str, bytes]]]:
+    """(is a portfolio, [(file name, bytes)]) of the files embedded in a PDF.
+    Every file specification with an embedded stream is read: the Fedlex
+    Stellungnahmen portfolios (2026-10-21) carry 9-101 submissions whose
+    name tree MuPDF's embfile API does not always list."""
+    out: list[tuple[str, bytes]] = []
+    seen_streams: set[int] = set()
+    seen_data: set[str] = set()
+
+    def add(name: str | None, data: bytes | None, fallback: str) -> None:
+        if not data:
+            return
+        h = hashlib.sha256(data).hexdigest()
+        if h in seen_data:
+            return
+        seen_data.add(h)
+        out.append((_fix_mojibake(name or fallback), data))
+
+    with _open_pdf(src) as doc:
+        cat = doc.pdf_catalog()
+        portfolio = doc.xref_get_key(cat, "Collection")[0] not in ("null", "")
+        # 1. the document's EmbeddedFiles name tree (inline file specifications)
+        for i in range(doc.embfile_count()):
+            try:
+                inf = doc.embfile_info(i)
+                add(inf.get("ufilename") or inf.get("filename") or inf.get("name"),
+                    doc.embfile_get(i), f"attachment-{i + 1}")
+            except Exception as e:  # noqa: BLE001 - one broken attachment, not the file
+                log.warning("    attachment %d unreadable: %s", i, e)
+        # 2. every file specification object with an embedded stream (its
+        #    /Type /Filespec is optional; the Fedlex portfolios' name tree is
+        #    not always listed by the API above)
+        for x in range(1, doc.xref_length()):
+            try:
+                ef = doc.xref_get_key(x, "EF/F")
+                if ef[0] != "xref":
+                    continue
+                sx = int(ef[1].split()[0])
+                if sx in seen_streams:
+                    continue
+                seen_streams.add(sx)
+                name = None
+                for key in ("UF", "F"):
+                    t, v = doc.xref_get_key(x, key)
+                    if t == "string" and v:
+                        name = v
+                        break
+                add(name, doc.xref_stream(sx), f"attachment-{sx}")
+            except Exception as e:  # noqa: BLE001
+                log.warning("    attachment %d unreadable: %s", x, e)
+    return portfolio, out
+
+
+def _pdf_parts(src: bytes | str | Path, info: dict, depth: int,
+               prefix: str) -> tuple[list[TextPart], dict]:
+    """A PDF's own pages, plus the files embedded in it as members. A PDF
+    Portfolio's own page is the viewer's placeholder ("Zur optimalen Anzeige
+    dieses PDF-Portfolios ..."), not the document: only its members count."""
+    main = TextPart(prefix or None, pdf_page_blocks(src), True, src)
+    portfolio, attached = (False, []) if depth >= MAX_ZIP_DEPTH else pdf_attachments(src)
+    if not attached:
+        return [main], info
+    if len(attached) > MAX_ZIP_MEMBERS:
+        raise ValueError(f"PDF has {len(attached)} attachments > {MAX_ZIP_MEMBERS}")
+    info["attachments"] = len(attached)
+    if portfolio:
+        info["portfolio"] = True
+    items = [(n, len(d), (lambda d=d: d)) for n, d in attached]
+    members = _member_parts(items, info, depth, prefix)
+    return ([] if portfolio else [main]) + members, info
 
 
 _TOC_ENTRY_RE = re.compile(r"(?:\s|\.{2,})\d{1,3}$")
@@ -1824,14 +1917,13 @@ def ocr_one(conn: sqlite3.Connection, row, http, *, workers: int = 2,
         parts, extraction = extract_parts(src, row["format"])
         langs = ocr_langs(row["language"], row["doc_type_code"])
         for part in parts:
-            # ZIP members are read from memory; their scanned pages wait
-            # (none of the 2026-10-21 archives held a scan).
-            if not part.paginated or part.member is not None:
+            # the file itself, a ZIP member or a PDF attachment: any PDF part
+            if not part.paginated or part.src is None:
                 continue
             empty = _empty_pages(part.pages)
             if not empty:
                 continue
-            got = ocr_pdf_pages(src, empty, langs, image_to_text=image_to_text,
+            got = ocr_pdf_pages(part.src, empty, langs, image_to_text=image_to_text,
                                 workers=workers, deadline=deadline, clock=clock)
             for n, blocks in got.items():
                 if sum(len(b.strip()) for b in blocks) >= OCR_MIN_PAGE_CHARS:
@@ -1954,6 +2046,9 @@ REQUEUE_SELECTORS: dict[str, str] = {
     "parse_error": f"status = '{ST_PARSE_ERROR}'",
     # a 'PDF' without a single page: an archived copy cut short
     "no_pages": f"status = '{ST_NO_TEXT}' AND COALESCE(page_count, 0) = 0",
+    # still without text after OCR: PDF Portfolios (the page is a viewer
+    # placeholder, the documents are attachments) read since 2026-10-21
+    "no_text_after_ocr": f"status = '{ST_NO_TEXT}' AND ocr_at IS NOT NULL",
 }
 GUARD_UNITS = ("opencaselaw-vernehmlassungen.service",)
 

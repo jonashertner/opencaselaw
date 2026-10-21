@@ -455,6 +455,64 @@ def test_a_streamed_zip_is_read_from_disk(work, monkeypatch):
         "A/Kanton Bern.pdf", "A/Verband.pdf"]
 
 
+def _with_attachments(page_text: str | None, files: dict[str, bytes], portfolio: bool) -> bytes:
+    doc = fitz.open()
+    page = doc.new_page()
+    if page_text:
+        page.insert_textbox(fitz.Rect(72, 72, 520, 400), page_text, fontsize=10)
+    for name, data in files.items():
+        doc.embfile_add(name, data, filename=name, ufilename=name)
+    if portfolio:
+        doc.xref_set_key(doc.pdf_catalog(), "Collection", "<< /View /T >>")
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def test_a_pdf_portfolio_is_read_from_its_attachments(work):
+    # 2026-10-21: 21 Fedlex Stellungnahmen files are PDF Portfolios; the
+    # only page asks for Acrobat, the submissions are attachments
+    data = _with_attachments(
+        "Zur optimalen Anzeige dieses PDF-Portfolios sollte es in Acrobat geöffnet werden.",
+        {"02 Parteien.pdf": _pdf([LONG + "Parteien"]), "01 Kantone.pdf": _pdf([LONG * 2]),
+         "03 Scan.pdf": _pdf(None, blank_pages=1)}, portfolio=True)
+    fid = _add(work, "doc_21", "pdf-a", code=21)
+    http = FakeHttp({_row(work, fid)["file_url"]: data})
+    _fetch(work, http)
+    r = _row(work, fid)
+    assert r["status"] == "done"
+    ex = json.loads(r["extraction_json"])
+    assert ex["portfolio"] is True and ex["attachments"] == 3
+    assert [m["member"] for m in ex["members"]] == ["01 Kantone.pdf", "02 Parteien.pdf",
+                                                     "03 Scan.pdf"]
+    paras = _paras(work, fid)
+    assert not any("Acrobat" in p["text"] for p in paras)        # the placeholder is not text
+    assert paras[0]["source_member"] == "01 Kantone.pdf"
+    assert r["page_count"] == 3 and r["empty_pages"] == 1
+    # the scanned attachment is OCR'd like any other PDF part
+    st = _ocr(work, http, FakeOcr(), scopes=("partial",))
+    assert st["ocr_pages"] == 1
+    ocr = [p for p in _paras(work, fid) if p["text_source"] == "ocr"]
+    assert ocr and {p["source_member"] for p in ocr} == {"03 Scan.pdf"}
+    assert _row(work, fid)["text_source"] == "mixed"
+
+
+def test_a_pdf_with_an_attachment_keeps_its_own_pages(work):
+    data = _with_attachments(LONG * 2, {"Anhang.xlsx": _xlsx({"T": [["Kanton", "Antwort"]]})},
+                             portfolio=False)
+    fid = _add(work, "doc_12", "pdf-a")
+    _fetch(work, FakeHttp({_row(work, fid)["file_url"]: data}))
+    members = [p["source_member"] for p in _paras(work, fid)]
+    assert members[0] is None and "Anhang.xlsx/T" in members
+    assert "portfolio" not in json.loads(_row(work, fid)["extraction_json"])
+
+
+def test_mojibake_attachment_names_are_repaired():
+    assert bcc._fix_mojibake("04 Gesundheit und Sucht - SantÃ© et addiction.pdf") == \
+        "04 Gesundheit und Sucht - Santé et addiction.pdf"
+    assert bcc._fix_mojibake("Zürich.pdf") == "Zürich.pdf"
+
+
 # ── OCR ────────────────────────────────────────────────────────────────
 
 

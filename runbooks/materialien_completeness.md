@@ -106,14 +106,17 @@ systemctl is-active opencaselaw-publish.service opencaselaw-materialien.service 
   → the Vernehmlassungen unit has not run (build window) or Fedlex added
   documents; `text.backlog_sample` → files that keep failing (error text in
   the row).
-* `no_text` (scans without a text layer), `parse_error`, `too_large` are
-  reported in `without_text_sample`: an OCR pass is the follow-up, nothing is
-  hidden.
+* `no_text` (scans without a text layer), `parse_error`, `too_large`,
+  `unsupported_format`, `empty_file`, `truncated` are reported in
+  `without_text_sample`, nothing is hidden; `text.text_source` counts the
+  files whose text is OCR apart from the rest, with the OCR backlog in pages
+  (section "Text for every file we hold" below).
 * A replaced upload on Fedlex (new file URL) is re-queued automatically; a
   document that disappears from Fedlex keeps its row (takedown is an explicit
   act: delete its consultation_files / consultation_paragraphs rows in the
   work DB and publish).
 * Reset a file for a re-fetch: `UPDATE consultation_files SET status='pending', attempts=0 WHERE file_id=…` in the work DB.
+  For whole classes of files use the guarded `requeue` command (below).
 
 ## Vernehmlassungen outside Fedlex (`search_stack/consultation_archive.py`, 2026-10-20)
 
@@ -281,3 +284,166 @@ every source.
   deletes its text, files and row and records it in the work DB's `meta`
   (`archive_suppressed_documents`), so a later `discover` never adds it
   back; then publish.
+
+## Text for every file we hold (2026-10-21)
+
+Until 2026-10-21 consultations.db held 798 files of the text policy without
+text: 567 Fedlex files in a format the builder did not read (.doc 534, .zip
+27, .xlsx 6), 24 rows `too_large` (8 Stellungnahmen collections of
+270–512 MB, each filed under all three languages), 8 `parse_error`, 199
+`no_text` (138 Fedlex, 42 bj, 19 bj_wayback). What the code does now
+(`search_stack/build_consultation_corpus.py`, commit 56b64f55):
+
+| Was | Now |
+|---|---|
+| `.doc` unsupported | LibreOffice headless (`soffice --convert-to docx`, private profile per call, 180 s timeout; installed on the VPS, nothing added) → the .docx reader. `.xls` likewise → .xlsx |
+| `.xlsx` unsupported | row text per sheet, cells joined with " \| " as .docx table rows; the sheet name is the paragraph's `source_member`; standard library (no openpyxl on the VPS) |
+| `.zip` unsupported | every PDF / Word / Excel member, in name order; the member path is `source_member` on each paragraph and listed in `extraction_json` (with `skipped` members and why); names in the Windows OEM code page decoded; limits 500 members, 1 GiB expanded, nesting 2 |
+| format = the label | the format is read from the bytes (`extraction_json.format`): bj.admin.ch serves `.doc` files behind PDF links (3 `parse_error` rows) |
+| docx needs python-docx | stdlib reader of word/document.xml when python-docx is missing (3 `parse_error` rows came from the Mac seed) |
+| > 250 MB `too_large` | streamed to `consultations_tmp/` next to the work DB (the volume), read from disk (PDF, or ZIP member by member), up to 1 GiB; removed after |
+| 0-byte file `parse_error` | `empty_file`: Fedlex serves `Content-Length: 0` for 2 Italian Vorlagen (`proj/2023/103/cons_1/doc_1/it`, `proj/2023/20/cons_1/doc_2/it`; checked by HEAD 10-21) — final, the row and link stay |
+| cut Wayback copy `no_text` (0 pages) | `truncated`: the newest capture is a Common Crawl record cut at 5 MiB (or 1 MiB), or a PDF without `%%EOF`; `consultation_archive repair-truncated` takes the newest complete older capture |
+| PDF Portfolio `no_text` | the attachments are read like ZIP members (every file specification with an embedded stream, plus the EmbeddedFiles name tree); a portfolio's own page — the viewer's placeholder "Zur optimalen Anzeige dieses PDF-Portfolios …" — is not text. 22 Fedlex Stellungnahmen files (e.g. `proj/6014/51/cons_1/doc_7`: 101 submissions, 692 pages). A normal PDF keeps its pages and adds its attachments |
+| scans `no_text` | the `ocr` pass (below) |
+
+Status values added: `empty_file`, `truncated` (both final). Columns added
+(ALTER TABLE ADD COLUMN, NULL on every older row; consultations.db only,
+materialien.db untouched): `consultation_files.text_source` (NULL = the
+document's own text, `ocr`, `mixed`), `ocr_pages`, `ocr_engine`, `ocr_at`,
+`extraction_json`; `consultation_paragraphs.text_source` (NULL | `ocr`),
+`source_member`. This is a schema change of consultations.db: Jonas's OK
+first (pipeline gate).
+
+### OCR (R2: OCR text is quotable only with the flag shown)
+
+`python3 -m search_stack.build_consultation_corpus ocr --work-db W --scope no_text[,partial]`
+
+* Only pages whose text layer has < 20 characters are read; the text layer
+  of every other page is kept as it is. Tesseract 5.3.4 (deu/fra/ita on the
+  VPS) on a 300 dpi greyscale rendering by PyMuPDF; the document's language,
+  all three for Stellungnahmen and Diverses (own language first).
+  `--workers N` Tesseract processes (one thread each).
+* `--scope no_text`: files without text. `--scope partial`: the empty pages
+  of files that have text (scanned letters inside a Stellungnahmen
+  collection). The smallest first; at most `--max-pages-per-file` (3,000).
+* Every paragraph from an OCR'd page: `text_source='ocr'`; the file:
+  `text_source` `ocr` (all) or `mixed`, `ocr_pages`, `ocr_engine`
+  ("tesseract 5.3.4 deu 300dpi"), `ocr_at`. A file the pass looked at and
+  found nothing on keeps its status, with `ocr_at` and the reason in
+  `error` — never repeated.
+* The downloaded bytes must match the stored sha-256; a file changed
+  upstream goes back to the fetch queue instead (`requeued`).
+* A time budget that ends inside a file stores nothing of it (`stopped:
+  max_seconds`); the next run starts that file again.
+* Server: such a passage carries `text_source: "ocr"`,
+  `verbatim_quotation: "ocr"` and an `ocr_note` (search_botschaft
+  Vernehmlassung hits, get_materialien Erläuternder-Bericht passages); the
+  get_materialien file list shows `text_source` / `ocr_pages`; R2 of the
+  server instructions says OCR text is quotable only with that flag shown,
+  never as the document's own wording. A consultations.db without the
+  columns is served as before.
+* Report: `vernehmlassungen.text.text_source` (Fedlex) and
+  `archive_sources.text_source`: files with text by `document` / `ocr` /
+  `mixed`, OCR pages, the OCR backlog (files and pages), files still without
+  text after OCR. From the file rows only (no scan of the paragraph table).
+
+### Measured on a copy of the VPS work DB (2026-10-21)
+
+Copy of the file, document and procedure rows of
+`/mnt/HC_Volume_104655575/output/consultations_work.db` (read `mode=ro`,
+16:25 UTC, the unit idle) into
+`/mnt/HC_Volume_104655575/scratch/text-gaps-20261021/work_copy.db`; the code
+of this branch run from that directory at `nice 19` / `ionice -c3` while the
+build ran (load stayed below the build's own). Files under the text policy:
+
+| source / status | before | after |
+|---|---:|---:|
+| fedlex done | 24,972 | 25,615 |
+| fedlex same_as | 3,601 | 3,687 |
+| fedlex unsupported_format | 567 | 0 |
+| fedlex too_large | 24 | 0 |
+| fedlex parse_error | 5 | 0 |
+| fedlex no_text | 138 | 3 (one map, DE/FR/IT: "Schweizerschulen im Ausland", `proj/6011/27/cons_1/doc_6`) |
+| fedlex empty_file | — | 2 (zero bytes on Fedlex) |
+| bj done / same_as | 1,365 / 461 | 1,407 / 461 |
+| bj no_text | 42 | 3 (a map, DE/FR/IT: `karte-dublinraum.pdf`) |
+| bj parse_error | 3 | 0 (.doc behind a PDF link) |
+| bj_wayback done / same_as | 61 / 54 | 64 / 64 |
+| bj_wayback no_text | 19 | 0 |
+| bj_wayback truncated | — | 6 (Italian Stellungnahmen whose only capture is cut; 13 of 19 repaired from an older capture) |
+
+798 files without text before, 14 after — each with its reason in the row
+(2 maps ×3 languages, 2 empty on Fedlex, 6 never archived complete).
+
+Where the new text comes from (files `done`): 26,927 the document's own text,
+149 OCR only, 25 mixed; 6,499 OCR pages, 82,877 OCR paragraphs of 609,479
+paragraphs written in the run. Of the 618 files re-queued (unsupported 567,
+too_large 24, parse_error 8, no_pages 19): 510 done + 84 same_as at the first
+fetch (36 min), 19 truncated, 2 empty, 3 the 297 MB ZIP (then fixed: a
+streamed ZIP is read from disk; second round: 1 done + 2 same_as). The 8 large Stellungnahmen PDFs: 35,730
+pages, 53.6 M characters (fr/it `same_as`). OCR of the 180 text-less files:
+152 done, 5,983 pages in 91 min (3 workers, ~65 pages/min); the 28 with
+nothing recognised were 22 PDF Portfolios (then read from their attachments:
+all 22 done) and the two maps in three languages. The 297 MB ZIP
+(`proj/2025/40/cons_1/doc_9`) is 22 map sheets: done, 22 pages, fr/it
+`same_as`.
+
+**Partial OCR (not run on the live DB; proposal).** 2,144 `done` files have
+53,435 text-less pages: Stellungnahmen 1,099 files / 51,364 pages,
+Erläuternde Berichte 798, Vorlagen 527, synoptic tables 377, Ergebnisberichte
+207, Diverses 162 pages. A random sample of 25 such files (3–300 empty pages,
+seed 20261021): 516 of 562 empty pages carry readable text — Stellungnahmen
+515 of 529 (scanned, signed submissions), the other types 1 of 33 (blank,
+figure or separator pages). ~53 pages/min with 3 workers including the
+download → ~17 h for the whole backlog, or about six 3-hour runs.
+
+### Deploy (Jonas's OK first: consultations.db schema + new text)
+
+Outside the build window, with the unit idle (`requeue` and `ocr` refuse
+otherwise; exit 3):
+
+```bash
+systemctl is-active opencaselaw-publish.service opencaselaw-vernehmlassungen.service   # both inactive
+cd /opt/caselaw/repo && git fetch && git merge --ff-only origin/main
+W=/mnt/HC_Volume_104655575/output/consultations_work.db
+cp $W ${W%.db}.pre-text-gaps.db          # 5.4 GB, the volume has room
+# reuse the 773 files the measurement downloaded (no second request for them)
+C=/mnt/HC_Volume_104655575/scratch/text-gaps-20261021/cache
+PYTHONPATH=. python3 -m search_stack.build_consultation_corpus requeue --work-db $W \
+  --what unsupported,too_large,parse_error,no_pages           # dry run: expect ~618
+PYTHONPATH=. python3 -m search_stack.build_consultation_corpus requeue --work-db $W \
+  --what unsupported,too_large,parse_error,no_pages --apply
+PYTHONPATH=. nice -n 10 python3 -m search_stack.build_consultation_corpus fetch --work-db $W \
+  --rate-limit 0.5 --max-seconds 10800 --cache-dir $C          # ~40 min
+PYTHONPATH=. python3 -m search_stack.consultation_archive repair-truncated --work-db $W
+PYTHONPATH=. nice -n 19 python3 -m search_stack.build_consultation_corpus ocr --work-db $W \
+  --scope no_text --workers 3 --max-seconds 10800 --cache-dir $C   # ~90 min
+PYTHONPATH=. python3 -m search_stack.build_consultation_corpus requeue --work-db $W \
+  --what no_text_after_ocr --apply                             # only if the OCR left any
+PYTHONPATH=. python3 -m search_stack.build_consultation_corpus publish --work-db $W \
+  --out /mnt/HC_Volume_104655575/output/consultations.db
+python3 scripts/check_materialien_completeness.py --no-ntfy      # text.text_source
+```
+
+The first open of the work DB by the new code adds the columns. Workers need
+the rolling restart for the server flag (`scripts/rolling_restart_workers.sh`);
+consultations.db itself is swapped as always. Expect ~+690 files done and ~+95 same_as,
+~6,500 OCR pages. Then the partial pass, if wanted, in 3-hour slices
+(`--scope partial --max-seconds 10800`), or as a step of the unit after
+`run` (a unit change: `ExecStartPost=-/usr/bin/python3 -m
+search_stack.build_consultation_corpus ocr --work-db … --scope no_text,partial
+--max-seconds 3600 --workers 2`, then the next run's publish carries it).
+After the deploy: `rm -r /mnt/HC_Volume_104655575/scratch/text-gaps-20261021`
+(2.2 GB: the copy, the cache).
+
+### Bundesblatt historical (materialien.db)
+
+Measured 10-21 on the served materialien.db (read-only): `botschaft_fetch_state`
+holds no `no_text` row (DE: 4,664 done, 25 collision); every stored
+historical document has >= 100 characters per page. The Bundesarchiv PDFs
+carry an OCR text layer, so nothing is scanned without text yet; an OCR
+pass there would need a `text_source` on botschaft_paragraphs (materialien.db
+schema, step 2f) and is not built. But that text IS the Bundesarchiv's OCR:
+the completeness report now labels it `text_source: bar_ocr_layer`;
+search_botschaft does not yet flag historical hits as OCR (follow-up, R2).
