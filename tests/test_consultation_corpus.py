@@ -513,3 +513,90 @@ def test_consultation_search_gives_up_at_its_deadline(served, monkeypatch):
         assert again
     finally:
         conn.close()
+
+
+
+def test_article_passages_belong_to_the_act(served, monkeypatch):
+    """A procedure that touches several acts explains Art. N of each: only a
+    passage whose section or first line names this act is kept."""
+    conn = served._get_consultations_conn()
+    try:
+        # the fixture procedure links one SR: its Art. 18 passage stays
+        assert served._consultations_for_sr(conn, "814.680", "18")[0].get("erlaeuternder_bericht_passages")
+    finally:
+        conn.close()
+    import shutil, sqlite3 as _sq
+    db = Path(served._consultations_db_path())
+    two = db.with_name("two_acts.db")
+    shutil.copy(db, two)
+    w = _sq.connect(two)
+    w.execute("INSERT INTO consultation_laws VALUES (?, 'https://fedlex.data.admin.ch/eli/cc/x', '210')", (P1,))
+    w.commit(); w.close()
+    monkeypatch.setenv("SWISS_CASELAW_CONSULTATIONS_DB", str(two))
+    conn = served._get_consultations_conn()
+    try:
+        monkeypatch.setattr(served, "_law_names",
+                            lambda sr, law_code=None: ({"AltlV", "OSites"}, {"Altlasten-Verordnung"}))
+        # two acts, section without the act's name: the procedure is listed, the passage is not
+        p = served._consultations_for_sr(conn, "814.680", "18", law_code="AltlV")[0]
+        assert "erlaeuternder_bericht_passages" not in p and p["documents"]
+        # the passage's first line names the act: kept
+        assert served._passage_names_act(None, "Art. 18 Abs. 3 AltlV", {"AltlV"})
+        assert served._passage_names_act("4.1 Altlasten-Verordnung (AltlV)", "x", {"AltlV"})
+        assert not served._passage_names_act("4.1 Bundesgesetz (AHVG)", "Art. 18", {"AltlV"})
+        assert not served._passage_names_act(None, "Art. 18 XAltlV", {"AltlV"})
+    finally:
+        conn.close()
+
+
+
+def test_act_names_from_official_titles(served):
+    tn = served._title_names
+    assert "Zivilgesetzbuch" in tn("Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907")
+    assert "Obligationenrecht" in tn("Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des "
+                                     "Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)")
+    assert "Datenschutzgesetz" in tn("Bundesgesetz vom 25. September 2020 über den Datenschutz "
+                                     "(Datenschutzgesetz, DSG)")
+    assert "Bundesgesetz über die Alters- und Hinterlassenenversicherung" in tn(
+        "Bundesgesetz vom 20. Dezember 1946 über die Alters- und Hinterlassenenversicherung (AHVG)")
+    names = tn("Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907")
+    assert served._passage_names_act("2.1 Zivilgesetzbuch", "Art. 712a Abs. 1", {"ZGB"}, names)
+    assert served._passage_names_act(None, "Art. 23 E-AHVG", {"AHVG"})
+
+
+def test_passage_citing_another_act_is_dropped(served):
+    other = served._passage_names_other_act
+    assert other("Art. 5 Abs. 1 E-VDSG verlangt, dass", {"DSG", "LPD"})
+    assert other("Art. 23 IVG", {"AHVG", "LAVS"})
+    assert not other("Art. 23 Rente für den hinterlassenen Elternteil", {"AHVG"})
+    assert not other("Art. 23 E-AHVG", {"AHVG"})
+    assert not other("Art. 712a Abs. 1", {"ZGB"})
+    assert not other("Art. 18 al. 3 OSites", {"AltlV", "OSites"})
+
+
+
+def test_section_about_another_act(served):
+    other = served._section_names_other_act
+    assert other("8.2.13 Militärstrafprozess vom 23. März 1979", {"DSG"}, {"Datenschutzgesetz"})
+    assert other("2.2 Zivilprozessordnung", {"ZGB"}, {"Zivilgesetzbuch"})
+    assert other("4.2 Änderung anderer Erlasse (IVG)", {"AHVG"})
+    assert not other("2.1 Zivilgesetzbuch", {"ZGB"}, {"Zivilgesetzbuch"})
+    assert not other("4 Erläuterungen zu den einzelnen Bestimmungen", {"AHVG"})
+    assert not other(None, {"AHVG"})
+
+
+
+def test_heading_path_finds_the_act_above_the_topic(served):
+    import sqlite3 as _sq
+    c = _sq.connect(":memory:")
+    c.execute("CREATE TABLE consultation_paragraphs (file_id, para_order, section_path, text)")
+    rows = [(1, 1, "1 Ausgangslage", "a"), (1, 2, "2 Erläuterungen zu den einzelnen Bestimmungen", "b"),
+            (1, 3, "2.1 Obligationenrecht", "c"), (1, 4, "2.1.16 Auskunft", "d"),
+            (1, 5, "2.1.17 Rückerstattung von Leistungen", "Art. 697 Randtitel"),
+            (1, 6, "2.2 Zivilgesetzbuch", "e"), (2, 1, "2.1 Anderes Dokument", "x")]
+    c.executemany("INSERT INTO consultation_paragraphs VALUES (?,?,?,?)", rows)
+    path = served._heading_path(c, 1, 5, "2.1.17 Rückerstattung von Leistungen")
+    assert path == ["2 Erläuterungen zu den einzelnen Bestimmungen", "2.1 Obligationenrecht",
+                    "2.1.17 Rückerstattung von Leistungen"]
+    assert served._heading_path(c, 1, 5, "Ohne Nummer") == ["Ohne Nummer"]
+    assert served._heading_path(c, 1, 5, None) == []

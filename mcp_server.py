@@ -6396,9 +6396,149 @@ def _search_consultations(
     return hits
 
 
+_DRAFT_PREFIXES = r"(?:E|VE|AP|P|nE|D|PA)-"
+_DRAFT_PREFIX_RE = re.compile("^" + _DRAFT_PREFIXES)
+
+
+def _title_names(title: str | None) -> set[str]:
+    """Names an Erläuternder Bericht uses for an act, from its official
+    title: the title without its "vom <date>" clause ("Bundesgesetz über die
+    Alters- und Hinterlassenenversicherung"), the short names in its
+    parentheses ("Datenschutzgesetz", "Obligationenrecht" from "Fünfter
+    Teil: Obligationenrecht"), and the noun of a "Schweizerisches X"
+    title ("Zivilgesetzbuch")."""
+    if not title:
+        return set()
+    t = re.sub(r"\s+", " ", title).strip()
+    t = re.sub(r"\s(?:vom|du|del)\s\d{1,2}\.?\s?\w+\s\d{4}", "", t)   # date clause
+    names = {re.sub(r"\s*\([^)]*\)\s*", " ", t).strip()}
+    for inner in re.findall(r"\(([^)]*)\)", t):
+        for part in re.split(r"[,;]", inner):
+            part = part.split(":")[-1].strip()
+            if len(part) >= 6 and not part.isupper():
+                names.add(part)
+    m = re.match(r"^(?:Schweizerische[rs]?|suisse|svizzer[oa])\s+(\w+)$", next(iter(names)), re.I)
+    m = m or re.match(r"^(?:Code|Codice)\s+(\w+(?:\s\w+)?)\s+suisse$", next(iter(names)), re.I)
+    if m:
+        names.add(m.group(1))
+    return {n for n in names if len(n) >= 6}
+
+
+def _law_names(sr: str | None, law_code: str | None = None) -> tuple[set[str], set[str]]:
+    """(abbreviations, title names) of the act in DE/FR/IT from statutes.db,
+    plus the caller's law_code: ({AHVG, LAVS}, {Bundesgesetz über die Alters-
+    und Hinterlassenenversicherung, …})."""
+    abbrs = {law_code.strip()} if law_code and law_code.strip() else set()
+    names: set[str] = set()
+    if not sr:
+        return abbrs, names
+    try:
+        st = sqlite3.connect(f"file:{STATUTES_DB_PATH}?mode=ro&immutable=1", uri=True, timeout=0.5)
+        try:
+            row = st.execute("SELECT abbr_de, abbr_fr, abbr_it, title_de, title_fr, title_it "
+                             "FROM laws WHERE sr_number = ? LIMIT 1", (sr,)).fetchone()
+        finally:
+            st.close()
+    except sqlite3.Error:
+        row = None
+    if row:
+        abbrs |= {a.strip() for a in row[:3] if a and a.strip()}
+        for t in row[3:]:
+            names |= _title_names(t)
+    return abbrs, names
+
+
+def _law_abbreviations(sr: str | None, law_code: str | None = None) -> set[str]:
+    return _law_names(sr, law_code)[0]
+
+
+def _passage_names_act(section: str | None, text: str | None, abbreviations: set[str],
+                       names: set[str] = frozenset()) -> bool:
+    """True when the section heading, or the passage's own first line, names
+    the act: an abbreviation as a whole word ("4.1 … (AHVG)", "Art. 23 E-AHVG")
+    or one of its title names ("2.1 Zivilgesetzbuch")."""
+    first = (text or "").split("\n", 1)[0][:200]
+    hay = f"{section or ''} {first}"
+    if any(re.search(rf"(?<![\w-])(?:{_DRAFT_PREFIXES})?{re.escape(a)}(?![\w-])", hay)
+           for a in abbreviations):
+        return True
+    low = hay.lower()
+    return any(n.lower() in low for n in names)
+
+
+_ARTICLE_REF_ACT_RE = re.compile(
+    r"^\s*(?:Art(?:ikel|icle|icolo)?\.?)\s*\d+[a-z]*"
+    r"(?:\s+(?:Abs|al|cpv|Bst|let|lit|Ziff|ch|n|Satz|phrase|periodo)\.?\s*[\w]+)*"
+    r"\s+((?:[A-Za-zÄÖÜäöü]+-)?[A-ZÄÖÜ][A-Za-zÄÖÜäöü]*[A-ZÄÖÜ][A-Za-zÄÖÜäöü]*)\b")
+
+
+_ACT_WORD_RE = re.compile(
+    r"(gesetz|gesetzbuch|verordnung|prozess|ordnung|reglement|\bloi\b|ordonnance|\bcode\b"
+    r"|legge|ordinanza|codice|regolamento)", re.IGNORECASE)
+_ACT_DATE_RE = re.compile(r"\b(?:vom|du|del)\s\d{1,2}\.?\s?\w+\s\d{4}\b")
+_PAREN_ABBR_RE = re.compile(r"\(((?:[A-Za-zÄÖÜäöü]+-)?[A-ZÄÖÜ][\w-]*[A-ZÄÖÜ][\w-]*)\)")
+
+
+def _section_names_other_act(section: str | None, abbreviations: set[str],
+                             names: set[str] = frozenset()) -> bool:
+    """True when the section heading is about an act and that act is not
+    this one ("8.2.13 Militärstrafprozess vom 23. März 1979" for the DSG):
+    it names none of this act's names and carries an act's date, an
+    abbreviation in parentheses, or an act word (Gesetz, Verordnung, loi…)."""
+    if not section or _passage_names_act(section, "", abbreviations, names):
+        return False
+    if _ACT_DATE_RE.search(section):
+        return True
+    if any(_DRAFT_PREFIX_RE.sub("", a) not in abbreviations for a in _PAREN_ABBR_RE.findall(section)):
+        return True
+    return bool(_ACT_WORD_RE.search(section))
+
+
+_SECTION_NUMBER_RE = re.compile(r"^\s*(\d{1,2}(?:\.\d{1,2})*)\.?\s")
+
+
+def _heading_path(conn: sqlite3.Connection, file_id: int, para_order: int,
+                  section: str | None) -> list[str]:
+    """The numbered headings above ``section`` in its document, outermost
+    first, ending with ``section`` itself: for "2.1.17 Rückerstattung von
+    Leistungen" also "2.1 Obligationenrecht" and "2 Erläuterungen …". Rebuilt
+    from the stored paragraphs (each paragraph carries its nearest heading),
+    the latest earlier heading of each number prefix winning."""
+    if not section:
+        return []
+    m = _SECTION_NUMBER_RE.match(section)
+    if not m:
+        return [section]
+    latest: dict[str, str] = {}
+    for (sp,) in conn.execute(
+            "SELECT section_path FROM consultation_paragraphs WHERE file_id = ? "
+            "AND para_order < ? AND section_path IS NOT NULL ORDER BY para_order",
+            (file_id, para_order)):
+        mm = _SECTION_NUMBER_RE.match(sp)
+        if mm:
+            latest[mm.group(1)] = sp
+    parts = m.group(1).split(".")
+    path = [latest[".".join(parts[:k])] for k in range(1, len(parts))
+            if ".".join(parts[:k]) in latest]
+    return path + [section]
+
+
+def _passage_names_other_act(text: str | None, abbreviations: set[str]) -> bool:
+    """True when the passage's heading line cites the article of ANOTHER act
+    ("Art. 5 Abs. 1 E-VDSG" for the DSG): an abbreviation-like word (two or
+    more capitals) right after the article reference, not one of this act's
+    abbreviations once a draft prefix (E-, VE-, AP-…) is removed."""
+    first = (text or "").split("\n", 1)[0][:200]
+    m = _ARTICLE_REF_ACT_RE.match(first)
+    if not m:
+        return False
+    tok = _DRAFT_PREFIX_RE.sub("", m.group(1))
+    return tok not in abbreviations
+
+
 def _consultations_for_sr(
     conn: sqlite3.Connection, sr: str | None, article: str | None, *,
-    language: str | None = None, limit: int = 30,
+    language: str | None = None, limit: int = 30, law_code: str | None = None,
 ) -> list[dict]:
     """The Vernehmlassungen Fedlex links to an act (foreseenImpactToLegalResource),
     newest first, each with its documents (type, languages, Fedlex file
@@ -6458,22 +6598,77 @@ def _consultations_for_sr(
         entry = {**_consultation_procedure_meta(pr, vocab, language),
                  "documents": list(docs.values())}
         if article:
+            # An "Art. N" heading in an Erläuternder Bericht belongs to whatever
+            # act the report is discussing there; a procedure that touches
+            # several acts (an omnibus revision, a new act with consequential
+            # amendments) explains Art. N of each. Keep a passage only when its
+            # section or first line names this act, or the procedure concerns
+            # no other act (2026-10-21 spot check: AHVG Art. 23 returned Art. 23
+            # of the PACS bill and measure 23 of the Entlastungspaket).
+            n_acts = conn.execute(
+                "SELECT COUNT(DISTINCT sr_number) FROM consultation_laws "
+                "WHERE procedure_uri = ? AND sr_number IS NOT NULL",
+                (pr["procedure_uri"],)).fetchone()[0]
+            abbrs, names = _law_names(sr, law_code)
+            # A report organised by topic ("2.1 Aktiengesellschaft") names no act
+            # on its heading path; then the procedure's own title decides
+            # ("Änderung des Obligationenrechts (Aktienrecht)" is the OR's).
+            title_names_act = any(
+                _passage_names_act(pr[f"title_{lg}"], None, abbrs, names)
+                for lg in ("de", "fr", "it") if pr[f"title_{lg}"])
+            rows = conn.execute(
+                """SELECT cf.file_id, cp.para_order, cp.page_number, cp.section_path, cp.text,
+                          cf.language, cf.file_url
+                   FROM consultation_paragraphs cp
+                   JOIN consultation_files cf ON cf.file_id = cp.file_id
+                   JOIN consultation_documents cd ON cd.document_uri = cf.document_uri
+                   WHERE cd.procedure_uri = ? AND cd.doc_type = 'erlaeuternder_bericht'
+                     AND cp.article_anchor = ? AND (? IS NULL OR cf.language = ?)
+                   ORDER BY cf.language, cf.file_id, cp.para_order LIMIT 300""",
+                (pr["procedure_uri"], str(article), language, language)).fetchall()
+            # The anchor runs from an "Art. N" heading to the next heading: judge
+            # each run by its heading paragraph and section, never paragraph by
+            # paragraph (a continuation line names no act at all).
+            runs: list[list] = []
+            for r in rows:
+                if (runs and runs[-1][-1]["file_id"] == r["file_id"]
+                        and r["para_order"] == runs[-1][-1]["para_order"] + 1):
+                    runs[-1].append(r)
+                else:
+                    runs.append([r])
             passages = []
-            for r in conn.execute(
-                    """SELECT cp.page_number, cp.section_path, cp.text, cf.language, cf.file_url
-                       FROM consultation_paragraphs cp
-                       JOIN consultation_files cf ON cf.file_id = cp.file_id
-                       JOIN consultation_documents cd ON cd.document_uri = cf.document_uri
-                       WHERE cd.procedure_uri = ? AND cd.doc_type = 'erlaeuternder_bericht'
-                         AND cp.article_anchor = ? AND (? IS NULL OR cf.language = ?)
-                       ORDER BY cf.language, cp.para_order LIMIT 6""",
-                    (pr["procedure_uri"], str(article), language, language)):
-                passages.append({
-                    "language": r["language"], "page": r["page_number"],
-                    "section": r["section_path"],
-                    "text": (r["text"] or "")[:_CONSULTATION_PASSAGE_MAX],
-                    "file_url": r["file_url"],
-                })
+            for run in runs:
+                head = run[0]
+                if _passage_names_other_act(head["text"], abbrs):
+                    continue
+                own_line = _passage_names_act(None, head["text"], abbrs, names)
+                # The nearest heading on the path that is about an act decides:
+                # "2.1 Obligationenrecht > 2.1.17 Rückerstattung von Leistungen"
+                # is the OR's; "8.2.13 Militärstrafprozess …" is not the DSG's.
+                verdict = None
+                for el in reversed(_heading_path(conn, head["file_id"], head["para_order"],
+                                                 head["section_path"])):
+                    if _passage_names_act(el, None, abbrs, names):
+                        verdict = True
+                        break
+                    if _section_names_other_act(el, abbrs, names):
+                        verdict = False
+                        break
+                if verdict is False and not own_line:
+                    continue
+                if n_acts > 1 and not (own_line or verdict or (verdict is None and title_names_act)):
+                    continue
+                for r in run:
+                    if len(passages) >= 6:
+                        break
+                    passages.append({
+                        "language": r["language"], "page": r["page_number"],
+                        "section": r["section_path"],
+                        "text": (r["text"] or "")[:_CONSULTATION_PASSAGE_MAX],
+                        "file_url": r["file_url"],
+                    })
+                if len(passages) >= 6:
+                    break
             if passages:
                 entry["erlaeuternder_bericht_passages"] = passages
         out.append(entry)
@@ -6883,7 +7078,7 @@ def get_materialien(law_code: str, article: str | None = None,
         cconn = _get_consultations_conn()
         if cconn is not None:
             try:
-                vernehmlassungen = _consultations_for_sr(cconn, sr, article)
+                vernehmlassungen = _consultations_for_sr(cconn, sr, article, law_code=law)
             finally:
                 cconn.close()
 
