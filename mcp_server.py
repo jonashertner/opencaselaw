@@ -6810,6 +6810,30 @@ def _botschaft_documents_columns(conn) -> set[str]:
         return set()
 
 
+# The 1850-1999 documents (source_collection 'bar-amtsdruckschriften') are
+# the OCR layer of the Federal Archives' scans of the printed Bundesblatt,
+# cleaned but never re-keyed (2026-10-21): R2 — quotable only as OCR text.
+_BAR_COLLECTION = "bar-amtsdruckschriften"
+_BBL_OCR_NOTE = (
+    "Text from the OCR layer of the Federal Archives' scan of the printed "
+    "Bundesblatt (1850-1999); recognition errors are possible. Quote it only "
+    "as OCR text, with the BBl citation and page, and check the wording against "
+    "the scan (url / source_url).")
+
+
+def _collection_select(cols: set[str], alias: str = "bd") -> str:
+    return (f"{alias}.source_collection AS source_collection"
+            if "source_collection" in cols else "NULL AS source_collection")
+
+
+def _bbl_text_flags(row) -> dict:
+    """The OCR flag of a Bundesblatt document or passage from the Federal
+    Archives scans; empty for Fedlex's own (born-digital) files."""
+    if _row_get(row, "source_collection") == _BAR_COLLECTION:
+        return {"text_source": "ocr", "verbatim_quotation": "ocr", "ocr_note": _BBL_OCR_NOTE}
+    return {}
+
+
 def _date_source_select(cols: set[str], alias: str = "bd") -> str:
     """SELECT fragment for date_source that degrades to NULL on a table
     without the column."""
@@ -6854,11 +6878,13 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
     """
     if not sr:
         return []
-    _ds = _date_source_select(_botschaft_documents_columns(conn), "d")
+    _cols = _botschaft_documents_columns(conn)
+    _ds = _date_source_select(_cols, "d")
+    _cs = _collection_select(_cols, "d")
     dt = _botschaft_doc_type_expr(conn, "d")
     sql = f"""SELECT d.bbl_citation, d.source_url, d.eli_uri, d.language,
                     d.bbl_year, d.bbl_page, d.title AS db_title,
-                    d.publication_date, {_ds}, l.article, l.relation,
+                    d.publication_date, {_ds}, {_cs}, l.article, l.relation,
                     {dt} AS doc_type,
                     p.text AS head_text
                FROM article_botschaft_links l
@@ -6889,7 +6915,13 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
         # One entry per MESSAGE, not per (message, article): a law-level
         # query otherwise lists the same Botschaft twenty times, once for
         # each article it touches. The articles it covers go in a list.
-        key = (r["bbl_year"], r["bbl_page"])
+        # A 1850-1999 document is keyed by its Fedlex work: (year, page) would
+        # join two documents on the same page of different volumes and split
+        # one whose FF page differs from its BBl page. The volume-less
+        # post-1998 gazette keeps (year, page), shared by BBl / FF / FF.
+        key = ((r["eli_uri"] or (r["bbl_year"], r["bbl_page"]))
+               if _row_get(r, "source_collection") == _BAR_COLLECTION
+               else (r["bbl_year"], r["bbl_page"]))
         item = grouped.get(key)
         if item is None:
             if len(grouped) >= limit:
@@ -6918,6 +6950,7 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
                 "articles": [r["article"]],
                 "relation": r["relation"],
                 "other_languages": [],
+                **_bbl_text_flags(r),
             }
             if not title:
                 # No header paragraph (recent messages open with the
@@ -14307,10 +14340,10 @@ server = Server(
         "retrieved for that date and do not paraphrase the excerpt. If it "
         "carries `verbatim_quotation: best_effort` (a Word edition), quote "
         "only with the edition date stated in the same sentence. A "
-        "Vernehmlassung passage with `text_source: ocr` was machine-read from "
-        "a scan: quote it only with that flag shown (say it is OCR text of the "
-        "scanned PDF, with page and file link), never as the document's own "
-        "wording.\n\n"
+        "Vernehmlassung passage or a 1850-1999 Bundesblatt passage (Federal "
+        "Archives scans) with `text_source: ocr` was machine-read from a scan: "
+        "quote it only with that flag shown (say it is OCR text of the scan, "
+        "with citation, page and link), never as the document's own wording.\n\n"
 
         "R3. NEVER state what a Swiss statute says from memory. Always "
         "call `get_law` (federal) or `get_legislation` (cantonal/federal "
@@ -17261,7 +17294,8 @@ def _handle_get_article_purpose(
             f"""
             SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri, bd.format,
                    bd.title, bd.publication_date, {_ds}, abl.relation,
-                   bd.language, {_dt} AS doc_type
+                   bd.language, {_dt} AS doc_type,
+                   {_collection_select(_botschaft_documents_columns(conn))}
             FROM article_botschaft_links abl
             JOIN botschaft_documents bd ON bd.botschaft_id = abl.botschaft_id
             WHERE abl.sr_number = ? AND abl.article = ? AND bd.language = ?
@@ -17303,6 +17337,7 @@ def _handle_get_article_purpose(
                     SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
                            bd.format, bd.title, bd.publication_date, {_ds},
                            bd.language, {_dt} AS doc_type,
+                           {_collection_select(_botschaft_documents_columns(conn))},
                            bp.page_number, bp.section_path, bp.text
                     FROM botschaft_paragraphs_fts
                     JOIN botschaft_paragraphs bp
@@ -17339,6 +17374,7 @@ def _handle_get_article_purpose(
                             "format": r["format"],
                             "relation": "fts5_match",
                             "paragraphs": [],
+                            **_bbl_text_flags(r),
                         }
                     by_doc[bid]["paragraphs"].append({
                         "page": r["page_number"],
@@ -17423,6 +17459,7 @@ def _handle_get_article_purpose(
                     }
                     for p in paras
                 ],
+                **_bbl_text_flags(r),
             })
 
         return {
@@ -17560,6 +17597,7 @@ def _handle_search_botschaft(
             SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
                    bd.language, bd.title, bd.publication_date, {_ds}, bd.bbl_year,
                    {_dt} AS doc_type,
+                   {_collection_select(_botschaft_documents_columns(conn))},
                    bp.paragraph_id, bp.page_number, bp.section_path,
                    bp.article_anchor,
                    snippet(botschaft_paragraphs_fts, 0,
@@ -17658,6 +17696,7 @@ def _handle_search_botschaft(
             "section":          r["section_path"],
             "article_anchor":   r["article_anchor"],
             "snippet":          _render_fts_snippet(r["snippet"]),
+            **_bbl_text_flags(r),
         }
         for r in rows
     ]
