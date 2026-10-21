@@ -84,7 +84,7 @@
         '<li><a href="/methodology.html" data-t="foot_methodology">Methodology</a></li>' +
         '<li><a href="/ueber/" data-t="foot_about">About</a></li>' +
         '<li><a href="/vorschlag/" data-t="foot_suggest">Suggest something</a></li></ul></div>' +
-      '</div><p class="foot-legal">© 2026 Jonas Hertner / OpenCaseLaw · <span data-t="foot_legal"></span></p></div></footer>';
+      '</div><p class="foot-legal">© 2026 <a href="https://jonashertner.com">Jonas Hertner</a> / OpenCaseLaw · <span data-t="foot_legal"></span></p></div></footer>';
   }
 
   function applyI18n(root) {
