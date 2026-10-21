@@ -5,9 +5,45 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Tue, 20 Oct 2026 12:45:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 21 Oct 2026 12:51:32 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht F-7070/2026 vom 2026-10-07</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-7070_2026</link>
+      <description>Asilo (non entrata nel merito) ed allontanamento (procedura Dublino - art. 31a cpv. 1 lett. b LAsi)</description>
+      <pubDate>Tue, 20 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-7070.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>ti_gerichte 30.2025.19 vom 2025-12-01</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_30.2025.19</link>
+      <description>Incarto n. 30.2025.19
+
+cs
+
+Lugano
+
+1° dicembre 2025
+
+In nome della Repubblica e Cantone Ticino
+
+Il Tribunale cantonale delle assicurazioni
+
+composto dei giudici:
+
+Daniele Cattaneo, presidente,
+
+Raffaele Guffi, Ivano Ranzanici
+
+redattore:
+
+Christian S…</description>
+      <pubDate>Tue, 20 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_30.2025.19</guid>
+      <category>ti_gerichte</category>
+    </item>
     <item>
       <title>Bundesstrafgericht BV.2026.12 vom 2026-09-30</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bstger_BV.2026.12</link>
@@ -1264,62 +1300,6 @@ Raffaele Guffi,Ivano Ranzanici
 segretar…</description>
       <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ti_gerichte_80.2026.20</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 80.2024.125 vom 2026-03-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_80.2024.125</link>
-      <description>Incarti n.80.2024.125
-
-80.2024.126
-
-Lugano
-
-25 marzo 2026
-
-In nomedella Repubblica e CantoneTicino
-
-La Camera di diritto tributario del Tribunale
- d'appello
-
-composta dai giudici
-
-Andrea
- Pedroli, presidente,
-
-Raffaele Guffi,Ivano Ranzanici
-
-cancel…</description>
-      <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_80.2024.125</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 80.2024.243 vom 2026-03-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_80.2024.243</link>
-      <description>Incarti n.80.2024.243
-
-80.2024.244
-
-Lugano
-
-25 marzo 2026
-
-In nomedella Repubblica e CantoneTicino
-
-La Camera di diritto tributario del Tribunale
- d'appello
-
-composta dai giudici
-
-Andrea
- Pedroli, presidente,
-
-Raffaele Guffi,Ivano Ranzanici
-
-segret…</description>
-      <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_80.2024.243</guid>
       <category>ti_gerichte</category>
     </item>
   </channel>
