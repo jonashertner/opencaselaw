@@ -6196,6 +6196,13 @@ _CONSULTATION_SOURCES: dict[str, str] = {
     "curated_wayback": "admin_ch_page_wayback_curated",
 }
 _CONSULTATION_PROGRESS_STEPS = 20000  # SQLite VM steps between deadline checks
+# A paragraph read by Tesseract from a scan without a text layer
+# (consultation_paragraphs.text_source = 'ocr', 2026-10-21): never the
+# document's wording as such. R2: quotable only with this flag shown.
+_CONSULTATION_OCR_NOTE = (
+    "Machine-read (OCR) from a scanned page without a text layer; recognition "
+    "errors are possible. Quote only as OCR text of the scanned PDF, naming the "
+    "page and file link, and check the wording against the PDF.")
 
 
 def _consultations_db_path() -> Path:
@@ -6270,6 +6277,28 @@ def _consultation_has_archive(conn: sqlite3.Connection) -> bool:
         return False
 
 
+def _consultation_has_text_source(conn: sqlite3.Connection) -> bool:
+    """True when consultations.db records how each paragraph was read
+    (text_source / source_member; absent before 2026-10-21)."""
+    try:
+        return "text_source" in {r[1] for r in conn.execute(
+            "PRAGMA table_info(consultation_paragraphs)")}
+    except sqlite3.Error:
+        return False
+
+
+def _consultation_text_flags(row) -> dict:
+    """The OCR flag of a passage and the archive member it is from."""
+    out: dict = {}
+    if _row_get(row, "text_source") == "ocr":
+        out.update(text_source="ocr", verbatim_quotation="ocr",
+                   ocr_note=_CONSULTATION_OCR_NOTE)
+    member = _row_get(row, "source_member")
+    if member:
+        out["file_member"] = member
+    return out
+
+
 def _consultation_procedure_meta(row, vocab: dict, language: str | None) -> dict:
     """The procedure fields every Vernehmlassung answer carries. Titles,
     dates, status and institution are Fedlex's own; the ELI URI resolves to
@@ -6325,9 +6354,11 @@ def _search_consultations(
             "cd.title_it AS doc_title_it, pr.source AS proc_source, "
             "pr.source_url AS proc_source_url,"
             if _consultation_has_archive(conn) else "")
+    tsrc = ("cp.text_source, cp.source_member,"
+            if _consultation_has_text_source(conn) else "")
     sql = f"""
         SELECT cp.paragraph_id, cp.page_number, cp.section_path, cp.article_anchor,
-               cp.text,
+               cp.text, {tsrc}
                cf.language, cf.file_url, cf.publication_date,
                cd.document_uri, cd.doc_type, {prov}
                pr.procedure_uri, pr.event_id, pr.year, pr.status_uri,
@@ -6390,6 +6421,7 @@ def _search_consultations(
             "snippet": _render_fts_snippet(r["snippet"]),
         }
         hit.update(_consultation_file_provenance(r, r["language"]))
+        hit.update(_consultation_text_flags(r))
         if len(text) > _CONSULTATION_PASSAGE_MAX:
             hit["text_truncated"] = True
         hits.append(hit)
@@ -6562,10 +6594,12 @@ def _consultations_for_sr(
             "cd.title_de AS doc_title_de, cd.title_fr AS doc_title_fr, "
             "cd.title_it AS doc_title_it,"
             if _consultation_has_archive(conn) else "")
+    ftsrc = ("cf.text_source AS file_text_source, cf.ocr_pages,"
+             if _consultation_has_text_source(conn) else "")
     for pr in procs:
         docs: dict[str, dict] = {}
         for d in conn.execute(
-                f"""SELECT cd.document_uri, cd.doc_type, {prov} cf.language, cf.file_url,
+                f"""SELECT cd.document_uri, cd.doc_type, {prov} {ftsrc} cf.language, cf.file_url,
                           cf.status, cf.text_policy
                    FROM consultation_documents cd
                    LEFT JOIN consultation_files cf ON cf.document_uri = cd.document_uri
@@ -6592,6 +6626,10 @@ def _consultations_for_sr(
                     f["linked_from"] = d["source_page_url"]
                     if d["status"] == "not_archived":
                         f["note"] = "listed by the source page; never archived, no copy found"
+                if _row_get(d, "file_text_source") in ("ocr", "mixed"):
+                    # the whole text (ocr) or some pages (mixed) read by OCR
+                    f["text_source"] = d["file_text_source"]
+                    f["ocr_pages"] = d["ocr_pages"]
                 e["files"].append(f)
             if d["status"] in ("done", "same_as"):
                 e["text_searchable"] = True
@@ -6616,9 +6654,11 @@ def _consultations_for_sr(
             title_names_act = any(
                 _passage_names_act(pr[f"title_{lg}"], None, abbrs, names)
                 for lg in ("de", "fr", "it") if pr[f"title_{lg}"])
+            tsrc = ("cp.text_source, cp.source_member,"
+                    if _consultation_has_text_source(conn) else "")
             rows = conn.execute(
-                """SELECT cf.file_id, cp.para_order, cp.page_number, cp.section_path, cp.text,
-                          cf.language, cf.file_url
+                f"""SELECT cf.file_id, cp.para_order, cp.page_number, cp.section_path, cp.text,
+                          {tsrc} cf.language, cf.file_url
                    FROM consultation_paragraphs cp
                    JOIN consultation_files cf ON cf.file_id = cp.file_id
                    JOIN consultation_documents cd ON cd.document_uri = cf.document_uri
@@ -6666,6 +6706,7 @@ def _consultations_for_sr(
                         "section": r["section_path"],
                         "text": (r["text"] or "")[:_CONSULTATION_PASSAGE_MAX],
                         "file_url": r["file_url"],
+                        **_consultation_text_flags(r),
                     })
                 if len(passages) >= 6:
                     break
@@ -14265,7 +14306,11 @@ server = Server(
         "article text was recovered at all — say the article could not be "
         "retrieved for that date and do not paraphrase the excerpt. If it "
         "carries `verbatim_quotation: best_effort` (a Word edition), quote "
-        "only with the edition date stated in the same sentence.\n\n"
+        "only with the edition date stated in the same sentence. A "
+        "Vernehmlassung passage with `text_source: ocr` was machine-read from "
+        "a scan: quote it only with that flag shown (say it is OCR text of the "
+        "scanned PDF, with page and file link), never as the document's own "
+        "wording.\n\n"
 
         "R3. NEVER state what a Swiss statute says from memory. Always "
         "call `get_law` (federal) or `get_legislation` (cantonal/federal "

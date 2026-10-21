@@ -17,8 +17,10 @@ compared with what the served databases hold:
    consultations.db (discovery lag is a GAP), and the text backlog — files
    under the text policy still pending or failed for longer than
    ``--grace-days`` are a GAP; scans without text (OCR backlog), corrupt
-   files and too-large files are listed, never hidden. Only Fedlex rows
-   count here.
+   files and too-large files are listed, never hidden. Files whose text is
+   OCR (all of it, or some pages) are counted apart from the documents' own
+   text (``text.text_source``), with the OCR backlog in pages. Only Fedlex
+   rows count here.
 4. **Vernehmlassungen outside Fedlex** (search_stack/consultation_archive.py:
    the Chancellery's 1995-2004 index and the BJ project pages, live and
    Wayback): entries per source and how they matched, documents by type,
@@ -152,6 +154,9 @@ def check_historical(mconn, discover: Callable) -> dict:
         if dupes:
             by_status["fedlex_duplicate_of_stored"] = dupes
         out["by_language"][lang] = {
+            # Every stored document's text is the Bundesarchiv's OCR layer of
+            # the scan (third-party OCR, errors kept as printed by the OCR).
+            "text_source": "bar_ocr_layer",
             "fedlex": len(uris), "stored": stored,
             "accounted": stored + dupes, "not_stored": len(uris) - stored - dupes,
             "not_stored_by_state": by_status, "fedlex_by_type": by_type,
@@ -254,15 +259,48 @@ def check_vernehmlassungen(cconn, sparql: Callable, today: date, grace_days: int
     problems = cconn.execute(
         "SELECT d.doc_type, f.status, f.document_uri, f.language, f.error "
         "FROM consultation_files f JOIN consultation_documents d USING(document_uri) "
-        "WHERE f.status IN ('no_text', 'parse_error', 'too_large', 'not_found')" + f_only
+        "WHERE f.status IN ('no_text', 'parse_error', 'too_large', 'not_found', "
+        "'unsupported_format', 'empty_file', 'truncated')" + f_only
         + " ORDER BY f.status, f.document_uri LIMIT ?", (SAMPLE,)).fetchall()
     out["text"] = {
         "by_type_and_status": by_status,
         "backlog": len(backlog), "backlog_past_grace": len(aged),
         "backlog_sample": [dict(r) for r in aged[:SAMPLE]],
         "without_text_sample": [dict(r) for r in problems],
+        # OCR text is counted apart from the documents' own text (R2).
+        "text_source": _text_source(cconn, f_only.replace("f.", "")),
     }
     out["gap"] = n_lag + len(aged)
+    return out
+
+
+def _text_source(cconn, where: str = "") -> dict:
+    """Searchable files by where their text comes from: the document itself
+    (text layer, Word, Excel), OCR of a scan, or both (some pages OCR); the
+    OCR'd pages; and what the OCR pass has not looked at yet. From the file
+    rows (no scan of the paragraph table). {} on a database from before the
+    text_source column (2026-10-21)."""
+    cols = {r[1] for r in cconn.execute("PRAGMA table_info(consultation_files)")}
+    if "text_source" not in cols:
+        return {}
+    out: dict = {"files_with_text": {}, "ocr_pages": 0}
+    for r in cconn.execute(
+            "SELECT COALESCE(text_source, 'document') ts, COUNT(*) n, "
+            "COALESCE(SUM(ocr_pages), 0) p FROM consultation_files "
+            "WHERE status = 'done'" + where + " GROUP BY 1"):
+        out["files_with_text"][r["ts"]] = r["n"]
+        out["ocr_pages"] += r["p"]
+    nt = cconn.execute(
+        "SELECT COUNT(*), COALESCE(SUM(page_count), 0) FROM consultation_files "
+        "WHERE status = 'no_text' AND page_count > 0 AND ocr_at IS NULL" + where).fetchone()
+    pa = cconn.execute(
+        "SELECT COUNT(*), COALESCE(SUM(empty_pages), 0) FROM consultation_files "
+        "WHERE status = 'done' AND empty_pages > 0 AND ocr_at IS NULL" + where).fetchone()
+    out["ocr_backlog"] = {"no_text_files": nt[0], "no_text_pages": nt[1],
+                          "partial_files": pa[0], "partial_empty_pages": pa[1]}
+    out["no_text_after_ocr"] = cconn.execute(
+        "SELECT COUNT(*) FROM consultation_files WHERE status = 'no_text' "
+        "AND ocr_at IS NOT NULL" + where).fetchone()[0]
     return out
 
 
@@ -288,6 +326,7 @@ def check_archive_sources(cconn) -> dict:
         f"AND text_policy='text' AND status NOT IN ({marks}) GROUP BY 1",
         tuple(sorted(FINAL_STATUSES)))}
     out["backlog"] = sum(out["backlog_by_source"].values())
+    out["text_source"] = _text_source(cconn, " AND source IS NOT NULL")
     early = cconn.execute(
         """SELECT p.year,
                   COUNT(*) AS procedures,
@@ -342,6 +381,10 @@ def summarise(report: dict) -> list[str]:
                      f"{c.get('fedlex', {}).get('procedures')} procedures, discovery lag "
                      f"{c.get('discovery_lag')}, text backlog {c.get('text', {}).get('backlog')} "
                      f"({c.get('text', {}).get('backlog_past_grace')} past grace)")
+        ts = c.get("text", {}).get("text_source") or {}
+        if ts:
+            lines.append(f"Vernehmlassungen text: {ts['files_with_text']} files "
+                         f"(ocr pages {ts['ocr_pages']}), OCR backlog {ts['ocr_backlog']}")
     a = report.get("archive_sources", {})
     for src, v in a.get("sources", {}).items():
         lines.append(f"Vernehmlassungen {src}: {v['entries']} entries "

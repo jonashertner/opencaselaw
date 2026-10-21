@@ -72,10 +72,11 @@ def _doc_rows(file_suffix=""):
     rows.append(b(c=P1, doc=P1 + "/doc_6", dt=V + "draft-document-type/13",
                   lang=LANG["de"], fmt=V + "user-format/pdf-a",
                   file=f"{FS}/doc_6/de/pdf-a/bs-de.pdf"))
-    # Diverses only as .doc: unsupported format, kept with its link
+    # Diverses only as a PowerPoint deck: unsupported format, kept with its link
+    # (.doc, .xlsx and .zip are read since 2026-10-21)
     rows.append(b(c=P1, doc=P1 + "/doc_5", dt=V + "draft-document-type/15",
-                  lang=LANG["de"], fmt=V + "user-format/doc",
-                  file=f"{FS}/doc_5/de/doc/div-de.doc"))
+                  lang=LANG["de"], fmt=V + "user-format/pptx",
+                  file=f"{FS}/doc_5/de/pptx/div-de.pptx"))
     # a row for a procedure outside this year's set is ignored
     rows.append(b(c="https://fedlex.data.admin.ch/eli/dl/proj/1999/1/cons_1",
                   doc="x", dt=V + "draft-document-type/12"))

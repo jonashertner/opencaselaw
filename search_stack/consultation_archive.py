@@ -990,7 +990,9 @@ def store_procedure(conn: sqlite3.Connection, ap: ArchiveProcedure, match: Match
                         (doc_uri, lg, f.snapshot, "pdf", f.file_name, f.publication_date,
                          policy, status, ap.source, f.original_url, f.source_page_url))
                     stats["files_new"] += 1
-                elif prev["file_url"] != f.snapshot:
+                elif prev["file_url"] != f.snapshot and \
+                        alternate_captures(conn).get(str(prev["file_id"]), {}).get(
+                            "truncated") != f.snapshot:
                     conn.execute("DELETE FROM consultation_paragraphs WHERE file_id=?",
                                  (prev["file_id"],))
                     conn.execute(
@@ -1823,11 +1825,97 @@ def census(conn: sqlite3.Connection) -> dict:
     return out
 
 
+# ── truncated Wayback copies ──────────────────────────────────────────
+#
+# Discovery takes the newest capture of a file. When that capture is a Common
+# Crawl record, the Wayback Machine replays the first 5 MiB as the file
+# (2026-10-21: 19 BJ Stellungnahmen PDFs, status 'truncated'), while older
+# captures hold the whole file (stgn-kantone.pdf: 18.7 MB in 2022).
+
+ALTERNATE_CAPTURES_META = "archive_alternate_captures"
+_SNAPSHOT_TS_RE = re.compile(r"^https://web\.archive\.org/web/(\d{14})(?:id_)?/")
+REPAIR_MAX_TRIES = 3
+
+
+def alternate_captures(conn: sqlite3.Connection) -> dict:
+    """{file_id: {"truncated": snapshot, "complete": snapshot, "at": ...}}:
+    the files whose cut-short newest capture was replaced by a complete
+    older one; discovery keeps that choice."""
+    row = conn.execute("SELECT value FROM meta WHERE key=?",
+                       (ALTERNATE_CAPTURES_META,)).fetchone()
+    return json.loads(row[0]) if row and row[0] else {}
+
+
+def _complete_pdf(data: bytes) -> bool:
+    return (len(data) != bcc.WAYBACK_TRUNCATED_BYTES
+            and bcc.sniff_format(data[:1024]) == "pdf" and b"%%EOF" in data[-2048:])
+
+
+def repair_truncated(conn: sqlite3.Connection, http: ArchiveHttp, *,
+                     max_tries: int = REPAIR_MAX_TRIES) -> dict:
+    """For each 'truncated' Wayback file: the file's other 200 captures,
+    newest first (at most ``max_tries`` downloads), until one is a complete
+    PDF; that snapshot becomes the row's file_url and is ingested at once
+    (no second download). The original URL and the linking page are kept;
+    the choice is logged in meta so a later discovery does not undo it."""
+    rows = conn.execute(
+        f"""SELECT file_id, document_uri, language, file_url, format, original_url
+            FROM consultation_files WHERE status = '{bcc.ST_TRUNCATED}'
+              AND file_url LIKE '{WAYBACK}/web/%' AND original_url IS NOT NULL
+            ORDER BY file_id""").fetchall()
+    kept = alternate_captures(conn)
+    stats: dict = {"truncated": len(rows), "repaired": 0, "no_complete_capture": 0,
+                   "downloads": 0, "by_status": {}}
+    found: dict[str, tuple[str, bytes] | None] = {}   # original URL -> (snapshot, bytes)
+    others: dict[str, int] = {}                        # original URL -> other captures
+    for r in rows:
+        orig = r["original_url"]
+        if orig not in found:
+            m = _SNAPSHOT_TS_RE.match(r["file_url"])
+            cur = m.group(1) if m else None
+            caps = sorted({c["timestamp"]: c for c in cdx_query(http, orig)
+                           if c["timestamp"] != cur}.values(),
+                          key=lambda c: c["timestamp"], reverse=True)
+            found[orig], others[orig] = None, len(caps)
+            for c in caps[:max_tries]:
+                snap = snapshot_url(c["timestamp"], c["original"])
+                try:
+                    data = http.get(bcc.download_url(snap))
+                except NotFound:
+                    continue
+                stats["downloads"] += 1
+                if _complete_pdf(data):
+                    found[orig] = (snap, data)
+                    break
+        hit = found[orig]
+        if hit is None:
+            stats["no_complete_capture"] += 1
+            conn.execute("UPDATE consultation_files SET error=? WHERE file_id=?",
+                         (f"archived copy cut short; no complete capture among the "
+                          f"{min(max_tries, others[orig])} newest others", r["file_id"]))
+            conn.commit()
+            continue
+        snap, data = hit
+        conn.execute(
+            f"UPDATE consultation_files SET file_url=?, status='{bcc.ST_PENDING}', attempts=0, "
+            "error=NULL WHERE file_id=?", (snap, r["file_id"]))
+        kept[str(r["file_id"])] = {"truncated": r["file_url"], "complete": snap,
+                                   "at": bcc._now()}
+        bcc.set_meta(conn, ALTERNATE_CAPTURES_META, kept)
+        conn.commit()
+        row = {**dict(r), "file_url": snap}
+        st = bcc._ingest(conn, row, data, len(data), hashlib.sha256(data).hexdigest(),
+                         hashlib.sha256(data[:bcc.SAME_FILE_PREFIX_BYTES]).hexdigest())
+        stats["repaired"] += 1
+        stats["by_status"][st] = stats["by_status"].get(st, 0) + 1
+    return stats
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(message)s",
                         datefmt="%H:%M:%S")
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("command", choices=["discover", "census", "suppress"])
+    ap.add_argument("command", choices=["discover", "census", "suppress", "repair-truncated"])
     ap.add_argument("--work-db", required=True)
     ap.add_argument("--source", default="all",
                     help="admin-pc, bj, bj-wayback, curated or all (comma-separated)")
@@ -1848,6 +1936,13 @@ def main(argv: list[str] | None = None) -> int:
         http = ArchiveHttp(cache_dir=args.cache_dir)
         try:
             result["discovery"] = discover(conn, wanted, http, years=years)
+        except SourceUnavailable as e:
+            log.error("stopped: %s", e)
+            result["stopped"] = str(e)
+            rc = bcc.INGEST_STOPPED_EXIT_CODE
+    if args.command == "repair-truncated":
+        try:
+            result["repair_truncated"] = repair_truncated(conn, ArchiveHttp(cache_dir=args.cache_dir))
         except SourceUnavailable as e:
             log.error("stopped: %s", e)
             result["stopped"] = str(e)

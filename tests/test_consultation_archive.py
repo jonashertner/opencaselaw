@@ -958,3 +958,55 @@ def test_curated_entry_without_its_fedlex_procedure_is_created(work):
                                 "WHERE source='curated_wayback'").fetchall())
     assert created["urn:opencaselaw:curated_wayback:bj-vernehm-1998-tiere-keine-sachen"] \
         == "Tiere sind keine Sachen"
+
+
+def test_truncated_capture_is_repaired_from_a_complete_older_one(work):
+    """2026-10-21: the newest capture of 19 BJ Stellungnahmen PDFs is a
+    Common Crawl record cut at 5 MiB; an older capture holds the whole file.
+    The repair ingests it at once, and a later discovery keeps it."""
+    _seed_curated_fedlex(work)
+    _discover_curated(work)
+    row = work.execute("SELECT * FROM consultation_files WHERE file_url LIKE '%entd.pdf'").fetchone()
+    work.execute("UPDATE consultation_files SET status='truncated' WHERE file_id=?",
+                 (row["file_id"],))
+    work.commit()
+    orig = row["original_url"]
+    cur_ts = ca._SNAPSHOT_TS_RE.match(row["file_url"]).group(1)
+    old_ok, old_cut = "19980101000000", "19990101000000"
+    full = _pdf("Entwurf zum Bundesgesetz über das Haager Adoptionsübereinkommen. " * 8)
+    web = FakeWeb(
+        {f"https://web.archive.org/web/{old_cut}id_/{orig}": full[:-200],   # no %%EOF
+         f"https://web.archive.org/web/{old_ok}id_/{orig}": full},
+        {orig: [_cdx_row(orig, ts, "application/pdf") for ts in (old_ok, cur_ts, old_cut)]})
+    st = ca.repair_truncated(work, ca.ArchiveHttp(opener=web, intervals={}))
+    assert st == {"truncated": 1, "repaired": 1, "no_complete_capture": 0, "downloads": 2,
+                  "by_status": {"done": 1}}
+    r = work.execute("SELECT * FROM consultation_files WHERE file_id=?",
+                     (row["file_id"],)).fetchone()
+    assert r["file_url"] == f"https://web.archive.org/web/{old_ok}/{orig}"
+    assert r["status"] == "done" and r["original_url"] == orig
+    assert r["source_page_url"] == row["source_page_url"]
+    kept = ca.alternate_captures(work)[str(row["file_id"])]
+    assert kept["truncated"] == row["file_url"] and kept["complete"] == r["file_url"]
+    # discovery offers the newest (cut) capture again: the complete one stays
+    st = _discover_curated(work)
+    assert st["files_requeued"] == 0
+    r2 = work.execute("SELECT file_url, status FROM consultation_files WHERE file_id=?",
+                      (row["file_id"],)).fetchone()
+    assert tuple(r2) == (r["file_url"], "done")
+
+
+def test_truncated_capture_without_a_complete_one_says_so(work):
+    _seed_curated_fedlex(work)
+    _discover_curated(work)
+    row = work.execute("SELECT * FROM consultation_files WHERE file_url LIKE '%entd.pdf'").fetchone()
+    work.execute("UPDATE consultation_files SET status='truncated' WHERE file_id=?",
+                 (row["file_id"],))
+    work.commit()
+    web = FakeWeb({}, {row["original_url"]: []})
+    st = ca.repair_truncated(work, ca.ArchiveHttp(opener=web, intervals={}))
+    assert st["no_complete_capture"] == 1
+    r = work.execute("SELECT status, error, file_url FROM consultation_files WHERE file_id=?",
+                     (row["file_id"],)).fetchone()
+    assert r["status"] == "truncated" and "no complete capture" in r["error"]
+    assert r["file_url"] == row["file_url"]
