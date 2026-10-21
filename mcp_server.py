@@ -7177,8 +7177,10 @@ def get_materialien(law_code: str, article: str | None = None,
                     f"No digest and no linked Federal Council message for {where}"
                     + (" — only the AS/BBl amendment references below."
                        if amendment_refs else ".")
-                    + " search_botschaft runs full-text over all 6,154 messages "
-                      "and is the better tool when an article has no link."
+                    + " search_botschaft runs full-text over all 10,100+ Federal "
+                      "Council messages, the other Bundesblatt Materialien and the "
+                      "Vernehmlassung documents, and is the better tool when an "
+                      "article has no link."
                 )
         return out
     except sqlite3.Error as e:
@@ -7331,8 +7333,9 @@ def search_materialien(
             out["note"] = (
                 "No hit in the curated digest, which covers only BV and BGFA. "
                 "This is a coverage limit, not an absence of materials: use "
-                "search_botschaft for full-text search across all 6,154 Federal "
-                "Council messages (421,489 indexed paragraphs), or "
+                "search_botschaft for full-text search across all 10,100+ Federal "
+                "Council messages, the other Bundesblatt Materialien and the "
+                "Vernehmlassung documents, or "
                 "get_materialien(law_code) for the messages linked to a "
                 "specific statute."
             )
@@ -14198,11 +14201,13 @@ server = Server(
         "in French or English, "
         "5,525 federal laws (Fedlex SPARQL), 15,600 cantonal laws (direct "
         "portal scraping for 19 cantons + LexFind fallback for the rest), "
-        "1,100+ scholarly commentaries, a verbatim Federal Council Botschaft "
-        "corpus (5,900+ documents, ~410K FTS5-indexed paragraphs) and the "
-        "documents of the federal Vernehmlassungen (Erläuternde Berichte, "
-        "Vorlagen, Ergebnisberichte, Stellungnahmen; via search_botschaft and "
-        "get_materialien), "
+        "1,100+ scholarly commentaries, verbatim federal Materialien — "
+        "19,800+ Bundesblatt documents (Federal Council Botschaften, Berichte "
+        "and Stellungnahmen, parliamentary committee reports, Erlassentwürfe; "
+        "complete since 1999, 1850-1999 being added; ~1.65M paragraphs) and "
+        "2,694 Vernehmlassungen since 1993 with 10,296 documents (Erläuternde "
+        "Berichte, Vorlagen, Ergebnisberichte, Stellungnahmen), via "
+        "search_botschaft and get_materialien — "
         "federal administrative practice — Verwaltungspraxis, 9,900+ documents: "
         "BSV Wegleitungen, Kreisschreiben, Rundschreiben and Mitteilungen for "
         "AHV/IV/EL/EO/FamZ/BVG (every retained version, DE/FR/IT), "
@@ -30447,7 +30452,7 @@ def _list_tools() -> list[Tool]:
                 "means 'outside this index', not 'no materials exist'. Each hit names its "
                 "source message (bbl_ref, title, publication_date from Fedlex where "
                 "available, with `publication_date_source`). "
-                "Prefer search_botschaft, which covers all 6,154 Federal Council messages "
+                "Prefer search_botschaft, which covers all 10,100+ Federal Council messages "
                 "plus Berichte, Stellungnahmen, committee reports, Erlassentwürfe and the "
                 "Vernehmlassung documents (Erläuternde Berichte, Ergebnisberichte) "
                 "verbatim (filter by doc_type), or get_materialien(law_code) for the "

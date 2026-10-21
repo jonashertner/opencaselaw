@@ -63,7 +63,7 @@ The largest open collection of Swiss court decisions: 1,050,000+ decision record
 
 **What this Parquet dataset contains:** the decisions corpus (`data/`), the citation and statute-reference graph (`graph/`), and structured decision sections (`structure/`). `structure/` is refreshed only when its export fits the nightly build's time budget, so it can lag `data/` by days; the live sidecar behind the MCP tools is always current.
 
-**Not included as bulk Parquet — served live via the [MCP API](https://mcp.opencaselaw.ch) and [dashboard](https://opencaselaw.ch):** the full **law texts** and **legislative materials**. These are queried in real time (`get_law`, `search_laws`, `get_legislation`, `get_materialien`) and sourced from Fedlex SPARQL (5,525 federal laws / 132,586 articles in DE/FR/IT), direct cantonal-portal scraping with LexFind fallback (15,600 cantonal laws / 353,464 articles), and a verbatim Botschaft/Materialien corpus (references for ~33,000 statute articles, digests for BV and BGFA, and Amtliches-Bulletin debate transcripts for the BV). The statute-decision *links* above are included in the download; the article *texts* are not.
+**Not included as bulk Parquet — served live via the [MCP API](https://mcp.opencaselaw.ch) and [dashboard](https://opencaselaw.ch):** the full **law texts** and **legislative materials**. These are queried in real time (`get_law`, `search_laws`, `get_legislation`, `get_materialien`) and sourced from Fedlex SPARQL (5,525 federal laws / 132,586 articles in DE/FR/IT), direct cantonal-portal scraping with LexFind fallback (15,600 cantonal laws / 353,464 articles), and verbatim federal Materialien: the Bundesblatt documents (Federal Council Botschaften, Berichte and Stellungnahmen, parliamentary committee reports, Erlassentwürfe; complete against Fedlex since 1999, 1850–1999 being added from the Federal Archives scans) and the federal Vernehmlassungen (every Fedlex consultation since 1993 with its Erläuternde Berichte, Vorlagen, Ergebnisberichte and Stellungnahmen, plus the FOJ legislative projects), alongside references for ~33,000 statute articles, digests for BV and BGFA, and Amtliches-Bulletin debate transcripts for the BV. The statute-decision *links* above are included in the download; the article *texts* are not.
 
 ## Quick Start
 
@@ -180,12 +180,13 @@ This snapshot is intended for local MCP/server bootstrap tools that want to avoi
 | Federal laws indexed | 5,525 (400,405 articles total / ~133,359 per DE/FR/IT) |
 | Cantonal laws indexed | 15,600 (361,430 articles, direct-scraped + LexFind) |
 | Laws with Botschaft refs | 2,615 (33,465 articles) |
-| Verbatim Botschaft corpus | 5,900+ documents / ~410K FTS5-indexed paragraphs (Phase 2, scaling) |
+| Verbatim Bundesblatt Materialien | 19,800+ documents (DE/FR/IT) / ~1.65M paragraphs; 10,100+ Botschaften plus Berichte, Stellungnahmen, committee reports, Erlassentwürfe; 26,500+ article links |
+| Vernehmlassungen | 2,694 procedures since 1993 / 10,296 documents verbatim (Erläuternde Berichte, Vorlagen, Ergebnisberichte, Stellungnahmen — the latter on Fedlex systematically since 2016) |
 | Legislation texts searchable | 33,000+ (federal + cantonal + intercantonal) |
 | Scholarly commentaries | 1,100+ (OnlineKommentar.ch + OpenLegalCommentary.ch) |
 | MCP tools | 44 total (42 remote in public mode + 2 local-only) |
 
-> Rows from *Federal laws indexed* downward (laws, Botschaft/Materialien, legislation texts, commentaries) are **platform figures served live via the MCP API**, not contents of this Parquet download. The Parquet dataset comprises `data/` (decisions), `graph/` (citations + statute-decision links), and `structure/`.
+> Rows from *Federal laws indexed* downward (laws, Bundesblatt Materialien, Vernehmlassungen, legislation texts, commentaries) are **platform figures served live via the MCP API**, not contents of this Parquet download. The Parquet dataset comprises `data/` (decisions), `graph/` (citations + statute-decision links), and `structure/`.
 
 **Language distribution:**
 
@@ -356,8 +357,8 @@ See the governance policy for source withdrawals, re-anonymization, and verified
   note={1,050,000+ Swiss federal, cantonal, and regulatory decision records (~909,000 unique) with full text,
         structured metadata, 9.65M resolved citation edges, 12.4M statute links,
         5,525 federal laws, 15,600 cantonal laws,
-        and legislative history (83,958 Botschaft amendment references; 459
-        verbatim Botschaften, scaling).
+        and legislative history (19,800+ verbatim Bundesblatt documents,
+        2,694 Vernehmlassungen with 10,296 documents).
         Searchable via 44 MCP tools (42 remote in public mode + 2 local-only) from Claude, ChatGPT, Cursor, Gemini, Grok, or any MCP/function-calling client. Updated daily.}
 }
 ```

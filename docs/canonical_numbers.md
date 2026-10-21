@@ -74,9 +74,14 @@ the paper snapshot predates this and reports the record count only. See
 | Quantity | Value | Source | Consumers |
 |---|---:|---|---|
 | Botschaft documents (paper snapshot) | 5,292 | `corpus_graph_stats.json` | paper §4 |
-| Botschaft documents (live) | **5,900+** | `botschaft.db` | dataset_card, README, dashboards |
+| Bundesblatt documents (live, DE/FR/IT language versions) | **19,800+** (9,700+ works; 10,100+ Botschaften, the rest Berichte and Stellungnahmen des Bundesrates, Kommissionsberichte, Erlassentwürfe, Vernehmlassungs-Eröffnungen) | `materialien.db::botschaft_documents` (`stats.json::materialien_coverage`) | dataset_card, README, index.html register, stats page, mcp_server.py instructions |
+| Bundesblatt coverage (live) | typed 1999– complete against Fedlex; 1850–1999 being added nightly (DE back to 1935 on 2026-10-21) | `logs/materialien_completeness.json` | dataset_card, index.html register |
 | Paragraphs (paper snapshot) | 381,711 | same | paper |
-| Paragraphs (live) | **~410K** | `botschaft.db` | dataset_card, README |
+| Paragraphs (live) | **~1.65M** | `materialien.db::botschaft_paragraphs` | dataset_card, README |
+| Article links (live) | **26,500+** across 770 acts | `materialien.db::article_botschaft_links` | dataset_card, README |
+| Vernehmlassungen (live) | **2,694 procedures** (2,582 = every Fedlex consultation since 1993, + 112 from the FOJ legislative projects and the Chancellery's 1995–2004 index) | `consultations.db::consultation_procedures` (`stats.json::consultation_coverage`) | dataset_card, README, index.html register, stats page, mcp_server.py instructions |
+| Vernehmlassung documents searchable (live) | **10,296** (2,630 Erläuternde Berichte, 3,340 Vorlagen, 1,995 Ergebnisberichte, 1,331 Stellungnahmen collections, 243 synoptische Tabellen, 757 other) / ~10.8M paragraphs | same | dataset_card, README, index.html register |
+| Vernehmlassungseingaben (caveat) | on Fedlex systematically only since 2016; earlier ones only where the FOJ published them | census 2026-10-21 | dataset_card, README |
 | Article-anchored links | 8,124 | same | paper |
 
 ### Commentaries
@@ -181,3 +186,5 @@ Source: `analytics.db::weekly_reach` (after 2026-05-18 cohort-derivation upgrade
 4. Bump the "Last verified" line below.
 
 **Last verified:** 2026-07-24 (live-figure sweep vs stats.json + reference_graph.db: **~1.05M records / ~909k unique decisions** (cross-identifier dual-count now live), courts 118, citation edges 9.65M resolved / ~10M extracted, statute 12.4M, federal laws 5,525, cantonal 15,600, Botschaft 5,900+/~410K, commentaries ~1,131, tools 43/41/2; paper-snapshot rows unchanged at 971,992). Consumers synced this sweep: README, dataset_card, dataset_card_legislation, methodology.html (6 langs), index.html, mcp_server.py (instructions + tool descriptions), llms.txt, claude-desktop-setup.md, entscheide/ + ueber/ pages, word-addin AppSource listing. Paper (docs/paper/*) intentionally left at its frozen snapshot.
+
+**Materialien re-verified 2026-10-21** against production materialien.db / consultations.db: Bundesblatt 19,842 rows (9,727 works), 1,650,592 paragraphs, 26,587 article links / 770 acts; Vernehmlassungen 2,694 procedures, 10,296 searchable documents, 10,841,357 paragraphs. Consumers synced: README, dataset_card, index.html register (DE/FR/IT/EN), stats page, mcp/api pages, mcp_server.py instructions + tool descriptions.

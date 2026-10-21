@@ -1133,6 +1133,28 @@ def fetch(conn: sqlite3.Connection, *, rate_limit: float = 0.5,
 
 # ── Publish ────────────────────────────────────────────────────────────
 
+def coverage_counts(conn: sqlite3.Connection) -> dict:
+    """The served corpus in numbers: procedures (all / from Fedlex), the
+    documents with searchable text (by type), paragraphs, year range."""
+    readable = f"f.status IN ('{ST_DONE}', '{ST_SAME_AS}')"
+    procs, fedlex, lo, hi = conn.execute(
+        "SELECT COUNT(*), SUM(source IS NULL), MIN(year), MAX(year) FROM consultation_procedures"
+    ).fetchone()
+    by_type = {r[0]: int(r[1]) for r in conn.execute(
+        f"""SELECT d.doc_type, COUNT(DISTINCT d.document_uri) FROM consultation_documents d
+            JOIN consultation_files f ON f.document_uri = d.document_uri
+            WHERE {readable} GROUP BY 1""")}
+    docs = conn.execute(f"SELECT COUNT(DISTINCT document_uri) FROM consultation_files f "
+                        f"WHERE {readable}").fetchone()[0]
+    return {
+        "procedures": int(procs or 0), "procedures_fedlex": int(fedlex or 0),
+        "documents": int(docs or 0), "by_doc_type": by_type,
+        "paragraphs": int(conn.execute("SELECT COUNT(*) FROM consultation_paragraphs").fetchone()[0]),
+        "year_range": {"from": lo, "to": hi} if lo else None,
+        "counted_at": _now(),
+    }
+
+
 def publish(conn: sqlite3.Connection, out_path: str | Path) -> Path:
     """Atomic snapshot of the work DB onto the served path. The .tmp sits
     next to the REAL file (a symlinked output/ entry pointing at the data
@@ -1143,6 +1165,9 @@ def publish(conn: sqlite3.Connection, out_path: str | Path) -> Path:
     if tmp.exists():
         tmp.unlink()
     set_meta(conn, "published_at", _now())
+    # Counts for stats.json (generate_stats reads them from meta instead of
+    # counting ~10M paragraphs during the nightly build).
+    set_meta(conn, "coverage", coverage_counts(conn))
     conn.commit()
     conn.execute("VACUUM INTO ?", (str(tmp),))
     chk = sqlite3.connect(f"file:{tmp}?mode=ro", uri=True)

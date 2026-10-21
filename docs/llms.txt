@@ -23,12 +23,13 @@ authoritative source, and emit clickable verification links to the user.
 ## Corpus & coverage
 
 - [Hugging Face dataset (Parquet, CC0)](https://huggingface.co/datasets/voilaj/swiss-caselaw): 1,050,000+ decisions across all Swiss federal and cantonal courts, 1875–today, dreisprachig (DE/FR/IT). Daily refresh.
+- Federal legislative materials (Materialien), verbatim and queryable via `search_botschaft` / `get_materialien`: 19,800+ Bundesblatt documents in DE/FR/IT (Federal Council Botschaften, Berichte and Stellungnahmen, parliamentary committee reports, Erlassentwürfe; complete against Fedlex since 1999, 1850–1999 being added from the Federal Archives scans) and 2,694 Vernehmlassungen since 1993 with 10,296 documents (Erläuternde Berichte, Vorlagen, Ergebnisberichte, Stellungnahmen).
 - [Per-court coverage transparency](https://opencaselaw.ch/coverage/): live scraper-health table — which sources updated when, what gaps remain, sortable + filterable.
 - [Statistics endpoint](https://mcp.opencaselaw.ch/api/statistics): aggregate counts by court, canton, year.
 
 ## How to query the corpus
 
-- [Live MCP endpoint](https://mcp.opencaselaw.ch): single URL — paste into Claude / ChatGPT / Cursor / Gemini / Copilot Studio. 38 specialised tools cover full-text search, citation graph traversal, statute lookup, doctrinal timelines, leading-case discovery, scholarly commentary, legislative materials, open-access scholarship search, exam-question generation.
+- [Live MCP endpoint](https://mcp.opencaselaw.ch): single URL — paste into Claude / ChatGPT / Cursor / Gemini / Copilot Studio. 42 specialised tools cover full-text search, citation graph traversal, statute lookup, doctrinal timelines, leading-case discovery, scholarly commentary, legislative materials, open-access scholarship search, exam-question generation.
 - [REST API (OpenAPI 3.0.3)](https://mcp.opencaselaw.ch/api/docs): every MCP capability also exposed as REST. Useful for languages without an MCP client library.
 - [Research CLI `ocl`](https://opencaselaw.ch/cli/): dependency-free command-line client over the REST API for scripts and agents. Checks the citations in a draft (resolved / missing / ambiguous, pinpoints verified) and saves the evidence behind a memo into a folder with a hashed manifest. Full guide: <https://github.com/jonashertner/opencaselaw/blob/main/docs/research-cli.md>. Typed research contract: `/api/research/openapi.json`.
 - [How to connect](https://opencaselaw.ch/#connect): copy-paste setup instructions per AI client.

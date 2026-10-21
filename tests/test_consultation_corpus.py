@@ -600,3 +600,22 @@ def test_heading_path_finds_the_act_above_the_topic(served):
                     "2.1.17 Rückerstattung von Leistungen"]
     assert served._heading_path(c, 1, 5, "Ohne Nummer") == ["Ohne Nummer"]
     assert served._heading_path(c, 1, 5, None) == []
+
+
+def test_publish_writes_coverage_counts(served):
+    import json as _json, sqlite3 as _sq
+    c = _sq.connect(f"file:{served._consultations_db_path()}?mode=ro", uri=True)
+    cov = _json.loads(c.execute("SELECT value FROM meta WHERE key='coverage'").fetchone()[0])
+    c.close()
+    assert cov["procedures"] == 2 and cov["procedures_fedlex"] == 2
+    assert cov["documents"] == 2 and cov["by_doc_type"] == {"erlaeuternder_bericht": 1, "stellungnahmen": 1}
+    assert cov["paragraphs"] > 0 and cov["year_range"] == {"from": 2023, "to": 2023}
+
+
+def test_generate_stats_reads_consultation_coverage(served, tmp_path):
+    import shutil
+    import generate_stats as gs
+    (tmp_path / "output").mkdir()
+    shutil.copy(served._consultations_db_path(), tmp_path / "output" / "consultations.db")
+    out = gs.collect_interesting_stats(tmp_path)
+    assert out["consultation_coverage"]["procedures"] == 2

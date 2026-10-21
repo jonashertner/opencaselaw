@@ -1210,6 +1210,25 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
         except sqlite3.Error:
             pass
 
+    # Vernehmlassungen (consultations.db, 2026-10-21): the counts the builder
+    # wrote at publish time (meta 'coverage'); procedures only when the meta
+    # is missing (never a paragraph count during the build window).
+    consultations_db = repo_dir / "output" / "consultations.db"
+    if consultations_db.exists():
+        try:
+            c = sqlite3.connect(f"file:{consultations_db}?mode=ro&immutable=1", uri=True, timeout=10)
+            try:
+                row = c.execute("SELECT value FROM meta WHERE key = 'coverage'").fetchone()
+                if row:
+                    out["consultation_coverage"] = json.loads(row[0])
+                else:
+                    n = c.execute("SELECT COUNT(*) FROM consultation_procedures").fetchone()[0]
+                    out["consultation_coverage"] = {"procedures": int(n)}
+            finally:
+                c.close()
+        except (sqlite3.Error, ValueError):
+            pass
+
     # ── 10b. Administrative practice — Verwaltungspraxis documents ───────
     practice = _practice_coverage(repo_dir)
     if practice:

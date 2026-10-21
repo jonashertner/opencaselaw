@@ -176,7 +176,7 @@ def test_search_materialien_states_its_corpus_and_routes(mat_db):
 def test_tool_descriptions_do_not_overstate_coverage():
     tools = {t.name: t.description for t in mcp_server._list_tools()}
     sm = tools["search_materialien"]
-    assert "search_botschaft" in sm and "6,154" in sm
+    assert "search_botschaft" in sm and "10,100+" in sm
     gm = tools["get_materialien"]
     assert "botschaft_documents" in gm
     # the old text told callers sources=[] was the whole story
