@@ -129,6 +129,12 @@ def main() -> int:
         help="Compute the link delta without inserting",
     )
     ap.add_argument(
+        "--no-historical",
+        action="store_true",
+        help="Skip linking the 1850-1999 documents from the statute footnotes' "
+             "volume citations (search_stack.historical_botschaft_links)",
+    )
+    ap.add_argument(
         "--types",
         default=",".join(str(t) for t in sorted(FGA_DOC_TYPES)),
         help=(
@@ -151,6 +157,17 @@ def main() -> int:
     if not statutes_path.exists():
         log.error(f"statutes.db not found: {statutes_path}")
         return 1
+
+    # 0. The 1850-1999 documents: linked from the statute footnotes' volume
+    # citations ("BBl 1975 I 609"), locally, before (and independent of) the
+    # SPARQL chain below, which knows only the typed post-1998 works.
+    if not args.no_historical:
+        from search_stack.historical_botschaft_links import link_historical
+        hconn = sqlite3.connect(db_path)
+        try:
+            link_historical(hconn, statutes_path, dry_run=args.dry_run)
+        finally:
+            hconn.close()
 
     # 1. Pull all Botschaft → cc pairs from Fedlex SPARQL.
     log.info(f"Querying Fedlex SPARQL for document → cc pairs (types {list(type_ids)})…")
