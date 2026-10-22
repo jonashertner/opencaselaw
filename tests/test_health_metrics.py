@@ -156,13 +156,14 @@ def test_daily_cost_sums_within_window(tmp_path):
     p = tmp_path / "llm_usage.jsonl"
     # now = Sun 2026-05-17 12:00 UTC
     now = 1_779_019_200
+    # Append order, as the workers write it (oldest first).
     p.write_text(
-        # 1h ago — in window
-        json.dumps({"ts": "2026-05-17T11:00:00Z", "cost_usd": 0.10}) + "\n"
+        # 36h ago — outside 24h window
+        json.dumps({"ts": "2026-05-16T00:00:00Z", "cost_usd": 1.00}) + "\n"
         # 12h ago — in window
         + json.dumps({"ts": "2026-05-17T00:00:00Z", "cost_usd": 0.05}) + "\n"
-        # 36h ago — outside 24h window
-        + json.dumps({"ts": "2026-05-16T00:00:00Z", "cost_usd": 1.00}) + "\n"
+        # 1h ago — in window
+        + json.dumps({"ts": "2026-05-17T11:00:00Z", "cost_usd": 0.10}) + "\n"
     )
     total = health_metrics.daily_cost_usd(24, p, now_ts=now)
     assert round(total, 2) == 0.15
@@ -178,6 +179,56 @@ def test_daily_cost_handles_malformed_rows(tmp_path):
         + json.dumps({"ts": "2026-05-17T11:00:00Z", "cost_usd": 0.25}) + "\n"
     )
     assert health_metrics.daily_cost_usd(24, p, now_ts=now) == 0.25
+
+
+def _iso(ts: int) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
+
+
+def test_daily_cost_reverse_scan_matches_full_sum_across_chunks(tmp_path):
+    """Rows straddle many tiny read chunks; the sum must not lose or
+    double-count a line cut at a chunk boundary."""
+    p = tmp_path / "llm_usage.jsonl"
+    now = 1_779_019_200
+    rows = [
+        {"ts": _iso(now - 48 * 3600 + i * 600), "cost_usd": 0.001 * (i + 1),
+         "feature": "query_parse" * (i % 3)}
+        for i in range(48 * 6)
+    ]
+    p.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    expected = sum(r["cost_usd"] for i, r in enumerate(rows)
+                   if now - 48 * 3600 + i * 600 >= now - 24 * 3600)
+    for chunk in (7, 64, 1 << 20):
+        got = health_metrics.daily_cost_usd(24, p, now_ts=now, chunk_size=chunk)
+        assert round(got, 6) == round(expected, 6)
+
+
+def test_daily_cost_tolerates_misordered_rows_near_cutoff(tmp_path):
+    """Concurrent writers interleave: a row just before the window must
+    not end the scan early."""
+    p = tmp_path / "llm_usage.jsonl"
+    now = 1_779_019_200
+    cutoff = now - 24 * 3600
+    p.write_text(
+        json.dumps({"ts": _iso(cutoff + 60), "cost_usd": 0.20}) + "\n"
+        + json.dumps({"ts": _iso(cutoff - 1800), "cost_usd": 1.00}) + "\n"
+        + json.dumps({"ts": _iso(now - 60), "cost_usd": 0.10})  # no trailing \n
+    )
+    assert round(health_metrics.daily_cost_usd(24, p, now_ts=now), 2) == 0.30
+
+
+def test_daily_cost_stops_at_row_well_before_window(tmp_path):
+    """The scan ends at the first row older than the window plus slack,
+    so the file head is never read."""
+    p = tmp_path / "llm_usage.jsonl"
+    now = 1_779_019_200
+    cutoff = now - 24 * 3600
+    p.write_text(
+        json.dumps({"ts": _iso(now - 60), "cost_usd": 5.00}) + "\n"  # unreachable
+        + json.dumps({"ts": _iso(cutoff - 2 * 3600), "cost_usd": 1.00}) + "\n"
+        + json.dumps({"ts": _iso(now - 60), "cost_usd": 0.10}) + "\n"
+    )
+    assert round(health_metrics.daily_cost_usd(24, p, now_ts=now), 2) == 0.10
 
 
 def test_daily_cost_zero_when_missing(tmp_path):

@@ -37,6 +37,11 @@ NTFY_URL = os.environ.get("HEALTH_ALERTS_NTFY", "https://ntfy.sh/opencaselaw-pub
 WORKER_PORTS = range(8770, 8778)
 RENAG_HOURS = 24.0
 UNREACHABLE_LIMIT = 3  # consecutive misses before "workers down" fires
+# Per-worker read timeout. 6 s left no headroom: /metrics/health grew to
+# 6.6-7.3 s (full scan of llm_usage.jsonl) and from 2026-10-19 every poll
+# counted as "unreachable" while all 8 workers were up. A slow answer is
+# still an answer; a dead worker refuses the connection immediately.
+FETCH_TIMEOUT_S = 20.0
 
 # TLS cert-expiry monitoring (added 2026-07-07 after word.opencaselaw.ch
 # expired silently for 11 days — auto-renewal was failing with no alert,
@@ -105,7 +110,7 @@ def check_cert_expiry(cert_glob: str = CERT_GLOB) -> list[dict]:
     return alerts
 
 
-def fetch_health(timeout: float = 6.0) -> dict | None:
+def fetch_health(timeout: float = FETCH_TIMEOUT_S) -> dict | None:
     """First worker that answers wins. None if all 8 are unreachable."""
     for port in WORKER_PORTS:
         try:
@@ -181,7 +186,8 @@ def main() -> int:
                 and now - unreachable.get("last_sent", 0) >= RENAG_HOURS * 3600):
             if send("OpenCaseLaw CRITICAL: health endpoint unreachable",
                     f"/metrics/health unreachable on 127.0.0.1:8770-8777 "
-                    f"({unreachable['count']} consecutive polls) — MCP workers may be down",
+                    f"(no answer within {FETCH_TIMEOUT_S:.0f}s; "
+                    f"{unreachable['count']} consecutive polls) — MCP workers may be down",
                     priority="high", tags="rotating_light"):
                 unreachable["last_sent"] = now
         # still process cert alerts so a silent expiry isn't masked by a

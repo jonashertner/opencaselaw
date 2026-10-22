@@ -184,16 +184,40 @@ def bger_poller_last_run_ts(
     return quick_publish_last_run_ts(log_path)
 
 
+def _iter_lines_reversed(f, chunk_size: int = 1 << 20):
+    """Yield the lines of binary file ``f`` last-to-first, without newlines."""
+    f.seek(0, 2)
+    pos = f.tell()
+    tail = b""
+    while pos > 0:
+        step = min(chunk_size, pos)
+        pos -= step
+        f.seek(pos)
+        lines = (f.read(step) + tail).split(b"\n")
+        tail = lines.pop(0)  # may be cut mid-line; completed by the next chunk
+        yield from reversed(lines)
+    yield tail
+
+
+# Eight workers append to llm_usage.jsonl, so rows are only roughly in time
+# order. The reverse scan stops at the first row this far before the window.
+_COST_SCAN_SLACK_S = 3600
+
+
 def daily_cost_usd(
     hours: int = 24,
     log_path: Optional[Path] = None,
     now_ts: Optional[int] = None,
+    chunk_size: int = 1 << 20,
 ) -> float:
     """Sum of ``cost_usd`` from ``llm_usage.jsonl`` within the last ``hours``.
 
     Returns 0.0 if the file doesn't exist or has no in-window rows.
-    Reads the whole file each call — fine at the current ~10 MB size;
-    if it grows past ~100 MB consider a tail+seek index.
+    Reads the file backwards from the end and stops at the first row
+    older than the window by more than ``_COST_SCAN_SLACK_S``. The log is
+    append-only and never rotated (427 MB / 2M rows on 2026-10-22); the
+    old full read took 6 s and pushed /metrics/health past the
+    dispatcher's timeout from 2026-10-19.
 
     ``now_ts`` is injectable for tests; production passes None and
     uses wall clock.
@@ -206,14 +230,20 @@ def daily_cost_usd(
     cutoff = now - hours * 3600
     total = 0.0
     try:
-        with open(log_path) as f:
-            for line in f:
+        with open(log_path, "rb") as f:
+            for line in _iter_lines_reversed(f, chunk_size):
                 try:
                     row = json.loads(line)
                 except ValueError:
                     continue
+                if not isinstance(row, dict):
+                    continue
                 ts = _parse_iso(row.get("ts", ""))
-                if ts is None or ts < cutoff:
+                if ts is None:
+                    continue
+                if ts < cutoff:
+                    if ts < cutoff - _COST_SCAN_SLACK_S:
+                        break
                     continue
                 try:
                     total += float(row.get("cost_usd", 0))

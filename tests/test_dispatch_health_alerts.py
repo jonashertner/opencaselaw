@@ -88,3 +88,28 @@ def test_check_cert_expiry_fires_warning_and_critical(tmp_path, monkeypatch):
     keys = {a["key"]: a["level"] for a in alerts}
     assert keys.get("cert_expiry:word.opencaselaw.ch") == "critical"  # 3d < 5
     assert "cert_expiry:mcp.opencaselaw.ch" not in keys                # 75d, fine
+
+
+def test_fetch_health_gives_slow_workers_time_to_answer(monkeypatch):
+    """/metrics/health took 6.6-7.3 s in Oct 2026; a 6 s timeout reported
+    all 8 live workers as unreachable for days."""
+    seen = []
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self, *a):
+            return b'{"alerts_dry_run": []}'
+
+    def fake_urlopen(url, timeout=None):
+        seen.append(timeout)
+        return _Resp()
+
+    monkeypatch.setattr(dha.urllib.request, "urlopen", fake_urlopen)
+    assert dha.fetch_health() == {"alerts_dry_run": []}
+    assert seen == [dha.FETCH_TIMEOUT_S]
+    assert dha.FETCH_TIMEOUT_S >= 15
