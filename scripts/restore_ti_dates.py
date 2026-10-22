@@ -20,8 +20,15 @@ A stored date later than the heading, or one the text never states, is left
 alone and counted: the text alone cannot say which is right.
 
 Both shards go together (the Tribuna and Vaud lesson: a twin repaired on one
-side only comes back as a separate row with the wrong date). Every changed row
-gets a `date_restore` stamp {from, to, method, at}.
+side only comes back as a separate row with the wrong date): both are read
+once up front to collect the direct scraper's decision_date per docket, and
+that cross-shard date — two independent sources agreeing — is allowed to
+override a disagreeing entscheidsuche Kopfzeile (2026-10-22 audit:
+ti_gerichte_11.2016.86 and ti_gerichte_14.2013.162 both run correctly through
+`decide` once the script is applied; the real gap was es's own Kopfzeile
+blocking otherwise-good heading reads for 482 further rows, confirmed by
+their direct twin). Every changed row gets a `date_restore` stamp
+{from, to, method, at}.
 
 Streaming, temp file + atomic replace (file mode kept), DRY RUN by default,
 idempotent, stdlib only. ti_gerichte.jsonl is appended by the 01:00 scrape:
@@ -66,7 +73,13 @@ def _flat(text: str | None) -> str:
     return re.sub(r"\s+", " ", text or "")
 
 
-def heading_date(text: str | None, today: str | None = None) -> tuple[str | None, str]:
+def heading_date(text: str | None, today: str | None = None,
+                  confirm: str | None = None) -> tuple[str | None, str]:
+    """``confirm``, when given, is a date from a source independent of this
+    row's own text (the direct scraper's twin row, or this row's own
+    publication_date) — two sources agreeing outrank a disagreeing
+    Kopfzeile, which is known to carry a stale date on some entscheidsuche
+    copies (see ``kopfzeile_disagrees`` below)."""
     head = _flat(text)[:_HEAD_CHARS]
     m = _HEADING_RE.search(head)
     if not m or m.start() > 900:
@@ -85,24 +98,35 @@ def heading_date(text: str | None, today: str | None = None) -> tuple[str | None
         except ValueError:
             kd = None
         if kd and kd != own:
+            if confirm and confirm == own:
+                return own, "heading_confirmed"
             return None, "kopfzeile_disagrees"
     return own, "heading"
 
 
 def stated_in_text(iso: str, text: str | None) -> bool:
-    """Is ``iso`` written in the text as an Italian date ("10 ottobre 2023")?"""
+    """Is ``iso`` written in the text, as an Italian date ("10 ottobre 2023")
+    or as a numeric dd.mm.yyyy / dd/mm/yyyy ("10.10.2023")?"""
     try:
         y, m, d = int(iso[:4]), int(iso[5:7]), int(iso[8:10])
     except ValueError:
         return False
     pat = r"\b%s\s*%s\s+%d\b" % ("1°" if d == 1 else d, _NAMES[m], y)
     alt = r"\b%d\s*%s\s+%d\b" % (d, _NAMES[m], y)
+    numeric = r"\b%02d[.\/]%02d[.\/]%d\b" % (d, m, y)
     flat = _flat(text)
-    return bool(re.search(pat, flat, re.I) or re.search(alt, flat, re.I))
+    return bool(re.search(pat, flat, re.I) or re.search(alt, flat, re.I) or re.search(numeric, flat))
 
 
-def decide(obj: dict, today: str | None = None) -> tuple[str, str | None]:
-    own, how = heading_date(obj.get("full_text"), today)
+def decide(obj: dict, today: str | None = None, twin_date: str | None = None) -> tuple[str, str | None]:
+    """``twin_date``: the direct scraper's decision_date for the same docket
+    (None when there is none, or the direct shard's own copies of it
+    disagree) — the independent corroboration a disagreeing Kopfzeile can be
+    overridden by. Falls back to this row's own publication_date when there
+    is no twin, in case that is how entscheidsuche encoded the true date."""
+    pub = str(obj.get("publication_date") or "")[:10] or None
+    confirm = twin_date if twin_date else pub
+    own, how = heading_date(obj.get("full_text"), today, confirm)
     if own is None:
         return how, None
     cur = str(obj.get("decision_date") or "")[:10]
@@ -117,7 +141,36 @@ def decide(obj: dict, today: str | None = None) -> tuple[str, str | None]:
     return "corrected", own
 
 
-def run(path: Path, apply: bool, examples: int, today: str | None = None) -> Counter:
+def load_twin_dates(paths: list[Path]) -> dict[str, str | None]:
+    """docket_number -> the direct scraper's decision_date, read from every
+    given shard before any row is corrected (so it does not matter which
+    shard — direct or entscheidsuche — is listed first). A docket whose
+    direct rows disagree with each other on the date is ambiguous and maps
+    to None: never used to confirm a heading."""
+    seen: dict[str, set[str | None]] = {}
+    for p in paths:
+        with open(p, encoding="utf-8") as fh:
+            for line in fh:
+                stripped = line.strip()
+                # cheap pre-filter: skip entscheidsuche rows without a full parse
+                if not stripped or '"source": "entscheidsuche"' in stripped:
+                    continue
+                try:
+                    obj = json.loads(stripped)
+                except ValueError:
+                    continue
+                if obj.get("court") not in COURTS or obj.get("source") == "entscheidsuche":
+                    continue
+                dn = obj.get("docket_number")
+                if not dn:
+                    continue
+                seen.setdefault(dn, set()).add(str(obj.get("decision_date") or "")[:10] or None)
+    return {dn: (next(iter(dates)) if len(dates) == 1 else None) for dn, dates in seen.items()}
+
+
+def run(path: Path, apply: bool, examples: int, today: str | None = None,
+        twin_dates: dict[str, str | None] | None = None) -> Counter:
+    twin_dates = twin_dates or {}
     stats: Counter = Counter()
     shown = 0
     fout = None
@@ -147,7 +200,7 @@ def run(path: Path, apply: bool, examples: int, today: str | None = None) -> Cou
                         fout.write(line)
                     continue
                 stats["rows"] += 1
-                outcome, new = decide(obj, today)
+                outcome, new = decide(obj, today, twin_dates.get(obj.get("docket_number")))
                 stats[outcome] += 1
                 if new is None:
                     if fout:
@@ -187,9 +240,10 @@ def main() -> int:
     ap.add_argument("--apply", action="store_true", help="rewrite the shard (default: dry run)")
     ap.add_argument("--examples", type=int, default=12)
     a = ap.parse_args()
+    twin_dates = load_twin_dates(a.shards)
     for shard in a.shards:
         print(f"== {shard} ({'APPLY' if a.apply else 'dry run'})", file=sys.stderr)
-        stats = run(shard, a.apply, a.examples)
+        stats = run(shard, a.apply, a.examples, twin_dates=twin_dates)
         print(json.dumps({"shard": str(shard), **dict(sorted(stats.items()))}, ensure_ascii=False))
     return 0
 

@@ -68,6 +68,132 @@ def test_first_of_month_written_1_degree():
     assert r.stated_in_text("2025-04-01", t)
 
 
+# --- 2026-10-22: es rows served with the wrong decision_date (report: issue
+# #90 part B). ti_gerichte_11.2016.86 and ti_gerichte_14.2013.162 are both
+# already handled correctly by `decide` whenever the script is actually run —
+# the gap was that it had never been applied to the es shard in production.
+# Trimmed, synthetic versions of the real lines below.
+ES_11_2016_86 = (
+    "Tessin Tribunale di appello diritto civile La prima Camera civile 24.01.2018 11.2016.86\n"
+    "Ticino Tribunale di appello diritto civile La prima Camera civile 24.01.2018 11.2016.86\n\n"
+    "Esecutività in Svizzera di una decisione italiana secondo la Convenzione di Lugano\n\n"
+    "Incarto n.\n11.2016.86\nLugano\n24 gennaio 2018\n/jh\nIn nome\ndella Repubblica e Cantone\n"
+    "Ticino\nLa prima Camera civile del Tribunale d'appello\n"
+    "giudicando sul reclamo del 2 settembre 2016 contro la sentenza emessa dal Pretore il 29 luglio 2016;\n"
+    "Ritenuto\nin fatto:\nA.\nCon\nsentenza del 14 dicembre 1992 il Tribunale ecclesiastico regionale "
+    "emiliano di Modena ha annullato il matrimonio."
+)
+ES_14_2013_162 = (
+    "Ticino Tribunale di appello diritto civile La Camera di esecuzione e fallimenti 24.01.2014 14.2013.162\n\n"
+    "Rigetto provvisorio dell'opposizione.\n\n"
+    "Incarto n.\n14.2013.162\nLugano\n24 gennaio 2014\nB/ww/fb\nIn nome\ndella Repubblica e Cantone\n"
+    "Ticino\nIl vicepresidente della Camera di esecuzione e fallimenti del Tribunale d'appello\n"
+    "sulla quale istanza il Pretore del Distretto di Lugano, sezione 5, con sentenza del\n"
+    "13 settembre 2013 (inc. n. SO.2013.2467) ha così deciso."
+)
+
+
+def test_reported_row_11_2016_86_is_corrected_once_applied():
+    obj = {"decision_id": "ti_gerichte_11.2016.86", "court": "ti_gerichte",
+           "decision_date": "1992-12-14", "publication_date": "2018-01-24", "full_text": ES_11_2016_86}
+    assert r.decide(obj, TODAY) == ("corrected", "2018-01-24")
+
+
+def test_reported_row_14_2013_162_is_corrected_once_applied():
+    obj = {"decision_id": "ti_gerichte_14.2013.162", "court": "ti_gerichte",
+           "decision_date": "2013-09-13", "publication_date": "2014-01-24", "full_text": ES_14_2013_162}
+    assert r.decide(obj, TODAY) == ("corrected", "2014-01-24")
+
+
+# --- the genuine rule gap: an es Kopfzeile carrying the stored (wrong) date
+# disagrees with the heading, but the direct scraper's twin row independently
+# confirms the heading. Modeled on ti_gerichte_17.2012.144 (real docket).
+ES_KOPF_DISAGREES_TWIN_CONFIRMS = (
+    "Tessin Corte di appello e di revisione penale 19.07.2013 17.2012.144\n"
+    "Ticino Corte di appello e di revisione penale 19.07.2013 17.2012.144\n\n"
+    "Deposito incustodito di fucili privi di culatta in abitazione secondaria.\n\n"
+    "Incarto n.\n17.2012.144\nLocarno\n22 luglio 2013/mi\nIn nome\ndella Repubblica e Cantone\nTicino\n"
+)
+
+
+def test_kopfzeile_disagreement_overridden_by_direct_twin():
+    obj = {"decision_id": "ti_gerichte_17.2012.144", "court": "ti_gerichte",
+           "decision_date": "2013-07-19", "full_text": ES_KOPF_DISAGREES_TWIN_CONFIRMS}
+    # without a twin, the disagreeing Kopfzeile still blocks the change
+    assert r.decide(obj, TODAY) == ("kopfzeile_disagrees", None)
+    # the direct shard's own decision_date for the same docket agrees with
+    # the heading (2013-07-22), so it is allowed to override the Kopfzeile
+    assert r.decide(obj, TODAY, twin_date="2013-07-22") == ("corrected", "2013-07-22")
+
+
+def test_kopfzeile_disagreement_overridden_by_own_publication_date():
+    # no direct twin at all, but this row's own publication_date agrees with
+    # the heading — accepted as the fallback corroboration
+    obj = {"decision_id": "ti_gerichte_17.2012.144", "court": "ti_gerichte",
+           "decision_date": "2013-07-19", "publication_date": "2013-07-22",
+           "full_text": ES_KOPF_DISAGREES_TWIN_CONFIRMS}
+    assert r.decide(obj, TODAY) == ("corrected", "2013-07-22")
+
+
+def test_kopfzeile_disagreement_not_overridden_by_a_mismatched_twin():
+    # negative case: a twin date exists but points to neither the heading nor
+    # agreement — evidence stays ambiguous, so the row is left alone
+    obj = {"decision_id": "ti_gerichte_17.2012.144", "court": "ti_gerichte",
+           "decision_date": "2013-07-19", "full_text": ES_KOPF_DISAGREES_TWIN_CONFIRMS}
+    assert r.decide(obj, TODAY, twin_date="2013-07-19") == ("kopfzeile_disagrees", None)
+    assert r.decide(obj, TODAY, twin_date=None) == ("kopfzeile_disagrees", None)
+
+
+def test_stated_in_text_accepts_numeric_dd_mm_yyyy():
+    assert r.stated_in_text("2013-09-13", "con sentenza del 13.09.2013 ha deciso")
+    assert r.stated_in_text("2013-09-13", "con sentenza del 13/09/2013 ha deciso")
+    assert not r.stated_in_text("2013-09-13", "con sentenza del 14.09.2013 ha deciso")
+
+
+def test_load_twin_dates_collects_direct_rows_and_flags_conflicts_as_ambiguous(tmp_path):
+    direct = tmp_path / "ti_gerichte.jsonl"
+    es = tmp_path / "es_ti_gerichte.jsonl"
+    direct.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in (
+        {"court": "ti_gerichte", "docket_number": "17.2012.144", "decision_date": "2013-07-22"},
+        # two direct rows that disagree on the same docket: ambiguous
+        {"court": "ti_gerichte", "docket_number": "90.1994.1", "decision_date": "1994-05-01"},
+        {"court": "ti_gerichte", "docket_number": "90.1994.1", "decision_date": "1994-05-02"},
+        # two direct rows that agree: fine to use
+        {"court": "ti_gerichte", "docket_number": "90.1994.2", "decision_date": "1994-06-01"},
+        {"court": "ti_gerichte", "docket_number": "90.1994.2", "decision_date": "1994-06-01"},
+    )), encoding="utf-8")
+    es.write_text(json.dumps(
+        # an es row must never be mistaken for a direct twin, even if it
+        # happens to carry a clean date for the same docket
+        {"court": "ti_gerichte", "docket_number": "17.2012.144", "decision_date": "2013-07-19",
+         "source": "entscheidsuche"}, ensure_ascii=False) + "\n", encoding="utf-8")
+    twins = r.load_twin_dates([direct, es])
+    assert twins["17.2012.144"] == "2013-07-22"
+    assert twins["90.1994.1"] is None
+    assert twins["90.1994.2"] == "1994-06-01"
+
+
+def test_run_wires_twin_dates_through_for_both_shards(tmp_path):
+    direct = tmp_path / "ti_gerichte.jsonl"
+    es = tmp_path / "es_ti_gerichte.jsonl"
+    direct.write_text(json.dumps(
+        {"decision_id": "ti_gerichte_17.2012.144", "court": "ti_gerichte", "docket_number": "17.2012.144",
+         "decision_date": "2013-07-22", "full_text": ES_KOPF_DISAGREES_TWIN_CONFIRMS},
+        ensure_ascii=False) + "\n", encoding="utf-8")
+    es.write_text(json.dumps(
+        {"decision_id": "ti_gerichte_17.2012.144", "court": "ti_gerichte", "docket_number": "17.2012.144",
+         "decision_date": "2013-07-19", "source": "entscheidsuche",
+         "full_text": ES_KOPF_DISAGREES_TWIN_CONFIRMS},
+        ensure_ascii=False) + "\n", encoding="utf-8")
+    twins = r.load_twin_dates([direct, es])
+    direct_stats = r.run(direct, apply=True, examples=0, today=TODAY, twin_dates=twins)
+    es_stats = r.run(es, apply=True, examples=0, today=TODAY, twin_dates=twins)
+    assert direct_stats["agrees"] == 1  # the direct row is already correct
+    assert es_stats["corrected"] == 1
+    rows = json.loads(es.read_text().splitlines()[0])
+    assert rows["decision_date"] == "2013-07-22"
+
+
 def test_apply_stamps_keeps_mode_and_is_idempotent(tmp_path):
     p = tmp_path / "ti_gerichte.jsonl"
     other = {"decision_id": "x", "court": "vd_gerichte", "decision_date": "2020-01-01"}
