@@ -60,6 +60,8 @@ class DecisionRecord(CitationFields):
     joined_dockets: list[str] | None = Field(default=None, description="Secondary dockets of a consolidated proceeding stored under this decision; a reference by any of them names this record. Absent when there are none.")
     canonical_decision_id: str | None = Field(default=None, description="The canonical decision_id when the representation manifest is loaded: equals decision_id unless this record is a duplicate representation of another stored decision. decision_id itself is never changed.")
     is_canonical: bool | None = Field(default=None, description="Whether this record is the canonical representation (canonical_decision_id == decision_id). Absent when the manifest is not loaded.")
+    representations: list[dict[str, Any]] | None = Field(default=None, description="Other safely-linked representations of this same canonical decision (e.g. a cantonal portal's procedure number vs. its decision number) that search collapsed into this one hit, each as {decision_id, relation_type, evidence_method, confidence, source_url}. Present only on a row that actually folded another one in; absent otherwise, including when this record is itself an unfolded member or canonical.")
+    regeste_source: str | None = Field(default=None, description="Set only when `regeste` was not stored on this record itself but copied verbatim from a safely-linked representation named here (design doc §4) — e.g. a cantonal procedure-number record harvesting the headnote from its decision-number twin. Cite the requested decision, never this id.")
 
 
 class SearchDecisionsResponse(ResearchModel):
