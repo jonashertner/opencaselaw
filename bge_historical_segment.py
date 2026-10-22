@@ -181,13 +181,29 @@ def _header_block_end(text: str, start: int) -> int:
     return min(pos, len(text))
 
 
+_LINE_HYPHEN_RE = re.compile(r"[-­‐‑‒–]\s*$")
+
+
 def header_block(text: str, start: int) -> str:
     """The own header's first lines (serial line up to the end of the parties
-    sentence), joined with spaces; a date glued to its preposition is split."""
+    sentence), joined with spaces; a date glued to its preposition is split.
+
+    A line broken on a hyphen ("No-\\nvember", "Gas-\\nwerke") is rejoined
+    before the lines are space-joined, so a month split across the line end
+    ("vom 21. No-\\nvember 1950") still parses: parse_urteilskopf/parse_date
+    read it as "November", not "No- vember". The continuation must start with
+    a lowercase letter (incl. accented/umlaut) to be treated as the second
+    half of the same word; an uppercase continuation ("Bundes-\\nGericht") is
+    a genuine hyphenated compound and is left as "Bundes- Gericht"."""
     lines = text[start:start + _HEADER_SPAN].split("\n")
     out: list[str] = []
     for line in lines[:4]:
-        out.append(line.strip())
+        stripped = line.strip()
+        if out and _LINE_HYPHEN_RE.search(out[-1]) \
+                and stripped[:1].isalpha() and stripped[:1].islower():
+            out[-1] = _LINE_HYPHEN_RE.sub("", out[-1]) + stripped
+        else:
+            out.append(stripped)
         # The header ends with its parties sentence; the Regeste after it
         # cites statutes by date, which must not be read as the ruling date.
         if re.search(r"\.\s*$", line):
