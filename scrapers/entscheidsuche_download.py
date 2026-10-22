@@ -96,7 +96,7 @@ TIER_D_FEDERAL = [
     "CH_BGE",            # ~59k
     "CH_BVGer",          # ~91k
     "CH_BSTG",           # ~20k
-    "CH_VB",             # ~33k
+    # "CH_VB" removed 2026-09-11: retired feed (see entscheidsuche_ingest.SPIDER_MAP)
     "CH_EDOEB",          # ~2k
     "CH_BGer",           # ~large, overlaps with direct scraper
     "CH_BPatG",

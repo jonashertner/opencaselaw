@@ -7,7 +7,7 @@
  "bge": "Official collection complete (verified 0 missing vs external benchmark). Volume citations before 1954 partially carry publication-year dating semantics.",
  "ow_gerichte": "The portal is online but frozen: it lists the same 2,205 decisions every night, newest upload 2022-12-19. A successor portal appeared in 2026 and is re-probed weekly; intake resumes if it yields decisions.",
  "ge_gerichte": "7,051 decisions (ATAS/ACJC 2006-2013) had unreadable CID-font PDF text; recovered via OCR on 2026-07-01 and fully searchable since 2026-07-02. Docket field carries bare cause numbers for some older rows.",
- "ch_vb": "Frozen archive (source ceased publishing in 2021); preserved via the entscheidsuche archive, no new intake by design.",
+ "ch_vb": "Retired 2026-09: the entscheidsuche CH_VB feed mixed VPB/JAAC with Bundesblatt, Amtliches Bulletin and Amtliche Sammlung pages and was dropped entirely. The VPB series 1987-2017 (publication ended 1 Jan 2018) is pending an official delivery from the Bundeskanzlei / Bundesarchiv; until then court ch_vb has no rows.",
  "be_steuerrekurs": "Portal's backing database returns zero rows for all queries since Feb 2026 (verified against the live GWT protocol); 343 historical decisions preserved. Re-probed weekly.",
  "mkg": "Complete archival corpus of the Militärkassationsgericht, volumes 1-16 (1915-2025); the court publishes no new volumes.",
  "sg_publikationen": "Publication practice example: St. Gallen published 5 of 272 employment rulings 2002-2017. Low counts here reflect court publication policy, not capture failure.",

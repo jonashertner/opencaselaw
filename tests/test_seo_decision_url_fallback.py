@@ -120,3 +120,26 @@ def test_docket_substring_of_another_docket_does_not_match(fixture_decisions):
     html, status, location = seo_pages.render_decision_page("140 III")
     assert status == 404
     assert location is None
+
+
+def test_retired_ch_vb_id_gives_helpful_404_not_500(fixture_decisions):
+    """ch_vb retired 2026-10 (entscheidsuche CH_VB feed dropped, issue #79):
+    an old bookmark or indexed link to one of its 23,046 ids must fail
+    gracefully, not crash. No decision_id_aliases row and no docket match
+    exist for these ids (the whole court is gone, not re-keyed), so the
+    page must fall through every resolution step to the generic 404."""
+    html, status, location = seo_pages.render_decision_page(
+        "ch_vb_90000341")
+    assert status == 404
+    assert location is None
+    assert "Entscheid nicht gefunden" in html
+
+
+def test_retired_ch_vb_docket_html_artifact_gives_404_not_500(fixture_decisions):
+    """The known docket damage class (raw HTML in the feed's Num field,
+    e.g. '<td class="metadataCell">150000341</td>') must not raise when
+    _clean_docket-style input reaches the resolver after retirement."""
+    html, status, location = seo_pages.render_decision_page(
+        '<td class="metadataCell">150000341</td>')
+    assert status == 404
+    assert location is None

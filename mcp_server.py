@@ -14295,8 +14295,8 @@ server = Server(
         "Kreisschreiben and MWST-Infos (DE/FR/IT), SEM Weisungen and "
         "Rundschreiben and the Handbuch Asyl und Rückkehr, BJ SchKG Weisungen "
         "and cantonal Existenzminimum Kreisschreiben, BAFU Vollzugshilfen — via "
-        "search_practice / get_practice, plus 23,000+ VPB/JAAC decisions (1900–2016) under "
-        "court='ch_vb', "
+        "search_practice / get_practice (the VPB/JAAC series 1987–2017 is not yet in the corpus: "
+        "an official delivery is pending), "
         "44,000+ open-access scholarship records from 24 Swiss legal sources "
         "(thousands with full-text — see find_scholarship_citing_decision and "
         "find_scholarship_citing_statute for the bidirectional bridge), "
@@ -14555,7 +14555,7 @@ server = Server(
         "     BSV, SECO, BAG, SEM, BJ, ESTV, FINMA, BAFU); then get_practice for the verbatim text + source PDF\n"
         "• 'WEL / KSIH / RWL / AVIG-Praxis / Handbuch Asyl / Existenzminimum-Richtlinien?' → search_practice\n"
         "• 'circulaire / directive / istruzioni / circolare?'      → search_practice\n"
-        "• 'Verwaltungspraxis des Bundes vor 2017 (VPB/JAAC)?'     → search_decisions(court='ch_vb')\n"
+        "• 'Verwaltungspraxis des Bundes vor 2017 (VPB/JAAC)?'     → not in the corpus yet (official VPB delivery pending); say so\n"
         "• 'Has the ECHR ruled against CH on X?'   → search_decisions(court='ecthr_chamber') or court='hudoc_ch'\n"
         "• 'BGE-published EGMR translation?'       → search_decisions(court='bge_egmr')\n\n"
 
@@ -30766,7 +30766,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool when the question involves federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents. Covered: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen, drafts), WEKO (Bekanntmachungen, Erläuterungen, all versions), SECO (ArG commentary, AVIG-Praxis), BAG (KVG Kreisschreiben), SEM (Weisungen AIG/Asyl/BüG, Handbuch Asyl), BJ (SchKG Weisungen, Existenzminimum), FINMA, ESTV, BAFU; counts in the filter enums. Returns ranked excerpts with authority, number, date, PDF link. Superseded versions collapse to the newest per document; for past conduct pass include_superseded=true and take the version dated before the facts. NOT covered: cantonal administrations — Sozialhilfe (SKOS, cantonal Handbücher), Prämienverbilligung (IPV) — say so, do not imply absence of guidance. Pre-2017 federal decisions: search_decisions(court='ch_vb')."
+                "Use this tool when the question involves federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents. Covered: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen, drafts), WEKO (Bekanntmachungen, Erläuterungen, all versions), SECO (ArG commentary, AVIG-Praxis), BAG (KVG Kreisschreiben), SEM (Weisungen AIG/Asyl/BüG, Handbuch Asyl), BJ (SchKG Weisungen, Existenzminimum), FINMA, ESTV, BAFU; counts in the filter enums. Returns ranked excerpts with authority, number, date, PDF link. Superseded versions collapse to the newest per document; for past conduct pass include_superseded=true and take the version dated before the facts. NOT covered: cantonal administrations — Sozialhilfe (SKOS, cantonal Handbücher), Prämienverbilligung (IPV) — say so, do not imply absence of guidance. VPB/JAAC (pre-2017 decisions): not ingested yet; say so."
             ),
             inputSchema={
                 "type": "object",

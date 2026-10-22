@@ -200,3 +200,26 @@ def test_fold_keys_follow_the_dedup_identity():
     assert not build_fts5._fold_dockets("sg_gerichte", "BZ.1", None) & build_fts5._fold_dockets(
         "sg_kantonsgericht", "BZ.2", None)
     assert build_fts5._fold_dockets("x", "", None) == set()
+
+
+# ── OCL_SWAP_GATE_EXEMPT: case-insensitive, warns on an unknown code ─────
+# (ported from the retired OCL_SWAP_GATE_EXEMPT_COURTS during the ch_vb
+# retirement, 2026-10; the env var itself is unchanged, see
+# test_env_adds_exemptions_for_a_run in test_zh_cross_court_attribution.py)
+
+
+def test_exempt_env_is_case_insensitive(monkeypatch):
+    monkeypatch.setenv("OCL_SWAP_GATE_EXEMPT", "CH_VB")
+    build_fts5._check_swap_per_court_gate(
+        {"bger": 190_000}, {"bger": 190_000, "ch_vb": 23_046})  # no raise
+
+
+def test_exempt_env_warns_on_a_code_not_in_the_live_db(monkeypatch, caplog):
+    monkeypatch.setenv("OCL_SWAP_GATE_EXEMPT", "ch_vb, nonexistent_court")
+    with caplog.at_level("WARNING"):
+        build_fts5._check_swap_per_court_gate(
+            {"bger": 190_000}, {"bger": 190_000, "ch_vb": 23_046})
+    assert any("nonexistent_court" in r.message and "check the spelling" in r.message
+               for r in caplog.records)
+    assert not any("'ch_vb'" in r.message and "check the spelling" in r.message
+                   for r in caplog.records)

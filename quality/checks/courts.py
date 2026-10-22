@@ -32,7 +32,11 @@ EXPECTED_FEDERAL = {
     "finma", "finma_versicherungsrecht", "weko", "edoeb", "ubi",
     "elcom", "postcom", "comcom",
     # other federal:
-    "ch_vb", "mkg",
+    "mkg",
+    # NOTE: ch_vb retired 2026-09: its only source was the entscheidsuche
+    # CH_VB feed (73% Bundesblatt / Amtliches Bulletin / AS pages, not VPB);
+    # re-added once the VPB series arrives from the Bundeskanzlei / Bundesarchiv
+    # (runbooks/ch_vb_amtsdruckschriften_contamination.md).
     # NOTE: bge_historical was merged into the main bge court at some
     # point; ch_anwaltsaufsicht / fr_anwaltsaufsicht: portals have no
     # decisions by design (registered scrapers, expected zero rows).
