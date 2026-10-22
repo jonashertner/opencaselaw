@@ -76,8 +76,10 @@ PER_COURT_GATE_EXEMPT = frozenset({"zh_gerichte"})
 
 
 def _per_court_gate_exempt() -> frozenset:
+    """PER_COURT_GATE_EXEMPT (permanent) union OCL_SWAP_GATE_EXEMPT (one run,
+    comma-separated, case-insensitive)."""
     extra = os.environ.get("OCL_SWAP_GATE_EXEMPT", "")
-    return PER_COURT_GATE_EXEMPT | {c.strip() for c in extra.split(",") if c.strip()}
+    return PER_COURT_GATE_EXEMPT | {c.strip().lower() for c in extra.split(",") if c.strip()}
 
 
 def _date_inversion_guard_inline(decision_date, publication_date):
@@ -202,7 +204,14 @@ def _check_swap_per_court_gate(
     same docket (see _rows_answered_by_alias). Those are folded or re-keyed, not
     lost: 2026-10-09 the St. Gallen twin dates let the cross-court dedup fold
     1,152 short sg_gerichte copies into their full-text twins, and the gate
-    refused the swap (3,141 -> 1,989) although every one still resolved."""
+    refused the swap (3,141 -> 1,989) although every one still resolved.
+
+    Targeted override (2026-09-11): OCL_SWAP_GATE_EXEMPT is a comma-separated,
+    case-insensitive list of court codes whose shrink is intentional for this
+    run (a court retirement, e.g. the entscheidsuche CH_VB feed being dropped).
+    Only those courts are skipped; every other court and the global row gate
+    stay armed. Prefer this over OCL_SKIP_SWAP_GATE=1, which disarms BOTH gates
+    for the whole run and would hide an unrelated collapse on the same night."""
     if not live_by_court:
         return
     if os.environ.get("OCL_SKIP_SWAP_GATE") == "1":
@@ -210,6 +219,15 @@ def _check_swap_per_court_gate(
             "pre-swap per-court gate OVERRIDDEN via OCL_SKIP_SWAP_GATE")
         return
     exempt = _per_court_gate_exempt()
+    env_exempt = exempt - PER_COURT_GATE_EXEMPT
+    if env_exempt:
+        logger.warning(
+            "pre-swap per-court gate: exempting %s for this run via "
+            "OCL_SWAP_GATE_EXEMPT", ",".join(sorted(env_exempt)))
+        for code in sorted(env_exempt - set(live_by_court)):
+            logger.warning(
+                "pre-swap per-court gate: exempt court %r is not in the live "
+                "DB — check the spelling", code)
     for court, live_n in sorted(live_by_court.items()):
         if live_n < min_live_rows:
             continue

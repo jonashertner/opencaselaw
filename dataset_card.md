@@ -52,7 +52,7 @@ Full text, structured metadata, extracted case-citation references, and daily up
 
 The largest open collection of Swiss court decisions: 1,050,000+ decision records from 118 federal, cantonal, regulatory, and international courts, scraped from official publication channels. These records represent ~909,000 unique decisions: the Romandie portals (GE, VD) and a few others publish one ruling under two identifiers (procedure number + decision number), so ~141,000 rows are cross-identifier duplicate representations, which we retain and link rather than delete. New decisions are added every night.
 
-- **20+ federal courts and bodies**: BGer, BVGer, BStGer, BPatGer, BGE, FINMA, WEKO, EDÖB, MKG (Militärkassationsgericht), VPB, Sports Tribunal, and more
+- **20+ federal courts and bodies**: BGer, BVGer, BStGer, BPatGer, BGE, FINMA, WEKO, EDÖB, MKG (Militärkassationsgericht), Sports Tribunal, and more (the VPB series 1987–2017 is pending an official delivery)
 - **80+ cantonal courts** across all 26 cantons
 - **ECHR/EGMR**: 847 Swiss-respondent judgments (HUDOC) + every ECtHR Chamber and Grand Chamber judgment of importance 1–3 against any respondent state (8,275 judgments, French or English). Not part of this CC0 dedication — see the note below.
 - **Current decision languages**: German (463,012; 46.7%), French (446,869; 45.1%), Italian (81,796; 8.2%); the export schema also reserves `rm`, and `en` for the ECtHR judgments whose only authoritative text is English (those rows are excluded from this export)
@@ -276,7 +276,7 @@ Full 34-field Parquet export schema: [`export_parquet.py`](https://github.com/jo
 | Federal Administrative Court (BVGer) | `bvger` | ~91,500 | 2007–present |
 | BGE Leading Cases | `bge` | ~21,200 | 1954–present |
 | BGE Historical (vol. 1–79) | `bge_historical` | ~14,600 | 1875–1953 |
-| Federal Admin. Practice (VPB) | `ch_vb` | ~22,900 | 1982–2016 |
+| Federal Admin. Practice (VPB) | `ch_vb` | pending (official delivery requested) | 1987–2017 |
 | Federal Criminal Court (BStGer) | `bstger` | ~11,400 | 2004–present |
 | EDÖB (Data Protection) | `edoeb` | ~1,800 | 1994–present |
 | FINMA | `finma` | ~405 | 2008–present |
