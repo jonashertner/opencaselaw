@@ -28,6 +28,7 @@ Platform: Omnis/FindInfo (JurisWeb)
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date
 from typing import Iterator
@@ -145,6 +146,12 @@ class TIGerichteScraper(BaseScraper):
     REQUEST_DELAY = 2.0
     TIMEOUT = 60
     MAX_ERRORS = 100
+
+    # www.sentenze.ti.ch stopped answering TCP from the Hetzner IP on 2026-10-22
+    # (connect timeout on every search; fine from the Mac and via the SOCKS
+    # tunnel). Optional TI-specific proxy override, like NE_PROXY / JU_PROXY.
+    # If empty, BaseScraper falls back to env SCRAPER_PROXY.
+    PROXY = os.environ.get("TI_PROXY", "")
 
     @property
     def court_code(self):

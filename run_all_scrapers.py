@@ -92,7 +92,8 @@ SKIP_BY_DEFAULT: set[str] = {
 }
 
 # Scrapers that route through the Mac reverse-SOCKS tunnel (127.0.0.1:1080) via
-# BGER_PROXY / JU_PROXY / NE_PROXY because their portals block the Hetzner IP.
+# BGER_PROXY / JU_PROXY / NE_PROXY / TI_PROXY because their portals block the
+# Hetzner IP (sentenze.ti.ch since 2026-10-22).
 # When the tunnel is down (the Mac is asleep at the 01:00 UTC scrape) the portal
 # is unreachable through no fault of the scraper, producing a burst of
 # discovery-phase connection failures. That must read as "skipped (tunnel down)",
@@ -100,6 +101,7 @@ SKIP_BY_DEFAULT: set[str] = {
 # bger poller keeps bger current whenever the tunnel is up.
 TUNNEL_DEPENDENT: set[str] = {
     "bger", "bge", "ju_gerichte", "ne_gerichte", "ne_jurisprudence_adm",
+    "ti_gerichte",
 }
 
 

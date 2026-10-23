@@ -1,5 +1,5 @@
 [Unit]
-Description=OpenCaseLaw late-scrapers retry (BGer/BGE/JU/NE — depend on Mac mini SOCKS tunnel)
+Description=OpenCaseLaw late-scrapers retry (BGer/BGE/JU/NE/TI — depend on Mac mini SOCKS tunnel)
 After=network-online.target
 
 [Service]
@@ -7,12 +7,13 @@ Type=oneshot
 WorkingDirectory=/opt/caselaw/repo
 Environment=NE_PROXY=socks5h://127.0.0.1:1080
 Environment=JU_PROXY=socks5h://127.0.0.1:1080
+Environment=TI_PROXY=socks5h://127.0.0.1:1080
 Environment=BGER_PROXY=socks5h://127.0.0.1:1080
 # Skip cleanly (unit state "skipped", not "failed") when the Mac tunnel
 # is down — ExecCondition exit 1 skips; the old ExecStartPre variant
 # exited 0 on both branches and never actually skipped.
 ExecCondition=/bin/bash -c 'ss -tln | grep -q ":1080 "'
-ExecStart=/usr/bin/python3 run_all_scrapers.py --courts bger,bge,ju_gerichte,ne_gerichte,ne_jurisprudence_adm --source manual
+ExecStart=/usr/bin/python3 run_all_scrapers.py --courts bger,bge,ju_gerichte,ne_gerichte,ne_jurisprudence_adm,ti_gerichte --source manual
 TimeoutStartSec=7200
 StandardOutput=append:/opt/caselaw/repo/logs/late_scrapers.log
 StandardError=append:/opt/caselaw/repo/logs/late_scrapers.log

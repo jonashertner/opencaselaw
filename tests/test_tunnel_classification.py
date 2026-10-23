@@ -20,7 +20,7 @@ import run_all_scrapers as r  # noqa: E402
 
 
 def test_tunnel_dependent_set_covers_the_blocked_courts():
-    assert {"bger", "bge", "ju_gerichte", "ne_gerichte"} <= r.TUNNEL_DEPENDENT
+    assert {"bger", "bge", "ju_gerichte", "ne_gerichte", "ti_gerichte"} <= r.TUNNEL_DEPENDENT
     # A normal, non-tunnel scraper must NOT be reclassified.
     assert "bvger" not in r.TUNNEL_DEPENDENT
     assert "zh_gerichte" not in r.TUNNEL_DEPENDENT
