@@ -242,7 +242,7 @@ def test_every_registry_knows_every_untb_court():
 
     assert run_scraper.SCRAPERS["untb"] == ("scrapers.untb", "UNTreatyBodyScraper")
     assert "untb" in run_all_scrapers.SKIP_BY_DEFAULT
-    courts = untb.UNTB_COURTS
+    courts = untb.UN_COURTS
     assert courts <= export_parquet.EXCLUDED_COURTS
     assert courts == languages.UNTB_COURTS
     assert courts <= set(branch_map.COURT_BRANCH)
@@ -308,6 +308,7 @@ def _dl_scraper(tmp_path, monkeypatch, sessions_with_records: dict[int, str]):
     monkeypatch.setattr(untb, "DL_PATTERNS", {"CCPR": "CCPR/C/{s}/D/"})
     monkeypatch.setattr(untb, "SESSION_HINT", {"CCPR": 6})
     monkeypatch.setattr(untb, "RECENT_SESSIONS", 2)
+    monkeypatch.setattr(untb, "WGAD_FIRST_YEAR", date.today().year + 1)     # no WGAD sweep here
     s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
     page = _page("dl_ccpr_143.xml")
     empty = page.split("<record>", 1)[0] + "</collection>"
@@ -363,3 +364,74 @@ def test_dl_fetch_builds_the_decision(tmp_path, monkeypatch):
     assert d.source_url == "https://digitallibrary.un.org/record/4090924"
     assert d.pdf_url.endswith("-FR.pdf") and d.external_id == "undl:4090924"
     assert "Subjects: CIVIL AND POLITICAL RIGHTS, AUSTRALIA" in d.regeste
+
+
+# ───────────────────────────────────────────── Working Group on Arbitrary Detention
+
+def test_wgad_records_and_titles():
+    recs = {r["symbol"]: r for r in untb.parse_dl_records(_page("dl_wgad.xml"))}
+    assert set(recs) == {"A/HRC/WGAD/2024/58", "A/HRC/WGAD/2012/41"}
+    assert untb.committee_for("A/HRC/WGAD/2024/58") == ("unwgad", "WGAD")
+    new = untb.wgad_meta(recs["A/HRC/WGAD/2024/58"]["title245"])
+    assert new == {"title": "Opinion No. 58/2024 concerning Mohammad Arfat (India)",
+                   "opinion_no": "58/2024", "state": "India", "session_end": date(2024, 11, 15)}
+    old = untb.wgad_meta(recs["A/HRC/WGAD/2012/41"]["title245"])
+    assert old == {"title": "Opinion No. 41/2012, Togo", "opinion_no": "41/2012",
+                   "state": "Togo", "session_end": date(2012, 11, 23)}
+    span = untb.wgad_meta("Opinions adopted … at its 63rd session, 30 April-4 May 2012 : No. 2/2012, Panama")
+    assert span["session_end"] == date(2012, 5, 4)
+
+
+def test_wgad_year_sweep(tmp_path, monkeypatch):
+    monkeypatch.setattr(untb, "SEED_MAX_CASE_ID", 0)
+    monkeypatch.setattr(untb, "PROBE_WINDOW", 0)
+    monkeypatch.setattr(untb, "DL_PATTERNS", {})
+    this_year = date.today().year
+    monkeypatch.setattr(untb, "WGAD_FIRST_YEAR", this_year - 3)
+    s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+    page = _page("dl_wgad.xml")
+    empty = page.split("<record>", 1)[0] + "</collection>"
+    queried = []
+
+    def fake_get(url, params=None, **_):
+        year = int(params["p"].split("/")[3])
+        queried.append(year)
+        text = page if year == this_year - 3 else empty
+        return SimpleNamespace(text=text, content=text.encode())
+
+    s.get = fake_get
+    stubs = list(s.discover_new())
+    assert queried == [this_year - 3, this_year - 2, this_year - 1, this_year]
+    assert {st["court"] for st in stubs} == {"unwgad"} and len(stubs) == 2
+    # the empty, non-recent year is complete; the two recent years never are
+    assert (tmp_path / "untb.dl_sessions.tsv").read_text() == f"WGAD\t{this_year - 2}\t0\n"
+
+
+def test_wgad_fetch_and_dateless_citation(tmp_path, monkeypatch):
+    fitz = pytest.importorskip("fitz")
+    import mcp_server
+    s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+    rec = next(r for r in untb.parse_dl_records(_page("dl_wgad.xml")) if r["symbol"].endswith("2024/58"))
+    doc = fitz.open()
+    page = doc.new_page()
+    for i in range(40):
+        page.insert_text((40, 40 + 12 * i), "The Working Group considers that the deprivation of "
+                         "liberty of Mr. Arfat is arbitrary and falls within categories I and III.",
+                         fontsize=7)
+    pdf = doc.tobytes()
+    s.get = lambda url, **_: SimpleNamespace(content=pdf, text="")
+    stub = {**rec, "source": "dl", "court": "unwgad", "acronym": "WGAD",
+            "decision_id": untb.make_decision_id("unwgad", rec["symbol"]),
+            "docket_number": rec["symbol"], "url": untb.DL_RECORD.format(recid=rec["recid"])}
+    d = s.fetch_decision(stub)
+    assert d.court == "unwgad" and d.decision_type == "Opinion" and d.canton == "UN"
+    assert d.title == "Opinion No. 58/2024 concerning Mohammad Arfat (India)"
+    assert d.docket_number_2 == "58/2024" and d.decision_date == date(2024, 11, 15)
+    assert "Groupe de travail sur la détention arbitraire" in d.regeste
+    row = {"decision_id": d.decision_id, "court": d.court, "docket_number": d.docket_number,
+           "docket_number_2": d.docket_number_2, "title": d.title,
+           "decision_date": d.decision_date.isoformat()}
+    c = mcp_server._build_citation_strings(row)
+    assert c["citation_string_de"] == ("WGAD, Opinion No. 58/2024 concerning Mohammad Arfat (India) "
+                                       "(A/HRC/WGAD/2024/58)")
+    assert "2024" not in c["citation_string_fr"].split("(A/HRC")[0].replace("58/2024", "")

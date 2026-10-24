@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Search-Engine-Total-Number-Of-Results: 71 -->
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+<record>
+  <controlfield tag="000">02941nam a2200649#a 4500</controlfield>
+  <controlfield tag="001">4083276</controlfield>
+  <controlfield tag="005">20250610060938.0</controlfield>
+  <datafield tag="029" ind1=" " ind2=" ">
+    <subfield code="a">JN</subfield>
+    <subfield code="b">G2504181 E</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DHL)1434951</subfield>
+  </datafield>
+  <datafield tag="039" ind1=" " ind2=" ">
+    <subfield code="a">GUN</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">SzGeBNU</subfield>
+    <subfield code="b">eng</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">eng</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">che</subfield>
+  </datafield>
+  <datafield tag="089" ind1=" " ind2=" ">
+    <subfield code="b">B25</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">GEN</subfield>
+  </datafield>
+  <datafield tag="099" ind1=" " ind2=" ">
+    <subfield code="a">UNG</subfield>
+    <subfield code="b">GUN</subfield>
+  </datafield>
+  <datafield tag="191" ind1=" " ind2=" ">
+    <subfield code="a">A/HRC/WGAD/2024/58</subfield>
+    <subfield code="b">A/HRC/WGAD/</subfield>
+    <subfield code="c">101</subfield>
+    <subfield code="0">(DHLAUTH)942958</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Opinions adopted by the Working Group on Arbitrary Detention at its 101st session, 11-15 November 2024 :</subfield>
+    <subfield code="b">Opinion No. 58/2024 concerning Mohammad Arfat (India)</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Geneva :</subfield>
+    <subfield code="b">UN,</subfield>
+    <subfield code="c">26 Mar. 2025</subfield>
+  </datafield>
+  <datafield tag="269" ind1=" " ind2=" ">
+    <subfield code="a">2025-03-26</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">18 p.</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">DETAINED PERSONS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)268490</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">INDIA</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)269052</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">ARBITRARY DETENTION</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)274476</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">WRITTEN COMMUNICATIONS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)272695</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">UN. Human Rights Council. Working Group on Arbitrary Detention (101st sess. : 2024 : Geneva)</subfield>
+    <subfield code="0">(DHLAUTH)942957</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4083276/files/A_HRC_WGAD_2024_58-AR.pdf</subfield>
+    <subfield code="y">العربية</subfield>
+    <subfield code="9">33245b85-6d1f-472e-a2bc-2d0d721eb82c</subfield>
+    <subfield code="s">666156</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4083276/files/A_HRC_WGAD_2024_58-ZH.pdf</subfield>
+    <subfield code="y">中文</subfield>
+    <subfield code="9">539ea3a3-d58b-408a-ab1f-bfefae63c91f</subfield>
+    <subfield code="s">649569</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4083276/files/A_HRC_WGAD_2024_58-EN.pdf</subfield>
+    <subfield code="y">English</subfield>
+    <subfield code="9">ab3fe723-7ade-4ac5-9ff1-45c85fbde2cb</subfield>
+    <subfield code="s">342121</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4083276/files/A_HRC_WGAD_2024_58-FR.pdf</subfield>
+    <subfield code="y">Français</subfield>
+    <subfield code="9">823c357e-413c-4271-9e35-c9e8f8c85021</subfield>
+    <subfield code="s">355619</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4083276/files/A_HRC_WGAD_2024_58-RU.pdf</subfield>
+    <subfield code="y">Русский</subfield>
+    <subfield code="9">ac6bc674-c80d-4d6f-b50d-5178929c2a9e</subfield>
+    <subfield code="s">424941</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4083276/files/A_HRC_WGAD_2024_58-ES.pdf</subfield>
+    <subfield code="y">Español</subfield>
+    <subfield code="9">4d600d48-6f8d-4e45-b64f-48a1ce099746</subfield>
+    <subfield code="s">280765</subfield>
+  </datafield>
+  <datafield tag="930" ind1=" " ind2=" ">
+    <subfield code="a">UNDJU25</subfield>
+  </datafield>
+  <datafield tag="980" ind1=" " ind2=" ">
+    <subfield code="a">BIB</subfield>
+  </datafield>
+  <datafield tag="981" ind1=" " ind2=" ">
+    <subfield code="a">General Assembly</subfield>
+    <subfield code="b">Human Rights Council</subfield>
+  </datafield>
+  <datafield tag="981" ind1=" " ind2=" ">
+    <subfield code="a">Human Rights Bodies</subfield>
+    <subfield code="b">Charter-Based Human Rights Bodies</subfield>
+    <subfield code="c">Human Rights Council</subfield>
+  </datafield>
+  <datafield tag="989" ind1=" " ind2=" ">
+    <subfield code="a">Documents and Publications</subfield>
+    <subfield code="b">Legal Cases and Opinions</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">jcc20250610</subfield>
+    <subfield code="b">20250610</subfield>
+    <subfield code="c">c</subfield>
+  </datafield>
+</record>
+<record>
+  <controlfield tag="000">02941nam\\2200649#a\4500</controlfield>
+  <controlfield tag="001">792802</controlfield>
+  <controlfield tag="005">20250329173212.0</controlfield>
+  <controlfield tag="008">150512s2014\\\\che\\\\#r\\\\\|||\|\eng\d</controlfield>
+  <datafield tag="029" ind1=" " ind2=" ">
+    <subfield code="a">JN</subfield>
+    <subfield code="b">G1422543 E</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DHL)1049802</subfield>
+  </datafield>
+  <datafield tag="039" ind1=" " ind2=" ">
+    <subfield code="a">GUN</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">SzGeBNU</subfield>
+    <subfield code="b">eng</subfield>
+  </datafield>
+  <datafield tag="041" ind1=" " ind2=" ">
+    <subfield code="a">arachiengfrerusspa</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">che</subfield>
+  </datafield>
+  <datafield tag="089" ind1=" " ind2=" ">
+    <subfield code="b">B25</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">GEN</subfield>
+  </datafield>
+  <datafield tag="099" ind1=" " ind2=" ">
+    <subfield code="a">UNG</subfield>
+    <subfield code="b">GUN</subfield>
+  </datafield>
+  <datafield tag="191" ind1=" " ind2=" ">
+    <subfield code="a">A/HRC/WGAD/2012/41</subfield>
+    <subfield code="b">A/HRC/WGAD/</subfield>
+    <subfield code="c">65</subfield>
+    <subfield code="q">AHRCWGAD201241</subfield>
+    <subfield code="r">AHRCWGAD65</subfield>
+    <subfield code="0">(DHLAUTH)831871</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Opinions adopted by the Working Group on Arbitrary Detention at its 65th session, 14-23 November 2012 :</subfield>
+    <subfield code="b">No. 41/2012, Togo</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Geneva :</subfield>
+    <subfield code="b">UN,</subfield>
+    <subfield code="c">21 Nov. 2014</subfield>
+  </datafield>
+  <datafield tag="269" ind1=" " ind2=" ">
+    <subfield code="a">2014-11-21</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">10 p.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Communication addressed to the Government on 7 Sept. 2012 concerning Sow Bertin Agba.</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">DETAINED PERSONS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)268490</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">TOGO</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)273503</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">ARBITRARY DETENTION</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)274476</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">WRITTEN COMMUNICATIONS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)272695</subfield>
+  </datafield>
+
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">UN. Human Rights Council. Working Group on Arbitrary Detention (65th sess. : 2012 : Geneva)</subfield>
+    <subfield code="0">(DHLAUTH)831872</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/792802/files/A_HRC_WGAD_2012_41-AR.pdf</subfield>
+    <subfield code="y">العربية</subfield>
+    <subfield code="9">ea240e5e-e09f-4e4d-a4cb-9d2772c5bb15</subfield>
+    <subfield code="s">231806</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/792802/files/A_HRC_WGAD_2012_41-EN.pdf</subfield>
+    <subfield code="y">English</subfield>
+    <subfield code="9">80a07694-e6d2-4297-ae99-1fd368e1de10</subfield>
+    <subfield code="s">284171</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/792802/files/A_HRC_WGAD_2012_41-ES.pdf</subfield>
+    <subfield code="y">Español</subfield>
+    <subfield code="9">d47b905d-7e6d-45a3-8d6e-d69143417c4a</subfield>
+    <subfield code="s">175550</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/792802/files/A_HRC_WGAD_2012_41-FR.pdf</subfield>
+    <subfield code="y">Français</subfield>
+    <subfield code="9">5861efaa-b805-47e0-aae0-690d8b669e8e</subfield>
+    <subfield code="s">85523</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/792802/files/A_HRC_WGAD_2012_41-RU.pdf</subfield>
+    <subfield code="y">Русский</subfield>
+    <subfield code="9">dfa7a1c2-c1c1-434d-936d-76f7093f4995</subfield>
+    <subfield code="s">211782</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/792802/files/A_HRC_WGAD_2012_41-ZH.pdf</subfield>
+    <subfield code="y">中文</subfield>
+    <subfield code="9">d5318973-3266-4018-99db-4cb6c05bb220</subfield>
+    <subfield code="s">414204</subfield>
+  </datafield>
+  <datafield tag="930" ind1=" " ind2=" ">
+    <subfield code="a">UNDMY15</subfield>
+  </datafield>
+  <datafield tag="980" ind1=" " ind2=" ">
+    <subfield code="a">BIB</subfield>
+  </datafield>
+  <datafield tag="981" ind1=" " ind2=" ">
+    <subfield code="a">General Assembly</subfield>
+    <subfield code="b">Human Rights Council</subfield>
+  </datafield>
+  <datafield tag="981" ind1=" " ind2=" ">
+    <subfield code="a">Human Rights Bodies</subfield>
+    <subfield code="b">Charter-Based Human Rights Bodies</subfield>
+    <subfield code="c">Human Rights Council</subfield>
+  </datafield>
+  <datafield tag="989" ind1=" " ind2=" ">
+    <subfield code="a">Documents and Publications</subfield>
+    <subfield code="b">Legal Cases and Opinions</subfield>
+  </datafield>
+  <datafield tag="998" ind1=" " ind2=" ">
+    <subfield code="a">20150512121100</subfield>
+    <subfield code="b">abocat</subfield>
+    <subfield code="c">20160513090800</subfield>
+    <subfield code="d">jccat2</subfield>
+    <subfield code="x">0x00010000b34ff30b</subfield>
+    <subfield code="z">20200217173843</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">abc20150512</subfield>
+    <subfield code="b">20150512</subfield>
+    <subfield code="c">c</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">jcu20150609</subfield>
+    <subfield code="b">20150609</subfield>
+    <subfield code="c">u</subfield>
+  </datafield>
+</record>
+</collection>

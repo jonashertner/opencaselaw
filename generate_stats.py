@@ -449,6 +449,7 @@ _FEDERAL_COURT_EXCLUDE = (
     'untb_crpd',
     'untb_cescr',
     'untb_ced',
+    'unwgad',
 )
 
 

@@ -24,8 +24,8 @@ ECTHR_COURTS = {
     "ecthr_chamber", "ecthr_committee", "ecthr_grand_chamber",
     "hudoc_ch", "bge_egmr",
 }
-# UN treaty-body decisions: French where OHCHR has a French text, otherwise
-# English (scrapers/untb.py) — the same rule as the ECtHR.
+# UN treaty-body decisions and WGAD opinions: French where the UN has a French
+# text, otherwise English (scrapers/untb.py) — the same rule as the ECtHR.
 UNTB_COURTS = {
     "untb_ccpr",
     "untb_cat",
@@ -35,6 +35,7 @@ UNTB_COURTS = {
     "untb_crpd",
     "untb_cescr",
     "untb_ced",
+    "unwgad",    # Working Group on Arbitrary Detention, same rule
 }
 NULL_LANGUAGE_FLOOR_PCT = 0.5  # WARNING if >0.5% of rows have no language
 

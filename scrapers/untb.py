@@ -45,6 +45,15 @@ RECENT_SESSIONS highest per committee, where documents keep arriving for
 months. Case name, State and outcome come from the decision's own header
 ('Communication soumise par : …', 'État Partie : …').
 
+Working Group on Arbitrary Detention. Its opinions on individual cases
+(A/HRC/WGAD/<year>/<n>, 2010 onward; earlier ones only exist inside
+compilation reports) come from the same Library sweep, one query per year,
+court code unwgad. The record title carries the opinion number and the
+State ('Opinion No. 58/2024 concerning Mohammad Arfat (India)', before 2023
+'No. 41/2012, Togo'). The record gives only the session span, not the day
+of adoption: decision_date is the session's last day, for sorting and date
+filters, and the citation string carries no date (mcp_server).
+
 Document. French where OHCHR has a French text, else English (the ECtHR
 rule: French is a Swiss official language, English the fallback). Per
 language the Word-exported HTML, then DOCX, then the PDF's text layer;
@@ -98,6 +107,11 @@ SESSION_HINT = {"CCPR": 147, "CAT": 84, "CERD": 117, "CEDAW": 93, "CRC": 102,
 SESSION_EXTEND = 3
 RECENT_SESSIONS = 4
 
+WGAD_COURT = "unwgad"
+WGAD_PATTERN = "A/HRC/WGAD/{s}/"
+WGAD_FIRST_YEAR = 2010
+WGAD_RECENT_YEARS = 2        # opinions of a session reach the Library months later
+
 # Symbol prefix -> (court code, committee acronym). Order matters: "CAT/OP"
 # (the Subcommittee on Prevention of Torture) is not a complaint body.
 SYMBOL_PREFIXES: tuple[tuple[str, str, str], ...] = (
@@ -111,6 +125,8 @@ SYMBOL_PREFIXES: tuple[tuple[str, str, str], ...] = (
     ("CED/", "untb_ced", "CED"),
 )
 UNTB_COURTS = frozenset(court for _, court, _ in SYMBOL_PREFIXES)
+# Every UN court this scraper writes: the treaty bodies plus the WGAD.
+UN_COURTS = UNTB_COURTS | {"unwgad"}
 
 # German / French / Italian names of each treaty, appended to the regeste:
 # the only lexical bridge a DE or IT query has to a French or English
@@ -133,6 +149,9 @@ _TREATY_KEYWORDS = {
              "Rechte; Pacte international relatif aux droits économiques, sociaux et culturels",
     "CED": "Übereinkommen zum Schutz aller Personen vor dem Verschwindenlassen; "
            "Convention pour la protection de toutes les personnes contre les disparitions forcées",
+    "WGAD": "UNO-Arbeitsgruppe über willkürliche Inhaftierung, willkürliche Haft; "
+            "Groupe de travail sur la détention arbitraire; "
+            "Gruppo di lavoro sulla detenzione arbitraria",
 }
 
 LEGAL_AREA = "UNO-Menschenrechtsausschüsse / Organes conventionnels de l'ONU"
@@ -242,6 +261,8 @@ def committee_for(symbol: str) -> tuple[str, str] | None:
     for prefix, court, acronym in SYMBOL_PREFIXES:
         if symbol.startswith(prefix):
             return court, acronym
+    if symbol.startswith("A/HRC/WGAD/"):
+        return WGAD_COURT, "WGAD"
     return None
 
 
@@ -330,6 +351,36 @@ def dl_decision_type(title245: str, text: str) -> str:
     if _INADMISSIBLE.search(text):
         return "Inadmissibility decision"
     return "Decision"
+
+
+_LAST_DATE = re.compile(r"(\d{1,2})\s+([A-Z][a-z]+)\s+(\d{4})\s*$")
+
+
+def wgad_meta(title245: str) -> dict:
+    """Opinion number, title, State and session end from a WGAD record title:
+    'Opinions adopted … at its 101st session, 11-15 November 2024 : Opinion
+    No. 58/2024 concerning Mohammad Arfat (India)'."""
+    head, _, opinion = title245.partition(" : ")
+    opinion = opinion.strip()
+    num = re.search(r"No\.\s*(\d+/\d{4})", opinion)
+    paren = re.search(r"\(([^()]*)\)\s*$", opinion)
+    if paren:
+        state = paren.group(1).strip()
+    else:                                    # 'No. 41/2012, Togo'
+        state = opinion.rsplit(",", 1)[1].strip() if "," in opinion else ""
+    end = _LAST_DATE.search(head.rstrip(" :"))
+    session_end = None
+    if end:
+        try:
+            session_end = datetime.strptime(" ".join(end.groups()), "%d %B %Y").date()
+        except ValueError:
+            pass
+    return {
+        "title": opinion if opinion.startswith("Opinion") else f"Opinion {opinion}".strip(),
+        "opinion_no": num.group(1) if num else None,
+        "state": state,
+        "session_end": session_end,
+    }
 
 
 # ───────────────────────────────────────────── document text
@@ -489,6 +540,28 @@ class UNTreatyBodyScraper(BaseScraper):
         with open(self.dl_sessions_path, "a", encoding="utf-8") as f:
             f.write(f"{acronym}\t{session}\t{count}\n")
 
+    def _sweep(self, acronym: str, pattern: str, number: int, recent: bool,
+               held: set[str]) -> tuple[list[dict], int]:
+        """New stubs of one session (or WGAD year), and how many records it has.
+        Records the session complete when it holds nothing new."""
+        records = self._dl_query(pattern.format(s=number))
+        new = []
+        for rec in records:
+            committee = committee_for(rec["symbol"])
+            key = symbol_key(rec["symbol"])
+            if committee is None or key in held:
+                continue
+            did = make_decision_id(committee[0], rec["symbol"])
+            if self.state.is_known(did):
+                continue
+            held.add(key)
+            new.append({**rec, "source": "dl", "decision_id": did,
+                        "docket_number": rec["symbol"], "court": committee[0],
+                        "acronym": committee[1], "url": DL_RECORD.format(recid=rec["recid"])})
+        if not new and not recent and number not in self._dl_complete.get(acronym, {}):
+            self._mark_session_complete(acronym, number, len(records))
+        return new, len(records)
+
     def _discover_dl(self) -> Iterator[dict]:
         held = self._held_keys()
         yielded = 0
@@ -503,28 +576,23 @@ class UNTreatyBodyScraper(BaseScraper):
                 recent = session > top - RECENT_SESSIONS
                 if session in done and not recent:
                     continue
-                records = self._dl_query(pattern.format(s=session))
+                new, count = self._sweep(acronym, pattern, session, recent, held)
                 if session > top:
-                    empty_above = 0 if records else empty_above + 1
-                    if records:
+                    empty_above = 0 if count else empty_above + 1
+                    if count:
                         top = session
-                new = []
-                for rec in records:
-                    committee = committee_for(rec["symbol"])
-                    key = symbol_key(rec["symbol"])
-                    if committee is None or key in held:
-                        continue
-                    did = make_decision_id(committee[0], rec["symbol"])
-                    if self.state.is_known(did):
-                        continue
-                    held.add(key)
-                    new.append({**rec, "source": "dl", "decision_id": did,
-                                "docket_number": rec["symbol"], "court": committee[0],
-                                "acronym": committee[1], "url": DL_RECORD.format(recid=rec["recid"])})
-                if not new and not recent and session not in done:
-                    self._mark_session_complete(acronym, session, len(records))
                 yielded += len(new)
                 yield from new
+        # Working Group on Arbitrary Detention: one sweep per year.
+        done = self._dl_complete.get("WGAD", {})
+        this_year = date.today().year
+        for year in range(WGAD_FIRST_YEAR, this_year + 1):
+            recent = year > this_year - WGAD_RECENT_YEARS
+            if year in done and not recent:
+                continue
+            new, _ = self._sweep("WGAD", WGAD_PATTERN, year, recent, held)
+            yielded += len(new)
+            yield from new
         logger.info(f"[untb] Digital Library sweep: {yielded} documents juris does not hold")
 
     def _fetch_text(self, links: dict[str, dict[str, str]]) -> tuple[str, str, str] | None:
@@ -563,22 +631,28 @@ class UNTreatyBodyScraper(BaseScraper):
             logger.info(f"[untb] {stub['symbol']}: no usable text in the Digital Library PDFs")
             return None
         text, lang, fmt = got
-        author, state = header_parties(text)
-        title = f"{author} {'v.' if lang == 'en' else 'c.'} {state}" if author and state else stub["symbol"]
-        dtype = dl_decision_type(stub.get("title245") or "", text)
-        m = re.search(r"/D/(.+)$", stub["symbol"])
-        commno = m.group(1) if m and re.fullmatch(r"\d+/\d{4}", m.group(1)) else None
-        subjects = [t for t in stub.get("subjects", []) if t != "WRITTEN COMMUNICATIONS"]
+        decision_date = stub.get("adopted")
+        if stub["acronym"] == "WGAD":
+            w = wgad_meta(stub.get("title245") or "")
+            title, state, dtype, commno = w["title"], w["state"], "Opinion", w["opinion_no"]
+            decision_date = decision_date or w["session_end"]
+        else:
+            author, state = header_parties(text)
+            title = f"{author} {'v.' if lang == 'en' else 'c.'} {state}" if author and state else stub["symbol"]
+            dtype = dl_decision_type(stub.get("title245") or "", text)
+            m = re.search(r"/D/(.+)$", stub["symbol"])
+            commno = m.group(1) if m and re.fullmatch(r"\d+/\d{4}", m.group(1)) else None
+        subjects = [t for t in stub.get("subjects", []) if t not in ("WRITTEN COMMUNICATIONS", "DETAINED PERSONS")]
         regeste = "; ".join(x for x in (
             dtype, f"Subjects: {', '.join(subjects)}" if subjects else "",
             f"[{stub['acronym']}: {_TREATY_KEYWORDS[stub['acronym']]}]") if x)
         return Decision(
             decision_id=stub["decision_id"],
             court=stub["court"],
-            canton="CH" if state in ("Switzerland", "Suisse") else "UN",
+            canton="CH" if re.search(r"\b(?:Switzerland|Suisse)\b", state or "") else "UN",
             docket_number=stub["symbol"],
             docket_number_2=commno,
-            decision_date=stub.get("adopted"),
+            decision_date=decision_date,
             language=lang,
             title=title,
             legal_area=LEGAL_AREA,

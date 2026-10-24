@@ -343,6 +343,7 @@ EXCLUDED_COURTS = frozenset({
     "untb_crpd",
     "untb_cescr",
     "untb_ced",
+    "unwgad",    # UN Working Group on Arbitrary Detention, same terms
 })
 
 

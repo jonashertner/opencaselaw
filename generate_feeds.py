@@ -110,6 +110,7 @@ COURT_NAMES = {
     "untb_crpd": "UNO-Behindertenrechtsausschuss (CRPD)",
     "untb_cescr": "UNO-Sozialrechtsausschuss (CESCR)",
     "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
+    "unwgad": "UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)",
 }
 
 LANG_NAMES = {"de": "Deutsch", "fr": "Français", "it": "Italiano"}

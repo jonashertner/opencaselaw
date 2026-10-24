@@ -154,6 +154,7 @@ COURT_PROCEEDING = {
     "untb_crpd": ("uno_individualmitteilung", "uno_vertrag"),
     "untb_cescr": ("uno_individualmitteilung", "uno_vertrag"),
     "untb_ced": ("uno_individualmitteilung", "uno_vertrag"),
+    "unwgad": ("uno_wgad_mitteilung", "uno_sonderverfahren"),
     "mkg": ("militaer_kassationsbeschwerde", "mstp"),
     "zh_kassationsgericht": ("kassationsbeschwerde", "zh_alt"),
     # regulators / supervisory authorities (Verfügungen & Aufsicht)

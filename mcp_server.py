@@ -1796,6 +1796,7 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "untb_crpd": "UNO-Behindertenrechtsausschuss (CRPD)",
     "untb_cescr": "UNO-Sozialrechtsausschuss (CESCR)",
     "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
+    "unwgad": "UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)",
     "ch_bundesrat": "Bundesrat", "ch_vb": "Bundesverwaltung",
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherungsrecht",
     "weko": "WEKO", "edoeb": "EDÖB", "ubi": "UBI",
@@ -1866,6 +1867,7 @@ COURT_LEVELS: dict[str, str] = {
     "untb_crpd": "international",
     "untb_cescr": "international",
     "untb_ced": "international",
+    "unwgad": "international",
     "ch_bundesrat": "federal_executive", "ch_vb": "federal_executive",
     "finma": "regulatory", "finma_versicherungsrecht": "regulatory",
     "weko": "regulatory", "edoeb": "regulatory", "ubi": "regulatory",
@@ -11222,7 +11224,7 @@ _CANONICAL_ID_PREFIX_RE = re.compile(
     r"^(?:bge|bger|bvger|bstger|bpatger|mkg|hudoc|bge_egmr|bge_historical|"
     r"ecthr_chamber|ecthr_committee|ecthr_grand_chamber|"
     r"finma|finma_versicherungsrecht|weko|edoeb|ubi|elcom|postcom|comcom|"
-    r"emark|ta_sst|ch_bundesrat|untb|"
+    r"emark|ta_sst|ch_bundesrat|untb|unwgad|"
     r"zh|be|lu|ur|sz|ow|nw|gl|zg|fr|so|bs|bl|sh|ar|ai|sg|gr|ag|tg|ti|vd|vs|ne|ge|ju)"
     r"_",
     re.IGNORECASE,
@@ -14312,8 +14314,9 @@ server = Server(
         "Rundschreiben and the Handbuch Asyl und Rückkehr, BJ SchKG Weisungen "
         "and cantonal Existenzminimum Kreisschreiben, BAFU Vollzugshilfen, and "
         "the decisions and Views of the UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, "
-        "CRPD, CESCR, CED) on individual communications against every State party, "
-        "FR or EN, via search_decisions(court='untb_*'), "
+        "CRPD, CESCR, CED) on individual communications against every State party "
+        "and the opinions of the Working Group on Arbitrary Detention (2010-), "
+        "FR or EN, via search_decisions(court='untb_*' / 'unwgad'), "
         "the UN human-rights recommendations addressed to Switzerland (treaty-body "
         "concluding observations, UPR recommendations with Switzerland's position, "
         "SPT and special-procedure reports; source='un_uhri', EN/FR) — via "
@@ -14584,7 +14587,8 @@ server = Server(
         "• 'Has the ECHR ruled against CH on X?'   → search_decisions(court='ecthr_chamber') or court='hudoc_ch'\n"
         "• 'BGE-published EGMR translation?'       → search_decisions(court='bge_egmr')\n"
         "• 'Has a UN committee (CAT, CCPR, CEDAW …) decided on X?' → search_decisions(\n"
-        "     court='untb_cat' etc.; add canton='CH' for cases against Switzerland)\n\n"
+        "     court='untb_cat' etc.; add canton='CH' for cases against Switzerland)\n"
+        "• 'UN Working Group on Arbitrary Detention opinion on X?' → search_decisions(court='unwgad')\n\n"
 
         "ECHR / EGMR coverage: every ECtHR judgment of importance 1-3 (the "
         "Court's own scale, where 1 = Key cases), from all 46 respondent "
@@ -15310,6 +15314,7 @@ _UNTB_ACRONYM = {
     "untb_crpd": "CRPD",
     "untb_cescr": "CESCR",
     "untb_ced": "CED",
+    "unwgad": "WGAD",
 }
 
 
@@ -15324,11 +15329,17 @@ def _untb_citation_strings(decision: dict, pin: str | None, url: str) -> dict:
     decision_date = decision.get("decision_date") or ""
     reliable = _citation_date_reliable(decision_date)
 
+    # WGAD opinions: the title already names the opinion number ('Opinion No.
+    # 58/2024 concerning … (India)'), and the record gives only the session
+    # span, so the stored date is the session's last day — not printed in a
+    # citable string.
+    wgad = court == "unwgad"
+
     def one(lang: str, nr: str, vom: str, pin_label: str) -> str:
         out = f"{acronym}, {title}" if title else acronym
-        if commno:
+        if commno and not wgad:
             out += f", {nr} {commno}"
-        date = _format_date_localized(decision_date, lang) if reliable else ""
+        date = _format_date_localized(decision_date, lang) if reliable and not wgad else ""
         if date:
             out += f" {vom} {date}"
         if symbol:
@@ -15429,7 +15440,7 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
     # the UN symbol, every part read from the record: 'CAT, R.D. v. Switzerland,
     # Nr. 426/2010 vom 8. November 2013 (CAT/C/51/D/426/2010)'. The symbol is
     # what the UN's own document system resolves.
-    if court.startswith("untb_"):
+    if court.startswith("untb_") or court == "unwgad":
         return _untb_citation_strings(decision, pin, url)
 
     # Docketed federal courts (bger / bvger / bstger / bpatger / bge_historical)
@@ -29071,8 +29082,9 @@ def _list_tools() -> list[Tool]:
                             "UN treaty bodies (decisions on individual "
                             "communications, all States, FR or EN): untb_ccpr, "
                             "untb_cat, untb_cerd, untb_cedaw, untb_crc, untb_crpd, "
-                            "untb_cescr, untb_ced; canton='CH' for cases against "
-                            "Switzerland. "
+                            "untb_cescr, untb_ced; unwgad = Working Group on "
+                            "Arbitrary Detention opinions (2010-); canton='CH' "
+                            "for cases against Switzerland. "
                             "Cantonal: zh_obergericht, be_verwaltungsgericht, etc."
                         ),
                     },

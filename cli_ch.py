@@ -105,6 +105,7 @@ _NON_SWISS_COURTS = frozenset({
     "untb_crpd",
     "untb_cescr",
     "untb_ced",
+    "unwgad",
 })
 
 # ISO 3166-2:CH canton codes.

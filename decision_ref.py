@@ -80,7 +80,7 @@ CANTON_CODES = ("ag", "ai", "ar", "be", "bl", "bs", "fr", "ge", "gl", "gr", "ju"
 # (regulators, the ECtHR collections, the VPB/Bundesrat collections).
 OTHER_ID_HEADS = ("ch", "hudoc", "ecthr", "bazg", "comcom", "edoeb", "elcom", "emark", "esbk",
                   "eschk", "estv", "finma", "mkg", "postcom", "preisueberwacher", "rab", "sav",
-                  "ta", "ubi", "untb", "weko")
+                  "ta", "ubi", "untb", "unwgad", "weko")
 
 
 def _load_id_heads() -> frozenset[str]:

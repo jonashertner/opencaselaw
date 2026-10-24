@@ -98,6 +98,7 @@ COURT_BRANCH = {
     "untb_crpd": OEFF,
     "untb_cescr": OEFF,
     "untb_ced": OEFF,
+    "unwgad": OEFF,
 }
 
 # ── 2. per-court docket rules ───────────────────────────────────────────
