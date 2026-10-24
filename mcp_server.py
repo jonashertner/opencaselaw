@@ -5520,7 +5520,13 @@ def _dedupe_results_by_decision_id(rows: list[dict]) -> list[dict]:
         if tkey:
             seen_bge_tuples.add(tkey)
         out.append(row)
-    return out
+    # Manifest-linked representations (design doc §5/§7, phase 5): a second
+    # hit for the same canonical decision under a different portal identifier
+    # (GE procedure/decision numbers, VD vd_gerichte/vd_findinfo, SH twin
+    # courts, ...) is not caught by the two rules above, since the ids,
+    # dockets AND dates can all differ. Shared with the _rerank_rows pre-
+    # pagination loop (comment near there: "the two paths must not diverge").
+    return _collapse_representation_rows(out)
 
 
 def _merge_priority_results(
@@ -5930,6 +5936,225 @@ def _attach_canonical_ids(rows) -> None:
         canonical = links.get(did) or did
         r["canonical_decision_id"] = canonical
         r["is_canonical"] = canonical == did
+
+
+# Phase 5 (design doc §5/§7): search COLLAPSES manifest-linked
+# representations instead of merely labeling them. Collapsing and regeste
+# donation are gated STRICTER than the labels above (_attach_canonical_ids
+# labels every link unconditionally): only a link whose confidence and
+# date_match clear this bar is folded. The VD cross-reference evidence
+# carries confidence 0.9 but date_match=0 for the ~15% of links where the
+# procedure/publication dates disagree — the design doc (§4) flags those as
+# possibly a DIFFERENT ruling of the same procedure (an interim vs a final
+# decision), never safe to silently merge or donate text from.
+_REPR_SAFE_MIN_CONFIDENCE = 0.85
+
+
+def _safe_representation_links_for(decision_ids) -> dict[str, dict] | None:
+    """member decision_id -> {canonical_decision_id, relation_type,
+    evidence_method, confidence} for links SAFE to COLLAPSE or HARVEST from
+    (self-links excluded, confidence >= _REPR_SAFE_MIN_CONFIDENCE, date_match
+    = 1). A stricter subset of _canonical_links_for, which labels every link
+    the manifest carries regardless of confidence/date_match. One batched
+    IN-lookup (idx_repr_member). None when the manifest is not loaded (so a
+    caller can tell "no manifest" from "no safe link"); {} when it is loaded
+    but nothing in `decision_ids` has one. Never raises.
+    """
+    ids = [d for d in dict.fromkeys(decision_ids) if isinstance(d, str) and d]
+    conn = _get_manifest_conn()
+    if conn is None:
+        return None
+    out: dict[str, dict] = {}
+    try:
+        for i in range(0, len(ids), 500):
+            chunk = ids[i:i + 500]
+            for r in conn.execute(
+                "SELECT member_decision_id, canonical_decision_id, relation_type, "
+                "evidence_method, confidence FROM decision_representations "
+                f"WHERE member_decision_id IN ({','.join('?' * len(chunk))}) "
+                "AND member_decision_id != canonical_decision_id "
+                "AND confidence >= ? AND date_match = 1",
+                (*chunk, _REPR_SAFE_MIN_CONFIDENCE),
+            ):
+                out[r["member_decision_id"]] = {
+                    "canonical_decision_id": r["canonical_decision_id"],
+                    "relation_type": r["relation_type"],
+                    "evidence_method": r["evidence_method"],
+                    "confidence": r["confidence"],
+                }
+        return out
+    except sqlite3.Error:
+        return None
+    finally:
+        conn.close()
+
+
+def _fold_representation_row(kept, member, link_info: dict | None):
+    """Fold one manifest-linked representation into the surviving search hit
+    `kept` (search collapse, design doc §5). Mirrors _fold_bge_twin_row:
+    works on sqlite3.Row or dict via _row_get/`.keys()`, and always returns a
+    NEW dict (sqlite3.Row does not support item assignment).
+
+    - Records {decision_id, relation_type, evidence_method, confidence,
+      source_url} for `member` in `kept["representations"]`.
+    - If `kept` has no regeste and `member` does, copies `member`'s regeste
+      onto `kept` VERBATIM — R2: a harvested quotation must be the member's
+      own stored text, never paraphrased or invented — and sets
+      `regeste_source` to `member`'s own decision_id so provenance travels
+      with the text (design doc §4: vd_gerichte/canonical carries no regeste
+      in ~100% of cases, vd_findinfo/member carries one in ~99%).
+
+    `link_info` is `member`'s manifest row (from
+    _safe_representation_links_for) describing why it links to this
+    canonical; it is None when `member` is itself the canonical decision
+    being folded into an earlier-kept, higher-ranked member row (the
+    manifest has no self-link row to describe that direction).
+    """
+    out = dict(kept) if isinstance(kept, dict) else {k: kept[k] for k in kept.keys()}
+    reps = list(out.get("representations") or [])
+    reps.append({
+        "decision_id": _row_get(member, "decision_id"),
+        "relation_type": (link_info or {}).get("relation_type"),
+        "evidence_method": (link_info or {}).get("evidence_method"),
+        "confidence": (link_info or {}).get("confidence"),
+        "source_url": _row_get(member, "source_url"),
+    })
+    out["representations"] = reps
+    if not _row_get(out, "regeste") and _row_get(member, "regeste"):
+        out["regeste"] = _row_get(member, "regeste")
+        out["regeste_source"] = _row_get(member, "decision_id")
+    return out
+
+
+def _collapse_representation_rows(rows: list[dict]) -> list[dict]:
+    """Collapse manifest-linked representations in an already-built result
+    list to one hit per canonical decision (design doc §5/§7 phase 5).
+
+    Any row in `rows` that safely links (_safe_representation_links_for) to
+    the SAME canonical decision as another row already in `rows` — whether
+    that other row IS the canonical or just another member — folds into it
+    via _fold_representation_row, in place of appearing as a second hit.
+    First/highest-ranked occurrence wins the surviving identity (the same
+    "first wins" convention _dedupe_results_by_decision_id already uses for
+    the BGE dual-ID case); the folded row(s) are listed in
+    `representations` on the survivor, never dropped from the response.
+
+    Deliberately NOT done: substituting a canonical/member that matched the
+    query for a candidate that did not. When only one representation of a
+    canonical decision is present in `rows`, it is served as-is (already
+    labeled canonical_decision_id/is_canonical elsewhere by
+    _attach_canonical_ids) — collapsing it against a row that never matched
+    the search would serve a relevance score and snippet computed against
+    different text under a different decision's identity.
+
+    No-op (returns `rows` unchanged) without the manifest or when nothing in
+    `rows` safely links to anything else in `rows`. Never raises.
+    """
+    if not rows:
+        return rows
+    ids = [r.get("decision_id") for r in rows if isinstance(r, dict) and r.get("decision_id")]
+    try:
+        links = _safe_representation_links_for(ids)
+    except Exception:
+        return rows
+    if not links:
+        return rows
+    survivor_at: dict[str, int] = {}
+    out: list[dict] = []
+    for r in rows:
+        did = r.get("decision_id") if isinstance(r, dict) else None
+        if not did:
+            out.append(r)
+            continue
+        link = links.get(did)
+        canon = link["canonical_decision_id"] if link else did
+        if canon in survivor_at:
+            out[survivor_at[canon]] = _fold_representation_row(out[survivor_at[canon]], r, link)
+            continue
+        survivor_at[canon] = len(out)
+        out.append(r)
+    return out
+
+
+def _harvest_missing_regeste(rows: list[dict]) -> None:
+    """Fill in a regeste-less row's regeste from a safely-linked member, in
+    place (design doc §4: 'canonical must harvest the regeste from
+    vd_findinfo' — vd_gerichte carries one in ~0% of cases, vd_findinfo in
+    ~99%). Covers the case _collapse_representation_rows cannot: the
+    canonical (or an already-collapsed survivor) is the ONLY representation
+    present on this result page, so there is no sibling row in `rows` to fold
+    regeste text from. Two batched queries total, both restricted to the
+    rows that actually lack a regeste (bounded by page size, not corpus
+    size): one manifest reverse-lookup (canonical_decision_id -> safe
+    member), then one point-lookup of those members' OWN regeste in
+    decisions.db. Copies the member's stored regeste VERBATIM (R2) and sets
+    `regeste_source` to the member's own decision_id. No-op without the
+    manifest, when nothing needs one, or when no safe link resolves one.
+    Never raises.
+    """
+    needy = [r.get("decision_id") for r in rows
+             if isinstance(r, dict) and r.get("decision_id") and not r.get("regeste")]
+    if not needy:
+        return
+    conn = _get_manifest_conn()
+    if conn is None:
+        return
+    best: dict[str, dict] = {}
+    try:
+        for i in range(0, len(needy), 500):
+            chunk = needy[i:i + 500]
+            for r in conn.execute(
+                "SELECT canonical_decision_id, member_decision_id, relation_type, "
+                "evidence_method, confidence FROM decision_representations "
+                f"WHERE canonical_decision_id IN ({','.join('?' * len(chunk))}) "
+                "AND canonical_decision_id != member_decision_id "
+                "AND confidence >= ? AND date_match = 1",
+                (*chunk, _REPR_SAFE_MIN_CONFIDENCE),
+            ):
+                cid = r["canonical_decision_id"]
+                if cid not in best or r["confidence"] > best[cid]["confidence"]:
+                    best[cid] = {
+                        "member_decision_id": r["member_decision_id"],
+                        "relation_type": r["relation_type"],
+                        "evidence_method": r["evidence_method"],
+                        "confidence": r["confidence"],
+                    }
+    except sqlite3.Error:
+        return
+    finally:
+        conn.close()
+    if not best:
+        return
+    member_ids = list({v["member_decision_id"] for v in best.values()})
+    texts: dict[str, str] = {}
+    try:
+        dconn = get_db()
+    except Exception:
+        return
+    try:
+        for i in range(0, len(member_ids), 500):
+            chunk = member_ids[i:i + 500]
+            for r in dconn.execute(
+                "SELECT decision_id, regeste FROM decisions WHERE decision_id IN "
+                f"({','.join('?' * len(chunk))})", chunk,
+            ):
+                if r["regeste"]:
+                    texts[r["decision_id"]] = r["regeste"]
+    except sqlite3.Error:
+        return
+    finally:
+        dconn.close()
+    for r in rows:
+        if not isinstance(r, dict) or r.get("regeste"):
+            continue
+        did = r.get("decision_id")
+        info = best.get(did)
+        if not info:
+            continue
+        text = texts.get(info["member_decision_id"])
+        if text:
+            r["regeste"] = _truncate(text, MAX_SNIPPET_LEN)
+            r["regeste_source"] = info["member_decision_id"]
 
 
 _anwaltsrecht_warned = False
@@ -9701,15 +9926,22 @@ def _rerank_rows(
     # because a short page is indistinguishable from exhaustion. Collapsing
     # the ranking first makes offset address a stable, duplicate-free list and
     # restores exactly min(limit, remaining) rows.
-    # Three collapse rules apply downstream, so all three must apply HERE or
+    # Four collapse rules apply downstream, so all four must apply HERE or
     # the page shrinks again after it is cut: decision_id and canonical key
-    # (_dedupe_results_by_decision_id), plus the handler's dateless
-    # court|docket key that folds the BGE dual-ID formats
-    # ('bge_125 III 231' vs 'bge_BGE_125_III_231').
+    # (_dedupe_results_by_decision_id), the handler's dateless court|docket
+    # key that folds the BGE dual-ID formats ('bge_125 III 231' vs
+    # 'bge_BGE_125_III_231'), and the representation-manifest fold (design
+    # doc §5/§7 phase 5) that collapses a decision stored under two PORTAL
+    # identifiers (GE procedure/decision number, VD vd_gerichte/vd_findinfo,
+    # SH twin courts, ...) — ids, dockets AND dates can all differ there, so
+    # neither of the first two rules sees it.
     _seen_ids: set[str] = set()
     _seen_keys: set[str] = set()
     _seen_dockets: set[str] = set()
     _docket_at: dict[str, int] = {}
+    _repr_at: dict[str, int] = {}
+    _repr_links = _safe_representation_links_for(
+        [r["decision_id"] for r in rows]) or {}
     _deduped: list = []
     for _entry in scored:
         _row = _entry[3]
@@ -9737,12 +9969,27 @@ def _rerank_rows(
                 _deduped[_i] = (*_k[:3], _fold_bge_twin_row(_k[3], _row))
                 _seen_ids.add(_did)
             continue
+        # Representation-manifest fold: `_did` is folded against an already-
+        # kept row for the SAME canonical decision, whether that earlier row
+        # IS the canonical or another member — first/highest-ranked wins the
+        # surviving identity, same convention as the rules above (copied
+        # verbatim from _dedupe_results_by_decision_id's _collapse_
+        # representation_rows so the two paths cannot diverge).
+        _link = _repr_links.get(_did)
+        _canon = _link["canonical_decision_id"] if _link else _did
+        if _canon in _repr_at:
+            _ri = _repr_at[_canon]
+            _rk = _deduped[_ri]
+            _deduped[_ri] = (*_rk[:3], _fold_representation_row(_rk[3], _row, _link))
+            _seen_ids.add(_did)
+            continue
         _seen_ids.add(_did)
         if _ckey and "||" not in _ckey:
             _seen_keys.add(_ckey)
         if _dn:
             _seen_dockets.add(_dkey)
             _docket_at.setdefault(_dkey, len(_deduped))
+        _repr_at.setdefault(_canon, len(_deduped))
         _deduped.append(_entry)
     scored = _deduped
     result_slice = scored[offset:offset + limit]
@@ -9807,6 +10054,20 @@ def _rerank_rows(
             result["cited_by_results"] = in_pool
         if incoming >= threshold:
             result["is_leading_case"] = True
+        # Representation-manifest fold (design doc §5/§7 phase 5): `row` is a
+        # plain dict, not the raw sqlite3.Row, only when _fold_representation_
+        # row merged a folded member's data into it above. `regeste_source`
+        # only travels when it actually explains the regeste shown above
+        # (truncation/_pick_regeste could in principle still pick an
+        # abstract_{lang} column over the harvested text; it never does here
+        # since a harvested row has no abstract_* columns, but the check is
+        # cheap insurance against ever mislabeling a row's OWN regeste).
+        if isinstance(row, dict):
+            _reps = row.get("representations")
+            if _reps:
+                result["representations"] = _reps
+            if row.get("regeste_source") and result.get("regeste"):
+                result["regeste_source"] = row["regeste_source"]
         results.append(result)
     return results
 
@@ -11387,6 +11648,13 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     # representation manifest (absent when it is not loaded; never changes
     # decision_id — the requested row is served either way).
     _attach_canonical_ids([result])
+    # Regeste harvest (design doc §4): this record may itself carry no
+    # regeste (vd_gerichte: ~0%) even though a safely-linked member does
+    # (vd_findinfo: ~99%) — fill it in from the member's own stored text,
+    # labeled with regeste_source, feeding get_decision and (via it)
+    # get_regeste below. Reuses the search-page harvester for a page of one;
+    # no-op without the manifest or a safe link.
+    _harvest_missing_regeste([result])
 
     # Joined-docket resolution (#41): the caller looked up a secondary docket of
     # a consolidated proceeding; surface that the returned decision is the lead,
@@ -18047,12 +18315,14 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
                 "_note": "No Regeste field for this decision.",
             }
         citation = _build_citation_strings(decision)
+        _regeste_source = decision.get("regeste_source")
         return {
             "decision_id": decision.get("decision_id"),
             "court": decision.get("court"),
             "decision_date": decision.get("decision_date"),
             "language": decision.get("language"),
             "regeste": _auto_link_citations(regeste),
+            **({"regeste_source": _regeste_source} if _regeste_source else {}),
             # ── Canonical citation (copy these verbatim; do NOT reconstruct) ──
             "citation_string_de": citation["citation_string_de"],
             "citation_string_fr": citation["citation_string_fr"],
@@ -18068,6 +18338,10 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
                 "point to specific Erwägungen — use get_erwaegung to retrieve them. "
                 "The returned `regeste` has every inner Swiss-case reference "
                 "pre-wrapped as a Markdown link — quote it verbatim to the user."
+                + (f" This Regeste is harvested verbatim from its linked "
+                   f"representation {_regeste_source!r} (the canonical record "
+                   f"itself carries none) — cite the decision you asked for, "
+                   f"never {_regeste_source!r}." if _regeste_source else "")
             ),
         }
     # Structured-sidecar path: enrich with the full decision record for
@@ -18075,6 +18349,13 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
     # main DB, not the sidecar). Use FTS5-canonical id for the URL.
     main_decision = get_decision_by_id(resolved) or get_decision_by_id(row["decision_id"]) or {}
     canonical_id = main_decision.get("decision_id") or resolved or row["decision_id"]
+    # The sidecar carries no regeste for this decision, but the main record
+    # (harvested above by get_decision_by_id, design doc §4) may have one from
+    # a safely-linked representation. Sidecar text, when present, still wins:
+    # it is this decision's OWN stored regeste.
+    _sidecar_regeste = row.get("regeste")
+    _regeste_source = None if _sidecar_regeste else main_decision.get("regeste_source")
+    _regeste = _sidecar_regeste or main_decision.get("regeste")
     decision_for_citation = {
         "decision_id": canonical_id,
         "court": row["court"],
@@ -18083,7 +18364,7 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
         "docket_number": main_decision.get("docket_number"),
         "collection": main_decision.get("collection"),
         "bge_reference": main_decision.get("bge_reference"),
-        "regeste": row.get("regeste"),
+        "regeste": _regeste,
     }
     citation = _build_citation_strings(decision_for_citation)
     return {
@@ -18091,7 +18372,8 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
         "court": row["court"],
         "decision_date": row["decision_date"],
         "language": row["language"],
-        "regeste": _auto_link_citations(row.get("regeste")),
+        "regeste": _auto_link_citations(_regeste),
+        **({"regeste_source": _regeste_source} if _regeste_source else {}),
         # ── Canonical citation (copy these verbatim; do NOT reconstruct) ──
         "citation_string_de": citation["citation_string_de"],
         "citation_string_fr": citation["citation_string_fr"],
@@ -18107,6 +18389,10 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
             "to retrieve their verbatim text. "
             "The returned `regeste` has every inner Swiss-case reference pre-"
             "wrapped as a Markdown link — quote it verbatim to the user."
+            + (f" This Regeste is harvested verbatim from its linked "
+               f"representation {_regeste_source!r} (the canonical record "
+               f"itself carries none) — cite the decision you asked for, "
+               f"never {_regeste_source!r}." if _regeste_source else "")
         ),
     }
 
@@ -31604,8 +31890,10 @@ _RESEARCH_COMPACT_KEYS = (
 # Keys a compact row keeps WHEN PRESENT: the identity keys are set by
 # _attach_canonical_ids only while the representation manifest is loaded, so a
 # client can collapse duplicate representations without a second request;
-# publication_date is set by search_fts5 where the court publishes one.
-_RESEARCH_COMPACT_OPTIONAL_KEYS = ("canonical_decision_id", "is_canonical", "publication_date")
+# publication_date is set by search_fts5 where the court publishes one;
+# representations is set by the search-collapse fold (design doc §5 phase 5)
+# only on a row that actually folded another one in.
+_RESEARCH_COMPACT_OPTIONAL_KEYS = ("canonical_decision_id", "is_canonical", "publication_date", "representations")
 _DECISION_MCP_TEXT_CAP = 200_000
 
 
@@ -32031,6 +32319,16 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                         seen_dockets.add(key)
                         deduped.append(r)
                 results = deduped
+
+                # Regeste harvest (design doc §4): a canonical row search
+                # collapsed onto, or one that is the sole representation on
+                # this page, may itself carry no regeste (vd_gerichte: ~0%)
+                # even though a safely-linked member does (vd_findinfo:
+                # ~99%). Fill it in, labeled with provenance, before the
+                # Markdown rendering below so the text and structured
+                # payload never disagree. One or two bounded, indexed
+                # queries for the whole page; no-op without the manifest.
+                _harvest_missing_regeste(results)
 
                 # Pinpoint enrichment: attach the most-relevant Erwägung
                 # to top-N results so downstream renderers can quote a
