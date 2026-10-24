@@ -78,7 +78,7 @@ def test_practice_description_constraints_still_hold():
     # shipped sources must be named; the total count lives in the description,
     # per-source counts in the enum descriptions (1,024-char budget)
     for present in ("FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ",
-                    "ch_vb", "include_superseded"):
+                    "VPB", "include_superseded"):
         assert present in d, present
     assert re.search(r"\d,\d{3}\+? documents", d), "total count missing"
     props = t.inputSchema["properties"]

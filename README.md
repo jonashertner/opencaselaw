@@ -1164,7 +1164,7 @@ Full 34-field Parquet export schema: [`export_parquet.py`](export_parquet.py)
 | Federal Supreme Court (BGer) | `bger` | ~173,000 | 1996–present | bger.ch |
 | BGE Leading Cases | `bge` | ~45,000 | 1954–present | bger.ch CLIR |
 | Federal Administrative Court (BVGer) | `bvger` | ~91,000 | 2007–present | bvger.ch |
-| Federal Admin. Practice (VPB) | `ch_vb` | ~23,000 | 1982–2016 | admin.ch |
+| Federal Admin. Practice (VPB) | `ch_vb` | pending | 1987–2017 | Bundeskanzlei / Bundesarchiv (official delivery requested; the earlier entscheidsuche feed was retired 2026-09) |
 | Federal Criminal Court (BStGer) | `bstger` | ~11,000 | 2004–present | bstger.weblaw.ch |
 | EDÖB (Data Protection) | `edoeb` | ~1,200 | 1994–present | edoeb.admin.ch |
 | FINMA | `finma` | ~1,200 | 2008–2024 | finma.ch |
@@ -1302,7 +1302,7 @@ Converts JSONL files to Parquet format (one file per court). Output goes to `out
 | Source | What | How |
 |--------|------|-----|
 | **Official court websites** | Federal courts (bger.ch, bvger.ch, bstger.ch, bpatger.ch) | JSON APIs, structured HTML |
-| **Federal regulatory bodies** | FINMA, WEKO, EDÖB, VPB | Sitecore/custom APIs |
+| **Federal regulatory bodies** | FINMA, WEKO, EDÖB (VPB pending an official delivery) | Sitecore/custom APIs |
 | **Cantonal court portals** | 26 cantonal platforms (Weblaw, Tribuna, FindInfo, custom portals) | Court-specific scrapers |
 
 Decisions appearing in multiple sources are deduplicated by `decision_id` (a deterministic hash of court code + normalized docket number). The version with the longest full text is kept.

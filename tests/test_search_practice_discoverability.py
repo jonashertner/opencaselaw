@@ -108,8 +108,11 @@ def test_routing_table_routes_the_german_trigger_words():
     for term in ("Kreisschreiben", "Weisung", "Wegleitung"):
         assert term in routing, f"{term!r} has no routing row"
     assert "search_practice" in routing
-    # pre-2017 federal administrative decisions live in the decision corpus
-    assert "ch_vb" in routing
+    # pre-2017 federal administrative decisions (VPB/JAAC): the entscheidsuche
+    # feed was retired 2026-09; until the official delivery lands the routing
+    # must say the series is absent rather than route to an empty court
+    assert "VPB" in routing
+    assert "search_decisions(court='ch_vb')" not in routing
 
 
 # ------------------------------------------------------------------ schema
