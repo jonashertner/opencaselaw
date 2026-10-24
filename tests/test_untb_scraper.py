@@ -30,6 +30,15 @@ def _page(name: str) -> str:
     return (FIX / name).read_text(encoding="utf-8")
 
 
+@pytest.fixture(autouse=True)
+def _offline(monkeypatch):
+    """Invariant #8: any request a test did not route itself is a failure,
+    not a 5-second call to the UN."""
+    def refuse(self, url, **_):
+        raise AssertionError(f"network access in a test: {url}")
+    monkeypatch.setattr(untb.UNTreatyBodyScraper, "get", refuse)
+
+
 # ───────────────────────────────────────────── case page
 
 def test_case_page_metadata():
@@ -202,6 +211,7 @@ def test_unused_case_returns_none(tmp_path):
 def test_discovery_skips_done_and_gap_cached_ids(tmp_path, monkeypatch):
     monkeypatch.setattr(untb, "SEED_MAX_CASE_ID", 5)
     monkeypatch.setattr(untb, "PROBE_WINDOW", 3)
+    monkeypatch.setattr(untb.UNTreatyBodyScraper, "_discover_dl", lambda self: iter(()))
     (tmp_path / "untb.juris_ids.tsv").write_text("2\tuntb_cat_X\n9\tuntb_cat_Y\n")
     s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
     s.state.mark_gap(s.gap_id(4))
@@ -257,3 +267,99 @@ def test_citation_strings_come_from_the_record():
     pin = mcp_server._build_citation_strings(row, pinpoint="9.7")
     assert pin["citation_string_de"].endswith("(CAT/C/51/D/426/2010), Ziff. 9.7")
     assert pin["citation_string_fr"].endswith(", par. 9.7")
+
+
+# ───────────────────────────────────────────── UN Digital Library (second index)
+
+def test_canonical_symbols():
+    assert untb.canon_symbol("CAT/C/33/D/163/2000/REV.1") == "CAT/C/33/D/163/2000/Rev.1"
+    assert untb.canon_symbol("A/HRC/45/15/ADD.1") == "A/HRC/45/15/Add.1"
+    assert untb.symbol_key("CAT/C/33/D/163/2000/Rev.1") == untb.symbol_key("CAT_C_33_D_163_2000_Rev.1")
+
+
+def test_dl_records():
+    recs = untb.parse_dl_records(_page("dl_ccpr_143.xml"))
+    assert len(recs) == 3
+    r = recs[0]
+    assert r["recid"] == 4090924 and r["symbol"] == "CCPR/C/143/D/3665/2019"
+    assert r["adopted"] == date(2025, 3, 25)              # from "Adopted 25 Mar. 2025 on …"
+    assert r["title245"].startswith("Views adopted by the Committee")
+    assert set(r["pdfs"]) == {"en", "fr"} and r["pdfs"]["fr"].endswith("-FR.pdf")
+    assert "AUSTRALIA" in r["subjects"]
+
+
+def test_header_parties_and_type():
+    head = untb.clean_text(_page("dl_3665_fr_head.txt"))
+    assert untb.header_parties(head) == ("Huyen Thu Thi Tran", "Australie")
+    en = "Communication submitted by:\nA.B. (represented by counsel)\nState party:\nSwitzerland\n"
+    assert untb.header_parties(en) == ("A.B.", "Switzerland")
+    assert untb.dl_decision_type("Views adopted by the Committee", "") == "Decision on merits"
+    assert untb.dl_decision_type("Decision adopted", "7. The Committee therefore decides: (a) That the "
+                                 "communication is inadmissible") == "Inadmissibility decision"
+    assert untb.dl_decision_type("Decision adopted", "Le Comité décide de mettre fin à l’examen "
+                                 "de la communication") == "Discontinuance decision"
+    assert untb.dl_decision_type("Decision adopted", "") == "Decision"
+
+
+def _dl_scraper(tmp_path, monkeypatch, sessions_with_records: dict[int, str]):
+    """juris exhausted; the Library answers `sessions_with_records` with the fixture page."""
+    monkeypatch.setattr(untb, "SEED_MAX_CASE_ID", 0)
+    monkeypatch.setattr(untb, "PROBE_WINDOW", 0)
+    monkeypatch.setattr(untb, "DL_PATTERNS", {"CCPR": "CCPR/C/{s}/D/"})
+    monkeypatch.setattr(untb, "SESSION_HINT", {"CCPR": 6})
+    monkeypatch.setattr(untb, "RECENT_SESSIONS", 2)
+    s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+    page = _page("dl_ccpr_143.xml")
+    empty = page.split("<record>", 1)[0] + "</collection>"
+    queried: list[int] = []
+
+    def fake_get(url, params=None, **_):
+        assert url == untb.DL_SEARCH and params["of"] == "xm"
+        session = int(params["p"].split("/")[2])
+        queried.append(session)
+        text = page if session in sessions_with_records else empty
+        return SimpleNamespace(text=text, content=text.encode())
+
+    s.get = fake_get
+    s.queried = queried
+    return s
+
+
+def test_dl_sweep_yields_only_what_juris_lacks(tmp_path, monkeypatch):
+    s = _dl_scraper(tmp_path, monkeypatch, {5: "page"})
+    s.state.mark_scraped("untb_ccpr_CCPR_C_143_D_3665_2019")         # juris already holds this one
+    stubs = list(s.discover_new())
+    assert [st["symbol"] for st in stubs] == [r["symbol"] for r in untb.parse_dl_records(_page("dl_ccpr_143.xml"))][1:]
+    assert all(st["source"] == "dl" and st["court"] == "untb_ccpr" for st in stubs)
+    assert stubs[0]["decision_id"] == untb.make_decision_id("untb_ccpr", stubs[0]["symbol"])
+    # sessions 1..6, then 3 empty ones above the hint end the sweep
+    assert s.queried == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    # empty, non-recent sessions are recorded as complete; recent ones (5, 6) never are
+    assert (tmp_path / "untb.dl_sessions.tsv").read_text() == "CCPR\t1\t0\nCCPR\t2\t0\nCCPR\t3\t0\nCCPR\t4\t0\n"
+    again = _dl_scraper(tmp_path, monkeypatch, {5: "page"})
+    list(again.discover_new())
+    assert again.queried == [5, 6, 7, 8, 9]
+
+
+def test_dl_fetch_builds_the_decision(tmp_path, monkeypatch):
+    fitz = pytest.importorskip("fitz")
+    s = _dl_scraper(tmp_path, monkeypatch, {})
+    rec = untb.parse_dl_records(_page("dl_ccpr_143.xml"))[0]
+    doc = fitz.open()
+    page = doc.new_page()
+    for i, line in enumerate(_page("dl_3665_fr_head.txt").splitlines()[:60]):
+        page.insert_text((40, 40 + 12 * i), line[:95], fontsize=8)     # the real header, one page
+    pdf = doc.tobytes()
+    s.get = lambda url, **_: SimpleNamespace(content=pdf, text="")
+    stub = {**rec, "source": "dl", "court": "untb_ccpr", "acronym": "CCPR",
+            "decision_id": untb.make_decision_id("untb_ccpr", rec["symbol"]),
+            "docket_number": rec["symbol"], "url": untb.DL_RECORD.format(recid=rec["recid"])}
+    d = s.fetch_decision(stub)
+    assert d.court == "untb_ccpr" and d.language == "fr" and d.canton == "UN"
+    assert d.title == "Huyen Thu Thi Tran c. Australie"
+    assert d.docket_number == "CCPR/C/143/D/3665/2019" and d.docket_number_2 == "3665/2019"
+    assert d.decision_date == date(2025, 3, 25)
+    assert d.decision_type == "Decision on merits"
+    assert d.source_url == "https://digitallibrary.un.org/record/4090924"
+    assert d.pdf_url.endswith("-FR.pdf") and d.external_id == "undl:4090924"
+    assert "Subjects: CIVIL AND POLITICAL RIGHTS, AUSTRALIA" in d.regeste

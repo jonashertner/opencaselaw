@@ -14,7 +14,7 @@ formations. Scope decided by Jonas 2026-10-24: all communications, not only
 those against Switzerland — a committee's reading of its treaty carries the
 same weight in Swiss proceedings whichever State was the party.
 
-Access. OHCHR's jurisprudence database (juris.ohchr.org) is the only index
+Access. OHCHR's jurisprudence database (juris.ohchr.org) is the main index
 of these cases; its robots.txt disallows all agents, and the UN Digital
 Library's terms ask for approval before automated downloads. Permission was
 requested on 2026-10-23 (library-ny@un.org, permissions@un.org, cc the UHRI
@@ -31,6 +31,19 @@ error occured") is gap-cached and re-probed weekly (ScraperState.GAP_TTL_DAYS).
 Which case ids are done is kept in a sidecar (state/untb.juris_ids.tsv,
 case_id TAB decision_id), because the decision_id is minted from the UN
 symbol, which only the case page reveals.
+
+Second index: the UN Digital Library. juris lags — it held 88 of the 2024
+decisions UNHRDB counts, 34 of 2025 and none of 2026 — and lacks the joint
+considerations (CCPR/C/143/D/J/1). Once the juris ids are exhausted,
+discovery sweeps digitallibrary.un.org session by session
+(search?p=191__a:"CCPR/C/143/D/*"&of=xm: MARCXML with symbol, adoption note,
+subjects and one PDF per language) and yields every symbol not already held,
+compared as upper-case alphanumerics so 'Rev.1' and 'REV.1' are one
+document. A session whose sweep finds nothing new is recorded as complete
+(state/untb.dl_sessions.tsv) and skipped afterwards, except the
+RECENT_SESSIONS highest per committee, where documents keep arriving for
+months. Case name, State and outcome come from the decision's own header
+('Communication soumise par : …', 'État Partie : …').
 
 Document. French where OHCHR has a French text, else English (the ECtHR
 rule: French is a Swiss official language, English the fallback). Per
@@ -67,6 +80,23 @@ CASE_URL = "https://juris.ohchr.org/casedetails/{case_id}/en-US"
 # starts from here on a fresh state so the first run covers the whole range.
 SEED_MAX_CASE_ID = 4173
 PROBE_WINDOW = 150
+
+DL_SEARCH = "https://digitallibrary.un.org/search"
+DL_RECORD = "https://digitallibrary.un.org/record/{recid}"
+DL_PAGE = 100
+# Symbol pattern of a committee's decisions in one session.
+DL_PATTERNS = {
+    "CCPR": "CCPR/C/{s}/D/", "CAT": "CAT/C/{s}/D/", "CERD": "CERD/C/{s}/D/",
+    "CEDAW": "CEDAW/C/{s}/D/", "CRC": "CRC/C/{s}/D/", "CRPD": "CRPD/C/{s}/D/",
+    "CESCR": "E/C.12/{s}/D/", "CED": "CED/C/{s}/D/",
+}
+# Highest session number expected per committee (2026-10). Sessions above it
+# keep being probed while they return documents, and SESSION_EXTEND empty
+# ones in a row end the sweep, so an underestimate costs nothing.
+SESSION_HINT = {"CCPR": 147, "CAT": 84, "CERD": 117, "CEDAW": 93, "CRC": 102,
+                "CRPD": 34, "CESCR": 79, "CED": 30}
+SESSION_EXTEND = 3
+RECENT_SESSIONS = 4
 
 # Symbol prefix -> (court code, committee acronym). Order matters: "CAT/OP"
 # (the Subcommittee on Prevention of Torture) is not a complaint body.
@@ -193,12 +223,113 @@ def _parse_date(value: str) -> date | None:
     return None
 
 
+def canon_symbol(symbol: str) -> str:
+    """The UN's own casing of revision/addendum/corrigendum suffixes:
+    'CAT/C/33/D/163/2000/REV.1' -> '…/Rev.1'. Both indexes feed decision_ids
+    through this, so one document never gets two ids."""
+    return re.sub(r"/(REV|ADD|CORR)\.?\s*(\d+)",
+                  lambda m: f"/{m.group(1).capitalize()}.{m.group(2)}",
+                  (symbol or "").strip(), flags=re.I)
+
+
+def symbol_key(symbol_or_id: str) -> str:
+    """Comparison key for a symbol or a docket-derived decision id."""
+    return re.sub(r"[^A-Z0-9]", "", (symbol_or_id or "").upper())
+
+
 def committee_for(symbol: str) -> tuple[str, str] | None:
     """(court code, committee acronym) for a UN symbol, None for anything else."""
     for prefix, court, acronym in SYMBOL_PREFIXES:
         if symbol.startswith(prefix):
             return court, acronym
     return None
+
+
+# ───────────────────────────────────────────── UN Digital Library
+
+_DL_LANG = {"Français": "fr", "English": "en"}
+_MONTHS = {m: i for i, m in enumerate(
+    ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"), 1)}
+
+
+def _subfields(field_xml: str) -> list[tuple[str, str]]:
+    return [(c, html_lib.unescape(v).strip())
+            for c, v in re.findall(r'<subfield code="(\w)">(.*?)</subfield>', field_xml, re.S)]
+
+
+def _adopted(note: str) -> date | None:
+    """'Adopted 25 Mar. 2025 on communication …' -> 2025-03-25."""
+    m = re.search(r"Adopted\s+(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{4})", note or "")
+    if not m or m.group(2).lower() not in _MONTHS:
+        return None
+    try:
+        return date(int(m.group(3)), _MONTHS[m.group(2).lower()], int(m.group(1)))
+    except ValueError:
+        return None
+
+
+def parse_dl_records(xml: str) -> list[dict]:
+    """Treaty-body decision records of a Digital Library MARCXML search page."""
+    out = []
+    for rec in re.findall(r"<record>(.*?)</record>", xml, re.S):
+        fields: dict[str, list[list[tuple[str, str]]]] = {}
+        for tag, body in re.findall(r'<datafield tag="(\d{3})"[^>]*>(.*?)</datafield>', rec, re.S):
+            fields.setdefault(tag, []).append(_subfields(body))
+        recid = re.search(r'<controlfield tag="001">(\d+)</controlfield>', rec)
+        symbol = next((v for f in fields.get("191", []) for c, v in f if c == "a"), "")
+        if not recid or not symbol:
+            continue
+        pdfs: dict[str, str] = {}
+        for f in fields.get("856", []):
+            d = dict(f)
+            lang = _DL_LANG.get(d.get("y", ""))
+            if lang and d.get("u", "").lower().endswith(".pdf"):
+                pdfs.setdefault(lang, d["u"])
+        notes = [v for f in fields.get("500", []) for c, v in f if c == "a"]
+        out.append({
+            "recid": int(recid.group(1)),
+            "symbol": canon_symbol(symbol),
+            "title245": " ".join(v for f in fields.get("245", [])[:1] for c, v in f if c in "ab"),
+            "adopted": next((d for d in map(_adopted, notes) if d), None),
+            "subjects": [v for f in fields.get("650", []) for c, v in f if c == "a"],
+            "pdfs": pdfs,
+        })
+    return out
+
+
+_AUTHOR_LABEL = re.compile(
+    r"(?:Communication\s+(?:soumise|présentée)\s+par|Présentée\s+par|"
+    r"(?:Communication\s+)?[Ss]ubmitted\s+by)\s*:?\s*\n?\s*([^\n]+)")
+_STATE_LABEL = re.compile(r"(?:État\s+[Pp]artie|State\s+[Pp]arty)\s*:?\s*\n?\s*([^\n]+)")
+
+
+def header_parties(text: str) -> tuple[str, str]:
+    """(author, State party) as the decision's own header prints them."""
+    head = text[:6000]
+    a = _AUTHOR_LABEL.search(head)
+    st = _STATE_LABEL.search(head)
+    author = re.split(r"\s*\(", a.group(1), maxsplit=1)[0].strip(" :;,") if a else ""
+    state = st.group(1).strip(" :;,") if st else ""
+    return author, state
+
+
+_INADMISSIBLE = re.compile(
+    r"communication\s+(?:is|est)\s+(?:therefore\s+|donc\s+)?(?:inadmissible|irrecevable)|"
+    r"d[ée]clare\w*\s+(?:the|la)\s+communication\s+(?:inadmissible|irrecevable)", re.I)
+_DISCONTINUED = re.compile(
+    r"discontinue\w*\s+(?:the\s+)?(?:consideration|examination)|"
+    r"(?:mettre\s+fin|cesser)\s+(?:à\s+)?l['’]examen", re.I)
+
+
+def dl_decision_type(title245: str, text: str) -> str:
+    """juris's vocabulary, from the record title and the operative text."""
+    if title245.lower().startswith("views"):
+        return "Decision on merits"
+    if _DISCONTINUED.search(text):
+        return "Discontinuance decision"
+    if _INADMISSIBLE.search(text):
+        return "Inadmissibility decision"
+    return "Decision"
 
 
 # ───────────────────────────────────────────── document text
@@ -295,6 +426,15 @@ class UNTreatyBodyScraper(BaseScraper):
                 if head.isdigit():
                     self._done_case_ids.add(int(head))
         self._case_of: dict[str, int] = {}
+        # Digital Library sessions whose sweep found nothing new:
+        # committee -> {session: record count}
+        self.dl_sessions_path = self.state_dir / "untb.dl_sessions.tsv"
+        self._dl_complete: dict[str, dict[int, int]] = {}
+        if self.dl_sessions_path.exists():
+            for line in self.dl_sessions_path.read_text(encoding="utf-8").splitlines():
+                parts = line.split("\t")
+                if len(parts) >= 3 and parts[1].isdigit() and parts[2].isdigit():
+                    self._dl_complete.setdefault(parts[0], {})[int(parts[1])] = int(parts[2])
 
     @property
     def court_code(self) -> str:
@@ -318,6 +458,74 @@ class UNTreatyBodyScraper(BaseScraper):
                 "url": CASE_URL.format(case_id=case_id),
             }
         logger.info(f"[untb] {pending} case ids to probe (1..{top}, {len(self._done_case_ids)} done)")
+        # Lazily, after the juris ids: run_scraper fetches each stub before
+        # asking for the next, so by now every juris decision of this run is
+        # in state and the Library sweep sees it as held.
+        yield from self._discover_dl()
+
+    # ── UN Digital Library ──────────────────────────────────────────
+
+    def _held_keys(self) -> set[str]:
+        keys = set()
+        for did in self.state._seen:
+            parts = did.split("_", 2)          # untb_<committee>_<symbol>
+            if len(parts) == 3 and parts[0] == "untb":
+                keys.add(symbol_key(parts[2]))
+        return keys
+
+    def _dl_query(self, pattern: str) -> list[dict]:
+        records, jrec = [], 1
+        while True:
+            r = self.get(DL_SEARCH, params={
+                "ln": "en", "p": f'191__a:"{pattern}*"', "of": "xm", "rg": DL_PAGE, "jrec": jrec})
+            page = parse_dl_records(r.text)
+            records += page
+            if r.text.count("<record>") < DL_PAGE:
+                return records
+            jrec += DL_PAGE
+
+    def _mark_session_complete(self, acronym: str, session: int, count: int) -> None:
+        self._dl_complete.setdefault(acronym, {})[session] = count
+        with open(self.dl_sessions_path, "a", encoding="utf-8") as f:
+            f.write(f"{acronym}\t{session}\t{count}\n")
+
+    def _discover_dl(self) -> Iterator[dict]:
+        held = self._held_keys()
+        yielded = 0
+        for acronym, pattern in DL_PATTERNS.items():
+            done = self._dl_complete.get(acronym, {})
+            top = max([SESSION_HINT[acronym], *(s for s, n in done.items() if n)])
+            session, empty_above = 0, 0
+            while True:
+                session += 1
+                if session > top and empty_above >= SESSION_EXTEND:
+                    break
+                recent = session > top - RECENT_SESSIONS
+                if session in done and not recent:
+                    continue
+                records = self._dl_query(pattern.format(s=session))
+                if session > top:
+                    empty_above = 0 if records else empty_above + 1
+                    if records:
+                        top = session
+                new = []
+                for rec in records:
+                    committee = committee_for(rec["symbol"])
+                    key = symbol_key(rec["symbol"])
+                    if committee is None or key in held:
+                        continue
+                    did = make_decision_id(committee[0], rec["symbol"])
+                    if self.state.is_known(did):
+                        continue
+                    held.add(key)
+                    new.append({**rec, "source": "dl", "decision_id": did,
+                                "docket_number": rec["symbol"], "court": committee[0],
+                                "acronym": committee[1], "url": DL_RECORD.format(recid=rec["recid"])})
+                if not new and not recent and session not in done:
+                    self._mark_session_complete(acronym, session, len(records))
+                yielded += len(new)
+                yield from new
+        logger.info(f"[untb] Digital Library sweep: {yielded} documents juris does not hold")
 
     def _fetch_text(self, links: dict[str, dict[str, str]]) -> tuple[str, str, str] | None:
         """(text, language, format) of the best available rendition."""
@@ -349,7 +557,45 @@ class UNTreatyBodyScraper(BaseScraper):
                 return text, lang, "pdf-ocr"
         return None
 
+    def _fetch_dl(self, stub: dict) -> Decision | None:
+        got = self._fetch_text({lang: {"pdf": url} for lang, url in stub["pdfs"].items()})
+        if got is None:
+            logger.info(f"[untb] {stub['symbol']}: no usable text in the Digital Library PDFs")
+            return None
+        text, lang, fmt = got
+        author, state = header_parties(text)
+        title = f"{author} {'v.' if lang == 'en' else 'c.'} {state}" if author and state else stub["symbol"]
+        dtype = dl_decision_type(stub.get("title245") or "", text)
+        m = re.search(r"/D/(.+)$", stub["symbol"])
+        commno = m.group(1) if m and re.fullmatch(r"\d+/\d{4}", m.group(1)) else None
+        subjects = [t for t in stub.get("subjects", []) if t != "WRITTEN COMMUNICATIONS"]
+        regeste = "; ".join(x for x in (
+            dtype, f"Subjects: {', '.join(subjects)}" if subjects else "",
+            f"[{stub['acronym']}: {_TREATY_KEYWORDS[stub['acronym']]}]") if x)
+        return Decision(
+            decision_id=stub["decision_id"],
+            court=stub["court"],
+            canton="CH" if state in ("Switzerland", "Suisse") else "UN",
+            docket_number=stub["symbol"],
+            docket_number_2=commno,
+            decision_date=stub.get("adopted"),
+            language=lang,
+            title=title,
+            legal_area=LEGAL_AREA,
+            regeste=regeste,
+            decision_type=dtype,
+            outcome=_OUTCOME.get(dtype.lower()),
+            full_text=text,
+            source_url=stub["url"],
+            pdf_url=stub["pdfs"].get(lang),
+            external_id=f"undl:{stub['recid']}",
+            cited_decisions=extract_citations(text) if len(text) > 200 else [],
+            scraped_at=datetime.now(timezone.utc),
+        )
+
     def fetch_decision(self, stub: dict) -> Decision | None:
+        if stub.get("source") == "dl":
+            return self._fetch_dl(stub)
         case_id = stub["case_id"]
         meta = parse_case_page(self.get(stub["url"]).text)
         if meta is None:
@@ -359,6 +605,7 @@ class UNTreatyBodyScraper(BaseScraper):
             logger.warning(f"[untb] case {case_id}: unrecognised symbol {meta['symbol']!r}")
             return None
         court, acronym = committee
+        meta["symbol"] = canon_symbol(meta["symbol"])
         got = self._fetch_text(meta["links"])
         if got is None:
             logger.info(f"[untb] case {case_id} ({meta['symbol']}): no usable text")

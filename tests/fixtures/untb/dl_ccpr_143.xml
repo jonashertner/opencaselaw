@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Search-Engine-Total-Number-Of-Results: 31 -->
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+<record>
+  <controlfield tag="000">00433nam a2200205#a 4500</controlfield>
+  <controlfield tag="001">4090924</controlfield>
+  <controlfield tag="005">20251125111146.0</controlfield>
+  <datafield tag="029" ind1=" " ind2=" ">
+    <subfield code="a">JN</subfield>
+    <subfield code="b">G2507495 E</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DHL)1441648</subfield>
+  </datafield>
+  <datafield tag="039" ind1=" " ind2=" ">
+    <subfield code="a">GUN</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">SzGeBNU</subfield>
+    <subfield code="b">eng</subfield>
+  </datafield>
+  <datafield tag="041" ind1="1" ind2=" ">
+    <subfield code="a">eng</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">che</subfield>
+  </datafield>
+  <datafield tag="089" ind1=" " ind2=" ">
+    <subfield code="b">B25</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">GEN</subfield>
+  </datafield>
+  <datafield tag="099" ind1=" " ind2=" ">
+    <subfield code="a">UNG</subfield>
+    <subfield code="b">GUN</subfield>
+  </datafield>
+  <datafield tag="191" ind1=" " ind2=" ">
+    <subfield code="a">CCPR/C/143/D/3665/2019</subfield>
+    <subfield code="b">CCPR/C/</subfield>
+    <subfield code="c">143</subfield>
+    <subfield code="0">(DHLAUTH)942663</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Views adopted by the Committee under article 5 (4) of the Optional Protocol, concerning communication No. 3665/2019 :</subfield>
+    <subfield code="b">Human Rights Committee</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Geneva :</subfield>
+    <subfield code="b">UN,</subfield>
+    <subfield code="c">20 Oct. 2025</subfield>
+  </datafield>
+  <datafield tag="269" ind1=" " ind2=" ">
+    <subfield code="a">2025-10-20</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">17 p.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Adopted 25 Mar. 2025 on communication submitted by Huyen Thu Thi Tran.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Annexes (p. 14-17): 1. Individual opinion of Committee member Hernán Quezada Cabrera (concurring) -- 2. Joint opinion by Committee members Bacre Waly Ndiaye and Hélène Tigroudja (concurring).</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">CIVIL AND POLITICAL RIGHTS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)269028</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">AUSTRALIA</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)273268</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">WRITTEN COMMUNICATIONS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)272695</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">UN. Human Rights Committee (143rd sess. : 2025 : Geneva)</subfield>
+    <subfield code="0">(DHLAUTH)942664</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4090924/files/CCPR_C_143_D_3665_2019-EN.pdf</subfield>
+    <subfield code="y">English</subfield>
+    <subfield code="9">6d13e063-717f-4cb4-a599-9b762ed292a4</subfield>
+    <subfield code="s">298838</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4090924/files/CCPR_C_143_D_3665_2019-ES.pdf</subfield>
+    <subfield code="y">Español</subfield>
+    <subfield code="9">9c8bba5e-5c14-4379-8cf4-b42eecb8dbff</subfield>
+    <subfield code="s">331235</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4090924/files/CCPR_C_143_D_3665_2019-ZH.pdf</subfield>
+    <subfield code="y">中文</subfield>
+    <subfield code="9">9b1bbff0-6bd1-4b9a-a56e-3bc71aad0b22</subfield>
+    <subfield code="s">626495</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4090924/files/CCPR_C_143_D_3665_2019-AR.pdf</subfield>
+    <subfield code="y">العربية</subfield>
+    <subfield code="9">5b8ae74d-23bf-463e-9dfe-8143e8012ea6</subfield>
+    <subfield code="s">442233</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4090924/files/CCPR_C_143_D_3665_2019-FR.pdf</subfield>
+    <subfield code="y">Français</subfield>
+    <subfield code="9">7434db29-caee-4324-85b9-d745a05d1198</subfield>
+    <subfield code="s">454387</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4090924/files/CCPR_C_143_D_3665_2019-RU.pdf</subfield>
+    <subfield code="y">Русский</subfield>
+    <subfield code="9">9c17b9bb-0fcd-4293-afe4-010b1b37d24b</subfield>
+    <subfield code="s">375235</subfield>
+  </datafield>
+  <datafield tag="930" ind1=" " ind2=" ">
+    <subfield code="a">UNDOC25</subfield>
+  </datafield>
+  <datafield tag="980" ind1=" " ind2=" ">
+    <subfield code="a">BIB</subfield>
+  </datafield>
+  <datafield tag="981" ind1=" " ind2=" ">
+    <subfield code="a">Human Rights Bodies</subfield>
+    <subfield code="b">Treaty-Based Human Rights Bodies</subfield>
+    <subfield code="c">Human Rights Committee</subfield>
+  </datafield>
+  <datafield tag="989" ind1=" " ind2=" ">
+    <subfield code="a">Documents and Publications</subfield>
+    <subfield code="b">Legal Cases and Opinions</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">jcc20251021</subfield>
+    <subfield code="b">20251021</subfield>
+    <subfield code="c">c</subfield>
+  </datafield>
+</record>
+<record>
+  <controlfield tag="000">00433nam a2200205#a 4500</controlfield>
+  <controlfield tag="001">4091070</controlfield>
+  <controlfield tag="005">20251205043110.0</controlfield>
+  <datafield tag="029" ind1=" " ind2=" ">
+    <subfield code="a">JN</subfield>
+    <subfield code="b">G2507933 E</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DHL)1441786</subfield>
+  </datafield>
+  <datafield tag="039" ind1=" " ind2=" ">
+    <subfield code="a">GUN</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">SzGeBNU</subfield>
+    <subfield code="b">eng</subfield>
+  </datafield>
+  <datafield tag="041" ind1="1" ind2=" ">
+    <subfield code="a">eng</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">che</subfield>
+  </datafield>
+  <datafield tag="089" ind1=" " ind2=" ">
+    <subfield code="b">B25</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">GEN</subfield>
+  </datafield>
+  <datafield tag="099" ind1=" " ind2=" ">
+    <subfield code="a">UNG</subfield>
+    <subfield code="b">GUN</subfield>
+  </datafield>
+  <datafield tag="191" ind1=" " ind2=" ">
+    <subfield code="a">CCPR/C/143/D/3098/2018</subfield>
+    <subfield code="b">CCPR/C/</subfield>
+    <subfield code="c">143</subfield>
+    <subfield code="0">(DHLAUTH)942663</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Views adopted by the Committee under article 5 (4) of the Optional Protocol, concerning communication No. 3098/2018 :</subfield>
+    <subfield code="b">Human Rights Committee</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Geneva :</subfield>
+    <subfield code="b">UN,</subfield>
+    <subfield code="c">29 Sept. 2025</subfield>
+  </datafield>
+  <datafield tag="269" ind1=" " ind2=" ">
+    <subfield code="a">2025-09-29</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">9 p.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Adopted 14 Mar. 2025 on communication submitted by Teymur Akhmedov.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Annexes (p. 6-9): 1. Individual opinion of Committee member Rodrigo A. Carazo (partially concurring) -- 2. Individual opinion of Committee member Hernán Quezada Cabrera (concurring) -- 3. Individual opinion of Committee member Teraya Koji (concurring).</subfield>
+  </datafield>
+  <datafield tag="596" ind1=" " ind2=" ">
+    <subfield code="a">Reissued for technical reasons on 3 Nov. 2025.</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">CIVIL AND POLITICAL RIGHTS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)269028</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">KAZAKHSTAN</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)276415</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">WRITTEN COMMUNICATIONS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)272695</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">UN. Human Rights Committee (143rd sess. : 2025 : Geneva)</subfield>
+    <subfield code="0">(DHLAUTH)942664</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4091070/files/CCPR_C_143_D_3098_2018-EN.pdf</subfield>
+    <subfield code="y">English</subfield>
+    <subfield code="9">d28b417d-9e1e-477f-bd62-c3b76201ad19</subfield>
+    <subfield code="s">261275</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4091070/files/CCPR_C_143_D_3098_2018-ES.pdf</subfield>
+    <subfield code="y">Español</subfield>
+    <subfield code="9">96015a23-fe40-4dbc-b423-73bd00d074ef</subfield>
+    <subfield code="s">251098</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4091070/files/CCPR_C_143_D_3098_2018-ZH.pdf</subfield>
+    <subfield code="y">中文</subfield>
+    <subfield code="9">5438b953-f59f-4f9c-adce-44b0686c8098</subfield>
+    <subfield code="s">492748</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4091070/files/CCPR_C_143_D_3098_2018-AR.pdf</subfield>
+    <subfield code="y">العربية</subfield>
+    <subfield code="9">ad0bdc84-dfa1-4075-b6b7-cc6b11df327d</subfield>
+    <subfield code="s">327689</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4091070/files/CCPR_C_143_D_3098_2018-RU.pdf</subfield>
+    <subfield code="y">Русский</subfield>
+    <subfield code="9">4a938199-2061-4500-8217-0197c2a28720</subfield>
+    <subfield code="s">300587</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4091070/files/CCPR_C_143_D_3098_2018-FR.pdf</subfield>
+    <subfield code="y">Français</subfield>
+    <subfield code="9">7861664b-4369-4930-9d20-a54e2748cb8a</subfield>
+    <subfield code="s">273138</subfield>
+  </datafield>
+  <datafield tag="930" ind1=" " ind2=" ">
+    <subfield code="a">UNDOC25</subfield>
+  </datafield>
+  <datafield tag="980" ind1=" " ind2=" ">
+    <subfield code="a">BIB</subfield>
+  </datafield>
+  <datafield tag="981" ind1=" " ind2=" ">
+    <subfield code="a">Human Rights Bodies</subfield>
+    <subfield code="b">Treaty-Based Human Rights Bodies</subfield>
+    <subfield code="c">Human Rights Committee</subfield>
+  </datafield>
+  <datafield tag="989" ind1=" " ind2=" ">
+    <subfield code="a">Documents and Publications</subfield>
+    <subfield code="b">Legal Cases and Opinions</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">jcc20251022</subfield>
+    <subfield code="b">20251022</subfield>
+    <subfield code="c">c</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">jcu20251205</subfield>
+    <subfield code="b">20251205</subfield>
+    <subfield code="c">u</subfield>
+  </datafield>
+</record>
+<record>
+  <controlfield tag="000">00433nam a2200205#a 4500</controlfield>
+  <controlfield tag="001">4088765</controlfield>
+  <controlfield tag="005">20251106095105.0</controlfield>
+  <datafield tag="029" ind1=" " ind2=" ">
+    <subfield code="a">JN</subfield>
+    <subfield code="b">G2505548 E</subfield>
+  </datafield>
+  <datafield tag="035" ind1=" " ind2=" ">
+    <subfield code="a">(DHL)1439758</subfield>
+  </datafield>
+  <datafield tag="039" ind1=" " ind2=" ">
+    <subfield code="a">GUN</subfield>
+  </datafield>
+  <datafield tag="040" ind1=" " ind2=" ">
+    <subfield code="a">SzGeBNU</subfield>
+    <subfield code="b">eng</subfield>
+  </datafield>
+  <datafield tag="041" ind1="1" ind2=" ">
+    <subfield code="a">eng</subfield>
+  </datafield>
+  <datafield tag="049" ind1=" " ind2=" ">
+    <subfield code="a">che</subfield>
+  </datafield>
+  <datafield tag="089" ind1=" " ind2=" ">
+    <subfield code="b">B25</subfield>
+  </datafield>
+  <datafield tag="091" ind1=" " ind2=" ">
+    <subfield code="a">GEN</subfield>
+  </datafield>
+  <datafield tag="099" ind1=" " ind2=" ">
+    <subfield code="a">UNG</subfield>
+    <subfield code="b">GUN</subfield>
+  </datafield>
+  <datafield tag="191" ind1=" " ind2=" ">
+    <subfield code="a">CCPR/C/143/D/3253/2018</subfield>
+    <subfield code="b">CCPR/C/</subfield>
+    <subfield code="c">143</subfield>
+    <subfield code="0">(DHLAUTH)942663</subfield>
+  </datafield>
+  <datafield tag="245" ind1="1" ind2="0">
+    <subfield code="a">Decision adopted by the Committee under the Optional Protocol, concerning communication No. 3253/2018 :</subfield>
+    <subfield code="b">Human Rights Committee</subfield>
+  </datafield>
+  <datafield tag="260" ind1=" " ind2=" ">
+    <subfield code="a">Geneva :</subfield>
+    <subfield code="b">UN,</subfield>
+    <subfield code="c">22 Sept. 2025</subfield>
+  </datafield>
+  <datafield tag="269" ind1=" " ind2=" ">
+    <subfield code="a">2025-09-22</subfield>
+  </datafield>
+  <datafield tag="300" ind1=" " ind2=" ">
+    <subfield code="a">8 p.</subfield>
+  </datafield>
+  <datafield tag="500" ind1=" " ind2=" ">
+    <subfield code="a">Adopted 25 Mar. 2025.</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">CIVIL AND POLITICAL RIGHTS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)269028</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">CANADA</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)273297</subfield>
+  </datafield>
+  <datafield tag="650" ind1="1" ind2="7">
+    <subfield code="a">WRITTEN COMMUNICATIONS</subfield>
+    <subfield code="2">unbist</subfield>
+    <subfield code="0">(DHLAUTH)272695</subfield>
+  </datafield>
+  <datafield tag="710" ind1="2" ind2=" ">
+    <subfield code="a">UN. Human Rights Committee (143rd sess. : 2025 : Geneva)</subfield>
+    <subfield code="0">(DHLAUTH)942664</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4088765/files/CCPR_C_143_D_3253_2018-EN.pdf</subfield>
+    <subfield code="y">English</subfield>
+    <subfield code="9">02845848-a17a-4265-a8b9-f89ba706a544</subfield>
+    <subfield code="s">252994</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4088765/files/CCPR_C_143_D_3253_2018-FR.pdf</subfield>
+    <subfield code="y">Français</subfield>
+    <subfield code="9">97b83066-5589-4379-b225-6c86cfc9feb7</subfield>
+    <subfield code="s">273882</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4088765/files/CCPR_C_143_D_3253_2018-ZH.pdf</subfield>
+    <subfield code="y">中文</subfield>
+    <subfield code="9">b7a27475-6da0-4136-8e0b-9a14ad9d57cb</subfield>
+    <subfield code="s">496526</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4088765/files/CCPR_C_143_D_3253_2018-ES.pdf</subfield>
+    <subfield code="y">Español</subfield>
+    <subfield code="9">ef139794-f31f-45a1-8c16-e9bfa4eddf34</subfield>
+    <subfield code="s">203401</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4088765/files/CCPR_C_143_D_3253_2018-RU.pdf</subfield>
+    <subfield code="y">Русский</subfield>
+    <subfield code="9">294cecf9-c077-442b-ac33-92cbc82c822d</subfield>
+    <subfield code="s">303060</subfield>
+  </datafield>
+  <datafield tag="856" ind1="4" ind2=" ">
+    <subfield code="u">https://digitallibrary.un.org/record/4088765/files/CCPR_C_143_D_3253_2018-AR.pdf</subfield>
+    <subfield code="y">العربية</subfield>
+    <subfield code="9">739789c0-16ca-4743-b87d-ddae399ceef7</subfield>
+    <subfield code="s">350807</subfield>
+  </datafield>
+  <datafield tag="930" ind1=" " ind2=" ">
+    <subfield code="a">UNDSE25</subfield>
+  </datafield>
+  <datafield tag="980" ind1=" " ind2=" ">
+    <subfield code="a">BIB</subfield>
+  </datafield>
+  <datafield tag="981" ind1=" " ind2=" ">
+    <subfield code="a">Human Rights Bodies</subfield>
+    <subfield code="b">Treaty-Based Human Rights Bodies</subfield>
+    <subfield code="c">Human Rights Committee</subfield>
+  </datafield>
+  <datafield tag="989" ind1=" " ind2=" ">
+    <subfield code="a">Documents and Publications</subfield>
+    <subfield code="b">Legal Cases and Opinions</subfield>
+  </datafield>
+  <datafield tag="999" ind1=" " ind2=" ">
+    <subfield code="a">jcc20250923</subfield>
+    <subfield code="b">20250923</subfield>
+    <subfield code="c">c</subfield>
+  </datafield>
+</record>
+</collection>
