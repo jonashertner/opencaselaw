@@ -1,0 +1,195 @@
+{
+ "id": "rec_17_interim_dividend_2024",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.dividend",
+  "text": "Proposal to an extraordinary general meeting of an interim dividend of CHF 1.00 per share (CHF 2.0m) based on the interim accounts at 30 June 2024, payable only after the auditor's report on the interim accounts."
+ },
+ "purpose": "Distribute part of the first-half 2024 profit before year end under the interim-dividend rules of the revised company law.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2024-08-22",
+ "minutes": "dms://board/2024-08-22_minutes.md#3",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "acc",
+  "name": "Prof. Dr. Thomas Bärtschi",
+  "role": "Chair of the Audit Committee"
+ },
+ "restrictions": [
+  "Payment only after the auditor's report on the interim accounts"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Interim accounts 30 June 2024: half-year profit CHF 19.3m; audit pending",
+    "source": "dms://finance/2024/interim-accounts-h1.md",
+    "as_of": "2024-06-30"
+   },
+   {
+    "id": "f2",
+    "text": "Hollis provision unchanged at CHF 22m",
+    "source": "dms://legal/claims/2022-031-hollis.md",
+    "as_of": "2024-08-22"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "675a",
+    "article_label": "Art. 675a",
+    "paragraph": "1",
+    "as_of": "2024-08-22",
+    "edition": "2024-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Die Generalversammlung kann gestützt auf einen Zwischenabschluss die Ausrichtung einer Zwischendividende beschliessen.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20240101/de",
+    "source_snapshot": "get_law__OR-675a-2024-08-22__e62cc19dad",
+    "proposition": "The general meeting may resolve an interim dividend on the basis of interim accounts.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:59+00:00",
+     "snapshot": "attest_response__Art--675a-Abs--1-OR__0488a775e6",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:58+00:00",
+      "as_of": "2024-08-22",
+      "edition": "2024-01-01",
+      "snapshot": "get_law__OR-675a-2024-08-22__e62cc19dad"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "675a",
+    "article_label": "Art. 675a",
+    "paragraph": "2",
+    "as_of": "2024-08-22",
+    "edition": "2024-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Die Revisionsstelle muss den Zwischenabschluss vor dem Beschluss der Generalversammlung prüfen. Keine Prüfung ist erforderlich, wenn die Gesellschaft ihre Jahresrechnung nicht durch eine Revisionsstelle eingeschränkt prüfen lassen muss. Auf die Prüfung kann verzichtet werden, wenn sämtliche Aktionäre der Ausrichtung der Zwischendividende zustimmen und die Forderungen der Gläubiger dadurch nicht gefährdet werden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20240101/de",
+    "source_snapshot": "get_law__OR-675a-2024-08-22__e62cc19dad",
+    "proposition": "The interim accounts must be audited before the general meeting resolves, unless an exception applies.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:59+00:00",
+     "snapshot": "attest_response__Art--675a-Abs--2-OR__ed5649276b",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:58+00:00",
+      "as_of": "2024-08-22",
+      "edition": "2024-01-01",
+      "snapshot": "get_law__OR-675a-2024-08-22__e62cc19dad"
+     }
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Distributions only if pro-forma leverage does not exceed 2.50x (clause 23.4 of the 2024 facility)",
+    "source": "dms://treasury/facility-agreement-2024.md#23.4",
+    "test_date": "2024-09-26"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Sophie Marchand (board member)",
+   "text": "Is the Hollis claim taken into account?",
+   "answer": "Provision unchanged at CHF 22m; no new development."
+  }
+ ],
+ "review": {
+  "date": "2024-12-31",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "f1 audit qualified or not delivered",
+   "f2 claim amended or provision raised",
+   "c1 test failed"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/2024/interim-accounts-h1.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://legal/claims/2022-031-hollis.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://treasury/facility-agreement-2024.md#23.4",
+   "test_date": "2024-09-26",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Payment only after the auditor's report on the interim accounts",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

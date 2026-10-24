@@ -1,0 +1,230 @@
+{
+ "id": "rec_13_service_gmbh_capital_loss_2023",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.capital_loss",
+  "text": "Capital contribution of CHF 3.0m to Sernfeld Service GmbH, limited review of its 2022 accounts by a licensed auditor despite the opting-out, and continuation of the 2020 subordination."
+ },
+ "purpose": "Remove the capital loss of Sernfeld Service GmbH (38% cover of capital and non-distributable reserves) under the revised company law.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG (as sole shareholder of Sernfeld Service GmbH)",
+ "decided_at": "2023-04-20",
+ "minutes": "dms://board/2023-04-20_minutes.md#3",
+ "owner": {
+  "person": "cfo",
+  "name": "Annika Zwahlen",
+  "role": "Chief Financial Officer"
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "Contribution paid by 30 June 2023"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "2022 accounts of the GmbH: equity CHF 0.76m, 38% cover of nominal capital and non-distributable reserves, no over-indebtedness",
+    "source": "dms://finance/service-gmbh/annual-accounts-2022.md",
+    "as_of": "2022-12-31"
+   },
+   {
+    "id": "f2",
+    "text": "Subordination of CHF 6.0m continues",
+    "source": "dms://finance/service-gmbh/subordination-agreement-2020.md",
+    "as_of": "2023-04-20"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "725a",
+    "article_label": "Art. 725a",
+    "paragraph": "1",
+    "as_of": "2023-04-20",
+    "edition": "2023-02-09",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Zeigt die letzte Jahresrechnung, dass die Aktiven abzüglich der Verbindlichkeiten die Hälfte der Summe aus Aktienkapital, nicht an die Aktionäre zurückzahlbarer gesetzlicher Kapitalreserve und gesetzlicher Gewinnreserve nicht mehr decken, so ergreift der Verwaltungsrat Massnahmen zur Beseitigung des Kapitalverlusts. Er trifft, soweit erforderlich, weitere Massnahmen zur Sanierung der Gesellschaft oder beantragt der Generalversammlung solche, soweit sie in deren Zuständigkeit fallen.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20230209/de",
+    "source_snapshot": "get_law__OR-725a-2023-04-20__55a57383ce",
+    "proposition": "If assets less liabilities no longer cover half of the capital and non-distributable statutory reserves, the board must take measures to remove the capital loss.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:56+00:00",
+     "snapshot": "attest_response__Art--725a-Abs--1-OR__17c2ef6431",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:55+00:00",
+      "as_of": "2023-04-20",
+      "edition": "2023-02-09",
+      "snapshot": "get_law__OR-725a-2023-04-20__55a57383ce"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "725a",
+    "article_label": "Art. 725a",
+    "paragraph": "2",
+    "as_of": "2023-04-20",
+    "edition": "2023-02-09",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Hat die Gesellschaft keine Revisionsstelle, so muss die letzte Jahresrechnung vor ihrer Genehmigung durch die Generalversammlung überdies einer eingeschränkten Revision durch einen zugelassenen Revisor unterzogen werden. Der Verwaltungsrat ernennt den zugelassenen Revisor.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20230209/de",
+    "source_snapshot": "get_law__OR-725a-2023-04-20__55a57383ce",
+    "proposition": "A company without an auditor must have its last annual accounts reviewed by a licensed auditor before approval.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:56+00:00",
+     "snapshot": "attest_response__Art--725a-Abs--2-OR__2574a21a99",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:55+00:00",
+      "as_of": "2023-04-20",
+      "edition": "2023-02-09",
+      "snapshot": "get_law__OR-725a-2023-04-20__55a57383ce"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "820",
+    "article_label": "Art. 820",
+    "paragraph": null,
+    "as_of": "2023-04-20",
+    "edition": "2023-02-09",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "Die Bestimmungen des Aktienrechts zur drohenden Zahlungsunfähigkeit, zum Kapitalverlust, zur Überschuldung sowie zur Aufwertung von Grundstücken und Beteiligungen sind entsprechend anwendbar.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20230209/de",
+    "source_snapshot": "get_law__OR-820-2023-04-20__3f428a9173",
+    "proposition": "The company-law rules on capital loss and over-indebtedness apply to a GmbH.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:13+00:00",
+     "snapshot": "attest_response__Art--820-OR__3373d4c6e9",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:56+00:00",
+      "as_of": "2023-04-20",
+      "edition": "2023-02-09",
+      "snapshot": "get_law__OR-820-2023-04-20__3f428a9173"
+     }
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Capital contribution of CHF 3.0m paid by 30 June 2023",
+    "source": "dms://board/2023-04-20_minutes.md#3",
+    "test_date": "2023-06-30"
+   }
+  ]
+ },
+ "objections": [],
+ "review": {
+  "date": "2024-03-31",
+  "reopen_if": [
+   "l1, l2 or l3 amended",
+   "f1 capital loss persists in the 2023 accounts",
+   "c1 contribution not paid"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/service-gmbh/annual-accounts-2022.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://finance/service-gmbh/subordination-agreement-2020.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://board/2023-04-20_minutes.md#3",
+   "test_date": "2023-06-30",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Contribution paid by 30 June 2023",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

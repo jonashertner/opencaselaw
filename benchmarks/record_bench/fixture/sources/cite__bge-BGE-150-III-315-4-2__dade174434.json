@@ -1,0 +1,33 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_150_III_315",
+  "pinpoint": "4.2"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:07:13+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_150_III_315",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2024-07-03",
+  "citation_string": "BGE 150 III 315, E. 4.2",
+  "citation_string_de": "BGE 150 III 315, E. 4.2",
+  "citation_string_fr": "ATF 150 III 315, consid. 4.2",
+  "citation_string_it": "DTF 150 III 315, consid. 4.2",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_150_III_315#e-4-2",
+  "markdown_link": "[BGE 150 III 315, E. 4.2](https://mcp.opencaselaw.ch/entscheid/bge_BGE_150_III_315#e-4-2)",
+  "rule_statement": "Notwendige Voraussetzung der Konkurseröffnung wegen Überschuldung ist eine Überschuldungsanzeige. Der Konkursrichter darf die Überschuldungsanzeige nur vom Verwaltungsrat (\nArt. 725b Abs. 3 OR\n), der Revisionsstelle (\nArt. 728c Abs. 3,\nArt. 729c OR\n) oder einem vom Verwaltungsrat für die Prüfung des Zwischenabschlusses ernannten Revisor (\nArt. 725b Abs. 5 OR\n) entgegennehmen, was zu den formellen Voraussetzungen gehört, um den Konkurs nach\nArt. 192 SchKG\ni.V.m.\nArt. 725b Abs. 3 OR\nzu eröffnen. […]",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "pinpoint": "4.2",
+  "pinpoint_status": "verified",
+  "pinpoint_valid": true,
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_150_III_315"
+  },
+  "canonical_decision_id": "bge_BGE_150_III_315",
+  "is_canonical": true
+ }
+}

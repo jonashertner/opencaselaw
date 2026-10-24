@@ -1,0 +1,261 @@
+{
+ "id": "rec_19_wyss_advisory_mandate",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.conflict_transaction",
+  "text": "Twelve-month AI architecture mandate (up to CHF 480,000 at CHF 290 an hour) to Wyss Advisory GmbH, controlled by director Dr. Andreas Wyss, the cheapest of three offers."
+ },
+ "purpose": "Obtain AI architecture advice at the best price while protecting the company from the director's conflict of interest.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG (members without conflict)",
+ "decided_at": "2025-02-20",
+ "minutes": "dms://board/2025-02-20_minutes.md#3",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "chair",
+  "name": "Dr. Regula Imhof",
+  "role": "Chair of the Board"
+ },
+ "restrictions": [
+  "Dr. Wyss does not invoice work personally",
+  "Invoices approved by the Chair of the Audit Committee",
+  "Fee cap CHF 480,000"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Three offers: CHF 290, 310 and 345 an hour",
+    "source": "dms://related-party/wyss-advisory-offers-2025.md",
+    "as_of": "2025-02-10"
+   },
+   {
+    "id": "f2",
+    "text": "Contract of 3 March 2025 with fee cap and invoice approval by the audit committee chair",
+    "source": "dms://related-party/wyss-advisory-agreement-2025.md",
+    "as_of": "2025-03-03"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717a",
+    "article_label": "Art. 717a",
+    "paragraph": "1",
+    "as_of": "2025-02-20",
+    "edition": "2025-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Die Mitglieder des Verwaltungsrats und der Geschäftsleitung informieren den Verwaltungsrat unverzüglich und vollständig über sie betreffende Interessenkonflikte.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20250101/de",
+    "source_snapshot": "get_law__OR-717a-2025-02-20__61e791a0d6",
+    "proposition": "Directors and managers must inform the board without delay of conflicts of interest affecting them.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:57+00:00",
+     "snapshot": "attest_response__Art--717a-Abs--1-OR__efe0618ad7",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:01+00:00",
+      "as_of": "2025-02-20",
+      "edition": "2025-01-01",
+      "snapshot": "get_law__OR-717a-2025-02-20__61e791a0d6"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717a",
+    "article_label": "Art. 717a",
+    "paragraph": "2",
+    "as_of": "2025-02-20",
+    "edition": "2025-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Der Verwaltungsrat ergreift die Massnahmen, die zur Wahrung der Interessen der Gesellschaft nötig sind.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20250101/de",
+    "source_snapshot": "get_law__OR-717a-2025-02-20__61e791a0d6",
+    "proposition": "The board must take the measures needed to safeguard the company's interests in case of a conflict of interest.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:57+00:00",
+     "snapshot": "attest_response__Art--717a-Abs--2-OR__4c1c08865b",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:01+00:00",
+      "as_of": "2025-02-20",
+      "edition": "2025-01-01",
+      "snapshot": "get_law__OR-717a-2025-02-20__61e791a0d6"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_139_III_24",
+    "citation": "BGE 139 III 24, E. 3.2",
+    "decision_date": "2012-11-20",
+    "pinpoint": "3.2",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_139_III_24#e-3-2",
+    "source_snapshot": "cite__bge-BGE-139-III-24-3-2__3d60db6300",
+    "proposition": "The duty of loyalty requires directors to align their conduct with the interest of the company.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:01+00:00",
+     "snapshot": "attest_response__BGE-139-III-24--E--3-2__2968576cb6"
+    }
+   },
+   {
+    "id": "l4",
+    "kind": "decision",
+    "decision_id": "bge_BGE_130_III_213",
+    "citation": "BGE 130 III 213, E. 2.1",
+    "decision_date": "2004-01-09",
+    "pinpoint": "2.1",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_130_III_213#e-2-1",
+    "source_snapshot": "cite__bge-BGE-130-III-213-2-1__de1f82ffa0",
+    "proposition": "The duty of loyalty of governing officers is determined by company law and, where they are employees, also by employment law.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:01+00:00",
+     "snapshot": "attest_response__BGE-130-III-213--E--2-1__60f3f616ee"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Fee cap of CHF 480,000 over twelve months",
+    "source": "dms://related-party/wyss-advisory-agreement-2025.md",
+    "test_date": "2026-03-02"
+   }
+  ]
+ },
+ "objections": [],
+ "review": {
+  "date": "2026-02-28",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 or l4 qualified",
+   "fee cap exceeded",
+   "Dr. Wyss invoices personally"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "l4",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://related-party/wyss-advisory-offers-2025.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://related-party/wyss-advisory-agreement-2025.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://related-party/wyss-advisory-agreement-2025.md",
+   "test_date": "2026-03-02",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Dr. Wyss does not invoice work personally",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "Invoices approved by the Chair of the Audit Committee",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r3",
+   "kind": "restriction",
+   "text": "Fee cap CHF 480,000",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}
