@@ -102,6 +102,14 @@ COURT_NAMES = {
     "ecthr_chamber": "EGMR (Kammer)",
     "ecthr_grand_chamber": "EGMR (Grosse Kammer)",
     "ecthr_committee": "EGMR (Ausschuss)",
+    "untb_ccpr": "UNO-Menschenrechtsausschuss (CCPR)",
+    "untb_cat": "UNO-Ausschuss gegen Folter (CAT)",
+    "untb_cerd": "UNO-Ausschuss gegen Rassendiskriminierung (CERD)",
+    "untb_cedaw": "UNO-Frauenrechtsausschuss (CEDAW)",
+    "untb_crc": "UNO-Kinderrechtsausschuss (CRC)",
+    "untb_crpd": "UNO-Behindertenrechtsausschuss (CRPD)",
+    "untb_cescr": "UNO-Sozialrechtsausschuss (CESCR)",
+    "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
 }
 
 LANG_NAMES = {"de": "Deutsch", "fr": "Français", "it": "Italiano"}

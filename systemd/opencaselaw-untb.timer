@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily UN treaty-body decisions scrape
+
+[Timer]
+# 18:00 UTC: after the daily full build (03:30 to ~17:00 UTC), and a
+# 1000-decision run (~4 h) ends before the 01:00 scrape.
+OnCalendar=*-*-* 18:00:00 UTC
+# A missed evening is harmless; an unplanned start inside the build window is not.
+Persistent=false
+
+[Install]
+WantedBy=timers.target

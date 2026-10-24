@@ -22,3 +22,8 @@ class GRGerichteScraper(TribunaBaseScraper):
     COURT_FILTER = "OG"  # Obergericht — returns all courts
     LOCALE = "de"
     REQUEST_DELAY = 2.5
+    # entscheidsuche.gr.ch upgraded VTPlus on 2026-10-21/22 and dropped the
+    # 46-param search(): the 01:00 run got a GWT IncompatibleRemoteServiceException
+    # ("application is out of date"). Same upgrade BE went through 2026-06-19;
+    # send the 47-param form (was 20).
+    SEARCH_FIELD_COUNT = 21

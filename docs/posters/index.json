@@ -2,6 +2,44 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W43",
+   "from": "2026-10-16",
+   "to": "2026-10-22",
+   "added": 769,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "leitentscheide",
+     "file": "2026-w43/de-leitentscheide.webp",
+     "caption": "Woche 43 in der Schweizer Rechtsprechung: 769 neue Entscheide. opencaselaw.ch"
+    },
+    {
+     "lang": "fr",
+     "design": "attente",
+     "file": "2026-w43/fr-attente.webp",
+     "caption": "Semaine 43 de la jurisprudence suisse : 769 nouvelles décisions. opencaselaw.ch"
+    },
+    {
+     "lang": "it",
+     "design": "bilance",
+     "file": "2026-w43/it-bilance.webp",
+     "caption": "Settimana 43 della giurisprudenza svizzera: 769 nuove decisioni. opencaselaw.ch"
+    },
+    {
+     "lang": "rm",
+     "design": "tessla",
+     "file": "2026-w43/rm-tessla.webp",
+     "caption": "Emna 43: 769 novas decisiuns. opencaselaw.ch"
+    },
+    {
+     "lang": "en",
+     "design": "index",
+     "file": "2026-w43/en-index.webp",
+     "caption": "Week 43 in Swiss case law: 769 new decisions. opencaselaw.ch"
+    }
+   ]
+  },
+  {
    "week": "2026-W42",
    "from": "2026-10-09",
    "to": "2026-10-15",

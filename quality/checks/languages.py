@@ -24,11 +24,24 @@ ECTHR_COURTS = {
     "ecthr_chamber", "ecthr_committee", "ecthr_grand_chamber",
     "hudoc_ch", "bge_egmr",
 }
+# UN treaty-body decisions: French where OHCHR has a French text, otherwise
+# English (scrapers/untb.py) — the same rule as the ECtHR.
+UNTB_COURTS = {
+    "untb_ccpr",
+    "untb_cat",
+    "untb_cerd",
+    "untb_cedaw",
+    "untb_crc",
+    "untb_crpd",
+    "untb_cescr",
+    "untb_ced",
+}
 NULL_LANGUAGE_FLOOR_PCT = 0.5  # WARNING if >0.5% of rows have no language
 
 
 def check_unexpected_language_values(conn: sqlite3.Connection, **_) -> CheckResult:
-    """Language must be in {de, fr, it, rm}, or `en` on an ECtHR court, or NULL."""
+    """Language must be in {de, fr, it, rm}, or `en` on an ECtHR or UN
+    treaty-body court, or NULL."""
     # Two queries on purpose. The first stays on idx_decisions_language as a
     # covering scan; adding `court` to it would drop the index cover and make
     # the gate seek into a 62 GB table ~1M times, and the gate has already had
@@ -49,7 +62,7 @@ def check_unexpected_language_values(conn: sqlite3.Connection, **_) -> CheckResu
             f"WHERE language IN ({placeholders}) GROUP BY language, court",
             suspect,
         ):
-            if lang == "en" and court in ECTHR_COURTS:
+            if lang == "en" and (court in ECTHR_COURTS or court in UNTB_COURTS):
                 continue
             bad.append((lang, court, n))
     return CheckResult(
@@ -59,13 +72,13 @@ def check_unexpected_language_values(conn: sqlite3.Connection, **_) -> CheckResu
         metric_value=sum(n for _, _, n in bad),
         threshold=0,
         message=f"{len(bad)} unexpected language/court combinations" if bad else
-                "all language codes ∈ {de, fr, it, rm} (+ en on ECtHR courts)",
+                "all language codes ∈ {de, fr, it, rm} (+ en on ECtHR / UN treaty-body courts)",
         sample_rows=[
             {"language": repr(l), "court": c, "count": n} for l, c, n in bad[:5]
         ],
         extra={"distribution": distribution},
         fix_advice="language must be a 2-letter ISO code, and `en` is reserved "
-                   "for English-authoritative ECtHR judgments. Investigate the "
+                   "for English ECtHR judgments and UN treaty-body decisions. Investigate the "
                    "scraper that wrote this row's language column.",
     )
 

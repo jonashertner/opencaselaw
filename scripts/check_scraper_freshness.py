@@ -88,7 +88,8 @@ TOLERATED_PARTIAL_SOURCES = {
     "ecthr",
 }
 # These scrapers egress through the Mac mini reverse-SOCKS tunnel, which
-# sleeps when the laptop sleeps (JU/NE portals block Hetzner at TCP;
+# sleeps when the laptop sleeps (JU/NE/TI portals block Hetzner at TCP,
+# sentenze.ti.ch since 2026-10-22;
 # search.bger.ch Incapsula-blocks the Hetzner IP since 2026-06-29, so
 # BGer/BGE discovery is proxied too). Failures during the 01:00 UTC
 # window are normal; the late-scrapers timer at 10:00 UTC retries once
@@ -99,6 +100,7 @@ TUNNEL_DEPENDENT_SOURCES = {
     "ju_gerichte",
     "ne_gerichte",
     "ne_jurisprudence_adm",
+    "ti_gerichte",
 }
 
 # Scrapers that run on their OWN systemd timer rather than through

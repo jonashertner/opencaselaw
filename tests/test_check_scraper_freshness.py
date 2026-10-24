@@ -244,7 +244,7 @@ def test_tunnel_dependent_sources_cover_proxied_courts():
     import check_scraper_freshness as csf
     import run_all_scrapers as ras
 
-    assert {"bger", "bge", "ju_gerichte", "ne_gerichte"} <= csf.TUNNEL_DEPENDENT_SOURCES
+    assert {"bger", "bge", "ju_gerichte", "ne_gerichte", "ti_gerichte"} <= csf.TUNNEL_DEPENDENT_SOURCES
     assert csf.TUNNEL_DEPENDENT_SOURCES == ras.TUNNEL_DEPENDENT
 
 

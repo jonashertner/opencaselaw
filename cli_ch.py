@@ -96,6 +96,15 @@ _NON_SWISS_COURTS = frozenset({
     "ecthr",          # European Court of Human Rights
     "hudoc_ch",       # ECHR Swiss-related (HUDOC mirror)
     "ta_sst",         # Schweizer Sportgericht (Swiss Sports Tribunal, Bern)
+    # UN treaty bodies — the UN symbol is their identifier
+    "untb_ccpr",
+    "untb_cat",
+    "untb_cerd",
+    "untb_cedaw",
+    "untb_crc",
+    "untb_crpd",
+    "untb_cescr",
+    "untb_ced",
 })
 
 # ISO 3166-2:CH canton codes.

@@ -16,6 +16,7 @@ ExecStartPre=/bin/sleep 60
 ExecStart=/usr/bin/python3 run_all_scrapers.py
 Environment=NE_PROXY=socks5h://127.0.0.1:1080
 Environment=JU_PROXY=socks5h://127.0.0.1:1080
+Environment=TI_PROXY=socks5h://127.0.0.1:1080
 TimeoutStartSec=21600
 StandardOutput=append:/opt/caselaw/repo/logs/daily_scrape.log
 StandardError=append:/opt/caselaw/repo/logs/daily_scrape.log

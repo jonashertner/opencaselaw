@@ -440,6 +440,15 @@ _FEDERAL_COURT_EXCLUDE = (
     'finma', 'finma_versicherungsrecht', 'weko', 'edoeb', 'ubi', 'elcom',
     'postcom', 'comcom', 'ta_sst', 'emark', 'hudoc_ch', 'ch_bundesrat',
     'ch_vb',
+    # UN treaty bodies: canton is 'CH' or 'UN', never a Swiss canton
+    'untb_ccpr',
+    'untb_cat',
+    'untb_cerd',
+    'untb_cedaw',
+    'untb_crc',
+    'untb_crpd',
+    'untb_cescr',
+    'untb_ced',
 )
 
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=OpenCaseLaw UN treaty-body decisions (OHCHR juris) incremental scrape
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+Environment=PYTHONPATH=/opt/caselaw/repo
+# One request every 5 s (scrapers/untb.py, the rate promised to the UN on
+# 2026-10-23). --max 1000 bounds a run to ~4 h, so the ~4,300-case backfill
+# finishes over about five evenings without a separate backfill unit, and a
+# run never reaches the 01:00 scrape or the 03:30 build. Once the backfill is
+# done a run probes only new case ids and the weekly gap retries (minutes).
+# No quick_publish chain: the nightly full build picks up decisions/untb.jsonl.
+ExecStart=/usr/bin/python3 /opt/caselaw/repo/run_scraper.py untb --max 1000
+TimeoutStartSec=21600
+StandardOutput=append:/opt/caselaw/repo/logs/untb.log
+StandardError=append:/opt/caselaw/repo/logs/untb.log
