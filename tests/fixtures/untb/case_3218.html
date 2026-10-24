@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap CSS -->
+    <base href="/" />
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="_content/Telerik.UI.for.Blazor/css/kendo-theme-default/all.css" />
+
+    <link href="assets/css/style.css" rel="stylesheet">
+    <link href="assets/css/date-picker-and-multiselect-telerik-bootstrap.css" rel="stylesheet">
+
+
+    <script src="_content/Telerik.UI.for.Blazor/js/telerik-blazor.js" defer></script>
+
+
+
+
+    <!--Blazor:{"type":"server","prerenderId":"edb8b9a0e82f4b75a5a200ce6a237d1a","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"sequence":0,"descriptor":"CfDJ8Dy6d1V/0/FMpw\u002BS3W00LPG9HpWSwVBtdRL78CnbU1GKbzupeQfMfpcgcqq1VETwy8Mqu1Jjvhw4NVodTvOOo36J\u002BzcmMzwjiQR8m7ticYtRkPWSK0DEBqCEHEceazM6iVsYRTB08WqSWblsq5Zq80cuWgdNWQjDR6EvAG8eoiuEyDoZnk4g7GBdcvnscBg3EBJAK\u002Blh\u002BdhA41nji1gjvC5\u002B5/Tg\u002BizU8\u002B1GDhWlROOByDRkkVYeQaYDCt04SXFBClIDx6wnQ2SS0P/FuVLuyAbu/UCGrIshqS5XP0ow3vYTcu6Pq4wmfNnkxPiGkOx4iksBq\u002BX1ZPoj19DWx4gR8uLcTGEl8TutBs5iD37I1Is0MFiB7XBKOW/WJq\u002BEUSiZP0JQWxxtFlfNggWVvVqWIwAnI5/Nk82vO/QbmYjgtAS8FobwIWYaZ9SbGhzeqEBXoHGnAmw9\u002BV6UtbpUvLKEH0kFK3Glw\u002BlTcoHbs6/Aa4uNkKBZ\u002Ba624TMVxAruE2TtxaKgu9/EOxEQ/MP3C4S2aojAZ69mivc6iZQpyGedF6Dl\u002BQ0EuMYlkG4AZxi1nhGzIz7LnEVpbEkzlqAw3ZN17qE="}--><title>Jurisprudence Database</title><!--Blazor:{"prerenderId":"edb8b9a0e82f4b75a5a200ce6a237d1a"}-->
+</head>
+<body id="bodyMainLayout" style="padding-top:9rem">
+    
+<!--Blazor:{"type":"server","prerenderId":"a0c6e2b63f6a4bf3ad456fc92d56fdc1","key":{"locationHash":"2E7126C466B2E6492079A59FE782114D1AC3F0D428171845D1D661458CF5C39A:0","formattedComponentKey":""},"sequence":1,"descriptor":"CfDJ8Dy6d1V/0/FMpw\u002BS3W00LPGEEWaYqg8A7bTX80Cp1KOqVMU2GBEHN4BjhlmuEiLaVF5g63BuCp\u002B\u002BFPdPM2v7v4x8LjFV5QzPYRR/CrX9PJt4Xsp7gN3aCKB3ruHV4L1TbGCuglgNaLttcB7P\u002BqOPTp8Hpsyk\u002BzJXej6Y88\u002BES2k2pEYj3/WOXJscba8ppK3d6bj7QmXE4\u002BQ2K6\u002BTdCgCIyneFECtX3qcM\u002BwaZ/1mkJ10rzWNquQ7EMs39aB42ncvE3HKEf0dgIVdVCz23j/S7mOYiybgylTxsK5Wbh06ev6u5/RzA\u002BEMBUWNtC42d8vrtqJkR0zIGpK4t\u002BqD2OKId3K9yOWaBe6kfK\u002BahTPw2QpSbDmVJlBNKMvshRRc7\u002B2brJ9W0rCQ0r42akl0Q/gQ8Xy9mNtSu3qhDfudWvkoxUuVMDXxkP1IZaYQeuXFQpQxMOYbNoM62j6yG58MSy4mEyMqzrZ5jdpfZ/EUwQZIgwOh7wb3b\u002BWoFP5cEAATYYpSJ5V3W7TJ\u002BuP2UrTplyb5pvitbXAZjeX6ZH38yAnBttZJ"}-->
+
+    <div style="direction:ltr" b-lt944vwqyn>
+    <header id="header" class="fixed-top" b-lt944vwqyn><div class="d-flex align-items-center container"><span class="logo me-auto"><img src="assets/img/OHCHR_Logo_White_EN.png" alt class="img-fluid"></span>
+    
+
+    <div class="header-social-links d-flex"><a href="https://twitter.com/UNHumanRights" class="twitter"><i class="bu bi-twitter"></i></a>
+        <a href="https://www.facebook.com/unitednationshumanrights/" class="facebook"><i class="bu bi-facebook"></i></a>
+        <a href="http://www.flickr.com/photos/unhumanrights/" class="facebook"><i class="fa fa-flickr" aria-hidden="true"></i></a>
+        <a href="https://www.youtube.com/user/UNOHCHR" class="facebook"><i class="fa fa-youtube-play" aria-hidden="true"></i></a>
+        <a href="https://www.instagram.com/unitednationshumanrights/?hl=en" class="instagram"><i class="bu bi-instagram"></i></a>
+        <a href="mailto:ohchr-petitions@un.org" class="linkedin"><i class="fa fa-envelope-o" aria-hidden="true"></i></a></div></div><div class="container-fluid  bg-white " b-945n4gq4cr><div class="container" b-945n4gq4cr><div class="row" b-945n4gq4cr><nav id="navbar" class="navbar  order-lg-0 col-md-6" b-945n4gq4cr><ul b-945n4gq4cr><li b-945n4gq4cr><a href="./">HOME</a></li>
+                    <li class="dropdown" b-945n4gq4cr><a class="noclick" href="javascript:void(0);" b-945n4gq4cr><span b-945n4gq4cr>DOCUMENT SEARCH</span> <i class="bi bi-chevron-down" b-945n4gq4cr></i></a>
+                        <ul b-945n4gq4cr><li b-945n4gq4cr><a href="./BasicSearch">BASIC</a></li>
+                            <li b-945n4gq4cr><a href="./AdvancedSearch">ADVANCED</a></li></ul></li></ul>
+                <i class="bi bi-list mobile-nav-toggle" b-945n4gq4cr></i></nav>
+            <div class="col-md-6 selectlanguage select" b-945n4gq4cr><div class="dropdown"><button type="button" class="btn selectcontainer btn-primary dropdown-toggle " data-bs-toggle="dropdown">
+       English
+    </button>
+    <ul class="dropdown-menu languageDropdown pt-0 pb-0"><li class="nav-item"><a class="nav-link link-light py-0 mb-1 cursor-pointer">العربية</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">中文</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 active cursor-pointer" aria-current="english">English</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Français</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Español</a></li>
+        <li class="nav-item border-0"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Русский</a></li></ul></div></div></div></div></div></header>
+    <div class="container main-container" b-lt944vwqyn><div class="container"><div class="row"><div class="col-md-8"><div class="col"><h1 class="un-style-page-title">H. A. S. V. and F. O. C. v. Canada</h1>
+                    <p class="un-style-detail-symbol"><strong>CAT/C/33/D/163/2000/Rev.1</strong></p></div>
+                <div class="col mt-2"><p class="un-style-detail-label">Communication number(s):</p>
+                    <p>163/2000</p></div>
+                <div class="col mt-2"><p class="un-style-detail-label">Author:</p>
+                    <p>H. A. S. V. and F. O. C.</p></div>
+                <div class="col mt-2"><p class="un-style-detail-label">Type of decision:</p>
+                    <p>Inadmissibility decision</p></div></div>
+            <div class="col-md-4"><div class="row"><div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Session No</p>
+                            <p>33</p></div></div>
+                    <div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Country<img src="assets/img/flags/CAN.gif" class="float-end" style="height:20px; margin-right:10px;" alt="Canada" /></p>
+                            <p>Canada</p></div>
+                        <div></div></div>
+                    <div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Submission date</p>
+                            <p>28 Feb 2000</p></div></div>
+                    <div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Date of decision</p>
+                            <p>24 Nov 2004</p></div></div></div>
+                <div class="row"><div class="col-md-12"><p class="un-style-detail-label mb-0">Comment:
+                        </p><p class="fst-italic">This document has no comment:</p></div></div></div></div>
+        <hr>
+        <div class="row"><div class="col-md-8"><div class="row"><div class="col-md-6"><p class="un-style-detail-label">Substantive issues:
+                        </p>
+                        <ul class="un-style-detail-list"><li>non-refoulement</li></ul></div>
+                    <div class="col-md-6"><p class="un-style-detail-label">Substantive articles:
+                        </p>
+                        <ul class="un-style-detail-list"><li>3</li></ul></div></div>
+                <div class="row"><div class="col-md-6"><p class="un-style-detail-label">Procedural issues:
+                        </p>
+                        <ul class="un-style-detail-list"><li>substantiation of claims</li></ul></div>
+                    <div class="col-md-6"><p class="un-style-detail-label">Procedural articles:
+                        </p>
+                        <ul class="un-style-detail-list"><li>No articles found</li></ul></div></div></div>
+            <div class="col-md-4"><table class="table"><thead><tr><th scope="col"><span class="un-style-detail-label">Language</span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    Doc
+                                </span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    Docx
+                                </span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    Pdf
+                                </span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    html
+                                </span></th></tr></thead>
+                    <tbody><tr><td>English</td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=TJa63%2fp5PYFp8qwnTOvwLquqTlOmzs1%2fPGNJIvYa4fBcXnsdKrmFEBkU7GjSjaNZdTBCtuRr%2bnpwVoblDDzZ4InX9ugfR1FT5%2b7hOwA9JTe%2bn%2bQV7YEgx2yKubrg5vaO" target="_blank"><img src="/assets/img/doc.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=J0iGvV4NED2ea18VxNRPDoI8zrNI3FG7U5uYz0SAkPFeWXCTVL5c%2bmsJP5E36Cww81o5Poz%2bNLm47ytTp4jwT9e44W9rHf7M%2fSuUfaZ0hBVNz1Gsvc6w3lziLt8WKQH8" target="_blank"><img src="/assets/img/docx.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=FpTBvlr%2fBasKscPk9YqqKBRp6WHwTSLZ4U%2bbAKW5NgKihcvMLavBMid76R%2b079LWp3XfXZhLigy2xvpZJEncCDsQJRHNbatKetWSm98JpS9VXgiuKMLpX41GyfpTh%2b25" target="_blank"><img src="/assets/img/pdf.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=V%2bN%2bbNL7qYijSpV2RBDgt2dTwQuD%2bEaryk7zaXsT%2bzoElhMr2jJc2EboRd%2fUTy79vxp4z6grjAz5wgGyZN3kWCVLnUH8GEr8elpGgO0aIuQ99S9Qu2QVbwzobS%2f4Qp5n" target="_blank"><img src="/assets/img/html.gif"></a></td></tr><tr><td>French</td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=jgJzR%2bamh9EFPTesUq0UffQW68GbkL2Fi43sEV%2b%2fUvOc2E4LVAfnrk3zTGW0kjtnK5fQS0OCMgJ9WrDcgNLxXssCp2cKBPQ%2fZck27Ryu5Z3ftYWYOVkP7erMt3rWpwe9" target="_blank"><img src="/assets/img/doc.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=54Ae1A2AdEXRTWMFUpL4iA4TjL9TqmabZXwjWdem1t4VJdKp4IA%2fLVGOeR1hLhQo4Sp9GHVo%2f3ZazkYQUu1BM49lXAETffGp2HqMJEjuJ89z%2bDX9mXw191ZMvCJQ8AdS" target="_blank"><img src="/assets/img/docx.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=mjjNHOzM0%2bkO%2b1gUiwxMgoNLAb5uBTnCd55HF%2f9p6KxwKAzEBW%2fjQJo3kE62liozqR%2fzKxSnZ6VxDYxCKlKSxcVLbm6nGYSoPav6dZA0KZz9kEeiSgzWNgA29Oood%2fJW" target="_blank"><img src="/assets/img/pdf.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=r6wglwiR%2bh6bibyWJLJh7xXli2aA8LOslScgQ6qwueu0FrSksnV7ey%2fCxEaQzK5LrAPSsEPcu6nn7e5YQO87DKrzWqudAnZeo%2bEkAm%2flSTBvy5%2bQ7NKxBNsVctSNTPd5" target="_blank"><img src="/assets/img/html.gif"></a></td></tr><tr><td>Spanish</td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=zaDVsJWNqPYFHmeLF84mSM25HUCS0m7PwU0jhgNLSLscb4Bm3jaUqUZK%2bVROEuo3jpYM6qTwdoK9CSKL%2f2SQrMuJ%2bvPQ5NRosTY8Ot3%2bEI%2bEdi6zwe%2biNZzVO0CS0W8Q" target="_blank"><img src="/assets/img/doc.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=c40RGtw5fiMQOIYfZAvrCp1cV5roAG9C2nY1BO10lAObAOMKacAPeWFE1es8XJQfPbJiYPORjxUjgShehmwwWZzEp9%2brTA5JsfHMcRkXdMsr3JCRl%2fZhfNkgIL8K%2fKt2" target="_blank"><img src="/assets/img/docx.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=i0hI%2fNk7f6mLrdjolbuHZflfJGkageVTbApSol%2bgKkOkfpID4%2bvXCDHtXUlKnylitt5CCLE1W5DSo5PPwgLaBxmPngEf2vbGkTF0Y3aSLNzxZWksn3Q8pHAC44O%2bA048" target="_blank"><img src="/assets/img/pdf.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=%2buwZB269k9t%2ft53IfquDGXZX7va1Np1643J%2fBdqmCCSNBtIVzQSCOoUJD1JTCrpeoMRP%2fSwlhziucjyI5xerdGONnuUJ8KMlj9urDvbDllz9lifSScNm4umgAexKJWUw" target="_blank"><img src="/assets/img/html.gif"></a></td></tr><tr><td>Arabic</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td></tr><tr><td>Russian</td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=%2fxVfRBod41XEzXWfP%2f1qCBY7bD02PNGkB0SSEgP6r37%2bXD6pSWs9HJCtQDs4g5NnQpU0vtGQiAUw9dfS7lEZt3ToMCkaNWeTZKVm9BZ5OTncnT4ptBkffSVlnSGAiCv%2b" target="_blank"><img src="/assets/img/doc.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=gSI4mbbSJeVIJU5tpFas1kMPLb73swQ%2fhPa4T8j0najfsDH0odVN%2f%2bPZKPC8dRbz52jG2jP4emReTq9Ce6xoweI%2fzf2qNlzvtYK%2fgcEIBhe6J5EYSDIa4%2bzCVwMRIJJR" target="_blank"><img src="/assets/img/docx.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=h9Ke0o4sI8ELOuRc8guj33O9RyccwFSMwaklAd3OJSoOO0Uix65lt%2fJ6Ze8FpXYJinHNj3kkP7%2bA16D0epo5dGGdyOVu2tHGQ0zno8j6RXr8eGfk%2fdLbj0dtTwcn1b0Y" target="_blank"><img src="/assets/img/pdf.gif"></a></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=zbZGdBwEL13wUq8PxScA%2b5wYsCpb4hfanyonZYIuEdp4N8hFdokrrCnSSaBf%2fDfTAlyEQ6zJJ0JyrHi4B19AFpoo9gBh7q4zHGT7PTgWioGIJtqI7IONYUIXCmT7tGLS" target="_blank"><img src="/assets/img/html.gif"></a></td></tr><tr><td>Chinese</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td></tr></tbody></table></div></div><div class="notification-parent"><div class="k-notification-group notification" style="top: 0px;flex-wrap: wrap; align-items: center; left: 50%; transform: translateX(-50%);"></div></div></div>
+<style>
+    .k-tilelayout {
+        padding: 0px !important;
+    }
+</style></div></div>
+
+<div class="pt-5 pb-5" b-lt944vwqyn></div>
+<footer id="footer" class b-lt944vwqyn><div class="container d-md-flex py-4 p-0 "><div class="me-md-auto text-center text-md-start"><div class="copyright"> © 2026 OHCHR - Jurisprudence </div></div><div class="social-links text-center text-md-right pt-3 pt-md-0"><a href="https://www.ohchr.org/en/treaty-bodies/general-comments" class="twitter">General Comments</a>
+
+            <a href="https://www.ohchr.org/en/treaty-bodies" class="twitter">Treaty Bodies</a>
+
+
+
+            <a href="https://www.un.org/en/about-us/terms-of-use" class="twitter">Terms of use</a></div></div></footer>
+
+
+
+
+
+
+        <!--Blazor:{"prerenderId":"a0c6e2b63f6a4bf3ad456fc92d56fdc1"}-->
+
+    <script src="_framework/blazor.server.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script>
+
+
+         $(document).on('click','.select ul li.nav-item',function(e) {
+
+               $('.dropdown .selectcontainer').text($(this).find('a').text());
+               $('.dropdown .languageDropdown a').removeClass('active')
+             $(this).find('a').addClass('active');
+
+         });
+
+         $(document).on('click','.mobile-nav-toggle',function() {
+             $('#navbar').toggleClass('navbar-mobile');
+            $(this).toggleClass('bi-list');
+            $(this).toggleClass('bi-x');
+         });
+
+          $(document).on('click','.navbar .dropdown > a',function(e) {
+          if ($('#navbar').hasClass('navbar-mobile')) {
+                 e.preventDefault();
+                 $(this.nextElementSibling).toggleClass('dropdown-active');
+               }
+         });
+
+
+        $(document).on('click','.navbar-mobile ul li > a',function(e) {
+          if (!$(this).hasClass('noclick')) {
+                     $('#navbar').toggleClass('navbar-mobile');
+                    $('.mobile-nav-toggle').toggleClass('bi-list');
+                    $('.mobile-nav-toggle').toggleClass('bi-x');
+               }
+         });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap CSS -->
+    <base href="/" />
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="_content/Telerik.UI.for.Blazor/css/kendo-theme-default/all.css" />
+
+    <link href="assets/css/style.css" rel="stylesheet">
+    <link href="assets/css/date-picker-and-multiselect-telerik-bootstrap.css" rel="stylesheet">
+
+
+    <script src="_content/Telerik.UI.for.Blazor/js/telerik-blazor.js" defer></script>
+
+
+
+
+    <!--Blazor:{"type":"server","prerenderId":"1b7c25f7806744ebaf4f631941313aa1","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"sequence":0,"descriptor":"CfDJ8Dy6d1V/0/FMpw\u002BS3W00LPFtNQsz75X9Z3lY43Ptsvb8nVexeDQFCRw\u002BMYY\u002BIgKKbfc0CwmRMP9ZoVawlFIIOTNnfE/jnBULdtl6nQdWvRqKWoGQmEI9wtB6iNZ6VWyK51aUlOxLww7bEveL4CV\u002BK6Eol0x9eSddd3Tzqke3SGXS8b3ogSMQp82QgOBbjJMaFdm55qaq1lmzjJE7oPU2cYZn2V9By4Z4GPUlvSSw6m5XvEvXREhSr3fEtEu/QRgNHbNisiLlCfWf5oaNf4IzM5aAYFFPtbtcsxujHHXKJB\u002BIVPDPZlIZilQbMNuiSbfK7Iq3iVkI0ZOdEFkDy9iAEqReiy5Ok\u002BFXWrI/qd6jgiK9sx2O1co00tKAMpWdnSNvlGEdiTGLXx1bx1t8BmVQXqEcYBP\u002BOnUM3lyWhtBRIMG6aHrJNOQqKXPDAfYtOC7DFkZ9\u002BcZm6EidKI4MtjDUJRFr6j22Iqv0ukFgJK8Pe8wl0b\u002BPB6LjBKB48VoNhtcxgvT3IngSmhkqoN7z477AW9TRShZKSDHyTzX7U4p4LWEpafIcLEhhURmXZSrxVVXxcRf9E5jqKU6rg/CojUMI7HY="}--><title>Jurisprudence Database</title><!--Blazor:{"prerenderId":"1b7c25f7806744ebaf4f631941313aa1"}-->
+</head>
+<body id="bodyMainLayout" style="padding-top:9rem">
+    
+<!--Blazor:{"type":"server","prerenderId":"3a88469e02e84390921f0b06bfa0051b","key":{"locationHash":"2E7126C466B2E6492079A59FE782114D1AC3F0D428171845D1D661458CF5C39A:0","formattedComponentKey":""},"sequence":1,"descriptor":"CfDJ8Dy6d1V/0/FMpw\u002BS3W00LPELhy0Ch0WpAHZpIRFvak1YRSWKqjaHNDFyf\u002BvSiclkuB5o/Jmm8pigVZ100OgzQJ8Krb1Lrptd7UlZUSja53Bd236wjTwUJU\u002BTF4v1Dfv5od5U/0jhvfmcq950KU1jl8kKCLm/NcGc8Trsj5eqpWKui34R/GMVSvcH322Y3ZxjkgAc0kY\u002BAbSv3urZEAEwlx1FlRo3IRUwYsEw48l3XBqn1QRfjELq9rwpfv07s9J0H3SvMPKPA\u002Bz6dzY3LSMWbN9t3RleztfW/YjevIVVDZfWlHuARZITWqwUQsGiOmXwG8e\u002BHrkIX0HsmXOoRuuNfsZuHPyAtImdxoiG2TvY5C4e0PbeDoxnqHip18WtOk7ireIeToUt0cfZUSJ09Jt20z3rFV7EGGE8vdBJ0rGD78PN/hBHzZ/Pz2rwHlq1pcZDncwKpR9mNP4VnV1uspyf\u002Bohrd6QEe8gsz5vZUkj\u002BeppAs70trKsxD4zpRldtVN8GQM/Y2s4WYdl5GGeqOmhscbsTOpWUN/SiBwVqAoN5T2Ho"}-->
+
+    <div style="direction:ltr" b-lt944vwqyn>
+    <header id="header" class="fixed-top" b-lt944vwqyn><div class="d-flex align-items-center container"><span class="logo me-auto"><img src="assets/img/OHCHR_Logo_White_EN.png" alt class="img-fluid"></span>
+    
+
+    <div class="header-social-links d-flex"><a href="https://twitter.com/UNHumanRights" class="twitter"><i class="bu bi-twitter"></i></a>
+        <a href="https://www.facebook.com/unitednationshumanrights/" class="facebook"><i class="bu bi-facebook"></i></a>
+        <a href="http://www.flickr.com/photos/unhumanrights/" class="facebook"><i class="fa fa-flickr" aria-hidden="true"></i></a>
+        <a href="https://www.youtube.com/user/UNOHCHR" class="facebook"><i class="fa fa-youtube-play" aria-hidden="true"></i></a>
+        <a href="https://www.instagram.com/unitednationshumanrights/?hl=en" class="instagram"><i class="bu bi-instagram"></i></a>
+        <a href="mailto:ohchr-petitions@un.org" class="linkedin"><i class="fa fa-envelope-o" aria-hidden="true"></i></a></div></div><div class="container-fluid  bg-white " b-945n4gq4cr><div class="container" b-945n4gq4cr><div class="row" b-945n4gq4cr><nav id="navbar" class="navbar  order-lg-0 col-md-6" b-945n4gq4cr><ul b-945n4gq4cr><li b-945n4gq4cr><a href="./">HOME</a></li>
+                    <li class="dropdown" b-945n4gq4cr><a class="noclick" href="javascript:void(0);" b-945n4gq4cr><span b-945n4gq4cr>DOCUMENT SEARCH</span> <i class="bi bi-chevron-down" b-945n4gq4cr></i></a>
+                        <ul b-945n4gq4cr><li b-945n4gq4cr><a href="./BasicSearch">BASIC</a></li>
+                            <li b-945n4gq4cr><a href="./AdvancedSearch">ADVANCED</a></li></ul></li></ul>
+                <i class="bi bi-list mobile-nav-toggle" b-945n4gq4cr></i></nav>
+            <div class="col-md-6 selectlanguage select" b-945n4gq4cr><div class="dropdown"><button type="button" class="btn selectcontainer btn-primary dropdown-toggle " data-bs-toggle="dropdown">
+       English
+    </button>
+    <ul class="dropdown-menu languageDropdown pt-0 pb-0"><li class="nav-item"><a class="nav-link link-light py-0 mb-1 cursor-pointer">العربية</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">中文</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 active cursor-pointer" aria-current="english">English</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Français</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Español</a></li>
+        <li class="nav-item border-0"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Русский</a></li></ul></div></div></div></div></div></header>
+    <div class="container main-container" b-lt944vwqyn><h1 style="color: red;" b-lt944vwqyn>Oops... error occured</h1></div></div>
+
+<div class="pt-5 pb-5" b-lt944vwqyn></div>
+<footer id="footer" class b-lt944vwqyn><div class="container d-md-flex py-4 p-0 "><div class="me-md-auto text-center text-md-start"><div class="copyright"> © 2026 OHCHR - Jurisprudence </div></div><div class="social-links text-center text-md-right pt-3 pt-md-0"><a href="https://www.ohchr.org/en/treaty-bodies/general-comments" class="twitter">General Comments</a>
+
+            <a href="https://www.ohchr.org/en/treaty-bodies" class="twitter">Treaty Bodies</a>
+
+
+
+            <a href="https://www.un.org/en/about-us/terms-of-use" class="twitter">Terms of use</a></div></div></footer>
+
+
+
+
+
+
+        <!--Blazor:{"prerenderId":"3a88469e02e84390921f0b06bfa0051b"}-->
+
+    <script src="_framework/blazor.server.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script>
+
+
+         $(document).on('click','.select ul li.nav-item',function(e) {
+
+               $('.dropdown .selectcontainer').text($(this).find('a').text());
+               $('.dropdown .languageDropdown a').removeClass('active')
+             $(this).find('a').addClass('active');
+
+         });
+
+         $(document).on('click','.mobile-nav-toggle',function() {
+             $('#navbar').toggleClass('navbar-mobile');
+            $(this).toggleClass('bi-list');
+            $(this).toggleClass('bi-x');
+         });
+
+          $(document).on('click','.navbar .dropdown > a',function(e) {
+          if ($('#navbar').hasClass('navbar-mobile')) {
+                 e.preventDefault();
+                 $(this.nextElementSibling).toggleClass('dropdown-active');
+               }
+         });
+
+
+        $(document).on('click','.navbar-mobile ul li > a',function(e) {
+          if (!$(this).hasClass('noclick')) {
+                     $('#navbar').toggleClass('navbar-mobile');
+                    $('.mobile-nav-toggle').toggleClass('bi-list');
+                    $('.mobile-nav-toggle').toggleClass('bi-x');
+               }
+         });
+
+    </script>
+</body>
+</html>

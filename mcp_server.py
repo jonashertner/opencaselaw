@@ -1788,6 +1788,14 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "ecthr_chamber": "EGMR (Kammer)",
     "ecthr_grand_chamber": "EGMR (Grosse Kammer)",
     "ecthr_committee": "EGMR (Ausschuss)",
+    "untb_ccpr": "UNO-Menschenrechtsausschuss (CCPR)",
+    "untb_cat": "UNO-Ausschuss gegen Folter (CAT)",
+    "untb_cerd": "UNO-Ausschuss gegen Rassendiskriminierung (CERD)",
+    "untb_cedaw": "UNO-Frauenrechtsausschuss (CEDAW)",
+    "untb_crc": "UNO-Kinderrechtsausschuss (CRC)",
+    "untb_crpd": "UNO-Behindertenrechtsausschuss (CRPD)",
+    "untb_cescr": "UNO-Sozialrechtsausschuss (CESCR)",
+    "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
     "ch_bundesrat": "Bundesrat", "ch_vb": "Bundesverwaltung",
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherungsrecht",
     "weko": "WEKO", "edoeb": "EDÖB", "ubi": "UBI",
@@ -1850,6 +1858,14 @@ COURT_LEVELS: dict[str, str] = {
     "ecthr_chamber": "international",
     "ecthr_grand_chamber": "international",
     "ecthr_committee": "international",
+    "untb_ccpr": "international",
+    "untb_cat": "international",
+    "untb_cerd": "international",
+    "untb_cedaw": "international",
+    "untb_crc": "international",
+    "untb_crpd": "international",
+    "untb_cescr": "international",
+    "untb_ced": "international",
     "ch_bundesrat": "federal_executive", "ch_vb": "federal_executive",
     "finma": "regulatory", "finma_versicherungsrecht": "regulatory",
     "weko": "regulatory", "edoeb": "regulatory", "ubi": "regulatory",
@@ -11206,7 +11222,7 @@ _CANONICAL_ID_PREFIX_RE = re.compile(
     r"^(?:bge|bger|bvger|bstger|bpatger|mkg|hudoc|bge_egmr|bge_historical|"
     r"ecthr_chamber|ecthr_committee|ecthr_grand_chamber|"
     r"finma|finma_versicherungsrecht|weko|edoeb|ubi|elcom|postcom|comcom|"
-    r"emark|ta_sst|ch_bundesrat|"
+    r"emark|ta_sst|ch_bundesrat|untb|"
     r"zh|be|lu|ur|sz|ow|nw|gl|zg|fr|so|bs|bl|sh|ar|ai|sg|gr|ag|tg|ti|vd|vs|ne|ge|ju)"
     r"_",
     re.IGNORECASE,
@@ -14294,7 +14310,13 @@ server = Server(
         "BAG KVG Kreisschreiben, ESTV "
         "Kreisschreiben and MWST-Infos (DE/FR/IT), SEM Weisungen and "
         "Rundschreiben and the Handbuch Asyl und Rückkehr, BJ SchKG Weisungen "
-        "and cantonal Existenzminimum Kreisschreiben, BAFU Vollzugshilfen — via "
+        "and cantonal Existenzminimum Kreisschreiben, BAFU Vollzugshilfen, and "
+        "the decisions and Views of the UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, "
+        "CRPD, CESCR, CED) on individual communications against every State party, "
+        "FR or EN, via search_decisions(court='untb_*'), "
+        "the UN human-rights recommendations addressed to Switzerland (treaty-body "
+        "concluding observations, UPR recommendations with Switzerland's position, "
+        "SPT and special-procedure reports; source='un_uhri', EN/FR) — via "
         "search_practice / get_practice, plus 23,000+ VPB/JAAC decisions (1900–2016) under "
         "court='ch_vb', "
         "44,000+ open-access scholarship records from 24 Swiss legal sources "
@@ -14556,8 +14578,13 @@ server = Server(
         "• 'WEL / KSIH / RWL / AVIG-Praxis / Handbuch Asyl / Existenzminimum-Richtlinien?' → search_practice\n"
         "• 'circulaire / directive / istruzioni / circolare?'      → search_practice\n"
         "• 'Verwaltungspraxis des Bundes vor 2017 (VPB/JAAC)?'     → search_decisions(court='ch_vb')\n"
+        "• 'What did the UN (CAT, CCPR, CRC, UPR …) recommend to Switzerland on X?' /\n"
+        "  'UNO-Empfehlungen an die Schweiz?' → search_practice(source='un_uhri'); the committees'\n"
+        "     decisions on individual complaints are search_decisions(court='untb_*')\n"
         "• 'Has the ECHR ruled against CH on X?'   → search_decisions(court='ecthr_chamber') or court='hudoc_ch'\n"
-        "• 'BGE-published EGMR translation?'       → search_decisions(court='bge_egmr')\n\n"
+        "• 'BGE-published EGMR translation?'       → search_decisions(court='bge_egmr')\n"
+        "• 'Has a UN committee (CAT, CCPR, CEDAW …) decided on X?' → search_decisions(\n"
+        "     court='untb_cat' etc.; add canton='CH' for cases against Switzerland)\n\n"
 
         "ECHR / EGMR coverage: every ECtHR judgment of importance 1-3 (the "
         "Court's own scale, where 1 = Key cases), from all 46 respondent "
@@ -15273,6 +15300,51 @@ def _citation_date_reliable(decision_date: str | None) -> bool:
         return True
 
 
+# Committee acronym as the UN and Swiss courts print it, by court code.
+_UNTB_ACRONYM = {
+    "untb_ccpr": "CCPR",
+    "untb_cat": "CAT",
+    "untb_cerd": "CERD",
+    "untb_cedaw": "CEDAW",
+    "untb_crc": "CRC",
+    "untb_crpd": "CRPD",
+    "untb_cescr": "CESCR",
+    "untb_ced": "CED",
+}
+
+
+def _untb_citation_strings(decision: dict, pin: str | None, url: str) -> dict:
+    court = (decision.get("court") or "").lower()
+    acronym = _UNTB_ACRONYM.get(court, court.upper())
+    symbol = (decision.get("docket_number") or "").strip()
+    commno = (decision.get("docket_number_2") or "").strip()
+    title = (decision.get("title") or "").strip()
+    if title == symbol:
+        title = ""
+    decision_date = decision.get("decision_date") or ""
+    reliable = _citation_date_reliable(decision_date)
+
+    def one(lang: str, nr: str, vom: str, pin_label: str) -> str:
+        out = f"{acronym}, {title}" if title else acronym
+        if commno:
+            out += f", {nr} {commno}"
+        date = _format_date_localized(decision_date, lang) if reliable else ""
+        if date:
+            out += f" {vom} {date}"
+        if symbol:
+            out += f" ({symbol})"
+        if pin:
+            out += f", {pin_label} {pin}"
+        return out
+
+    return {
+        "citation_string_de": one("de", "Nr.", "vom", "Ziff."),
+        "citation_string_fr": one("fr", "n°", "du", "par."),
+        "citation_string_it": one("it", "n.", "del", "par."),
+        "canonical_url": url,
+    }
+
+
 def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict:
     """Return {citation_string_de/fr/it, canonical_url, pinpoint_anchor} for a decision.
 
@@ -15352,6 +15424,13 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
             "citation_string_it": _ecthr_cite(code_it, "it", "del", pit),
             "canonical_url": url,
         }
+
+    # UN treaty bodies — committee, case name, communication number, date and
+    # the UN symbol, every part read from the record: 'CAT, R.D. v. Switzerland,
+    # Nr. 426/2010 vom 8. November 2013 (CAT/C/51/D/426/2010)'. The symbol is
+    # what the UN's own document system resolves.
+    if court.startswith("untb_"):
+        return _untb_citation_strings(decision, pin, url)
 
     # Docketed federal courts (bger / bvger / bstger / bpatger / bge_historical)
     if court in _COURT_CITATION_CODES and docket:
@@ -28419,7 +28498,12 @@ def _search_practice(
     # kassen"); there the per-document page url (/{lang}/d/<id>, identical
     # across editions) is the identity. Other sources put the INDEX page in
     # url, shared by many documents, so url cannot be the key for them.
-    group_key = "CASE WHEN source = 'bsv_weisungen' THEN url ELSE doc_number END"
+    # un_uhri rows are paragraphs, not editions: dozens share one symbol
+    # (73 unnumbered CRC/C/CHE/CO/2-4 paragraphs), so each row is its own
+    # document.
+    _identity = ("CASE WHEN {p}source = 'bsv_weisungen' THEN {p}url "
+                 "WHEN {p}source = 'un_uhri' THEN {p}doc_id ELSE {p}doc_number END")
+    group_key = _identity.format(p="")
     if collapse:
         # Editions of one document have near-identical text and cluster at
         # adjacent ranks, so a Python window over the top-N rows can be
@@ -28455,7 +28539,7 @@ def _search_practice(
     distinct_sql = f"""
         SELECT COUNT(*) FROM (
             SELECT DISTINCT p.source, p.language, p.doc_type,
-                   CASE WHEN p.source = 'bsv_weisungen' THEN p.url ELSE p.doc_number END
+                   {_identity.format(p="p.")}
             FROM practice_fts
             JOIN practice p ON p.rowid = practice_fts.rowid
             WHERE {' AND '.join(where)}
@@ -28984,6 +29068,11 @@ def _list_tools() -> list[Tool]:
                             "respondent states, importance 1-3, FR or EN). "
                             "ecthr_committee is empty by design — the "
                             "Committee's docket is entirely importance 4. "
+                            "UN treaty bodies (decisions on individual "
+                            "communications, all States, FR or EN): untb_ccpr, "
+                            "untb_cat, untb_cerd, untb_cedaw, untb_crc, untb_crpd, "
+                            "untb_cescr, untb_ced; canton='CH' for cases against "
+                            "Switzerland. "
                             "Cantonal: zh_obergericht, be_verwaltungsgericht, etc."
                         ),
                     },
@@ -30766,7 +30855,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool when the question involves federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents. Covered: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen, drafts), WEKO (Bekanntmachungen, Erläuterungen, all versions), SECO (ArG commentary, AVIG-Praxis), BAG (KVG Kreisschreiben), SEM (Weisungen AIG/Asyl/BüG, Handbuch Asyl), BJ (SchKG Weisungen, Existenzminimum), FINMA, ESTV, BAFU; counts in the filter enums. Returns ranked excerpts with authority, number, date, PDF link. Superseded versions collapse to the newest per document; for past conduct pass include_superseded=true and take the version dated before the facts. NOT covered: cantonal administrations — Sozialhilfe (SKOS, cantonal Handbücher), Prämienverbilligung (IPV) — say so, do not imply absence of guidance. Pre-2017 federal decisions: search_decisions(court='ch_vb')."
+                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ (SchKG, Existenzminimum), FINMA, ESTV, BAFU. Also UN human-rights recommendations to Switzerland (source='un_uhri': treaty-body concluding observations, UPR recommendations with the Swiss position, SPT, special procedures; one row per paragraph). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal administrations (Sozialhilfe/SKOS, Prämienverbilligung) — say so. UN complaint decisions: search_decisions(court='untb_*'). Pre-2017 federal: search_decisions(court='ch_vb')."
             ),
             inputSchema={
                 "type": "object",
@@ -30781,7 +30870,8 @@ def _list_tools() -> list[Tool]:
                         "type": "string",
                         "enum": ["finma_rs", "seco_arg", "bafu_vollzug", "estv_ks", "estv_mwst",
                                  "sem_weisungen", "bsv_weisungen", "seco_alv", "bag_kvg",
-                                 "sem_handbuch_asyl", "bj_schkg", "weko_bekanntmachungen", "oak_bv"],
+                                 "sem_handbuch_asyl", "bj_schkg", "weko_bekanntmachungen", "oak_bv",
+                                 "un_uhri"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -30793,18 +30883,30 @@ def _list_tools() -> list[Tool]:
                             "Kreisschreiben incl. Existenzminimum-Richtlinien, 174, DE/FR/IT), "
                             "weko_bekanntmachungen (WEKO Bekanntmachungen + Erläuterungen, current and "
                             "superseded versions, DE/FR/IT), oak_bv (OAK BV Weisungen W and Mitteilungen M, "
-                            "every version, Informationsschreiben/FAQ, Anhörungsentwürfe, DE/FR/IT)."
+                            "every version, Informationsschreiben/FAQ, Anhörungsentwürfe, DE/FR/IT), "
+                            "un_uhri (UN treaty-body, UPR and special-procedure recommendations "
+                            "and concerns addressed to Switzerland, from OHCHR's Universal Human Rights "
+                            "Index: one row per paragraph, ~3,350, EN/FR only — query in English or French; doc_number like "
+                            "'CAT/C/CHE/CO/8, para. 9'; rows titled '[UHRI summary …]' are UHRI digests "
+                            "of pre-2012 reports, not the UN's words)."
                         ),
                     },
                     "issuing_authority": {
                         "type": "string",
-                        "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV"],
+                        "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV",
+                                 "UN-UPR", "UN-CRC", "UN-CEDAW", "UN-SPT", "UN-CAT", "UN-CESCR",
+                                 "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-SPECIAL PROCEDURES"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
                             "BSV (6,083, social insurance practice), BAG (38), "
                             "BJ (debt enforcement), WEKO (Bekanntmachungen/Erläuterungen under the KG), "
-                            "OAK BV (BVG supervision: Weisungen, Mitteilungen)."
+                            "OAK BV (BVG supervision: Weisungen, Mitteilungen). "
+                            "UN-* = the UN body that addressed the recommendation to Switzerland: "
+                            "UN-UPR (~1,450, Universal Periodic Review), UN-CAT (Committee against "
+                            "Torture), UN-CCPR (Human Rights Committee), UN-CESCR, UN-CERD, UN-CEDAW, "
+                            "UN-CRC, UN-CRPD, UN-CED, UN-SPT (Subcommittee on Prevention of Torture), "
+                            "UN-SPECIAL PROCEDURES (special rapporteurs, working groups)."
                         ),
                     },
                     "doc_type": {
@@ -30815,6 +30917,7 @@ def _list_tools() -> list[Tool]:
                             "handbuch", "mitteilung", "nachtrag", "rechtsprechung",
                             "richtlinie", "weisung_anhang", "konkordat", "erlass",
                             "bekanntmachung", "erlaeuterung", "entwurf",
+                            "concluding_observations", "upr_recommendation", "visit_report",
                         ],
                         "description": (
                             "Filter by document type. wegleitung (SECO ArG 1,102 + BSV WEL/RWL…), "
@@ -30825,7 +30928,9 @@ def _list_tools() -> list[Tool]:
                             "an die Ausgleichskassen), nachtrag (BSV Nachträge), rechtsprechung (BSV "
                             "AHI-Praxis digests), richtlinie (BJ, WEKO Richtlinien), weisung_anhang (BJ; "
                             "OAK BV Informationsschreiben/FAQ), konkordat / erlass (BJ SchKG page), "
-                            "bekanntmachung / erlaeuterung (WEKO), entwurf (OAK BV Anhörungen: drafts, not in force)."
+                            "bekanntmachung / erlaeuterung (WEKO), entwurf (OAK BV Anhörungen: drafts, not in force), "
+                            "concluding_observations (UN treaty bodies), upr_recommendation (UN UPR), "
+                            "visit_report (UN SPT + special procedures)."
                         ),
                     },
                     "include_superseded": {
@@ -30839,7 +30944,7 @@ def _list_tools() -> list[Tool]:
                     "language": {
                         "type": "string",
                         "description": (
-                            "OPTIONAL filter (de/fr/it). Omit "
+                            "OPTIONAL filter (de/fr/it; en for UN and some FINMA documents). Omit "
                             "(recommended default) to search across all "
                             "languages. Set ONLY when the user "
                             "explicitly asks for one-language results."
@@ -30861,7 +30966,8 @@ def _list_tools() -> list[Tool]:
             description=(
                 "Retrieve a single federal administrative-practice document by "
                 "its doc_id (e.g. 'estv_ks_ks_nr_28', 'sem_weisungen_weisungen-aug-d', "
-                "'bsv_weisungen_6930_v20_de', 'seco_alv_avig_ale_de'). "
+                "'bsv_weisungen_6930_v20_de', 'seco_alv_avig_ale_de', "
+                "'un_uhri_3f3a9db7-5e9a-416f-ad28-8c8f97a8322c_en'). "
                 "Returns full body text, title, date, issuing authority, and PDF URL. "
                 "Use search_practice first to discover the doc_id."
             ),

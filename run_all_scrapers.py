@@ -89,6 +89,10 @@ SKIP_BY_DEFAULT: set[str] = {
     # long one-shot backfill on state/ecthr.jsonl. Still runnable explicitly:
     # `run_all_scrapers.py --courts ecthr` or `run_scraper.py ecthr`.
     "ecthr",
+    # untb probes ~4,300 juris case ids at one request per 5 s (the rate
+    # promised to the UN, 2026-10-23): the first run takes ~15 h and must not
+    # sit inside the 01:00 run. Own unit: systemd/opencaselaw-untb.service.
+    "untb",
 }
 
 # Scrapers that route through the Mac reverse-SOCKS tunnel (127.0.0.1:1080) via

@@ -331,6 +331,18 @@ EXCLUDED_COURTS = frozenset({
     "ecthr_grand_chamber",
     "hudoc_ch",
     "bge_egmr",
+    # UN treaty-body decisions. The documents themselves are public domain
+    # (ST/AI/189/Add.9/Rev.2), but the permission request sent to the UN on
+    # 2026-10-23 says we will not relicense them, and they are fetched from
+    # OHCHR without that permission yet. Keep them out of the CC0 mirror.
+    "untb_ccpr",
+    "untb_cat",
+    "untb_cerd",
+    "untb_cedaw",
+    "untb_crc",
+    "untb_crpd",
+    "untb_cescr",
+    "untb_ced",
 })
 
 

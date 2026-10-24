@@ -1,0 +1,259 @@
+"""UN treaty-body decisions on individual communications (scrapers/untb.py).
+
+Golden fixtures captured 2026-10-24 from juris.ohchr.org and docstore.ohchr.org:
+four case pages (R.D. v. Switzerland, a CAT inadmissibility decision against
+Canada, a 1990 CCPR case with only an image-only English PDF, an unused case
+id) and the French Word-HTML of R.D. v. Switzerland. No network: the
+scraper's get() is replaced by a URL -> bytes table.
+"""
+from __future__ import annotations
+
+import io
+import sys
+import zipfile
+from datetime import date
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+REPO = Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+FIX = REPO / "tests" / "fixtures" / "untb"
+
+from scrapers import untb  # noqa: E402
+
+
+def _page(name: str) -> str:
+    return (FIX / name).read_text(encoding="utf-8")
+
+
+# ───────────────────────────────────────────── case page
+
+def test_case_page_metadata():
+    m = untb.parse_case_page(_page("case_2_rd_v_switzerland.html"))
+    assert m["title"] == "R.D. v. Switzerland"
+    assert m["symbol"] == "CAT/C/51/D/426/2010"
+    assert m["communication_numbers"] == "426/2010"
+    assert m["decision_type"] == "Decision on merits"
+    assert m["country"] == "Switzerland"
+    assert m["decision_date"] == date(2013, 11, 8)
+    assert m["submission_date"] == date(2010, 6, 14)
+    assert set(m["links"]) == {"en", "fr"}
+    assert set(m["links"]["fr"]) == {"html", "docx", "pdf"}
+    assert all(u.startswith("https://docstore.ohchr.org/") for u in m["links"]["fr"].values())
+
+
+def test_case_page_index_terms_and_pdf_only_case():
+    m = untb.parse_case_page(_page("case_300_pdf_only.html"))
+    assert m["symbol"] == "CCPR/C/39/D/195/1985"
+    assert m["substantive_articles"] == "9 (1) 18 (1) 19 (2) 25 (c) 26"
+    assert m["procedural_issues"] == "exhaustion of domestic remedies"
+    assert m["links"] == {"en": {"pdf": m["links"]["en"]["pdf"]}}
+
+
+def test_unused_case_id_is_none():
+    assert untb.parse_case_page(_page("case_4200_unused.html")) is None
+
+
+@pytest.mark.parametrize("symbol, court", [
+    ("CCPR/C/143/D/4367/2023", "untb_ccpr"),
+    ("CAT/C/51/D/426/2010", "untb_cat"),
+    ("E/C.12/66/D/5/2015", "untb_cescr"),
+    ("CRC/C/95/D/123/2020", "untb_crc"),
+    ("CED/C/25/D/1/2022", "untb_ced"),
+])
+def test_committee_from_symbol(symbol, court):
+    assert untb.committee_for(symbol)[0] == court
+
+
+def test_spt_and_unknown_symbols_are_not_complaint_bodies():
+    assert untb.committee_for("CAT/OP/CHE/ROSP/1") is None
+    assert untb.committee_for("A/HRC/53/12") is None
+
+
+# ───────────────────────────────────────────── text
+
+def test_word_html_text():
+    text = untb.clean_text(untb.html_text((FIX / "doc_2_fr.html").read_bytes()))
+    assert "Communication no 426/2010" in text
+    # the tab Word dropped after the paragraph number is restored
+    assert "\n9.2 Le Comité doit déterminer si, en renvoyant la requérante en Éthiopie" in text
+    assert "\n10. À la lumière de ce qui précède" in text
+    assert not untb.in_other_language(text, "fr")
+    assert untb.in_other_language(text, "en")
+
+
+def test_docx_text_without_python_docx():
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("word/document.xml",
+                   '<w:document><w:body><w:p><w:r><w:t>1.</w:t></w:r><w:r><w:tab/><w:t>The '
+                   'author is &amp; was</w:t></w:r></w:p><w:p><w:r><w:t xml:space="preserve">'
+                   'Second</w:t></w:r></w:p></w:body></w:document>')
+    assert untb.docx_text(buf.getvalue()) == "1.\tThe author is & was\nSecond"
+    assert untb.docx_text(b"not a zip") == ""
+
+
+def test_pdf_text_layer():
+    fitz = pytest.importorskip("fitz")
+    doc = fitz.open()
+    doc.new_page().insert_text((72, 72), "The Committee is of the view")
+    assert "The Committee is of the view" in untb.pdf_text(doc.tobytes())
+    assert untb.pdf_text(b"%PDF-broken") == ""
+
+
+def test_regeste_drops_placeholders_and_bridges_languages():
+    m = untb.parse_case_page(_page("case_2_rd_v_switzerland.html"))
+    reg = untb.build_regeste(m, "CAT")
+    assert "No issues found" not in reg and "No articles found" not in reg
+    assert reg.startswith("Decision on merits; [CAT: UNO-Antifolterkonvention")
+    m3218 = untb.parse_case_page(_page("case_3218.html"))
+    assert "Substantive issues: non-refoulement; Articles: 3" in untb.build_regeste(m3218, "CAT")
+
+
+# ───────────────────────────────────────────── fetch_decision
+
+def _scraper(tmp_path, routes: dict[str, bytes]):
+    s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+    calls: list[str] = []
+
+    def fake_get(url, **_):
+        calls.append(url)
+        data = routes[url]
+        return SimpleNamespace(content=data, text=data.decode("utf-8", "replace"))
+
+    s.get = fake_get
+    s.calls = calls
+    return s
+
+
+def _stub(case_id: int) -> dict:
+    return {"case_id": case_id, "decision_id": untb.UNTreatyBodyScraper.gap_id(case_id),
+            "docket_number": f"juris {case_id}", "url": untb.CASE_URL.format(case_id=case_id)}
+
+
+def test_fetch_prefers_french_html(tmp_path):
+    page = (FIX / "case_2_rd_v_switzerland.html").read_bytes()
+    links = untb.parse_case_page(page.decode())["links"]
+    s = _scraper(tmp_path, {untb.CASE_URL.format(case_id=2): page,
+                            links["fr"]["html"]: (FIX / "doc_2_fr.html").read_bytes()})
+    d = s.fetch_decision(_stub(2))
+    assert d.decision_id == "untb_cat_CAT_C_51_D_426_2010"
+    assert d.court == "untb_cat" and d.canton == "CH" and d.language == "fr"
+    assert d.docket_number == "CAT/C/51/D/426/2010" and d.docket_number_2 == "426/2010"
+    assert d.decision_date == date(2013, 11, 8)
+    assert d.title == "R.D. v. Switzerland"
+    assert d.outcome is None                         # a merits decision can go either way
+    assert d.source_url == "https://juris.ohchr.org/casedetails/2/en-US"
+    assert d.pdf_url == "https://docs.un.org/fr/CAT/C/51/D/426/2010"
+    assert d.external_id == "juris:2"
+    assert len(s.calls) == 2                         # case page + one document
+
+    s.on_decision_persisted(d)
+    sidecar = (tmp_path / "untb.juris_ids.tsv").read_text()
+    assert sidecar == "2\tuntb_cat_CAT_C_51_D_426_2010\n"
+    again = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+    assert 2 in again._done_case_ids
+
+
+def test_misfiled_language_is_not_stored_under_it(tmp_path):
+    """A French document behind the English row must not become an 'en' row."""
+    page = (FIX / "case_3218.html").read_bytes()
+    links = untb.parse_case_page(page.decode())["links"]
+    french = (FIX / "doc_2_fr.html").read_bytes()
+    routes = {untb.CASE_URL.format(case_id=3218): page, links["en"]["html"]: french}
+    for fmt in ("html", "docx", "pdf"):
+        routes[links["fr"][fmt]] = b"<html><body>x</body></html>"      # empty French files
+    s = _scraper(tmp_path, routes)
+    assert s.fetch_decision(_stub(3218)) is None
+
+
+def test_image_only_pdf_goes_to_ocr(tmp_path, monkeypatch):
+    fitz = pytest.importorskip("fitz")
+    page = (FIX / "case_300_pdf_only.html").read_bytes()
+    links = untb.parse_case_page(page.decode())["links"]
+    blank = fitz.open(); blank.new_page()
+    s = _scraper(tmp_path, {untb.CASE_URL.format(case_id=300): page,
+                            links["en"]["pdf"]: blank.tobytes()})
+    seen = {}
+
+    def fake_ocr(data, lang):
+        seen["lang"] = lang
+        return "The Human Rights Committee, established under article 28 of the Covenant. " * 10
+
+    import scrapers.pdf_ocr
+    monkeypatch.setattr(scrapers.pdf_ocr, "ocr_pdf_bytes", fake_ocr)
+    d = s.fetch_decision(_stub(300))
+    assert seen["lang"] == "eng"
+    assert d.court == "untb_ccpr" and d.language == "en" and d.canton == "UN"
+    assert d.decision_id == "untb_ccpr_CCPR_C_39_D_195_1985"
+
+
+def test_unused_case_returns_none(tmp_path):
+    s = _scraper(tmp_path, {untb.CASE_URL.format(case_id=4200): (FIX / "case_4200_unused.html").read_bytes()})
+    assert s.fetch_decision(_stub(4200)) is None
+
+
+# ───────────────────────────────────────────── discovery
+
+def test_discovery_skips_done_and_gap_cached_ids(tmp_path, monkeypatch):
+    monkeypatch.setattr(untb, "SEED_MAX_CASE_ID", 5)
+    monkeypatch.setattr(untb, "PROBE_WINDOW", 3)
+    (tmp_path / "untb.juris_ids.tsv").write_text("2\tuntb_cat_X\n9\tuntb_cat_Y\n")
+    s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+    s.state.mark_gap(s.gap_id(4))
+    ids = [st["case_id"] for st in s.discover_new()]
+    # top = max(seed 5, done 9) + window 3 = 12
+    assert ids == [1, 3, 5, 6, 7, 8, 10, 11, 12]
+    assert all(st["decision_id"].startswith("untb_juris_") for st in s.discover_new())
+
+
+def test_polite_by_construction():
+    assert untb.UNTreatyBodyScraper.REQUEST_DELAY >= 5.0
+    assert "opencaselaw.ch" in untb.UNTreatyBodyScraper.USER_AGENT
+    assert "@" in untb.UNTreatyBodyScraper.USER_AGENT
+
+
+# ───────────────────────────────────────────── registries + citation
+
+def test_every_registry_knows_every_untb_court():
+    import branch_map
+    import cli_ch
+    import ecli
+    import export_parquet
+    import mcp_server
+    import proceeding_map
+    import run_all_scrapers
+    import run_scraper
+    from quality.checks import languages
+
+    assert run_scraper.SCRAPERS["untb"] == ("scrapers.untb", "UNTreatyBodyScraper")
+    assert "untb" in run_all_scrapers.SKIP_BY_DEFAULT
+    courts = untb.UNTB_COURTS
+    assert courts <= export_parquet.EXCLUDED_COURTS
+    assert courts == languages.UNTB_COURTS
+    assert courts <= set(branch_map.COURT_BRANCH)
+    assert courts <= set(proceeding_map.COURT_PROCEEDING)
+    assert courts <= set(mcp_server.COURT_DISPLAY_NAMES)
+    assert all(mcp_server.COURT_LEVELS[c] == "international" for c in courts)
+    for c in courts:
+        assert ecli.mint_ecli(f"{c}_X_1_2020", c, "CAT/C/1/D/1/2020", "2020-01-01") is None
+        assert cli_ch.mint_cli_ch(f"{c}_X", c, "CAT/C/1/D/1/2020") is None
+
+
+def test_citation_strings_come_from_the_record():
+    import mcp_server
+
+    row = {"decision_id": "untb_cat_CAT_C_51_D_426_2010", "court": "untb_cat",
+           "docket_number": "CAT/C/51/D/426/2010", "docket_number_2": "426/2010",
+           "title": "R.D. v. Switzerland", "decision_date": "2013-11-08"}
+    c = mcp_server._build_citation_strings(row)
+    assert c["citation_string_de"] == "CAT, R.D. v. Switzerland, Nr. 426/2010 vom 8. November 2013 (CAT/C/51/D/426/2010)"
+    assert c["citation_string_fr"] == "CAT, R.D. v. Switzerland, n° 426/2010 du 8 novembre 2013 (CAT/C/51/D/426/2010)"
+    assert c["citation_string_it"] == "CAT, R.D. v. Switzerland, n. 426/2010 del 8 novembre 2013 (CAT/C/51/D/426/2010)"
+    pin = mcp_server._build_citation_strings(row, pinpoint="9.7")
+    assert pin["citation_string_de"].endswith("(CAT/C/51/D/426/2010), Ziff. 9.7")
+    assert pin["citation_string_fr"].endswith(", par. 9.7")

@@ -89,6 +89,15 @@ COURT_BRANCH = {
     # human-rights (Konventionsrecht — public law)
     "ecthr_chamber": OEFF, "ecthr_committee": OEFF,
     "ecthr_grand_chamber": OEFF, "hudoc_ch": OEFF, "bge_egmr": OEFF,
+    # UN treaty bodies (Konventionsrecht — public law)
+    "untb_ccpr": OEFF,
+    "untb_cat": OEFF,
+    "untb_cerd": OEFF,
+    "untb_cedaw": OEFF,
+    "untb_crc": OEFF,
+    "untb_crpd": OEFF,
+    "untb_cescr": OEFF,
+    "untb_ced": OEFF,
 }
 
 # ── 2. per-court docket rules ───────────────────────────────────────────

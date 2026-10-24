@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap CSS -->
+    <base href="/" />
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="_content/Telerik.UI.for.Blazor/css/kendo-theme-default/all.css" />
+
+    <link href="assets/css/style.css" rel="stylesheet">
+    <link href="assets/css/date-picker-and-multiselect-telerik-bootstrap.css" rel="stylesheet">
+
+
+    <script src="_content/Telerik.UI.for.Blazor/js/telerik-blazor.js" defer></script>
+
+
+
+
+    <!--Blazor:{"type":"server","prerenderId":"4678a661cc004619b5340b294ba33a0e","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"sequence":0,"descriptor":"CfDJ8Dy6d1V/0/FMpw\u002BS3W00LPGRqtOkiTnd\u002BsGmb3DXDVbrOgHXkSTkxC1mZSO/v07XjzbD86K2wzWKzBGSU/camz6QqDi11s7juvhvmgFAf7cp9Ltvve1BcXQA7cZREVAy5t3UknDhwr6YzVvXkGCXT\u002BCH1LdSSKO5/NAc2uSjjdOj45qlVp5jjCxZt94mp6PYlwTgmhHzzsDsCeyL3gMwJ/8U/pTQemBsxLZru\u002BONDAa/Md8xfhhp98m2o/9otcRVVE9hJquPXRQ2iKAdqB8cdlysHK0uSiLVbhLlLyDcXub1Icpcr62tglQU8YiB/xs\u002BhJX8bQs/\u002BsW4cuDy\u002Boeo5uo5xBTioY5FLpWb5TShxoee\u002BNHctPzmHMhv8agQGoxGDROhJQ516fGlpIu7oOMo1etTiiD\u002BZ6cZ8/\u002BRhOD\u002BbbLcM51sfgDZO9Sbmt4IC4KM/ieU9KWF0f8JWXk29eTdxRqoZJ4c/1lzUmIa\u002BnFU2eR6pwK35NKy0vnnzHpuYNlFxbNhGPh\u002BNO/rvmU/tSU/JE8w0mhp906eNvBcOxfDDG7BhpinRlZaFy8uka7q15SAFrORpwOsXpO\u002BXEmTRs3/ZTs="}--><title>Jurisprudence Database</title><!--Blazor:{"prerenderId":"4678a661cc004619b5340b294ba33a0e"}-->
+</head>
+<body id="bodyMainLayout" style="padding-top:9rem">
+    
+<!--Blazor:{"type":"server","prerenderId":"8642e90d16434fdeb4596bcc88e6bdf2","key":{"locationHash":"2E7126C466B2E6492079A59FE782114D1AC3F0D428171845D1D661458CF5C39A:0","formattedComponentKey":""},"sequence":1,"descriptor":"CfDJ8Dy6d1V/0/FMpw\u002BS3W00LPETiiVyM3vDCr\u002BIgguKGadccvhrtvYrw87wb91Ku9DRx2TEofChpYu1jVF3lWyaCsTuagkHX5qBkKB8B7bG4j/MOsHwKITIU41dwRfYlwCQeulVHeXy4kGsmevlkhGNrkZFsINgvkAt2ykipYMK3qYshmSq\u002B4a2cXJjooRI4CK2dCHIsAOtpjmpGc\u002BmSAcV9LwotcNNADdgYiIxXrI424bcdWeODtySWa9Fsb4OnNOHZD3Rh8TDm28fUoshH6vRSpz17ApimlH3P/SZHkVkzsL/AHXl97Mh2t\u002BSfjVt2iJ\u002BooNq39Mg3nUILRS4lXbjxjh/OM\u002BUW3quX26RLhAOJrcScYK1uhf//2sjIA\u002BGo\u002BC\u002BxnpTmzGE3g2K\u002B99H05/dJVFKhB58Vbpw9Oq/I1ASHFplE1L32sZRy3\u002BTcV1FuKaxrGNRe0yzXaOcVTTNBOPALCvoQyHmOKM9cSQye3zhyrRQYO/gNO/OWmEKXBeGlLpmWulOXraFOXNITUfX2hQW5aQWA9I/o7q8yNzOKHaFIBJA"}-->
+
+    <div style="direction:ltr" b-lt944vwqyn>
+    <header id="header" class="fixed-top" b-lt944vwqyn><div class="d-flex align-items-center container"><span class="logo me-auto"><img src="assets/img/OHCHR_Logo_White_EN.png" alt class="img-fluid"></span>
+    
+
+    <div class="header-social-links d-flex"><a href="https://twitter.com/UNHumanRights" class="twitter"><i class="bu bi-twitter"></i></a>
+        <a href="https://www.facebook.com/unitednationshumanrights/" class="facebook"><i class="bu bi-facebook"></i></a>
+        <a href="http://www.flickr.com/photos/unhumanrights/" class="facebook"><i class="fa fa-flickr" aria-hidden="true"></i></a>
+        <a href="https://www.youtube.com/user/UNOHCHR" class="facebook"><i class="fa fa-youtube-play" aria-hidden="true"></i></a>
+        <a href="https://www.instagram.com/unitednationshumanrights/?hl=en" class="instagram"><i class="bu bi-instagram"></i></a>
+        <a href="mailto:ohchr-petitions@un.org" class="linkedin"><i class="fa fa-envelope-o" aria-hidden="true"></i></a></div></div><div class="container-fluid  bg-white " b-945n4gq4cr><div class="container" b-945n4gq4cr><div class="row" b-945n4gq4cr><nav id="navbar" class="navbar  order-lg-0 col-md-6" b-945n4gq4cr><ul b-945n4gq4cr><li b-945n4gq4cr><a href="./">HOME</a></li>
+                    <li class="dropdown" b-945n4gq4cr><a class="noclick" href="javascript:void(0);" b-945n4gq4cr><span b-945n4gq4cr>DOCUMENT SEARCH</span> <i class="bi bi-chevron-down" b-945n4gq4cr></i></a>
+                        <ul b-945n4gq4cr><li b-945n4gq4cr><a href="./BasicSearch">BASIC</a></li>
+                            <li b-945n4gq4cr><a href="./AdvancedSearch">ADVANCED</a></li></ul></li></ul>
+                <i class="bi bi-list mobile-nav-toggle" b-945n4gq4cr></i></nav>
+            <div class="col-md-6 selectlanguage select" b-945n4gq4cr><div class="dropdown"><button type="button" class="btn selectcontainer btn-primary dropdown-toggle " data-bs-toggle="dropdown">
+       English
+    </button>
+    <ul class="dropdown-menu languageDropdown pt-0 pb-0"><li class="nav-item"><a class="nav-link link-light py-0 mb-1 cursor-pointer">العربية</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">中文</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 active cursor-pointer" aria-current="english">English</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Français</a></li>
+        <li class="nav-item"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Español</a></li>
+        <li class="nav-item border-0"><a class="nav-link link-light py-0 mt-1 cursor-pointer">Русский</a></li></ul></div></div></div></div></div></header>
+    <div class="container main-container" b-lt944vwqyn><div class="container"><div class="row"><div class="col-md-8"><div class="col"><h1 class="un-style-page-title">Delgado Paez v. Colombia</h1>
+                    <p class="un-style-detail-symbol"><strong>CCPR/C/39/D/195/1985</strong></p></div>
+                <div class="col mt-2"><p class="un-style-detail-label">Communication number(s):</p>
+                    <p>195/1985</p></div>
+                <div class="col mt-2"><p class="un-style-detail-label">Author:</p>
+                    <p>William Eduardo Delgado Paez</p></div>
+                <div class="col mt-2"><p class="un-style-detail-label">Type of decision:</p>
+                    <p>Decision on merits</p></div></div>
+            <div class="col-md-4"><div class="row"><div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Session No</p>
+                            <p>39</p></div></div>
+                    <div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Country<img src="assets/img/flags/COL.gif" class="float-end" style="height:20px; margin-right:10px;" alt="Colombia" /></p>
+                            <p>Colombia</p></div>
+                        <div></div></div>
+                    <div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Submission date</p>
+                            <p>04 Oct 1985</p></div></div>
+                    <div class="col-md-6 mb-2"><div class="un-style-detail-box text-center"><p class="un-style-detail-label py-1">Date of decision</p>
+                            <p>12 Jul 1990</p></div></div></div>
+                <div class="row"><div class="col-md-12"><p class="un-style-detail-label mb-0">Comment:
+                        </p><p class="fst-italic">This document has no comment:</p></div></div></div></div>
+        <hr>
+        <div class="row"><div class="col-md-8"><div class="row"><div class="col-md-6"><p class="un-style-detail-label">Substantive issues:
+                        </p>
+                        <ul class="un-style-detail-list"><li>access to public services</li><li>discrimination on other grounds</li><li>equality before the law</li><li>freedom of opinion and expression</li><li>freedom of thought, conscience or religion</li><li>right to information</li><li>security of person</li></ul></div>
+                    <div class="col-md-6"><p class="un-style-detail-label">Substantive articles:
+                        </p>
+                        <ul class="un-style-detail-list"><li>9 (1)</li><li>18 (1)</li><li>19 (2)</li><li>25 (c)</li><li>26</li></ul></div></div>
+                <div class="row"><div class="col-md-6"><p class="un-style-detail-label">Procedural issues:
+                        </p>
+                        <ul class="un-style-detail-list"><li>exhaustion of domestic remedies</li></ul></div>
+                    <div class="col-md-6"><p class="un-style-detail-label">Procedural articles:
+                        </p>
+                        <ul class="un-style-detail-list"><li>5 (2) (b)</li></ul></div></div></div>
+            <div class="col-md-4"><table class="table"><thead><tr><th scope="col"><span class="un-style-detail-label">Language</span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    Doc
+                                </span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    Docx
+                                </span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    Pdf
+                                </span></th>
+                            <th scope="col"><span class="un-style-detail-label">
+                                    html
+                                </span></th></tr></thead>
+                    <tbody><tr><td>English</td>
+                                <td></td>
+                                <td></td>
+                                <td><a href="https://docstore.ohchr.org/SelfServices/FilesHandler.ashx?enc=J%2bx34B41MGtMr%2fRUB88O%2bbLvCznCZq1ApD%2f39k7uZEIKwhdWVUKGNZowPbtOZypag56weVjhOUzZBn5eEIFFSAY%2fckrtPK5r37iVQWXygFA%3d" target="_blank"><img src="/assets/img/pdf.gif"></a></td>
+                                <td></td></tr><tr><td>French</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td></tr><tr><td>Spanish</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td></tr><tr><td>Arabic</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td></tr><tr><td>Russian</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td></tr><tr><td>Chinese</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td></tr></tbody></table></div></div><div class="notification-parent"><div class="k-notification-group notification" style="top: 0px;flex-wrap: wrap; align-items: center; left: 50%; transform: translateX(-50%);"></div></div></div>
+<style>
+    .k-tilelayout {
+        padding: 0px !important;
+    }
+</style></div></div>
+
+<div class="pt-5 pb-5" b-lt944vwqyn></div>
+<footer id="footer" class b-lt944vwqyn><div class="container d-md-flex py-4 p-0 "><div class="me-md-auto text-center text-md-start"><div class="copyright"> © 2026 OHCHR - Jurisprudence </div></div><div class="social-links text-center text-md-right pt-3 pt-md-0"><a href="https://www.ohchr.org/en/treaty-bodies/general-comments" class="twitter">General Comments</a>
+
+            <a href="https://www.ohchr.org/en/treaty-bodies" class="twitter">Treaty Bodies</a>
+
+
+
+            <a href="https://www.un.org/en/about-us/terms-of-use" class="twitter">Terms of use</a></div></div></footer>
+
+
+
+
+
+
+        <!--Blazor:{"prerenderId":"8642e90d16434fdeb4596bcc88e6bdf2"}-->
+
+    <script src="_framework/blazor.server.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script>
+
+
+         $(document).on('click','.select ul li.nav-item',function(e) {
+
+               $('.dropdown .selectcontainer').text($(this).find('a').text());
+               $('.dropdown .languageDropdown a').removeClass('active')
+             $(this).find('a').addClass('active');
+
+         });
+
+         $(document).on('click','.mobile-nav-toggle',function() {
+             $('#navbar').toggleClass('navbar-mobile');
+            $(this).toggleClass('bi-list');
+            $(this).toggleClass('bi-x');
+         });
+
+          $(document).on('click','.navbar .dropdown > a',function(e) {
+          if ($('#navbar').hasClass('navbar-mobile')) {
+                 e.preventDefault();
+                 $(this.nextElementSibling).toggleClass('dropdown-active');
+               }
+         });
+
+
+        $(document).on('click','.navbar-mobile ul li > a',function(e) {
+          if (!$(this).hasClass('noclick')) {
+                     $('#navbar').toggleClass('navbar-mobile');
+                    $('.mobile-nav-toggle').toggleClass('bi-list');
+                    $('.mobile-nav-toggle').toggleClass('bi-x');
+               }
+         });
+
+    </script>
+</body>
+</html>

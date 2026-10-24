@@ -25,6 +25,10 @@ Architecture
 JSONL schema (one document per line)
 ------------------------------------
 
+  (scrapers/practice/un_uhri.py fills the same schema with UN human-rights
+  recommendations to Switzerland — not federal practice, but the same shape
+  of document: issuing body, number, date, text, topics.)
+
   {
     "doc_id":           str,    # source-key + slug, e.g. "estv_ks_28"
     "source":           str,    # "estv_ks" | "ssk_ks" | "sem_weisungen"
@@ -388,14 +392,16 @@ class PracticeScraper(ABC):
                 logger.info("[%s] re-issue detected for %s (%s changed)",
                             self.SOURCE_KEY, doc_id, self.REVISION_FIELD)
 
+            # A source whose listing already carries the text (UHRI's JSON
+            # export) puts it in the stub; every other source has a PDF.
             pdf_url = stub.get("pdf_url")
-            if not pdf_url:
+            if "body_text" not in stub and not pdf_url:
                 logger.warning("[%s] stub without pdf_url: %s",
                                self.SOURCE_KEY, stub.get("title"))
                 failed_count += 1
                 continue
 
-            body = self.fetch_pdf_text(pdf_url)
+            body = stub["body_text"] if "body_text" in stub else self.fetch_pdf_text(pdf_url)
             if body == _NO_TEXT_LAYER_SENTINEL:
                 body = self._placeholder_body(stub)
             if not body:
