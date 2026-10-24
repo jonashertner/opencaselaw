@@ -136,6 +136,48 @@ def test_a_garbled_day_is_repaired_only_before_a_month():
     assert seg.header_date("12. Urteil vom 3. März 1930 i. S. X.", 78) is None
 
 
+def test_a_line_end_hyphen_is_rejoined_before_the_date_is_read():
+    # BGE 76 II 346 (user report): "vom 21. No-\nvember 1950" defeated the
+    # date parse until the line break was rejoined into "November".
+    text = (
+        "49. Auszug aus dem Urteil der I. Zivilabteilung vom 21. No-\n"
+        "vember 1950 i. S. Ehrat gegen Verband Schweizerischer Gas-\n"
+        "werke und Wasserwerke.\n"
+    )
+    header = seg.header_block(text, 0)
+    assert header == (
+        "49. Auszug aus dem Urteil der I. Zivilabteilung vom 21. November 1950 "
+        "i. S. Ehrat gegen Verband Schweizerischer Gaswerke und Wasserwerke."
+    )
+    assert seg.header_date(header, 76) == date(1950, 11, 21)
+
+
+def test_a_line_end_hyphen_is_rejoined_in_french_and_italian_months():
+    fr = seg.header_block(
+        "49. Arret du 21 novem-\nbre 1950 dans la cause Dupont contre Martin.\n", 0)
+    assert "novembre 1950" in fr
+    assert seg.header_date(fr, 76) == date(1950, 11, 21)
+    it = seg.header_block(
+        "49. Sentenza del 21 dicem-\nbre 1950 nella causa Rossi contro Bianchi.\n", 0)
+    assert "dicembre 1950" in it
+    assert seg.header_date(it, 76) == date(1950, 12, 21)
+
+
+def test_an_uppercase_continuation_after_a_line_end_hyphen_is_a_compound_not_rejoined():
+    # "Müller-Thurgau" is a genuine hyphenated name, not a broken word: the
+    # capital continuation must be left alone (no regression in the date read).
+    text = (
+        "49. Urteil vom 3. Juni 1952 i. S. Müller-\n"
+        "Thurgau gegen Weinbauverband Zürich.\n"
+    )
+    header = seg.header_block(text, 0)
+    assert header == (
+        "49. Urteil vom 3. Juni 1952 i. S. Müller- Thurgau gegen "
+        "Weinbauverband Zürich."
+    )
+    assert seg.header_date(header, 78) == date(1952, 6, 3)
+
+
 def test_measured_ocr_damage_to_a_header_date_is_undone():
     # accent dropped (BGE 73 IV 132), stray marks (69 IV 54), preposition misread (42 II 72)
     assert seg.header_date("34. Arret de la Cour de cassation penale du 28 fevrier 1947 "
