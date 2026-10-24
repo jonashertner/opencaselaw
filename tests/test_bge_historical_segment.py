@@ -404,7 +404,8 @@ def test_shard_repair_cuts_dates_stamps_and_is_idempotent(tmp_path):
     assert fyg["cited_decisions"] == []                  # recomputed from the own text
     assert out[1] == rows[1] and out[2] == rows[2] and out[3] == rows[3]
 
-    undo = list(tmp_path.glob("bge_historical.jsonl.presegment-*.jsonl"))
+    undo = list(tmp_path.glob("bge_historical.jsonl.undo-presegment-*.jsonl.bak"))
+    assert list(tmp_path.glob("*.jsonl")) == [shard]   # the build ingests every *.jsonl beside the shard
     assert len(undo) == 1
     assert json.loads(undo[0].read_text().splitlines()[0]) == {
         "decision_id": "bge_historical_78_IV_83", "full_text": FYG}
