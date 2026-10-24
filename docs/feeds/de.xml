@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 23 Oct 2026 14:59:53 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 24 Oct 2026 12:49:21 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -125,6 +125,22 @@ Ve…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht A-1238/2026 vom 2026-10-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-1238_2026</link>
+      <description>Verrechnungssteuer</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-1238.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht A-6499/2025 vom 2026-10-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-6499_2025</link>
+      <description>Haushaltabgabe</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-6499.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesgericht 4A_462/2026 vom 2026-10-14</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_462_2026</link>
       <description>Bundesgericht
@@ -219,6 +235,14 @@ B…</description>
       <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_959.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-6689/2026 vom 2026-10-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-6689_2026</link>
+      <description>Marktüberwachung</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-6689.2026</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesgericht 4D_146/2026 vom 2026-10-13</title>
@@ -473,6 +497,30 @@ B…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht D-4638/2026 vom 2026-10-12</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4638_2026</link>
+      <description>Verweigerung vorübergehender Schutz</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4638.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-5625/2025 vom 2026-10-12</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5625_2025</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5625.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-7237/2026 vom 2026-10-12</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-7237_2026</link>
+      <description>Flughafenverfahren (Asyl und Wegweisung)</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-7237.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesgericht 4A_406/2026 vom 2026-10-09</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_406_2026</link>
       <description>Bundesgericht
@@ -680,6 +728,14 @@ A…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht F-6820/2026 vom 2026-10-06</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6820_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (sicherer Drittstaat - Art. 31a Abs. 1 Bst. a AsylG)</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6820.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesgericht 4G_2/2026 vom 2026-10-02</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_4G_2_2026</link>
       <description>Bundesgericht
@@ -850,6 +906,14 @@ nebenamtliche Bundesrichteri…</description>
       <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_840.2025</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesstrafgericht BG.2026.65 vom 2026-08-31</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bstger_BG.2026.65</link>
+      <description>Gerichtsstandskonflikt (Art. 40 Abs. 2 StPO)</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BStGer:2026:BG.2026.65</guid>
+      <category>bstger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht C-8117/2024 vom 2026-10-14</title>
@@ -1130,150 +1194,6 @@ Verfahrensbeteiligte
 A…</description>
       <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1142.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-1947/2025 vom 2026-10-05</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-1947_2025</link>
-      <description>Einreiseverbot</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-1947.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 1C_136/2026 vom 2026-10-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_136_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-1C_136/2026
-
-Urteil vom 2. Oktober 2026
-
-I. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichter Müller, Präsident,
-
-Bundesrichter Kneubühler,
-
-Bundesrichterin Scherrer Reber…</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_136.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-6035/2025 vom 2026-10-01</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6035_2025</link>
-      <description>Einreiseverbot</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6035.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_1107/2026 vom 2026-09-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1107_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_1107/2026
-
-Urteil vom 30. September 2026
-
-II. strafrechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Koch, als Einzelrichterin,
-
-Gerichtsschreiberin Sauthier.
-
-Verfahrensbeteili…</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1107.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-1991/2026 vom 2026-09-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-1991_2026</link>
-      <description>Mehrwertsteuer</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-1991.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht C-3200/2024 vom 2026-09-25</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-3200_2024</link>
-      <description>Rente</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-3200.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_971/2026 vom 2026-09-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_971_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_971/2026
-
-Verfügung vom 22. September 2026
-
-II. strafrechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Koch, als Instruktionsrichterin,
-
-Gerichtsschreiber Stadler.
-
-Verfahrensbe…</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_971.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 1D_9/2026 vom 2026-09-18</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_1D_9_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-1D_9/2026
-
-Urteil vom 18. September 2026
-
-I. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichter Kneubühler, präsidierendes Mitglied,
-
-Gerichtsschreiber Baur.
-
-Verfahrensbet…</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:1D_9.2026</guid>
       <category>bger</category>
     </item>
   </channel>

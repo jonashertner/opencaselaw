@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 23 Oct 2026 14:59:54 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 24 Oct 2026 12:49:21 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht F-6599/2026 vom 2026-10-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6599_2026</link>
+      <description>Asilo (non entrata nel merito) ed allontanamento (procedura Dublino - art. 31a cpv. 1 lett. b LAsi)</description>
+      <pubDate>Fri, 23 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6599.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesgericht 5F_56/2026 vom 2026-10-07</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_5F_56_2026</link>
@@ -309,6 +317,64 @@ A.…</description>
       <pubDate>Wed, 21 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6016.2026</guid>
       <category>bvger</category>
+    </item>
+    <item>
+      <title>ti_gerichte 36.2026.39 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_36.2026.39</link>
+      <description>Raccomandata
+
+Incarto n. 36.2026.39
+
+IR/sc
+
+Lugano
+
+11 settembre 2026
+
+In nome della Repubblica e Cantone Ticino
+
+Il giudice delegato
+
+del Tribunale cantonale delle assicurazioni
+
+Giudice Ivano Ranzanici, PhD
+
+segretario:
+
+Gianluca Menghetti
+
+statuen…</description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_36.2026.39</guid>
+      <category>ti_gerichte</category>
+    </item>
+    <item>
+      <title>ti_gerichte 32.2025.122 vom 2026-09-07</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_32.2025.122</link>
+      <description>Raccomandata
+
+Incarto n. 32.2025.122
+
+cs
+
+Lugano
+
+7 settembre 2026
+
+In nome della Repubblica e Cantone Ticino
+
+Il Tribunale cantonale delle assicurazioni
+
+composto dei giudici:
+
+Daniele Cattaneo, presidente,
+
+Raffaele Guffi, Ivano Ranzanici
+
+redattor…</description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_32.2025.122</guid>
+      <category>ti_gerichte</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht F-7070/2026 vom 2026-10-07</title>
@@ -910,72 +976,6 @@ redat…</description>
       <pubDate>Tue, 13 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ti_gerichte_38.2026.6</guid>
       <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 33.2025.34 vom 2026-02-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_33.2025.34</link>
-      <description>Raccomandata
-
-Incarto
- n.33.2025.34
-
-TB
-
-Lugano
-
-10 febbraio 2026
-
-In nomedella Repubblica e CantoneTicino
-
-Il Tribunale cantonale delle assicurazioni
-
-composto
- dei giudici:
-
-Daniele Cattaneo, presidente,
-
-Raffaele Guffi, Ivano Ranzanici
-
-redattri…</description>
-      <pubDate>Tue, 13 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_33.2025.34</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 90.2011.131 vom 2013-06-28</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_90.2011.131</link>
-      <description>Incarti n.90.2011.131/115
-
-Lugano
-
-28 giugno 2013
-
-In nomedella Repubblica e CantoneTicino
-
-Il Tribunale cantonale amministrativo
-
-composto dei giudici:
-
-Raffaello
- Balerna, presidente
-
-Flavia
- Verzasconi, Giovan Maria Tattarletti
-
-segretario:
-
-Ful…</description>
-      <pubDate>Fri, 09 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_90.2011.131</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-6782/2026 vom 2026-09-29</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6782_2026</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (procedura Dublino - art. 31a cpv. 1 lett. b LAsi)</description>
-      <pubDate>Thu, 08 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6782.2026</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>
