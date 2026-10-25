@@ -14962,7 +14962,9 @@ server = Server(
         "• 'UN Working Group on Arbitrary Detention opinion on X?' → search_decisions(court='unwgad')\n"
         "• 'UN General Comment / Allgemeine Bemerkung / Observation générale No. X?' → search_practice(\n"
         "     source='un_gc'), then get_practice for the full text\n"
-        "• 'UNO-Schlussbemerkungen zur Schweiz auf Deutsch?' → search_practice(source='un_ch_translations')\n\n"
+        "• 'UNO-Schlussbemerkungen zur Schweiz auf Deutsch?' → search_practice(source='un_ch_translations')\n"
+        "• 'UNHCR-Position / Richtlinien zu Afghanistan, Eritrea, Syrien …?' → search_practice(\n"
+        "     source='unhcr_country'; include_superseded=true for the edition in force at the time)\n\n"
 
         "ECHR / EGMR coverage: every ECtHR judgment of importance 1-3 (the "
         "Court's own scale, where 1 = Key cases), from all 46 respondent "
@@ -31275,7 +31277,7 @@ def _list_tools() -> list[Tool]:
                         "enum": ["finma_rs", "seco_arg", "bafu_vollzug", "estv_ks", "estv_mwst",
                                  "sem_weisungen", "bsv_weisungen", "seco_alv", "bag_kvg",
                                  "sem_handbuch_asyl", "bj_schkg", "weko_bekanntmachungen", "oak_bv",
-                                 "un_uhri", "un_gc", "un_ch_translations"],
+                                 "un_uhri", "un_gc", "un_ch_translations", "unhcr_country"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -31299,14 +31301,19 @@ def _list_tools() -> list[Tool]:
                             "offices' German translations of UN concluding observations on Switzerland — CAT "
                             "2010, CCPR 2009/2017, CESCR 2019, CERD 2021, CEDAW 2003/2022, CRC 2015/2021, SPT "
                             "2019; CRPD 2022 in Italian — not authoritative, doc_number = the UN symbol as in "
-                            "un_uhri)."
+                            "un_uhri), unhcr_country (UNHCR country guidance — International Protection "
+                            "Considerations, Eligibility Guidelines, Guidance Notes, Positions on Returns — "
+                            "every edition, EN plus UNHCR's DE/FR versions, for Afghanistan, Eritrea, Syria, "
+                            "Iraq, Sudan, Sri Lanka, Venezuela, Libya, Myanmar, Nigeria; one doc_number per "
+                            "country, so include_superseded gives the edition in force at the time)."
                         ),
                     },
                     "issuing_authority": {
                         "type": "string",
                         "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV",
                                  "UN-UPR", "UN-CRC", "UN-CEDAW", "UN-SPT", "UN-CAT", "UN-CESCR",
-                                 "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES"],
+                                 "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES",
+                                 "UNHCR"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
@@ -31329,7 +31336,7 @@ def _list_tools() -> list[Tool]:
                             "richtlinie", "weisung_anhang", "konkordat", "erlass",
                             "bekanntmachung", "erlaeuterung", "entwurf",
                             "concluding_observations", "upr_recommendation", "visit_report",
-                            "general_comment", "general_recommendation",
+                            "general_comment", "general_recommendation", "country_guidance",
                         ],
                         "description": (
                             "Filter by document type. wegleitung (SECO ArG 1,102 + BSV WEL/RWL…), "
@@ -31343,7 +31350,7 @@ def _list_tools() -> list[Tool]:
                             "bekanntmachung / erlaeuterung (WEKO), entwurf (OAK BV Anhörungen: drafts, not in force), "
                             "concluding_observations (UN treaty bodies), upr_recommendation (UN UPR), "
                             "visit_report (UN SPT + special procedures), general_comment / "
-                            "general_recommendation (UN treaty bodies, un_gc)."
+                            "general_recommendation (UN treaty bodies, un_gc), country_guidance (UNHCR)."
                         ),
                     },
                     "include_superseded": {

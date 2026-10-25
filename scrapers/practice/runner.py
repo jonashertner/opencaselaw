@@ -34,6 +34,7 @@ from .oak_bv import OakBvScraper
 from .un_uhri import UnUhriScraper
 from .un_gc import UnGeneralCommentsScraper
 from .un_ch_translations import UnChTranslationsScraper
+from .unhcr_country import UnhcrCountryGuidanceScraper
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,9 @@ ENABLED_SCRAPERS = {
     # German/Italian federal translations of UN concluding observations on
     # Switzerland (BJ, SECO, EDA, EBG, BSV, EBGB): 12 PDFs, seconds.
     "un_ch_translations": UnChTranslationsScraper,
+    # UNHCR country guidance (all editions, EN/DE/FR) via ecoi.net, 3 s per
+    # request: ~10 seed countries, a few dozen PDFs, ~10 min the first time.
+    "unhcr_country":     UnhcrCountryGuidanceScraper,
     # First full run 2026-09-03/04 on the VPS: 6,083 records, 0 failed, 1 h 45 min.
     "bsv_weisungen":     BsvWeisungenScraper,
     # Requested by a user 2026-09-07 (with the BSV BV Mitteilungen, which the
