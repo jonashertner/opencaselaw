@@ -2483,7 +2483,7 @@
     "2026-09": 2103,
     "2026-10": 340
   },
-  "generated_at": "2026-10-24T20:39:21.861636+00:00",
+  "generated_at": "2026-10-24T23:25:31.078582+00:00",
   "scraper_health": {
     "run_at": "2026-10-24T01:54:00.087633+00:00",
     "run_duration_s": 3178.6,
@@ -3013,7 +3013,7 @@
         "note": null,
         "state_count": 99866,
         "jsonl_size_mb": 1511.0,
-        "jsonl_mtime": "2026-10-24T01:15:42.304764+00:00"
+        "jsonl_mtime": "2026-10-24T20:57:30.562474+00:00"
       },
       "postcom": {
         "success": true,
@@ -3738,9 +3738,9 @@
       "total": 1065796
     },
     "graph_size": {
-      "decision_edges": 9474419,
+      "decision_edges": 9443600,
       "statute_edges": 12706859,
-      "total": 22181278
+      "total": 22150459
     },
     "echr_switzerland": {
       "total": 1535,
