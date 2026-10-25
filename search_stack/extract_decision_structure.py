@@ -239,6 +239,9 @@ _NOT_A_MARKER_AFTER = re.compile(
     r"Januar|Februar|März|April|Juni|Juli|August|September|Oktober|November|Dezember|"
     r"gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|dicembre|"
     r"et|und|e|ed|oder|ou|o)\b", re.IGNORECASE)
+# Nor, where no-break spaces are read as heading spaces, a range of days
+# ("8.\u00a0bis\u00a016.\u00a0Januar\u00a02019: 9 Tage", St. Gallen).
+_RANGE_AFTER = re.compile(r"(?:bis|au|al)\s+\d", re.IGNORECASE)
 
 
 # A top-level number written as a heading: "4.", "3 - ..." or, in Ticino
@@ -251,11 +254,47 @@ _TOP_HEADING_FORM = re.compile(
     r"|[ \t]*[\-\u2013\u2014](?=[ \t])|[ \t\u00a0]*\n[ \t\u00a0]*\.(?!\d))")
 
 
-def _erw_candidates(text: str) -> list[tuple[int, int, str]]:
+# Runs of no-break, typographic or zero-width spaces. A run that pads a number
+# out ("2.\u00a0\u00a0\u00a0\u00a0 Vorladungen", Obergericht TG RBOG 2012 Nr. 9,
+# report 2026-10-24) or ends its line ("6.\u00a0\u200b\nDarlehen", St. Gallen)
+# is the space after a heading number. A single no-break space before a word
+# glues the number to it, which is no heading: "5\u00a0% seit",
+# "8.\u00a0Schuljahr", "0.8\u00a0Gewichtspromille" (Glarus).
+_ODD_SPACE_RUN = re.compile(r"[\u00a0\u2002-\u200b\u202f\u205f]+")
+
+
+def _plain_heading_spaces(text: str) -> str:
+    """``text`` with every padding run of odd spaces made plain, offset for
+    offset, so the heading patterns' "[ \\t]" read it."""
+    def plain(m: re.Match) -> str:
+        nxt = text[m.end():m.end() + 1]
+        if len(m.group()) == 1 and m.group() != "\u200b" and nxt and not nxt.isspace():
+            return m.group()
+        return " " * len(m.group())
+    return _ODD_SPACE_RUN.sub(plain, text)
+
+# The page counter of a PDF export, "6 - 8" or "6/8" on its own line. It read
+# as an "E. 6" heading and cut Gericht AI K 7-2021 E. 1.5 at the page turn
+# (report 2026-10-24).
+_PAGE_OF_PAGES_LINE = re.compile(r"[ \t]*(\d{1,3})[ \t]*[-\u2013/][ \t]*(\d{1,3})[ \t]*(?:\n|$)")
+
+
+def _is_page_of_pages(text: str, pos: int) -> bool:
+    m = _PAGE_OF_PAGES_LINE.match(text, pos)
+    return bool(m) and 0 < int(m.group(1)) <= int(m.group(2))
+
+
+def _erw_candidates(text: str, plain_spaces: bool = False) -> list[tuple[int, int, str]]:
     seen = {}
+    if plain_spaces:
+        text = _plain_heading_spaces(text)
     for pat in (ERW_PARA_RE, ERW_PARA_RE_INLINE):
         for m in pat.finditer(text):
             if pat is ERW_PARA_RE_INLINE and "." not in m.group(1) and _NOT_A_MARKER_AFTER.match(text[m.end():m.end() + 12]):
+                continue
+            if plain_spaces and pat is ERW_PARA_RE_INLINE and _RANGE_AFTER.match(text, m.end()):
+                continue
+            if _is_page_of_pages(text, m.start()):
                 continue
             seen.setdefault(m.start(), (m.end(), m.group(1)))
     out = sorted([(s, e, n) for s, (e, n) in seen.items()])
@@ -347,7 +386,8 @@ def _validate_erw_sequence(markers: list[tuple[int, int, str]]) -> list[tuple[in
     return best
 
 
-def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False) -> list[dict]:
+def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False,
+                                 plain_spaces: bool = False) -> list[dict]:
     """Parse Erwägungen into list of {e_number, depth, parent, text}.
 
     ``ruling_bounds`` (historical BGE, volumes 1-79): the text may run into the
@@ -357,7 +397,7 @@ def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False) -> 
     runs past it."""
     if not erw_text:
         return []
-    candidates = _erw_candidates(erw_text)
+    candidates = _erw_candidates(erw_text, plain_spaces)
     bounds: list[int] = []
     if ruling_bounds:
         from bge_historical_segment import ruling_headers
@@ -386,7 +426,7 @@ def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False) -> 
             "parent": ".".join(e_num.split(".")[:-1]) if e_num.count(".") else None,
             "text": body,
         })
-        paragraphs.extend(_lettered_units(e_num, depth, body))
+        paragraphs.extend(_lettered_units(e_num, depth, body, plain_spaces))
     return paragraphs
 
 
@@ -395,13 +435,15 @@ def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False) -> 
 _LETTER_MARK_RE = re.compile(r"(?m)(?:^[ \t]*|(?<=\) ))([a-z]{1,2})\)[ \t]+(?=\S)")
 
 
-def _lettered_units(parent_num: str, parent_depth: int, body: str) -> list[dict]:
+def _lettered_units(parent_num: str, parent_depth: int, body: str,
+                    plain_spaces: bool = False) -> list[dict]:
     """Old-style lettered sub-Erwägungen ("a) ...", "b) ...", "aa) ...") at line
     starts inside a numbered paragraph become their own citable units: "2a",
     "2b", and "3c/aa" for a double-letter run under a letter. Only an ordered
     run that begins with "a)" (or "aa)") counts, so a stray "a)" in prose
     never splits a paragraph. The parent keeps its complete text."""
-    marks = [(m.start(), m.end(), m.group(1)) for m in _LETTER_MARK_RE.finditer(body)]
+    marks = [(m.start(), m.end(), m.group(1))
+             for m in _LETTER_MARK_RE.finditer(_plain_heading_spaces(body) if plain_spaces else body)]
     if not marks:
         return []
     singles = [(s, e, l) for s, e, l in marks if len(l) == 1]
@@ -612,13 +654,29 @@ def extract(full_text: str, language: str = "de", decision_id: str = "") -> Deci
     # as the reasoning.  This is the only way to make E. 2.2.1 reachable
     # via get_erwaegung() for cantonal decisions, since their text never
     # carries the federal opener phrases.
-    if out.erwaegungen is None:
-        candidates = _validate_erw_sequence(_erw_candidates(text))
-        top_level = [c for c in candidates if "." not in c[2]]
+    # Padded no-break spaces ("2.\u00a0\u00a0\u00a0\u00a0 Vorladungen ...") are read
+    # as heading spaces only on a retry, when the plain reading finds no
+    # numbered Erwägung: in rulings that do have them the same padding also
+    # sets out the Anträge and the Dispositiv ("1.\u00a0\u00a0 Der angefochtene
+    # Rekursentscheid sei aufzuheben."), and taking those moved real Erwägungen
+    # (St. Gallen, Glarus; report 2026-10-24).
+    def _numbered_headers(plain: bool):
+        candidates = _validate_erw_sequence(_erw_candidates(text, plain))
+        return candidates, [c for c in candidates if "." not in c[2]]
+
+    def _enough(candidates, top_level) -> bool:
         # Three top numbers, or two with sub-numbers under them ("1.\n1.1 ...
         # 2.\n2.1 ..."): a two-part Vaud ruling passed only while a stray
         # page or statute number made up the third.
-        if len(top_level) >= 3 or (len(top_level) >= 2 and len(candidates) >= len(top_level) + 2):
+        return len(top_level) >= 3 or (len(top_level) >= 2 and len(candidates) >= len(top_level) + 2)
+
+    plain_spaces = False
+    if out.erwaegungen is None:
+        candidates, top_level = _numbered_headers(False)
+        if not _enough(candidates, top_level) and _ODD_SPACE_RUN.search(text):
+            candidates, top_level = _numbered_headers(True)
+            plain_spaces = True
+        if _enough(candidates, top_level):
             first_start = top_level[0][0]
             tail_end = disp_start if disp_start is not None and disp_start > first_start else len(text)
             body = text[first_start:tail_end]
@@ -630,7 +688,13 @@ def extract(full_text: str, language: str = "de", decision_id: str = "") -> Deci
     # Sub-parse Erwägungen into numbered paragraphs (the actual citable units)
     if out.erwaegungen:
         out.erwaegungen_paragraphs = parse_erwaegungen_paragraphs(
-            out.erwaegungen, ruling_bounds=historical is not None)
+            out.erwaegungen, ruling_bounds=historical is not None, plain_spaces=plain_spaces)
+        if (not plain_spaces and _ODD_SPACE_RUN.search(out.erwaegungen)
+                and not any(p["depth"] for p in out.erwaegungen_paragraphs)):
+            retry = parse_erwaegungen_paragraphs(
+                out.erwaegungen, ruling_bounds=historical is not None, plain_spaces=True)
+            if any(p["depth"] for p in retry):
+                out.erwaegungen_paragraphs = retry
 
     return out
 

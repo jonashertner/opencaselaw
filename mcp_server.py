@@ -12525,15 +12525,31 @@ def _find_leading_cases(
             fts_conn = None
             try:
                 fts_conn = get_db()
+                # Keyed by rowid, as in _rerank_candidates_by_query_or:
+                # `decision_id IN (...)` on the UNINDEXED column filtered
+                # every row the MATCH produced, so a common term ("actes",
+                # "Beweislast") read most of the table and the first call
+                # ran into the 60 s timeout (report 2026-10-24).
                 placeholders = ",".join("?" for _ in candidate_ids)
-                matched = fts_conn.execute(
-                    f"""
-                    SELECT decision_id FROM decisions_fts
-                    WHERE decisions_fts MATCH ? AND decision_id IN ({placeholders})
-                    """,
-                    (safe_q, *candidate_ids),
-                ).fetchall()
-                matched_ids = {r["decision_id"] for r in matched}
+                id_of_rowid = {
+                    r["rowid"]: r["decision_id"] for r in fts_conn.execute(
+                        f"SELECT rowid, decision_id FROM decisions "
+                        f"WHERE decision_id IN ({placeholders})",
+                        candidate_ids,
+                    ).fetchall()
+                }
+                matched_ids: set[str] = set()
+                if id_of_rowid:
+                    rid_placeholders = ",".join("?" for _ in id_of_rowid)
+                    matched = fts_conn.execute(
+                        f"""
+                        SELECT rowid AS rid FROM decisions_fts
+                        WHERE decisions_fts MATCH ? AND rowid IN ({rid_placeholders})
+                        """,
+                        (safe_q, *id_of_rowid),
+                    ).fetchall()
+                    matched_ids = {id_of_rowid[r["rid"]] for r in matched
+                                   if r["rid"] in id_of_rowid}
                 candidates = [(did, cnt) for did, cnt in candidates if did in matched_ids]
                 query_filter_applied = True
             except sqlite3.Error as e:
@@ -16258,6 +16274,33 @@ _PINPOINT_WITH_PAGE = re.compile(
     r"^[ \t]*(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*\d+(?:\.\d+)*[a-z]{0,2}\.?"
     r"[ \t]+(?:S|p|pag)\.[ \t]*\d")
 _BARE_NUMBER_LINE = re.compile(r"^[ \t]*\d+(?:\.\d+)*\.?[ \t]*$")
+# The page counter of a PDF export, "6 - 8" or "6/8" on its own line: the
+# turn of a page, not an E. 6 heading (Gericht AI K 7-2021 cut E. 1.5 there,
+# report 2026-10-24).
+_PAGE_OF_PAGES_LINE = re.compile(r"^[ \t]*(\d{1,3})[ \t]*[-\u2013/][ \t]*(\d{1,3})[ \t]*$")
+# Runs of no-break, typographic or zero-width spaces. The heading patterns
+# read "[ \t]"; a run that pads a number out ("2.\u00a0\u00a0\u00a0\u00a0
+# Vorladungen", Obergericht TG RBOG 2012 Nr. 9, report 2026-10-24) or ends its
+# line is the space after a heading number. A single no-break space before a
+# word glues the number to it ("8.\u00a0Schuljahr", "5\u00a0% seit"): no heading.
+# Same rule as search_stack/extract_decision_structure._plain_heading_spaces.
+_ODD_SPACE_RUN = re.compile(r"[\u00a0\u2002-\u200b\u202f\u205f]+")
+
+
+def _plain_heading_spaces(text: str) -> str:
+    """``text`` with every padding run of odd spaces made plain, offset for
+    offset, so a block found in it is cut from ``text`` itself."""
+    def plain(m: "re.Match[str]") -> str:
+        nxt = text[m.end():m.end() + 1]
+        if len(m.group()) == 1 and m.group() != "\u200b" and nxt and not nxt.isspace():
+            return m.group()
+        return " " * len(m.group())
+    return _ODD_SPACE_RUN.sub(plain, text)
+
+
+def _is_page_of_pages(line: str) -> bool:
+    m = _PAGE_OF_PAGES_LINE.match(line)
+    return bool(m) and 0 < int(m.group(1)) <= int(m.group(2))
 # "10.–" alone on its line is an amount in francs, not "10." with a dash heading.
 _AMOUNT_LINE = re.compile(r"^[ \t]*\d+(?:\.\d+)*\.?[ \t]*[-\u2013\u2014\x96]+[ \t]*$")
 
@@ -16273,7 +16316,7 @@ def _previous_text_line(text: str, pos: int) -> tuple[str, bool]:
         cut = start
         if not line:
             continue
-        if _BGE_PAGE_HEADER_LINE.match(line):
+        if _BGE_PAGE_HEADER_LINE.match(line) or _is_page_of_pages(line):
             across_page = True
             continue
         return line, across_page
@@ -16299,7 +16342,7 @@ def _heading_is_a_wrapped_citation(text: str, match: "re.Match[str]") -> bool:
     "10.–\n10000\n100000.–")."""
     eol = text.find("\n", match.start())
     line = text[match.start():eol if eol != -1 else len(text)]
-    if _PINPOINT_WITH_PAGE.match(line) or _AMOUNT_LINE.match(line):
+    if _PINPOINT_WITH_PAGE.match(line) or _AMOUNT_LINE.match(line) or _is_page_of_pages(line):
         return True
     previous, across_page = _previous_text_line(text, match.start())
     if previous and _CROSS_CITATION_TAIL_RE.search(previous):
@@ -16316,7 +16359,7 @@ def _lettered_from_block(parent_block: dict, e_number: str, letter: str, sub: st
     the next marker of the same level or the block end."""
     body = parent_block["text"]
     single = re.compile(r"(?m)(?:^[ \t]*|(?<=\) ))([a-z])\)[ \t]+(?=\S)")
-    marks = [(m.start(), m.end(), m.group(1)) for m in single.finditer(body)]
+    marks = [(m.start(), m.end(), m.group(1)) for m in single.finditer(_plain_heading_spaces(body))]
     starts = [i for i, (_, _, l) in enumerate(marks) if l == letter]
     if not starts:
         return None
@@ -16325,7 +16368,7 @@ def _lettered_from_block(parent_block: dict, e_number: str, letter: str, sub: st
     unit = body[unit_start:unit_end].strip()
     if sub:
         double = re.compile(r"(?m)(?:^[ \t]*|(?<=\) ))([a-z]{2})\)[ \t]+(?=\S)")
-        dmarks = [(m.start(), m.end(), m.group(1)) for m in double.finditer(unit)]
+        dmarks = [(m.start(), m.end(), m.group(1)) for m in double.finditer(_plain_heading_spaces(unit))]
         dstarts = [j for j, (_, _, l) in enumerate(dmarks) if l == sub]
         if not dstarts:
             return None
@@ -16337,7 +16380,8 @@ def _lettered_from_block(parent_block: dict, e_number: str, letter: str, sub: st
     return {"e_number": e_number, "depth": parent_block["depth"] + (2 if sub else 1), "parent": parent_num, "text": unit[:60000]}
 
 
-def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
+def _erwaegung_from_text(full_text: str | None, e_number: str,
+                         regeste: str | None = None) -> dict | None:
     """Locate a numbered Erwägung in the decision's full text when the structure
     index has no row for it (many cantonal decisions and some BGE are stored as
     one block). Returns the verbatim block from the heading line to the next
@@ -16345,10 +16389,18 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
 
     Read-only string work on the served text; nothing is rewritten. The caller
     labels the result as a text fallback so a quotation from it is traceable.
+    The patterns run over a copy whose odd spaces are plain ones, offset for
+    offset; the block is cut from the served text.
+
+    ``regeste``: a Regeste stored at the head of the text (the entscheidsuche
+    rows put Kopfzeile and Abstract before the body) is not the reasoning. A
+    heading after it wins over one inside it: the Abstract of RBOG 2012 Nr. 9
+    opens "1. Die Schlichtungsbehörde ..." and runs into a piece of E. 2.
     """
     if not full_text or not e_number:
         return None
     text = full_text.replace("\r\n", "\n")
+    scan = _plain_heading_spaces(text)
     e_number = e_number.strip()
     lettered = re.fullmatch(r"(\d+(?:\.\d+)*)([a-z]{1,2})(?:/([a-z]{1,2}))?", e_number)
     if lettered:
@@ -16356,7 +16408,7 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
         # Such a number is never written as a heading of its own, and a
         # line-wrapped citation ("... vgl. BGE 120 Ib 1\nE. 2a mit Hinweisen")
         # would otherwise pass for one.
-        parent_block = _erwaegung_from_text(text, lettered.group(1))
+        parent_block = _erwaegung_from_text(text, lettered.group(1), regeste)
         if not parent_block:
             return None
         return _lettered_from_block(parent_block, e_number, lettered.group(2), lettered.group(3))
@@ -16366,12 +16418,21 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
     heading = re.compile(
         r"^[ \t]*(?:(?:E|Erw|Erwägung|consid|cons|c)\.?[ \t]*)?" + number + r"\.?(?=[ \t]*(?:[-–—:]|[A-Za-zÀ-ÿ(«\"']|$))",
         re.MULTILINE)
+    after_regeste = 0
+    reg = (regeste or "").replace("\r\n", "\n").strip()
+    if len(reg) >= 40:
+        at = text.find(reg, 0, len(reg) + 2000)
+        if at != -1:
+            after_regeste = at + len(reg)
     start = None
-    for candidate in heading.finditer(text):
-        if _heading_is_a_wrapped_citation(text, candidate):
+    for candidate in heading.finditer(scan):
+        if _heading_is_a_wrapped_citation(scan, candidate):
             continue
-        start = candidate
-        break
+        if start is None:
+            start = candidate
+        if candidate.start() >= after_regeste:
+            start = candidate
+            break
     if not start:
         return None
     # next heading: a line-leading number with depth <= requested that is not a
@@ -16381,7 +16442,7 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
     own_key = _e_number_sort_key(e_number)
     own_top = int(e_number.split(".")[0])
     end = len(text)
-    for m in next_heading.finditer(text, start.end()):
+    for m in next_heading.finditer(scan, start.end()):
         num = m.group(1)
         if num == e_number or num.startswith(e_number + "."):
             continue
@@ -16390,11 +16451,11 @@ def _erwaegung_from_text(full_text: str | None, e_number: str) -> dict | None:
         # "10000" from a table or a running case number is no successor of E. 5.
         if _e_number_sort_key(num) <= own_key or int(num.split(".")[0]) > own_top + 5:
             continue
-        if _heading_is_a_wrapped_citation(text, m):
+        if _heading_is_a_wrapped_citation(scan, m):
             continue
         end = m.start()
         break
-    disp = _DISPOSITIVE_RE.search(text, start.end())
+    disp = _DISPOSITIVE_RE.search(scan, start.end())
     if disp and disp.start() < end:
         end = disp.start()
     block = text[start.start():end].strip()
@@ -16454,7 +16515,8 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         if not main_for_text:
             return {"error": f"Decision {decision_id!r} is not in the corpus.",
                     "error_code": "decision_not_found", "text_source": "none"}
-        fallback = _erwaegung_from_text(main_for_text.get("full_text"), e_clean)
+        fallback = _erwaegung_from_text(main_for_text.get("full_text"), e_clean,
+                                        main_for_text.get("regeste"))
         if not fallback:
             return {
                 "error": f"No structured Erwägungen stored for {decision_id!r}, and the decision text "
@@ -16531,7 +16593,8 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
         # The index has other numbers but not this one: the decision may be
         # stored as coarser blocks. Look for the heading in the served text.
         main_for_text = get_decision_by_id(resolved)
-        fallback = _erwaegung_from_text((main_for_text or {}).get("full_text"), e_clean)
+        fallback = _erwaegung_from_text((main_for_text or {}).get("full_text"), e_clean,
+                                        (main_for_text or {}).get("regeste"))
         if fallback and _text_heading_fits_structure(e_clean, paragraphs):
             target, text_fallback = fallback, True
     if not target:
@@ -19481,6 +19544,7 @@ def _pinpoint_in_text(full_text: str, pinpoint: str) -> bool:
     """
     if not full_text or not pinpoint:
         return False
+    full_text = _plain_heading_spaces(full_text)
     pin = re.escape(pinpoint)
     # A numbered heading at line start is self-evidently this decision's own.
     # The optional dot covers the printed "7.1." form.

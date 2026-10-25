@@ -43,6 +43,61 @@ RE_DATE = re.compile(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})")
 RE_DOCKET = re.compile(r"([A-Z]{1,4}[-\s]\d{2,4}[-/]\d+)")
 
 
+_MONTHS = {
+    "januar": 1, "jänner": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4,
+    "mai": 5, "juni": 6, "juli": 7, "august": 8, "september": 9,
+    "oktober": 10, "november": 11, "dezember": 12,
+}
+_MONTH_ALT = "|".join(sorted(_MONTHS, key=len, reverse=True))
+# The court's own source line, at the end of each published ruling:
+# "Kantonsgericht Appenzell I.Rh., Entscheid K 7-2021 vom 16. November 2021",
+# "..., Verwaltungsgericht,\nEntscheid V 8-2024 vom 03.12.2024". The docket may
+# be wrapped ("KSE 15-\n2025").
+_OWN_LINE_RE = re.compile(
+    r"\b(?:Entscheid|Zwischenentscheid|Endentscheid|Urteil|Beschluss|Verfügung)\s+"
+    r"(?P<docket>[A-Z]{1,4}\s?\d{1,4}\s?[-/]\s?\d{2,4})\s+vom\s+"
+    r"(?:(?P<d>\d{1,2})\.\s*(?P<m>" + _MONTH_ALT + r")\s*(?P<y>(?:19|20)\d{2})"
+    r"|(?P<nd>\d{1,2})\.(?P<nm>\d{1,2})\.(?P<ny>(?:19|20)\d{2}))(?!\d)",
+    re.IGNORECASE)
+
+
+def _docket_key(docket: str | None) -> str:
+    """'K 7-2021', 'K_7-2021', 'kse-2-2025', 'KE 63/06' -> 'K72021' ..."""
+    return re.sub(r"[\s_/-]", "", docket or "").upper()
+
+
+def own_decision_date(text: str | None, docket: str | None) -> date | None:
+    """The date the ruling's own source line gives for ``docket``, or None.
+
+    The listing on ai.ch dates an entry by when it was put online, weeks or
+    months after the ruling: K 7-2021 of 16 November 2021 was listed on
+    19 January 2022, after the Federal Supreme Court had already declined to
+    hear the appeal (report 2026-10-24). Only a line naming the row's own
+    docket counts; the text also names the decisions it reviews and the
+    Federal Supreme Court's ruling on it. The last such line wins (the source
+    line closes the ruling)."""
+    key = _docket_key(docket)
+    if not text or not key:
+        return None
+    found = None
+    for m in _OWN_LINE_RE.finditer(text):
+        if _docket_key(m.group("docket")) != key:
+            continue
+        try:
+            if m.group("y"):
+                found = date(int(m.group("y")), _MONTHS[m.group("m").lower()], int(m.group("d")))
+            else:
+                found = date(int(m.group("ny")), int(m.group("nm")), int(m.group("nd")))
+        except (ValueError, KeyError):
+            continue
+    if found is None:
+        return None
+    year = re.search(r"[-/_ ]((?:19|20)\d{2})$", (docket or "").strip())
+    if year and found.year < int(year.group(1)):
+        return None
+    return found
+
+
 def _parse_swiss_date(text):
     if not text:
         return None
@@ -176,7 +231,10 @@ class AIGerichteScraper(BaseScraper):
             self.state.mark_gap(stub["decision_id"])
             return None
 
-        decision_date = stub.get("decision_date")
+        # The ruling's own line first; the listing date is when ai.ch put it
+        # online, so it stays only as the publication date.
+        listed = stub.get("decision_date")
+        decision_date = own_decision_date(full_text, stub["docket_number"]) or listed
         if not decision_date:
             logger.warning(f"[ai_gerichte] No date for {stub['docket_number']}")
 
@@ -188,6 +246,7 @@ class AIGerichteScraper(BaseScraper):
             canton="AI",
             docket_number=stub["docket_number"],
             decision_date=decision_date,
+            publication_date=listed if listed and listed != decision_date else None,
             language=language,
             title=stub.get("title"),
             full_text=full_text,
