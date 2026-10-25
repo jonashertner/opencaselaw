@@ -14961,7 +14961,8 @@ server = Server(
         "     court='untb_cat' etc.; add canton='CH' for cases against Switzerland)\n"
         "• 'UN Working Group on Arbitrary Detention opinion on X?' → search_decisions(court='unwgad')\n"
         "• 'UN General Comment / Allgemeine Bemerkung / Observation générale No. X?' → search_practice(\n"
-        "     source='un_gc'), then get_practice for the full text\n\n"
+        "     source='un_gc'), then get_practice for the full text\n"
+        "• 'UNO-Schlussbemerkungen zur Schweiz auf Deutsch?' → search_practice(source='un_ch_translations')\n\n"
 
         "ECHR / EGMR coverage: every ECtHR judgment of importance 1-3 (the "
         "Court's own scale, where 1 = Key cases), from all 46 respondent "
@@ -31274,7 +31275,7 @@ def _list_tools() -> list[Tool]:
                         "enum": ["finma_rs", "seco_arg", "bafu_vollzug", "estv_ks", "estv_mwst",
                                  "sem_weisungen", "bsv_weisungen", "seco_alv", "bag_kvg",
                                  "sem_handbuch_asyl", "bj_schkg", "weko_bekanntmachungen", "oak_bv",
-                                 "un_uhri", "un_gc"],
+                                 "un_uhri", "un_gc", "un_ch_translations"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -31294,7 +31295,11 @@ def _list_tools() -> list[Tool]:
                             "of pre-2012 reports, not the UN's words), un_gc (General Comments and General "
                             "Recommendations of every UN treaty body — CCPR, CESCR, CAT, CERD, CEDAW, CRC, "
                             "CRPD, CED, CMW, SPT — ~214 documents, FR and EN, doc_number = UN symbol, e.g. "
-                            "'CAT/C/GC/4'; old ones under OHCHR's INT/ symbols)."
+                            "'CAT/C/GC/4'; old ones under OHCHR's INT/ symbols), un_ch_translations (the federal "
+                            "offices' German translations of UN concluding observations on Switzerland — CAT "
+                            "2010, CCPR 2009/2017, CESCR 2019, CERD 2021, CEDAW 2003/2022, CRC 2015/2021, SPT "
+                            "2019; CRPD 2022 in Italian — not authoritative, doc_number = the UN symbol as in "
+                            "un_uhri)."
                         ),
                     },
                     "issuing_authority": {
