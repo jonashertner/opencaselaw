@@ -6,6 +6,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 
@@ -162,3 +164,21 @@ def test_audience_under_a_letter_split_court_name():
     text = ("TRIBUNAL CANTONAL 77 PE07.023614-ABA JUGEMENT DE LA COUR D’ APP EL PE NAL E ______________ "
             "Audience du 9 mai 2012 __________________ Présidence de M. S")
     assert r.heading_date(text, "PE07.023614", TODAY)[0] == "2012-05-09"
+
+
+@pytest.mark.parametrize("failing", ["dumps", "replace"])
+def test_interrupt_mid_write_leaves_no_stray_file_and_the_shard_untouched(tmp_path, monkeypatch, failing):
+    # the build ingests every *.jsonl in the shard dir: a temp file must never outlive the run
+    p = tmp_path / "es_vd_findinfo.jsonl"
+    p.write_text(json.dumps(_row("b", "10", "2021-01-01", PLACEHOLDER, lang="de"), ensure_ascii=False) + "\n",
+                 encoding="utf-8")
+    before = p.read_bytes()
+
+    def boom(*a, **k):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(r.json if failing == "dumps" else r.os, failing, boom)
+    with pytest.raises(KeyboardInterrupt):
+        r.run(p, apply=True, examples=0, today=TODAY)
+    assert list(tmp_path.iterdir()) == [p]
+    assert p.read_bytes() == before

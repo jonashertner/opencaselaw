@@ -67,6 +67,10 @@ _HEADING_RE = re.compile(
 # The entscheidsuche Kopfzeile: "<Ticino|Tessin> <court> DD.MM.YYYY <docket>".
 _KOPF_RE = re.compile(r"^\s*(?:Ticino|Tessin)\b.{0,200}?\b(\d{2})\.(\d{2})\.((?:19|20)\d{2})\b")
 _HEAD_CHARS = 1000
+# load_twin_dates value for a docket whose direct rows give no single usable
+# date (they disagree, or carry none): unlike an absent docket (None), it
+# confirms nothing — not even through the publication_date fallback.
+AMBIGUOUS = "ambiguous"
 
 
 def _flat(text: str | None) -> str:
@@ -106,7 +110,9 @@ def heading_date(text: str | None, today: str | None = None,
 
 def stated_in_text(iso: str, text: str | None) -> bool:
     """Is ``iso`` written in the text, as an Italian date ("10 ottobre 2023")
-    or as a numeric dd.mm.yyyy / dd/mm/yyyy ("10.10.2023")?"""
+    or, after the heading, as a numeric dd.mm.yyyy / dd/mm/yyyy ("10.10.2023")?
+    The numeric form is only read past the heading: the es Kopfzeile before it
+    always carries the stored date, which would make this check vacuous."""
     try:
         y, m, d = int(iso[:4]), int(iso[5:7]), int(iso[8:10])
     except ValueError:
@@ -115,17 +121,21 @@ def stated_in_text(iso: str, text: str | None) -> bool:
     alt = r"\b%d\s*%s\s+%d\b" % (d, _NAMES[m], y)
     numeric = r"\b%02d[.\/]%02d[.\/]%d\b" % (d, m, y)
     flat = _flat(text)
-    return bool(re.search(pat, flat, re.I) or re.search(alt, flat, re.I) or re.search(numeric, flat))
+    if re.search(pat, flat, re.I) or re.search(alt, flat, re.I):
+        return True
+    h = _HEADING_RE.search(flat[:_HEAD_CHARS])
+    return bool(h and re.search(numeric, flat[h.end():]))
 
 
 def decide(obj: dict, today: str | None = None, twin_date: str | None = None) -> tuple[str, str | None]:
     """``twin_date``: the direct scraper's decision_date for the same docket
-    (None when there is none, or the direct shard's own copies of it
-    disagree) — the independent corroboration a disagreeing Kopfzeile can be
-    overridden by. Falls back to this row's own publication_date when there
-    is no twin, in case that is how entscheidsuche encoded the true date."""
+    (None when the docket has no direct row; AMBIGUOUS when its direct rows
+    give no single date) — the independent corroboration a disagreeing
+    Kopfzeile can be overridden by. Falls back to this row's own
+    publication_date only when there is no direct row at all, in case that is
+    how entscheidsuche encoded the true date."""
     pub = str(obj.get("publication_date") or "")[:10] or None
-    confirm = twin_date if twin_date else pub
+    confirm = None if twin_date == AMBIGUOUS else (twin_date or pub)
     own, how = heading_date(obj.get("full_text"), today, confirm)
     if own is None:
         return how, None
@@ -141,12 +151,13 @@ def decide(obj: dict, today: str | None = None, twin_date: str | None = None) ->
     return "corrected", own
 
 
-def load_twin_dates(paths: list[Path]) -> dict[str, str | None]:
+def load_twin_dates(paths: list[Path]) -> dict[str, str]:
     """docket_number -> the direct scraper's decision_date, read from every
     given shard before any row is corrected (so it does not matter which
     shard — direct or entscheidsuche — is listed first). A docket whose
-    direct rows disagree with each other on the date is ambiguous and maps
-    to None: never used to confirm a heading."""
+    direct rows disagree with each other on the date (or carry none) maps to
+    AMBIGUOUS: never used to confirm a heading, and no publication_date
+    fallback either. A docket with no direct row is absent from the dict."""
     seen: dict[str, set[str | None]] = {}
     for p in paths:
         with open(p, encoding="utf-8") as fh:
@@ -165,19 +176,22 @@ def load_twin_dates(paths: list[Path]) -> dict[str, str | None]:
                 if not dn:
                     continue
                 seen.setdefault(dn, set()).add(str(obj.get("decision_date") or "")[:10] or None)
-    return {dn: (next(iter(dates)) if len(dates) == 1 else None) for dn, dates in seen.items()}
+    return {dn: (next(iter(dates)) if len(dates) == 1 and None not in dates else AMBIGUOUS)
+            for dn, dates in seen.items()}
 
 
 def run(path: Path, apply: bool, examples: int, today: str | None = None,
-        twin_dates: dict[str, str | None] | None = None) -> Counter:
+        twin_dates: dict[str, str] | None = None) -> Counter:
     twin_dates = twin_dates or {}
     stats: Counter = Counter()
     shown = 0
     fout = None
     tmp_path = None
     if apply:
-        fd, tmp_path = tempfile.mkstemp(suffix=".jsonl", dir=str(path.parent))
+        # hidden, not *.jsonl: the build ingests every *.jsonl in the shard dir
+        fd, tmp_path = tempfile.mkstemp(prefix=".", suffix=".jsonl.tmp", dir=str(path.parent))
         fout = os.fdopen(fd, "w", encoding="utf-8")
+    replaced = False
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     try:
         with open(path, encoding="utf-8") as fh:
@@ -219,17 +233,17 @@ def run(path: Path, apply: bool, examples: int, today: str | None = None,
                 obj["date_restore"] = rec
                 obj["decision_date"] = new
                 fout.write(json.dumps(obj, ensure_ascii=False) + "\n")
-    except Exception:
         if fout:
             fout.close()
-            os.unlink(tmp_path)
-        raise
-    if fout:
-        fout.close()
-        if stats["rows_changed"]:
-            os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
-            os.replace(tmp_path, str(path))
-        else:
+            if stats["rows_changed"]:
+                os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
+                os.replace(tmp_path, str(path))
+                replaced = True
+    finally:
+        # BaseException-safe (Ctrl-C, disk full): the temp file never outlives the run
+        if fout and not fout.closed:
+            fout.close()
+        if tmp_path and not replaced and os.path.exists(tmp_path):
             os.unlink(tmp_path)
     return stats
 
