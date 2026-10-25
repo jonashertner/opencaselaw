@@ -222,8 +222,10 @@ def run(path: Path, apply: bool, examples: int, today: str | None = None) -> Cou
     fout = None
     tmp_path = None
     if apply:
-        fd, tmp_path = tempfile.mkstemp(suffix=".jsonl", dir=str(path.parent))
+        # hidden, not *.jsonl: the build ingests every *.jsonl in the shard dir
+        fd, tmp_path = tempfile.mkstemp(prefix=".", suffix=".jsonl.tmp", dir=str(path.parent))
         fout = os.fdopen(fd, "w", encoding="utf-8")
+    replaced = False
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     try:
         with open(path, encoding="utf-8") as fh:
@@ -268,17 +270,17 @@ def run(path: Path, apply: bool, examples: int, today: str | None = None) -> Cou
                         obj[stamp] = rec
                         obj[field] = changes[field]
                 fout.write(json.dumps(obj, ensure_ascii=False) + "\n")
-    except Exception:
         if fout:
             fout.close()
-            os.unlink(tmp_path)
-        raise
-    if fout:
-        fout.close()
-        if stats["rows_changed"]:
-            os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
-            os.replace(tmp_path, str(path))
-        else:
+            if stats["rows_changed"]:
+                os.chmod(tmp_path, stat.S_IMODE(os.stat(path).st_mode))
+                os.replace(tmp_path, str(path))
+                replaced = True
+    finally:
+        # BaseException-safe (Ctrl-C, disk full): the temp file never outlives the run
+        if fout and not fout.closed:
+            fout.close()
+        if tmp_path and not replaced and os.path.exists(tmp_path):
             os.unlink(tmp_path)
     return stats
 

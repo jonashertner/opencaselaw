@@ -6,6 +6,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 
@@ -114,6 +116,10 @@ ES_KOPF_DISAGREES_TWIN_CONFIRMS = (
     "Deposito incustodito di fucili privi di culatta in abitazione secondaria.\n\n"
     "Incarto n.\n17.2012.144\nLocarno\n22 luglio 2013/mi\nIn nome\ndella Repubblica e Cantone\nTicino\n"
 )
+# the stored 19.07.2013 is another dated event the body states (numeric form) ...
+ES_KOPF_DISAGREES_TWIN_CONFIRMS += "La Corte, vista l'ordinanza del 19.07.2013, ritenuto in fatto:\n"
+# ... or appears only in the Kopfzeile, where it always does and proves nothing
+ES_KOPF_ONLY = ES_KOPF_DISAGREES_TWIN_CONFIRMS.replace("La Corte, vista l'ordinanza del 19.07.2013, ritenuto in fatto:\n", "")
 
 
 def test_kopfzeile_disagreement_overridden_by_direct_twin():
@@ -122,8 +128,16 @@ def test_kopfzeile_disagreement_overridden_by_direct_twin():
     # without a twin, the disagreeing Kopfzeile still blocks the change
     assert r.decide(obj, TODAY) == ("kopfzeile_disagrees", None)
     # the direct shard's own decision_date for the same docket agrees with
-    # the heading (2013-07-22), so it is allowed to override the Kopfzeile
+    # the heading (2013-07-22), so it is allowed to override the Kopfzeile;
+    # the stored date is then "corrected" because the body states it
     assert r.decide(obj, TODAY, twin_date="2013-07-22") == ("corrected", "2013-07-22")
+
+
+def test_numeric_date_only_in_the_kopfzeile_does_not_count_as_stated():
+    obj = {"decision_id": "ti_gerichte_17.2012.144", "court": "ti_gerichte",
+           "decision_date": "2013-07-19", "full_text": ES_KOPF_ONLY}
+    assert not r.stated_in_text("2013-07-19", ES_KOPF_ONLY)
+    assert r.decide(obj, TODAY, twin_date="2013-07-22") == ("stored_not_in_text_left_alone", None)
 
 
 def test_kopfzeile_disagreement_overridden_by_own_publication_date():
@@ -144,10 +158,23 @@ def test_kopfzeile_disagreement_not_overridden_by_a_mismatched_twin():
     assert r.decide(obj, TODAY, twin_date=None) == ("kopfzeile_disagrees", None)
 
 
+def test_ambiguous_direct_docket_never_falls_back_to_publication_date():
+    # the row's own publication_date agrees with the heading, but the direct
+    # rows of this docket contradict each other: nothing confirms the heading
+    obj = {"decision_id": "ti_gerichte_17.2012.144", "court": "ti_gerichte",
+           "decision_date": "2013-07-19", "publication_date": "2013-07-22",
+           "full_text": ES_KOPF_DISAGREES_TWIN_CONFIRMS}
+    assert r.decide(obj, TODAY, twin_date=r.AMBIGUOUS) == ("kopfzeile_disagrees", None)
+    assert r.decide(obj, TODAY) == ("corrected", "2013-07-22")  # no direct row at all: fallback applies
+
+
 def test_stated_in_text_accepts_numeric_dd_mm_yyyy():
-    assert r.stated_in_text("2013-09-13", "con sentenza del 13.09.2013 ha deciso")
-    assert r.stated_in_text("2013-09-13", "con sentenza del 13/09/2013 ha deciso")
-    assert not r.stated_in_text("2013-09-13", "con sentenza del 14.09.2013 ha deciso")
+    body = HEAD + " con sentenza del %s ha deciso"
+    assert r.stated_in_text("2013-09-13", body % "13.09.2013")
+    assert r.stated_in_text("2013-09-13", body % "13/09/2013")
+    assert not r.stated_in_text("2013-09-13", body % "14.09.2013")
+    # no heading to read past: the numeric form is not trusted
+    assert not r.stated_in_text("2013-09-13", "con sentenza del 13.09.2013 ha deciso")
 
 
 def test_load_twin_dates_collects_direct_rows_and_flags_conflicts_as_ambiguous(tmp_path):
@@ -169,7 +196,8 @@ def test_load_twin_dates_collects_direct_rows_and_flags_conflicts_as_ambiguous(t
          "source": "entscheidsuche"}, ensure_ascii=False) + "\n", encoding="utf-8")
     twins = r.load_twin_dates([direct, es])
     assert twins["17.2012.144"] == "2013-07-22"
-    assert twins["90.1994.1"] is None
+    assert twins["90.1994.1"] == r.AMBIGUOUS
+    assert "99.1999.9" not in twins
     assert twins["90.1994.2"] == "1994-06-01"
 
 
@@ -208,3 +236,20 @@ def test_apply_stamps_keeps_mode_and_is_idempotent(tmp_path):
     assert (p.stat().st_mode & 0o777) == 0o644
     assert r.run(p, apply=True, examples=0, today=TODAY)["rows_changed"] == 0
     assert list(tmp_path.iterdir()) == [p]
+
+
+@pytest.mark.parametrize("failing", ["dumps", "replace"])
+def test_interrupt_mid_write_leaves_no_stray_file_and_the_shard_untouched(tmp_path, monkeypatch, failing):
+    # the build ingests every *.jsonl in the shard dir: a temp file must never outlive the run
+    p = tmp_path / "ti_gerichte.jsonl"
+    p.write_text(json.dumps(_row("2023-10-10"), ensure_ascii=False) + "\n", encoding="utf-8")
+    before = p.read_bytes()
+
+    def boom(*a, **k):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(r.json if failing == "dumps" else r.os, failing, boom)
+    with pytest.raises(KeyboardInterrupt):
+        r.run(p, apply=True, examples=0, today=TODAY)
+    assert list(tmp_path.iterdir()) == [p]
+    assert p.read_bytes() == before
