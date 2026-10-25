@@ -435,3 +435,59 @@ def test_wgad_fetch_and_dateless_citation(tmp_path, monkeypatch):
     assert c["citation_string_de"] == ("WGAD, Opinion No. 58/2024 concerning Mohammad Arfat (India) "
                                        "(A/HRC/WGAD/2024/58)")
     assert "2024" not in c["citation_string_fr"].split("(A/HRC")[0].replace("58/2024", "")
+
+
+# ───────────────────────────────────────────── broken files vs blocks
+
+def _status_error(code):
+    import requests
+    resp = requests.Response()
+    resp.status_code = code
+    return requests.HTTPError(response=resp)
+
+
+def test_broken_file_falls_through_to_the_next_rendition(tmp_path):
+    """docstore answers some files with 5xx for good; that file is skipped,
+    the next format or language is used, and nothing counts toward MAX_ERRORS."""
+    import requests
+    page = (FIX / "case_2_rd_v_switzerland.html").read_bytes()
+    links = untb.parse_case_page(page.decode())["links"]
+    s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+
+    def fake_get(url, **_):
+        if url == untb.CASE_URL.format(case_id=2):
+            return SimpleNamespace(content=page, text=page.decode())
+        if url == links["fr"]["html"]:
+            raise requests.exceptions.RetryError("Max retries exceeded (too many 500 error responses)")
+        if url == links["fr"]["docx"]:
+            raise _status_error(500)
+        if url == links["fr"]["pdf"]:
+            raise requests.ConnectionError("reset")
+        if url == links["en"]["html"]:
+            body = "<p>9.2 The Committee must decide whether the forcible return of the complainant " \
+                   "to Ethiopia would violate the State party's obligation under article 3.</p>" * 8
+            return SimpleNamespace(content=f"<html><body>{body}</body></html>".encode(), text="")
+        raise AssertionError(url)
+
+    s.get = fake_get
+    d = s.fetch_decision(_stub(2))
+    assert d is not None and d.language == "en"           # all three French files broken
+    assert "forcible return of the complainant" in d.full_text
+
+
+@pytest.mark.parametrize("exc", ["403", "429-retry"])
+def test_refusal_still_stops_the_run(tmp_path, exc):
+    import requests
+    page = (FIX / "case_2_rd_v_switzerland.html").read_bytes()
+    s = untb.UNTreatyBodyScraper(state_dir=tmp_path)
+
+    def fake_get(url, **_):
+        if url == untb.CASE_URL.format(case_id=2):
+            return SimpleNamespace(content=page, text=page.decode())
+        if exc == "403":
+            raise _status_error(403)
+        raise requests.exceptions.RetryError("Max retries exceeded (too many 429 error responses)")
+
+    s.get = fake_get
+    with pytest.raises(requests.RequestException):
+        s.fetch_decision(_stub(2))

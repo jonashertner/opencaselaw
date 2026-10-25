@@ -77,6 +77,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
+import requests
 from bs4 import BeautifulSoup
 
 from base_scraper import BaseScraper
@@ -595,6 +596,25 @@ class UNTreatyBodyScraper(BaseScraper):
             yield from new
         logger.info(f"[untb] Digital Library sweep: {yielded} documents juris does not hold")
 
+    def _get_file(self, href: str) -> bytes | None:
+        """A document file, or None when that one file is broken. docstore
+        answers some files with 5xx for good (two in the first 284 cases on
+        2026-10-25); as errors they would reach MAX_ERRORS long before the
+        crawl ends. A refusal (403, or 429 after the retries) is a block and
+        still raises, so the run stops."""
+        try:
+            return self.get(href).content
+        except requests.HTTPError as e:
+            code = e.response.status_code if e.response is not None else None
+            if code in (403, 429):
+                raise
+            logger.warning(f"[untb] file unavailable (HTTP {code}): {href[:90]}")
+        except requests.RequestException as e:
+            if "429" in str(e) or "403" in str(e):
+                raise
+            logger.warning(f"[untb] file unavailable ({type(e).__name__}): {href[:90]}")
+        return None
+
     def _fetch_text(self, links: dict[str, dict[str, str]]) -> tuple[str, str, str] | None:
         """(text, language, format) of the best available rendition."""
         scans: list[tuple[str, bytes]] = []
@@ -603,7 +623,9 @@ class UNTreatyBodyScraper(BaseScraper):
                 href = links.get(lang, {}).get(fmt)
                 if not href:
                     continue
-                data = self.get(href).content
+                data = self._get_file(href)
+                if data is None:
+                    continue
                 if fmt == "html":
                     text = html_text(data)
                 elif fmt == "docx":
