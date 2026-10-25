@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily International Court of Justice scrape
+
+[Timer]
+# 21:30 UTC: before the 01:00 scrape; icj-cij.org and the Internet Archive
+# are network-only work, they read no production database.
+OnCalendar=*-*-* 21:30:00 UTC
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -37,6 +37,8 @@ UNTB_COURTS = {
     "untb_ced",
     "unwgad",    # Working Group on Arbitrary Detention, same rule
 }
+# International Court of Justice: English where no French text layer exists.
+ICJ_COURTS = {"icj"}
 NULL_LANGUAGE_FLOOR_PCT = 0.5  # WARNING if >0.5% of rows have no language
 
 
@@ -63,7 +65,8 @@ def check_unexpected_language_values(conn: sqlite3.Connection, **_) -> CheckResu
             f"WHERE language IN ({placeholders}) GROUP BY language, court",
             suspect,
         ):
-            if lang == "en" and (court in ECTHR_COURTS or court in UNTB_COURTS):
+            if lang == "en" and (court in ECTHR_COURTS or court in UNTB_COURTS
+                                 or court in ICJ_COURTS):
                 continue
             bad.append((lang, court, n))
     return CheckResult(

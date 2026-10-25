@@ -347,6 +347,9 @@ EXCLUDED_COURTS = frozenset({
     # CJEU: EU reuse policy (Decision 2011/833/EU, CC BY 4.0) requires
     # attribution, which a CC0 mirror would drop.
     "cjeu",
+    # ICJ: the Court's website terms forbid reproduction for commercial
+    # purposes, which a CC0 mirror cannot promise.
+    "icj",
 })
 
 

@@ -1808,6 +1808,7 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
     "unwgad": "UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)",
     "cjeu": "Gerichtshof der Europäischen Union (EuGH)",
+    "icj": "Internationaler Gerichtshof (IGH)",
     "ch_bundesrat": "Bundesrat", "ch_vb": "Bundesverwaltung",
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherungsrecht",
     "weko": "WEKO", "edoeb": "EDÖB", "ubi": "UBI",
@@ -1880,6 +1881,7 @@ COURT_LEVELS: dict[str, str] = {
     "untb_ced": "international",
     "unwgad": "international",
     "cjeu": "international",
+    "icj": "international",
     "ch_bundesrat": "federal_executive", "ch_vb": "federal_executive",
     "finma": "regulatory", "finma_versicherungsrecht": "regulatory",
     "weko": "regulatory", "edoeb": "regulatory", "ubi": "regulatory",
@@ -11586,7 +11588,7 @@ _CANONICAL_ID_PREFIX_RE = re.compile(
     r"^(?:bge|bger|bvger|bstger|bpatger|mkg|hudoc|bge_egmr|bge_historical|"
     r"ecthr_chamber|ecthr_committee|ecthr_grand_chamber|"
     r"finma|finma_versicherungsrecht|weko|edoeb|ubi|elcom|postcom|comcom|"
-    r"emark|ta_sst|ch_bundesrat|untb|unwgad|cjeu|"
+    r"emark|ta_sst|ch_bundesrat|untb|unwgad|cjeu|icj|"
     r"zh|be|lu|ur|sz|ow|nw|gl|zg|fr|so|bs|bl|sh|ar|ai|sg|gr|ag|tg|ti|vd|vs|ne|ge|ju)"
     r"_",
     re.IGNORECASE,
@@ -14704,8 +14706,10 @@ server = Server(
         "the decisions and Views of the UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, "
         "CRPD, CESCR, CED) on individual communications against every State party "
         "and the opinions of the Working Group on Arbitrary Detention (2010-), "
-        "the CJEU judgments on the EU acts Swiss law follows (search_decisions(court='cjeu')), "
         "FR or EN, via search_decisions(court='untb_*' / 'unwgad'), "
+        "the CJEU judgments on the EU acts Swiss law follows (search_decisions(court='cjeu')), "
+        "the judgments, advisory opinions and substantive orders of the International "
+        "Court of Justice (search_decisions(court='icj'), FR or EN), "
         "the UN human-rights recommendations addressed to Switzerland (treaty-body "
         "concluding observations, UPR recommendations with Switzerland's position, "
         "SPT and special-procedure reports; source='un_uhri', EN/FR), the treaty bodies' "
@@ -14980,6 +14984,7 @@ server = Server(
         "     court='untb_cat' etc.; add canton='CH' for cases against Switzerland)\n"
         "• 'UN Working Group on Arbitrary Detention opinion on X?' → search_decisions(court='unwgad')\n"
         "• 'EuGH / CJUE zu Lugano, Dublin, FZA, Fluggastrechten, MWST, DSGVO?' → search_decisions(court='cjeu')\n"
+        "• 'IGH / CIJ / ICJ judgment or advisory opinion on X?' → search_decisions(court='icj')\n"
         "• 'UN General Comment / Allgemeine Bemerkung / Observation générale No. X?' → search_practice(\n"
         "     source='un_gc'), then get_practice for the full text\n"
         "• 'UNO-Schlussbemerkungen zur Schweiz auf Deutsch?' → search_practice(source='un_ch_translations')\n"
@@ -15783,6 +15788,42 @@ def _cjeu_citation_strings(decision: dict, pin: str | None, url: str) -> dict:
     }
 
 
+_ICJ_KINDS = {
+    "JUD": ("Urteil", "arrêt", "sentenza", "Judgment"),
+    "ADV": ("Gutachten", "avis consultatif", "parere consultivo", "Advisory Opinion"),
+    "ORD": ("Anordnung", "ordonnance", "ordinanza", "Order"),
+}
+
+
+def _icj_citation_strings(decision: dict, pin: str | None, url: str) -> dict:
+    docket = (decision.get("docket_number") or "").strip()
+    m = re.search(r"-(JUD|ADV|ORD)-", docket)
+    kind = _ICJ_KINDS.get(m.group(1)) if m else None
+    name = (decision.get("title") or "").strip()
+    if name == docket:
+        name = ""
+    decision_date = decision.get("decision_date") or ""
+    reliable = _citation_date_reliable(decision_date)
+
+    def one(lang: str, head: str, idx: int, vom: str, pin_label: str) -> str:
+        out = head + (f", {name}" if name else "")
+        date = _format_date_localized(decision_date, lang) if reliable else ""
+        if kind:
+            out += f", {kind[idx]}" + (f" {vom} {date}" if date else "")
+        elif not name:
+            out += f" {docket}"
+        if pin:
+            out += f", {pin_label} {pin}"
+        return out
+
+    return {
+        "citation_string_de": one("de", "IGH", 0, "vom", "Ziff."),
+        "citation_string_fr": one("fr", "CIJ", 1, "du", "par."),
+        "citation_string_it": one("it", "CIG", 2, "del", "par."),
+        "canonical_url": url,
+    }
+
+
 def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict:
     """Return {citation_string_de/fr/it, canonical_url, pinpoint_anchor} for a decision.
 
@@ -15876,6 +15917,13 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
     # rather than print 'gegen' in a French citation.
     if court == "cjeu":
         return _cjeu_citation_strings(decision, pin, url)
+
+    # ICJ — 'CIJ, Immunités juridictionnelles de l'État (Allemagne c. Italie ;
+    # Grèce (intervenant)), arrêt du 3 février 2012': the case name as stored
+    # (French, or English for an English-only text) and the document type read
+    # from the Court's file code in the docket.
+    if court == "icj":
+        return _icj_citation_strings(decision, pin, url)
 
     # Docketed federal courts (bger / bvger / bstger / bpatger / bge_historical)
     if court in _COURT_CITATION_CODES and docket:
@@ -29589,6 +29637,8 @@ def _list_tools() -> list[Tool]:
                             "Swiss courts follow — Brussels/Lugano, Dublin/Schengen, "
                             "free movement and social security, air passengers, VAT, "
                             "data protection; German text, FR/IT keywords). "
+                            "International Court of Justice: icj (judgments, "
+                            "advisory opinions, substantive orders; FR, else EN). "
                             "Cantonal: zh_obergericht, be_verwaltungsgericht, etc."
                         ),
                     },

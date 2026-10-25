@@ -112,6 +112,7 @@ COURT_NAMES = {
     "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
     "unwgad": "UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)",
     "cjeu": "Gerichtshof der Europäischen Union (EuGH)",
+    "icj": "Internationaler Gerichtshof (IGH)",
 }
 
 LANG_NAMES = {"de": "Deutsch", "fr": "Français", "it": "Italiano"}

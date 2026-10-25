@@ -218,6 +218,9 @@ SCRAPERS = {
     # CJEU judgments on EU acts Switzerland follows (Lugano/Brussels, Dublin/
     # Schengen, FZA, air passengers, VAT, data protection); see scrapers/cjeu.py
     "cjeu": ("scrapers.cjeu", "CJEUScraper"),
+    # International Court of Justice — judgments, advisory opinions, substantive
+    # orders; see scrapers/icj.py
+    "icj": ("scrapers.icj", "ICJScraper"),
     # Attorney discipline — SAV portal
     # Attorney discipline — TG Anwaltskommission
     "tg_anwaltskommission": ("scrapers.cantonal.tg_anwaltskommission", "TGAnwaltskommissionScraper"),

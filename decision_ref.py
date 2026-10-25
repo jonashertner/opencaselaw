@@ -79,7 +79,7 @@ CANTON_CODES = ("ag", "ai", "ar", "be", "bl", "bs", "fr", "ge", "gl", "gr", "ju"
 # First segment of every court code that is not a canton or a federal court
 # (regulators, the ECtHR collections, the VPB/Bundesrat collections).
 OTHER_ID_HEADS = ("ch", "hudoc", "ecthr", "bazg", "comcom", "edoeb", "elcom", "emark", "esbk",
-                  "eschk", "estv", "finma", "mkg", "postcom", "preisueberwacher", "rab", "sav",
+                  "eschk", "estv", "finma", "icj", "mkg", "postcom", "preisueberwacher", "rab", "sav",
                   "cjeu", "ta", "ubi", "untb", "unwgad", "weko")
 
 

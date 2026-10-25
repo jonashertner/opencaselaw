@@ -96,6 +96,9 @@ SKIP_BY_DEFAULT: set[str] = {
     # cjeu: ~2,800 judgments x 3 language requests at 1.5 s on the first run;
     # own unit systemd/opencaselaw-cjeu.service.
     "cjeu",
+    # icj: ~200 case pages and ~1,500 PDFs (many via the Internet Archive) on
+    # the first run; own unit systemd/opencaselaw-icj.service.
+    "icj",
 }
 
 # Scrapers that route through the Mac reverse-SOCKS tunnel (127.0.0.1:1080) via

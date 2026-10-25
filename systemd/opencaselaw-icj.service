@@ -1,0 +1,18 @@
+[Unit]
+Description=OpenCaseLaw International Court of Justice incremental scrape
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+Environment=PYTHONPATH=/opt/caselaw/repo
+# The first run lists ~200 cases (~800 pages) and fetches ~1,500 PDFs, most
+# from the Internet Archive because the Court's PDFs sit behind a Cloudflare
+# challenge (see scrapers/icj.py): a few hours. Afterwards a run lists the
+# pending cases and the cases with documents still missing, and fetches only
+# new documents. No quick_publish chain: the nightly build picks up
+# decisions/icj.jsonl.
+ExecStart=/usr/bin/python3 /opt/caselaw/repo/run_scraper.py icj --max 2000
+TimeoutStartSec=21600
+StandardOutput=append:/opt/caselaw/repo/logs/icj.log
+StandardError=append:/opt/caselaw/repo/logs/icj.log

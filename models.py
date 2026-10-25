@@ -70,7 +70,8 @@ class Decision(BaseModel):
             "European Court of Human Rights judgments whose only authoritative "
             "text is English (HUDOC publishes no French version for roughly "
             "half the corpus) and for UN treaty-body decisions without a French "
-            "text (untb_*, unwgad). No Swiss court may write 'en'; the quality gate "
+            "text (untb_*, unwgad) and ICJ documents without one (icj). No Swiss "
+            "court may write 'en'; the quality gate "
             "enforces that (quality/checks/languages.py)."
         ),
         pattern=r"^(de|fr|it|rm|en)$",

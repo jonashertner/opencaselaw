@@ -174,9 +174,10 @@ def mint_ecli(
     if not court or not decision_id:
         return None
     # UN treaty-body decisions and WGAD opinions are identified by their UN symbol, CJEU
-    # judgments by their own ECLI:EU:… (external_id); minting
+    # judgments by their own ECLI:EU:… (external_id), ICJ documents by the
+    # Court's file code (docket_number); minting
     # ECLI:CH:… for them would claim a Swiss identifier for a UN document.
-    if court.lower().startswith("untb_") or court.lower() in ("unwgad", "cjeu"):
+    if court.lower().startswith("untb_") or court.lower() in ("unwgad", "cjeu", "icj"):
         return None
 
     year = _derive_year(decision_date, docket_number)

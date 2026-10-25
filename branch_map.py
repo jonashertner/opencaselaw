@@ -99,6 +99,8 @@ COURT_BRANCH = {
     "untb_cescr": OEFF,
     "untb_ced": OEFF,
     "unwgad": OEFF,
+    # International Court of Justice (public international law)
+    "icj": OEFF,
 }
 
 # ── 2. per-court docket rules ───────────────────────────────────────────
