@@ -14689,7 +14689,8 @@ server = Server(
         "FR or EN, via search_decisions(court='untb_*' / 'unwgad'), "
         "the UN human-rights recommendations addressed to Switzerland (treaty-body "
         "concluding observations, UPR recommendations with Switzerland's position, "
-        "SPT and special-procedure reports; source='un_uhri', EN/FR) — via "
+        "SPT and special-procedure reports; source='un_uhri', EN/FR), the treaty bodies' "
+        "General Comments and General Recommendations (source='un_gc', FR/EN) — via "
         "search_practice / get_practice (the VPB/JAAC series 1987–2017 is not yet in the corpus: "
         "an official delivery is pending), "
         "44,000+ open-access scholarship records from 24 Swiss legal sources "
@@ -14958,7 +14959,9 @@ server = Server(
         "• 'BGE-published EGMR translation?'       → search_decisions(court='bge_egmr')\n"
         "• 'Has a UN committee (CAT, CCPR, CEDAW …) decided on X?' → search_decisions(\n"
         "     court='untb_cat' etc.; add canton='CH' for cases against Switzerland)\n"
-        "• 'UN Working Group on Arbitrary Detention opinion on X?' → search_decisions(court='unwgad')\n\n"
+        "• 'UN Working Group on Arbitrary Detention opinion on X?' → search_decisions(court='unwgad')\n"
+        "• 'UN General Comment / Allgemeine Bemerkung / Observation générale No. X?' → search_practice(\n"
+        "     source='un_gc'), then get_practice for the full text\n\n"
 
         "ECHR / EGMR coverage: every ECtHR judgment of importance 1-3 (the "
         "Court's own scale, where 1 = Key cases), from all 46 respondent "
@@ -31255,7 +31258,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ (SchKG, Existenzminimum), FINMA, ESTV, BAFU. Also UN human-rights recommendations to Switzerland (source='un_uhri': treaty-body concluding observations, UPR recommendations with the Swiss position, SPT, special procedures; one row per paragraph). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal administrations (Sozialhilfe/SKOS, Prämienverbilligung) — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC (pre-2017): not in the corpus yet; say so."
+                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ (SchKG, Existenzminimum), FINMA, ESTV, BAFU. Also UN texts: recommendations to Switzerland (source='un_uhri': concluding observations, UPR with the Swiss position, SPT, special procedures) and treaty-body General Comments (source='un_gc'). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal administrations (Sozialhilfe/SKOS, Prämienverbilligung) — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC (pre-2017): not in the corpus yet; say so."
             ),
             inputSchema={
                 "type": "object",
@@ -31271,7 +31274,7 @@ def _list_tools() -> list[Tool]:
                         "enum": ["finma_rs", "seco_arg", "bafu_vollzug", "estv_ks", "estv_mwst",
                                  "sem_weisungen", "bsv_weisungen", "seco_alv", "bag_kvg",
                                  "sem_handbuch_asyl", "bj_schkg", "weko_bekanntmachungen", "oak_bv",
-                                 "un_uhri"],
+                                 "un_uhri", "un_gc"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -31288,14 +31291,17 @@ def _list_tools() -> list[Tool]:
                             "and concerns addressed to Switzerland, from OHCHR's Universal Human Rights "
                             "Index: one row per paragraph, ~3,350, EN/FR only — query in English or French; doc_number like "
                             "'CAT/C/CHE/CO/8, para. 9'; rows titled '[UHRI summary …]' are UHRI digests "
-                            "of pre-2012 reports, not the UN's words)."
+                            "of pre-2012 reports, not the UN's words), un_gc (General Comments and General "
+                            "Recommendations of every UN treaty body — CCPR, CESCR, CAT, CERD, CEDAW, CRC, "
+                            "CRPD, CED, CMW, SPT — ~214 documents, FR and EN, doc_number = UN symbol, e.g. "
+                            "'CAT/C/GC/4'; old ones under OHCHR's INT/ symbols)."
                         ),
                     },
                     "issuing_authority": {
                         "type": "string",
                         "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV",
                                  "UN-UPR", "UN-CRC", "UN-CEDAW", "UN-SPT", "UN-CAT", "UN-CESCR",
-                                 "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-SPECIAL PROCEDURES"],
+                                 "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
@@ -31318,6 +31324,7 @@ def _list_tools() -> list[Tool]:
                             "richtlinie", "weisung_anhang", "konkordat", "erlass",
                             "bekanntmachung", "erlaeuterung", "entwurf",
                             "concluding_observations", "upr_recommendation", "visit_report",
+                            "general_comment", "general_recommendation",
                         ],
                         "description": (
                             "Filter by document type. wegleitung (SECO ArG 1,102 + BSV WEL/RWL…), "
@@ -31330,7 +31337,8 @@ def _list_tools() -> list[Tool]:
                             "OAK BV Informationsschreiben/FAQ), konkordat / erlass (BJ SchKG page), "
                             "bekanntmachung / erlaeuterung (WEKO), entwurf (OAK BV Anhörungen: drafts, not in force), "
                             "concluding_observations (UN treaty bodies), upr_recommendation (UN UPR), "
-                            "visit_report (UN SPT + special procedures)."
+                            "visit_report (UN SPT + special procedures), general_comment / "
+                            "general_recommendation (UN treaty bodies, un_gc)."
                         ),
                     },
                     "include_superseded": {

@@ -32,6 +32,7 @@ from .bsv_weisungen import BsvWeisungenScraper
 from .weko_bekanntmachungen import WekoBekanntmachungenScraper
 from .oak_bv import OakBvScraper
 from .un_uhri import UnUhriScraper
+from .un_gc import UnGeneralCommentsScraper
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,10 @@ ENABLED_SCRAPERS = {
     # UN recommendations to Switzerland from OHCHR's UHRI export: two ~400 MB
     # downloads streamed and filtered, ~2 min; ~3,350 rows.
     "un_uhri":           UnUhriScraper,
+    # UN treaty-body General Comments / Recommendations (all committees),
+    # OHCHR treaty-body database, 5 s per request: ~214 docs x 2 languages,
+    # ~1.5 h the first time, then only the listing pages (~3 min).
+    "un_gc":             UnGeneralCommentsScraper,
     # First full run 2026-09-03/04 on the VPS: 6,083 records, 0 failed, 1 h 45 min.
     "bsv_weisungen":     BsvWeisungenScraper,
     # Requested by a user 2026-09-07 (with the BSV BV Mitteilungen, which the
