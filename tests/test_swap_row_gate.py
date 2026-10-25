@@ -223,3 +223,21 @@ def test_exempt_env_warns_on_a_code_not_in_the_live_db(monkeypatch, caplog):
                for r in caplog.records)
     assert not any("'ch_vb'" in r.message and "check the spelling" in r.message
                    for r in caplog.records)
+
+
+def test_unknown_exempt_warning_says_to_remove_the_leftover(monkeypatch, caplog):
+    monkeypatch.setenv("OCL_SWAP_GATE_EXEMPT", "ch_vb")
+    with caplog.at_level("WARNING"):
+        build_fts5._check_swap_per_court_gate({"bger": 190_000}, {"bger": 190_000})
+    assert any(".env.publish" in r.getMessage() and "'ch_vb'" in r.getMessage()
+               for r in caplog.records)
+
+
+def test_refusal_points_to_the_per_court_exemption_not_the_blanket_flag():
+    with pytest.raises(RuntimeError) as exc:
+        build_fts5._check_swap_per_court_gate(
+            {"bger": 190_000, "ch_vb": 0}, {"bger": 190_000, "ch_vb": 23_046})
+    msg = str(exc.value)
+    assert "OCL_SWAP_GATE_EXEMPT=ch_vb" in msg
+    assert "last resort" in msg
+    assert "Set OCL_SKIP_SWAP_GATE=1" not in msg

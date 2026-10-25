@@ -283,7 +283,7 @@ BAG, ESTV, SEM, BJ, BAFU). Nothing from this thread is missing there.
   reflected above (via main's own `OCL_SWAP_GATE_EXEMPT` for the gate point).
   Refuted: the representation manifest drift claim (publish step 5a rebuilds
   the manifest first) and the "exemption consumed by a no-op build" claim
-  (accepted instead: remove the drop-in only after the build that actually
+  (accepted instead: remove the .env.publish exemption only after the build that actually
   swaps without the shard — unchanged in 4b below).
 - Not done, by design: nothing pushed; nothing changed on the VPS; no pipeline
   step run against real data.
@@ -315,23 +315,29 @@ live DB untouched, build red, HF upload and pushes skipped for that night).
    ssh -i ~/.ssh/caselaw root@46.225.212.40 'mkdir -p /opt/caselaw/repo/output/archive && mv /opt/caselaw/repo/output/decisions/es_ch_vb.jsonl /opt/caselaw/repo/output/archive/es_ch_vb.jsonl.retired-2026-10 && ls -la /opt/caselaw/repo/output/archive/'
    ```
    (`rm` instead of `mv` if the bytes should go; see "Open decisions".)
-3. One-run gate exemption for the next FULL rebuild (unit drop-in, remove after
-   the green build). With the new build_fts5.py live:
+3. One-run gate exemption for the next FULL rebuild, set in
+   `/opt/caselaw/repo/.env.publish` (the publish unit's `EnvironmentFile=`; the
+   same place `bge_es_retirement.md` and `bge_twin_dates_2026-10-14.md` use).
+   Not a systemd drop-in: a drop-in `Environment=` silently overrides whatever
+   `.env.publish` already sets. With the new build_fts5.py live, first look for
+   an existing line:
    ```
-   ssh -i ~/.ssh/caselaw root@46.225.212.40 'mkdir -p /etc/systemd/system/opencaselaw-publish.service.d && printf "[Service]\nEnvironment=OCL_SWAP_GATE_EXEMPT=ch_vb\n" > /etc/systemd/system/opencaselaw-publish.service.d/zz-ch-vb-retire.conf && systemctl daemon-reload && systemctl show opencaselaw-publish.service -p Environment'
+   ssh -i ~/.ssh/caselaw root@46.225.212.40 'grep -n OCL_SWAP_GATE_EXEMPT /opt/caselaw/repo/.env.publish'
    ```
-   (If some other intentional exemption is already active that night, e.g.
-   `zh_gerichte` is permanent and needs no flag, but another targeted one does,
-   pass both as one comma list: `OCL_SWAP_GATE_EXEMPT=ch_vb,other_code`.)
+   If there is none, add `OCL_SWAP_GATE_EXEMPT=ch_vb` (operator edit). If the
+   variable already exists, append `,ch_vb` to its value
+   (`OCL_SWAP_GATE_EXEMPT=bge,ch_vb`); `build_fts5._per_court_gate_exempt()`
+   parses a comma-separated, case-insensitive list. (`zh_gerichte` is permanent
+   and needs no flag.) It exempts this one court; the global row gate stays on.
    Hard prerequisite: step 1 is live (new build_fts5.py AND new
    quality/checks/courts.py travel in one ff-merge). Do NOT fall back to
    `OCL_SKIP_SWAP_GATE=1`: with the old code it would swap under a blanket
    override and then fail the QC gate on `courts.federal_present.ch_vb`,
    withholding the night's distribution after the data had already changed.
-   Afterwards:
-   ```
-   ssh -i ~/.ssh/caselaw root@46.225.212.40 'rm /etc/systemd/system/opencaselaw-publish.service.d/zz-ch-vb-retire.conf && systemctl daemon-reload'
-   ```
+   After that build has swapped and the pipeline has exited, remove `ch_vb`
+   from `.env.publish` again (drop the whole line if it was the only entry;
+   otherwise remove just `,ch_vb`) and re-check with the same `grep`. A
+   leftover entry is harmless but logs a "check the spelling" warning each night.
 4. Verify after the swap, in this order:
    1. Publish log shows the two lines `build_fts5.py` now emits:
       `pre-swap per-court gate: exempting ch_vb for this run via OCL_SWAP_GATE_EXEMPT`
