@@ -110,8 +110,13 @@ COURTS_PUBLICATION_DATE_AS_DECISION = {
 # neighbouring ruling's date. Their dates were restored from the rulings' own
 # headers (restore_bge_dates_from_urteilskopf.py, segment_bge_historical.py,
 # restore_sg_dates.py); a rerun would undo that (user report 2026-10-07).
+# bger and ai_gerichte: the first date of a BGer ruling is the decision under
+# appeal, and the 2026-03-12 run gave 1,209 bger rows that date; the Appenzell
+# rulings name their own date in the closing line (restore_closing_dates.py,
+# report 2026-10-24).
 NEVER_REPAIR_SHARDS = frozenset({
     "bge", "es_bge", "bge_historical", "sg_publikationen", "es_sg_gerichte",
+    "bger", "ai_gerichte",
 })
 
 
