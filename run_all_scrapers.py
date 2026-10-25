@@ -93,6 +93,9 @@ SKIP_BY_DEFAULT: set[str] = {
     # promised to the UN, 2026-10-23): the first run takes ~15 h and must not
     # sit inside the 01:00 run. Own unit: systemd/opencaselaw-untb.service.
     "untb",
+    # cjeu: ~2,800 judgments x 3 language requests at 1.5 s on the first run;
+    # own unit systemd/opencaselaw-cjeu.service.
+    "cjeu",
 }
 
 # Scrapers that route through the Mac reverse-SOCKS tunnel (127.0.0.1:1080) via

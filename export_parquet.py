@@ -344,6 +344,9 @@ EXCLUDED_COURTS = frozenset({
     "untb_cescr",
     "untb_ced",
     "unwgad",    # UN Working Group on Arbitrary Detention, same terms
+    # CJEU: EU reuse policy (Decision 2011/833/EU, CC BY 4.0) requires
+    # attribution, which a CC0 mirror would drop.
+    "cjeu",
 })
 
 

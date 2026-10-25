@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily CJEU judgments scrape
+
+[Timer]
+# 22:30 UTC: after the untb run (18:00, up to ~4 h) and before the 01:00
+# scrape; CELLAR is network-only work, it reads no production database.
+OnCalendar=*-*-* 22:30:00 UTC
+Persistent=false
+
+[Install]
+WantedBy=timers.target

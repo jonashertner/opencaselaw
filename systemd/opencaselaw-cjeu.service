@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenCaseLaw CJEU judgments (EUR-Lex CELLAR) incremental scrape
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+Environment=PYTHONPATH=/opt/caselaw/repo
+# Three requests per judgment (German text, French and Italian keywords) at
+# 1.5 s plus the scope query (~5 min): --max 1000 is ~2.5 h, so the
+# ~2,800-judgment backfill takes three evenings; afterwards a run fetches
+# only new judgments. No quick_publish chain: the nightly build picks up
+# decisions/cjeu.jsonl.
+ExecStart=/usr/bin/python3 /opt/caselaw/repo/run_scraper.py cjeu --max 1000
+TimeoutStartSec=14400
+StandardOutput=append:/opt/caselaw/repo/logs/cjeu.log
+StandardError=append:/opt/caselaw/repo/logs/cjeu.log

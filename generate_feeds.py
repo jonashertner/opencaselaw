@@ -111,6 +111,7 @@ COURT_NAMES = {
     "untb_cescr": "UNO-Sozialrechtsausschuss (CESCR)",
     "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
     "unwgad": "UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)",
+    "cjeu": "Gerichtshof der Europäischen Union (EuGH)",
 }
 
 LANG_NAMES = {"de": "Deutsch", "fr": "Français", "it": "Italiano"}

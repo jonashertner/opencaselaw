@@ -1807,6 +1807,7 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "untb_cescr": "UNO-Sozialrechtsausschuss (CESCR)",
     "untb_ced": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
     "unwgad": "UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)",
+    "cjeu": "Gerichtshof der Europäischen Union (EuGH)",
     "ch_bundesrat": "Bundesrat", "ch_vb": "Bundesverwaltung",
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherungsrecht",
     "weko": "WEKO", "edoeb": "EDÖB", "ubi": "UBI",
@@ -1878,6 +1879,7 @@ COURT_LEVELS: dict[str, str] = {
     "untb_cescr": "international",
     "untb_ced": "international",
     "unwgad": "international",
+    "cjeu": "international",
     "ch_bundesrat": "federal_executive", "ch_vb": "federal_executive",
     "finma": "regulatory", "finma_versicherungsrecht": "regulatory",
     "weko": "regulatory", "edoeb": "regulatory", "ubi": "regulatory",
@@ -11584,7 +11586,7 @@ _CANONICAL_ID_PREFIX_RE = re.compile(
     r"^(?:bge|bger|bvger|bstger|bpatger|mkg|hudoc|bge_egmr|bge_historical|"
     r"ecthr_chamber|ecthr_committee|ecthr_grand_chamber|"
     r"finma|finma_versicherungsrecht|weko|edoeb|ubi|elcom|postcom|comcom|"
-    r"emark|ta_sst|ch_bundesrat|untb|unwgad|"
+    r"emark|ta_sst|ch_bundesrat|untb|unwgad|cjeu|"
     r"zh|be|lu|ur|sz|ow|nw|gl|zg|fr|so|bs|bl|sh|ar|ai|sg|gr|ag|tg|ti|vd|vs|ne|ge|ju)"
     r"_",
     re.IGNORECASE,
@@ -14702,6 +14704,7 @@ server = Server(
         "the decisions and Views of the UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, "
         "CRPD, CESCR, CED) on individual communications against every State party "
         "and the opinions of the Working Group on Arbitrary Detention (2010-), "
+        "the CJEU judgments on the EU acts Swiss law follows (search_decisions(court='cjeu')), "
         "FR or EN, via search_decisions(court='untb_*' / 'unwgad'), "
         "the UN human-rights recommendations addressed to Switzerland (treaty-body "
         "concluding observations, UPR recommendations with Switzerland's position, "
@@ -14976,6 +14979,7 @@ server = Server(
         "• 'Has a UN committee (CAT, CCPR, CEDAW …) decided on X?' → search_decisions(\n"
         "     court='untb_cat' etc.; add canton='CH' for cases against Switzerland)\n"
         "• 'UN Working Group on Arbitrary Detention opinion on X?' → search_decisions(court='unwgad')\n"
+        "• 'EuGH / CJUE zu Lugano, Dublin, FZA, Fluggastrechten, MWST, DSGVO?' → search_decisions(court='cjeu')\n"
         "• 'UN General Comment / Allgemeine Bemerkung / Observation générale No. X?' → search_practice(\n"
         "     source='un_gc'), then get_practice for the full text\n"
         "• 'UNO-Schlussbemerkungen zur Schweiz auf Deutsch?' → search_practice(source='un_ch_translations')\n"
@@ -15748,6 +15752,37 @@ def _untb_citation_strings(decision: dict, pin: str | None, url: str) -> dict:
     }
 
 
+def _cjeu_citation_strings(decision: dict, pin: str | None, url: str) -> dict:
+    case = (decision.get("docket_number") or "").strip()
+    ecli = (decision.get("external_id") or "").strip()
+    parties = (decision.get("title") or "").strip()
+    if parties == case:
+        parties = ""
+    german = (decision.get("language") or "") == "de"
+    decision_date = decision.get("decision_date") or ""
+    reliable = _citation_date_reliable(decision_date)
+
+    def one(lang: str, head: str, vom: str, pin_label: str, with_parties: bool) -> str:
+        out = f"{head} {case}".strip()
+        date = _format_date_localized(decision_date, lang) if reliable else ""
+        if date:
+            out += f" {vom} {date}"
+        if with_parties and parties:
+            out += f", {parties}"
+        if ecli.startswith("ECLI:"):
+            out += f", {ecli}"
+        if pin:
+            out += f", {pin_label} {pin}"
+        return out
+
+    return {
+        "citation_string_de": one("de", "EuGH, Urteil", "vom", "Rn.", german),
+        "citation_string_fr": one("fr", "CJUE, arrêt", "du", "point", not german),
+        "citation_string_it": one("it", "CGUE, sentenza", "del", "punto", False),
+        "canonical_url": url,
+    }
+
+
 def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict:
     """Return {citation_string_de/fr/it, canonical_url, pinpoint_anchor} for a decision.
 
@@ -15834,6 +15869,13 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
     # what the UN's own document system resolves.
     if court.startswith("untb_") or court == "unwgad":
         return _untb_citation_strings(decision, pin, url)
+
+    # CJEU — 'EuGH, Urteil C-417/15 vom 16. November 2016, Wolfgang Schmidt
+    # gegen Christiane Schmidt, ECLI:EU:C:2016:881'. Only the German party
+    # names are stored, so the French and Italian strings leave them out
+    # rather than print 'gegen' in a French citation.
+    if court == "cjeu":
+        return _cjeu_citation_strings(decision, pin, url)
 
     # Docketed federal courts (bger / bvger / bstger / bpatger / bge_historical)
     if court in _COURT_CITATION_CODES and docket:
@@ -29543,6 +29585,10 @@ def _list_tools() -> list[Tool]:
                             "untb_cescr, untb_ced; unwgad = Working Group on "
                             "Arbitrary Detention opinions (2010-); canton='CH' "
                             "for cases against Switzerland. "
+                            "Court of Justice of the EU: cjeu (judgments on the EU acts "
+                            "Swiss courts follow — Brussels/Lugano, Dublin/Schengen, "
+                            "free movement and social security, air passengers, VAT, "
+                            "data protection; German text, FR/IT keywords). "
                             "Cantonal: zh_obergericht, be_verwaltungsgericht, etc."
                         ),
                     },

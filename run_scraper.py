@@ -215,6 +215,9 @@ SCRAPERS = {
     # UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, CRPD, CESCR, CED) — one
     # scraper, one court code per committee (untb_*); see scrapers/untb.py
     "untb": ("scrapers.untb", "UNTreatyBodyScraper"),
+    # CJEU judgments on EU acts Switzerland follows (Lugano/Brussels, Dublin/
+    # Schengen, FZA, air passengers, VAT, data protection); see scrapers/cjeu.py
+    "cjeu": ("scrapers.cjeu", "CJEUScraper"),
     # Attorney discipline — SAV portal
     # Attorney discipline — TG Anwaltskommission
     "tg_anwaltskommission": ("scrapers.cantonal.tg_anwaltskommission", "TGAnwaltskommissionScraper"),

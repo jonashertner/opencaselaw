@@ -106,6 +106,7 @@ _NON_SWISS_COURTS = frozenset({
     "untb_cescr",
     "untb_ced",
     "unwgad",
+    "cjeu",           # Court of Justice of the EU — ECLI:EU:… is its identifier
 })
 
 # ISO 3166-2:CH canton codes.
