@@ -5,9 +5,33 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sat, 24 Oct 2026 23:33:20 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 25 Oct 2026 12:52:41 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht F-4283/2026 vom 2026-10-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-4283_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Sat, 24 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-4283.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-6010/2026 vom 2026-09-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6010_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Sat, 24 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6010.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-3264/2026 vom 2026-06-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-3264_2026</link>
+      <description>Asile (non-entrée en matière) et renvoi (procédure Dublin - art. 31a al. 1 let. b LAsi)</description>
+      <pubDate>Sat, 24 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-3264.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesverwaltungsgericht E-4570/2026 vom 2026-10-15</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-4570_2026</link>
@@ -1033,60 +1057,6 @@ Participants à la procédur…</description>
       <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:9C_499.2026</guid>
       <category>bger</category>
-    </item>
-    <item>
-      <title>vd_gerichte 766 vom 2026-10-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_44462f69-a1c2-4c58-91d3-dd36a3b4f711</link>
-      <description>TRIBUNAL CANTONAL
-PE21.***-***
-766
-CHAMBRE DE S RECO URS PEN ALE
-__________________________________________
-Arrêt du 6 octobre 2026
-Composition : Mme ELKAIM, présidente
-M. Krieger et Mme Byrde, juges
-Greffier : M. Jaunin
-*****
-Art. 303 CP ; 6, 319 al…</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_44462f69-a1c2-4c58-91d3-dd36a3b4f711</guid>
-      <category>vd_gerichte</category>
-    </item>
-    <item>
-      <title>vd_gerichte 789 vom 2026-10-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_5787cfb7-e072-48ec-bd2f-bb3e094e3fd4</link>
-      <description>TRIBUNAL CANTONAL ZD25.***
-789
-CO UR DE S ASSURANCES S OCIALES
-_____________________________________________
-Arrêt du 6 octobre 2026
-Composition : M. TINGUELY, président
-Mme Di Ferro Demierre et M. Wiedler, juges
-Greffier : M. Germond
-*****
-Cause pen…</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_5787cfb7-e072-48ec-bd2f-bb3e094e3fd4</guid>
-      <category>vd_gerichte</category>
-      <category>Assurance invalidité</category>
-    </item>
-    <item>
-      <title>vd_gerichte 593 vom 2026-10-06</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_5eb4a770-5b5e-4fea-bc80-c843ef3a08e2</link>
-      <description>TRIBUNAL CANTONAL
-PE24.***-***
-593
-CHAMBRE DE S RECO URS PEN ALE
-__________________________________________
-Arrêt du 6 octobre 2026
-Composition : Mme ELKAIM, présidente
-Mme Courbat et Mme Gauron-Carlin, juges
-Greffière : Mme Vuagniaux
-*****
-Art. 319 …</description>
-      <pubDate>Thu, 22 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_5eb4a770-5b5e-4fea-bc80-c843ef3a08e2</guid>
-      <category>vd_gerichte</category>
     </item>
   </channel>
 </rss>
