@@ -756,6 +756,16 @@ HEAVY_PER_CLIENT = int(os.environ.get("OCL_HEAVY_PER_CLIENT", "2"))
 HEAVY_TIMEOUT_S = float(os.environ.get("OCL_HEAVY_TIMEOUT_S", "60"))
 BUSY_RETRY_AFTER_S = int(os.environ.get("OCL_BUSY_RETRY_AFTER_S", "10"))
 
+# Kill switch (#90 follow-up): OCL_REPR_COLLAPSE=0 restores pre-#90 behaviour
+# by disabling every representation-manifest fold/harvest path at once —
+# _safe_representation_links_for returns None (so _collapse_representation_
+# rows, the fold inside _rerank_rows, and _dedupe_results_by_decision_id's
+# manifest step all see "no manifest" and no-op) and _harvest_missing_regeste
+# no-ops directly. _attach_canonical_ids's unconditional canonical_decision_id
+# / is_canonical labeling is NOT gated by this — only the folding/harvesting.
+# Default on; read at call time so tests can monkeypatch it.
+OCL_REPR_COLLAPSE = os.environ.get("OCL_REPR_COLLAPSE", "1") != "0"
+
 _ctx_lane: contextvars.ContextVar = contextvars.ContextVar("ocl_lane", default=None)
 # Absolute time.monotonic() by which the current request is over.
 _ctx_request_deadline: contextvars.ContextVar = contextvars.ContextVar(
@@ -4796,6 +4806,11 @@ def _search_fts5_inner(
             }
             for did, meta in candidate_meta.items()
         }
+        # Pre-fold: computed before _rerank_rows collapses manifest-linked
+        # representations (design doc §5/§7 phase 5) and BGE dual-ID twins,
+        # so a folded pair still counts as 2 here even though only 1 hit is
+        # returned on the page. Not fixed by this change (#90) — tracked
+        # separately from total/has_more correctness.
         total_candidates = len(candidate_meta)
         if inline_docket_results:
             # When merging with docket results, get enough from reranker
@@ -5943,7 +5958,15 @@ def _safe_representation_links_for(decision_ids) -> dict[str, dict] | None:
     IN-lookup (idx_repr_member). None when the manifest is not loaded (so a
     caller can tell "no manifest" from "no safe link"); {} when it is loaded
     but nothing in `decision_ids` has one. Never raises.
+
+    Gated by OCL_REPR_COLLAPSE (default on): with the kill switch off this
+    returns None unconditionally, which makes every caller of this function
+    (_collapse_representation_rows, the _rerank_rows fold,
+    _dedupe_results_by_decision_id) behave exactly as if the manifest were
+    not loaded at all.
     """
+    if not OCL_REPR_COLLAPSE:
+        return None
     ids = [d for d in dict.fromkeys(decision_ids) if isinstance(d, str) and d]
     conn = _get_manifest_conn()
     if conn is None:
@@ -5993,6 +6016,12 @@ def _fold_representation_row(kept, member, link_info: dict | None):
     canonical; it is None when `member` is itself the canonical decision
     being folded into an earlier-kept, higher-ranked member row (the
     manifest has no self-link row to describe that direction).
+
+    - Survivor signals: `citation_count` and `is_leading_case` are per-ID
+      graph stats (incoming citations to THIS id), not properties of the
+      ruling as a whole, so folding away `member`'s row must not drop them.
+      The survivor keeps the MAX citation_count and the OR of is_leading_case
+      across `kept`/`member` — which row survives (`kept`) never changes.
     """
     out = dict(kept) if isinstance(kept, dict) else {k: kept[k] for k in kept.keys()}
     reps = list(out.get("representations") or [])
@@ -6007,6 +6036,11 @@ def _fold_representation_row(kept, member, link_info: dict | None):
     if not _row_get(out, "regeste") and _row_get(member, "regeste"):
         out["regeste"] = _row_get(member, "regeste")
         out["regeste_source"] = _row_get(member, "decision_id")
+    _cc = max(_row_get(out, "citation_count") or 0, _row_get(member, "citation_count") or 0)
+    if _cc:
+        out["citation_count"] = _cc
+    if _row_get(out, "is_leading_case") or _row_get(member, "is_leading_case"):
+        out["is_leading_case"] = True
     return out
 
 
@@ -6031,8 +6065,9 @@ def _collapse_representation_rows(rows: list[dict]) -> list[dict]:
     the search would serve a relevance score and snippet computed against
     different text under a different decision's identity.
 
-    No-op (returns `rows` unchanged) without the manifest or when nothing in
-    `rows` safely links to anything else in `rows`. Never raises.
+    No-op (returns `rows` unchanged) without the manifest, when nothing in
+    `rows` safely links to anything else in `rows`, or when OCL_REPR_COLLAPSE=0
+    (kill switch — see _safe_representation_links_for). Never raises.
     """
     if not rows:
         return rows
@@ -6060,7 +6095,10 @@ def _collapse_representation_rows(rows: list[dict]) -> list[dict]:
     return out
 
 
-def _harvest_missing_regeste(rows: list[dict]) -> None:
+_harvest_date_match_warned = False
+
+
+def _harvest_missing_regeste(rows: list[dict], *, truncate: bool = True) -> None:
     """Fill in a regeste-less row's regeste from a safely-linked member, in
     place (design doc §4: 'canonical must harvest the regeste from
     vd_findinfo' — vd_gerichte carries one in ~0% of cases, vd_findinfo in
@@ -6070,12 +6108,31 @@ def _harvest_missing_regeste(rows: list[dict]) -> None:
     regeste text from. Two batched queries total, both restricted to the
     rows that actually lack a regeste (bounded by page size, not corpus
     size): one manifest reverse-lookup (canonical_decision_id -> safe
-    member), then one point-lookup of those members' OWN regeste in
-    decisions.db. Copies the member's stored regeste VERBATIM (R2) and sets
-    `regeste_source` to the member's own decision_id. No-op without the
-    manifest, when nothing needs one, or when no safe link resolves one.
-    Never raises.
+    members, ALL of them, not just the best-confidence one), then one
+    point-lookup of those members' OWN regeste in decisions.db. Copies the
+    member's stored regeste VERBATIM (R2) and sets `regeste_source` to the
+    member's own decision_id.
+
+    `truncate`: True (default) clips the harvested text to MAX_SNIPPET_LEN,
+    matching every other regeste field on a search result row. Callers that
+    serve the harvested text as THE Regeste of record — get_decision_by_id /
+    get_regeste, which tell clients to quote `regeste` verbatim (R2) — must
+    pass `truncate=False` so a >500-char Regeste is never silently clipped
+    there.
+
+    If the best-confidence member has no regeste of its own (empty/NULL),
+    this falls back to the next eligible member (same confidence/date_match
+    gate), in descending confidence order with a deterministic tie-break on
+    member_decision_id, until one with actual text is found.
+
+    No-op without the manifest, when nothing needs one, when no safe link
+    resolves one, or when OCL_REPR_COLLAPSE=0 (kill switch). If the manifest
+    predates the date_match column, the feature disables itself with a
+    single logger.warning (once per process) instead of swallowing the
+    error. Never raises.
     """
+    if not OCL_REPR_COLLAPSE:
+        return
     needy = [r.get("decision_id") for r in rows
              if isinstance(r, dict) and r.get("decision_id") and not r.get("regeste")]
     if not needy:
@@ -6083,7 +6140,8 @@ def _harvest_missing_regeste(rows: list[dict]) -> None:
     conn = _get_manifest_conn()
     if conn is None:
         return
-    best: dict[str, dict] = {}
+    global _harvest_date_match_warned
+    candidates: dict[str, list[dict]] = {}
     try:
         for i in range(0, len(needy), 500):
             chunk = needy[i:i + 500]
@@ -6096,20 +6154,35 @@ def _harvest_missing_regeste(rows: list[dict]) -> None:
                 (*chunk, _REPR_SAFE_MIN_CONFIDENCE),
             ):
                 cid = r["canonical_decision_id"]
-                if cid not in best or r["confidence"] > best[cid]["confidence"]:
-                    best[cid] = {
-                        "member_decision_id": r["member_decision_id"],
-                        "relation_type": r["relation_type"],
-                        "evidence_method": r["evidence_method"],
-                        "confidence": r["confidence"],
-                    }
+                candidates.setdefault(cid, []).append({
+                    "member_decision_id": r["member_decision_id"],
+                    "relation_type": r["relation_type"],
+                    "evidence_method": r["evidence_method"],
+                    "confidence": r["confidence"],
+                })
+    except sqlite3.OperationalError as e:
+        if "date_match" in str(e).lower():
+            if not _harvest_date_match_warned:
+                logger.warning(
+                    "_harvest_missing_regeste disabled: decision_representations "
+                    "manifest has no date_match column (%s) — rebuild the "
+                    "manifest to re-enable regeste harvesting.", e,
+                )
+                _harvest_date_match_warned = True
+        return
     except sqlite3.Error:
         return
     finally:
         conn.close()
-    if not best:
+    if not candidates:
         return
-    member_ids = list({v["member_decision_id"] for v in best.values()})
+    # Deterministic preference order per canonical: highest confidence
+    # first, member_decision_id as the tie-break so two equal-confidence
+    # links don't depend on unordered SQLite row order.
+    for members in candidates.values():
+        members.sort(key=lambda v: (-v["confidence"], v["member_decision_id"]))
+    member_ids = list({m["member_decision_id"]
+                        for members in candidates.values() for m in members})
     texts: dict[str, str] = {}
     try:
         dconn = get_db()
@@ -6132,13 +6205,17 @@ def _harvest_missing_regeste(rows: list[dict]) -> None:
         if not isinstance(r, dict) or r.get("regeste"):
             continue
         did = r.get("decision_id")
-        info = best.get(did)
-        if not info:
+        members = candidates.get(did)
+        if not members:
             continue
-        text = texts.get(info["member_decision_id"])
-        if text:
-            r["regeste"] = _truncate(text, MAX_SNIPPET_LEN)
-            r["regeste_source"] = info["member_decision_id"]
+        # Best-confidence member first; fall back down the sorted list when
+        # a higher-ranked member turns out to carry no regeste of its own.
+        for info in members:
+            text = texts.get(info["member_decision_id"])
+            if text:
+                r["regeste"] = text if not truncate else _truncate(text, MAX_SNIPPET_LEN)
+                r["regeste_source"] = info["member_decision_id"]
+                break
 
 
 _anwaltsrecht_warned = False
@@ -9924,6 +10001,10 @@ def _rerank_rows(
     _seen_dockets: set[str] = set()
     _docket_at: dict[str, int] = {}
     _repr_at: dict[str, int] = {}
+    # Empty (not just no safe link) when OCL_REPR_COLLAPSE=0: the kill
+    # switch makes _safe_representation_links_for return None unconditionally,
+    # so the fold below never fires and this loop behaves exactly as it did
+    # before the representation-manifest fold existed.
     _repr_links = _safe_representation_links_for(
         [r["decision_id"] for r in rows]) or {}
     _deduped: list = []
@@ -10006,6 +10087,10 @@ def _rerank_rows(
         is_federal = court_level.startswith("federal")
         threshold = LEADING_CASE_THRESHOLD_FEDERAL if is_federal else LEADING_CASE_THRESHOLD_CANTONAL
 
+        # Captured once so the regeste_source check below asks about the
+        # SAME language _pick_regeste just used.
+        _regeste_lang = next(iter(query_languages), "de")
+
         result = {
             "decision_id": did,
             "court": court,
@@ -10018,7 +10103,7 @@ def _rerank_rows(
             "language": row["language"],
             "title": row["title"],
             "regeste": _truncate(
-                _pick_regeste(row, next(iter(query_languages), "de")),
+                _pick_regeste(row, _regeste_lang),
                 MAX_SNIPPET_LEN,
             ),
             "snippet": best_snippet,
@@ -10040,20 +10125,34 @@ def _rerank_rows(
             result["is_leading_case"] = True
         # Representation-manifest fold (design doc §5/§7 phase 5): `row` is a
         # plain dict, not the raw sqlite3.Row, only when _fold_representation_
-        # row merged a folded member's data into it above. `regeste_source`
-        # only travels when it actually explains the regeste shown above
-        # (truncation/_pick_regeste could in principle still pick an
-        # abstract_{lang} column over the harvested text; it never does here
-        # since a harvested row has no abstract_* columns, but the check is
-        # cheap insurance against ever mislabeling a row's OWN regeste).
+        # row merged a folded member's data into it above.
         if isinstance(row, dict):
             _reps = row.get("representations")
             if _reps:
                 result["representations"] = _reps
-            if row.get("regeste_source") and result.get("regeste"):
-                result["regeste_source"] = row["regeste_source"]
+            _rs = _regeste_source_if_harvested(row, result, _regeste_lang)
+            if _rs:
+                result["regeste_source"] = _rs
         results.append(result)
     return results
+
+
+def _regeste_source_if_harvested(row: dict, result: dict, lang: str) -> str | None:
+    """`regeste_source` only travels when it actually explains the regeste
+    shown in `result`: _pick_regeste prefers the row's OWN abstract_{lang}
+    column over the `regeste` field a representation-manifest fold wrote the
+    harvested text into, so a row that has BOTH a harvested `regeste_source`
+    AND its own non-empty abstract_{lang} text would otherwise mislabel its
+    own text as harvested from `regeste_source`'s decision. Returns None
+    when `row` carries no regeste_source (nothing was harvested), `result`
+    carries no regeste (nothing shown), or the row's own abstract_{lang}
+    column — not the harvested text — is what's actually being shown.
+    """
+    source = row.get("regeste_source")
+    if not source or not result.get("regeste"):
+        return None
+    own_abstract = row.get(f"abstract_{(lang or 'de').lower()[:2]}")
+    return None if own_abstract else source
 
 
 def _analyze_query(
@@ -11637,8 +11736,11 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     # (vd_findinfo: ~99%) — fill it in from the member's own stored text,
     # labeled with regeste_source, feeding get_decision and (via it)
     # get_regeste below. Reuses the search-page harvester for a page of one;
-    # no-op without the manifest or a safe link.
-    _harvest_missing_regeste([result])
+    # no-op without the manifest or a safe link. truncate=False: get_regeste
+    # tells clients to quote the returned `regeste` verbatim (R2) — unlike a
+    # search result row, this is not a clipped preview, so the harvested
+    # text must come back FULL AND UNCHANGED, never the 500-char snippet cut.
+    _harvest_missing_regeste([result], truncate=False)
 
     # Joined-docket resolution (#41): the caller looked up a secondary docket of
     # a consolidated proceeding; surface that the returned decision is the lead,
@@ -31786,8 +31888,13 @@ _RESEARCH_COMPACT_KEYS = (
 # client can collapse duplicate representations without a second request;
 # publication_date is set by search_fts5 where the court publishes one;
 # representations is set by the search-collapse fold (design doc §5 phase 5)
-# only on a row that actually folded another one in.
-_RESEARCH_COMPACT_OPTIONAL_KEYS = ("canonical_decision_id", "is_canonical", "publication_date", "representations")
+# only on a row that actually folded another one in; regeste_source is set by
+# the same fold / _harvest_missing_regeste whenever `regeste` was donated by
+# another record — a compact row keeps it so provenance travels with the
+# harvested quotation even without the full/representations payload.
+_RESEARCH_COMPACT_OPTIONAL_KEYS = (
+    "canonical_decision_id", "is_canonical", "publication_date", "representations", "regeste_source",
+)
 _DECISION_MCP_TEXT_CAP = 200_000
 
 
@@ -32222,6 +32329,9 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 # Markdown rendering below so the text and structured
                 # payload never disagree. One or two bounded, indexed
                 # queries for the whole page; no-op without the manifest.
+                # truncate=True (default): this is a search RESULT ROW, a
+                # preview like every other regeste on this page — clip to
+                # MAX_SNIPPET_LEN, same as the row's own regeste would be.
                 _harvest_missing_regeste(results)
 
                 # Pinpoint enrichment: attach the most-relevant Erwägung
@@ -32268,6 +32378,14 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                         if r.get("regeste"):
                             # Auto-link inner decision references so quoted snippets stay clickable.
                             text += f"   Regeste: {_auto_link_citations(r['regeste'])}\n"
+                            if r.get("regeste_source"):
+                                # Harvested verbatim from a safely-linked representation
+                                # (design doc §4/§5) rather than this record's own text —
+                                # provenance travels with the quotation (R2).
+                                text += (
+                                    f"   (Regeste harvested from linked representation "
+                                    f"{r['regeste_source']})\n"
+                                )
                         if r.get("snippet"):
                             text += f"   ...{_auto_link_citations(r['snippet'])}...\n"
                         pp = r.get("pinpoint")

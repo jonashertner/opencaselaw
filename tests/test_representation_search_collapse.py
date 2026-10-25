@@ -68,7 +68,8 @@ ROWS = [
 ]
 
 
-def _build(path: Path) -> str:
+def _build(path: Path, rows=None) -> str:
+    rows = ROWS if rows is None else rows
     conn = sqlite3.connect(path)
     conn.executescript(
         "CREATE VIRTUAL TABLE decisions_fts USING fts5("
@@ -77,7 +78,7 @@ def _build(path: Path) -> str:
         " chamber TEXT, docket_number TEXT, decision_date TEXT, language TEXT, title TEXT,"
         " regeste TEXT, full_text TEXT, source_url TEXT, pdf_url TEXT);"
     )
-    for i, (did, court, canton, docket, date, regeste, text, url) in enumerate(ROWS, start=1):
+    for i, (did, court, canton, docket, date, regeste, text, url) in enumerate(rows, start=1):
         conn.execute(
             "INSERT INTO decisions_fts (rowid, decision_id, court, canton, docket_number,"
             " language, title, regeste, full_text) VALUES (?,?,?,?,?,'de','',?,?)",
@@ -382,3 +383,288 @@ def test_get_decision_by_id_noop_without_manifest(corpus, tmp_path, monkeypatch)
     assert result["regeste"] is None
     assert "regeste_source" not in result
     assert "canonical_decision_id" not in result
+
+
+# ── R2 BLOCKER fix: get_decision_by_id / get_regeste must never clip a ──────
+# ── harvested Regeste — only a SEARCH RESULT ROW may (review finding #1) ────
+
+LONG_REGESTE = "Regeste officiel détaillé mesures protection enfant. " * 15
+assert len(LONG_REGESTE) > m.MAX_SNIPPET_LEN
+
+LONG_ROWS = [
+    (VD_CANON, "vd_gerichte", "VD", "JJ13.035036", "2015-05-18", None,
+     "mesures protection enfant JJ13.035036 curatelle texte complet", "https://vd1"),
+    (VD_MEMBER, "vd_findinfo", "VD", "HC/2015/488", "2015-05-18",
+     LONG_REGESTE,
+     "Rubrum JJ13.035036 objet du present arret HC/2015/488 curatelle", "https://vd2"),
+]
+
+
+@pytest.fixture
+def long_regeste_db(tmp_path, monkeypatch):
+    dbp = _build(tmp_path / "long.db", LONG_ROWS)
+    monkeypatch.setattr(m, "get_db", lambda: _rconn(dbp))
+    return dbp
+
+
+def test_harvest_missing_regeste_default_truncates_for_search_rows(long_regeste_db, manifest):
+    results = [{"decision_id": VD_CANON, "regeste": None}]
+    m._harvest_missing_regeste(results)  # truncate defaults to True
+    assert results[0]["regeste"] == m._truncate(LONG_REGESTE, m.MAX_SNIPPET_LEN)
+    assert results[0]["regeste"] != LONG_REGESTE
+    assert results[0]["regeste_source"] == VD_MEMBER
+
+
+def test_harvest_missing_regeste_truncate_false_returns_full_text(long_regeste_db, manifest):
+    results = [{"decision_id": VD_CANON, "regeste": None}]
+    m._harvest_missing_regeste(results, truncate=False)
+    assert results[0]["regeste"] == LONG_REGESTE  # full and unchanged
+    assert results[0]["regeste_source"] == VD_MEMBER
+
+
+def test_get_decision_by_id_harvests_full_long_regeste_unchanged(long_regeste_db, manifest):
+    result = m.get_decision_by_id(VD_CANON)
+    assert result["regeste"] == LONG_REGESTE  # NOT clipped to MAX_SNIPPET_LEN
+    assert result["regeste_source"] == VD_MEMBER
+
+
+def test_get_regeste_handler_returns_full_long_regeste_verbatim(long_regeste_db, manifest, monkeypatch):
+    monkeypatch.setattr(m, "_resolve_decision_id", lambda d: d)
+    monkeypatch.setattr(m, "_fetch_structure_row", lambda d: None)
+    monkeypatch.setattr(m, "_auto_link_citations", lambda text: text)
+    monkeypatch.setattr(m, "_build_citation_strings", lambda d: {
+        "citation_string_de": "stub-de", "citation_string_fr": "stub-fr",
+        "citation_string_it": "stub-it", "canonical_url": "https://x/y"})
+    monkeypatch.setattr(m, "_rule_statement", lambda d: None)
+    out = m._handle_get_regeste(decision_id=VD_CANON)
+    # get_regeste's own _note tells clients to quote `regeste` verbatim (R2) —
+    # it must therefore never be the 500-char search-row clip.
+    assert out["regeste"] == LONG_REGESTE
+    assert out["regeste_source"] == VD_MEMBER
+
+
+# ── Kill switch: OCL_REPR_COLLAPSE=0 restores pre-#90 behaviour ────────────
+
+def test_kill_switch_off_disables_collapse_and_harvest(corpus, manifest, monkeypatch):
+    monkeypatch.setattr(m, "OCL_REPR_COLLAPSE", False)
+    rows, _ = m.search_fts5(query="JJ13.035036", limit=10)
+    ids = _ids(rows)
+    assert VD_CANON in ids and VD_MEMBER in ids  # both come back, not folded
+    assert "representations" not in _by_id(rows)[VD_CANON]
+    assert _by_id(rows)[VD_CANON]["regeste"] is None  # never harvested either
+
+    # _harvest_missing_regeste is a direct no-op too, independent of search.
+    results = [{"decision_id": VD_CANON, "regeste": None}]
+    m._harvest_missing_regeste(results)
+    assert results[0]["regeste"] is None
+    assert "regeste_source" not in results[0]
+
+
+def test_kill_switch_off_safe_links_return_none(manifest, monkeypatch):
+    monkeypatch.setattr(m, "OCL_REPR_COLLAPSE", False)
+    assert m._safe_representation_links_for([VD_MEMBER]) is None
+
+
+# ── Provenance: regeste_source must name the record the text actually ──────
+# ── came from, never the row's own abstract_{lang} column (finding #3) ────
+
+def test_fold_representation_row_regeste_source_not_set_when_own_abstract_supplies_text():
+    # `kept` HAS its own abstract_de (so _pick_regeste will use that, not the
+    # harvested `regeste` field the fold writes) but carries no plain
+    # `regeste` of its own — the pre-fix check only looked at
+    # `result.get("regeste")` being truthy and would have mislabeled this.
+    kept = {"decision_id": VD_CANON, "regeste": None, "abstract_de": "Own abstract text",
+            "source_url": "https://vd1"}
+    member = {"decision_id": VD_MEMBER, "regeste": "Harvested text", "source_url": "https://vd2"}
+    out = m._fold_representation_row(kept, member, {})
+    # The fold itself still donates the harvested regeste/regeste_source —
+    # the mislabeling only happens downstream, in the helper
+    # _regeste_source_if_harvested, which _rerank_rows consults before
+    # attaching regeste_source to the rendered result.
+    assert out["regeste"] == "Harvested text"
+    assert out["regeste_source"] == VD_MEMBER
+
+
+# _regeste_source_if_harvested is the extracted, directly-testable check
+# _rerank_rows runs before attaching `regeste_source` to a result row.
+
+def test_regeste_source_if_harvested_suppressed_by_own_abstract_column():
+    row = {"regeste_source": VD_MEMBER, "abstract_de": "Own abstract text"}
+    result = {"regeste": "Own abstract text"}  # what _pick_regeste actually shows
+    assert m._regeste_source_if_harvested(row, result, "de") is None
+
+
+def test_regeste_source_if_harvested_returns_source_when_harvested_text_is_shown():
+    row = {"regeste_source": VD_MEMBER}  # no abstract_de on this row
+    result = {"regeste": "Harvested text"}
+    assert m._regeste_source_if_harvested(row, result, "de") == VD_MEMBER
+
+
+def test_regeste_source_if_harvested_none_without_a_harvest():
+    row = {"abstract_de": "Own text"}  # no regeste_source: nothing was harvested
+    result = {"regeste": "Own text"}
+    assert m._regeste_source_if_harvested(row, result, "de") is None
+
+
+def test_regeste_source_if_harvested_none_when_nothing_is_shown():
+    row = {"regeste_source": VD_MEMBER}
+    result = {"regeste": None}
+    assert m._regeste_source_if_harvested(row, result, "de") is None
+
+
+def test_regeste_source_if_harvested_checks_the_language_actually_used():
+    # abstract_fr is irrelevant when the row was picked in German — only the
+    # SAME language _pick_regeste used may suppress the attribution.
+    row = {"regeste_source": VD_MEMBER, "abstract_fr": "French abstract"}
+    result = {"regeste": "Harvested text"}
+    assert m._regeste_source_if_harvested(row, result, "de") == VD_MEMBER
+
+
+# ── Survivor signals: max citation_count + OR'd is_leading_case (finding #4) ─
+
+def test_fold_representation_row_keeps_max_citation_count_and_ors_leading_case():
+    kept = {"decision_id": VD_CANON, "regeste": "x", "citation_count": 3,
+            "source_url": "https://vd1"}
+    member = {"decision_id": VD_MEMBER, "regeste": "y", "citation_count": 9,
+              "is_leading_case": True, "source_url": "https://vd2"}
+    out = m._fold_representation_row(kept, member, {})
+    assert out["citation_count"] == 9  # max(3, 9), not the survivor's own 3
+    assert out["is_leading_case"] is True
+    assert out["decision_id"] == VD_CANON  # which row survives is unchanged
+
+
+def test_fold_representation_row_keeps_survivors_higher_citation_count():
+    kept = {"decision_id": VD_CANON, "regeste": "x", "citation_count": 42}
+    member = {"decision_id": VD_MEMBER, "regeste": None, "citation_count": 5}
+    out = m._fold_representation_row(kept, member, {})
+    assert out["citation_count"] == 42
+
+
+def test_fold_representation_row_citation_fields_absent_when_both_absent():
+    kept = {"decision_id": VD_CANON, "regeste": "x"}
+    member = {"decision_id": VD_MEMBER, "regeste": None}
+    out = m._fold_representation_row(kept, member, {})
+    assert "citation_count" not in out
+    assert "is_leading_case" not in out
+
+
+# ── Fallback to the next eligible member when the best-confidence one has ──
+# ── no Regeste of its own; deterministic tie-break (finding #5) ────────────
+
+VD_MEMBER_NOTEXT = "vd_findinfo_notext"
+
+FALLBACK_ROWS = ROWS + [
+    (VD_MEMBER_NOTEXT, "vd_findinfo", "VD", "HC/2015/999", "2015-05-18", None,
+     "texte sans regeste JJ13.035036", "https://vd3"),
+]
+
+FALLBACK_LINK_ROWS = [
+    (VD_CANON, VD_CANON, "VD", "judgment", "procedure_cross_reference", 1.0, 1),
+    # Highest confidence: no regeste of its own.
+    (VD_CANON, VD_MEMBER_NOTEXT, "VD", "publication_page", "procedure_cross_reference", 0.95, 1),
+    # Next eligible member: has one — the harvester must fall back to it.
+    (VD_CANON, VD_MEMBER, "VD", "publication_page", "procedure_cross_reference", 0.9, 1),
+]
+
+
+@pytest.fixture
+def fallback_db(tmp_path, monkeypatch):
+    dbp = _build(tmp_path / "fallback.db", FALLBACK_ROWS)
+    monkeypatch.setattr(m, "get_db", lambda: _rconn(dbp))
+    return dbp
+
+
+@pytest.fixture
+def fallback_manifest(tmp_path, monkeypatch):
+    mp = _manifest(tmp_path / "fallback_manifest.db", FALLBACK_LINK_ROWS)
+    monkeypatch.setattr(m, "REPRESENTATION_MANIFEST_DB_PATH", Path(mp))
+    monkeypatch.setattr(m, "_manifest_warned", False)
+    return mp
+
+
+def test_harvest_missing_regeste_falls_back_past_textless_best_confidence_member(
+        fallback_db, fallback_manifest):
+    results = [{"decision_id": VD_CANON, "regeste": None}]
+    m._harvest_missing_regeste(results)
+    assert results[0]["regeste"] == "Regeste officiel HC 2015 488 mesures protection enfant"
+    assert results[0]["regeste_source"] == VD_MEMBER  # not VD_MEMBER_NOTEXT
+
+
+TIE_ROWS = [
+    (VD_CANON, "vd_gerichte", "VD", "JJ13.035036", "2015-05-18", None,
+     "mesures protection enfant JJ13.035036 curatelle texte complet", "https://vd1"),
+    ("vd_findinfo_bbb", "vd_findinfo", "VD", "HC/2015/002", "2015-05-18",
+     "Regeste BBB", "texte BBB", "https://vdB"),
+    ("vd_findinfo_aaa", "vd_findinfo", "VD", "HC/2015/001", "2015-05-18",
+     "Regeste AAA", "texte AAA", "https://vdA"),
+]
+
+TIE_LINK_ROWS = [
+    (VD_CANON, VD_CANON, "VD", "judgment", "procedure_cross_reference", 1.0, 1),
+    # Equal confidence: tie-break must be deterministic (member id, ascending).
+    (VD_CANON, "vd_findinfo_bbb", "VD", "publication_page", "procedure_cross_reference", 0.9, 1),
+    (VD_CANON, "vd_findinfo_aaa", "VD", "publication_page", "procedure_cross_reference", 0.9, 1),
+]
+
+
+@pytest.fixture
+def tie_db(tmp_path, monkeypatch):
+    dbp = _build(tmp_path / "tie.db", TIE_ROWS)
+    monkeypatch.setattr(m, "get_db", lambda: _rconn(dbp))
+    return dbp
+
+
+@pytest.fixture
+def tie_manifest(tmp_path, monkeypatch):
+    mp = _manifest(tmp_path / "tie_manifest.db", TIE_LINK_ROWS)
+    monkeypatch.setattr(m, "REPRESENTATION_MANIFEST_DB_PATH", Path(mp))
+    monkeypatch.setattr(m, "_manifest_warned", False)
+    return mp
+
+
+def test_harvest_missing_regeste_tie_break_is_deterministic_by_member_id(tie_db, tie_manifest):
+    results = [{"decision_id": VD_CANON, "regeste": None}]
+    m._harvest_missing_regeste(results)
+    assert results[0]["regeste_source"] == "vd_findinfo_aaa"  # lexicographically first wins
+
+
+def test_harvest_missing_regeste_date_match_column_missing_logs_once(tmp_path, monkeypatch, corpus):
+    # A manifest built before date_match existed: the query raises
+    # OperationalError instead of silently returning no rows. The feature
+    # must disable itself with exactly one warning per process, not swallow
+    # the error (finding #5).
+    c = sqlite3.connect(tmp_path / "old_schema.db")
+    c.executescript(
+        "CREATE TABLE decision_representations ("
+        " canonical_decision_id TEXT NOT NULL, member_decision_id TEXT NOT NULL,"
+        " canton TEXT NOT NULL, relation_type TEXT NOT NULL, evidence_method TEXT NOT NULL,"
+        " confidence REAL NOT NULL,"
+        " PRIMARY KEY (canonical_decision_id, member_decision_id));"
+        "CREATE INDEX idx_repr_member ON decision_representations(member_decision_id);"
+    )
+    c.execute(
+        "INSERT INTO decision_representations VALUES (?,?,?,?,?,?)",
+        (VD_CANON, VD_MEMBER, "VD", "publication_page", "procedure_cross_reference", 0.9),
+    )
+    c.commit()
+    c.close()
+    monkeypatch.setattr(m, "REPRESENTATION_MANIFEST_DB_PATH", tmp_path / "old_schema.db")
+    monkeypatch.setattr(m, "_manifest_warned", False)
+    monkeypatch.setattr(m, "_harvest_date_match_warned", False)
+    calls = []
+    monkeypatch.setattr(m.logger, "warning", lambda *a, **k: calls.append((a, k)))
+    results = [{"decision_id": VD_CANON, "regeste": None}]
+    m._harvest_missing_regeste(results)
+    assert results[0]["regeste"] is None  # disabled, not silently working around it
+    assert len(calls) == 1
+    # Second call in the same process: no second warning.
+    m._harvest_missing_regeste(results)
+    assert len(calls) == 1
+
+
+# ── total_count is computed pre-fold (not in scope, documented only) ───────
+
+def test_total_count_comment_marks_it_pre_fold():
+    import inspect
+    src = inspect.getsource(m._search_fts5_inner)
+    assert "pre-fold" in src.lower()
