@@ -174,6 +174,10 @@ class ICJScraper(BaseScraper):
     MAX_ERRORS = 20
     USER_AGENT = "OpenCaseLawBot/1.0 (+https://opencaselaw.ch; team@jonashertner.com)"
     CACHE_NONE_AS_GAP = True
+    # run_scraper counts every None, not consecutive ones. A full run returns
+    # None for ~600 procedural orders and for each document neither the Court
+    # nor the Archive serves (everything since 2024): ~800 of ~1,500.
+    MAX_NONE_RETURNS = 3000
 
     def __init__(self, state_dir: Path = Path("state")):
         super().__init__(state_dir=state_dir)
