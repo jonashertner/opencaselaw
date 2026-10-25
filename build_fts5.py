@@ -227,7 +227,8 @@ def _check_swap_per_court_gate(
         for code in sorted(env_exempt - set(live_by_court)):
             logger.warning(
                 "pre-swap per-court gate: exempt court %r is not in the live "
-                "DB — check the spelling", code)
+                "DB — check the spelling, or remove the leftover exemption "
+                "from .env.publish if its retirement already swapped", code)
     for court, live_n in sorted(live_by_court.items()):
         if live_n < min_live_rows:
             continue
@@ -252,8 +253,9 @@ def _check_swap_per_court_gate(
                 f"(+{folded:,} answered through an alias) "
                 f"({(new_n / live_n) if live_n else 0:.1%} of live, "
                 f"< {fraction:.0%}). Live DB left untouched; temp DB kept for "
-                f"inspection. Set OCL_SKIP_SWAP_GATE=1 to force an intentional "
-                f"per-court shrink (e.g. a court retirement)."
+                f"inspection. For an intentional per-court shrink (e.g. a court "
+                f"retirement) set OCL_SWAP_GATE_EXEMPT={court} for one run; "
+                f"OCL_SKIP_SWAP_GATE=1 is the last resort (it disarms every gate)."
             )
 
 
