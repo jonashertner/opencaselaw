@@ -12097,6 +12097,77 @@ def _known_law_codes() -> frozenset[str]:
     return _known_law_codes_cache
 
 
+# The `statutes` table of the reference graph keeps the code as the extractor
+# read it, so one provision is spread over the languages it is cited in:
+# "Art. 41 OR" and "art. 41 CO" are separate rows. A statute lookup that takes
+# the code literally answers for one language only (live 2026-10-26:
+# analyze_legal_trend OR 41 -> 3,734 decisions; the CO rows hold 6,837 more,
+# from VD, GE, BGer and TI). The federal table of docs/data/law_codes.json
+# lists every code of each act (abbr_de/fr/it + aliases); a statute lookup
+# matches all of them.
+#
+# Codes that also name a cantonal act are left as given and never added as
+# another code's variant: LPA is the French TSchG but also the Geneva/Vaud
+# administrative procedure act, StG is the Stamp Duty Act but also every
+# cantonal tax act. Evidence (swiss-law-graph, 2026-10-26): share of cited
+# articles that do not exist in the federal act, per deciding canton, e.g.
+# StG in BE 82 %, SG 70 %; PBG in SG 81 %; LAF in VD 90 %. The a-prefixed
+# codes are upper-cased editions that collide with other acts (aZG, the 1925
+# Customs Act, is stored as AZG = Arbeitszeitgesetz).
+_CANTONAL_HOMONYM_CODES = frozenset({
+    "LPA", "VRP", "LT", "LATC", "KRG", "LOC", "LOG", "LI", "LIC", "LIP", "LPCC",
+    "VSG", "STG", "PBG", "LAF", "LC", "LPERS", "PG", "LAS",
+    "LMC", "LPFC", "KAG", "VPRG", "LEP", "LCP", "LAP", "LPG", "STREG", "LTB",
+    "LCMP", "VGV", "OPN", "LEH", "LOP", "VGS",
+    "AZG", "AWG", "ASTG", "ASTV",
+})
+_law_code_variants_cache: dict[str, tuple[str, ...]] | None = None
+
+
+def _stored_law_code(code: str | None) -> str:
+    """A law code as the statutes table stores it: upper case, no dots or
+    spaces ("Cst." -> "CST", "Cost." -> "COST")."""
+    return re.sub(r"[.\s]+", "", str(code or "")).upper()
+
+
+def _law_code_variants(law_code: str | None) -> tuple[str, ...]:
+    """Every stored code of the federal act `law_code` names, the requested
+    code first: "OR" -> ("OR", "CO"), "Cst." -> ("CST", "BV", "COST").
+
+    An unknown code, a code shared by two federal acts, and a code that also
+    names a cantonal act (_CANTONAL_HOMONYM_CODES) are returned alone.
+    """
+    global _law_code_variants_cache
+    code = _stored_law_code(law_code)
+    if not code:
+        return ()
+    if _law_code_variants_cache is None:
+        groups: dict[str, set[frozenset[str]]] = {}
+        try:
+            with open(_LAW_CODES_JSON_PATH, encoding="utf-8") as fh:
+                data = json.load(fh)
+            for law in (data.get("federal") or []):
+                names = [law.get("abbr_de"), law.get("abbr_fr"), law.get("abbr_it"),
+                         *(law.get("aliases") or [])]
+                group = frozenset(c for c in (_stored_law_code(n) for n in names)
+                                  if c and c not in _CANTONAL_HOMONYM_CODES)
+                for c in group:
+                    groups.setdefault(c, set()).add(group)
+        except (OSError, ValueError) as e:
+            logger.debug("law_codes.json not loaded for law-code variants: %s", e)
+        _law_code_variants_cache = {
+            c: tuple(sorted(next(iter(gs)))) for c, gs in groups.items() if len(gs) == 1
+        }
+    others = _law_code_variants_cache.get(code, ())
+    return (code, *(c for c in others if c != code))
+
+
+def _law_code_sql(law_code: str | None, column: str = "s.law_code") -> tuple[str, tuple[str, ...]]:
+    """`column IN (?, ...)` over _law_code_variants(law_code), with its params."""
+    codes = _law_code_variants(law_code) or (_stored_law_code(law_code),)
+    return f"{column} IN ({', '.join('?' for _ in codes)})", codes
+
+
 # find_leading_cases, free-text mode: the most-cited matches are re-ranked
 # by how much of the query their regeste and title carry. Ranking every
 # text match by citation count alone put megacases that mention the topic
@@ -12326,14 +12397,16 @@ def _find_leading_cases(
             # the provision — not by global citation count. Ranking by global count
             # surfaced procedural megacases that cite the provision once (audit
             # 2026-06-28: BGE 126 I 97, right-to-be-heard, 6,535 global cites). The
-            # global count is kept for context. Graph DB uses uppercase law codes.
+            # global count is kept for context. Graph DB uses uppercase law codes,
+            # one row per language variant (OR and CO): match them all.
             law_code = law_code.upper()
+            code_sql, codes = _law_code_sql(law_code)
             # x2: each BGE may fill two rows (#40), folded below.
             overfetch = (limit * 3 if query else limit) * 2
             _statute_sub = (
                 "SELECT ds.decision_id FROM decision_statutes ds "
                 "JOIN statutes s ON s.statute_id = ds.statute_id "
-                "WHERE s.law_code = ? AND s.article = ?")
+                f"WHERE {code_sql} AND s.article = ?")
             rows = conn.execute(
                 f"""
                 SELECT ct.target_decision_id AS decision_id,
@@ -12352,17 +12425,19 @@ def _find_leading_cases(
                 ORDER BY topic_count DESC, global_count DESC
                 LIMIT ?
                 """,
-                tuple(
-                    v
-                    for v in (
-                        law_code, article,          # source subquery (topic_count)
-                        law_code, article,          # target subquery (candidate set)
-                        court if court else None,
-                        date_from if date_from else None,
-                        date_to if date_to else None,
-                        overfetch,
-                    )
-                    if v is not None
+                (
+                    *codes, article,                # source subquery (topic_count)
+                    *codes, article,                # target subquery (candidate set)
+                    *(
+                        v
+                        for v in (
+                            court if court else None,
+                            date_from if date_from else None,
+                            date_to if date_to else None,
+                        )
+                        if v is not None
+                    ),
+                    overfetch,
                 ),
             ).fetchall()
             candidates = [(r["decision_id"], int(r["topic_count"])) for r in rows]
@@ -12719,6 +12794,7 @@ def analyze_legal_trend(
     date_to = _parse_date_param(date_to)
 
     year_counts: dict[int, int] = {}
+    codes: tuple[str, ...] = ()
 
     # Statute path: use graph DB
     if law_code and article:
@@ -12726,18 +12802,20 @@ def analyze_legal_trend(
         if conn is None:
             return {"error": "Reference graph not available."}
         try:
-            sql = """
+            # Every language variant of the code (OR and CO), counted once per decision.
+            code_sql, codes = _law_code_sql(law_code)
+            sql = f"""
                 SELECT CAST(SUBSTR(d.decision_date, 1, 4) AS INTEGER) AS year,
                        COUNT(DISTINCT ds.decision_id) AS cnt
                 FROM decision_statutes ds
                 JOIN statutes s ON s.statute_id = ds.statute_id
                 JOIN decisions d ON d.decision_id = ds.decision_id
-                WHERE s.law_code = ? AND s.article = ?
+                WHERE {code_sql} AND s.article = ?
                   AND d.decision_date IS NOT NULL
                   AND CAST(SUBSTR(d.decision_date, 1, 4) AS INTEGER) > 1800
                   AND CAST(SUBSTR(d.decision_date, 1, 4) AS INTEGER) < 2100
             """
-            params: list = [law_code, article]
+            params: list = [*codes, article]
             if court:
                 sql += " AND d.court = ?"
                 params.append(court)
@@ -12804,13 +12882,16 @@ def analyze_legal_trend(
     total = sum(year_counts.values())
     years_sorted = sorted(year_counts.items())
 
-    return {
+    out = {
         "years": [{"year": y, "count": c} for y, c in years_sorted],
         "total": total,
         "law_code": law_code,
         "article": article,
         "query": query,
     }
+    if len(codes) > 1:
+        out["law_codes_counted"] = list(codes)
+    return out
 
 
 def draft_mock_decision(
@@ -13147,34 +13228,34 @@ def _search_graph_decisions_for_statutes(*, statute_requests: list[dict], limit:
         return []
     try:
         for st in statute_requests[:8]:
-            law = st["law_code"]
+            code_sql, codes = _law_code_sql(st["law_code"])   # OR and CO alike
             article = st["article"]
             paragraph = st.get("paragraph")
             if paragraph:
                 rows = graph_conn.execute(
-                    """
+                    f"""
                     SELECT ds.decision_id, SUM(ds.mention_count) AS n
                     FROM decision_statutes ds
                     JOIN statutes s ON s.statute_id = ds.statute_id
-                    WHERE s.law_code = ? AND s.article = ? AND IFNULL(s.paragraph, '') = ?
+                    WHERE {code_sql} AND s.article = ? AND IFNULL(s.paragraph, '') = ?
                     GROUP BY ds.decision_id
                     ORDER BY n DESC
                     LIMIT ?
                     """,
-                    (law, article, paragraph, max(20, limit)),
+                    (*codes, article, paragraph, max(20, limit)),
                 ).fetchall()
             else:
                 rows = graph_conn.execute(
-                    """
+                    f"""
                     SELECT ds.decision_id, SUM(ds.mention_count) AS n
                     FROM decision_statutes ds
                     JOIN statutes s ON s.statute_id = ds.statute_id
-                    WHERE s.law_code = ? AND s.article = ?
+                    WHERE {code_sql} AND s.article = ?
                     GROUP BY ds.decision_id
                     ORDER BY n DESC
                     LIMIT ?
                     """,
-                    (law, article, max(20, limit)),
+                    (*codes, article, max(20, limit)),
                 ).fetchall()
             for row in rows:
                 did = row["decision_id"]
@@ -22368,15 +22449,16 @@ def _find_leading_cases_by_statute_fallback(
     conn = _get_graph_conn()
     if conn is not None:
         try:
+            code_sql, codes = _law_code_sql(law_code)   # OR and CO alike
             rows = conn.execute(
-                """
-                SELECT ds.decision_id
+                f"""
+                SELECT DISTINCT ds.decision_id
                 FROM decision_statutes ds
                 JOIN statutes s ON s.statute_id = ds.statute_id
-                WHERE s.law_code = ? AND s.article = ?
+                WHERE {code_sql} AND s.article = ?
                 LIMIT ?
                 """,
-                (law_code, article, limit),
+                (*codes, article, limit),
             ).fetchall()
             decision_ids = [r["decision_id"] for r in rows]
         except sqlite3.Error as e:
