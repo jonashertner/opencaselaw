@@ -841,7 +841,7 @@ OCL.init({
     if (canSearch) canSearch.placeholder = t('search_placeholder');
 
     /* ── Static data tables (court display names, sets) ── */
-    var FED = new Set(['bger','bge','bvger','bstger','bpatger','weko','finma','finma_versicherungsrecht','edoeb','ch_vb','ta_sst','ch_bundesrat','bge_egmr','ubi','elcom','postcom','comcom','sav_kantone','sav_international','hudoc_ch','emark','bge_historical']);
+    var FED = new Set(['bger','bge','bvger','bstger','bpatger','weko','finma','finma_versicherungsrecht','edoeb','ch_vb','ta_sst','ch_bundesrat','bge_egmr','ubi','elcom','postcom','comcom','sav_kantone','sav_international','hudoc_ch','emark','bge_historical','untb_ccpr','untb_cat','untb_cerd','untb_cedaw','untb_crc','untb_crpd','untb_cescr','untb_ced','unwgad','cjeu','icj']);
     var CANTON_NAMES = {
       AG:'Aargau', AI:'Appenzell I.Rh.', AR:'Appenzell A.Rh.',
       BE:'Bern', BL:'Basel-Land', BS:'Basel-Stadt', FR:'Fribourg',
@@ -878,6 +878,17 @@ OCL.init({
       bge_historical:{de:'BGE 1–79 (1875–1953)',       fr:'ATF 1–79 (1875–1953)',               en:'Leading Decisions vols. 1–79 (1875–1953)'},
       hudoc_ch:   {de:'EGMR (Schweiz)',             fr:'CEDH (Suisse)',                 en:'ECHR (Switzerland)'},
       emark:      {de:'EMARK / ARK (1993–2006)',    fr:'JICRA / CRA (1993–2006)',          en:'Asylum Appeals (1993–2006)'},
+      untb_ccpr:  {de:'UNO-Menschenrechtsausschuss (CCPR)', fr:'Comité des droits de l’homme (CCPR)', en:'UN Human Rights Committee (CCPR)'},
+      untb_cat:   {de:'UNO-Ausschuss gegen Folter (CAT)', fr:'Comité contre la torture (CAT)', en:'UN Committee against Torture (CAT)'},
+      untb_cerd:  {de:'UNO-Ausschuss gegen Rassendiskriminierung (CERD)', fr:'Comité pour l’élimination de la discrimination raciale (CERD)', en:'UN Committee on the Elimination of Racial Discrimination (CERD)'},
+      untb_cedaw: {de:'UNO-Frauenrechtsausschuss (CEDAW)', fr:'Comité pour l’élimination de la discrimination à l’égard des femmes (CEDAW)', en:'UN Committee on the Elimination of Discrimination against Women (CEDAW)'},
+      untb_crc:   {de:'UNO-Kinderrechtsausschuss (CRC)', fr:'Comité des droits de l’enfant (CRC)', en:'UN Committee on the Rights of the Child (CRC)'},
+      untb_crpd:  {de:'UNO-Behindertenrechtsausschuss (CRPD)', fr:'Comité des droits des personnes handicapées (CRPD)', en:'UN Committee on the Rights of Persons with Disabilities (CRPD)'},
+      untb_cescr: {de:'UNO-Sozialrechtsausschuss (CESCR)', fr:'Comité des droits économiques, sociaux et culturels (CESCR)', en:'UN Committee on Economic, Social and Cultural Rights (CESCR)'},
+      untb_ced:   {de:'UNO-Ausschuss gegen das Verschwindenlassen (CED)', fr:'Comité des disparitions forcées (CED)', en:'UN Committee on Enforced Disappearances (CED)'},
+      unwgad:     {de:'UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)', fr:'Groupe de travail sur la détention arbitraire (WGAD)', en:'UN Working Group on Arbitrary Detention (WGAD)'},
+      cjeu:       {de:'Gerichtshof der Europäischen Union (EuGH)', fr:'Cour de justice de l’Union européenne (CJUE)', en:'Court of Justice of the EU (CJEU)'},
+      icj:        {de:'Internationaler Gerichtshof (IGH)', fr:'Cour internationale de Justice (CIJ)', en:'International Court of Justice (ICJ)'},
       // AG
       ag_gerichte:                {de:'Obergericht',               fr:'Tribunal supérieur',                    en:'High Court'},
       ag_verwaltungsgericht:      {de:'Verwaltungsgericht',        fr:'Tribunal administratif',                en:'Administrative Court'},
