@@ -266,6 +266,13 @@ Full 34-field Parquet export schema: [`export_parquet.py`](https://github.com/jo
 - `structure/structure.parquet`: one row per decision whose sections were extracted, ordered by `decision_id`. It carries `court` and `language`; the flags `has_sachverhalt`, `has_erwaegungen` and `has_dispositiv`; the extraction method of each section; and `erwaegungen_paragraph_count`, which is the number of rows `erwaegungen_paragraphs.parquet` holds for that decision.
 - `structure/erwaegungen_paragraphs.parquet` (refreshed weekly): one row per Erwägung, with `decision_id`, `e_number` (`1`, `1.1`, `2a`, `3c/aa`, …), `depth`, `parent` and the verbatim `text`. If a decision's Erwägungen carry no numbers, its reasoning appears as a single row with `e_number` `"0"` and `depth` 0. That number is not in the decision, so it cannot be cited as a pinpoint; filter on `depth >= 1` to keep only numbered Erwägungen.
 
+### Graph files: read before counting
+
+- **`citations.parquet` `confidence_score` is a ranking heuristic, not a probability of correctness.** It starts at 0.55 and rewards a target court that matches the docket pattern, the same canton, the same court, a target older than the citing decision, and a target within one to three years of it; it is lowered when several decisions match one reference. Filtering on it therefore removes old and cross-jurisdiction citations first, whether they are right or not.
+- **`statute_references.parquet` `mention_count` is 1 on every row.** The extractor de-duplicates references within a decision before they are counted, so a row means "this decision cites this article (and paragraph) at least once". Do not weight by it.
+- **`law_code` is the code as written, upper-cased, in the language of the decision.** `OR` and `CO` are one act; so are most codes that name a federal act. Resolve them with [`law_codes.json`](https://github.com/jonashertner/opencaselaw/blob/main/docs/data/law_codes.json): `alias_to_sr` for acts in force, `alias_to_repealed` (with validity dates) for repealed acts, and `alias_notes` for the codes a plain lookup gets wrong (cantonal homonyms such as `StG` or `PBG` in cantonal decisions, case collisions such as `KLV`/`KlV`, and `OPC`, which in decisions means the OPC-AVS/AI).
+- **A BGE and its BGer judgment are two records.** For thousands of judgments both the `bge_*` record and the `bger_*` docket record carry statute references, and citations go mostly to the BGE side. Counting "decisions that cite article X" over both double-counts these judgments.
+
 ## Court Coverage
 
 ### Federal Courts (20)
