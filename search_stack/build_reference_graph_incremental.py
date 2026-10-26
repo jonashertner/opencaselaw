@@ -359,11 +359,11 @@ def _apply_extraction(
             conn.execute(
                 """
                 INSERT INTO decision_statutes(decision_id, statute_id, mention_count)
-                VALUES (?, ?, 1)
+                VALUES (?, ?, ?)
                 ON CONFLICT(decision_id, statute_id)
-                DO UPDATE SET mention_count = mention_count + 1
+                DO UPDATE SET mention_count = mention_count + excluded.mention_count
                 """,
-                (did, statute.normalized),
+                (did, statute.normalized, statute.count),
             )
             statute_edges += 1
 
@@ -374,12 +374,12 @@ def _apply_extraction(
                 """
                 INSERT INTO decision_citations
                 (source_decision_id, target_ref, target_type, mention_count, is_prior_instance)
-                VALUES (?, ?, ?, 1, ?)
+                VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(source_decision_id, target_ref)
-                DO UPDATE SET mention_count = mention_count + 1,
+                DO UPDATE SET mention_count = mention_count + excluded.mention_count,
                              is_prior_instance = MAX(is_prior_instance, excluded.is_prior_instance)
                 """,
-                (did, citation.normalized, target_type, is_prior),
+                (did, citation.normalized, target_type, citation.count, is_prior),
             )
             citation_edges += 1
 

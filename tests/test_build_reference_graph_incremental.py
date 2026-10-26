@@ -906,3 +906,32 @@ def test_the_diff_path_does_not_replay_a_stale_journal_into_its_copy(
             "SELECT COUNT(*) FROM decisions").fetchone()[0] == len(BASE_ROWS)
     finally:
         conn.close()
+
+
+def test_both_builders_store_real_mention_counts(tmp_path: Path) -> None:
+    """mention_count is the number of occurrences in title + regeste +
+    full_text (it was 1 on every row until 2026-10)."""
+    row = {
+        "decision_id": "BGER_9C_1_2025",
+        "docket_number": "9C_1/2025",
+        "court": "bger",
+        "canton": "CH",
+        "language": "de",
+        "decision_date": "2025-01-01",
+        "title": "IV-Rente",
+        "regeste": "Art. 28 IVG.",
+        "full_text": ("Nach Art. 28 IVG und Art. 28 IVG ... BGE 140 III 86 E. 2; "
+                      "BGE 140 III 86 E. 4. Art. 6 ATSG."),
+    }
+    src = _make_decisions_db(tmp_path / "v1", [row])
+    full_out = tmp_path / "full.db"
+    build_graph(input_dir=Path("/nonexistent"), db_path=full_out, source_db=src)
+    incr_out = tmp_path / "incr.db"
+    build_graph_incremental(decisions_db=src, graph_db=tmp_path / "none.db",
+                            output_path=incr_out, force_full=True)
+    for out in (full_out, incr_out):
+        sig = _graph_signature(out)
+        assert {(s, n) for _d, s, n in sig["decision_statutes"]} == {
+            ("ART.28.IVG", 3), ("ART.6.ATSG", 1)}, out.name
+        assert [(t, n) for _s, t, _ty, n, _p in sig["decision_citations"]] == [
+            ("BGE 140 III 86", 2)], out.name

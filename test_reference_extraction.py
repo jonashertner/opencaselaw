@@ -52,3 +52,25 @@ def test_extract_statute_references_handles_ordinal_suffixes():
     assert "ART.8.ABS.2bis.BV" in normalized
     assert "ART.8b.IS" not in normalized
     assert "ART.34t.ER" not in normalized
+
+
+def test_repeated_references_are_counted_once_each():
+    text = ("Art. 8 EMRK; Art. 34 Abs. 2 BV. Nach Art. 8 EMRK ... art. 8 EMRK. "
+            "BGE 147 I 268 E. 3; ATF 147 I 268; 1A.122/2005, 1A.122/2005.")
+    statutes = {r.normalized: r.count for r in extract_statute_references(text)}
+    assert statutes == {"ART.8.EMRK": 3, "ART.34.ABS.2.BV": 1}
+    citations = {r.normalized: (r.citation_type, r.count) for r in extract_case_citations(text)}
+    assert citations == {"BGE 147 I 268": ("bge", 2), "1A_122_2005": ("docket", 2)}
+
+
+def test_counting_keeps_first_occurrence_order_and_raw():
+    refs = extract_statute_references("Art. 41 OR, Art. 8 EMRK, art. 41 OR")
+    assert [(r.normalized, r.raw, r.count) for r in refs] == [
+        ("ART.41.OR", "Art. 41 OR", 2), ("ART.8.EMRK", "Art. 8 EMRK", 1)]
+    assert extract_references("Art. 41 OR; Art. 41 OR")["statutes"][0]["count"] == 2
+
+
+def test_bge_prefix_does_not_add_a_docket_occurrence():
+    refs = extract_case_citations("BGE 147 I 268, BGE 147 I 268 und 147 I 268")
+    assert [(r.normalized, r.count) for r in refs] == [
+        ("BGE 147 I 268", 2), ("147 I 268", 1)]

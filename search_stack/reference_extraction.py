@@ -9,7 +9,7 @@ Extracts:
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
 _ARTICLE_MARKER = r"(?:Art\.?|Artikel)"
 _PARAGRAPH_MARKER = r"(?:Abs\.?|Absatz|al\.?|alin(?:ea)?\.?|cpv\.?|co\.?|para\.?)"
@@ -91,6 +91,10 @@ class StatuteReference:
     article: str
     paragraph: str | None
     normalized: str
+    # Occurrences of this reference in the text. One record per normalized
+    # reference, first occurrence's raw form; the graph stores this as
+    # mention_count (always 1 before 2026-10, when repeats were dropped).
+    count: int = 1
 
 
 @dataclass(frozen=True)
@@ -98,6 +102,7 @@ class CaseCitation:
     raw: str
     citation_type: str  # bge | docket
     normalized: str
+    count: int = 1
 
 
 def extract_references(text: str) -> dict[str, list[dict]]:
@@ -113,8 +118,8 @@ def extract_statute_references(text: str) -> list[StatuteReference]:
     if not text:
         return []
 
-    refs: list[StatuteReference] = []
-    seen: set[str] = set()
+    refs: dict[str, StatuteReference] = {}
+    counts: dict[str, int] = {}
 
     for match in STATUTE_PATTERN.finditer(text):
         raw = match.group(0).strip()
@@ -137,36 +142,41 @@ def extract_statute_references(text: str) -> list[StatuteReference]:
             continue
         normalized = _normalize_statute(article=article, paragraph=paragraph, law_code=law_code)
 
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        refs.append(
-            StatuteReference(
+        counts[normalized] = counts.get(normalized, 0) + 1
+        if normalized not in refs:
+            refs[normalized] = StatuteReference(
                 raw=raw,
                 law_code=law_code,
                 article=article,
                 paragraph=paragraph,
                 normalized=normalized,
             )
-        )
-    return refs
+    return [replace(ref, count=counts[key]) for key, ref in refs.items()]
 
 
 def extract_case_citations(text: str) -> list[CaseCitation]:
     if not text:
         return []
 
-    refs: list[CaseCitation] = []
-    seen: set[str] = set()
+    refs: dict[str, CaseCitation] = {}
+    counts: dict[str, int] = {}
+    # (normalized, start): two docket patterns matching the same spot are
+    # one occurrence, not two.
+    spots: set[tuple[str, int]] = set()
+
+    def _add(normalized: str, raw: str, citation_type: str, start: int) -> None:
+        if (normalized, start) in spots:
+            return
+        spots.add((normalized, start))
+        counts[normalized] = counts.get(normalized, 0) + 1
+        if normalized not in refs:
+            refs[normalized] = CaseCitation(raw=raw, citation_type=citation_type, normalized=normalized)
 
     # BGE citations, e.g., "BGE 147 I 268"
     for match in BGE_PATTERN.finditer(text):
         raw = match.group(0).strip()
         normalized = f"BGE {match.group('vol')} {match.group('div').upper()} {match.group('page')}"
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        refs.append(CaseCitation(raw=raw, citation_type="bge", normalized=normalized))
+        _add(normalized, raw, "bge", match.start())
 
     for pattern in DOCKET_PATTERNS:
         for match in pattern.finditer(text):
@@ -177,12 +187,11 @@ def extract_case_citations(text: str) -> list[CaseCitation]:
                 if re.search(r"\b(?:BGE|ATF|DTF)\s*$", prefix, flags=re.IGNORECASE):
                     continue
             normalized = _normalize_docket(raw)
-            if not normalized or normalized in seen:
+            if not normalized:
                 continue
-            seen.add(normalized)
-            refs.append(CaseCitation(raw=raw, citation_type="docket", normalized=normalized))
+            _add(normalized, raw, "docket", match.start())
 
-    return refs
+    return [replace(ref, count=counts[key]) for key, ref in refs.items()]
 
 
 def _normalize_statute(*, article: str, paragraph: str | None, law_code: str) -> str:
