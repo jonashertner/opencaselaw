@@ -7922,7 +7922,7 @@ def _materials_for_decision(decision_id: str, max_items: int = 6) -> list[dict] 
             return None
         rows = gconn.execute(
             """SELECT s.law_code AS law_code, s.article AS article,
-                      SUM(ds.mention_count) AS mc
+                      COUNT(*) AS mc
                FROM decision_statutes ds
                JOIN statutes s ON s.statute_id = ds.statute_id
                WHERE ds.decision_id = ?
@@ -8275,7 +8275,7 @@ def _load_graph_signal_map(
             statute_placeholders = ",".join("?" for _ in statute_refs)
             rows = conn.execute(
                 f"""
-                SELECT decision_id, SUM(mention_count) AS n
+                SELECT decision_id, COUNT(*) AS n
                 FROM decision_statutes
                 WHERE decision_id IN ({placeholders})
                   AND statute_id IN ({statute_placeholders})
@@ -8291,7 +8291,7 @@ def _load_graph_signal_map(
             citation_placeholders = ",".join("?" for _ in citation_refs)
             rows = conn.execute(
                 f"""
-                SELECT source_decision_id AS decision_id, SUM(mention_count) AS n
+                SELECT source_decision_id AS decision_id, COUNT(*) AS n
                 FROM decision_citations
                 WHERE source_decision_id IN ({placeholders})
                   AND target_ref IN ({citation_placeholders})
@@ -8308,7 +8308,7 @@ def _load_graph_signal_map(
                     f"""
                     SELECT
                         ct.target_decision_id AS decision_id,
-                        SUM(dc.mention_count * COALESCE(ct.confidence_score, 1.0)) AS n
+                        SUM(COALESCE(ct.confidence_score, 1.0)) AS n
                     FROM citation_targets ct
                     JOIN decision_citations dc
                       ON dc.source_decision_id = ct.source_decision_id
@@ -8321,7 +8321,7 @@ def _load_graph_signal_map(
             else:
                 rows = conn.execute(
                     f"""
-                    SELECT ct.target_decision_id AS decision_id, SUM(dc.mention_count) AS n
+                    SELECT ct.target_decision_id AS decision_id, COUNT(*) AS n
                     FROM citation_targets ct
                     JOIN decision_citations dc
                       ON dc.source_decision_id = ct.source_decision_id
@@ -8334,7 +8334,7 @@ def _load_graph_signal_map(
         elif has_legacy_target_column:
             rows = conn.execute(
                 f"""
-                SELECT target_decision_id AS decision_id, SUM(mention_count) AS n
+                SELECT target_decision_id AS decision_id, COUNT(*) AS n
                 FROM decision_citations
                 WHERE target_decision_id IN ({placeholders})
                 GROUP BY target_decision_id
@@ -8404,10 +8404,10 @@ def _search_statute_graph(
         ph = ",".join("?" for _ in refs)
 
         # Two-path retrieval: top by mentions + top by authority
-        # Path 1: Top 300 by statute mention count (catches frequently-discussing decisions)
+        # Path 1: Top 300 by number of cited provisions (catches frequently-discussing decisions)
         citing_rows = conn.execute(
             f"""
-            SELECT decision_id, SUM(mention_count) AS total_mentions
+            SELECT decision_id, COUNT(*) AS total_mentions
             FROM decision_statutes
             WHERE statute_id IN ({ph})
             GROUP BY decision_id
@@ -8429,7 +8429,7 @@ def _search_statute_graph(
             auth_top_rows = conn.execute(
                 f"""
                 SELECT ds.decision_id,
-                       SUM(ds.mention_count) AS total_mentions,
+                       COUNT(*) AS total_mentions,
                        COUNT(DISTINCT ct.source_decision_id) AS auth_count
                 FROM decision_statutes ds
                 JOIN citation_targets ct ON ct.target_decision_id = ds.decision_id
@@ -13153,7 +13153,7 @@ def _search_graph_decisions_for_statutes(*, statute_requests: list[dict], limit:
             if paragraph:
                 rows = graph_conn.execute(
                     """
-                    SELECT ds.decision_id, SUM(ds.mention_count) AS n
+                    SELECT ds.decision_id, COUNT(*) AS n
                     FROM decision_statutes ds
                     JOIN statutes s ON s.statute_id = ds.statute_id
                     WHERE s.law_code = ? AND s.article = ? AND IFNULL(s.paragraph, '') = ?
@@ -13166,7 +13166,7 @@ def _search_graph_decisions_for_statutes(*, statute_requests: list[dict], limit:
             else:
                 rows = graph_conn.execute(
                     """
-                    SELECT ds.decision_id, SUM(ds.mention_count) AS n
+                    SELECT ds.decision_id, COUNT(*) AS n
                     FROM decision_statutes ds
                     JOIN statutes s ON s.statute_id = ds.statute_id
                     WHERE s.law_code = ? AND s.article = ?

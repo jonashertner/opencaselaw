@@ -77,7 +77,7 @@ def analyse(db_path: str = DEFAULT_DB) -> dict:
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
-    cur.execute("SELECT SUM(mention_count) FROM decision_citations")
+    cur.execute("SELECT COUNT(*) FROM decision_citations")
     total_raw = int(cur.fetchone()[0])
     cur.execute("SELECT COUNT(*) FROM citation_targets")
     n_resolved = int(cur.fetchone()[0])
@@ -87,7 +87,7 @@ def analyse(db_path: str = DEFAULT_DB) -> dict:
 
     cur.execute(
         """
-        SELECT dc.target_ref, dc.target_type, dc.mention_count
+        SELECT dc.target_ref, dc.target_type, 1
         FROM decision_citations dc
         LEFT JOIN citation_targets ct
           ON dc.source_decision_id = ct.source_decision_id

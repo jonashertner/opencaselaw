@@ -342,7 +342,8 @@ def test_graph_signal_map_falls_back_to_legacy_target_decision_id(
             mention_count INTEGER NOT NULL DEFAULT 1
         );
         INSERT INTO decision_citations(source_decision_id, target_ref, target_type, target_decision_id, mention_count)
-        VALUES ('src1', 'VB_2018_00411', 'docket', 'target1', 3);
+        VALUES ('src1', 'VB_2018_00411', 'docket', 'target1', 3),
+               ('src2', 'VB_2018_00411', 'docket', 'target1', 1);
         """
     )
     conn.commit()
@@ -356,7 +357,8 @@ def test_graph_signal_map_falls_back_to_legacy_target_decision_id(
         query_statutes=set(),
         query_citations=set(),
     )
-    assert signal_map["target1"]["incoming_citations"] == 3
+    # citing rows, not mentions (see tests/test_mention_count_not_summed.py)
+    assert signal_map["target1"]["incoming_citations"] == 2
 
 
 def test_graph_signal_map_preserves_fractional_confidence_weights(

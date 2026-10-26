@@ -858,13 +858,13 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
             import re as _re
             g = sqlite3.connect(f"file:{graph_db}?mode=ro", uri=True, timeout=10)
             g.row_factory = sqlite3.Row
-            # Pull the top 50 raw statute_ids by total mention count, then
+            # Pull the top 50 raw statute_ids by citing decisions, then
             # collapse "ART.89.ABS.1.BGG" + "ART.89.ABS.2.BGG" + ... into a
             # single "ART.89.BGG" tally. Top 50 is enough headroom for the
             # collapse to find the true article-level winner.
             top = g.execute(
                 """
-                SELECT statute_id, SUM(mention_count) AS n
+                SELECT statute_id, COUNT(*) AS n
                 FROM decision_statutes
                 WHERE statute_id IS NOT NULL AND TRIM(statute_id) != ''
                 GROUP BY statute_id
@@ -1133,7 +1133,7 @@ def collect_interesting_stats(repo_dir: Path) -> dict:
             g.row_factory = sqlite3.Row
             rows = g.execute(
                 """
-                SELECT statute_id, SUM(mention_count) AS n
+                SELECT statute_id, COUNT(*) AS n
                 FROM decision_statutes
                 WHERE statute_id IS NOT NULL AND TRIM(statute_id) != ''
                 GROUP BY statute_id

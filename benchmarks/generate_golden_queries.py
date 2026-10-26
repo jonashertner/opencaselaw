@@ -55,7 +55,7 @@ def find_top_decisions_by_statute(
     rows = graph_conn.execute(
         """
         SELECT ds.decision_id,
-               SUM(ds.mention_count) AS mentions,
+               COUNT(*) AS mentions,
                COALESCE(
                    (SELECT COUNT(DISTINCT ct.source_decision_id)
                     FROM citation_targets ct
