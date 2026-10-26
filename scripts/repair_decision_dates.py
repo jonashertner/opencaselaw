@@ -114,9 +114,12 @@ COURTS_PUBLICATION_DATE_AS_DECISION = {
 # appeal, and the 2026-03-12 run gave 1,209 bger rows that date; the Appenzell
 # rulings name their own date in the closing line (restore_closing_dates.py,
 # report 2026-10-24).
+# ow_gerichte: "Entscheid der Obergerichtskommission vom" is not "Entscheid
+# vom", so the pass took a Sachverhalt date ("Beschluss vom 8. Februar 1999")
+# for 646 yearbook entries (restore_ow_rulings.py, report 2026-10-26).
 NEVER_REPAIR_SHARDS = frozenset({
     "bge", "es_bge", "bge_historical", "sg_publikationen", "es_sg_gerichte",
-    "bger", "ai_gerichte",
+    "bger", "ai_gerichte", "ow_gerichte", "es_ow_gerichte",
 })
 
 

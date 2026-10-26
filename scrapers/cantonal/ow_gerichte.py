@@ -72,6 +72,121 @@ RE_TREFFER = re.compile(r"Resultat\s+(\d+)-(\d+)\s+von\s+(\d+)")
 # UIDL response prefix that must be stripped before JSON parsing
 UIDL_PREFIX = "for(;;);"
 
+# The line that dates an AbR / VVGE / OGVE entry, right after its Regeste:
+#   "Entscheid der Obergerichtskommisson vom 18. Juli 2001"
+#   "Urteil des Obergerichts vom 27. März/3. April 1980"
+#   "Präsidialverfügung vom 5. Oktober 1982"
+#   "Entscheid vom 17.12.1968 i.S. Rekurs A. A. gegen Gemeinderat Engelberg."
+_MONTHS = {
+    "januar": 1, "jänner": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4,
+    "mai": 5, "juni": 6, "juli": 7, "august": 8, "september": 9, "oktober": 10,
+    "november": 11, "dezember": 12,
+}
+_MONTH_ALT = "|".join(sorted(_MONTHS, key=len, reverse=True))
+_RULING_LINE_RE = re.compile(
+    r"^\s*(?:Entscheide?|Urteile?|Beschlüsse|Beschluss|Verfügung(?:en)?|Präsidialverfügung"
+    r"|Präsidialentscheid|Zwischenentscheid|Teilurteil)\b[^\n]{0,160}?\bvom\s+"
+    r"(?:(?P<span>\d{1,2}\.(?:\s*(?:" + _MONTH_ALT + r"))?\s*/\s*)?"
+    r"(?P<d>\d{1,2})\.\s*(?P<m>" + _MONTH_ALT + r")\s+(?P<y>\d{4})"
+    r"|(?P<nd>\d{1,2})\.(?P<nm>\d{1,2})\.(?P<ny>\d{4}))(?!\d)",
+    re.I,
+)
+# Where the Regeste block ends and the reasons begin.
+_BODY_START_RE = re.compile(
+    r"^\s*(?:Sachverhalt|Aus dem Sachverhalt|Aus den Erwägungen|(?:In )?Erwägung(?:en)?|de\|)\s*:?\s*$",
+    re.I,
+)
+# Any short line dating the entry closes the Regeste block, a ruling's or not:
+# "Stellungnahme des Rechtsdienstes vom 3. Juni 1993." (not "G. beantragt in
+# seiner Vernehmlassung vom ...", a sentence of the facts).
+_DATING_LINE_RE = re.compile(
+    r"^\s*[A-ZÄÖÜ][\w-]+\s+(?:de[rs]|an)\s[^\n(]{0,90}\bvom\s+(?:(?:\d{1,2}\.(?:\s*(?:" + _MONTH_ALT + r"))?\s*/\s*)?"
+    r"\d{1,2}\.\s*(?:" + _MONTH_ALT + r")\s+\d{4}|\d{1,2}\.\d{1,2}\.\d{4})(?!\d)[^\n]{0,60}$",
+    re.I,
+)
+_REGESTE_MAX = 3000
+_VOLUME_RE = re.compile(r"\b((?:18|19|20)\d{2})\s*/\s*(\d{2})\b")
+
+
+def _volume_years(docket: str | None) -> tuple[int, int] | None:
+    """(first, last) year of the yearbook a docket sits in: "AbR 2000/01" -> (2000, 2001)."""
+    m = _VOLUME_RE.search(docket or "")
+    if not m:
+        return None
+    first = int(m.group(1))
+    last = first // 100 * 100 + int(m.group(2))
+    if last < first:
+        last += 100
+    return first, last
+
+
+def ruling_date(text: str | None, docket: str | None = None) -> tuple[str, date | None]:
+    """(outcome, date) of the ruling an OW yearbook entry reports.
+
+    The portal dates every entry imported in 2015 with 26 November 2015, and
+    the first "Beschluss vom <date>" of the text is often a date from the
+    Sachverhalt: AbR 2000/01 Nr. 4 of 18 July 2001 was cited as of
+    8 February 1999, the day of a Gemeinderat resolution it recounts
+    (report 2026-10-26). The entry's own line names the ruling body and its
+    date between the Regeste and the reasons; only that line counts.
+
+    Outcomes: "ok"; "no_line"; "split_date" for "vom 25. November/
+    22. Dezember 2003" (deliberation and dispatch, left to the reader);
+    "implausible_year" when the year falls outside the yearbook (the printed
+    "VVGE 1987/88 Nr. 30 ... vom 2. März 1887" is a misprint)."""
+    if not text:
+        return "no_line", None
+    for line in text.split("\n")[:15]:
+        if _BODY_START_RE.match(line):
+            break
+        m = _RULING_LINE_RE.match(line)
+        if not m:
+            continue
+        if m.group("span"):
+            return "split_date", None
+        try:
+            if m.group("y"):
+                d = date(int(m.group("y")), _MONTHS[m.group("m").lower()], int(m.group("d")))
+            else:
+                d = date(int(m.group("ny")), int(m.group("nm")), int(m.group("nd")))
+        except (ValueError, KeyError):
+            return "no_line", None
+        years = _volume_years(docket)
+        if d > date.today() or (years and not years[0] - 10 <= d.year <= years[1] + 2):
+            return "implausible_year", None
+        return "ok", d
+    return "no_line", None
+
+
+def full_regeste(text: str | None, regeste: str | None) -> str | None:
+    """The whole Regeste block of the text where ``regeste`` is cut short.
+
+    The portal's abstract, which the scraper stores as regeste, stops at
+    ~240 characters (AbR 2000/01 Nr. 4: "... vom 18. Juli 2"). The text
+    opens with the same block in full: from the first line up to the line
+    dating the entry (included), before the reasons begin. Returns
+    None unless the stored regeste is a prefix of that block, the block is
+    longer, and it stays within a Regeste's length."""
+    if not text or not regeste:
+        return None
+    block: list[str] = []
+    for line in text.split("\n")[:15]:
+        if _BODY_START_RE.match(line):
+            # Reasons begin with no line dating the entry: the older VVGE
+            # run Regeste and facts together, so the block's end is unknown.
+            return None
+        block.append(line)
+        if _RULING_LINE_RE.match(line) or _DATING_LINE_RE.match(line.strip()):
+            break
+    else:
+        return None  # no end of the block in sight: not a yearbook entry
+    composed = re.sub(r"\s+", " ", " ".join(block)).strip()
+    current = re.sub(r"\s+", " ", regeste).strip()
+    if (len(composed) <= len(current) or len(composed) > _REGESTE_MAX
+            or not composed.startswith(current)):
+        return None
+    return composed
+
 # Vaadin UIDL binary message fragments
 _RECORD_SEP = b"\x1d"
 
@@ -772,8 +887,15 @@ class OWGerichteScraper(BaseScraper):
             else:
                 full_text = f"[Text extraction failed for {docket}]"
 
-        # Decision date
+        # Decision date: the entry's own ruling line beats the portal's date,
+        # which is the 2015 import day for every older entry.
         decision_date = stub.get("decision_date")
+        publication_date = None
+        _, own = ruling_date(full_text, docket)
+        if own:
+            if decision_date and decision_date != own:
+                publication_date = decision_date
+            decision_date = own
         if not decision_date:
             dm = re.search(r"(\d{1,2})\.(\d{1,2})\.(\d{4})", full_text)
             if dm:
@@ -796,8 +918,9 @@ class OWGerichteScraper(BaseScraper):
             docket_number=docket,
             docket_number_2=stub.get("docket_number_2"),
             decision_date=decision_date,
+            publication_date=publication_date,
             language=language,
-            regeste=stub.get("abstract") or None,
+            regeste=full_regeste(full_text, stub.get("abstract")) or stub.get("abstract") or None,
             full_text=full_text,
             source_url=source_url,
             cited_decisions=extract_citations(full_text) if len(full_text) > 200 else [],
