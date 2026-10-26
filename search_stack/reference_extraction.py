@@ -11,6 +11,8 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass, replace
 
+from search_stack.law_code_forms import FAMILIES, FORMS, KNOWN_CODES
+
 _ARTICLE_MARKER = r"(?:Art\.?|Artikel)"
 _PARAGRAPH_MARKER = r"(?:Abs\.?|Absatz|al\.?|alin(?:ea)?\.?|cpv\.?|co\.?|para\.?)"
 _ORDINAL_SUFFIX = r"(?:bis|ter|quater|quinquies|sexies)"
@@ -61,6 +63,79 @@ STATUTE_PATTERN = re.compile(
     """,
     flags=re.IGNORECASE | re.VERBOSE,
 )
+
+# The word after a law code that can complete a two-word Fedlex short title
+# ("AsylV 1", "GebV SchKG"). A digit counts only when no longer number or
+# decimal starts there ("AsylV 1.5" is no AsylV 1).
+_NEXT_WORD = re.compile(
+    r"(?:[ \t]+|-)([1-9](?!\d|[.,/]\d)|[A-Za-zÄÖÜäöü][A-Za-zÄÖÜäöü0-9-]*)")
+_JOINED_BASE = {joined: base for base, seconds in FORMS.items() for joined in seconds.values()}
+
+
+def normalize_law_code(law_raw: str, text: str = "", end: int | None = None
+                       ) -> tuple[str, int | None]:
+    """The law code as the graph stores it, and where the reference ends.
+
+    - a two-word short title is joined: "AsylV" followed by " 1" is ASYLV1,
+      "GebV SchKG" is GEBVSCHKG (until 2026-10 both were stored as the bare
+      first word: ASYLV is the family of three ordinances, GEBV no act);
+    - a lower-case a / n before a known code marks the former or new edition
+      and is kept: aZG is the Zollgesetz 1925, AZG the Arbeitszeitgesetz;
+    - anything else is upper-cased, as before.
+
+    `end` is the offset in `text` right after `law_raw`; the returned end
+    moves past a joined second word.
+    """
+    prefix, base = "", law_raw
+    if (len(law_raw) > 2 and law_raw[0] in "an" and law_raw[1].isupper()
+            and (law_raw[1:].upper() in KNOWN_CODES or law_raw[1:].upper() in FORMS)):
+        prefix, base = law_raw[0], law_raw[1:]
+    code = base.upper()
+    seconds = FORMS.get(code)
+    if seconds and end is not None:
+        m = _NEXT_WORD.match(text, end)
+        if m and m.group(1).upper() in seconds:
+            return prefix + seconds[m.group(1).upper()], m.end()
+    return prefix + code, end
+
+
+def canonical_law_code(value: str) -> str:
+    """normalize_law_code for a law code given on its own, as a tool
+    argument: "AsylV 1", "asylv 1" and "ASYLV1" are ASYLV1, "aZG" stays
+    aZG. Input it does not recognise is upper-cased, as before."""
+    v = (value or "").strip()
+    m = re.match(r"[A-Za-zÄÖÜäöü][A-Za-zÄÖÜäöü0-9/]*", v)
+    if not m:
+        return v.upper()
+    code, end = normalize_law_code(m.group(0), v, m.end())
+    if v[end:].strip():
+        return v.upper()
+    return code
+
+
+def graph_law_codes(code: str) -> tuple[list[str], list[str]]:
+    """The statutes.law_code values a lookup of `code` (canonical form)
+    should match, and the pre-2026-10 values to try when those find nothing.
+
+    A family code that is no act of its own (ASYLV) matches its numbered
+    acts as well as itself, since decisions also write it bare. The legacy
+    list covers graphs built before the joined and prefixed codes existed:
+    "AsylV 1" was stored as ASYLV (and "AsylV1" as ASYLV1), aZG as AZG. Drop it once no such graph is
+    served (TODO after the first rebuilt graph is live).
+    """
+    primary = [code, *FAMILIES.get(code, ())]
+    prefix, rest = "", code
+    if code[:1] in ("a", "n") and code[1:2].isupper():
+        prefix, rest = code[0].upper(), code[1:]
+    if prefix or rest in _JOINED_BASE:
+        # both undone at once (aASYLV1 was stored as AASYLV); a code the
+        # decision wrote joined (BVV2, aBVV1) was stored joined
+        legacy = [prefix + _JOINED_BASE.get(rest, rest)]
+        if rest in _JOINED_BASE:
+            legacy.append(prefix + rest)
+        return primary, legacy
+    return primary, []
+
 
 # BGE = German, ATF = French, DTF = Italian — the same series, one prefix
 # per language. Until 2026-08 only the literal "BGE" was recognised, so
@@ -137,9 +212,11 @@ def extract_statute_references(text: str) -> list[StatuteReference]:
             continue
         if n_upper == 1 and len(law_raw) > 3:
             continue
-        law_code = law_raw.upper()
-        if law_code in _INVALID_LAW_CODES:
+        if law_raw.upper() in _INVALID_LAW_CODES:
             continue
+        law_code, end = normalize_law_code(law_raw, text, match.end("law"))
+        if end != match.end("law"):
+            raw = text[match.start():end].strip()
         normalized = _normalize_statute(article=article, paragraph=paragraph, law_code=law_code)
 
         counts[normalized] = counts.get(normalized, 0) + 1
@@ -196,8 +273,8 @@ def extract_case_citations(text: str) -> list[CaseCitation]:
 
 def _normalize_statute(*, article: str, paragraph: str | None, law_code: str) -> str:
     if paragraph:
-        return f"ART.{article}.ABS.{paragraph.lower()}.{law_code.upper()}"
-    return f"ART.{article}.{law_code.upper()}"
+        return f"ART.{article}.ABS.{paragraph.lower()}.{law_code}"
+    return f"ART.{article}.{law_code}"
 
 
 def _normalize_docket(text: str) -> str:

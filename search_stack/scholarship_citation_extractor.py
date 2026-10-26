@@ -24,6 +24,7 @@ from typing import Optional
 
 from search_stack import oge_citation
 from search_stack.reference_extraction import (
+    canonical_law_code,
     extract_case_citations,
     extract_statute_references,
 )
@@ -134,6 +135,10 @@ def load_law_abbr_lookups(statutes_db_path: str) -> dict[str, str]:
             key = ab.strip().upper()
             if key:
                 lookups.setdefault(key, sr)
+                # "AsylV 1" is extracted as ASYLV1 (canonical_law_code)
+                joined = canonical_law_code(ab)
+                if joined != key:
+                    lookups.setdefault(joined, sr)
     conn.close()
     log.info("law-abbr lookups: %d entries", len(lookups))
     return lookups
@@ -197,7 +202,9 @@ def extract_for_publication(
         decisions.append((decision_id, snip))
 
     for ref in extract_statute_references(full_text):
-        sr = law_lookups.get(ref.law_code.upper())
+        # law_code is already canonical: upper-cased, except an edition
+        # prefix (aZG), which must not resolve to the current act's code
+        sr = law_lookups.get(ref.law_code)
         if not sr:
             continue
         article = ref.article or ""

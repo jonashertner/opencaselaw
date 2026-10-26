@@ -3,6 +3,8 @@
  "_why": "The citation extractor emits language-specific law codes. A consumer that does not pair them (OR==CO, ZGB==CC) silently loses most French-language statute references.",
  "_alias_to_sr": "Code (upper-cased, as the extractor emits it) -> SR number of the act in force, or a list where several acts in force share it. Check alias_notes before trusting a lookup.",
  "_alias_to_repealed": "Code -> Fedlex ELI of every repealed act that bore it (rows in `repealed`, with in_force_from / in_force_until). A code in both indexes was borne by an earlier act too: resolve it by the decision date. Never map a repealed act by its SR number alone; the number is often reused by its successor.",
+ "_compound_codes": "Two-word short title -> the joined code the extractor emits for it (\"Art. 32 AsylV 1\" is ART.32.ASYLV1). Both forms are keys of the alias indexes.",
+ "_edition_prefix": "A lower-case a or n before a known code marks the former or new edition (aZG = Zollgesetz 1925, nDSG). The extractor keeps the prefix (ART.12.aZG); resolve the base code by the decision date through alias_to_repealed, never as AZG.",
  "generated": "2026-10-26",
  "fedlex_fetched": "2026-10-26",
  "license": "CC0-1.0",
@@ -13,7 +15,8 @@
   "cantonal_codes": 15560,
   "repealed_acts": 1015,
   "repealed_aliases": 2023,
-  "repealed_aliases_also_in_force": 787
+  "repealed_aliases_also_in_force": 787,
+  "compound_codes": 133
  },
  "alias_to_sr": {
   "AAD": "0.142.392.68",
@@ -69,9 +72,16 @@
   "ARGV 3": "822.113",
   "ARGV 4": "822.114",
   "ARGV 5": "822.115",
+  "ARGV1": "822.111",
+  "ARGV2": "822.112",
+  "ARGV3": "822.113",
+  "ARGV4": "822.114",
+  "ARGV5": "822.115",
   "ARPV": "745.16",
   "ARV 1": "822.221",
   "ARV 2": "822.222",
+  "ARV1": "822.221",
+  "ARV2": "822.222",
   "ASG": "195.1",
   "ASTG": "641.51",
   "ASTV": "641.511",
@@ -81,6 +91,9 @@
   "ASYLV 1": "142.311",
   "ASYLV 2": "142.312",
   "ASYLV 3": "142.314",
+  "ASYLV1": "142.311",
+  "ASYLV2": "142.312",
+  "ASYLV3": "142.314",
   "ATRAG": "742.104",
   "ATRAV": "742.104.1",
   "ATSG": "830.1",
@@ -173,6 +186,9 @@
   "BVV 1": "831.435.1",
   "BVV 2": "831.441.1",
   "BVV 3": "831.461.3",
+  "BVV1": "831.435.1",
+  "BVV2": "831.441.1",
+  "BVV3": "831.461.3",
   "BVVG": "311.6",
   "BWIS": "120",
   "BZG": "520.1",
@@ -308,6 +324,7 @@
   "FASR": "0.941.152",
   "FAV": "784.101.2",
   "FAV 4": "741.435.4",
+  "FAV4": "741.435.4",
   "FCAS": "0.941.152",
   "FDO": "172.217.2",
   "FDV": "784.101.1",
@@ -399,6 +416,9 @@
   "GEBV-TVD": "916.404.2",
   "GEBV-VBS": "172.045.103",
   "GEBV-ÖV": "742.102",
+  "GEBVBAR": "172.041.15",
+  "GEBVESTV": "642.31",
+  "GEBVSCHKG": "281.35",
   "GEBÜV": "221.431",
   "GEOIG": "510.62",
   "GEOIV": "510.620",
@@ -1108,6 +1128,9 @@
   "OA-DFGP": "142.201.1",
   "OA-DFJP": "142.201.1",
   "OA-FINMA": "956.161",
+  "OA1": "142.311",
+  "OA2": "142.312",
+  "OA3": "142.314",
   "OAA": "510.301",
   "OAACC": "861.1",
   "OAAE": "211.435.1",
@@ -1226,6 +1249,9 @@
   "OASI 1": "142.311",
   "OASI 2": "142.312",
   "OASI 3": "142.314",
+  "OASI1": "142.311",
+  "OASI2": "142.312",
+  "OASI3": "142.314",
   "OASL": "814.812.37",
   "OASM": "817.022.32",
   "OASMÉD": "812.212.23",
@@ -1334,6 +1360,7 @@
   "OCM": "510.710",
   "OCM ES": "412.101.61",
   "OCMD": "930.111.4",
+  "OCMES": "412.101.61",
   "OCMETR": "941.206",
   "OCMI": [
    "510.215",
@@ -1488,10 +1515,13 @@
   "OE-SCPT": "780.117",
   "OE-UFAM": "814.014",
   "OEA 4": "741.435.4",
+  "OEA4": "741.435.4",
   "OEAC": "734.713.3",
   "OEAC-LPPSI": "935.811.1",
   "OEAE": "142.281",
   "OEAR": "653.11",
+  "OEARCHF": "172.041.15",
+  "OEARF": "172.041.15",
   "OEAUX": "814.201",
   "OEB": "814.621",
   "OEBC": "444.12",
@@ -1584,6 +1614,8 @@
   "OEMOL-TP": "742.102",
   "OEMSON": "747.201.55",
   "OEMTP": "783.016.2",
+  "OEMUFG": "172.041.14",
+  "OEMUFSPO": "415.013",
   "OEMV": "941.298.1",
   "OEMÉD": "812.212.22",
   "OEN": "730.01",
@@ -1620,8 +1652,12 @@
   "OETV 1": "741.412",
   "OETV 2": "741.413",
   "OETV 3": "741.414",
+  "OETV1": "741.412",
+  "OETV2": "741.413",
+  "OETV3": "741.414",
   "OEV": "142.204",
   "OEV 4": "741.435.4",
+  "OEV4": "741.435.4",
   "OEXPA": "642.118.3",
   "OEXPL": "941.411",
   "OF-SCPT": "780.115.1",
@@ -1766,6 +1802,7 @@
   "OINFI": "958.11",
   "OINFI-FINMA": "958.111",
   "OINS FINMA": "952.05",
+  "OINSFINMA": "952.05",
   "OINSTR PRÉ": "512.15",
   "OINSTR PRÉM DDPS": "512.151",
   "OINS–FINMA": "952.05",
@@ -1852,6 +1889,11 @@
   "OLL 3": "822.113",
   "OLL 4": "822.114",
   "OLL 5": "822.115",
+  "OLL1": "822.111",
+  "OLL2": "822.112",
+  "OLL3": "822.113",
+  "OLL4": "822.114",
+  "OLL5": "822.115",
   "OLLD": "822.311",
   "OLN": [
    "141.01",
@@ -1870,12 +1912,19 @@
   "OLQE": "748.222.0",
   "OLR 1": "822.221",
   "OLR 2": "822.222",
+  "OLR1": "822.221",
+  "OLR2": "822.222",
   "OLRO-FINMA": "952.033.11",
   "OLT 1": "822.111",
   "OLT 2": "822.112",
   "OLT 3": "822.113",
   "OLT 4": "822.114",
   "OLT 5": "822.115",
+  "OLT1": "822.111",
+  "OLT2": "822.112",
+  "OLT3": "822.113",
+  "OLT4": "822.114",
+  "OLT5": "822.115",
   "OLUSC": "364.3",
   "OM": "812.212.21",
   "OMA": "748.222.5",
@@ -1961,6 +2010,7 @@
   "ONCAF": "747.201.2",
   "ONCR": "221.432",
   "ONE I": "748.127.1",
+  "ONEI": "748.127.1",
   "ONGEO": "510.625",
   "ONGÉO": "510.625",
   "ONI": "747.201.1",
@@ -1988,6 +2038,7 @@
   "OOP-PF": "172.220.142",
   "OOPA": "954.195.1",
   "OOPC": "172.220.141",
+  "OOPEPF": "172.220.142",
   "OOPSM": "512.21",
   "OOPT": "414.711.5",
   "OOR": "946.31",
@@ -2099,6 +2150,7 @@
   "OPERS-SAT": "742.101.21",
   "OPERS-SERVAS": "742.101.21",
   "OPERSMIL": "172.220.111.310.2",
+  "OPERSPF": "172.220.113",
   "OPERST": "172.220.117",
   "OPERSTF": "172.220.114",
   "OPESP": "415.011",
@@ -2138,6 +2190,9 @@
   "OPP 1": "831.435.1",
   "OPP 2": "831.441.1",
   "OPP 3": "831.461.3",
+  "OPP1": "831.435.1",
+  "OPP2": "831.441.1",
+  "OPP3": "831.461.3",
   "OPPA": "831.411",
   "OPPB": "513.73",
   "OPPBE": "513.76",
@@ -2257,6 +2312,15 @@
   "ORG-OMP": "172.056.15",
   "ORG-VÖB": "172.056.15",
   "ORGCAF": "172.210.10",
+  "ORGCF": "172.111",
+  "ORGCHF": "172.210.10",
+  "ORGDEFR": "172.216.1",
+  "ORGDETEC": "172.217.1",
+  "ORGDFAE": "172.211.1",
+  "ORGDFF": "172.215.1",
+  "ORGDFI": "172.212.1",
+  "ORGDFJP": "172.213.1",
+  "ORGLRH": "810.308",
   "ORH": "810.301",
   "ORI": "817.024.1",
   "ORIM": "814.501.51",
@@ -2358,6 +2422,7 @@
   "OSITI": "814.680",
   "OSJO": "817.023.11",
   "OSL": "916.350.2",
+  "OSLCART": "251.5",
   "OSLING": "172.081",
   "OSM": "513.61",
   "OSMAI": "513.13",
@@ -2443,6 +2508,8 @@
   "OTPSP": "935.412",
   "OTR 1": "822.221",
   "OTR 2": "822.222",
+  "OTR1": "822.221",
+  "OTR2": "822.222",
   "OTRA": "748.411",
   "OTRAL": "742.104.1",
   "OTRANS": "152.31",
@@ -2713,6 +2780,9 @@
   "TAFV 1": "741.412",
   "TAFV 2": "741.413",
   "TAFV 3": "741.414",
+  "TAFV1": "741.412",
+  "TAFV2": "741.413",
+  "TAFV3": "741.414",
   "TAMV": "812.212.27",
   "TBDV": "817.022.11",
   "TEVG": "312.4",
@@ -2812,6 +2882,7 @@
   "VBPV": "172.220.111.31",
   "VBPV-EDA": "172.220.111.343.3",
   "VBR I": "748.127.1",
+  "VBRI": "748.127.1",
   "VBRK": "732.13",
   "VBSTB": "520.17",
   "VBSV": "128.41",
@@ -2972,6 +3043,7 @@
   "VPM-BLW": "916.202.1",
   "VPO ETH": "172.220.142",
   "VPOB": "172.220.141",
+  "VPOETH": "172.220.142",
   "VPOFI": "161.18",
   "VPOG": "783.11",
   "VPR": "161.11",
@@ -3528,7 +3600,14 @@
   "AOA 95": [
    "https://fedlex.data.admin.ch/eli/cc/1994/1629_1629_1629"
   ],
+  "AOSBB": [
+   "https://fedlex.data.admin.ch/eli/cc/1993/2915_2915_2915"
+  ],
   "APRV ETHZ": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1966_1966_1966",
+   "https://fedlex.data.admin.ch/eli/cc/1997/870_870_870"
+  ],
+  "APRVETHZ": [
    "https://fedlex.data.admin.ch/eli/cc/1986/1966_1966_1966",
    "https://fedlex.data.admin.ch/eli/cc/1997/870_870_870"
   ],
@@ -3678,6 +3757,15 @@
   "BO 3": [
    "https://fedlex.data.admin.ch/eli/cc/1965/157_157_157"
   ],
+  "BO1": [
+   "https://fedlex.data.admin.ch/eli/cc/1959/1103_1141_1137"
+  ],
+  "BO2": [
+   "https://fedlex.data.admin.ch/eli/cc/1993/1098_1098_1098"
+  ],
+  "BO3": [
+   "https://fedlex.data.admin.ch/eli/cc/1965/157_157_157"
+  ],
   "BOS": [
    "https://fedlex.data.admin.ch/eli/cc/1999/25"
   ],
@@ -3715,6 +3803,9 @@
    "https://fedlex.data.admin.ch/eli/cc/1986/1791_1791_1791"
   ],
   "BVV 1": [
+   "https://fedlex.data.admin.ch/eli/cc/1983/829_829_829"
+  ],
+  "BVV1": [
    "https://fedlex.data.admin.ch/eli/cc/1983/829_829_829"
   ],
   "BZG": [
@@ -3992,6 +4083,15 @@
   "FAV 3": [
    "https://fedlex.data.admin.ch/eli/cc/1986/1878_1878_1878"
   ],
+  "FAV1": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1836_1836_1836"
+  ],
+  "FAV2": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1866_1866_1866"
+  ],
+  "FAV3": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1878_1878_1878"
+  ],
   "FDV": [
    "https://fedlex.data.admin.ch/eli/cc/1992/848_848_848",
    "https://fedlex.data.admin.ch/eli/cc/1997/2833_2833_2833",
@@ -4054,6 +4154,9 @@
    "https://fedlex.data.admin.ch/eli/cc/1986/647_647_647"
   ],
   "FIV 1": [
+   "https://fedlex.data.admin.ch/eli/cc/1992/1554_1554_1554"
+  ],
+  "FIV1": [
    "https://fedlex.data.admin.ch/eli/cc/1992/1554_1554_1554"
   ],
   "FKRV": [
@@ -4170,8 +4273,17 @@
   "GEBVBAV": [
    "https://fedlex.data.admin.ch/eli/cc/1987/1052_1052_1052"
   ],
+  "GEBVBLW": [
+   "https://fedlex.data.admin.ch/eli/cc/2000/446"
+  ],
   "GEBVO ST": [
    "https://fedlex.data.admin.ch/eli/cc/2003/326"
+  ],
+  "GEBVOST": [
+   "https://fedlex.data.admin.ch/eli/cc/2003/326"
+  ],
+  "GEBVSCHKG": [
+   "https://fedlex.data.admin.ch/eli/cc/1971/1080_1080_1081"
   ],
   "GESTG": [
    "https://fedlex.data.admin.ch/eli/cc/2000/374"
@@ -4256,6 +4368,12 @@
    "https://fedlex.data.admin.ch/eli/cc/2006/670",
    "https://fedlex.data.admin.ch/eli/cc/2008/747",
    "https://fedlex.data.admin.ch/eli/cc/2010/885"
+  ],
+  "GWVESBK": [
+   "https://fedlex.data.admin.ch/eli/cc/2007/397"
+  ],
+  "GWVKST": [
+   "https://fedlex.data.admin.ch/eli/cc/2003/660"
   ],
   "GÜTG": [
    "https://fedlex.data.admin.ch/eli/cc/2009/737",
@@ -5510,6 +5628,12 @@
    "https://fedlex.data.admin.ch/eli/cc/2008/747",
    "https://fedlex.data.admin.ch/eli/cc/2010/885"
   ],
+  "OBAADC": [
+   "https://fedlex.data.admin.ch/eli/cc/2003/660"
+  ],
+  "OBACFMJ": [
+   "https://fedlex.data.admin.ch/eli/cc/2007/397"
+  ],
   "OBAS": [
    "https://fedlex.data.admin.ch/eli/cc/1972/729_737_661"
   ],
@@ -5551,6 +5675,12 @@
    "https://fedlex.data.admin.ch/eli/cc/1959/1979_2041_2065"
   ],
   "OBI 2": [
+   "https://fedlex.data.admin.ch/eli/cc/1959/728_758_739"
+  ],
+  "OBI1": [
+   "https://fedlex.data.admin.ch/eli/cc/1959/1979_2041_2065"
+  ],
+  "OBI2": [
    "https://fedlex.data.admin.ch/eli/cc/1959/728_758_739"
   ],
   "OBIP-EPF": [
@@ -5675,6 +5805,12 @@
   "OCFP 2": [
    "https://fedlex.data.admin.ch/eli/cc/2001/341"
   ],
+  "OCFP1": [
+   "https://fedlex.data.admin.ch/eli/cc/2001/340"
+  ],
+  "OCFP2": [
+   "https://fedlex.data.admin.ch/eli/cc/2001/341"
+  ],
   "OCFS": [
    "https://fedlex.data.admin.ch/eli/cc/1994/2739_2739_2739"
   ],
@@ -5718,6 +5854,9 @@
   "OCIN 1": [
    "https://fedlex.data.admin.ch/eli/cc/1992/1554_1554_1554"
   ],
+  "OCIN1": [
+   "https://fedlex.data.admin.ch/eli/cc/1992/1554_1554_1554"
+  ],
   "OCIPP": [
    "https://fedlex.data.admin.ch/eli/cc/2023/742"
   ],
@@ -5750,6 +5889,9 @@
    "https://fedlex.data.admin.ch/eli/cc/1999/139"
   ],
   "OCM ES": [
+   "https://fedlex.data.admin.ch/eli/cc/2005/208"
+  ],
+  "OCMES": [
    "https://fedlex.data.admin.ch/eli/cc/2005/208"
   ],
   "OCMI": [
@@ -5807,6 +5949,15 @@
   "OCP PTT": [
    "https://fedlex.data.admin.ch/eli/cc/1980/250_250_250"
   ],
+  "OCP1": [
+   "https://fedlex.data.admin.ch/eli/cc/1973/1841_1841_1841"
+  ],
+  "OCP2": [
+   "https://fedlex.data.admin.ch/eli/cc/1982/2237_2237_2237"
+  ],
+  "OCP3": [
+   "https://fedlex.data.admin.ch/eli/cc/1985/1941_1941_1941"
+  ],
   "OCPC": [
    "https://fedlex.data.admin.ch/eli/cc/1989/799_799_799",
    "https://fedlex.data.admin.ch/eli/cc/1994/2688_2688_2688"
@@ -5815,6 +5966,12 @@
    "https://fedlex.data.admin.ch/eli/cc/2001/340"
   ],
   "OCPC 2": [
+   "https://fedlex.data.admin.ch/eli/cc/2001/341"
+  ],
+  "OCPC1": [
+   "https://fedlex.data.admin.ch/eli/cc/2001/340"
+  ],
+  "OCPC2": [
    "https://fedlex.data.admin.ch/eli/cc/2001/341"
   ],
   "OCPCH": [
@@ -5832,6 +5989,12 @@
   ],
   "OCPD": [
    "https://fedlex.data.admin.ch/eli/cc/2007/701"
+  ],
+  "OCPISA": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/2353_2353_2353"
+  ],
+  "OCPPTT": [
+   "https://fedlex.data.admin.ch/eli/cc/1980/250_250_250"
   ],
   "OCPQ": [
    "https://fedlex.data.admin.ch/eli/cc/1996/828_828_828"
@@ -5960,6 +6123,9 @@
    "https://fedlex.data.admin.ch/eli/cc/2005/746"
   ],
   "ODATI ADC": [
+   "https://fedlex.data.admin.ch/eli/cc/2005/628"
+  ],
+  "ODATIADC": [
    "https://fedlex.data.admin.ch/eli/cc/2005/628"
   ],
   "ODC": [
@@ -6091,6 +6257,15 @@
    "https://fedlex.data.admin.ch/eli/cc/1986/1866_1866_1866"
   ],
   "OEA 3": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1878_1878_1878"
+  ],
+  "OEA1": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1836_1836_1836"
+  ],
+  "OEA2": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1866_1866_1866"
+  ],
+  "OEA3": [
    "https://fedlex.data.admin.ch/eli/cc/1986/1878_1878_1878"
   ],
   "OEAA": [
@@ -6299,6 +6474,9 @@
   "OEMIA": [
    "https://fedlex.data.admin.ch/eli/cc/1996/653_653_653"
   ],
+  "OEMLDDS": [
+   "https://fedlex.data.admin.ch/eli/cc/1987/784_784_784"
+  ],
   "OEMMET": [
    "https://fedlex.data.admin.ch/eli/cc/2000/187",
    "https://fedlex.data.admin.ch/eli/cc/2003/750"
@@ -6325,11 +6503,17 @@
    "https://fedlex.data.admin.ch/eli/cc/2006/417",
    "https://fedlex.data.admin.ch/eli/cc/2015/771"
   ],
+  "OEMOLOFAG": [
+   "https://fedlex.data.admin.ch/eli/cc/2000/446"
+  ],
   "OEMS": [
    "https://fedlex.data.admin.ch/eli/cc/1993/1840_1840_1840"
   ],
   "OEMT 61": [
    "https://fedlex.data.admin.ch/eli/cc/1993/2040_2040_2040"
+  ],
+  "OEMUFSPO": [
+   "https://fedlex.data.admin.ch/eli/cc/2012/583"
   ],
   "OEMÉT": [
    "https://fedlex.data.admin.ch/eli/cc/2003/750"
@@ -6442,6 +6626,12 @@
   "OETV 3": [
    "https://fedlex.data.admin.ch/eli/cc/1998/2487_2487_2487"
   ],
+  "OETV2": [
+   "https://fedlex.data.admin.ch/eli/cc/1995/4171_4171_4171"
+  ],
+  "OETV3": [
+   "https://fedlex.data.admin.ch/eli/cc/1998/2487_2487_2487"
+  ],
   "OEU": [
    "https://fedlex.data.admin.ch/eli/cc/1992/1002_1002_1002"
   ],
@@ -6455,6 +6645,15 @@
    "https://fedlex.data.admin.ch/eli/cc/1986/1866_1866_1866"
   ],
   "OEV 3": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1878_1878_1878"
+  ],
+  "OEV1": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1836_1836_1836"
+  ],
+  "OEV2": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1866_1866_1866"
+  ],
+  "OEV3": [
    "https://fedlex.data.admin.ch/eli/cc/1986/1878_1878_1878"
   ],
   "OEXADAL": [
@@ -6504,6 +6703,12 @@
    "https://fedlex.data.admin.ch/eli/cc/1985/12_12_12"
   ],
   "OFG 2": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/867_867_867"
+  ],
+  "OFG1": [
+   "https://fedlex.data.admin.ch/eli/cc/1985/12_12_12"
+  ],
+  "OFG2": [
    "https://fedlex.data.admin.ch/eli/cc/1986/867_867_867"
   ],
   "OFGES": [
@@ -6637,7 +6842,15 @@
    "https://fedlex.data.admin.ch/eli/cc/1986/1966_1966_1966",
    "https://fedlex.data.admin.ch/eli/cc/1997/870_870_870"
   ],
+  "OGESPFZ": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1966_1966_1966",
+   "https://fedlex.data.admin.ch/eli/cc/1997/870_870_870"
+  ],
   "OGEX EPFZ": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/1966_1966_1966",
+   "https://fedlex.data.admin.ch/eli/cc/1997/870_870_870"
+  ],
+  "OGEXEPFZ": [
    "https://fedlex.data.admin.ch/eli/cc/1986/1966_1966_1966",
    "https://fedlex.data.admin.ch/eli/cc/1997/870_870_870"
   ],
@@ -6969,6 +7182,9 @@
   "OJPM DMF": [
    "https://fedlex.data.admin.ch/eli/cc/1991/630_630_630"
   ],
+  "OJPMDMF": [
+   "https://fedlex.data.admin.ch/eli/cc/1991/630_630_630"
+  ],
   "OL": [
    "https://fedlex.data.admin.ch/eli/cc/1988/233_233_233"
   ],
@@ -7296,6 +7512,9 @@
   "OORGA": [
    "https://fedlex.data.admin.ch/eli/cc/2003/585"
   ],
+  "OORGDDPS": [
+   "https://fedlex.data.admin.ch/eli/cc/2000/66"
+  ],
   "OOSM": [
    "https://fedlex.data.admin.ch/eli/cc/2001/518"
   ],
@@ -7328,6 +7547,9 @@
    "https://fedlex.data.admin.ch/eli/cc/1996/1963_1963_1963"
   ],
   "OPATE DDPS": [
+   "https://fedlex.data.admin.ch/eli/cc/1996/1968_1968_1968"
+  ],
+  "OPATEDDPS": [
    "https://fedlex.data.admin.ch/eli/cc/1996/1968_1968_1968"
   ],
   "OPBC": [
@@ -7539,6 +7761,9 @@
   "OPP 1": [
    "https://fedlex.data.admin.ch/eli/cc/1983/829_829_829"
   ],
+  "OPP1": [
+   "https://fedlex.data.admin.ch/eli/cc/1983/829_829_829"
+  ],
   "OPPAN": [
    "https://fedlex.data.admin.ch/eli/cc/1992/388_388_388"
   ],
@@ -7713,6 +7938,9 @@
    "https://fedlex.data.admin.ch/eli/cc/2008/747",
    "https://fedlex.data.admin.ch/eli/cc/2010/885"
   ],
+  "ORDADC": [
+   "https://fedlex.data.admin.ch/eli/cc/2003/660"
+  ],
   "ORDMO": [
    "https://fedlex.data.admin.ch/eli/cc/1998/2141_2141_2141"
   ],
@@ -7807,6 +8035,18 @@
   ],
   "ORGCAF": [
    "https://fedlex.data.admin.ch/eli/cc/1999/281"
+  ],
+  "ORGCHF": [
+   "https://fedlex.data.admin.ch/eli/cc/1999/281"
+  ],
+  "ORGDFAE": [
+   "https://fedlex.data.admin.ch/eli/cc/2000/199"
+  ],
+  "ORGDFF": [
+   "https://fedlex.data.admin.ch/eli/cc/2001/56"
+  ],
+  "ORGSESA": [
+   "https://fedlex.data.admin.ch/eli/cc/2011/652"
   ],
   "ORH": [
    "https://fedlex.data.admin.ch/eli/cc/1983/7_7_7"
@@ -8065,6 +8305,9 @@
    "https://fedlex.data.admin.ch/eli/cc/1986/1254_1254_1254"
   ],
   "OSP 1": [
+   "https://fedlex.data.admin.ch/eli/cc/1967/1405_1447_1440"
+  ],
+  "OSP1": [
    "https://fedlex.data.admin.ch/eli/cc/1967/1405_1447_1440"
   ],
   "OSPEX": [
@@ -8387,6 +8630,12 @@
   "PATV 2": [
    "https://fedlex.data.admin.ch/eli/cc/1959/728_758_739"
   ],
+  "PATV1": [
+   "https://fedlex.data.admin.ch/eli/cc/1959/1979_2041_2065"
+  ],
+  "PATV2": [
+   "https://fedlex.data.admin.ch/eli/cc/1959/728_758_739"
+  ],
   "PAUV": [
    "https://fedlex.data.admin.ch/eli/cc/1998/3114_3114_3114"
   ],
@@ -8442,6 +8691,12 @@
    "https://fedlex.data.admin.ch/eli/cc/2001/340"
   ],
   "PKBV 2": [
+   "https://fedlex.data.admin.ch/eli/cc/2001/341"
+  ],
+  "PKBV1": [
+   "https://fedlex.data.admin.ch/eli/cc/2001/340"
+  ],
+  "PKBV2": [
    "https://fedlex.data.admin.ch/eli/cc/2001/341"
   ],
   "POG": [
@@ -8513,6 +8768,9 @@
   "PVV 1": [
    "https://fedlex.data.admin.ch/eli/cc/1967/1405_1447_1440"
   ],
+  "PVV1": [
+   "https://fedlex.data.admin.ch/eli/cc/1967/1405_1447_1440"
+  ],
   "QKBV": [
    "https://fedlex.data.admin.ch/eli/cc/1996/828_828_828"
   ],
@@ -8580,6 +8838,9 @@
   "RE CFF": [
    "https://fedlex.data.admin.ch/eli/cc/1993/2915_2915_2915"
   ],
+  "RECFF": [
+   "https://fedlex.data.admin.ch/eli/cc/1993/2915_2915_2915"
+  ],
   "REG-CFB": [
    "https://fedlex.data.admin.ch/eli/cc/1998/27_27_27"
   ],
@@ -8604,6 +8865,15 @@
   "RF 3": [
    "https://fedlex.data.admin.ch/eli/cc/1965/157_157_157"
   ],
+  "RF1": [
+   "https://fedlex.data.admin.ch/eli/cc/1959/1103_1141_1137"
+  ],
+  "RF2": [
+   "https://fedlex.data.admin.ch/eli/cc/1993/1098_1098_1098"
+  ],
+  "RF3": [
+   "https://fedlex.data.admin.ch/eli/cc/1965/157_157_157"
+  ],
   "RFS": [
    "https://fedlex.data.admin.ch/eli/cc/1999/25"
   ],
@@ -8624,6 +8894,9 @@
   ],
   "RID/RSD": [
    "https://fedlex.data.admin.ch/eli/cc/1967/325_337_331"
+  ],
+  "RIFFS": [
+   "https://fedlex.data.admin.ch/eli/cc/1993/2915_2915_2915"
   ],
   "RIPOL": [
    "https://fedlex.data.admin.ch/eli/cc/1986/7_7_7"
@@ -8743,6 +9016,12 @@
   "SFV 2": [
    "https://fedlex.data.admin.ch/eli/cc/1986/867_867_867"
   ],
+  "SFV1": [
+   "https://fedlex.data.admin.ch/eli/cc/1985/12_12_12"
+  ],
+  "SFV2": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/867_867_867"
+  ],
   "SG": [
    "https://fedlex.data.admin.ch/eli/cc/47/617_629_643"
   ],
@@ -8850,6 +9129,12 @@
   "TAFV 3": [
    "https://fedlex.data.admin.ch/eli/cc/1998/2487_2487_2487"
   ],
+  "TAFV2": [
+   "https://fedlex.data.admin.ch/eli/cc/1995/4171_4171_4171"
+  ],
+  "TAFV3": [
+   "https://fedlex.data.admin.ch/eli/cc/1998/2487_2487_2487"
+  ],
   "TAV": [
    "https://fedlex.data.admin.ch/eli/cc/1992/901_901_901"
   ],
@@ -8867,6 +9152,9 @@
   ],
   "TKV-BORS": [
    "https://fedlex.data.admin.ch/eli/cc/2011/754"
+  ],
+  "TKVBORS": [
+   "https://fedlex.data.admin.ch/eli/cc/2007/920"
   ],
   "TO": [
    "https://fedlex.data.admin.ch/eli/cc/1961/239_244_249"
@@ -8960,6 +9248,9 @@
    "https://fedlex.data.admin.ch/eli/cc/2009/848"
   ],
   "VA 8": [
+   "https://fedlex.data.admin.ch/eli/cc/1980/16_16_16-2"
+  ],
+  "VA8": [
    "https://fedlex.data.admin.ch/eli/cc/1980/16_16_16-2"
   ],
   "VAA": [
@@ -9537,6 +9828,9 @@
   "VMKI": [
    "https://fedlex.data.admin.ch/eli/cc/2003/580"
   ],
+  "VMKPISA": [
+   "https://fedlex.data.admin.ch/eli/cc/1986/2353_2353_2353"
+  ],
   "VMOB": [
    "https://fedlex.data.admin.ch/eli/cc/1996/1864_1864_1864"
   ],
@@ -9724,6 +10018,15 @@
    "https://fedlex.data.admin.ch/eli/cc/1982/2237_2237_2237"
   ],
   "VSTGB 3": [
+   "https://fedlex.data.admin.ch/eli/cc/1985/1941_1941_1941"
+  ],
+  "VSTGB1": [
+   "https://fedlex.data.admin.ch/eli/cc/1973/1841_1841_1841"
+  ],
+  "VSTGB2": [
+   "https://fedlex.data.admin.ch/eli/cc/1982/2237_2237_2237"
+  ],
+  "VSTGB3": [
    "https://fedlex.data.admin.ch/eli/cc/1985/1941_1941_1941"
   ],
   "VTA": [
@@ -9949,6 +10252,141 @@
   "ÖQV": [
    "https://fedlex.data.admin.ch/eli/cc/2001/179"
   ]
+ },
+ "compound_codes": {
+  "AO SBB": "AOSBB",
+  "APRV ETHZ": "APRVETHZ",
+  "ARGV 1": "ARGV1",
+  "ARGV 2": "ARGV2",
+  "ARGV 3": "ARGV3",
+  "ARGV 4": "ARGV4",
+  "ARGV 5": "ARGV5",
+  "ARV 1": "ARV1",
+  "ARV 2": "ARV2",
+  "ASYLV 1": "ASYLV1",
+  "ASYLV 2": "ASYLV2",
+  "ASYLV 3": "ASYLV3",
+  "BO 1": "BO1",
+  "BO 2": "BO2",
+  "BO 3": "BO3",
+  "BVV 1": "BVV1",
+  "BVV 2": "BVV2",
+  "BVV 3": "BVV3",
+  "FAV 1": "FAV1",
+  "FAV 2": "FAV2",
+  "FAV 3": "FAV3",
+  "FAV 4": "FAV4",
+  "FIV 1": "FIV1",
+  "GEBV BAR": "GEBVBAR",
+  "GEBV BLW": "GEBVBLW",
+  "GEBV ESTV": "GEBVESTV",
+  "GEBV SCHKG": "GEBVSCHKG",
+  "GEBVO ST": "GEBVOST",
+  "GWV ESBK": "GWVESBK",
+  "GWV KST": "GWVKST",
+  "OA 1": "OA1",
+  "OA 2": "OA2",
+  "OA 3": "OA3",
+  "OASI 1": "OASI1",
+  "OASI 2": "OASI2",
+  "OASI 3": "OASI3",
+  "OBA ADC": "OBAADC",
+  "OBA CFMJ": "OBACFMJ",
+  "OBI 1": "OBI1",
+  "OBI 2": "OBI2",
+  "OC PISA": "OCPISA",
+  "OCFP 1": "OCFP1",
+  "OCFP 2": "OCFP2",
+  "OCIN 1": "OCIN1",
+  "OCM ES": "OCMES",
+  "OCP 1": "OCP1",
+  "OCP 2": "OCP2",
+  "OCP 3": "OCP3",
+  "OCP PTT": "OCPPTT",
+  "OCPC 1": "OCPC1",
+  "OCPC 2": "OCPC2",
+  "ODATI ADC": "ODATIADC",
+  "OE ARCHF": "OEARCHF",
+  "OE ARF": "OEARF",
+  "OEA 1": "OEA1",
+  "OEA 2": "OEA2",
+  "OEA 3": "OEA3",
+  "OEA 4": "OEA4",
+  "OEM LDDS": "OEMLDDS",
+  "OEM UFG": "OEMUFG",
+  "OEM UFSPO": "OEMUFSPO",
+  "OEMOL OFAG": "OEMOLOFAG",
+  "OETV 1": "OETV1",
+  "OETV 2": "OETV2",
+  "OETV 3": "OETV3",
+  "OEV 1": "OEV1",
+  "OEV 2": "OEV2",
+  "OEV 3": "OEV3",
+  "OEV 4": "OEV4",
+  "OFG 1": "OFG1",
+  "OFG 2": "OFG2",
+  "OGES PFZ": "OGESPFZ",
+  "OGEX EPFZ": "OGEXEPFZ",
+  "OINS FINMA": "OINSFINMA",
+  "OJPM DMF": "OJPMDMF",
+  "OLL 1": "OLL1",
+  "OLL 2": "OLL2",
+  "OLL 3": "OLL3",
+  "OLL 4": "OLL4",
+  "OLL 5": "OLL5",
+  "OLR 1": "OLR1",
+  "OLR 2": "OLR2",
+  "OLT 1": "OLT1",
+  "OLT 2": "OLT2",
+  "OLT 3": "OLT3",
+  "OLT 4": "OLT4",
+  "OLT 5": "OLT5",
+  "ONE I": "ONEI",
+  "OOP EPF": "OOPEPF",
+  "OORG DDPS": "OORGDDPS",
+  "OPATE DDPS": "OPATEDDPS",
+  "OPERS PF": "OPERSPF",
+  "OPP 1": "OPP1",
+  "OPP 2": "OPP2",
+  "OPP 3": "OPP3",
+  "ORD ADC": "ORDADC",
+  "ORG CF": "ORGCF",
+  "ORG CHF": "ORGCHF",
+  "ORG DEFR": "ORGDEFR",
+  "ORG DETEC": "ORGDETEC",
+  "ORG DFAE": "ORGDFAE",
+  "ORG DFF": "ORGDFF",
+  "ORG DFI": "ORGDFI",
+  "ORG DFJP": "ORGDFJP",
+  "ORG LRH": "ORGLRH",
+  "ORG SESA": "ORGSESA",
+  "OS LCART": "OSLCART",
+  "OSP 1": "OSP1",
+  "OTR 1": "OTR1",
+  "OTR 2": "OTR2",
+  "PATV 1": "PATV1",
+  "PATV 2": "PATV2",
+  "PKBV 1": "PKBV1",
+  "PKBV 2": "PKBV2",
+  "PVV 1": "PVV1",
+  "RE CFF": "RECFF",
+  "RF 1": "RF1",
+  "RF 2": "RF2",
+  "RF 3": "RF3",
+  "RI FFS": "RIFFS",
+  "SFV 1": "SFV1",
+  "SFV 2": "SFV2",
+  "TAFV 1": "TAFV1",
+  "TAFV 2": "TAFV2",
+  "TAFV 3": "TAFV3",
+  "TKV BORS": "TKVBORS",
+  "VA 8": "VA8",
+  "VBR I": "VBRI",
+  "VMK PISA": "VMKPISA",
+  "VPO ETH": "VPOETH",
+  "VSTGB 1": "VSTGB1",
+  "VSTGB 2": "VSTGB2",
+  "VSTGB 3": "VSTGB3"
  },
  "federal": [
   {

@@ -67,6 +67,7 @@ from search_stack.extractor_version import effective_version as _eff_ver  # noqa
 EFFECTIVE_EXTRACTOR_VERSION = _eff_ver(
     EXTRACTOR_VERSION,
     Path(__file__).parent / "reference_extraction.py",
+    Path(__file__).parent / "law_code_forms.py",
     Path(__file__).parent / "build_reference_graph.py",
 )
 

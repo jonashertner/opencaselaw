@@ -28,7 +28,8 @@ python3 scripts/build_law_code_table.py \
     --statutes output/statutes.db \
     --cantonal output/cantonal_laws.db \
     --fedlex-cache /tmp/fedlex_law_codes.json \
-    --out docs/data/law_codes.json --csv docs/data/law_codes.csv
+    --out docs/data/law_codes.json --csv docs/data/law_codes.csv \
+    --forms-out search_stack/law_code_forms.py
 ```
 
 Run it against the production databases: the local `statutes.db` is a
@@ -69,6 +70,16 @@ acts.
   `alias_to_repealed`). The overrides and lists live in
   `scripts/build_law_code_table.py`, each with its evidence (anomaly
   report of 2026-10-26).
+- `compound_codes`: two-word short title → the joined code the extractor
+  emits (`ASYLV 1` → `ASYLV1`, `GEBV SCHKG` → `GEBVSCHKG`, 133 forms). Both
+  spellings are keys of `alias_to_sr` / `alias_to_repealed`. A joined form
+  that is already another act's one-word code is left out (`OA Fam` would
+  collide with `OAFam`).
+- Edition prefix: a lower-case `a` or `n` before a known code is kept
+  (`ART.12.aZG`, the Zollgesetz 1925, not `AZG`, the Arbeitszeitgesetz).
+  Resolve the base code by the decision date through `alias_to_repealed`.
+  `search_stack/law_code_forms.py` is the extractor's copy of these lists,
+  generated with `--forms-out`.
 
 **Limits, stated plainly.**
 
@@ -80,8 +91,9 @@ acts.
   number, title per language, source URL. Cantonal abbreviations also
   collide across cantons (`PBG`, `StG`, `VRPG` exist in many), so any
   future field must be canton-prefixed (`ZH_PBG`) to be a usable key.
-- Codes the extractor cannot emit correctly stay unresolved here: it drops
-  ordinance numbers (`AsylV 1` arrives as `ASYLV`, `BVV 2` as `BVV`) and the
-  lower-case edition prefix (`aZG` arrives as `AZG`, the Arbeitszeitgesetz).
+- Graphs built before late October 2026 dropped ordinance numbers
+  (`AsylV 1` arrived as `ASYLV`, `BVV 2` as `BVV`) and the edition prefix
+  (`aZG` arrived as `AZG`, the Arbeitszeitgesetz). A bare family code such
+  as `ASYLV` still appears where the decision itself omits the number.
 
 **Licence.** CC0-1.0, like the rest of the project-created data.

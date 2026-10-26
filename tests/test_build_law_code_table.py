@@ -155,3 +155,10 @@ def test_published_table_carries_the_corrections():
         assert code in d["alias_to_repealed"], code
     for code in blt.REPEALED_ALIAS_EXCLUDED:
         assert code not in d["alias_to_repealed"], code
+
+
+def test_two_word_codes_get_a_joined_key(tmp_path):
+    p = _payload(tmp_path)
+    assert p["compound_codes"] == {}  # the fixture acts are all one-word codes
+    assert blt.compound_codes({"BVV 2": "831.441.1"}, {"GEBV SCHKG": ["eli:x"]}) == {
+        "BVV 2": "BVV2", "GEBV SCHKG": "GEBVSCHKG"}

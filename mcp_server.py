@@ -241,6 +241,12 @@ import reference_parser
 import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; honest not-found reasons)
 import source_defects  # references whose stored text is another ruling's
 import ecthr_docket  # noqa: E402  (shared ECtHR docket display form)
+from search_stack.law_code_forms import FAMILIES as _LAW_CODE_FAMILIES  # noqa: E402
+from search_stack.reference_extraction import (  # noqa: E402  (one law-code normalizer for graph and queries)
+    canonical_law_code,
+    graph_law_codes,
+    normalize_law_code,
+)
 
 # Set to True when running with --remote (SSE transport).
 # Gates off update_database / check_update_status for remote clients.
@@ -5561,7 +5567,7 @@ def _merge_priority_results(
     return merged[offset:offset + max(1, limit)]
 
 
-def _extract_query_statute_refs(query: str) -> set[str]:
+def _extract_query_statute_refs(query: str, *, expand_families: bool = True) -> set[str]:
     refs: set[str] = set()
     for match in QUERY_STATUTE_PATTERN.finditer(query or ""):
         article = re.sub(r"\s+", "", (match.group("article") or "").lower())
@@ -5569,12 +5575,16 @@ def _extract_query_statute_refs(query: str) -> set[str]:
             continue
         paragraph_raw = match.group("paragraph") or ""
         paragraph = re.sub(r"\s+", "", paragraph_raw.lower()) or None
-        law = (match.group("law") or "").upper()
-        if not law or law in QUERY_STATUTE_INVALID_LAWS:
+        law_raw = match.group("law") or ""
+        if not law_raw or law_raw.upper() in QUERY_STATUTE_INVALID_LAWS:
             continue
-        refs.add(f"ART.{article}.{law}")
-        if paragraph:
-            refs.add(f"ART.{article}.ABS.{paragraph}.{law}")
+        # the graph's form: "AsylV 1" is ASYLV1, "aZG" keeps its prefix, and
+        # a bare family code (AsylV) also names its numbered acts
+        law, _end = normalize_law_code(law_raw, query or "", match.end("law"))
+        for code in (graph_law_codes(law)[0] if expand_families else [law]):
+            refs.add(f"ART.{article}.{code}")
+            if paragraph:
+                refs.add(f"ART.{article}.ABS.{paragraph}.{code}")
     return refs
 
 
@@ -8271,7 +8281,7 @@ def _load_graph_signal_map(
 
         placeholders = ",".join("?" for _ in unique_ids)
         if query_statutes:
-            statute_refs = sorted(query_statutes)
+            statute_refs = _graph_statute_ids(conn, query_statutes)
             statute_placeholders = ",".join("?" for _ in statute_refs)
             rows = conn.execute(
                 f"""
@@ -8400,7 +8410,7 @@ def _search_statute_graph(
 
     try:
         has_citation_targets = _sqlite_has_table(conn, "citation_targets")
-        refs = sorted(statute_refs)
+        refs = _graph_statute_ids(conn, statute_refs)
         ph = ",".join("?" for _ in refs)
 
         # Two-path retrieval: top by mentions + top by authority
@@ -9737,13 +9747,53 @@ def _parse_statute_ref(ref: str) -> tuple[str | None, str | None, str | None]:
             r"^ART\."
             r"(?P<article>\d+(?:bis|ter|quater|quinquies|sexies|[a-z])?)"
             r"(?:\.ABS\.(?P<paragraph>\d+(?:bis|ter|quater|quinquies|sexies|[a-z])?))?"
-            r"\.(?P<law>[A-Z0-9/]+)$"
+            r"\.(?P<law>[an]?[A-Z0-9/]+)$"
         ),
         ref,
     )
     if not m:
         return None, None, None
     return m.group("article"), m.group("paragraph"), m.group("law")
+
+
+def _graph_has_joined_codes(conn: sqlite3.Connection) -> bool:
+    """Whether the served graph was built with joined and prefixed law
+    codes (ASYLV1, aZG; extractor of 2026-10). An older graph stores them as
+    ASYLV and AZG, so lookups fall back to those codes there. The old
+    extractor upper-cased every code, so a lower-case one (an edition
+    prefix) marks the new graph; joined codes alone do not, since decisions
+    that write "BVV2" put them in the old graph too. Range seek on
+    idx_statutes_law_article."""
+    try:
+        return conn.execute(
+            "SELECT 1 FROM statutes WHERE law_code >= 'a' LIMIT 1"
+        ).fetchone() is not None
+    except sqlite3.Error:
+        return True
+
+
+def _graph_statute_codes(conn: sqlite3.Connection, law_code: str) -> list[str]:
+    """statutes.law_code values for a lookup of `law_code` as a caller
+    writes it ("AsylV 1", "BVV2", "aZG", "OR"). See graph_law_codes."""
+    primary, legacy = graph_law_codes(canonical_law_code(law_code))
+    if legacy and not _graph_has_joined_codes(conn):
+        return legacy
+    return primary
+
+
+def _graph_statute_ids(conn: sqlite3.Connection, statute_ids) -> list[str]:
+    """Query statute ids, plus their pre-2026-10 forms on an older graph
+    (ART.32.ASYLV1 is ART.32.ASYLV there)."""
+    out = set(statute_ids)
+    if out and not _graph_has_joined_codes(conn):
+        for sid in list(out):
+            article, paragraph, law = _parse_statute_ref(sid)
+            if not article or not law:
+                continue
+            for code in graph_law_codes(law)[1]:
+                out.add(f"ART.{article}.ABS.{paragraph}.{code}" if paragraph
+                        else f"ART.{article}.{code}")
+    return sorted(out)
 
 
 def _text_matches_any_citation_hint(text: str, citations: set[str]) -> bool:
@@ -12021,23 +12071,32 @@ def _statute_ref_from_free_text(query: str) -> tuple[str, str, str | None] | Non
     answers. An unknown token leaves the query alone, i.e. the old path.
     """
     pairs: list[tuple[str, str]] = []
+    spans: list[tuple[int, int]] = []
     for m in QUERY_STATUTE_PATTERN.finditer(query or ""):
         law_raw = (m.group("law") or "").strip()
-        law = law_raw.upper()
         art = re.sub(r"\s+", "", (m.group("article") or "").lower())
-        if not law or not art or law in QUERY_STATUTE_INVALID_LAWS:
+        if not law_raw or not art or law_raw.upper() in QUERY_STATUTE_INVALID_LAWS:
             continue
-        if not _looks_like_law_code(law_raw) or law not in _known_law_codes():
+        # "AsylV 1" -> ASYLV1 (the span grows by the second word), "aZG"
+        # keeps its prefix; the prefix is checked on the code it qualifies
+        law, end = normalize_law_code(law_raw, query, m.end("law"))
+        known = law.upper() if law[:1] in ("a", "n") else law
+        if not _looks_like_law_code(law_raw) or known not in _known_law_codes():
             # Not a law the corpus knows: no statute path exists for it,
             # so the whole query stays a free-text query.
             return None
+        spans.append((m.start(), end))
         if (law, art) not in pairs:
             pairs.append((law, art))
     if len(pairs) != 1:
         return None
     law, art = pairs[0]
-    residual = QUERY_STATUTE_PATTERN.sub(" ", query)
-    residual = re.sub(r"\s+", " ", residual).strip(" ,;:.-–—/()")
+    residual, pos = [], 0
+    for start, end in spans:
+        residual.append(query[pos:start])
+        pos = end
+    residual.append(query[pos:])
+    residual = re.sub(r"\s+", " ", " ".join(residual)).strip(" ,;:.-–—/()")
     return law, art, (residual or None)
 
 
@@ -12093,6 +12152,9 @@ def _known_law_codes() -> frozenset[str]:
                 _add(a)
     except (OSError, ValueError) as e:
         logger.debug("law_codes.json not loaded for the known-code set: %s", e)
+    # a bare family code ("Art. 32 AsylV") is looked up as its numbered acts
+    for k in _LAW_CODE_FAMILIES:
+        _add(k)
     conn = _get_statutes_conn()
     if conn is not None:
         try:
@@ -12336,14 +12398,16 @@ def _find_leading_cases(
             # the provision — not by global citation count. Ranking by global count
             # surfaced procedural megacases that cite the provision once (audit
             # 2026-06-28: BGE 126 I 97, right-to-be-heard, 6,535 global cites). The
-            # global count is kept for context. Graph DB uses uppercase law codes.
-            law_code = law_code.upper()
+            # global count is kept for context. Graph law codes are canonical
+            # (upper-cased; ASYLV1 for "AsylV 1"; aZG keeps its prefix).
+            law_code = canonical_law_code(law_code)
+            _codes = _graph_statute_codes(conn, law_code)
             # x2: each BGE may fill two rows (#40), folded below.
             overfetch = (limit * 3 if query else limit) * 2
             _statute_sub = (
                 "SELECT ds.decision_id FROM decision_statutes ds "
                 "JOIN statutes s ON s.statute_id = ds.statute_id "
-                "WHERE s.law_code = ? AND s.article = ?")
+                f"WHERE s.law_code IN ({','.join('?' * len(_codes))}) AND s.article = ?")
             rows = conn.execute(
                 f"""
                 SELECT ct.target_decision_id AS decision_id,
@@ -12365,8 +12429,8 @@ def _find_leading_cases(
                 tuple(
                     v
                     for v in (
-                        law_code, article,          # source subquery (topic_count)
-                        law_code, article,          # target subquery (candidate set)
+                        *_codes, article,           # source subquery (topic_count)
+                        *_codes, article,           # target subquery (candidate set)
                         court if court else None,
                         date_from if date_from else None,
                         date_to if date_to else None,
@@ -12736,18 +12800,19 @@ def analyze_legal_trend(
         if conn is None:
             return {"error": "Reference graph not available."}
         try:
-            sql = """
+            _codes = _graph_statute_codes(conn, law_code)
+            sql = f"""
                 SELECT CAST(SUBSTR(d.decision_date, 1, 4) AS INTEGER) AS year,
                        COUNT(DISTINCT ds.decision_id) AS cnt
                 FROM decision_statutes ds
                 JOIN statutes s ON s.statute_id = ds.statute_id
                 JOIN decisions d ON d.decision_id = ds.decision_id
-                WHERE s.law_code = ? AND s.article = ?
+                WHERE s.law_code IN ({','.join('?' * len(_codes))}) AND s.article = ?
                   AND d.decision_date IS NOT NULL
                   AND CAST(SUBSTR(d.decision_date, 1, 4) AS INTEGER) > 1800
                   AND CAST(SUBSTR(d.decision_date, 1, 4) AS INTEGER) < 2100
             """
-            params: list = [law_code, article]
+            params: list = [*_codes, article]
             if court:
                 sql += " AND d.court = ?"
                 params.append(court)
@@ -12952,7 +13017,9 @@ def _collect_statute_requests(
     seen: set[str] = set()
 
     def _add(law_code: str, article: str, paragraph: str | None):
-        law = _normalize_statute_law_code(law_code)
+        # canonical, as the graph stores it ("AsylV 1" -> ASYLV1, aZG kept);
+        # the graph lookup expands a bare family code itself
+        law = re.sub(r"[^A-Za-z0-9/]+", "", canonical_law_code(law_code))
         art = (article or "").strip().lower()
         para = (paragraph or "").strip().lower() or None
         if not law or not art:
@@ -12975,7 +13042,7 @@ def _collect_statute_requests(
             st.get("paragraph"),
         )
 
-    for ref in _extract_query_statute_refs(query_text):
+    for ref in _extract_query_statute_refs(query_text, expand_families=False):
         article, paragraph, law = _parse_statute_ref(ref)
         if article and law:
             _add(law, article, paragraph)
@@ -13157,34 +13224,35 @@ def _search_graph_decisions_for_statutes(*, statute_requests: list[dict], limit:
         return []
     try:
         for st in statute_requests[:8]:
-            law = st["law_code"]
+            codes = _graph_statute_codes(graph_conn, st["law_code"])
+            in_codes = ",".join("?" * len(codes))
             article = st["article"]
             paragraph = st.get("paragraph")
             if paragraph:
                 rows = graph_conn.execute(
-                    """
+                    f"""
                     SELECT ds.decision_id, COUNT(*) AS n
                     FROM decision_statutes ds
                     JOIN statutes s ON s.statute_id = ds.statute_id
-                    WHERE s.law_code = ? AND s.article = ? AND IFNULL(s.paragraph, '') = ?
+                    WHERE s.law_code IN ({in_codes}) AND s.article = ? AND IFNULL(s.paragraph, '') = ?
                     GROUP BY ds.decision_id
                     ORDER BY n DESC
                     LIMIT ?
                     """,
-                    (law, article, paragraph, max(20, limit)),
+                    (*codes, article, paragraph, max(20, limit)),
                 ).fetchall()
             else:
                 rows = graph_conn.execute(
-                    """
+                    f"""
                     SELECT ds.decision_id, COUNT(*) AS n
                     FROM decision_statutes ds
                     JOIN statutes s ON s.statute_id = ds.statute_id
-                    WHERE s.law_code = ? AND s.article = ?
+                    WHERE s.law_code IN ({in_codes}) AND s.article = ?
                     GROUP BY ds.decision_id
                     ORDER BY n DESC
                     LIMIT ?
                     """,
-                    (law, article, max(20, limit)),
+                    (*codes, article, max(20, limit)),
                 ).fetchall()
             for row in rows:
                 did = row["decision_id"]
@@ -22431,15 +22499,16 @@ def _find_leading_cases_by_statute_fallback(
     conn = _get_graph_conn()
     if conn is not None:
         try:
+            codes = _graph_statute_codes(conn, law_code)
             rows = conn.execute(
-                """
+                f"""
                 SELECT ds.decision_id
                 FROM decision_statutes ds
                 JOIN statutes s ON s.statute_id = ds.statute_id
-                WHERE s.law_code = ? AND s.article = ?
+                WHERE s.law_code IN ({','.join('?' * len(codes))}) AND s.article = ?
                 LIMIT ?
                 """,
-                (law_code, article, limit),
+                (*codes, article, limit),
             ).fetchall()
             decision_ids = [r["decision_id"] for r in rows]
         except sqlite3.Error as e:
@@ -22648,8 +22717,9 @@ def _handle_get_doctrine(*, query: str) -> dict:
 
     q = query.strip()
 
-    # Detect statute reference
-    statute_refs = _extract_query_statute_refs(q)
+    # Detect statute reference (one code per provision: the graph lookup
+    # expands a family code itself)
+    statute_refs = _extract_query_statute_refs(q, expand_families=False)
     statute_info: dict = {}
     leading_cases: list[dict] = []
     # Initialise outside the branch so the later regeste-relevance sort
