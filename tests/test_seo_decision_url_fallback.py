@@ -123,11 +123,12 @@ def test_docket_substring_of_another_docket_does_not_match(fixture_decisions):
 
 
 def test_retired_ch_vb_id_gives_helpful_404_not_500(fixture_decisions):
-    """ch_vb retired 2026-10 (entscheidsuche CH_VB feed dropped, issue #79):
-    an old bookmark or indexed link to one of its 23,046 ids must fail
+    """ch_vb was reduced to the VPB/JAAC series 2026-10 (issue #79): an old
+    bookmark or indexed link to one of the ~20,500 dropped Bundesblatt /
+    Bulletin / Staatsrechnung ids (here portal prefix 90) must fail
     gracefully, not crash. No decision_id_aliases row and no docket match
-    exist for these ids (the whole court is gone, not re-keyed), so the
-    page must fall through every resolution step to the generic 404."""
+    exist for these ids (dropped, not re-keyed), so the page must fall
+    through every resolution step to the generic 404."""
     html, status, location = seo_pages.render_decision_page(
         "ch_vb_90000341")
     assert status == 404

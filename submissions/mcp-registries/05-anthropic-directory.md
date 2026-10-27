@@ -131,7 +131,7 @@ Documentation: https://opencaselaw.ch/mcp/ · Source: https://github.com/jonashe
 2. Drafting with verification: write a memo or submission with Claude, then run attest_response so every cited decision and quoted Erwägung is checked against the corpus before the text leaves the desk.
 3. Legislative intent and doctrine: for an article of the OR/ZGB/StGB/BV etc., retrieve the current text, its amendment history, the Federal Council's Botschaft, the doctrinal timeline and scholarly commentary in one call (get_doctrine, get_article_purpose, get_article_history).
 4. Teaching and study: case briefs, structured decisions (facts / considerations / ruling), exam questions generated from real leading cases, and open-access scholarship linked both ways to decisions and statutes.
-5. Regulatory practice: FINMA circulars (all versions), SECO commentary on the Labour Act, ESTV circulars, SEM directives.
+5. Regulatory practice: FINMA circulars (all versions), SECO commentary on the Labour Act, ESTV circulars, SEM directives, VPB/JAAC decisions.
 ```
 
 **What users need before they can connect:**

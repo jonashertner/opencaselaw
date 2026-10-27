@@ -63,13 +63,13 @@ SPIDER_MAP = {
     # The SPIDER_MAP omission means entscheidsuche's daily download
     # won't refresh those JSONL files.  That's intentional: new
     # federal decisions arrive via canonical scrapers.
-    # CH_VB retired 2026-09-11: the spider crawled the whole
+    # CH_VB is not refreshed (2026-09-11): the spider crawled the whole
     # amtsdruckschriften.bar.admin.ch portal, so 73% of its 32,705 entries
     # were Bundesblatt / Amtliches Bulletin / Amtliche Sammlung pages, not
-    # VPB. Decision: nothing from entscheidsuche for this segment; the VPB
-    # series comes from the Bundeskanzlei / Bundesarchiv by request. See
-    # runbooks/ch_vb_amtsdruckschriften_contamination.md. es_ch_vb.jsonl is
-    # retired (moved out of output/decisions/), not preserved as an archive.
+    # VPB. es_ch_vb.jsonl stays as a frozen shard of the VPB/JAAC PDFs only
+    # (portal prefix 15, every one the feed listed; the series ended 2018);
+    # scripts/ch_vb_keep_vpb.py dropped the rest. See
+    # runbooks/ch_vb_amtsdruckschriften_contamination.md.
 
     # ── Zürich ──
     "ZH_Obergericht":   ("zh_gerichte",                "ZH", "ZH Obergericht",              "cantonal"),

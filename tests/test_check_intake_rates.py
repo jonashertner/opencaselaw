@@ -252,8 +252,7 @@ def test_repo_policy_file_parses_and_names_the_documented_courts():
     policy = cir.load_policy(cir.DEFAULT_POLICY)
     assert "zh_kassationsgericht" in policy["expected_stale"]
     assert "emark" in policy["expected_stale"]
-    # ch_vb retired 2026-09: the exemption stays so the rows draining at the
-    # next full rebuild are not reported as an unexplained STALE court
+    # ch_vb: the VPB/JAAC series ended 2018; its frozen shard has no intake
     assert "ch_vb" in policy["expected_stale"]
     assert policy["lag_days"]["bge"] >= 180
     # the two motivating outages must never be exempted silently

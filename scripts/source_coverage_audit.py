@@ -48,9 +48,9 @@ SPIDER_TO_COURT: dict[str, str | None] = {
     "CH_BGer": "bger", "CH_BGE": "bge", "CH_BVGer": "bvger", "CH_BPatG": "bpatger",
     "CH_BSTG": "bstger", "CH_WEKO": "weko", "CH_EDOEB": "edoeb", "CH_Bundesrat": "ch_bundesrat",
     "CH_UNIBE": "bge_historical",   # servat.unibe.ch / DFR historical BGE — verify overlap
-    "CH_VB": None,                  # RETIRED 2026-09-11 (removed from SPIDER_MAP): the spider is an
-                                    # amtsdruckschriften portal crawl, 73% non-VPB pages; VPB comes from
-                                    # BK/BAR by request. Classifies as "uncovered" by design.
+    "CH_VB": None,                  # not refreshed since 2026-09-11 (removed from SPIDER_MAP): the spider
+                                    # is an amtsdruckschriften portal crawl, 73% non-VPB pages; its VPB
+                                    # PDFs live on as the frozen ch_vb shard. Classifies as "uncovered".
     "TA_SST": "ta_sst",
     # Aargau
     "AG_Gerichte": "ag_gerichte", "AG_Baugesetzgebung": None, "AG_Weitere": None,

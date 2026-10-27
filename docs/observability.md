@@ -128,7 +128,7 @@ the pro-rated mean of the previous two full years:
 
 Exemptions live in `docs/intake_expected_stale.json` (`expected_stale`, with a
 reason per court) — courts that are silent **by design**: abolished
-(zh_kassationsgericht), ended series (emark), no new volumes (mkg).
+(zh_kassationsgericht), ended series (emark, ch_vb), no new volumes (mkg).
 A `docs/coverage_notes.json` note is printed as context but does not exempt:
 ow_gerichte and be_steuerrekurs are noted outages that are "re-probed
 weekly", and the check exists precisely to keep them visible until the

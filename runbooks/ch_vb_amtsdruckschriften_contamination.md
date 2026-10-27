@@ -1,38 +1,45 @@
-# ch_vb: retire the entscheidsuche CH_VB feed, re-source federal administrative practice from the federal authorities
+# ch_vb: keep the VPB/JAAC series, drop the rest of the entscheidsuche CH_VB crawl
 
-Status: 2026-10-22 — rebased onto current `origin/main` (f18d6aef) in the
-worktree `claude/ch-vb-retire`, uncommitted, offline suite 5,143 passed / 23
-skipped. Production side (shard move, gate exemption, deploy) still NOT run:
-it is the build window and those steps are Jonas's (section 4b).
+Status: 2026-10-27 — REVERSED from "retire the whole shard" to "keep the VPB
+rows only". Code and wording on branch `claude/vpb-keep` (off origin/main
+4b2a66f2); the shard filter `scripts/ch_vb_keep_vpb.py` dry-run against the
+live VPS shard, NOT applied (section 4b, Jonas).
 
-The code/doc change set was originally prepared 2026-09-11 on
-`claude/elastic-wilson-cbe289` (commits 8eda93bf, d3df43b3) against a much
-older main (1eefec72, 309 commits behind). Porting it forward 2026-10-22
-found one superseding change already on main — `OCL_SWAP_GATE_EXEMPT`
-(f6f02460) replaces the `OCL_SWAP_GATE_EXEMPT_COURTS` variable this runbook
-originally introduced; see "4a. What changed since 09-11" below — and dropped
-the BJ Berichte-und-Gutachten scraper from this change set entirely (it will
-land separately; see "Not part of this change").
-
-Decision recorded 2026-09-11 (Jonas): nothing is taken from entscheidsuche for
-this segment; the sources have to be the federal authorities' own. An earlier
-draft of this note proposed keeping the VPB subset of the feed; that variant
-and its split script were withdrawn.
+Decision recorded 2026-10-27 (Jonas): the VPB is in the corpus and stays
+there; keep the 2,632 VPB rows, drop the Bundesblatt / Amtliches Bulletin /
+Amtliche Sammlung rows from `ch_vb`, correct the public wording, take the
+shard-archive step out of this runbook. This supersedes the 2026-09-11
+decision ("nothing from entscheidsuche for this segment; retire the shard"),
+which #79 (580ad932, 7fe4bb4b, merged 2026-10-25) implemented in code and
+wording; its data step (moving the shard) was never run, so the VPB rows were
+live the whole time while the server and the site said they were absent.
 
 ## Bottom line
 
-`court='ch_vb'` (23,046 rows) is fed by exactly one shard,
-`output/decisions/es_ch_vb.jsonl`, which the entscheidsuche `CH_VB` spider built
-by crawling the Federal Archives' amtsdruckschriften portal wholesale. In the
-raw feed only 27% of the entries are Verwaltungspraxis der Bundesbehörden
-(VPB/JAAC), in the live DB only 11.4% (2,632 of 23,046 rows); the rest are Bundesblatt, Amtliches Bulletin, Amtliche Sammlung,
-Staatsrechnung, Staatskalender, Geschäftsberichte and similar pages. The
-shard is retired as a whole. The federal administrative-practice material is
-re-sourced from (a) the Bundeskanzlei / Bundesarchiv for the historical VPB
-series, by request, and (b) the offices' own publication pages for the
-born-digital era, by direct scrapers.
+`court='ch_vb'` is fed by exactly one frozen shard,
+`output/decisions/es_ch_vb.jsonl`, which the entscheidsuche `CH_VB` spider
+built by crawling the Federal Archives' amtsdruckschriften portal wholesale.
+Census 2026-10-27 (VPS shard, read-only):
 
-## 1. What is being dropped (sizing)
+- 23,055 rows; 2,632 carry a VPB/JAAC portal id (prefix 15), over **2,502
+  distinct PDFs**. The raw feed lists 8,737 prefix-15 entries, but those are
+  the same 2,502 PDFs, each listed 2–7 times (once per language header):
+  **every VPB PDF the feed knew is in the shard**, all with full text.
+- Vols. 51–70 (1987–2006): every number from 1 to the volume's highest is
+  present except **VPB 70.32**. 2007–2017 (`VPB <year>.<n>`, from 2008 often
+  several numbers in one quarterly-issue PDF): every number present except
+  **VPB 2014.3**. A number past a year's highest held one would not show in
+  this check; the issues' tables of contents are the way to rule that out.
+- The other 20,423 rows (Bundesblatt 12,261, Amtliches Bulletin 7,091,
+  Amtliche Sammlung 833, small collections 238) are not VPB and are dropped.
+  130 further rows are copies of a VPB PDF under junk dockets (raw `<td>`
+  cells, the bare portal id, text fragments such as "terne Abklärung") and are
+  folded into one row per PDF.
+
+After `scripts/ch_vb_keep_vpb.py --apply`: 2,502 rows, 2,386 of them with a
+`VPB/JAAC x.y` docket.
+
+## 1. Sizing as of 2026-09-11 (record; see the bottom line for the 2026-10-27 census)
 
 ### 1a. Source side, exact (raw feed /opt/caselaw/entscheidsuche/CH_VB, 32,705 JSON files, read 2026-09-11)
 
@@ -140,8 +147,9 @@ The AB rows are the Nationalrat/Ständerat debate pages 1982–1998 (the
 "Wortlaut der Motion" hits); the BBl rows are Botschaften and reports
 1982–2008, i.e. the pre-1999 Botschaft gap already known from the materialien
 work, obtained here through a robots-disallowed path. Both are what the
-retirement drops; the 2,632 VPB rows are what the official delivery has to
-exceed (the full series is ~8,700 documents).
+filter drops. The 2,632 VPB rows are the series itself: the "~8,700
+documents" read off the feed in September were feed entries, not documents
+(2,502 PDFs, see the bottom line).
 
 ## 2. Entry path (single, frozen)
 
@@ -159,7 +167,7 @@ exceed (the full series is ~8,700 documents).
 - Provenance note: the portal's robots.txt disallows `/viewOrigDoc/*`; the
   March recovery fetched 23,031 PDFs from that path, and this investigation
   fetched 7 sample PDFs from it (one per prefix, to confirm the labels; not
-  repeated). Retiring the shard also closes that provenance issue.
+  repeated). Keeping the VPB rows keeps that provenance (see "Open decisions").
 
 ## 3. Official sources for the material (verified 2026-09-11)
 
@@ -217,7 +225,17 @@ BAG, ESTV, SEM, BJ, BAFU). Nothing from this thread is missing there.
 
 ## 4. Runbook
 
-### 4a. What changed since 09-11, done in the worktree (review with `git diff`, then commit + push)
+### 4a. Record: what #79 changed (merged 2026-10-25), and what 2026-10-27 reverses
+
+2026-10-27 reverses: `ch_vb` back in `EXPECTED_FEDERAL`; the intake exemption's reason
+(ended series, frozen VPB shard); every "pending an official delivery" text
+(server instructions, routing row, `search_practice` tail, README, dataset card,
+homepage register row, coverage and decision-browser pages, coverage notes,
+dashboard label, directory submission) now names the series and `court='ch_vb'`.
+Kept from #79: `CH_VB` stays out of `SPIDER_MAP` and the download lists (the
+shard is frozen, a re-ingest would bring the BBl/AB pages back), the
+case-insensitive `OCL_SWAP_GATE_EXEMPT`, and the 404 tests for dropped ids.
+The #79 record follows unchanged.
 
 - `scrapers/entscheidsuche_ingest.py`: `CH_VB` removed from `SPIDER_MAP` (a
   re-enabled weekly job can no longer re-ingest it);
@@ -301,98 +319,77 @@ BAG, ESTV, SEM, BJ, BAFU). Nothing from this thread is missing there.
 
 ### 4b. Production steps, in this order (Jonas; each one-liner is safe to run alone)
 
-Ordering matters: the code must be live on the VPS BEFORE the full build that
-misses the shard, otherwise `courts.federal_present.ch_vb` fails the QC gate and,
-without the gate exemption, the per-court gate aborts the swap (fail-safe:
-live DB untouched, build red, HF upload and pushes skipped for that night).
+Run steps 1–3 between the pipeline's exit (~17:00 UTC) and the next 03:30 UTC
+full build, not during the 20:00 UTC incremental. Incremental builds never
+delete rows, so the drop takes effect at the next full build.
 
-1. Commit + push the change set; on the VPS, outside the build window:
+1. Commit + push `claude/vpb-keep`; on the VPS, fast-forward:
    ```
    ssh -i ~/.ssh/caselaw root@46.225.212.40 'cd /opt/caselaw/repo && git fetch -q && git merge --ff-only origin/main && git log -1 --oneline'
    ```
-2. Retire the shard (same window; `output/archive/` is read by nothing):
+2. Dry run, then apply the filter (keeps a backup `es_ch_vb.jsonl.bak-pre-vpb-only`
+   next to the shard, replaces the shard atomically). The dry run must print
+   `rows 23055 -> 2502 VPB/JAAC PDFs (2386 with a VPB/JAAC x.y docket)`; stop if not.
    ```
-   ssh -i ~/.ssh/caselaw root@46.225.212.40 'mkdir -p /opt/caselaw/repo/output/archive && mv /opt/caselaw/repo/output/decisions/es_ch_vb.jsonl /opt/caselaw/repo/output/archive/es_ch_vb.jsonl.retired-2026-10 && ls -la /opt/caselaw/repo/output/archive/'
+   ssh -i ~/.ssh/caselaw root@46.225.212.40 'cd /opt/caselaw/repo && python3 scripts/ch_vb_keep_vpb.py'
    ```
-   (`rm` instead of `mv` if the bytes should go; see "Open decisions".)
-3. One-run gate exemption for the next FULL rebuild, set in
-   `/opt/caselaw/repo/.env.publish` (the publish unit's `EnvironmentFile=`; the
-   same place `bge_es_retirement.md` and `bge_twin_dates_2026-10-14.md` use).
-   Not a systemd drop-in: a drop-in `Environment=` silently overrides whatever
-   `.env.publish` already sets. With the new build_fts5.py live, first look for
-   an existing line:
+   ```
+   ssh -i ~/.ssh/caselaw root@46.225.212.40 'cd /opt/caselaw/repo && python3 scripts/ch_vb_keep_vpb.py --apply && ls -la output/decisions/es_ch_vb.jsonl*'
+   ```
+3. One-run gate exemption for the next FULL rebuild (ch_vb shrinks 23,046 →
+   2,502, below its 80% floor). Set in `/opt/caselaw/repo/.env.publish` (the
+   publish unit's `EnvironmentFile=`), not a systemd drop-in. Look first:
    ```
    ssh -i ~/.ssh/caselaw root@46.225.212.40 'grep -n OCL_SWAP_GATE_EXEMPT /opt/caselaw/repo/.env.publish'
    ```
-   If there is none, add `OCL_SWAP_GATE_EXEMPT=ch_vb` (operator edit). If the
-   variable already exists, append `,ch_vb` to its value
-   (`OCL_SWAP_GATE_EXEMPT=bge,ch_vb`); `build_fts5._per_court_gate_exempt()`
-   parses a comma-separated, case-insensitive list. (`zh_gerichte` is permanent
-   and needs no flag.) It exempts this one court; the global row gate stays on.
-   Hard prerequisite: step 1 is live (new build_fts5.py AND new
-   quality/checks/courts.py travel in one ff-merge). Do NOT fall back to
-   `OCL_SKIP_SWAP_GATE=1`: with the old code it would swap under a blanket
-   override and then fail the QC gate on `courts.federal_present.ch_vb`,
-   withholding the night's distribution after the data had already changed.
-   After that build has swapped and the pipeline has exited, remove `ch_vb`
-   from `.env.publish` again (drop the whole line if it was the only entry;
-   otherwise remove just `,ch_vb`) and re-check with the same `grep`. A
-   leftover entry is harmless but logs a "check the spelling" warning each night.
-4. Verify after the swap, in this order:
-   1. Publish log shows the two lines `build_fts5.py` now emits:
-      `pre-swap per-court gate: exempting ch_vb for this run via OCL_SWAP_GATE_EXEMPT`
-      and (since ch_vb collapses below its 80% floor)
-      `pre-swap per-court gate: ch_vb 23046 → 0 rows, exempt`. Absence of the
-      second line with a nonzero post-swap `ch_vb` count would mean the shard
-      move (step 2) did not take effect — check it ran before the build.
-   2. QC gate green (`courts.federal_present` no longer names `ch_vb`;
-      confirm via the publish log's quality-gate summary or
-      `quality/checks/courts.py` run standalone against the new DB).
-   3. `list_courts` (MCP tool or `GET /api/courts`) has no `ch_vb` entry, or
-      lists it with count 0 — either is correct; a nonzero count is not.
-   4. `search_decisions(court='ch_vb')` / `search_decisions("Wortlaut der Motion")`
-      returns zero rows, not an error.
-   5. A known retired id, e.g. `GET /entscheid/ch_vb_90000341` or
-      `GET /api/decisions/ch_vb_90000341`, returns 404 with a helpful body —
-      not a 500. (Regression-tested offline; this is the live-corpus check.)
-   6. `make verify` / `make verify-offline` headline numbers (950k floor
-      unaffected — ch_vb was 23,046 of ~1.08M rows, 2.1%).
-   7. Regenerate the representation manifest (ch_vb's byte-identical-duplicate
-      rule in `scripts/build_representation_manifest.py` becomes a no-op,
-      0 members — not an error); HF parquet at the next upload (no per-court
-      logic there to update); paper tables
-      (`docs/paper/*/tables/corpus_graph_stats.json`) at the next refresh.
-5. Send the two letters (addresses to verify first). The re-sourced VPB then
-   arrives as an offline ingest `scrapers/ch_vb.py` → direct `ch_vb.jsonl` keyed
-   on `VPB <vol>.<n>`, and `ch_vb` goes back into `EXPECTED_FEDERAL` and the
-   intake policy's `expected_stale` entry comes out.
-6. Separately, once reviewed: land the BJ Berichte-und-Gutachten scraper (see
-   "Not part of this change" above) on its own branch/PR.
-7. Rollback of step 2: move the file back; the next full rebuild (or the next
-   quick-publish, which globs the shard directory) restores the rows; growth
-   never trips a gate.
+   No line: add `OCL_SWAP_GATE_EXEMPT=ch_vb`. A line: append `,ch_vb`. The
+   global row gate stays armed and passes on its own (−20,553 of ~1.05M rows,
+   2%, against a 95% floor). Do NOT use `OCL_SKIP_SWAP_GATE=1`. Remove the
+   entry after the build has swapped and the pipeline has exited.
+4. Verify after the swap:
+   1. Publish log: `pre-swap per-court gate: exempting ch_vb for this run via
+      OCL_SWAP_GATE_EXEMPT` and `pre-swap per-court gate: ch_vb 23046 → 2502
+      rows, exempt` (±the build's own dedup).
+   2. QC gate green, `courts.federal_present` includes `ch_vb`.
+   3. `search_decisions(court='ch_vb', query='Verwaltungspraxis')` returns VPB
+      rows (e.g. JAAC 70.103); `search_decisions(court='ch_vb', query='"Wortlaut
+      der Motion"')` returns none.
+   4. A dropped id, e.g. `GET /entscheid/ch_vb_90000341`, returns 404, not 500.
+   5. `make verify` headline numbers (floor unaffected, 2% of rows).
+   6. Representation manifest, HF parquet and paper tables pick up the new
+      count at their next refresh.
+5. Rollback of step 2: `mv es_ch_vb.jsonl.bak-pre-vpb-only es_ch_vb.jsonl`;
+   the next full rebuild restores the rows (growth never trips a gate).
 
-Known, accepted windows (review 2026-09-12, still true): (a) between the
-ff-merge and the swap the MCP texts already say "VPB/JAAC: not ingested yet"
-while 23,046 ch_vb rows are still served (texts go live at the next worker
-recycle, e.g. the Saturday 21:30 UTC practice run's restart); (b)
-`scripts/check_intake_rates.py` keeps the `ch_vb` exemption so the draining
-rows are not reported STALE; (c) the docs/index.html, docs/coverage/*/index.html
-and docs/entscheide/*/index.html register rows are updated in the same change
-set and regenerated via `build_page_languages.mjs`, so there is no dual-write
-lag for those pages; `docs/stats/*` is a nightly-generated snapshot (asof
-whatever the last full rebuild was) that recomputes its own `ch_vb` figure
-client-side from `docs/stats.json` at generation time — it is not hand-edited
-here and will show `ch_vb: 0` once the retiring rebuild runs.
+Accepted window: between the ff-merge (texts live at the next worker
+recycle) and the swap, the texts say "2,500 VPB rulings" while `ch_vb` still
+also serves the 20,423 non-VPB rows it has served since March.
+
+## 5. Closing the last gaps
+
+- **VPB 70.32 and VPB 2014.3**: not in any shard PDF. Fetch the two by hand
+  (a person on amtsdruckschriften.bar.admin.ch or bj.admin.ch; robots.txt
+  binds crawlers, not a reader) or ask the Bundeskanzlei KAV for exactly these
+  two; ingest as two rows keyed `VPB 70.32` / `VPB 2014.3`.
+- **Tail check**: compare each volume's highest held number with the issue's
+  table of contents (vols. 51–70: the annual register; 2008–2017: the
+  quarterly issue PDFs, which are in the shard). Not done yet.
+- The September letters (BAR bulk delivery "~8,700 documents", BK KAV source
+  files) were never sent and rest on the feed-entry miscount: do not send them
+  as drafted. At most a short request for the two missing numbers.
 
 ## Open decisions for Jonas
 
-- Delete the retired shard bytes rather than archive them (they were obtained
-  via a robots-disallowed path).
+- Provenance: the VPB PDF texts were fetched in March 2026 from the portal's
+  `/viewOrigDoc/` path, which robots.txt disallows (Art. 5 URG: the content
+  itself is unprotected). Kept on 2026-10-27; do not fetch from that path
+  again. The backup `es_ch_vb.jsonl.bak-pre-vpb-only` (the dropped BBl/AB/AS
+  rows) can be deleted once the swap has verified.
 - The eight federal `es_*` shards frozen on 2026-04-29 (es_bge, es_bger,
   es_bvger, …) sit under the same "nothing from entscheidsuche" policy; out of
   scope here, flagged only.
 - Whether the BJ Gutachten belong in practice.db (proposed) or in
   decisions.db — moot until that scraper lands as its own change (see "Not
   part of this change").
-- Send the BAR letter together with the historical-Botschaften request.
+- Whether a separate, rewritten BAR letter is still wanted for the
+  historical Botschaften alone (the VPB part is moot, see section 5).

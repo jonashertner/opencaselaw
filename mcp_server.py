@@ -14714,8 +14714,8 @@ server = Server(
         "concluding observations, UPR recommendations with Switzerland's position, "
         "SPT and special-procedure reports; source='un_uhri', EN/FR), the treaty bodies' "
         "General Comments and General Recommendations (source='un_gc', FR/EN) — via "
-        "search_practice / get_practice (the VPB/JAAC series 1987–2017 is not yet in the corpus: "
-        "an official delivery is pending), "
+        "search_practice / get_practice, plus the VPB/JAAC series 1987–2017 (2,500 rulings and "
+        "legal opinions of the federal administration, full text) under court='ch_vb', "
         "44,000+ open-access scholarship records from 24 Swiss legal sources "
         "(thousands with full-text — see find_scholarship_citing_decision and "
         "find_scholarship_citing_statute for the bidirectional bridge), "
@@ -14974,7 +14974,7 @@ server = Server(
         "     BSV, SECO, BAG, SEM, BJ, ESTV, FINMA, BAFU); then get_practice for the verbatim text + source PDF\n"
         "• 'WEL / KSIH / RWL / AVIG-Praxis / Handbuch Asyl / Existenzminimum-Richtlinien?' → search_practice\n"
         "• 'circulaire / directive / istruzioni / circolare?'      → search_practice\n"
-        "• 'Verwaltungspraxis des Bundes vor 2017 (VPB/JAAC)?'     → not in the corpus yet (official VPB delivery pending); say so\n"
+        "• 'Verwaltungspraxis des Bundes vor 2018 (VPB/JAAC)?'     → search_decisions(court='ch_vb')\n"
         "• 'What did the UN (CAT, CCPR, CRC, UPR …) recommend to Switzerland on X?' /\n"
         "  'UNO-Empfehlungen an die Schweiz?' → search_practice(source='un_uhri'); the committees'\n"
         "     decisions on individual complaints are search_decisions(court='untb_*')\n"
@@ -31421,7 +31421,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ (SchKG, Existenzminimum), FINMA, ESTV, BAFU. Also UN texts: recommendations to Switzerland (source='un_uhri': concluding observations, UPR with the Swiss position, SPT, special procedures) and treaty-body General Comments (source='un_gc'). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal administrations (Sozialhilfe/SKOS, Prämienverbilligung) — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC (pre-2017): not in the corpus yet; say so."
+                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ (SchKG, Existenzminimum), FINMA, ESTV, BAFU. Also UN texts: recommendations to Switzerland (source='un_uhri': concluding observations, UPR with the Swiss position, SPT, special procedures) and treaty-body General Comments (source='un_gc'). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal administrations (Sozialhilfe/SKOS, Prämienverbilligung) — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC 1987–2017: search_decisions(court='ch_vb')."
             ),
             inputSchema={
                 "type": "object",
