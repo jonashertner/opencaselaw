@@ -5,9 +5,63 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Mon, 26 Oct 2026 12:47:48 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 27 Oct 2026 13:17:01 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 2C_592/2025 vom 2026-09-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_2C_592_2025</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+2C_592/2025
+
+Sentenza del 15 settembre 2026
+
+II Corte di diritto pubblico
+
+Composizione
+
+Giudici federali Aubry Girardin, Presidente,
+
+Donzallaz, Hänni, Ryter, Kradolfer,
+
+Cancell…</description>
+      <pubDate>Tue, 27 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:2C_592.2025</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>ti_gerichte 80.2024.232 vom 2025-10-22</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_80.2024.232</link>
+      <description>Incarto n. 80.2024.232
+
+Lugano
+
+22 ottobre 2025
+
+In nome della Repubblica e Cantone Ticino
+
+La Camera di diritto tributario del Tribunale d'appello
+
+composta dai giudici
+
+Andrea Pedroli, presidente,
+
+Raffaele Guffi, Ivano Ranzanici
+
+segretaria
+
+Mara …</description>
+      <pubDate>Mon, 26 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_80.2024.232</guid>
+      <category>ti_gerichte</category>
+    </item>
     <item>
       <title>Bundesverwaltungsgericht F-6599/2026 vom 2026-10-15</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6599_2026</link>
@@ -915,66 +969,6 @@ Raffaele Guffi, Ivano Ranzanici
 reda…</description>
       <pubDate>Tue, 13 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ti_gerichte_38.2025.73</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 42.2026.7 vom 2026-05-26</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_42.2026.7</link>
-      <description>Raccomandata
-
-Incarto
- n.42.2026.7
-
-CL/gm
-
-Lugano
-
-26 maggio 2026
-
-In nomedella Repubblica e CantoneTicino
-
-Il Tribunale cantonale delle assicurazioni
-
-composto
- dei giudici:
-
-Daniele Cattaneo, presidente,
-
-Raffaele Guffi, Ivano Ranzanici
-
-redattri…</description>
-      <pubDate>Tue, 13 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_42.2026.7</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 38.2026.6 vom 2026-05-18</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_38.2026.6</link>
-      <description>Raccomandata
-
-Incarto
- n.38.2026.6
-
-CL/DC/gm
-
-Lugano
-
-18 maggio 2026
-
-In nomedella Repubblica e CantoneTicino
-
-Il Tribunale cantonale delle assicurazioni
-
-composto
- dei giudici:
-
-Daniele Cattaneo, presidente,
-
-Raffaele Guffi, Ivano Ranzanici
-
-redat…</description>
-      <pubDate>Tue, 13 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_38.2026.6</guid>
       <category>ti_gerichte</category>
     </item>
   </channel>
