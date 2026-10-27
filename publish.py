@@ -49,7 +49,16 @@ NTFY_TOPIC = "opencaselaw-publish"  # https://ntfy.sh/opencaselaw-publish
 
 
 def _notify(title: str, message: str, *, priority: str = "default"):
-    """Send push notification via ntfy.sh (best-effort, never fails the pipeline)."""
+    """Send push notification via ntfy.sh (best-effort, never fails the pipeline).
+
+    Never posts under pytest. A per-file fixture (tests/test_publish_dispatch.py,
+    2026-09-16) only protects branches that carry it; on 2026-10-26/27 a loop
+    over a pre-fix checkout pushed ~230 fake "Publish OK / ? decisions, 0 min"
+    to the operator topic. PYTEST_CURRENT_TEST is inherited by subprocesses,
+    so a test that shells out to publish.py is covered too.
+    """
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return
     try:
         req = urllib.request.Request(
             f"https://ntfy.sh/{NTFY_TOPIC}",
