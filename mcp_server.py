@@ -8924,6 +8924,16 @@ def _resolve_decision_id(decision_id: str) -> str:
         ).fetchone()
         if row:
             return row[0]
+        # VPB/JAAC/GAAC in any of its three titles, bare or as a citation
+        # string, to the 'JAAC <n>' docket the ch_vb rows store.
+        _vpb = _vpb_docket(decision_id)
+        if _vpb:
+            row = conn.execute(
+                "SELECT decision_id FROM decisions WHERE docket_number = ? AND court = 'ch_vb' "
+                "ORDER BY decision_date DESC LIMIT 1", (_vpb,),
+            ).fetchone()
+            if row:
+                return row[0]
         # Robustness (#44): resolve a DECORATED citation form ("BGer 6B 1518/2021
         # vom ...", stray whitespace) by extracting the single docket and
         # retrying the exact lookup.
@@ -15633,6 +15643,31 @@ def _clean_docket(docket: str | None) -> str:
 # spaces ('410 2024 329', 'PKG 2024 1') and federal collection dockets do too
 # ('BB 2023 1'), but none of them carries the number/year slash, so none can
 # match. Federal courts only, in any case.
+# VPB/JAAC/GAAC (court ch_vb): one series, three titles — VPB in German,
+# JAAC in French, GAAC in Italian — numbered volume.item (51-70, 1987-2006)
+# or year.item (2007-2017, with sub-items '2007.3.1', '2009.10a'). The shard
+# stores every docket as 'JAAC <n>'; without a branch of its own ch_vb fell to
+# the cantonal fallback and printed 'Gericht CH JAAC 64.104' — no court, and
+# not the form anyone cites. _vpb_docket maps any written form back to the
+# stored docket, so the strings handed out here (and the old 'Gericht CH …'
+# ones already in users' documents) resolve again.
+_VPB_SERIES = {"de": "VPB", "fr": "JAAC", "it": "GAAC"}
+_VPB_NUMBER = r"(\d{2}\.\d{1,3}|(?:19|20)\d{2}\.\d{1,3}(?:\.\d{1,2}|[a-z])?)"
+_VPB_DOCKET_RE = re.compile(rf"^JAAC {_VPB_NUMBER}$")
+_VPB_REF_RE = re.compile(
+    rf"^(?:(?:Gericht|Tribunal|Tribunale) CH\s+)?(?:VPB|JAAC|GAAC)\s*{_VPB_NUMBER}(?!\d|\.\d|[a-z])",
+    re.IGNORECASE)
+_VPB_ADMIN_LABEL = {"de": "Bundesverwaltung", "fr": "Administration fédérale",
+                    "it": "Amministrazione federale"}
+
+
+def _vpb_docket(reference: str | None) -> str | None:
+    """'VPB 64.104 vom 17. Mai 2000, E. 3' / 'GAAC 2007.3.1' -> the stored
+    'JAAC <n>' docket; None for anything that does not open with the series."""
+    m = _VPB_REF_RE.match((reference or "").strip())
+    return f"JAAC {m.group(1)}" if m else None
+
+
 _FED_SPACE_DOCKET = re.compile(r"^([0-9A-Z]{1,3}) (\d+/\d{2,4})$")
 _FEDERAL_DOCKET_COURTS = {"bger", "bge", "bvger", "bstger", "bpatger"}
 
@@ -15942,6 +15977,21 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
             "citation_string_it": f"{code_it} {docket}{vom_it}{pit}",
             "canonical_url": url,
         }
+
+    # VPB/JAAC/GAAC: the series title of each language and the item number,
+    # 'VPB 64.104 vom 17. Mai 2000'. A row still carrying its portal id as
+    # docket (no item number on record) is labelled by its author, the federal
+    # administration, never 'Gericht'.
+    if court == "ch_vb":
+        reliable = _citation_date_reliable(decision_date)
+        m = _VPB_DOCKET_RE.match(docket)
+        out = {"canonical_url": url}
+        for lang, vom, pin_label in (("de", "vom", "E."), ("fr", "du", "consid."), ("it", "del", "consid.")):
+            head = f"{_VPB_SERIES[lang]} {m.group(1)}" if m else f"{_VPB_ADMIN_LABEL[lang]} {docket}".strip()
+            date = _format_date_localized(decision_date, lang) if reliable else ""
+            out[f"citation_string_{lang}"] = (f"{head}{f' {vom} {date}' if date else ''}"
+                                              f"{f', {pin_label} {pin}' if pin else ''}")
+        return out
 
     # Arbeitsgericht Zürich yearbook: the docket IS the court's Zitiervorschlag
     # ("AGer-Z 2023 Nr. 7"); prefixing a court label would double the court
@@ -18791,6 +18841,10 @@ def _cite_identity(reference: str, decision: dict) -> dict | None:
     core = parsed.core
     if core == decision_id or decision_id in _decision_id_variants(core):
         return {"method": "exact_canonical_id", "label": core}
+    if decision.get("court") == "ch_vb":
+        vpb = _vpb_docket(reference)
+        if vpb and vpb == decision.get("docket_number"):
+            return {"method": "exact_docket", "label": vpb}
     core_key = reference_parser.label_key(core)
     try:
         strings = _build_citation_strings(decision)
@@ -19556,6 +19610,15 @@ def _resolve_decision_id_strict(decision_id: str) -> str | None:
         ).fetchone()
         if row:
             return row[0]
+        # 'VPB 64.104' / 'GAAC 64.104' -> the stored 'JAAC 64.104' (exact, indexed).
+        _vpb = _vpb_docket(decision_id)
+        if _vpb:
+            row = conn.execute(
+                "SELECT decision_id FROM decisions WHERE docket_number = ? AND court = 'ch_vb' "
+                "ORDER BY decision_date DESC LIMIT 1", (_vpb,),
+            ).fetchone()
+            if row:
+                return row[0]
         # Joined-docket alias (#41): unique alias only. Indexed lookup, so it
         # keeps the strict resolver's no-LIKE performance contract — attest_response
         # must accept a valid joined docket instead of flagging it as fabricated.
