@@ -55,7 +55,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
-from .base import PracticeScraper, sha256_hex, slugify
+from .base import _MONTHS_ALL, PracticeScraper, sha256_hex, slugify
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,25 @@ _HREFLANG = re.compile(r'<link[^>]+hreflang="([a-z]{2})"[^>]+href="([^"]+)"')
 _YEAR_SLUG = re.compile(
     r'href="(/de/dokumentation/archiv/rundschreiben/archiv-\d{4}/)"')
 _TAGS = re.compile(r"<[^>]+>")
+
+# The front page of every amended circular prints its own last-amendment
+# date: "Letzte Änderung: 4. November 2020 [Änderungen sind mit *
+# gekennzeichnet …]", likewise in FR / IT / EN. Some PDFs lay the label
+# column out before the value column ("Entrata in vigore: Ultima modifica:
+# 1° gennaio 2015 8 marzo 2023 [le modifiche …]"), so the date is taken
+# from in front of the bracket first, and from straight after the label
+# only when nothing else sits between them. Anything else is no date.
+_FRONT_LABEL = (r"(?:Letzte\s+Änderung|Dernière\s+modification"
+                r"|Ultima\s+modifica|Last\s+amendment)\s*:")
+_WORD_DATE = r"(\d{1,2})(?:\.|er|°|º)?\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})"
+_FRONT_HAS_LABEL = re.compile(_FRONT_LABEL, re.I)
+_FRONT_BRACKET = re.compile(
+    _WORD_DATE + r"\s*\[\s*(?:Änderungen|les\s+modifications"
+    r"|le\s+modifiche|Modifications)", re.I)
+_FRONT_ADJACENT = re.compile(_FRONT_LABEL + r"\s*" + _WORD_DATE, re.I)
+_FRONT_MATTER_CHARS = 4000
+_MONTHS = {**_MONTHS_ALL, "january": 1, "february": 2, "march": 3,
+           "may": 5, "june": 6, "july": 7, "october": 10, "december": 12}
 
 
 def _clean(s: str) -> str:
@@ -145,6 +164,40 @@ class FinmaRundschreibenScraper(PracticeScraper):
         # visible, never silently absent.
         self.skipped_non_pdf = 0
         self.date_disagreements = 0
+        self.front_page_dated = 0
+        self.front_page_disagreements = 0
+        # (doc_number, lang) -> the in-force listing's date, the upper
+        # bound for any archived version of that circular.
+        self._in_force_dates: dict[tuple[str, str], str] = {}
+        self._in_force_langs: set[str] = set()
+
+    def _normalize(self, stub: dict, body_text: str) -> dict:
+        """Date documents by the text actually served; see _in_force_date
+        and _archive_date. The doc_id is unaffected: it is "current" for
+        the in-force version and was fixed from the stub for archived
+        ones, so a corrected date never moves or collides a row."""
+        doc = super()._normalize(stub, body_text)
+        if stub.get("version_key") == "current":
+            dated = _in_force_date(doc["date"], body_text)
+        elif stub.get("language") in self._in_force_langs:
+            # Without that language's in-force listing there is no upper
+            # bound, and an archived version could overtake the in-force
+            # one, so the listed date stands.
+            dated = _archive_date(
+                doc["date"], doc["pdf_url"], body_text,
+                stub.get("panel_dates") or [],
+                self._in_force_dates.get(
+                    (stub.get("doc_number", ""), stub.get("language", ""))))
+        else:
+            dated = doc["date"]
+        if dated != doc["date"]:
+            doc["date"] = dated
+            self.front_page_dated += 1
+            return doc
+        printed = _front_page_amendment(body_text)
+        if printed and printed != doc["date"]:
+            self.front_page_disagreements += 1
+        return doc
 
     # ── identity ────────────────────────────────────────────────────
 
@@ -178,6 +231,11 @@ class FinmaRundschreibenScraper(PracticeScraper):
                     "stated date was kept",
                     self.SOURCE_KEY, self.skipped_non_pdf,
                     self.date_disagreements)
+        logger.info("[%s] front pages: %d documents dated by their "
+                    "last-amendment line; %d other disagreements with "
+                    "the listed date — the listed date was kept",
+                    self.SOURCE_KEY, self.front_page_dated,
+                    self.front_page_disagreements)
 
     def _discover_current(self) -> Iterator[dict]:
         """The in-force set, from each language's own API endpoint so the
@@ -200,19 +258,23 @@ class FinmaRundschreibenScraper(PracticeScraper):
                 continue
             logger.info("[%s] %s: %d circulars in force",
                         self.SOURCE_KEY, lang, len(items))
+            self._in_force_langs.add(lang)
             for it in items:
                 title = _clean(it.get("Title", ""))
                 number = _doc_number(title)
                 if not number or not it.get("Link"):
                     continue
+                # The listing's Date is the circular's own date; the date
+                # in brackets at the end of the title says the same thing
+                # and covers the rare empty Date field. It can lag behind
+                # the text, which _normalize corrects (_in_force_date).
+                listed = _iso(it.get("Date")) or _iso(title)
+                self._in_force_dates[(number, lang)] = listed
                 yield {
                     "pdf_url": _abs(it["Link"]),
                     "title": title,
                     "doc_number": number,
-                    # The listing's Date is the circular's own date; the
-                    # date in brackets at the end of the title says the
-                    # same thing and covers the rare empty Date field.
-                    "date": _iso(it.get("Date")) or _iso(title),
+                    "date": listed,
                     "language": lang,
                     "url": _HOST + _CURRENT_PAGE.format(lang=lang),
                     "version_key": "current",
@@ -282,6 +344,7 @@ class FinmaRundschreibenScraper(PracticeScraper):
             panel = dt.find_next_sibling("dd") if dt else None
             if panel is None:
                 panel = head.parent
+            stubs = []
             for box in panel.select("div.document-teaser-box"):
                 link = box.select_one("a.document-teaser-box-title")
                 if link is None or not link.get("href"):
@@ -312,7 +375,7 @@ class FinmaRundschreibenScraper(PracticeScraper):
                     self.date_disagreements += 1
                 version_date = stated or from_name
                 is_annex = bool(_ANNEX.search(name))
-                yield {
+                stubs.append({
                     "pdf_url": pdf_url,
                     "title": title,
                     "doc_number": number,
@@ -334,7 +397,13 @@ class FinmaRundschreibenScraper(PracticeScraper):
                                + _STATUS_SUPERSEDED
                                + (["Anhang", "annexe", "allegato", "annex"]
                                   if is_annex else [])),
-                }
+                })
+            # Every version date of this circular on this page, so that
+            # _archive_date can refuse a correction that would reorder
+            # the history or tie it with another version.
+            panel_dates = sorted({s["date"] for s in stubs if s["date"]})
+            for stub in stubs:
+                yield {**stub, "panel_dates": panel_dates}
 
 
 _FILENAME_DATE = re.compile(r"(20\d{2}|19\d{2})(\d{2})(\d{2})")
@@ -352,3 +421,66 @@ def _version_from_filename(pdf_url: str) -> str:
     if not (1 <= int(mth) <= 12 and 1 <= int(d) <= 31):
         return ""
     return f"{y}-{mth}-{d}"
+
+
+def _front_page_amendment(body_text: str) -> str:
+    """The last-amendment date the PDF's own front page prints, ISO, or
+    "" when the front page has none or it cannot be read unambiguously."""
+    head = (body_text or "")[:_FRONT_MATTER_CHARS]
+    if not _FRONT_HAS_LABEL.search(head):
+        return ""
+    for rx in (_FRONT_BRACKET, _FRONT_ADJACENT):
+        m = rx.search(head)
+        month = _MONTHS.get(m.group(2).lower()) if m else None
+        if month:
+            return f"{m.group(3)}-{month:02d}-{int(m.group(1)):02d}"
+    return ""
+
+
+def _in_force_date(listed: str, body_text: str) -> str:
+    """The date of an in-force circular: the listing's, unless the text
+    we serve proves a later amendment.
+
+    The in-force listing's Date lags: for RS 2010/01, 2011/01, 2011/02,
+    2013/07, 2017/01, 2019/01 and 2019/02 it still carries the date of
+    the version before the 4 November 2020 amendment, so the in-force
+    text and its archived predecessor showed the same date. The front
+    page is FINMA's own statement too, and a later one is proof: a text
+    cannot print an amendment that had not happened yet. An earlier one
+    proves nothing, since FINMA leaves stale front pages in place (RS
+    2008/04's 2013 file still prints 20 November 2008), so the listing
+    keeps it. Archived versions follow a stricter rule, _archive_date.
+    """
+    printed = _front_page_amendment(body_text)
+    return printed if printed > (listed or "") else listed
+
+
+def _archive_date(listed: str, pdf_url: str, body_text: str,
+                  panel_dates: list[str], in_force: str | None) -> str:
+    """The date of an archived version: the listed "last changed" line,
+    unless the front page AND the file name name another, same date, and
+    moving there keeps the version history in order.
+
+    Two of FINMA's three statements agreeing against the third is what
+    RS 2008/02 shows: listed 03.04.2011, while the front page and
+    rs-08-02-letzte-aenderung-20110304.pdf both say 4 March 2011. The front
+    page alone is not enough here: Erlass files print a later amendment
+    (RS 2008/01's rs-08_01_erlass_20081120.pdf says 20 November 2009) and
+    a FR slot holds the 2021 file of RS 2010/03, so trusting it would
+    reorder the history. The order guard refuses any date that would
+    reach another version of the circular on the page, or the in-force
+    version: an archived version that ties with the one in force is the
+    two-identical-dates error this exists to remove.
+    """
+    printed = _front_page_amendment(body_text)
+    if not printed or printed == listed:
+        return listed
+    if printed != _version_from_filename(pdf_url):
+        return listed
+    lo, hi = sorted((listed or printed, printed))
+    # Equal to `listed` is this version itself or one of its annexes.
+    if any(lo <= d <= hi for d in panel_dates if d != listed):
+        return listed
+    if in_force and printed >= in_force:
+        return listed
+    return printed
