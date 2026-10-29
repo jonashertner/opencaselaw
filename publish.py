@@ -45,7 +45,11 @@ from pathlib import Path
 
 LOCK_FILE_PATH = "/tmp/opencaselaw-publish.lock"
 CHECKPOINT_PATH = Path("/tmp/opencaselaw-publish-checkpoint.json")
-NTFY_TOPIC = "opencaselaw-publish"  # https://ntfy.sh/opencaselaw-publish
+# The operator topic is not in the code. An ntfy.sh topic is open to anyone who knows
+# its name, and a name in this public repo reached every old checkout: test loops in
+# pre-guard worktrees pushed hundreds of fake "Publish OK" on 2026-10-26..29. On the VPS the
+# topic comes from /opt/caselaw/ops.env (systemd drop-in ntfy.conf); unset, no push.
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
 
 
 def _notify(title: str, message: str, *, priority: str = "default"):
@@ -55,9 +59,10 @@ def _notify(title: str, message: str, *, priority: str = "default"):
     2026-09-16) only protects branches that carry it; on 2026-10-26/27 a loop
     over a pre-fix checkout pushed ~230 fake "Publish OK / ? decisions, 0 min"
     to the operator topic. PYTEST_CURRENT_TEST is inherited by subprocesses,
-    so a test that shells out to publish.py is covered too.
+    so a test that shells out to publish.py is covered too. Without NTFY_TOPIC
+    (any run outside the systemd units) nothing is sent either.
     """
-    if os.environ.get("PYTEST_CURRENT_TEST"):
+    if not NTFY_TOPIC or os.environ.get("PYTEST_CURRENT_TEST"):
         return
     try:
         req = urllib.request.Request(

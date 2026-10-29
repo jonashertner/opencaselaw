@@ -281,9 +281,10 @@ def set_status(row_id: int, new_status: str, note: str | None = None, *, path: P
 
 # ── operator alert ───────────────────────────────────────────────────────────
 # ntfy.sh topics are public to anyone who knows the name, so the alert carries the
-# number and the kind, never the text.
+# number and the kind, never the text. The topic comes from the environment
+# (NTFY_TOPIC is in the workers' .env.mcp), never from the code: see publish.NTFY_TOPIC.
 def _notify(message: str) -> None:
-    topic = os.environ.get("OCL_SUGGEST_NTFY_TOPIC", "opencaselaw-publish")
+    topic = os.environ.get("OCL_SUGGEST_NTFY_TOPIC") or os.environ.get("NTFY_TOPIC", "")
     if not topic or os.environ.get("OCL_SUGGEST_NTFY", "1") == "0":
         return
     try:

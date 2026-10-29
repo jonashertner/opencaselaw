@@ -7,6 +7,7 @@ must not generate further failure noise).
 """
 from __future__ import annotations
 import json
+import os
 import sys
 import urllib.request
 from datetime import datetime, timezone
@@ -14,7 +15,10 @@ from pathlib import Path
 
 LOG = Path("/opt/caselaw/repo/logs/publish.log")
 STATE_DIR = Path("/opt/caselaw/repo/state")
-NTFY_URL = "https://ntfy.sh/opencaselaw-publish"
+# Operator topic from /opt/caselaw/ops.env (systemd drop-in), never in the code:
+# see publish.NTFY_TOPIC. Unset, the alert is only the marker file.
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
+NTFY_URL = f"https://ntfy.sh/{NTFY_TOPIC}" if NTFY_TOPIC else ""
 
 # Lines we surface in the alert body (most recent N matching).
 ERROR_MARKERS = (
@@ -47,6 +51,9 @@ def collect_tail() -> str:
 
 
 def post_ntfy(body: str) -> None:
+    if not NTFY_URL:
+        print("ntfy skipped: NTFY_TOPIC not set", file=sys.stderr)
+        return
     try:
         req = urllib.request.Request(
             NTFY_URL,

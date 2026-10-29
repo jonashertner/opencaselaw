@@ -33,7 +33,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 STATE_PATH = Path(os.environ.get(
     "HEALTH_ALERTS_STATE", str(REPO / "logs" / "health_alerts_state.json")))
-NTFY_URL = os.environ.get("HEALTH_ALERTS_NTFY", "https://ntfy.sh/opencaselaw-publish")
+# HEALTH_ALERTS_NTFY (full URL) wins; else the operator topic NTFY_TOPIC from
+# /opt/caselaw/ops.env (systemd drop-in). No public fallback: see publish.NTFY_TOPIC.
+NTFY_URL = os.environ.get("HEALTH_ALERTS_NTFY") or (
+    f"https://ntfy.sh/{os.environ['NTFY_TOPIC']}" if os.environ.get("NTFY_TOPIC") else "")
 WORKER_PORTS = range(8770, 8778)
 RENAG_HOURS = 24.0
 UNREACHABLE_LIMIT = 3  # consecutive misses before "workers down" fires
@@ -144,6 +147,9 @@ def decide(alerts: list[dict], state: dict, now: float):
 
 
 def send(title: str, message: str, priority: str = "default", tags: str = "warning") -> bool:
+    if not NTFY_URL:
+        print("ntfy send skipped: neither HEALTH_ALERTS_NTFY nor NTFY_TOPIC is set", file=sys.stderr)
+        return False
     req = urllib.request.Request(
         NTFY_URL, data=message.encode(),
         headers={"Title": title, "Priority": priority, "Tags": tags},

@@ -19,11 +19,21 @@ def test_notify_is_silent_under_pytest(monkeypatch):
 
 def test_notify_posts_outside_pytest(monkeypatch):
     calls = _record_urlopen(monkeypatch)
+    monkeypatch.setattr(publish, "NTFY_TOPIC", "ops-test-topic")
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
     publish._notify("Publish OK", "991000 decisions, 840 min", priority="high")
     assert len(calls) == 1
     req = calls[0]
-    assert req.full_url == f"https://ntfy.sh/{publish.NTFY_TOPIC}"
+    assert req.full_url == "https://ntfy.sh/ops-test-topic"
     assert req.data == b"991000 decisions, 840 min"
     assert req.get_header("Title") == "Publish OK"
     assert req.get_header("Priority") == "high"
+
+
+def test_notify_is_silent_without_a_topic(monkeypatch):
+    """No topic in the environment (a dev checkout, an old worktree): no push."""
+    calls = _record_urlopen(monkeypatch)
+    monkeypatch.setattr(publish, "NTFY_TOPIC", "")
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    publish._notify("Publish OK", "? decisions, 0 min")
+    assert calls == []
