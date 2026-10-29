@@ -206,6 +206,11 @@ server {
         add_header Link '<https://huggingface.co/datasets/voilaj/swiss-caselaw>; rel="alternate"; title="bulk corpus"' always;
         add_header X-OpenCaseLaw-Bulk "Full CC0 corpus in one download at the Link header. High-volume or commercial use: team@jonashertner.com" always;
         limit_req zone=ocl_export burst=30 nodelay;
+        # Per-network budget and auto-ban (conf.d/ocl-harvest-guard.conf,
+        # scripts/autoban_harvesters.py): a fleet spread over many addresses
+        # in one range shares one budget instead of getting one each.
+        limit_req zone=ocl_export_net burst=60 nodelay;
+        if ($ocl_harvest_ban) { return 429; }
         limit_req zone=mcp_expensive burst=5 nodelay;
         proxy_hide_header Access-Control-Allow-Origin;
         proxy_hide_header Access-Control-Allow-Methods;

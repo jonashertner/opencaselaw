@@ -1,0 +1,17 @@
+[Unit]
+Description=Ban networks that mass-harvest the export renderers, for a limited time
+# 2026-10-23: a 50-address fleet pulled ~12,900 export renders per 15 min for
+# six hours; every nginx limit was per address. See
+# scripts/autoban_harvesters.py; runbooks/harvest_autoban.md.
+OnFailure=ntfy-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+# Host-local settings (e.g. OCL_AUTOBAN_DRY=1 to report only); optional.
+EnvironmentFile=-/etc/opencaselaw/autoban.env
+ExecStart=/usr/bin/python3 /opt/caselaw/repo/scripts/autoban_harvesters.py
+# Output names client networks: it stays in the journal, not in logs/.
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2min
