@@ -24,6 +24,12 @@ unit's OnFailure alert fires. Settings (environment):
                           few reopened streams per restart, measured 2026-10-06),
                           so by day only a worker well past normal is restarted
   OCL_WORKER_NIGHT_HOURS  UTC hours counted as night, "start-end" (default 0-6)
+  OCL_PUBLISH_UNIT        the nightly build's unit (opencaselaw-publish.service):
+                          while it is active the night limit applies at any
+                          hour, because the build reads the same volume and
+                          slows to a crawl once the workers squeeze the page
+                          cache (2026-10-23: 29.7 GB of workers at 11:12 UTC,
+                          largest 4.0 GB, step 2 1h15m behind)
   OCL_WORKER_RECYCLE_MAX  at most this many restarts per run (default 2)
   OCL_WORKER_HEALTH_WAIT  seconds to wait for /health after a restart (30)
   OCL_WORKER_RECYCLE_DRY  "1": report what would be restarted, change nothing
@@ -42,6 +48,7 @@ RSS_DAY_MAX_MB = int(os.environ.get("OCL_WORKER_RSS_DAY_MAX_MB", "5120"))
 NIGHT_HOURS = os.environ.get("OCL_WORKER_NIGHT_HOURS", "0-6")
 MAX_PER_RUN = int(os.environ.get("OCL_WORKER_RECYCLE_MAX", "2"))
 HEALTH_WAIT = int(os.environ.get("OCL_WORKER_HEALTH_WAIT", "30"))
+PUBLISH_UNIT = os.environ.get("OCL_PUBLISH_UNIT", "opencaselaw-publish.service")
 DRY_RUN = os.environ.get("OCL_WORKER_RECYCLE_DRY") == "1"
 
 
@@ -98,13 +105,30 @@ def wait_healthy(port: str, seconds: int) -> bool:
     return False
 
 
+def build_running(unit: str = PUBLISH_UNIT) -> bool:
+    """True while the nightly build's unit is active or starting. Any failure
+    to ask systemd counts as not running (the day limit, as before)."""
+    try:
+        out = subprocess.run(["systemctl", "is-active", unit],
+                             capture_output=True, text=True, check=False, timeout=10).stdout
+    except Exception:  # noqa: BLE001 — no answer means no build known
+        return False
+    return out.strip() in ("active", "activating")
+
+
+def utc_hour() -> int:
+    return datetime.datetime.now(datetime.timezone.utc).hour
+
+
 def limit_for(hour_utc: int, night: str = NIGHT_HOURS,
-              night_mb: int = RSS_MAX_MB, day_mb: int = RSS_DAY_MAX_MB) -> int:
+              night_mb: int = RSS_MAX_MB, day_mb: int = RSS_DAY_MAX_MB,
+              build_active: bool = False) -> int:
     """The restart threshold for this hour: the low one at night, when a cut
-    call hurts least, the high one by day. "22-6" wraps past midnight."""
+    call hurts least, or while the build runs, when bloated workers starve
+    it of page cache; the high one otherwise. "22-6" wraps past midnight."""
     start, end = (int(x) for x in night.split("-", 1))
     is_night = start <= hour_utc < end if start <= end else (hour_utc >= start or hour_utc < end)
-    return night_mb if is_night else day_mb
+    return night_mb if is_night or build_active else day_mb
 
 
 def plan(sizes: dict[str, int], all_healthy: bool, limit_mb: int, max_per_run: int) -> list[str]:
@@ -122,11 +146,13 @@ def main() -> int:
         log("no active mcp-server@ units; nothing to do")
         return 0
     sizes = {u: rss_mb(main_pid(u)) for u in units}
-    limit = limit_for(datetime.datetime.now(datetime.timezone.utc).hour)
+    building = build_running()
+    limit = limit_for(utc_hour(), build_active=building)
     sick = [u for u in units if not healthy(port_of(u))]
     total = sum(sizes.values())
     log(f"{len(units)} workers, {total} MB resident, largest "
         f"{max(sizes.values())} MB, limit {limit} MB"
+        + (" (build running)" if building else "")
         + (f", unhealthy: {', '.join(sick)}" if sick else ""))
     todo = plan(sizes, not sick, limit, MAX_PER_RUN)
     if sick:

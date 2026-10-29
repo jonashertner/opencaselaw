@@ -9,6 +9,7 @@ a limit, one at a time, never while the fleet is short. Offline: systemctl,
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,7 @@ rw = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(rw)
 
 UNITS = [f"mcp-server@{p}.service" for p in range(8770, 8778)]
+REAL_LIMIT_FOR = rw.limit_for
 
 
 def test_plan_picks_the_largest_above_the_limit():
@@ -40,7 +42,8 @@ def test_plan_does_nothing_below_the_limit_or_while_a_worker_is_down():
 @pytest.fixture
 def fleet(monkeypatch):
     state = {"sizes": {u: 2000 for u in UNITS}, "pids": {u: 1000 + i for i, u in enumerate(UNITS)},
-             "down": set(), "restarted": [], "fail_after_restart": set()}
+             "down": set(), "restarted": [], "fail_after_restart": set(),
+             "publish": "inactive", "asked": []}
     pid_to_unit = {v: k for k, v in state["pids"].items()}
     monkeypatch.setattr(rw, "active_workers", lambda: list(UNITS))
     monkeypatch.setattr(rw, "main_pid", lambda u: state["pids"][u])
@@ -48,6 +51,10 @@ def fleet(monkeypatch):
     monkeypatch.setattr(rw, "healthy", lambda port, timeout=5.0: f"mcp-server@{port}.service" not in state["down"])
 
     def _run(cmd, check=False, **kw):
+        if cmd[:2] == ["systemctl", "is-active"]:
+            state["asked"].append(cmd[2])
+            return subprocess.CompletedProcess(cmd, 0 if state["publish"] == "active" else 3,
+                                               stdout=state["publish"] + "\n", stderr="")
         assert cmd[:2] == ["systemctl", "restart"], cmd
         unit = cmd[2]
         state["restarted"].append(unit)
@@ -58,7 +65,7 @@ def fleet(monkeypatch):
     monkeypatch.setattr(rw.time, "sleep", lambda s: None)
     monkeypatch.setattr(rw, "DRY_RUN", False)
     monkeypatch.setattr(rw, "HEALTH_WAIT", 3)
-    monkeypatch.setattr(rw, "limit_for", lambda hour: 3584)   # night unless a test says otherwise
+    monkeypatch.setattr(rw, "limit_for", lambda hour, build_active=False: 3584)   # night unless a test says otherwise
     return state
 
 
@@ -73,8 +80,53 @@ def test_night_threshold_low_day_threshold_high():
     assert rw.limit_for(12, "22-6", 3584, 5120) == 5120
 
 
+def test_a_running_build_lowers_the_day_threshold():
+    # 2026-10-23: a 4.0 GB worker by day, the build 1h15m behind on a starved cache
+    assert rw.limit_for(11, "0-6", 3584, 5120, build_active=True) == 3584
+    assert rw.limit_for(11, "0-6", 3584, 5120, build_active=False) == 5120
+    assert rw.limit_for(3, "0-6", 3584, 5120, build_active=False) == 3584
+    assert rw.limit_for(3, "0-6", 3584, 5120, build_active=True) == 3584
+
+
+@pytest.mark.parametrize("answer,running", [
+    ("active", True), ("activating", True), ("inactive", False),
+    ("failed", False), ("deactivating", False), ("", False)])
+def test_build_running_reads_systemctl_is_active(monkeypatch, answer, running):
+    calls = []
+
+    def _run(cmd, **kw):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout=answer + "\n", stderr="")
+    monkeypatch.setattr(rw.subprocess, "run", _run)
+    assert rw.build_running() is running
+    assert calls == [["systemctl", "is-active", "opencaselaw-publish.service"]]
+
+
+def test_build_running_is_false_when_systemctl_cannot_answer(monkeypatch):
+    def _run(cmd, **kw):
+        raise subprocess.TimeoutExpired(cmd, 10)
+    monkeypatch.setattr(rw.subprocess, "run", _run)
+    assert rw.build_running() is False
+
+
+@pytest.mark.parametrize("hour,publish,restarted", [
+    (11, "active", [UNITS[2]]),        # build by day: 3.5 GB, the 4.0 GB worker goes
+    (11, "activating", [UNITS[2]]),
+    (11, "inactive", []),              # no build by day: 5 GB, it stays
+    (3, "inactive", [UNITS[2]]),       # night: 3.5 GB either way
+])
+def test_the_limit_follows_the_build_and_the_hour(fleet, monkeypatch, hour, publish, restarted):
+    monkeypatch.setattr(rw, "limit_for", REAL_LIMIT_FOR)
+    monkeypatch.setattr(rw, "utc_hour", lambda: hour)
+    fleet["publish"] = publish
+    fleet["sizes"][UNITS[2]] = 4000
+    assert rw.main() == 0
+    assert fleet["asked"] == ["opencaselaw-publish.service"]
+    assert fleet["restarted"] == restarted
+
+
 def test_by_day_a_worker_between_the_thresholds_is_left_alone(fleet, monkeypatch):
-    monkeypatch.setattr(rw, "limit_for", lambda hour: 5120)
+    monkeypatch.setattr(rw, "limit_for", lambda hour, build_active=False: 5120)
     fleet["sizes"][UNITS[2]] = 4200
     fleet["sizes"][UNITS[4]] = 6000
     assert rw.main() == 0

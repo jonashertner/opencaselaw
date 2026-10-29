@@ -17,13 +17,13 @@ build then read from disk and the data volume sits at its IOPS ceiling.
 
 | File | Effect |
 |---|---|
-| `scripts/recycle_bloated_workers.py` | Every run: if the whole fleet is healthy, restart the largest workers above the limit (3.5 GB from 00:00 to 06:00 UTC, 5 GB by day), at most two, one at a time, each gated on `/health`. Exit 1 (alert) if one does not come back. |
+| `scripts/recycle_bloated_workers.py` | Every run: if the whole fleet is healthy, restart the largest workers above the limit (3.5 GB from 00:00 to 06:00 UTC and whenever `opencaselaw-publish.service` is active or activating, 5 GB by day otherwise), at most two, one at a time, each gated on `/health`. Exit 1 (alert) if one does not come back. |
 | `systemd/opencaselaw-worker-recycle.{service,timer}` | Runs the script every 15 minutes; log in `logs/worker_recycle.log`; OnFailure → ntfy. |
 | `systemd/mcp-server@.service.d/memory-cap.conf` | `MemoryMax=8G` per worker: the kernel kills a worker that outruns the timer, `Restart=always` brings it back in 5 s. No `MemoryHigh` (it throttles instead of freeing). |
 
 Settings (environment of the service): `OCL_WORKER_RSS_MAX_MB` (3584, night),
 `OCL_WORKER_RSS_DAY_MAX_MB` (5120), `OCL_WORKER_NIGHT_HOURS` (`0-6`, UTC),
-`OCL_WORKER_RECYCLE_MAX` (2), `OCL_WORKER_HEALTH_WAIT` (30),
+`OCL_PUBLISH_UNIT` (`opencaselaw-publish.service`), `OCL_WORKER_RECYCLE_MAX` (2), `OCL_WORKER_HEALTH_WAIT` (30),
 `OCL_WORKER_RECYCLE_DRY=1` (report only).
 
 ## Install (VPS, after `git merge --ff-only origin/main`)
