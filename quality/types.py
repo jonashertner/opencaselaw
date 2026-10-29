@@ -49,7 +49,7 @@ class CheckResult:
     elapsed_s      Wall time of the check that produced this result, set by
                    runner._run_one. Note the runner is parallel
                    (MAX_WORKERS=4), so these overlap and do NOT sum to the
-                   run duration — use `quality.cli run --no-parallel` when
+                   run duration — use `quality.cli run --serial` when
                    you need attributable per-check cost. None when the
                    result was built outside the runner (tests, ad-hoc use).
     """
@@ -99,6 +99,12 @@ class CheckRunReport:
     # YYYY-MM-DD.json name as the day's full run and silently replaced a
     # complete report with a partial one.
     scope: str = "full"
+    # Wall time of every check that ran, keyed by check name ("urls.http_count"
+    # style, one entry per check function, not per fanned-out result). Kept
+    # separately from the results because a --critical-only run drops passing
+    # WARNING/INFO results from `results`, and their timings went with them:
+    # the gate's slowest check could be one the report never showed.
+    check_timings: dict[str, float] = field(default_factory=dict)
 
     @property
     def critical_failures(self) -> list[CheckResult]:
@@ -141,5 +147,7 @@ class CheckRunReport:
                 "warning_failures": len(self.warning_failures),
                 "publish_safe": self.passed,
             },
+            "check_timings": dict(sorted(
+                self.check_timings.items(), key=lambda kv: (-kv[1], kv[0]))),
             "results": [r.to_dict() for r in self.results],
         }

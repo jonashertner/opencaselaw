@@ -55,6 +55,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
           f"{len(report.critical_failures)} CRIT, "
           f"{len(report.quarantine_failures)} QUAR, "
           f"{len(report.warning_failures)} WARN)")
+    slowest = sorted(report.check_timings.items(), key=lambda kv: -kv[1])[:5]
+    if slowest:
+        print("Slowest: " + ", ".join(f"{n} {s:.1f}s" for n, s in slowest))
 
     if report.critical_failures:
         print("\n  Critical failures:")

@@ -128,10 +128,14 @@ def discover_checks(critical_only: bool = False) -> list[Callable]:
     return [fn for _, fn in found]
 
 
+def _check_name(fn: Callable) -> str:
+    return f"{fn.__module__.split('.')[-1]}.{fn.__name__[len('check_'):]}"
+
+
 def _run_one(fn: Callable, db_path: Path, ctx: dict) -> list[CheckResult]:
     """Execute a single check. Wrap any exception as a CRITICAL failure
     so a buggy check never silently disappears from the report."""
-    name = f"{fn.__module__.split('.')[-1]}.{fn.__name__[len('check_'):]}"
+    name = _check_name(fn)
     conn = None
     results: list[CheckResult] = []
     started = time.monotonic()
@@ -231,7 +235,7 @@ def run(
         prefixes = list(only)
 
         def matches(check_fn: Callable) -> bool:
-            n = f"{check_fn.__module__.split('.')[-1]}.{check_fn.__name__[len('check_'):]}"
+            n = _check_name(check_fn)
             return any(n == p or n.startswith(p + ".") or n.split(".")[0] == p
                        for p in prefixes)
 
@@ -241,16 +245,28 @@ def run(
     _progress_begin(Path(progress_dir) if progress_dir else None)
     started = time.monotonic()
     results: list[CheckResult] = []
+    timings: dict[str, float] = {}
+
+    def run_timed(fn: Callable) -> tuple[str, float, list[CheckResult]]:
+        t0 = time.monotonic()
+        out = _run_one(fn, db_path, ctx)
+        return _check_name(fn), round(time.monotonic() - t0, 3), out
 
     if parallel and len(checks) > 1:
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
-            futures = [ex.submit(_run_one, fn, db_path, ctx) for fn in checks]
+            futures = [ex.submit(run_timed, fn) for fn in checks]
             for fut in as_completed(futures):
-                results.extend(fut.result())
+                name, elapsed, out = fut.result()
+                timings[name] = elapsed
+                results.extend(out)
     else:
         for fn in checks:
-            results.extend(_run_one(fn, db_path, ctx))
+            name, elapsed, out = run_timed(fn)
+            timings[name] = elapsed
+            results.extend(out)
 
+    # Timings are taken before the gate filter below, so a passing WARNING
+    # that costs half the run is still on record.
     if critical_only:
         results = gate_visible_results(results)
 
@@ -262,6 +278,7 @@ def run(
         results=sorted(results, key=lambda r: (r.severity, r.name), reverse=True),
         scope=("critical_only" if critical_only
                else "subset" if only else "full"),
+        check_timings=timings,
     )
 
     if record_history:

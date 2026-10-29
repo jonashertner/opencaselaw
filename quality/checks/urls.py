@@ -9,25 +9,30 @@ from __future__ import annotations
 
 import sqlite3
 
+from quality.checks._late_columns import census
 from quality.types import CheckResult, Severity
 
 
-def check_no_relative_source_urls(conn: sqlite3.Connection, **_) -> CheckResult:
+def check_no_relative_source_urls(conn: sqlite3.Connection,
+                                  db_path: str | None = None,
+                                  **_) -> CheckResult:
     """source_url must start with http:// or https:// — never a bare
     path. König 2026-04-29 fixed 694 GL/BS rows; this check ensures
-    no new scraper introduces the same bug class."""
-    n = conn.execute(
-        "SELECT COUNT(*) FROM decisions "
-        "WHERE source_url IS NOT NULL AND source_url != '' "
-        "AND source_url NOT LIKE 'http%'"
-    ).fetchone()[0]
+    no new scraper introduces the same bug class.
+
+    Counted in the shared late-column pass (see _late_columns): source_url
+    sits after full_text, so this used to be its own 70 GB scan, plus a
+    second one for the sample. The sample is now fetched by rowid."""
+    c = census(conn, db_path)
+    n = c.n_relative
     sample = [
         dict(r) for r in conn.execute(
             "SELECT decision_id, court, source_url FROM decisions "
-            "WHERE source_url IS NOT NULL AND source_url != '' "
-            "AND source_url NOT LIKE 'http%' LIMIT 5"
+            f"WHERE rowid IN ({','.join('?' * len(c.relative_rowids))}) "
+            "ORDER BY rowid",
+            c.relative_rowids,
         ).fetchall()
-    ] if n else []
+    ] if n and c.relative_rowids else []
     return CheckResult(
         name="urls.no_relative_source_urls",
         severity=Severity.CRITICAL,
@@ -42,21 +47,19 @@ def check_no_relative_source_urls(conn: sqlite3.Connection, **_) -> CheckResult:
     )
 
 
-def check_http_when_https_available(conn: sqlite3.Connection, **_) -> CheckResult:
+def check_http_when_https_available(conn: sqlite3.Connection,
+                                    db_path: str | None = None,
+                                    **_) -> CheckResult:
     """Same-host http://... rows when https://... exists for the same
     host means http→https upgrade missed a row. Tolerance: ≤ 50 rows
-    total across the corpus."""
-    rows = conn.execute(
-        "SELECT "
-        "  CASE WHEN source_url LIKE 'http://%' THEN substr(source_url, 8) "
-        "       ELSE substr(source_url, 9) END AS path_part, "
-        "  CASE WHEN source_url LIKE 'http://%' THEN 'http' ELSE 'https' END AS scheme, "
-        "  COUNT(*) AS n "
-        "FROM decisions "
-        "WHERE source_url IS NOT NULL AND source_url != '' "
-        "GROUP BY scheme"
-    ).fetchall()
-    by_scheme = {r["scheme"]: r["n"] for r in rows}
+    total across the corpus.
+
+    Counted in the shared late-column pass (see _late_columns). As before,
+    every non-empty source_url that does not start with http:// is counted
+    as 'https', and a scheme with no rows is absent from `extra`."""
+    c = census(conn, db_path)
+    by_scheme = {k: v for k, v in (("http", c.n_http),
+                                   ("https", c.n_url - c.n_http)) if v}
     n_http = by_scheme.get("http", 0)
     return CheckResult(
         name="urls.http_count",

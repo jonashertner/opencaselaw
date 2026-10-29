@@ -13,35 +13,28 @@ from __future__ import annotations
 
 import sqlite3
 
+from quality.checks._late_columns import census
 from quality.types import CheckResult, Severity
 
 
-def check_court_docket_collisions(conn: sqlite3.Connection, **_) -> CheckResult:
+def check_court_docket_collisions(conn: sqlite3.Connection,
+                                  db_path: str | None = None,
+                                  **_) -> CheckResult:
     """A (court, docket) pair legitimately holds MULTIPLE distinct decisions
     (Zwischenentscheid + Endentscheid, costs orders, remands), so raw
     court+docket collisions are expected and NOT a defect — the 2026-07-13
     content-aware dedup intentionally keeps them. A real dedup regression is a
     SAME-CONTENT collision: >1 row sharing one (court, docket) AND the same
     content_hash (a byte-identical duplicate the dedup should have merged).
-    Count those instead."""
-    n_groups = conn.execute("""
-        SELECT COUNT(*) FROM (
-            SELECT 1 FROM decisions
-            WHERE docket_number IS NOT NULL AND docket_number != ''
-              AND content_hash IS NOT NULL AND content_hash != ''
-            GROUP BY court, docket_number, content_hash
-            HAVING COUNT(*) > 1
-        )
-    """).fetchone()[0]
-    sample = [
-        dict(r) for r in conn.execute("""
-            SELECT court, docket_number, content_hash, COUNT(*) AS n FROM decisions
-            WHERE docket_number IS NOT NULL AND docket_number != ''
-              AND content_hash IS NOT NULL AND content_hash != ''
-            GROUP BY court, docket_number, content_hash HAVING n > 1
-            ORDER BY n DESC LIMIT 5
-        """).fetchall()
-    ] if n_groups else []
+    Count those instead.
+
+    Counted in the shared late-column pass (see _late_columns). content_hash
+    sits after full_text, and the old GROUP BY was planned through the
+    non-covering court index — every row's overflow chain, in court order —
+    and run a second time for the sample whenever a group existed."""
+    c = census(conn, db_path)
+    n_groups = c.dup_groups
+    sample = list(c.dup_sample) if n_groups else []
     return CheckResult(
         name="duplicates.court_docket_collisions",
         severity=Severity.WARNING,
