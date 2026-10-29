@@ -310,7 +310,8 @@ MCP_TOOLS = [
     {
         "name": "get_commentary",
         "description": (
-            "Look up a scholarly legal commentary (OnlineKommentar.ch, CC-BY-4.0) "
+            "Look up a legal commentary (OnlineKommentar.ch, CC-BY-4.0; for the BV also "
+            "OpenLegalCommentary.ch, CC BY-SA 4.0, AI-generated) "
             "for a Swiss federal law article. Without article: lists available articles."
         ),
         "parameters": {

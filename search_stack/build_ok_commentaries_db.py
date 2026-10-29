@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Build OnlineKommentar commentaries SQLite database from scraped JSON.
+Build the commentaries SQLite database from scraped JSON.
 
-Reads output/onlinekommentar/commentaries.json and builds a searchable
-SQLite DB with FTS5 for commentary text.
+Reads output/onlinekommentar/commentaries.json and, when present,
+output/openlegalcommentary/commentaries.jsonl (OpenLegalCommentary.ch BV,
+written by scrapers.openlegalcommentary), and builds a searchable SQLite DB
+with FTS5 for commentary text.
 
 Output: output/ok_commentaries.db
 
@@ -28,6 +30,7 @@ logging.basicConfig(
 log = logging.getLogger("build_ok_commentaries")
 
 INPUT_FILE = Path(os.environ.get("OK_INPUT", "output/onlinekommentar/commentaries.json"))
+OLC_INPUT_FILE = Path(os.environ.get("OLC_INPUT", "output/openlegalcommentary/commentaries.jsonl"))
 OUTPUT_DB = Path(os.environ.get("OK_DB", "output/ok_commentaries.db"))
 STATUTES_DB = Path(os.environ.get("SWISS_CASELAW_STATUTES_DB", "output/statutes.db"))
 
@@ -74,6 +77,60 @@ def resolve_law_from_title(
         return None
     token = tokens[-1].strip(".,;:()[]")
     return abbr_index.get(token.upper())
+
+
+def load_olc_commentaries(path: Path) -> list[dict]:
+    """Read the OpenLegalCommentary.ch JSONL into commentary rows.
+
+    Same field mapping as scrapers.openlegalcommentary._insert_into_db: a
+    deterministic olc_ ok_uuid (get_commentary and build_legal_scholarship
+    tell the source by that prefix), the synthetic act olc_bv_101, and
+    authors ["AI-generated"] — the site names no human author. A missing
+    file is not an error: the OnlineKommentar rows still build.
+    """
+    if not path.exists():
+        log.warning("OLC input not found: %s — building without OpenLegalCommentary", path)
+        return []
+    by_id: dict[str, dict] = {}
+    skipped = 0
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                e = json.loads(line)
+                olc_id = f"olc_{e['abbr']}_{e['article_num']}_{e['language']}"
+                content = e["content_text"]
+            except (ValueError, KeyError, TypeError):
+                skipped += 1
+                continue
+            if not content:
+                skipped += 1
+                continue
+            # Later lines win, as INSERT OR REPLACE did in the direct insert.
+            by_id[olc_id] = {
+                "ok_uuid": olc_id,
+                "legislative_act_uuid": "olc_bv_101",
+                "sr_number": e.get("sr_number") or "101",
+                "abbr": e["abbr"],
+                "article_num": e["article_num"],
+                "title": e.get("title") or "",
+                "language": e["language"],
+                "date": None,
+                "authors": ["AI-generated"],
+                "editors": [],
+                "suggested_citation": None,
+                "html_link": e.get("html_link"),
+                "pdf_link": None,
+                "content_html": None,
+                "content_text": content,
+                "legal_text": e.get("legal_text", ""),
+            }
+    if skipped:
+        log.warning("Skipped %d malformed OLC lines in %s", skipped, path)
+    log.info("Loaded %d OpenLegalCommentary commentaries from %s", len(by_id), path)
+    return list(by_id.values())
 
 
 def create_schema(conn: sqlite3.Connection):
@@ -154,6 +211,10 @@ def build_db():
                 c["sr_number"], c["abbr"] = resolved
                 backfilled += 1
     log.info("Backfilled sr_number/abbr from title for %d commentaries", backfilled)
+
+    # OpenLegalCommentary rows join the same tmp DB, so they ride the same
+    # rename; nothing writes into the live DB.
+    commentaries.extend(load_olc_commentaries(OLC_INPUT_FILE))
 
     # Prepare output
     tmp_db = OUTPUT_DB.with_suffix(".tmp")
@@ -254,10 +315,11 @@ def build_db():
 
 
 def main():
-    global INPUT_FILE, OUTPUT_DB
+    global INPUT_FILE, OLC_INPUT_FILE, OUTPUT_DB
 
     parser = argparse.ArgumentParser(description="Build OK commentaries DB from JSON")
     parser.add_argument("--input", type=Path, default=INPUT_FILE)
+    parser.add_argument("--olc-input", type=Path, default=OLC_INPUT_FILE)
     parser.add_argument("--output", type=Path, default=OUTPUT_DB)
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
@@ -266,6 +328,7 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
 
     INPUT_FILE = args.input
+    OLC_INPUT_FILE = args.olc_input
     OUTPUT_DB = args.output
 
     t0 = time.time()

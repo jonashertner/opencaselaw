@@ -22774,7 +22774,8 @@ def _handle_get_doctrine(*, query: str) -> dict:
                         """SELECT ok_uuid, title, content_text, authors, html_link, suggested_citation
                            FROM commentaries
                            WHERE (abbr = ? OR sr_number = ?) AND article_num = ?
-                           ORDER BY CASE WHEN language = 'de' THEN 0
+                           ORDER BY substr(ok_uuid, 1, 4) = 'olc_',
+                                    CASE WHEN language = 'de' THEN 0
                                          WHEN language = 'en' THEN 1
                                          ELSE 2 END
                            LIMIT 1""",
@@ -23322,12 +23323,15 @@ def get_commentary(
         abbr_filter = (abbreviation or "").upper()
 
         if article:
-            # Fetch specific article commentary with language fallback
+            # Fetch specific article commentary with language fallback.
+            # OnlineKommentar (named authors) outranks OpenLegalCommentary
+            # (AI-generated) where both comment the article.
             rows = conn.execute(
                 """SELECT * FROM commentaries
                    WHERE ((? <> '' AND sr_number = ?)
                           OR (? <> '' AND UPPER(abbr) = ?)) AND article_num = ?
-                   ORDER BY CASE WHEN language = ? THEN 0
+                   ORDER BY substr(ok_uuid, 1, 4) = 'olc_',
+                            CASE WHEN language = ? THEN 0
                                  WHEN language = 'de' THEN 1
                                  ELSE 2 END
                    LIMIT 1""",
@@ -23360,14 +23364,18 @@ def get_commentary(
                 "source": source,
             }
         else:
-            # List available articles for this law
+            # List available articles for this law. OpenLegalCommentary
+            # holds every BV article in de/fr/it: list it in one language.
+            olc_lang = language if language in ("de", "fr", "it") else "de"
             rows = conn.execute(
                 """SELECT DISTINCT article_num, title, language, authors
                    FROM commentaries
                    WHERE ((? <> '' AND sr_number = ?)
                           OR (? <> '' AND UPPER(abbr) = ?))
+                     AND (substr(COALESCE(ok_uuid, ''), 1, 4) <> 'olc_'
+                          OR language = ?)
                    ORDER BY CAST(article_num AS INTEGER), article_num""",
-                (sr_filter, sr_filter, abbr_filter, abbr_filter),
+                (sr_filter, sr_filter, abbr_filter, abbr_filter, olc_lang),
             ).fetchall()
 
             if not rows:
@@ -24534,7 +24542,9 @@ def _format_get_commentary_response(result: dict) -> str:
     if result.get("pinpoint_note"):
         text += f"**Pinpoint:** {result['pinpoint_note']}\n"
     if result.get("html_link"):
-        label = "OnlineKommentar" if not attr else "Publisher"
+        label = ("Publisher" if attr else
+                 "OpenLegalCommentary" if str(result.get("source", "")).startswith("OpenLegal")
+                 else "OnlineKommentar")
         text += f"**Link:** {_md_link(label, result['html_link'])}\n"
     if result.get("doi"):
         text += f"**DOI:** {result['doi']}\n"
@@ -30957,10 +30967,11 @@ def _list_tools() -> list[Tool]:
             name="get_commentary",
             title="Get commentary",
             description=(
-                "Look up a scholarly legal commentary from OnlineKommentar.ch (CC-BY-4.0) "
-                "for a Swiss federal law article. Without article: lists available commentaries "
-                "for that law. With article: returns the full commentary text, authors, and citation. "
-                "Covers 19 Swiss laws including BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG, and more. "
+                "Look up a commentary on a Swiss federal law article: OnlineKommentar.ch "
+                "(CC-BY-4.0; BV, OR, ZGB, StGB, StPO, ZPO, DSG, SchKG and more) and, for the BV, "
+                "OpenLegalCommentary.ch (CC BY-SA 4.0; AI-generated, de/fr/it), which yields "
+                "to OnlineKommentar where both exist. Without article: lists available "
+                "commentaries. With article: full text, authors, citation. "
                 "Cantonal: the Kommentar zur Schaffhauser Verwaltungsrechtspflege (Meyer/Herrmann/"
                 "Bilger, 2021; CC BY-SA text) for the Schaffhausen VRG (SHR 172.200) and JG "
                 "(SHR 173.200), article by article with margin numbers — pass canton='SH' and "

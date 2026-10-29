@@ -4,12 +4,15 @@
 Fetches commentary on the Swiss Federal Constitution (BV/Cst./Cost.)
 from openlegalcommentary.ch. Content is CC BY-SA 4.0.
 
-Output: JSONL file compatible with build_ok_commentaries_db.py ingestion,
-or direct SQLite insert into ok_commentaries.db.
+Output: JSONL at output/openlegalcommentary/commentaries.jsonl (or --output),
+which search_stack/build_ok_commentaries_db.py merges into the rebuilt
+ok_commentaries.db. --db still inserts directly into a given DB file.
 """
 
+import argparse
 import json
 import logging
+import os
 import re
 import sqlite3
 import time
@@ -30,6 +33,8 @@ LANG_ABBR = {"de": "BV", "fr": "Cst.", "it": "Cost."}
 
 DELAY = 1.0  # seconds between requests
 
+DEFAULT_OUTPUT = Path("output/openlegalcommentary/commentaries.jsonl")
+
 
 def _fetch_article_list(lang: str = "de") -> list[str]:
     """Fetch list of article numbers from the BV index page."""
@@ -47,74 +52,75 @@ def _fetch_article_list(lang: str = "de") -> list[str]:
     return sorted(set(articles), key=lambda x: (int(re.sub(r"[a-z]", "", x) or "0"), x))
 
 
-def _fetch_article(art_num: str, lang: str = "de") -> dict | None:
-    """Fetch and parse a single article commentary page."""
-    url = f"{BASE_URL}/{lang}/bv/art-{art_num}"
-    resp = requests.get(url, timeout=30)
-    if resp.status_code == 404:
-        return None
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+def _block_text(el) -> str:
+    """An element's text on one line: inline markup (links, emphasis, the
+    N. margin-number anchors) joined without the line breaks get_text adds."""
+    return re.sub(r"\s+", " ", el.get_text()).strip()
 
-    # Extract title from h1 or main heading
+
+def _panel_text(panel) -> str:
+    """One tab panel's prose: headings, paragraphs, quotes and list items as
+    paragraphs. The table of contents and heading '#' anchors are marked
+    data-pagefind-ignore and dropped."""
+    body = panel.select_one(".panel-body") or panel
+    for el in body.select("[data-pagefind-ignore]"):
+        el.decompose()
+    parts = []
+    for el in body.find_all(["h2", "h3", "h4", "p", "blockquote", "li"]):
+        # A <p> inside a quote or list item is covered by its container.
+        if el.name == "p" and el.find_parent(["blockquote", "li"]) is not None:
+            continue
+        text = _block_text(el)
+        if not text:
+            continue
+        if el.name == "blockquote":
+            text = f"> {text}"
+        elif el.name == "li":
+            text = f"- {text}"
+        parts.append(text)
+    return "\n\n".join(parts)
+
+
+def parse_article_html(html: str, art_num: str, lang: str, url: str) -> dict | None:
+    """Parse an article page: the statute text (section.gesetzestext) and the
+    Doktrin and Rechtsprechung tab panels (#panel-doctrine, #panel-caselaw).
+    The Übersicht panel is a summary of those two and is left out. Returns
+    None when the page has neither panel, so a site redesign yields no rows
+    (and the scrape keeps the previous file) rather than page chrome."""
+    soup = BeautifulSoup(html, "html.parser")
+
+    titled = soup.select_one("[data-title]")
     h1 = soup.find("h1")
-    title = h1.get_text(strip=True) if h1 else f"Art. {art_num} BV"
+    title = (titled["data-title"].strip() if titled else
+             _block_text(h1) if h1 else f"Art. {art_num} BV")
 
-    # Extract legal text (Gesetzestext section)
-    legal_text = ""
-    for heading in soup.find_all(["h2", "h3"]):
-        text = heading.get_text(strip=True).lower()
-        if any(kw in text for kw in ["gesetzestext", "texte légal", "testo legale", "legal text"]):
-            # Collect content until next heading
-            parts = []
-            for sib in heading.find_next_siblings():
-                if sib.name in ("h2", "h3"):
-                    break
-                parts.append(sib.get_text(separator="\n", strip=True))
-            legal_text = "\n".join(parts).strip()
-            break
+    # Paragraphs are <p> ("1" + text); letters are <dl> pairs ("a." + text).
+    lines = []
+    body = soup.select_one("section.gesetzestext .gesetzestext-body")
+    for el in body.find_all(["p", "dt", "li"]) if body else []:
+        if el.name == "dt":
+            dd = el.find_next_sibling("dd")
+            text = f"{_block_text(el)} {_block_text(dd) if dd else ''}"
+        else:
+            text = re.sub(r"\s+", " ", el.get_text(" "))
+        if text.strip():
+            lines.append(text.strip())
+    legal_text = "\n".join(lines)
 
-    # Extract doctrine/commentary section
-    doctrine_text = ""
-    for heading in soup.find_all(["h2", "h3"]):
-        text = heading.get_text(strip=True).lower()
-        if any(kw in text for kw in ["doktrin", "doctrine", "dottrina"]):
-            parts = []
-            for sib in heading.find_next_siblings():
-                if sib.name == "h2":
-                    break
-                parts.append(sib.get_text(separator="\n", strip=True))
-            doctrine_text = "\n".join(parts).strip()
-            break
-
-    # Extract case law section
-    caselaw_text = ""
-    for heading in soup.find_all(["h2", "h3"]):
-        text = heading.get_text(strip=True).lower()
-        if any(kw in text for kw in ["rechtsprechung", "jurisprudence", "giurisprudenza", "case law"]):
-            parts = []
-            for sib in heading.find_next_siblings():
-                if sib.name == "h2":
-                    break
-                parts.append(sib.get_text(separator="\n", strip=True))
-            caselaw_text = "\n".join(parts).strip()
-            break
-
-    # Combine doctrine + case law as content_text
     content_parts = []
-    if doctrine_text:
-        content_parts.append(doctrine_text)
-    if caselaw_text:
-        content_parts.append(f"\n\nRechtsprechung:\n{caselaw_text}")
-    content_text = "\n".join(content_parts).strip()
+    for pid in ("panel-doctrine", "panel-caselaw"):
+        panel = soup.find(id=pid)
+        if panel is None:
+            continue
+        text = _panel_text(panel)
+        if not text:
+            continue
+        if pid == "panel-caselaw" and content_parts:
+            text = f"{panel.get('data-label') or 'Rechtsprechung'}:\n\n{text}"
+        content_parts.append(text)
+    content_text = "\n\n".join(content_parts).strip()
 
-    if not content_text:
-        # Try extracting main content area as fallback
-        main = soup.find("main") or soup.find("article")
-        if main:
-            content_text = main.get_text(separator="\n", strip=True)[:5000]
-
-    if not content_text or len(content_text) < 50:
+    if len(content_text) < 50:
         return None
 
     return {
@@ -126,6 +132,16 @@ def _fetch_article(art_num: str, lang: str = "de") -> dict | None:
         "html_link": url,
         "source": "OpenLegalCommentary.ch",
     }
+
+
+def _fetch_article(art_num: str, lang: str = "de") -> dict | None:
+    """Fetch and parse a single article commentary page."""
+    url = f"{BASE_URL}/{lang}/bv/art-{art_num}"
+    resp = requests.get(url, timeout=30)
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    return parse_article_html(resp.text, art_num, lang, url)
 
 
 def scrape_all(languages: list[str] | None = None, db_path: Path | None = None) -> list[dict]:
@@ -164,6 +180,17 @@ def scrape_all(languages: list[str] | None = None, db_path: Path | None = None) 
         _insert_into_db(results, db_path)
 
     return results
+
+
+def write_jsonl(entries: list[dict], path: Path) -> None:
+    """Write entries as JSONL via a temp file + rename, so the build never
+    reads a half-written file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        for r in entries:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    os.replace(tmp, path)
 
 
 def _insert_into_db(entries: list[dict], db_path: Path):
@@ -210,17 +237,17 @@ def _insert_into_db(entries: list[dict], db_path: Path):
         conn.close()
 
 
-if __name__ == "__main__":
-    import argparse
-
+def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     parser = argparse.ArgumentParser(description="Scrape OpenLegalCommentary.ch BV")
     parser.add_argument("--db", type=Path, help="Path to ok_commentaries.db for direct insert")
-    parser.add_argument("--output", type=Path, help="Output JSONL file")
+    parser.add_argument("--output", type=Path,
+                        help=f"Output JSONL file (default: {DEFAULT_OUTPUT}; "
+                             "not written by default when --max is given)")
     parser.add_argument("--lang", nargs="+", default=LANGUAGES, help="Languages to scrape")
     parser.add_argument("--max", type=int, help="Max articles per language")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     results = []
     articles = _fetch_article_list("de")
@@ -247,8 +274,17 @@ if __name__ == "__main__":
     if args.db:
         _insert_into_db(results, args.db)
 
-    if args.output:
-        with open(args.output, "w") as f:
-            for r in results:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
-        logger.info("Written to %s", args.output)
+    # The build reads DEFAULT_OUTPUT, so a --max sample or a run that
+    # scraped nothing (site down) must not replace the last full scrape.
+    # Exit 0 either way: the commentaries unit chains the build after this
+    # step with &&, and the OnlineKommentar refresh should still land.
+    output = args.output or (None if args.max else DEFAULT_OUTPUT)
+    if output and not results:
+        logger.warning("No commentaries scraped; keeping existing %s", output)
+    elif output:
+        write_jsonl(results, output)
+        logger.info("Written to %s", output)
+
+
+if __name__ == "__main__":
+    main()
