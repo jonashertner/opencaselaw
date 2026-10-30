@@ -80,11 +80,11 @@
             },
             "date_from": {
               "type": "string",
-              "description": "Start date (YYYY-MM-DD)"
+              "description": "Decided on or after this date (YYYY-MM-DD): decision_date, not publication_date."
             },
             "date_to": {
               "type": "string",
-              "description": "End date (YYYY-MM-DD)"
+              "description": "Decided on or before this date (YYYY-MM-DD): decision_date, not publication_date."
             },
             "published_from": {
               "type": "string",
@@ -168,7 +168,7 @@
       "type": "function",
       "function": {
         "name": "list_courts",
-        "description": "List all available courts with decision counts, date ranges, and language coverage. Use this to discover what data is available.",
+        "description": "List all available courts with decision counts, decision-date ranges, and language coverage. Use this to discover what data is available. A court's latest decision date is not its last update.",
         "parameters": {
           "type": "object",
           "properties": {}

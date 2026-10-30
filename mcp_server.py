@@ -14950,9 +14950,15 @@ server = Server(
         "Bundesgericht puts decisions online weeks to months after the "
         "decision date, and cantonal portals (e.g. Zurich's "
         "Entscheiddatenbank) often run months behind — the same gap "
-        "exists on the official sites themselves. Therefore: NEVER tell "
+        "exists on the official sites themselves. A decision_date is when "
+        "the court decided, a publication_date when it published; recently "
+        "published decisions carry older decision dates, so a court's newest "
+        "decision_date says nothing about how current the corpus is. "
+        "Therefore: NEVER tell "
         "a user that opencaselaw has an 'Indexierungsverzögerung' "
-        "relative to official court sites, and NEVER claim a court or "
+        "relative to official court sites, NEVER call a court poorly covered "
+        "because its newest decision dates are weeks or months old, and NEVER "
+        "claim a court or "
         "period is missing from the corpus, without verifying first: "
         "call `search_decisions(court=..., sort=\"date_desc\")` to see "
         "the newest ingested decisions for any court (this works for "
@@ -14963,7 +14969,8 @@ server = Server(
         "ranking favors heavily-cited older leading cases and will make "
         "the corpus look stale when it is not. `get_decision` returns "
         "both `decision_date` (when decided) and `publication_date` "
-        "(when the court released it) — use publication_date to reason "
+        "(when the court released it, null where the court states none, "
+        "as for the Zurich courts) — use publication_date to reason "
         "about recency of publication. For NEWLY PUBLISHED decisions "
         "(daily alerts, 'what came out this week') use "
         "`search_decisions(published_from=..., sort=\"published_desc\")`, "
@@ -15383,6 +15390,29 @@ def _fetch_structure_paragraphs(decision_id: str) -> list[dict]:
 
 
 _E_NUMBER_LEVEL_RE = re.compile(r"^(\d*)([A-Za-z]*)$")
+
+
+# 2026-10-30: a model told a user Zurich was "schlecht abgedeckt" because the
+# newest decision dates of two courts were weeks old. Both courts' portals
+# held nothing newer. R12 forbids the claim, but it lives in the system prompt,
+# and most cantonal rows have no publication_date to reason from, so the
+# distinction travels with the answers it applies to.
+_DATE_SEMANTICS_NOTE = (
+    "decision_date is the day the court decided; publication_date is the day it "
+    "published, often weeks or months later, and is null where the court states "
+    "none. The newest decision_date is therefore not a measure of how current this "
+    "corpus is: a gap to today is normal and by itself shows nothing missing, and "
+    "recently published decisions carry older dates. Do not call a court poorly "
+    "covered on that basis.")
+
+
+def _date_semantics_note(sort: str | None, date_from: str | None,
+                         published_from: str | None) -> str:
+    """The note for a search that asks what is recent, else "". A date filter
+    on an old period is no such question and stays uncluttered."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=365)).date().isoformat()
+    recent = any(d and str(d) >= cutoff for d in (date_from, published_from))
+    return _DATE_SEMANTICS_NOTE if recent or sort in ("date_desc", "published_desc") else ""
 
 
 def _e_number_sort_key(e_number: str) -> tuple:
@@ -29733,7 +29763,7 @@ def _list_tools() -> list[Tool]:
                 "(regeste:keyword). Filter by court, canton, language, date "
                 "range, chamber. Results are relevance-ranked and enriched "
                 "with citation counts, statute references and "
-                "is_leading_case. Use offset to page. Most recent decisions: "
+                "is_leading_case. Use offset to page. Newest decision dates: "
                 "empty query + sort='date_desc' + court filter. Newly "
                 "PUBLISHED decisions (alerts): published_from + "
                 "sort='published_desc'. "
@@ -29812,11 +29842,11 @@ def _list_tools() -> list[Tool]:
                     },
                     "date_from": {
                         "type": "string",
-                        "description": "Start date (YYYY-MM-DD)",
+                        "description": "Decided on or after this date (YYYY-MM-DD): decision_date, not publication_date.",
                     },
                     "date_to": {
                         "type": "string",
-                        "description": "End date (YYYY-MM-DD)",
+                        "description": "Decided on or before this date (YYYY-MM-DD): decision_date, not publication_date.",
                     },
                     "published_from": {
                         "type": "string",
@@ -29994,8 +30024,9 @@ def _list_tools() -> list[Tool]:
             name="list_courts",
             title="List courts",
             description=(
-                "List all available courts with decision counts, date ranges, "
-                "and language coverage. Use this to discover what data is available."
+                "List all available courts with decision counts, decision-date ranges, "
+                "and language coverage. Use this to discover what data is available. "
+                "A court's latest decision date is not its last update."
             ),
             inputSchema={
                 "type": "object",
@@ -32885,10 +32916,12 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                     "Publication-date results cover decisions decided on or after "
                     f"{_search_meta['publication_window_floor']}; pass an earlier "
                     "date_from to reach older ones.")
-            if _condense_note or _page_note or _degraded_note or _pubwin_note:
-                _struct["note"] = " ".join(p.strip() for p in (_condense_note, _page_note, _degraded_note, _pubwin_note) if p)
-            if _page_note or _degraded_note or _pubwin_note:
-                text += "\n" + " ".join(p.strip() for p in (_page_note, _degraded_note, _pubwin_note) if p) + "\n"
+            _dates_note = _date_semantics_note(arguments.get("sort"), arguments.get("date_from"),
+                                               arguments.get("published_from"))
+            if _condense_note or _page_note or _degraded_note or _pubwin_note or _dates_note:
+                _struct["note"] = " ".join(p.strip() for p in (_condense_note, _page_note, _degraded_note, _pubwin_note, _dates_note) if p)
+            if _page_note or _degraded_note or _pubwin_note or _dates_note:
+                text += "\n" + " ".join(p.strip() for p in (_page_note, _degraded_note, _pubwin_note, _dates_note) if p) + "\n"
             if _DECISION_TOOL_META is not None:
                 # Preserve every legacy widget field while adding the shared
                 # research records and pagination independently of the flag.
@@ -33166,7 +33199,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 )
             text += ("\nFlags: 'sparse' collections (<15 decisions) are not representative; "
                      "a 'future Latest' is an unvalidated max(date) from a known cantonal "
-                     "date-parse issue.\n")
+                     "date-parse issue.\n"
+                     f"Earliest and Latest are decision dates. {_DATE_SEMANTICS_NOTE}\n")
             return [TextContent(type="text", text=text)]
 
         elif name == "get_statistics":
@@ -35771,6 +35805,9 @@ setInterval(load, 30000);
                 "Publication-date results cover decisions decided on or after "
                 f"{_search_meta['publication_window_floor']}; pass an earlier "
                 "date_from to reach older ones.")
+        _dates_note = _date_semantics_note(sort, date_from, published_from)
+        if _dates_note:
+            note = ((note + " ") if note else "") + _dates_note
         if note:
             resp["note"] = note
         # Name the miss precisely where the arguments allow it. Only two
@@ -35831,7 +35868,7 @@ setInterval(load, 30000);
 
     @rest_api.get("/courts", tags=["Case Law"],
                   summary="List available courts",
-                  description="List all courts with decision counts, date ranges, and language coverage.")
+                  description="List all courts with decision counts, decision-date ranges, and language coverage. A court's latest decision date is not its last update.")
     async def api_list_courts():
         return await asyncio.to_thread(list_courts)
 
