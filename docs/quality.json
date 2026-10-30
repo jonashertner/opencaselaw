@@ -1,8 +1,8 @@
 {
-  "run_at": "2026-10-30T00:29:42+00:00",
+  "run_at": "2026-10-30T13:10:46+00:00",
   "scope": "critical_only",
   "db_path": "/opt/caselaw/repo/output/decisions.db",
-  "duration_seconds": 2083.76,
+  "duration_seconds": 2020.47,
   "summary": {
     "total": 64,
     "passed": 57,
@@ -12,61 +12,61 @@
     "publish_safe": true
   },
   "check_timings": {
-    "duplicates.court_docket_collisions": 2074.027,
-    "urls.http_when_https_available": 2046.655,
-    "urls.no_relative_source_urls": 2035.859,
-    "structure.e_number_sortable": 81.304,
-    "structure.sidecar_population": 30.652,
-    "duplicates.egmr_no_dual_attribution": 19.902,
-    "cross_db.no_orphan_structure_rows": 7.186,
-    "courts.canton_field_consistency": 6.669,
-    "dockets.empty_docket_pct": 6.125,
-    "text_integrity.control_chars_sample": 4.368,
-    "dockets.excessively_long_docket": 4.292,
-    "dates.publication_before_decision": 3.575,
-    "dockets.internal_newlines_in_docket": 3.062,
-    "duplicates.decision_id_collisions_across_courts": 3.059,
-    "cross_db.reference_graph_sanity": 2.841,
-    "dates.docket_year_plausibility": 2.732,
-    "dockets.whitespace_in_docket": 2.486,
-    "text_integrity.control_chars_risk_courts": 2.4,
-    "exports.pdf_export": 2.247,
-    "mcp_tools.search_fts_returns_hits": 1.281,
-    "languages.language_distribution_plausible": 1.238,
-    "structure.federal_have_erwaegungen": 1.113,
-    "exports.docx_export": 0.692,
-    "mcp_tools.decision_id_variants_helper": 0.677,
-    "mcp_tools.e_number_sort_key_helper": 0.655,
-    "dates.null_dates_floor": 0.617,
-    "scholarship.scholarship_bridge_coverage": 0.616,
-    "urls.decision_id_url_safe": 0.588,
-    "exports.bibtex_export": 0.349,
-    "courts.canonical_court_code": 0.12,
-    "urls.decision_id_has_whitespace": 0.11,
-    "courts.expected_federal_courts_present": 0.102,
-    "languages.null_language_pct": 0.101,
-    "schema.decision_id_uniqueness": 0.099,
-    "languages.unexpected_language_values": 0.095,
+    "duplicates.court_docket_collisions": 2011.405,
+    "urls.http_when_https_available": 1995.711,
+    "urls.no_relative_source_urls": 1971.742,
+    "structure.e_number_sortable": 103.633,
+    "structure.sidecar_population": 33.467,
+    "cross_db.reference_graph_sanity": 12.931,
+    "cross_db.no_orphan_structure_rows": 10.161,
+    "dockets.empty_docket_pct": 5.947,
+    "duplicates.decision_id_collisions_across_courts": 5.331,
+    "dockets.excessively_long_docket": 5.291,
+    "text_integrity.control_chars_sample": 4.896,
+    "text_integrity.control_chars_risk_courts": 2.814,
+    "dates.publication_before_decision": 2.793,
+    "dates.docket_year_plausibility": 2.766,
+    "schema.decision_id_uniqueness": 1.64,
+    "courts.canton_field_consistency": 1.639,
+    "exports.pdf_export": 1.144,
+    "structure.federal_have_erwaegungen": 1.121,
+    "mcp_tools.decision_id_variants_helper": 0.66,
+    "exports.docx_export": 0.654,
+    "urls.decision_id_url_safe": 0.577,
+    "mcp_tools.e_number_sort_key_helper": 0.563,
+    "duplicates.egmr_no_dual_attribution": 0.418,
+    "exports.bibtex_export": 0.257,
+    "scholarship.scholarship_bridge_coverage": 0.249,
+    "dockets.internal_newlines_in_docket": 0.125,
+    "dates.null_dates_floor": 0.124,
+    "courts.canonical_court_code": 0.102,
+    "courts.expected_federal_courts_present": 0.1,
+    "urls.decision_id_has_whitespace": 0.098,
+    "courts.no_null_or_empty_court": 0.092,
     "dates.invalid_date_format": 0.081,
-    "scholarship.scholarship_decision_citations_floor": 0.07,
-    "scholarship.scholarship_statute_citations_floor": 0.06,
-    "courts.no_null_or_empty_court": 0.058,
-    "dates.year_0000_dates": 0.054,
-    "exports.ris_export": 0.042,
-    "schema.required_columns_not_null": 0.042,
-    "schema.corpus_total_count": 0.031,
-    "mcp_tools.search_fts_handles_special_chars": 0.022,
+    "languages.unexpected_language_values": 0.079,
+    "scholarship.scholarship_decision_citations_floor": 0.074,
+    "dockets.whitespace_in_docket": 0.073,
+    "languages.language_distribution_plausible": 0.071,
+    "scholarship.scholarship_statute_citations_floor": 0.065,
+    "languages.null_language_pct": 0.058,
+    "dates.year_0000_dates": 0.053,
+    "schema.required_columns_not_null": 0.052,
+    "schema.corpus_total_count": 0.034,
+    "mcp_tools.search_fts_returns_hits": 0.017,
+    "mcp_tools.search_fts_handles_special_chars": 0.007,
     "mcp_tools.get_decision_by_id": 0.004,
-    "duplicates.bge_egmr_count_in_range": 0.003,
     "dates.far_future_dates": 0.001,
+    "dates.future_dates_window": 0.001,
     "dates.pre_1700_dates": 0.001,
     "dates.total_null_dates": 0.001,
+    "duplicates.bge_egmr_count_in_range": 0.001,
+    "exports.ris_export": 0.001,
     "schema.decisions_fts_exists": 0.001,
+    "schema.decisions_table_exists": 0.001,
     "scholarship.scholarship_db_present": 0.001,
-    "structure.sidecar_exists": 0.001,
     "cross_db.sidecar_dbs_present": 0.0,
-    "dates.future_dates_window": 0.0,
-    "schema.decisions_table_exists": 0.0
+    "structure.sidecar_exists": 0.0
   },
   "results": [
     {
@@ -80,7 +80,7 @@
       "fix_advice": "scraper must prefix host. See scrapers/entscheidsuche_ingest.py for the GL/BS pattern.",
       "court": null,
       "extra": {},
-      "elapsed_s": 2035.858
+      "elapsed_s": 1971.742
     },
     {
       "name": "text_integrity.control_chars_sample",
@@ -88,12 +88,12 @@
       "passed": true,
       "metric_value": 0,
       "threshold": 0,
-      "message": "0 of 1754 sampled rows contain control chars",
+      "message": "0 of 1778 sampled rows contain control chars",
       "sample_rows": [],
       "fix_advice": "build_fts5._clean_text (d0072b2) must strip these at insert — a hit means the build-side guarantee regressed (check recent build_fts5/_clean_text changes)",
       "court": null,
       "extra": {},
-      "elapsed_s": 4.368
+      "elapsed_s": 4.896
     },
     {
       "name": "text_integrity.control_chars.ti_gerichte",
@@ -106,7 +106,7 @@
       "fix_advice": "raw portal payload leaked past _clean_text — check the insert path for this court",
       "court": "ti_gerichte",
       "extra": {},
-      "elapsed_s": 2.4
+      "elapsed_s": 2.813
     },
     {
       "name": "text_integrity.control_chars.so_gerichte",
@@ -119,7 +119,7 @@
       "fix_advice": "raw portal payload leaked past _clean_text — check the insert path for this court",
       "court": "so_gerichte",
       "extra": {},
-      "elapsed_s": 2.4
+      "elapsed_s": 2.813
     },
     {
       "name": "text_integrity.control_chars.ne_gerichte",
@@ -132,7 +132,7 @@
       "fix_advice": "raw portal payload leaked past _clean_text — check the insert path for this court",
       "court": "ne_gerichte",
       "extra": {},
-      "elapsed_s": 2.4
+      "elapsed_s": 2.813
     },
     {
       "name": "text_integrity.control_chars.ge_gerichte",
@@ -145,7 +145,7 @@
       "fix_advice": "raw portal payload leaked past _clean_text — check the insert path for this court",
       "court": "ge_gerichte",
       "extra": {},
-      "elapsed_s": 2.4
+      "elapsed_s": 2.813
     },
     {
       "name": "structure.sidecar_exists",
@@ -158,7 +158,7 @@
       "fix_advice": "run search_stack/extract_decision_structure.py",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.001
+      "elapsed_s": 0.0
     },
     {
       "name": "schema.required_not_null.decision_id",
@@ -171,7 +171,7 @@
       "fix_advice": "investigate ingestion path; required columns must be set by every scraper",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.042
+      "elapsed_s": 0.052
     },
     {
       "name": "schema.required_not_null.court",
@@ -184,7 +184,7 @@
       "fix_advice": "investigate ingestion path; required columns must be set by every scraper",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.042
+      "elapsed_s": 0.052
     },
     {
       "name": "schema.decisions_table_exists",
@@ -197,7 +197,7 @@
       "fix_advice": "rebuild output/decisions.db via build_fts5.py",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.0
+      "elapsed_s": 0.001
     },
     {
       "name": "schema.decisions_fts_exists",
@@ -210,7 +210,7 @@
       "fix_advice": "rebuild output/decisions.db via build_fts5.py",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.0
+      "elapsed_s": 0.001
     },
     {
       "name": "schema.decision_id_uniqueness",
@@ -223,36 +223,36 @@
       "fix_advice": "check INSERT OR IGNORE / INSERT OR REPLACE in scrapers and build_fts5.merge_shards",
       "court": null,
       "extra": {
-        "total": 1053527,
-        "distinct": 1053527
+        "total": 1053732,
+        "distinct": 1053732
       },
-      "elapsed_s": 0.099
+      "elapsed_s": 1.64
     },
     {
       "name": "schema.corpus_total_count",
       "severity": "critical",
       "passed": true,
-      "metric_value": 1053527,
+      "metric_value": 1053732,
       "threshold": 950000,
-      "message": "corpus total: 1,053,527",
+      "message": "corpus total: 1,053,732",
       "sample_rows": [],
       "fix_advice": "check publish.py Step 2 build_fts5 logs; verify .tmp swap completed atomically",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.03
+      "elapsed_s": 0.034
     },
     {
       "name": "mcp_tools.search_fts_returns_hits",
       "severity": "critical",
       "passed": true,
-      "metric_value": 404116,
+      "metric_value": 404183,
       "threshold": 100,
-      "message": "FTS5 'Beschwerde' query: 404,116 hits",
+      "message": "FTS5 'Beschwerde' query: 404,183 hits",
       "sample_rows": [],
       "fix_advice": "if 0, FTS5 build never indexed; rerun build_fts5",
       "court": null,
       "extra": {},
-      "elapsed_s": 1.281
+      "elapsed_s": 0.017
     },
     {
       "name": "mcp_tools.get_decision_by_id",
@@ -278,7 +278,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 0.654
+      "elapsed_s": 0.563
     },
     {
       "name": "mcp_tools.decision_id_variants_helper",
@@ -291,7 +291,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 0.677
+      "elapsed_s": 0.66
     },
     {
       "name": "languages.unexpected_values",
@@ -305,30 +305,30 @@
       "court": null,
       "extra": {
         "distribution": {
-          "de": 476286,
+          "de": 476354,
           "en": 6173,
-          "fr": 480548,
-          "it": 90520
+          "fr": 480681,
+          "it": 90524
         }
       },
-      "elapsed_s": 0.095
+      "elapsed_s": 0.078
     },
     {
       "name": "languages.distribution_plausible",
       "severity": "critical",
       "passed": true,
-      "metric_value": 45.47516885408372,
+      "metric_value": 45.47276096143511,
       "threshold": 30.0,
       "message": "DE 45.5% / FR 45.9% / IT 8.6% / RM 0.00%",
       "sample_rows": [],
       "fix_advice": "DE and FR each need ≥30%, IT ≥3%; under-floor means a language-block of scrapers crashed in publish.py Step 1",
       "court": null,
       "extra": {
-        "de": 476286,
-        "fr": 480548,
-        "it": 90520
+        "de": 476354,
+        "fr": 480681,
+        "it": 90524
       },
-      "elapsed_s": 1.227
+      "elapsed_s": 0.071
     },
     {
       "name": "exports.ris_render",
@@ -341,7 +341,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 0.026
+      "elapsed_s": 0.0
     },
     {
       "name": "exports.bibtex_render",
@@ -354,7 +354,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 0.349
+      "elapsed_s": 0.257
     },
     {
       "name": "duplicates.egmr_dual_attribution",
@@ -367,7 +367,7 @@
       "fix_advice": "codified by build_fts5._dedup_egmr_in_bge() + scrapers/entscheidsuche_ingest.py override",
       "court": null,
       "extra": {},
-      "elapsed_s": 19.902
+      "elapsed_s": 0.417
     },
     {
       "name": "duplicates.decision_id_cross_court",
@@ -380,7 +380,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 3.054
+      "elapsed_s": 5.331
     },
     {
       "name": "dockets.whitespace",
@@ -393,7 +393,7 @@
       "fix_advice": "build_fts5._normalize_dockets() auto-trims; verify it ran",
       "court": null,
       "extra": {},
-      "elapsed_s": 2.486
+      "elapsed_s": 0.073
     },
     {
       "name": "dockets.internal_newlines",
@@ -406,7 +406,7 @@
       "fix_advice": "check scraper that wrote these rows; replace newline with space",
       "court": null,
       "extra": {},
-      "elapsed_s": 3.062
+      "elapsed_s": 0.125
     },
     {
       "name": "dates.invalid_format",
@@ -419,7 +419,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 0.08
+      "elapsed_s": 0.081
     },
     {
       "name": "cross_db.sidecar_present.statutes",
@@ -497,7 +497,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 0.058
+      "elapsed_s": 0.092
     },
     {
       "name": "courts.federal_present.weko",
@@ -510,7 +510,7 @@
       "fix_advice": null,
       "court": "weko",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.ubi",
@@ -523,7 +523,7 @@
       "fix_advice": null,
       "court": "ubi",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.ta_sst",
@@ -536,7 +536,7 @@
       "fix_advice": null,
       "court": "ta_sst",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.postcom",
@@ -549,7 +549,7 @@
       "fix_advice": null,
       "court": "postcom",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.mkg",
@@ -562,7 +562,7 @@
       "fix_advice": null,
       "court": "mkg",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.hudoc_ch",
@@ -575,7 +575,7 @@
       "fix_advice": null,
       "court": "hudoc_ch",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.finma_versicherungsrecht",
@@ -588,7 +588,7 @@
       "fix_advice": null,
       "court": "finma_versicherungsrecht",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.finma",
@@ -601,7 +601,7 @@
       "fix_advice": null,
       "court": "finma",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.emark",
@@ -614,7 +614,7 @@
       "fix_advice": null,
       "court": "emark",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.elcom",
@@ -627,7 +627,7 @@
       "fix_advice": null,
       "court": "elcom",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.edoeb",
@@ -640,7 +640,7 @@
       "fix_advice": null,
       "court": "edoeb",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.comcom",
@@ -653,7 +653,7 @@
       "fix_advice": null,
       "court": "comcom",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.ch_vb",
@@ -666,7 +666,7 @@
       "fix_advice": null,
       "court": "ch_vb",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.ch_bundesrat",
@@ -679,20 +679,20 @@
       "fix_advice": null,
       "court": "ch_bundesrat",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.bvger",
       "severity": "critical",
       "passed": true,
-      "metric_value": 109584,
+      "metric_value": 109595,
       "threshold": 1,
-      "message": "bvger: 109,584 decisions",
+      "message": "bvger: 109,595 decisions",
       "sample_rows": [],
       "fix_advice": null,
       "court": "bvger",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.bstger",
@@ -705,7 +705,7 @@
       "fix_advice": null,
       "court": "bstger",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.bpatger",
@@ -718,20 +718,20 @@
       "fix_advice": null,
       "court": "bpatger",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.bger",
       "severity": "critical",
       "passed": true,
-      "metric_value": 194171,
+      "metric_value": 194226,
       "threshold": 1,
-      "message": "bger: 194,171 decisions",
+      "message": "bger: 194,226 decisions",
       "sample_rows": [],
       "fix_advice": null,
       "court": "bger",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.bge_egmr",
@@ -744,7 +744,7 @@
       "fix_advice": null,
       "court": "bge_egmr",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.federal_present.bge",
@@ -757,7 +757,7 @@
       "fix_advice": null,
       "court": "bge",
       "extra": {},
-      "elapsed_s": 0.101
+      "elapsed_s": 0.1
     },
     {
       "name": "courts.canonical_format",
@@ -772,7 +772,7 @@
       "extra": {
         "distinct_courts": 135
       },
-      "elapsed_s": 0.12
+      "elapsed_s": 0.102
     },
     {
       "name": "dates.year_0000",
@@ -785,7 +785,7 @@
       "fix_advice": "build_fts5._normalize_dates() auto-converts to NULL; verify it ran on this build",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.054
+      "elapsed_s": 0.053
     },
     {
       "name": "dates.pre_1700",
@@ -817,7 +817,7 @@
       "fix_advice": "if >50, expect a scraper date-parsing regression",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.0
+      "elapsed_s": 0.001
     },
     {
       "name": "dates.far_future",
@@ -830,7 +830,7 @@
       "fix_advice": "build_fts5._normalize_dates() auto-NULLs these; check scraper date-parsing for German/French month confusion",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.001
+      "elapsed_s": 0.0
     },
     {
       "name": "urls.http_count",
@@ -838,41 +838,41 @@
       "passed": false,
       "metric_value": 220085,
       "threshold": 50,
-      "message": "220,085 rows still use http:// (http 220,085 / https 833,442)",
+      "message": "220,085 rows still use http:// (http 220,085 / https 833,647)",
       "sample_rows": [],
       "fix_advice": "upgrade scraper to write https://, then run a REPLACE(source_url, 'http://', 'https://') backfill",
       "court": null,
       "extra": {
         "http": 220085,
-        "https": 833442
+        "https": 833647
       },
-      "elapsed_s": 2046.654
+      "elapsed_s": 1995.71
     },
     {
       "name": "urls.decision_id_whitespace",
       "severity": "warning",
       "passed": false,
-      "metric_value": 67881,
+      "metric_value": 67895,
       "threshold": 50000,
-      "message": "67,881 decision_ids contain whitespace (percent-encoded in URLs; ugly but functional)",
+      "message": "67,895 decision_ids contain whitespace (percent-encoded in URLs; ugly but functional)",
       "sample_rows": [],
       "fix_advice": "if growing >50k, a new scraper started concatenating dockets with spaces; consider underscore separator at scraper time for cleaner URLs",
       "court": null,
       "extra": {},
-      "elapsed_s": 0.11
+      "elapsed_s": 0.097
     },
     {
       "name": "structure.federal_have_erwaegungen",
       "severity": "warning",
       "passed": false,
-      "metric_value": 87.3,
+      "metric_value": 87.7,
       "threshold": 95.0,
-      "message": "BGer (>5y old): 873/1000 sample have sidecar paragraphs (87.3%)",
+      "message": "BGer (>5y old): 877/1000 sample have sidecar paragraphs (87.7%)",
       "sample_rows": [],
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 1.112
+      "elapsed_s": 1.121
     },
     {
       "name": "dockets.excessively_long",
@@ -916,7 +916,7 @@
       "fix_advice": null,
       "court": null,
       "extra": {},
-      "elapsed_s": 4.292
+      "elapsed_s": 5.291
     },
     {
       "name": "dates.total_null",
@@ -942,7 +942,7 @@
       "fix_advice": "if growing, check the court-specific recovery script in build_fts5._recover_decision_dates / scripts/",
       "court": "ti_gerichte",
       "extra": {},
-      "elapsed_s": 0.617
+      "elapsed_s": 0.124
     },
     {
       "name": "dates.null_date_floor.gr_gerichte",
@@ -955,7 +955,7 @@
       "fix_advice": "if growing, check the court-specific recovery script in build_fts5._recover_decision_dates / scripts/",
       "court": "gr_gerichte",
       "extra": {},
-      "elapsed_s": 0.617
+      "elapsed_s": 0.124
     }
   ]
 }
