@@ -24,6 +24,11 @@ def test_the_nightly_build_step_asks_for_the_push(monkeypatch):
     assert build_fts5._early_stats_push_enabled() is True
 
 
+def test_the_nightly_step_does_not_leak_the_flag_past_its_test():
+    # Runs after the test above: conftest.py restores the variable.
+    assert build_fts5._early_stats_push_enabled() is False
+
+
 def test_an_operator_opt_out_survives_the_nightly_step(monkeypatch):
     monkeypatch.setenv("OCL_EARLY_STATS_PUSH", "0")
     monkeypatch.setattr(publish, "run_cmd", lambda *a, **k: True)
