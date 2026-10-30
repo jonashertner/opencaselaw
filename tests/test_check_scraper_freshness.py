@@ -385,3 +385,48 @@ def test_independently_scheduled_scraper_is_still_checked_for_staleness():
     # tells the operator where to look.
     for k, unit in INDEPENDENTLY_SCHEDULED_SOURCES.items():
         assert unit.endswith((".timer", ".service")), (k, unit)
+
+
+def _independent_alerts(tmp_path, ages_days):
+    """independent_source_alerts over a temp repo; ages_days maps a path under
+    it to the file's age. Sources with no entry count as fresh."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from scripts.check_scraper_freshness import (
+        INDEPENDENTLY_SCHEDULED_SOURCES, independent_source_alerts,
+    )
+    now = datetime(2026, 10, 30, 12, 0, tzinfo=timezone.utc)
+    ages = {f"state/{k}.jsonl": 0 for k in INDEPENDENTLY_SCHEDULED_SOURCES}
+    ages.update(ages_days)
+    for rel, age in ages.items():
+        f = tmp_path / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.touch()
+        stamp = (now - timedelta(days=age)).timestamp()
+        os.utime(f, (stamp, stamp))
+    return independent_source_alerts(now, repo=tmp_path)
+
+
+def test_quiet_independent_source_with_a_fresh_shard_is_not_stale(tmp_path):
+    """2026-10-30: cjeu ran daily but its state file dated from 10-25, because
+    nothing new came. The shard moves on every run."""
+    assert _independent_alerts(tmp_path, {
+        "state/cjeu.jsonl": 5, "output/decisions/cjeu.jsonl": 0}) == []
+
+
+def test_independent_source_with_old_state_and_shard_still_alerts(tmp_path):
+    alerts = _independent_alerts(tmp_path, {
+        "state/cjeu.jsonl": 5, "output/decisions/cjeu.jsonl": 5})
+    assert len(alerts) == 1 and "cjeu" in alerts[0] and "no write for 5d" in alerts[0]
+
+
+def test_independent_source_with_old_state_and_no_shard_still_alerts(tmp_path):
+    alerts = _independent_alerts(tmp_path, {"state/untb.jsonl": 5})
+    assert len(alerts) == 1 and "untb" in alerts[0]
+
+
+def test_independent_sources_each_have_their_timer_in_the_repo():
+    root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(root))
+    from scripts.check_scraper_freshness import INDEPENDENTLY_SCHEDULED_SOURCES
+    for k, unit in INDEPENDENTLY_SCHEDULED_SOURCES.items():
+        assert (root / "systemd" / unit).exists(), (k, unit)

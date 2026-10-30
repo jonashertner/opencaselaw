@@ -118,14 +118,45 @@ TUNNEL_DEPENDENT_SOURCES = {
 # They still get a freshness check of their own below, keyed on the state
 # file, so a genuinely dead independent scraper is not silently exempt.
 # Value is the owning unit, for the alert text.
+#
+# 2026-10-30: cjeu, icj and untb joined the list after the same false WARN,
+# every day since they went live on 10-26.
 INDEPENDENTLY_SCHEDULED_SOURCES = {
+    "cjeu": "opencaselaw-cjeu.timer",
     "ecthr": "opencaselaw-ecthr.timer",
+    "icj": "opencaselaw-icj.timer",
+    "untb": "opencaselaw-untb.timer",
 }
 
-# How stale an independently-scheduled scraper's state file may get before
-# we alert. ECtHR tops off daily; three days absorbs a weekend plus one
-# missed run without crying wolf.
+# How stale an independently-scheduled scraper may get before we alert. They
+# top off daily; three days absorbs a weekend plus one missed run without
+# crying wolf.
 INDEPENDENT_STALE_DAYS = 3
+
+
+def independent_source_alerts(now: datetime, repo: Path = REPO) -> list[str]:
+    """Freshness of the independently-scheduled scrapers, on their own terms.
+
+    The state file only moves when a run scrapes something new, so a quiet
+    source goes days without touching it (cjeu, icj and untb: none since
+    10-25 while their timers ran daily). Every run also opens the output
+    shard, so the newer of the two is the heartbeat."""
+    alerts = []
+    for k, unit in sorted(INDEPENDENTLY_SCHEDULED_SOURCES.items()):
+        sf = repo / "state" / f"{k}.jsonl"
+        if not sf.exists():
+            alerts.append(
+                f"WARN {k}: independently scheduled ({unit}) but "
+                f"no state file at {sf}")
+            continue
+        shard = repo / "output" / "decisions" / f"{k}.jsonl"
+        last = max(p.stat().st_mtime for p in (sf, shard) if p.exists())
+        age_d = (now - datetime.fromtimestamp(last, tz=timezone.utc)).days
+        if age_d > INDEPENDENT_STALE_DAYS:
+            alerts.append(
+                f"WARN {k}: independently scheduled ({unit}), "
+                f"no write for {age_d}d — check that timer")
+    return alerts
 
 # Courts that legitimately publish rarely (small chamber, archival
 # series, historical-only). The "<30s + 0 new" heuristic is a
@@ -726,21 +757,8 @@ def main():
                             f"never ran)"
                         )
                     # Independently-scheduled scrapers are excluded above,
-                    # so check them on their own terms: the state file is
-                    # touched on every run that writes anything.
-                    for k, unit in sorted(INDEPENDENTLY_SCHEDULED_SOURCES.items()):
-                        sf = REPO / "state" / f"{k}.jsonl"
-                        if not sf.exists():
-                            alerts.append(
-                                f"WARN {k}: independently scheduled ({unit}) but "
-                                f"no state file at {sf}")
-                            continue
-                        age_d = (now - datetime.fromtimestamp(
-                            sf.stat().st_mtime, tz=timezone.utc)).days
-                        if age_d > INDEPENDENT_STALE_DAYS:
-                            alerts.append(
-                                f"WARN {k}: independently scheduled ({unit}), "
-                                f"no write for {age_d}d — check that timer")
+                    # so check them on their own terms.
+                    alerts.extend(independent_source_alerts(now))
                 except Exception as e:
                     alerts.append(f"WARN registry reconciliation failed: {e}")
 
