@@ -8,7 +8,9 @@ instead of as a plausible "not found".
     .venv/bin/python scripts/tool_surface_check.py [--base URL] [--json OUT]
 
 Classification per call:
-    FAIL     JSON-RPC error, an "Error:"/traceback body, or a transport failure
+    FAIL     JSON-RPC error, a result flagged isError, an "Error:"/traceback or
+             JSON error body, a transport failure, or a sample the server
+             reports ignoring an argument of
     EMPTY    answered, but with nothing in it where content was expected
     OK       answered with substance
 
@@ -35,6 +37,8 @@ UA = "opencaselaw-probe/1.0"
 _ERR_RE = re.compile(
     r"^\s*(Error:|Traceback|Internal Server Error)|cannot access local variable",
     re.IGNORECASE)
+# The sample no longer tests what it claims to: the tool answered without it.
+_IGNORED_ARG = "NOTE: ignored unrecognised parameter(s)"
 
 
 def call(base: str, tool: str, args: dict, timeout: int = 180):
@@ -57,26 +61,36 @@ def body_text(resp: dict) -> str:
     return "".join(c.get("text", "") for c in (res.get("content") or []))
 
 
-def _json_error(text: str) -> str | None:
-    """The "error" of an answer whose whole body is a JSON object carrying one.
-
-    The server answers an aborted call with {"error": "server_timeout", ...}:
-    ~680 characters, so until 2026-10-10 it passed as OK (get_doctrine timed
-    out at 60 s on a daily run that still reported "44 OK / 0 FAIL"). The probe
-    sends realistic arguments and real ids, so an error object is a failure."""
+def _json_head(text: str) -> dict | None:
+    """The JSON object a body opens with. The open-access note follows it, so
+    the body as a whole does not parse."""
     t = text.strip()
     if not t.startswith("{"):
         return None
     try:
-        obj = json.loads(t)
+        obj, _ = json.JSONDecoder().raw_decode(t)
     except ValueError:
         return None
-    err = obj.get("error") if isinstance(obj, dict) else None
+    return obj if isinstance(obj, dict) else None
+
+
+def _json_error(text: str) -> str | None:
+    """The "error" of an answer whose body is a JSON object carrying one.
+
+    The server answers an aborted call with {"error": "server_timeout", ...}:
+    ~680 characters, so it passed as OK (get_doctrine timed out at 60 s on a
+    daily run that still reported "44 OK / 0 FAIL"). The first fix, 2026-10-10,
+    parsed the whole body and so missed every body carrying the note: 14 more
+    timeouts in the next 30 runs. The probe sends realistic arguments and real
+    ids, so an error object is a failure."""
+    err = (_json_head(text) or {}).get("error")
     return str(err) if err else None
 
 
 def classify(tool: str, resp: dict, text: str, min_chars: int) -> str:
-    if resp.get("error"):
+    if resp.get("error") or (resp.get("result") or {}).get("isError"):
+        return "FAIL"
+    if text.startswith(_IGNORED_ARG):
         return "FAIL"
     if _ERR_RE.search(text):
         return "FAIL"
@@ -102,6 +116,11 @@ def harvest(base: str) -> dict:
     # a federal decision with structure (Erwägungen) for the pinpoint tools
     ids["federal_decision_id"] = next(
         (x for x in m if x.startswith(("bge_", "bger_"))), ids["decision_id"])
+    # an Erwägung that exists: numbering starts anywhere (BGE 132 III 115: E. 2.1)
+    r, _ = call(base, "get_decision_structure",
+                {"decision_id": ids["federal_decision_id"]})
+    paras = (_json_head(body_text(r)) or {}).get("erwaegungen_paragraphs") or []
+    ids["e_number"] = paras[0]["e_number"] if paras else "1"
 
     r, _ = call(base, "search_scholarship", {"query": "Kündigung", "limit": 3})
     t = body_text(r)
@@ -145,7 +164,7 @@ def cases(ids: dict) -> list[tuple]:
         ("get_decisions", {"decision_ids": [d]}, 200),
         ("get_regeste", {"decision_id": d}, 40),
         ("get_decision_structure", {"decision_id": fd}, 60),
-        ("get_erwaegung", {"decision_id": fd, "e_number": "1"}, 40),
+        ("get_erwaegung", {"decision_id": fd, "e_number": ids["e_number"]}, 40),
         ("find_relevant_erwaegung", {"decision_id": fd,
                                      "claim": "Die Kündigung ist missbräuchlich"}, 40),
         ("get_case_brief", {"case": d}, 100),
@@ -163,7 +182,7 @@ def cases(ids: dict) -> list[tuple]:
         ("get_article_history", {"sr_number": "220", "article": "336"}, 40),
         ("get_article_purpose", {"sr_number": "220", "article": "336"}, 40),
         ("get_legislation", {"systematic_number": "235.1"}, 60),
-        ("browse_legislation_changes", {"limit": 3}, 40),
+        ("browse_legislation_changes", {"canton": "ZH"}, 40),
         ("get_materialien", {"law_code": "DSG"}, 40),
         # scholarship bridge
         ("find_scholarship_citing_statute", {"sr_number": "220", "article": "336"}, 20),
