@@ -40,6 +40,13 @@ Demnach erkennt das Bundesgericht:
 """
 
 
+@pytest.mark.parametrize("label", ["Aus den Erwägungen", "Begründung", "Considérant en droit", "A", "II"])
+def test_heading_fallback_answers_none_for_a_label_that_is_no_number(label):
+    # 2026-10-30: these reached int() and get_erwaegung raised ValueError.
+    text = f"{label}\n1. Die Beschwerde ist zulässig.\n2. Sie ist unbegründet."
+    assert m._erwaegung_from_text(text, label) is None
+
+
 def test_heading_fallback_extracts_the_block_to_the_next_same_level_heading():
     block = m._erwaegung_from_text(TEXT, "2.3")
     assert block["text"].startswith("2.3 Selon l'art. 335 al. 1 CO")

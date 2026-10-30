@@ -16622,6 +16622,10 @@ def _erwaegung_from_text(full_text: str | None, e_number: str,
         if not parent_block:
             return None
         return _lettered_from_block(parent_block, e_number, lettered.group(2), lettered.group(3))
+    # Only numbers name an Erwägung: callers also pass headings ("Aus den
+    # Erwägungen", "Begründung", "A"), which the int() below cannot read.
+    if not re.match(r"\d+(?:\.|$)", e_number):
+        return None
     number = re.escape(e_number)
     depth = e_number.count(".")
     # "2.3", "2.3.", "E. 2.3", "Erw. 2.3", "consid. 2.3", "2.3 -", "2.3:" at a line start
