@@ -17282,6 +17282,24 @@ def _low_confidence_hint(suppression: dict, matches: list[dict]) -> str:
     )
 
 
+def _paragraph_rowid_span(conn, decision_id: str) -> tuple[int, int] | None:
+    """First and last rowid of a decision's Erwägungen, None if it has none.
+
+    The paragraph FTS index knows nothing of decisions. Without this span a
+    MATCH walks every hit in the corpus and reads each one's row from the 50 GB
+    table to test its decision_id: 21-34 s warm on a copy of the 11M paragraphs
+    (2026-10-30), over the 60 s limit on production after a sidecar swap. With
+    it, in the CROSS JOIN order that keeps the FTS table outermost, the same
+    queries took 0.1-0.7 s and returned the same rows and scores. In the other
+    join order FTS5 restarts for each paragraph and bm25() recounts its corpus
+    statistics each time, so that order must not be left to the planner."""
+    row = conn.execute(
+        "SELECT min(rowid), max(rowid) FROM erwaegungen_paragraph "
+        "WHERE decision_id = ?", (decision_id,),
+    ).fetchone()
+    return (row[0], row[1]) if row and row[0] is not None else None
+
+
 def _compute_pinpoint(
     decision_id: str,
     claim: str,
@@ -17411,9 +17429,10 @@ def _compute_pinpoint(
                 snippet(erwaegungen_paragraph_fts,
                         0, '<mark>', '</mark>', '…', 24) AS highlighted
             FROM erwaegungen_paragraph_fts
-            JOIN erwaegungen_paragraph p
+            CROSS JOIN erwaegungen_paragraph p
               ON p.rowid = erwaegungen_paragraph_fts.rowid
             WHERE erwaegungen_paragraph_fts MATCH ?
+              AND erwaegungen_paragraph_fts.rowid BETWEEN ? AND ?
               AND p.decision_id = ?
             ORDER BY score
             LIMIT 2
@@ -17424,11 +17443,14 @@ def _compute_pinpoint(
         # hit on a genuinely selective term.
         match_kind = "or_selective"
         for did_variant in _decision_id_variants(decision_id) or [decision_id]:
+            span = _paragraph_rowid_span(conn, did_variant)
+            if span is None:
+                continue
             for q, kind in ((phrase_query, "phrase"), (or_query, "or_selective")):
                 if not q:
                     continue
                 try:
-                    rows = conn.execute(sql, (q, did_variant)).fetchall()
+                    rows = conn.execute(sql, (q, *span, did_variant)).fetchall()
                 except sqlite3.OperationalError:
                     rows = []
                 if rows:
@@ -17842,9 +17864,10 @@ def _handle_find_relevant_erwaegung(
                 snippet(erwaegungen_paragraph_fts,
                         0, '<mark>', '</mark>', '…', 24) AS highlighted
             FROM erwaegungen_paragraph_fts
-            JOIN erwaegungen_paragraph p
+            CROSS JOIN erwaegungen_paragraph p
               ON p.rowid = erwaegungen_paragraph_fts.rowid
             WHERE erwaegungen_paragraph_fts MATCH ?
+              AND erwaegungen_paragraph_fts.rowid BETWEEN ? AND ?
               AND p.decision_id = ?
             ORDER BY score
             LIMIT ?
@@ -17856,11 +17879,14 @@ def _handle_find_relevant_erwaegung(
         match_kind = "phrase"
         limit_n = max(1, min(top_k, 10))
         for did_variant in _decision_id_variants(resolved) or [resolved]:
+            span = _paragraph_rowid_span(conn, did_variant)
+            if span is None:
+                continue
             for q, kind in ((fts_query, "phrase"), (or_query, "or")):
                 if not q:
                     continue
                 try:
-                    rows = conn.execute(sql, (q, did_variant, limit_n)).fetchall()
+                    rows = conn.execute(sql, (q, *span, did_variant, limit_n)).fetchall()
                 except sqlite3.OperationalError:
                     rows = []
                 if rows:

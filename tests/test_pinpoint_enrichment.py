@@ -654,3 +654,72 @@ def test_handle_find_relevant_erwaegung_does_not_emit_thin_high(tmp_path, monkey
         )
     finally:
         conn.close()
+
+
+def _record_statements(conn) -> list[str]:
+    statements: list[str] = []
+    conn.set_trace_callback(statements.append)
+    return statements
+
+
+def test_a_span_shared_with_another_decision_keeps_paragraphs_apart(tmp_path):
+    """A re-extracted decision can straddle another's rowids. The span only
+    narrows the search; decision_id still decides whose paragraph it is."""
+    conn = _make_structure_db(tmp_path, [
+        ("d_1", "1", "Die Kündigung war missbräuchlich."),
+        ("d_2", "1", "Die Kündigung war missbräuchlich und sehr missbräuchlich."),
+        ("d_1", "2", "Die Sperrfrist lief noch."),
+    ])
+    try:
+        assert mcp_server._paragraph_rowid_span(conn, "d_1") == (1, 3)
+        pp = mcp_server._compute_pinpoint("d_1", "Kündigung missbräuchlich", conn=conn)
+        assert pp is None or pp["e_number"] == "1"
+        rows = conn.execute(
+            "SELECT e_number FROM erwaegungen_paragraph_fts CROSS JOIN erwaegungen_paragraph p "
+            "ON p.rowid = erwaegungen_paragraph_fts.rowid "
+            "WHERE erwaegungen_paragraph_fts MATCH ? "
+            "AND erwaegungen_paragraph_fts.rowid BETWEEN ? AND ? AND p.decision_id = ?",
+            ("Sperrfrist OR missbräuchlich", 1, 3, "d_1"),
+        ).fetchall()
+        assert sorted(r["e_number"] for r in rows) == ["1", "2"]
+    finally:
+        conn.close()
+
+
+def test_a_decision_without_paragraphs_never_touches_the_index(tmp_path, monkeypatch):
+    conn = _make_structure_db(tmp_path, [("d_1", "1", "Die Kündigung war missbräuchlich.")])
+    monkeypatch.setattr(mcp_server, "_compute_pinpoint_semantic_rescue", lambda *a, **k: None)
+    statements = _record_statements(conn)
+    try:
+        assert mcp_server._paragraph_rowid_span(conn, "d_none") is None
+        assert mcp_server._compute_pinpoint("d_none", "Kündigung", conn=conn) is None
+        assert not [s for s in statements if "MATCH" in s]
+    finally:
+        conn.set_trace_callback(None)
+        conn.close()
+
+
+def test_the_index_stays_the_outer_table(tmp_path, monkeypatch):
+    """The other order restarts FTS5 per paragraph and bm25() recounts its
+    corpus statistics each time: 5-10x slower on 11M paragraphs, invisibly."""
+    conn = _make_structure_db(tmp_path, [
+        ("d_1", "1", "Die Kündigung war missbräuchlich."),
+        ("d_1", "2", "Die Sperrfrist lief noch."),
+    ])
+    monkeypatch.setattr(mcp_server, "_get_structure_conn", lambda: conn)
+    monkeypatch.setattr(mcp_server, "_resolve_decision_id", lambda x: x)
+    monkeypatch.setattr(mcp_server, "_fetch_structure_row", lambda x: None)
+    monkeypatch.setattr(mcp_server, "get_decision_by_id", lambda x: None)
+    statements = _record_statements(conn)
+    mcp_server._compute_pinpoint("d_1", "Kündigung Sperrfrist", conn=conn)
+    mcp_server._handle_find_relevant_erwaegung(decision_id="d_1", claim="Kündigung Sperrfrist")
+    queries = [s for s in statements if "MATCH" in s]
+    assert len(queries) >= 2
+
+    check = sqlite3.connect(tmp_path / "structure.db")
+    try:
+        for q in queries:
+            plan = [r[-1] for r in check.execute("EXPLAIN QUERY PLAN " + q)]
+            assert "erwaegungen_paragraph_fts" in plan[0], plan
+    finally:
+        check.close()
