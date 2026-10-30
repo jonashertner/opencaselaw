@@ -1,9 +1,9 @@
 {
-  "total": 1053635,
-  "source_representations": 1053635,
+  "total": 1053732,
+  "source_representations": 1053732,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 915166,
-  "unique_decisions_lower_bound": 915116,
+  "unique_decisions": 915263,
+  "unique_decisions_lower_bound": 915213,
   "duplicate_representations": 138469,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -18,10 +18,10 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194129,
+      "count": 194226,
       "earliest": "1996-01-19",
       "latest": "2026-10-21",
-      "last_scraped": "2026-10-29T11:03:10.912362+00:00",
+      "last_scraped": "2026-10-30T11:04:00.573813+00:00",
       "languages": [
         "de",
         "fr",
@@ -1773,8 +1773,8 @@
   ],
   "federal_seats": {
     "bger": {
-      "LU": 36778,
-      "VD": 157351
+      "LU": 36795,
+      "VD": 157431
     },
     "bge": {
       "LU": 3300,
@@ -2128,9 +2128,9 @@
     }
   ],
   "by_language": {
-    "fr": 480644,
-    "de": 476310,
-    "it": 90508,
+    "fr": 480681,
+    "de": 476354,
+    "it": 90524,
     "en": 6173
   },
   "by_year": {
@@ -2283,28 +2283,28 @@
     "2021": 53180,
     "2022": 52762,
     "2023": 52713,
-    "2024": 52731,
-    "2025": 50399,
-    "2026": 28617,
+    "2024": 52739,
+    "2025": 50425,
+    "2026": 28680,
     "2027": 1
   },
   "recent_daily": {
-    "2026-09-30": 70,
-    "2026-10-01": 68,
-    "2026-10-02": 35,
-    "2026-10-05": 50,
+    "2026-09-30": 74,
+    "2026-10-01": 72,
+    "2026-10-02": 37,
+    "2026-10-05": 52,
     "2026-10-06": 76,
-    "2026-10-07": 61,
+    "2026-10-07": 64,
     "2026-10-08": 54,
     "2026-10-09": 28,
     "2026-10-12": 42,
-    "2026-10-13": 53,
-    "2026-10-14": 26,
-    "2026-10-15": 26,
-    "2026-10-16": 13,
-    "2026-10-19": 16,
-    "2026-10-20": 6,
-    "2026-10-21": 8,
+    "2026-10-13": 56,
+    "2026-10-14": 30,
+    "2026-10-15": 28,
+    "2026-10-16": 14,
+    "2026-10-19": 17,
+    "2026-10-20": 8,
+    "2026-10-21": 9,
     "2026-10-22": 7,
     "2026-10-23": 2,
     "2026-10-28": 2,
@@ -2319,7 +2319,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194129
+      "count": 194226
     },
     {
       "court": "ge_gerichte",
@@ -2518,11 +2518,11 @@
     "2023": -0.1,
     "2024": 0.0,
     "2025": -4.4,
-    "2026": -43.2,
+    "2026": -43.1,
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 364849,
+    "federal": 364946,
     "cantonal": 688786
   },
   "language_by_year": {
@@ -2641,22 +2641,22 @@
       "it": 2417
     },
     "2024": {
-      "de": 23590,
+      "de": 23592,
       "en": 364,
-      "fr": 26554,
-      "it": 2223
+      "fr": 26557,
+      "it": 2226
     },
     "2025": {
-      "de": 23816,
+      "de": 23826,
       "en": 377,
-      "fr": 24647,
-      "it": 1559
+      "fr": 24653,
+      "it": 1569
     },
     "2026": {
-      "de": 14938,
+      "de": 14970,
       "en": 236,
-      "fr": 12374,
-      "it": 1069
+      "fr": 12402,
+      "it": 1072
     }
   },
   "by_month": {
@@ -2671,34 +2671,34 @@
     "2024-06": 4859,
     "2024-07": 4099,
     "2024-08": 4012,
-    "2024-09": 4278,
-    "2024-10": 4525,
+    "2024-09": 4279,
+    "2024-10": 4530,
     "2024-11": 4615,
-    "2024-12": 4361,
-    "2025-01": 4225,
+    "2024-12": 4363,
+    "2025-01": 4229,
     "2025-02": 4206,
-    "2025-03": 4405,
-    "2025-04": 4142,
-    "2025-05": 4294,
-    "2025-06": 4712,
+    "2025-03": 4407,
+    "2025-04": 4147,
+    "2025-05": 4297,
+    "2025-06": 4713,
     "2025-07": 3933,
     "2025-08": 3861,
-    "2025-09": 4474,
-    "2025-10": 4370,
-    "2025-11": 4051,
-    "2025-12": 3726,
-    "2026-01": 3077,
-    "2026-02": 3768,
+    "2025-09": 4475,
+    "2025-10": 4373,
+    "2025-11": 4052,
+    "2025-12": 3732,
+    "2026-01": 3084,
+    "2026-02": 3769,
     "2026-03": 3840,
     "2026-04": 3155,
     "2026-05": 2967,
     "2026-06": 3475,
     "2026-07": 2785,
-    "2026-08": 2603,
-    "2026-09": 2371,
-    "2026-10": 576
+    "2026-08": 2604,
+    "2026-09": 2400,
+    "2026-10": 601
   },
-  "generated_at": "2026-10-30T12:28:52.526559+00:00",
+  "generated_at": "2026-10-30T21:11:26.414178+00:00",
   "scraper_health": {
     "run_at": "2026-10-30T01:52:20.125061+00:00",
     "run_duration_s": 3078.8,
@@ -3921,19 +3921,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 10010629,
-    "statute_edges": 12697675
+    "citation_edges": 10013643,
+    "statute_edges": 12700340
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 111495,
+      "citation_count": 111509,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196656
+      "ref_count": 196714
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -3945,17 +3945,17 @@
       "de_pct": 45.5,
       "fr_pct": 45.9,
       "it_pct": 8.6,
-      "total": 1047354
+      "total": 1047559
     },
     "regeste_coverage": {
       "pct": 38.6,
-      "with_regeste": 406789,
-      "total": 1053527
+      "with_regeste": 406802,
+      "total": 1053732
     },
     "graph_size": {
-      "decision_edges": 9450744,
-      "statute_edges": 12697675,
-      "total": 22148419
+      "decision_edges": 9484514,
+      "statute_edges": 12700340,
+      "total": 22184854
     },
     "echr_switzerland": {
       "total": 1535,
@@ -3972,19 +3972,19 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 111495,
+        "citation_count": 111509,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 58487,
+        "citation_count": 58492,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39834,
+        "citation_count": 39842,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
@@ -3996,7 +3996,7 @@
       },
       {
         "docket": "130 V 343",
-        "citation_count": 34795,
+        "citation_count": 34798,
         "regeste_excerpt": "Regeste\n Art. 1 Abs. 1 IVG (in der seit 1. Januar 2003 geltenden Fassung) in Verbindung mit Art. 6, 7, 8 Abs. 1, Art. 16 und 17 ATSG; Art. 4 Abs. 1, Art. 28 Abs",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_130 V 343"
       }
@@ -4005,27 +4005,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196656
+        "ref_count": 196714
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 120982
+        "ref_count": 121005
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109299
+        "ref_count": 109354
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98440
+        "ref_count": 98468
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61026
+        "ref_count": 61040
       }
     ],
     "materialien_coverage": {
@@ -4136,7 +4136,7 @@
         "earliest": "1901-01-01",
         "latest": "2026-09-02",
         "span_years": 125,
-        "decision_count": 1230
+        "decision_count": 1232
       },
       {
         "court": "ar_gerichte",
@@ -4155,9 +4155,9 @@
       {
         "court": "ge_gerichte",
         "earliest": "1908-11-08",
-        "latest": "2026-10-15",
+        "latest": "2026-10-16",
         "span_years": 118,
-        "decision_count": 171590
+        "decision_count": 171678
       },
       {
         "court": "ne_gerichte",
@@ -4680,30 +4680,6 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/2010/96"
     },
     {
-      "sr_number": "142.513",
-      "in_force_date": "2026-11-01",
-      "title_de": "Verordnung vom 12. April 2006 über das Zentrale Migrationsinformationssystem (ZEMIS-Verordnung)",
-      "title_fr": "Ordonnance du 12 avril 2006 sur le système d'information central sur la migration (Ordonnance SYMIC)",
-      "title_it": "Ordinanza del 12 aprile 2006 concernente il sistema d'informazione centrale sulla migrazione (Ordinanza SIMIC)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2006/303"
-    },
-    {
-      "sr_number": "360.2",
-      "in_force_date": "2026-11-01",
-      "title_de": "Verordnung vom 15. Oktober 2008 über das Nationale Ermittlungssystem (NES-Verordnung)",
-      "title_fr": "Ordonnance du 15 octobre 2008 sur le Système national d’enquête (Ordonnance SNE)",
-      "title_it": "Ordinanza del 15 ottobre 2008 sul sistema nazionale di indagine (Ordinanza SNI)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2008/697"
-    },
-    {
-      "sr_number": "142.512",
-      "in_force_date": "2026-11-01",
-      "title_de": "Verordnung vom 18. Dezember 2013 über das zentrale Visa-Informationssystem und das nationale Visumsystem (Visa-Informationssystem-Verordnung, VISV)",
-      "title_fr": "Ordonnance du 18 décembre 2013 sur le système central d'information sur les visas et sur le système national d'information sur les visas (Ordonnance VIS, OVIS)",
-      "title_it": "Ordinanza del 18 dicembre 2013 sul sistema centrale d'informazione visti e sul sistema nazionale d'informazione visti (Ordinanza VIS, OVIS)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2014/2"
-    },
-    {
       "sr_number": "311.0",
       "in_force_date": "2026-11-01",
       "title_de": "Schweizerisches Strafgesetzbuch vom 21. Dezember 1937",
@@ -4718,6 +4694,14 @@
       "title_fr": "Loi fédérale du 21 décembre 1948 sur l'aviation (LA)",
       "title_it": "Legge federale del 21 dicembre 1948 sulla navigazione aerea (LNA)",
       "url": "https://www.fedlex.admin.ch/eli/cc/1950/471_491_479"
+    },
+    {
+      "sr_number": "142.513",
+      "in_force_date": "2026-11-01",
+      "title_de": "Verordnung vom 12. April 2006 über das Zentrale Migrationsinformationssystem (ZEMIS-Verordnung)",
+      "title_fr": "Ordonnance du 12 avril 2006 sur le système d'information central sur la migration (Ordonnance SYMIC)",
+      "title_it": "Ordinanza del 12 aprile 2006 concernente il sistema d'informazione centrale sulla migrazione (Ordinanza SIMIC)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2006/303"
     },
     {
       "sr_number": "173.32",
@@ -4744,6 +4728,14 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/2007/758"
     },
     {
+      "sr_number": "360.2",
+      "in_force_date": "2026-11-01",
+      "title_de": "Verordnung vom 15. Oktober 2008 über das Nationale Ermittlungssystem (NES-Verordnung)",
+      "title_fr": "Ordonnance du 15 octobre 2008 sur le Système national d’enquête (Ordonnance SNE)",
+      "title_it": "Ordinanza del 15 ottobre 2008 sul sistema nazionale di indagine (Ordinanza SNI)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2008/697"
+    },
+    {
       "sr_number": "361.2",
       "in_force_date": "2026-11-01",
       "title_de": "Verordnung vom 15. Oktober 2008 über das informatisierte Personennachweis, Aktennachweis- und Verwaltungssystem im Bundesamt für Polizei (IPAS-Verordnung)",
@@ -4758,11 +4750,20 @@
       "title_fr": "Ordonnance du 15 octobre 2008 sur l'index national de police",
       "title_it": "Ordinanza del 15 ottobre 2008 sul Registro nazionale di polizia",
       "url": "https://www.fedlex.admin.ch/eli/cc/2008/701"
+    },
+    {
+      "sr_number": "172.010.21",
+      "in_force_date": "2026-11-01",
+      "title_de": "Verordnung vom 5. Dezember 2008 über das Immobilienmanagement und die Logistik des Bundes (VILB)",
+      "title_fr": "Ordonnance du 5 décembre 2008 concernant la gestion de l'immobilier et la logistique de la Confédération (OILC)",
+      "title_it": "Ordinanza del 5 dicembre 2008 sulla gestione immobiliare e la logistica della Confederazione (OILC)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2008/857"
     }
   ],
   "delta": {
-    "total": 108,
+    "total": 205,
     "by_court": {
+      "bger": 55,
       "ge_gerichte": 88,
       "bvger": 11,
       "vd_gerichte": 21,
@@ -4789,7 +4790,10 @@
       "BS": 7,
       "UR": 2
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 3014,
+      "statute_edges": 2665
+    },
     "previous_generated_at": "2026-10-29T23:47:28.947013+00:00"
   }
 }
