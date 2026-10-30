@@ -25,6 +25,7 @@ from __future__ import annotations
 import io
 import logging
 import re
+import urllib.parse
 from datetime import datetime, timezone
 from html import escape
 from typing import Iterable
@@ -645,3 +646,24 @@ def render_atom_feed(court: str, court_label: str,
     body = "\n".join(out)
     return body.encode("utf-8"), "application/atom+xml; charset=utf-8", \
            f"{court}.xml"
+
+
+# ── Content-Disposition ────────────────────────────────────────────
+
+def content_disposition(fname: str) -> str:
+    """Build a Content-Disposition header value that survives latin-1.
+
+    The suggested filename is the decision id, and ids legitimately carry
+    characters outside latin-1: SG multi-docket ids use an en dash
+    (`ST.2021.212–215-SK3, ST.2021.217-SK3`), as do some VD ids. ASGI encodes
+    header values as latin-1, so interpolating such a name raised
+    UnicodeEncodeError and the export returned 500.
+
+    Emit the RFC 6266 pair — an ASCII-only `filename` for old clients plus
+    `filename*` carrying the real name. Sanitising to [A-Za-z0-9._-] also
+    disposes of `"` and `\\`, so the quoted-string form needs no further
+    escaping.
+    """
+    ascii_name = re.sub(r"[^A-Za-z0-9._-]", "_", fname) or "decision"
+    quoted = urllib.parse.quote(fname, safe="")
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quoted}"

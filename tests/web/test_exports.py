@@ -231,3 +231,56 @@ def test_safe_year_extracts_first_4_digits(exports):
     assert exports._safe_year("2014") == "2014"
     assert exports._safe_year("") == ""
     assert exports._safe_year("nope") == ""
+
+
+# ── Content-Disposition header ─────────────────────────────────────
+#
+# Production 500s on 2026-09-19: four export endpoints interpolated the
+# decision id straight into the header. ASGI encodes header values as
+# latin-1, so an id carrying an en dash — SG multi-docket ids such as
+# `ST.2021.212–215-SK3, ST.2021.217-SK3`, and some VD ids — raised
+# UnicodeEncodeError inside the server and the request returned 500.
+
+EN_DASH_ID = "sg_publikationen_ST.2021.212–215-SK3, ST.2021.217-SK3.pdf"
+
+
+def test_content_disposition_is_latin1_encodable(exports):
+    """The header value must survive the ASGI latin-1 encode."""
+    header = exports.content_disposition(EN_DASH_ID)
+    header.encode("latin-1")  # would raise UnicodeEncodeError before the fix
+
+
+@pytest.mark.parametrize("fname", [
+    EN_DASH_ID,
+    "vd_gerichte_PC 18_21 – 59_2025.pdf",
+    "bger_1C_123_2024.docx",
+    "zh_gerichte_SB 210001.ris",      # non-breaking space
+    "ti_gerichte_90.2003.32.bib",
+])
+def test_content_disposition_encodable_for_real_id_shapes(exports, fname):
+    exports.content_disposition(fname).encode("latin-1")
+
+
+def test_content_disposition_preserves_exact_name_in_filename_star(exports):
+    """`filename*` must round-trip back to the original, unmangled name."""
+    import urllib.parse
+    header = exports.content_disposition(EN_DASH_ID)
+    encoded = header.split("filename*=UTF-8''", 1)[1]
+    assert urllib.parse.unquote(encoded) == EN_DASH_ID
+
+
+def test_content_disposition_ascii_fallback_has_no_quotes_or_backslash(exports):
+    """The quoted-string form must not need escaping."""
+    header = exports.content_disposition('we"ird\\name.pdf')
+    ascii_part = header.split('filename="', 1)[1].split('"', 1)[0]
+    assert '"' not in ascii_part and "\\" not in ascii_part
+    assert ascii_part == "we_ird_name.pdf"
+
+
+def test_content_disposition_plain_id_is_left_alone(exports):
+    header = exports.content_disposition("bger_1C_123_2024.pdf")
+    assert 'filename="bger_1C_123_2024.pdf"' in header
+
+
+def test_content_disposition_empty_name_falls_back(exports):
+    assert 'filename="decision"' in exports.content_disposition("")

@@ -36880,7 +36880,7 @@ setInterval(load, 30000);
         )
         return _FastAPIResponse(
             content=body, media_type=mtype,
-            headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+            headers={"Content-Disposition": _exports.content_disposition(fname)},
         )
 
     @rest_api.get("/decisions/{decision_id}/export.pdf", tags=["Exports"],
@@ -36905,7 +36905,7 @@ setInterval(load, 30000);
         )
         return _FastAPIResponse(
             content=body, media_type=mtype,
-            headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+            headers={"Content-Disposition": _exports.content_disposition(fname)},
         )
 
     @rest_api.get("/decisions/{decision_id}/export.bib", tags=["Exports"],
@@ -36926,7 +36926,7 @@ setInterval(load, 30000);
         body, mtype, fname = _exports.render_bibtex(decision)
         return _FastAPIResponse(
             content=body, media_type=mtype,
-            headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+            headers={"Content-Disposition": _exports.content_disposition(fname)},
         )
 
     @rest_api.get("/decisions/{decision_id}/export.ris", tags=["Exports"],
@@ -36948,7 +36948,7 @@ setInterval(load, 30000);
         body, mtype, fname = _exports.render_ris(decision)
         return _FastAPIResponse(
             content=body, media_type=mtype,
-            headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+            headers={"Content-Disposition": _exports.content_disposition(fname)},
         )
 
     @rest_api.get("/atom/{court}.xml", tags=["Exports"],
