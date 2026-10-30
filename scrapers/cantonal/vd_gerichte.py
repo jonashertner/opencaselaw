@@ -61,6 +61,49 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SHARD_ENV = "VD_GERICHTE_SHARD"
 
 
+# What the listing's decisionHit.numero holds when it is only the ruling's
+# per-year number: "344", "111/I" (chamber section), "47bis".
+RULING_NO_RE = re.compile(r"^\d+(?:/[IVX]+|bis|ter)?$", re.IGNORECASE)
+
+# ── the case number in the ruling's own header ───────────────────────────
+# Since 2026-09-04 the listing carries no case number (affaireHit.numero and
+# .cause are null on every hit). The PDF prints it above the chamber line:
+#   TRIBUNAL CANTONAL / 344 / DA21.000826-LAS / CHAMBRE DES RECOURS PENALE
+# Only the header is read: the body cites the case numbers of other rulings.
+# New rulings no longer print it either ("PE25.***-***", the norm since
+# 2025-12); those fall back to chamber, year and number (_resolve_docket).
+_HEADER_LINES = 8
+_HEADER_END_RE = re.compile(
+    r"\b(?:arr[êe]t|s[ée]ance|audience|jugement|d[ée]cision|ordonnance|"
+    r"composition|pr[ée]sidence|statuant|greffi)|\bjuges?\s*:|_{4}",
+    re.IGNORECASE,
+)
+# "DA21.000826-LAS", "PE.06.006465-AME", "LY 13.008197", "TD19-007793-210984";
+# pdfplumber reads the capital I of "JI19.044023" as a lower-case l. Six digits
+# exactly: "PE13.0022035" is a misprint. Slash references in the same place
+# ("RPE/01/14/0001385/ds") are the prosecutor's, not the court's number.
+_DOSSIER_RE = re.compile(
+    r"(?<![\w./])([A-Z][A-Z0-9l]|\d[A-Z])[. ]?(\d{2})[.-]? ?(\d{6})(?![\d*])"
+)
+
+
+def dossier_from_header(text: str | None) -> str | None:
+    """The case number printed in a ruling's header, or None when the header
+    has none (2009-2011 rulings) or masks it."""
+    lines = [ln.strip() for ln in (text or "").split("\n") if ln.strip()]
+    header = []
+    for i, line in enumerate(lines[:_HEADER_LINES]):
+        if i and _HEADER_END_RE.search(line):
+            break
+        header.append(line)
+    for line in header:
+        m = _DOSSIER_RE.search(line)
+        if m:
+            prefix = m.group(1).replace("l", "I")
+            return f"{prefix}{m.group(2)}.{m.group(3)}"
+    return None
+
+
 def uuid_from_pdf_url(url: str | None) -> str | None:
     """Return the decision uuid encoded in a pdf_url, or None."""
     if not url:
@@ -373,16 +416,19 @@ class VDGerichteScraper(BaseScraper):
         affaire = hit.get("affaireHit") or {}
         affaire_no = str(affaire.get("numero") or "").strip()
         hit_no = str(hit.get("numero") or "").strip()
+        ruling_no = None
         if affaire_no:
             # Case number ("ZD17.028583"): the historical id scheme.
             docket, id_key = affaire_no, affaire_no
-        elif hit_no and not hit_no.isdigit():
+        elif hit_no and not RULING_NO_RE.match(hit_no):
             # A real docket ("AI 210/17 - 249/2017") is unique on its own.
             docket, id_key = hit_no, hit_no
         else:
             # Bare per-year sequence number, or nothing: collides across
-            # years, so the id is keyed on the portal's stable uuid.
+            # years, so the id is keyed on the portal's stable uuid. The
+            # docket is settled in fetch_decision, with the PDF in hand.
             docket, id_key = (hit_no or uuid), uuid
+            ruling_no = docket
 
         # Parse decision date
         date_str = hit.get("dateDecision", "")
@@ -432,6 +478,7 @@ class VDGerichteScraper(BaseScraper):
         return {
             "decision_id": decision_id,
             "docket_number": docket,
+            "ruling_no": ruling_no,
             "uuid": uuid,
             "decision_date": decision_date,
             "publication_date": publication_date,
@@ -446,6 +493,28 @@ class VDGerichteScraper(BaseScraper):
             "concepts": concepts,
             "url": f"{API_URL}/decision/download/{uuid}",
         }
+
+    @staticmethod
+    def _resolve_docket(stub: dict, full_text: str, decision_date) -> tuple[str, str | None]:
+        """(docket_number, docket_number_2) for a decision.
+
+        A docket from the listing stands. Otherwise the case number in the
+        PDF header, else "CREP 2021/344": rulings are cited by chamber, date
+        and number ("CREP 19 avril 2021/344"), and the bare number repeats
+        every year. docket_number_2 keeps the listing's value either way: one
+        case number carries several rulings, up to four on one day, so the
+        build keys vd_gerichte on it (build_fts5.DECISION_NUMBER_COURTS).
+        """
+        ruling_no = stub.get("ruling_no")
+        if not ruling_no:
+            return stub["docket_number"], None
+        dossier = dossier_from_header(full_text)
+        if dossier:
+            return dossier, ruling_no
+        chamber = (stub.get("autorite") or "").strip()
+        if chamber and decision_date and ruling_no != stub.get("uuid"):
+            return f"{chamber} {str(decision_date)[:4]}/{ruling_no}", ruling_no
+        return ruling_no, ruling_no
 
     def fetch_decision(self, stub: dict) -> Decision | None:
         """Fetch PDF and extract text for a single decision."""
@@ -484,13 +553,15 @@ class VDGerichteScraper(BaseScraper):
             logger.warning(f"VD: no date for {stub['docket_number']}")
 
         language = detect_language(full_text) if len(full_text) > 100 else "fr"
+        docket_number, docket_number_2 = self._resolve_docket(stub, full_text, decision_date)
 
         return Decision(
             decision_id=stub["decision_id"],
             court="vd_gerichte",
             canton="VD",
             chamber=stub.get("autorite"),
-            docket_number=stub["docket_number"],
+            docket_number=docket_number,
+            docket_number_2=docket_number_2,
             decision_date=decision_date,
             publication_date=stub.get("publication_date"),
             language=language,

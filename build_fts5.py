@@ -1899,6 +1899,9 @@ DECISION_NUMBER_COURTS = frozenset({
     "bs_appellationsgericht", "bs_sozialversicherungsgericht", "bs_zivilgericht",
     # the entscheidsuche leftovers carry the same bracketed number
     "bs_gerichte",
+    # Vaud: the id is the portal's uuid, but one case number carries several
+    # rulings, up to four on a day; the listing's number keeps them apart.
+    "vd_gerichte",
 })
 
 
