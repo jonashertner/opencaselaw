@@ -69,11 +69,11 @@
 OCL.init({
   active:'posters',
   i18n:{
-    de:{kicker:'Jeden Freitag',h1:'Poster',lead:'Jeden Freitag wird die Woche der Schweizer Rechtsprechung fünfmal gezeichnet, ein Entwurf pro Sprache. Dieselbe Woche, dieselben Zahlen.',week:'Woche',added:'neue Entscheide',loading:'Das Archiv wird geladen.',failed:'Das Archiv konnte nicht geladen werden.',open:'Poster in voller Grösse öffnen'},
-    fr:{kicker:'Chaque vendredi',h1:'Affiches',lead:'Chaque vendredi, la semaine de la jurisprudence suisse est dessinée de cinq manières, un dessin par langue. La même semaine, les mêmes chiffres.',week:'Semaine',added:'nouvelles décisions',loading:'Chargement des archives.',failed:'Les archives n’ont pas pu être chargées.',open:'Ouvrir l’affiche en grand'},
-    it:{kicker:'Ogni venerdì',h1:'Manifesti',lead:'Ogni venerdì la settimana della giurisprudenza svizzera viene disegnata in cinque modi, un disegno per lingua. La stessa settimana, gli stessi numeri.',week:'Settimana',added:'nuove decisioni',loading:'Caricamento dell’archivio.',failed:'Impossibile caricare l’archivio.',open:'Apri il manifesto a grandezza intera'},
-    rm:{kicker:'Mintga venderdi',h1:'Placats',lead:'Mintga venderdi vegn l’emna da la giurisprudenza svizra dissegnada en tschintg modas, in dissegn per lingua. La medema emna, las medemas cifras.',week:'Emna',added:'novas decisiuns',loading:'L’archiv vegn chargià.',failed:'L’archiv n’ha betg pudì vegnir chargià.',open:'Avrir il placat en grondezza cumplaina'},
-    en:{kicker:'Every Friday',h1:'Posters',lead:'Every Friday the week in Swiss case law is drawn five ways, one design per language. Same week, same numbers.',week:'Week',added:'new decisions',loading:'Loading the archive.',failed:'The archive could not be loaded.',open:'Open the poster at full size'}
+    de:{kicker:'Jeden Freitag',h1:'Poster',map:'Animierte Karte',lead:'Jeden Freitag wird die Woche der Schweizer Rechtsprechung fünfmal gezeichnet, ein Entwurf pro Sprache. Dieselbe Woche, dieselben Zahlen.',week:'Woche',added:'neue Entscheide',loading:'Das Archiv wird geladen.',failed:'Das Archiv konnte nicht geladen werden.',open:'Poster in voller Grösse öffnen'},
+    fr:{kicker:'Chaque vendredi',h1:'Affiches',map:'Carte animée',lead:'Chaque vendredi, la semaine de la jurisprudence suisse est dessinée de cinq manières, un dessin par langue. La même semaine, les mêmes chiffres.',week:'Semaine',added:'nouvelles décisions',loading:'Chargement des archives.',failed:'Les archives n’ont pas pu être chargées.',open:'Ouvrir l’affiche en grand'},
+    it:{kicker:'Ogni venerdì',h1:'Manifesti',map:'Mappa animata',lead:'Ogni venerdì la settimana della giurisprudenza svizzera viene disegnata in cinque modi, un disegno per lingua. La stessa settimana, gli stessi numeri.',week:'Settimana',added:'nuove decisioni',loading:'Caricamento dell’archivio.',failed:'Impossibile caricare l’archivio.',open:'Apri il manifesto a grandezza intera'},
+    rm:{kicker:'Mintga venderdi',h1:'Placats',map:'Charta animada',lead:'Mintga venderdi vegn l’emna da la giurisprudenza svizra dissegnada en tschintg modas, in dissegn per lingua. La medema emna, las medemas cifras.',week:'Emna',added:'novas decisiuns',loading:'L’archiv vegn chargià.',failed:'L’archiv n’ha betg pudì vegnir chargià.',open:'Avrir il placat en grondezza cumplaina'},
+    en:{kicker:'Every Friday',h1:'Posters',map:'Animated map',lead:'Every Friday the week in Swiss case law is drawn five ways, one design per language. Same week, same numbers.',week:'Week',added:'new decisions',loading:'Loading the archive.',failed:'The archive could not be loaded.',open:'Open the poster at full size'}
   },
   onReady:function(O){
     var NAMES={de:'Deutsch',fr:'Français',it:'Italiano',rm:'Rumantsch',en:'English'};
@@ -85,7 +85,7 @@ OCL.init({
         // the reader's own language leads; the rest keep the order of the national languages
         var ps=w.posters.slice().sort(function(a,b){return (b.lang===O.lang)-(a.lang===O.lang);});
         return '<section class="wk'+(i===0?' first':'')+'"><div class="wk-h"><h2>'+O.esc(O.t('week'))+' '+(+parts[1])+', '+O.esc(parts[0])+'</h2>'+
-          '<p>'+day(w.from)+'–'+day(w.to)+' &nbsp; '+O.fmt(w.added)+' '+O.esc(O.t('added'))+'</p></div><div class="row">'+
+          '<p>'+day(w.from)+'–'+day(w.to)+' &nbsp; '+O.fmt(w.added)+' '+O.esc(O.t('added'))+(w.map?' &nbsp; <a href="/posters/'+O.esc(w.map)+'">'+O.esc(O.t('map'))+'</a>':'')+'</p></div><div class="row">'+
           ps.map(function(p){
             var first=(p.caption||'').split('\n')[0];
             return '<figure class="po"><a href="/posters/'+O.esc(p.file)+'" lang="'+O.esc(p.lang)+'" title="'+O.esc(O.t('open'))+'">'+

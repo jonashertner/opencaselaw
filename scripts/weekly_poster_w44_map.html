@@ -1,0 +1,178 @@
+<title>Gravitad</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* One look on purpose, the Rumantsch poster's: paper, ink, one red.
+   Layout: the sheet runs edge to edge; the figure stands top left, the courts top right, and the
+   cantons are set as a plain index of names and figures along the foot. */
+:root{--paper:#f1ede3;--ink:#101010;--red:#e0301e;--mute:#8d887c;--g:max(28px,env(safe-area-inset-left,0px));--gr:max(28px,env(safe-area-inset-right,0px));
+  --display:'Space Grotesk','Arial Narrow',Arial,sans-serif;--body:'Instrument Sans','Helvetica Neue',Arial,sans-serif;color-scheme:light}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.35 var(--body)}
+.poster{display:grid;grid-template-rows:minmax(0,1fr) auto auto;height:100%;min-height:640px;overflow:hidden}
+.stage{position:relative;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation;cursor:crosshair}
+.lead{position:absolute;z-index:2;left:var(--g);top:20px;pointer-events:none;display:grid;justify-items:start;isolation:isolate}
+.lead{text-shadow:0 0 5px var(--paper),0 0 9px var(--paper)}
+#total{position:relative;isolation:isolate;text-shadow:none}
+#total::before{content:"";position:absolute;inset:-4px -24px -2px -40px;background:var(--paper);filter:blur(13px);z-index:-1}
+.tabs{pointer-events:auto;display:flex;gap:20px;margin-bottom:10px}
+.tabs button{all:unset;cursor:pointer;font:600 15px/1 var(--body);padding:3px 0 6px;border-bottom:2px solid transparent;color:var(--mute);transition:color .2s}
+.tabs button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs button:focus-visible,.row:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+#total{font-family:var(--display);font-weight:700;font-size:clamp(68px,min(10.4vw,15vh),146px);line-height:.9;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+#place{font:500 clamp(20px,min(2.3vw,3.2vh),28px)/1.15 var(--display);margin-top:12px;white-space:nowrap}
+#sub{font-size:15px;white-space:nowrap;margin-top:2px}
+.side{position:absolute;z-index:2;right:var(--gr);top:24px;width:clamp(210px,21vw,290px);pointer-events:none;background:var(--paper);box-shadow:0 0 18px 16px var(--paper)}
+#list{list-style:none;margin:0;padding:0;font-variant-numeric:tabular-nums;animation:in .22s ease-out}
+#list li{display:flex;justify-content:space-between;gap:14px;height:22px;white-space:nowrap}
+#list li span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#list b{font-weight:600}
+#list li.t{display:block;height:auto;white-space:normal;margin-bottom:6px;color:#55514a}
+@keyframes in{from{opacity:0}to{opacity:1}}
+#tag{position:absolute;z-index:1;left:0;top:0;pointer-events:none;background:var(--ink);color:var(--paper);font:600 13px/1 var(--body);padding:5px 7px;white-space:nowrap;opacity:0;will-change:transform,opacity;transition:opacity .16s,transform .28s cubic-bezier(.2,.8,.2,1)}
+#index{position:relative;margin:6px var(--gr) 0 var(--g);transition:opacity .16s}#index.swap{opacity:0}
+.row{all:unset;position:absolute;left:0;top:0;width:calc(100%/var(--cols));height:23px;box-sizing:border-box;padding-right:26px;display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer;font-size:14.5px;font-variant-numeric:tabular-nums;transform:translate(calc(var(--c)*100%),calc(var(--r)*23px));transition:opacity .18s;white-space:nowrap}
+.row span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.row b{font-weight:600}
+.row.zero{color:var(--mute)}
+#index.sel .row{opacity:.32}#index.sel .row.on{opacity:1}
+.row.on{color:var(--red)}
+.foot{display:flex;justify-content:space-between;gap:6px 24px;flex-wrap:wrap;padding:10px var(--gr) 12px var(--g);font-size:12.5px;color:var(--mute)}
+.foot a{color:var(--ink)}.foot .note{display:none}
+@media (prefers-reduced-motion:reduce){.row,#tag,#index{transition:none}#list{animation:none}}
+@media (max-width:980px){
+  html,body{height:auto}.poster{display:block;height:auto;overflow:visible}.stage{display:grid}
+  .lead,.side{position:static;box-shadow:none;background:none}#total::before{display:none}.lead{padding:16px var(--gr) 0 var(--g)}.side{width:auto;padding:0 var(--gr) 0 var(--g);height:66px;overflow:hidden;font-size:14px}
+  #total{font-size:clamp(72px,18vw,120px)}#sub{white-space:normal}
+  canvas{position:static;height:auto;aspect-ratio:var(--ratio)}
+  #list{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,22px);grid-auto-columns:minmax(0,1fr);gap:0 18px}#list li.t:not(:first-child),#list li:nth-child(n+7){display:none}
+  .row{padding-right:16px}.foot .note{display:block}
+}
+</style>
+<div class="poster">
+  <div class="stage">
+    <div class="lead" role="status">
+      <div class="tabs" role="group" aria-label="Period"><button id="m-week" aria-pressed="true">This week</button><button id="m-year" aria-pressed="false">This year</button></div>
+      <div id="total"></div><div id="place"></div><div id="sub"></div>
+    </div>
+    <canvas id="map" role="img" aria-label="Switzerland as a field of dots, one per decision, on graph paper bent by the weight of each court."></canvas>
+    <div id="tag"></div>
+    <aside class="side"><ul id="list"></ul></aside>
+  </div>
+  <div id="index" role="group" aria-label="Cantons"></div>
+  <div class="foot"><span class="note" id="note"></span><a href="https://opencaselaw.ch">opencaselaw.ch</a><span>Lens: Sphere, by Textures</span></div>
+</div>
+<script id="vd" type="x-shader">
+attribute vec2 aA,aB;attribute vec4 aI;
+uniform vec2 uView,uOff,uBall,uSize;uniform float uMix,uRev,uPress,uR,uSeat,uAny;uniform float uTone[27];
+varying float vTone;varying float vS;
+const float HILL=.47;
+void main(){float wave=aI.w/255.;float m=clamp(uMix*1.45-wave*.45,0.,1.);m=m*m*(3.-2.*m);
+ vec2 p=mix(aA,aB,m);vec2 d=p-uBall;float l=length(d);float swell=1.;
+ if(l<uR&&l>.001){float r=l/uR,q=1.-r*r,lift=HILL*q*q;p+=d*lift*uPress;swell=1.+min(.3,lift)*uPress;}
+ float t=uTone[int(aI.x+.5)];t=max(t,uSeat*aI.z/255.);t=mix(1.,t,uAny);
+ float size=mix(uSize.x*aI.y/255.,uSize.y,m)*swell*mix(.72,1.,t);
+ float rise=clamp(uRev*1.5-aA.x/8640.*.5,0.,1.);size*=rise*rise*(3.-2.*rise);
+ vTone=t;vS=max(size,1.);gl_PointSize=vS;gl_Position=vec4(p*uView+uOff,0.,1.);if(size<.05)gl_Position=vec4(2.,2.,0.,1.);}
+</script>
+<script id="fd" type="x-shader">
+precision mediump float;varying float vTone;varying float vS;uniform vec3 uRed,uDim;
+void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.5-1.4/vS,r);if(a<=0.)discard;vec3 c=mix(uDim,uRed,vTone);gl_FragColor=vec4(c*a,a);}
+</script>
+<script id="vl" type="x-shader">
+attribute vec2 aA,aB;attribute float aF;uniform vec2 uView,uOff,uBall,uNudge;uniform float uMix,uPress,uR;varying float vF;
+void main(){vF=aF;float m=uMix*uMix*(3.-2.*uMix);vec2 p=mix(aA,aB,m);vec2 d=p-uBall;float l=length(d);
+ if(l<uR&&l>.001){float r=l/uR,q=1.-r*r;p+=d*.47*q*q*uPress;}gl_Position=vec4(p*uView+uOff+uNudge,0.,1.);}
+</script>
+<script id="fl" type="x-shader">
+precision mediump float;uniform vec4 uC;varying float vF;void main(){float a=uC.a*vF;gl_FragColor=vec4(uC.rgb*a,a);}
+</script>
+<script>
+document.documentElement.lang="en";
+const D=/*DATA*/null;
+const L={week:"Week 44, 23–29 October 2026",year:"1 January to 29 October 2026",what:"new decisions",whatY:"decisions dated 2026",none:"no new decisions this week",noneY:"no decisions dated 2026",hint:"Point at a canton.",dec:"new decisions this week",decY:"decisions dated 2026",thisY:"this year",thisW:"this week",
+ legend:["Each dot is a decision. The paper bends towards the courts that carried the most.","Recent months are still being published. Cantons publish unevenly, so a low figure can mean few rulings online."]};
+const $=id=>document.getElementById(id),same=(a,b)=>a&&b&&a===b;
+const fmt=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+$)/g,",");
+const bytes=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+const i16=s=>new Int16Array(bytes(s).buffer);
+const view={week:D.week,year:D.year},pickA=bytes(D.pa),pickB=bytes(D.pb);
+const cv=$("map"),gl=cv.getContext("webgl",{antialias:true,alpha:false,powerPreference:"high-performance"});
+const BALL=112,OMEGA=30,TONE=.09;
+let mode="week",hot=null,pin=null,leave=0,frame=0,last=0;
+let mix=0,mixFrom=0,mixTo=0,mixT=1,rev=0;
+let scale=1,ox=0,oy=0,cw=1,ch=1,dpr=1;
+let bx=0,by=0,vx=0,vy=0,tx=0,ty=0,press=0,vp=0,tp=0,seatT=0,anyT=0,shown=0,rollFrom=0,rollTo=0,rollT=1;
+const tone=new Float32Array(27),toneTo=new Float32Array(27);
+const reduced=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+function program(v,f){const p=gl.createProgram();for(const[t,id]of[[gl.VERTEX_SHADER,v],[gl.FRAGMENT_SHADER,f]]){const s=gl.createShader(t);gl.shaderSource(s,$(id).textContent);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));gl.attachShader(p,s)}gl.linkProgram(p);return p}
+const uni=(p,n)=>gl.getUniformLocation(p,n);
+function buffer(d){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,d,gl.STATIC_DRAW);return b}
+let P,Q,buf={},U={},Vl={},segs=0;
+function setup(){P=program("vd","fd");Q=program("vl","fl");
+  buf.a=buffer(i16(D.a));buf.b=buffer(i16(D.b));buf.i=buffer(bytes(D.info));
+  /* the paper's lines as pairs of points: one draw call for the whole sheet */
+  const sa=i16(D.sa),sb=i16(D.sb),fa=bytes(D.fade),n=D.line,m=D.lines,seg=m*(n-1),A=new Int16Array(seg*4),B=new Int16Array(seg*4),F=new Uint8Array(seg*2);let k=0,f=0;
+  for(let l=0;l<m;l++)for(let i=0;i<n-1;i++){const p=(l*n+i)*2;for(const s of[p,p+1,p+2,p+3]){A[k]=sa[s];B[k]=sb[s];k++}F[f++]=fa[l*n+i];F[f++]=fa[l*n+i+1]}
+  buf.sa=buffer(A);buf.sb=buffer(B);buf.sf=buffer(F);buf.of=buffer(new Uint8Array(i16(D.oa).length/2).fill(255));segs=seg*2;
+  buf.oa=buffer(i16(D.oa));buf.ob=buffer(i16(D.ob));
+  for(const u of["uView","uOff","uBall","uSize","uMix","uRev","uPress","uR","uSeat","uAny","uTone","uRed","uDim"])U[u]=uni(P,u);
+  for(const u of["uView","uOff","uBall","uNudge","uMix","uPress","uR","uC"])Vl[u]=uni(Q,u);
+  gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(.945,.929,.89,1)}
+function bind(p,name,b,size,type,norm){const a=gl.getAttribLocation(p,name);if(a<0)return;gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,size,type,!!norm,0,0)}
+function draw(){gl.viewport(0,0,cv.width,cv.height);gl.clear(gl.COLOR_BUFFER_BIT);
+  const sx=2*scale/cw/8,sy=-2*scale/ch/8,offx=2*ox/cw-1,offy=1-2*oy/ch,wm=mix;
+  gl.useProgram(Q);gl.uniform2f(Vl.uView,sx,sy);gl.uniform2f(Vl.uOff,offx,offy);gl.uniform2f(Vl.uBall,bx*8,by*8);gl.uniform1f(Vl.uMix,wm);gl.uniform1f(Vl.uPress,press);gl.uniform1f(Vl.uR,BALL*8);
+  bind(Q,"aA",buf.sa,2,gl.SHORT);bind(Q,"aB",buf.sb,2,gl.SHORT);bind(Q,"aF",buf.sf,1,gl.UNSIGNED_BYTE,true);gl.uniform2f(Vl.uNudge,0,0);gl.uniform4f(Vl.uC,.063,.063,.063,.3);gl.drawArrays(gl.LINES,0,segs);
+  bind(Q,"aA",buf.oa,2,gl.SHORT);bind(Q,"aB",buf.ob,2,gl.SHORT);bind(Q,"aF",buf.of,1,gl.UNSIGNED_BYTE,true);gl.uniform4f(Vl.uC,.878,.188,.118,1);
+  const w=1.1/cw*dpr/dpr,h=1.1/ch;for(const[a,b]of[[0,0],[w,0],[-w,0],[0,h],[0,-h]]){gl.uniform2f(Vl.uNudge,a,b);gl.drawArrays(gl.LINE_STRIP,0,gl.__n)}
+  gl.useProgram(P);gl.uniform2f(U.uView,sx,sy);gl.uniform2f(U.uOff,offx,offy);gl.uniform2f(U.uBall,bx*8,by*8);gl.uniform1f(U.uMix,mix);gl.uniform1f(U.uRev,rev);gl.uniform1f(U.uPress,press);gl.uniform1f(U.uR,BALL*8);gl.uniform1f(U.uSeat,seatT);gl.uniform1f(U.uAny,anyT);
+  gl.uniform2f(U.uSize,Math.max(8.2*scale,3.2)*dpr,Math.max(2.3*scale,1.15)*dpr);gl.uniform1fv(U.uTone,tone);gl.uniform3f(U.uRed,.878,.188,.118);gl.uniform3f(U.uDim,.83,.79,.72);
+  bind(P,"aA",buf.a,2,gl.SHORT);bind(P,"aB",buf.b,2,gl.SHORT);bind(P,"aI",buf.i,4,gl.UNSIGNED_BYTE);gl.drawArrays(gl.POINTS,0,D.n)}
+function size(){const r=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);cw=r.width;ch=r.height;cv.width=cw*dpr;cv.height=ch*dpr;scale=Math.min(cw/D.w,ch/D.h);ox=(cw-D.w*scale)/2;oy=(ch-D.h*scale)/2+(cw>980?Math.min(26,ch*.03):0);place();wake()}
+/* every moving value is eased here, in one place, with the texture's critically damped spring */
+function step(now){const dt=Math.min(last?(now-last)/1e3:1/60,.05);last=now;let moving=false;const r=reduced();
+  if(rev<1){rev=r?1:Math.min(1,rev+dt/1.15);moving=true}
+  if(mixT<1){mixT=r?1:Math.min(1,mixT+dt/1.05);mix=mixFrom+(mixTo-mixFrom)*(mixT<.5?4*mixT**3:1-(-2*mixT+2)**3/2);moving=true}
+  if(r){bx=tx;by=ty;press=tp;vx=vy=vp=0}else for(let s=0;s<3;s++){const h=dt/3,w=OMEGA;vx+=(w*w*(tx-bx)-2*w*vx)*h;bx+=vx*h;vy+=(w*w*(ty-by)-2*w*vy)*h;by+=vy*h;vp+=(w*w*(tp-press)-2*w*vp)*h;press+=vp*h}
+  if(Math.abs(bx-tx)+Math.abs(by-ty)>.03||Math.abs(vx)+Math.abs(vy)>.3||Math.abs(press-tp)>.002||Math.abs(vp)>.02)moving=true;else{bx=tx;by=ty;press=tp;vx=vy=vp=0}
+  const k=r?1:1-Math.exp(-dt/TONE),sel=hot||pin;let tm=false;
+  for(let i=0;i<27;i++){const n=tone[i]+(toneTo[i]-tone[i])*k;if(Math.abs(n-toneTo[i])<.004)tone[i]=toneTo[i];else{tone[i]=n;tm=true}}
+  const sT=sel==="CH"?1:0,aT=sel?1:0;seatT+=(sT-seatT)*k;anyT+=(aT-anyT)*k;if(Math.abs(seatT-sT)<.004)seatT=sT;else tm=true;if(Math.abs(anyT-aT)<.004)anyT=aT;else tm=true;
+  if(tm)moving=true;
+  if(rollT<1){rollT=r?1:Math.min(1,rollT+dt/.34);const e=1-(1-rollT)**3,v=rollFrom+(rollTo-rollFrom)*e;if(Math.round(v)!==shown){shown=Math.round(v);$("total").textContent=fmt(shown)}moving=true}
+  draw();if(moving)frame=requestAnimationFrame(step);else{frame=0;last=0}}
+const wake=()=>{if(!frame)frame=requestAnimationFrame(step)};
+function roll(n){if(rollT>=1&&shown===n)return;rollFrom=shown;rollTo=n;rollT=reduced()?1:0;if(rollT===1){shown=n;$("total").textContent=fmt(n)}wake()}
+function where(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left-ox)/scale,(e.clientY-r.top-oy)/scale]}
+function pick(x,y){const c=Math.floor(x/D.pick),r=Math.floor(y/D.pick);if(c<0||r<0||c>=D.cols||r>=D.rows)return null;const i=(mode==="week"?pickA:pickB)[r*D.cols+c];return i?D.codes[i-1]:null}
+function hover(code){clearTimeout(leave);if(hot!==code){hot=code;show()}}
+function unhover(){clearTimeout(leave);leave=setTimeout(()=>{hot=null;show()},110)}
+cv.addEventListener("pointermove",e=>{if(e.pointerType==="touch")return;const[x,y]=where(e);tx=x;ty=y;if(!tp){bx=x;by=y}tp=1;const c=pick(x,y);if(c)hover(c);else unhover();wake()});
+cv.addEventListener("pointerleave",()=>{tp=0;unhover();wake()});
+cv.addEventListener("click",e=>{const[x,y]=where(e),c=pick(x,y);if(!c){pin=null}else{pin=pin===c?null:c}show();wake()});
+function place(){const s=hot||pin,g=$("tag");if(!s||s==="CH"||!view[mode].at[s]){g.style.opacity=0;return}const[x,y]=view[mode].at[s];g.textContent=D.names[s]+"  "+fmt(view[mode].counts[s]||0);g.style.transform="translate("+Math.round(cv.offsetLeft+ox+x*scale+10)+"px,"+Math.round(cv.offsetTop+oy+y*scale-34)+"px)";g.style.opacity=1}
+function read(num,name,line,items){roll(num);$("place").textContent=name;$("sub").textContent=line;const l=$("list"),u=l.cloneNode(false);
+  u.append(...items.map(([a,n])=>{const li=document.createElement("li"),t=document.createElement("span");t.textContent=a;li.append(t);if(n==null)li.className="t";else{const b=document.createElement("b");b.textContent=fmt(n);li.append(b)}return li}));l.replaceWith(u)}
+function show(){const v=view[mode],y=mode==="year",o=y?view.week:view.year,s=hot||pin;
+  $("index").classList.toggle("sel",!!s);for(const b of $("index").children){b.classList.toggle("on",b.dataset.code===s);b.setAttribute("aria-pressed",String(pin===b.dataset.code))}
+  D.codes.forEach((c,i)=>toneTo[i]=c===s?1:0);place();wake();
+  if(!s)return read(v.total,y?L.whatY:L.what,y?L.year:L.week,[[L.legend[0],null],...(y?[[L.legend[1],null]]:[]),[L.hint,null]]);
+  const other=n=>(y?L.thisW:L.thisY)+": "+fmt(n),what=y?L.decY:L.dec,n=v.counts[s]||0,m=o.counts[s]||0;
+  if(s==="CH")return read(n,D.names.CH,what+" · "+other(m),v.seats);
+  read(n,D.names[s],(n?what:(y?L.noneY:L.none))+" · "+other(m),(v.courts[s]||[]).slice(0,10))}
+const keys=Object.keys(D.names);
+function layout(){const wide=$("index").clientWidth,cols=wide<560?2:wide<920?3:wide<1120?5:6,rows=Math.ceil(keys.length/cols),v=view[mode],idx=$("index");idx.style.setProperty("--cols",cols);idx.style.height=rows*23+"px";
+  const sorted=[...keys].sort((a,b)=>(v.counts[b]||0)-(v.counts[a]||0)||D.names[a].localeCompare(D.names[b]));
+  for(const b of idx.children){const k=b.dataset.code,n=v.counts[k]||0,i=sorted.indexOf(k);b.style.setProperty("--c",Math.floor(i/rows));b.style.setProperty("--r",i%rows);b.lastChild.textContent=fmt(n);b.classList.toggle("zero",!n)}}
+keys.forEach(k=>{const b=document.createElement("button"),s=document.createElement("span"),n=document.createElement("b");b.className="row";b.dataset.code=k;s.textContent=D.names[k];b.append(s,n);
+  b.addEventListener("click",()=>{pin=pin===k?null:k;show()});b.addEventListener("pointerenter",e=>{if(e.pointerType!=="touch")hover(k)});b.addEventListener("focus",()=>hover(k));b.addEventListener("pointerleave",unhover);b.addEventListener("blur",unhover);$("index").append(b)});
+function setMode(m){if(m===mode)return;mode=m;$("m-week").setAttribute("aria-pressed",String(m==="week"));$("m-year").setAttribute("aria-pressed",String(m==="year"));mixFrom=mix;mixTo=m==="year"?1:0;mixT=0;const x=$("index");x.classList.add("swap");setTimeout(()=>{layout();x.classList.remove("swap")},170);show();wake()}
+$("m-week").onclick=()=>setMode("week");$("m-year").onclick=()=>setMode("year");$("note").textContent=L.legend[0];
+document.documentElement.style.setProperty("--ratio",D.w/D.h);
+if(gl){setup();gl.__n=i16(D.oa).length/2;layout();shown=view.week.total;$("total").textContent=fmt(shown);show();size();new ResizeObserver(()=>{size();layout()}).observe(cv);if(reduced())rev=1;wake()}
+else{cv.hidden=true;layout();show();$("total").textContent=fmt(view.week.total)}
+window.__stats={get frame(){return frame}};
+</script>

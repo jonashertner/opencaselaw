@@ -2,6 +2,45 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W44",
+   "from": "2026-10-23",
+   "to": "2026-10-29",
+   "added": 1139,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "obligation2",
+     "file": "2026-w44/de-obligation2.webp",
+     "caption": "Woche 44 in der Schweizer Rechtsprechung: 1’139 neue Entscheide. Animierte Karte: opencaselaw.ch/posters/2026-w44/map/"
+    },
+    {
+     "lang": "fr",
+     "design": "leman2",
+     "file": "2026-w44/fr-leman2.webp",
+     "caption": "Semaine 44 de la jurisprudence suisse : 1’139 nouvelles décisions. Carte animée : opencaselaw.ch/posters/2026-w44/map/"
+    },
+    {
+     "lang": "it",
+     "design": "divisionismo3",
+     "file": "2026-w44/it-divisionismo3.webp",
+     "caption": "Settimana 44 della giurisprudenza svizzera: 1’139 nuove decisioni. Mappa animata: opencaselaw.ch/posters/2026-w44/map/"
+    },
+    {
+     "lang": "rm",
+     "design": "gravitad2",
+     "file": "2026-w44/rm-gravitad2.webp",
+     "caption": "Emna 44: 1’139 novas decisiuns. opencaselaw.ch/posters/2026-w44/map/"
+    },
+    {
+     "lang": "en",
+     "design": "earth2",
+     "file": "2026-w44/en-earth2.webp",
+     "caption": "Week 44 in Swiss case law: 1,139 new decisions. Animated map: opencaselaw.ch/posters/2026-w44/map/"
+    }
+   ],
+   "map": "2026-w44/map/"
+  },
+  {
    "week": "2026-W43",
    "from": "2026-10-16",
    "to": "2026-10-22",
