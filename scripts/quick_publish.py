@@ -7,7 +7,7 @@ are searchable within minutes instead of waiting for the nightly full rebuild.
 
 Architecture:
   1. Copy decisions.db to decisions.db.quick (if not exists or stale)
-  2. Read JSONL files, find entries not yet in the DB
+  2. Read the JSONL bytes appended since the last full build, keep ids not yet in the DB
   3. INSERT OR IGNORE new rows (FTS5 triggers handle index sync)
   4. Atomic os.replace() swap
   5. MCP workers pick up new file on next connection
@@ -49,6 +49,9 @@ OUTPUT_DIR = REPO_DIR / "output"
 DB_PATH = OUTPUT_DIR / "decisions.db"
 JSONL_DIR = OUTPUT_DIR / "decisions"
 TMP_PATH = Path(str(DB_PATH) + ".quick")
+# Written by build_fts5 at a full rebuild's swap: the byte size of every shard
+# that build read. quick_publish ingests only the bytes after it.
+FULL_BUILD_CHECKPOINT_PATH = OUTPUT_DIR / ".fts5_checkpoint.json"
 PUBLISH_LOCK_PATH = "/tmp/opencaselaw-publish.lock"
 # Dedicated mutex so two quick_publish runs (bger-poller hourly + ecthr daily)
 # never share the single decisions.db.quick working copy — the concurrency bug
@@ -147,28 +150,133 @@ def _get_existing_ids(conn: sqlite3.Connection) -> set[str]:
     return {row[0] for row in conn.execute("SELECT decision_id FROM decisions")}
 
 
-def _read_new_jsonl(courts: list[str] | None, existing_ids: set[str]) -> list[dict]:
-    """Read JSONL files and return rows not yet in the DB."""
-    new_rows = []
-    jsonl_files = sorted(JSONL_DIR.glob("*.jsonl"))
+class MissingFullBuildCheckpoint(RuntimeError):
+    """No usable .fts5_checkpoint.json, so the shard offsets are unknown."""
 
-    for jf in jsonl_files:
-        court = jf.stem
-        if courts and court not in courts:
+
+def _load_full_build_checkpoint() -> dict[str, dict] | None:
+    """Per-shard {"size", "tail_sha256"} as the last full build read them.
+
+    build_fts5 writes .fts5_checkpoint.json when it swaps a full rebuild in.
+    The bytes of a shard before its recorded size are what that build
+    imported, deduplicated and cleaned; only the bytes after it are new.
+    Returns None when the file is missing (a full build in progress deletes
+    it first, a failed one leaves it missing) or unreadable.
+    """
+    try:
+        meta = json.loads(FULL_BUILD_CHECKPOINT_PATH.read_text())
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError) as e:
+        logger.warning("Unreadable %s: %s", FULL_BUILD_CHECKPOINT_PATH, e)
+        return None
+    files = meta.get("files") if isinstance(meta, dict) else None
+    if not isinstance(files, dict) or not meta.get("last_full_build"):
+        logger.warning("%s has no full-build shard sizes", FULL_BUILD_CHECKPOINT_PATH)
+        return None
+    return {name: entry for name, entry in files.items() if isinstance(entry, dict)}
+
+
+def _line_start(fb, offset: int) -> int:
+    """Start of the line that contains byte `offset - 1`, or `offset` itself
+    when the byte before it ends a line.
+
+    The full build stats a shard before reading it, so a scraper appending at
+    that moment leaves the recorded size inside a line. The build may have cut
+    that line short at EOF, so the whole line is read again here; if the build
+    did import it, the existing-id check skips it.
+    """
+    pos = offset
+    while pos > 0:
+        start = max(0, pos - 65536)
+        fb.seek(start)
+        chunk = fb.read(pos - start)
+        nl = chunk.rfind(b"\n")
+        if nl != -1:
+            return start + nl + 1
+        pos = start
+    return 0
+
+
+def _read_shard(path: Path, start: int, existing_ids: set[str], new_rows: list[dict]) -> None:
+    with open(path, "rb") as fb:
+        fb.seek(start)
+        for raw in fb:
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError as e:
+                logger.warning("Invalid JSON in %s: %s", path.name, e)
+                continue
+            did = row.get("decision_id", "")
+            if did and did not in existing_ids:
+                new_rows.append(row)
+
+
+def _read_new_jsonl(courts: list[str] | None, existing_ids: set[str]) -> list[dict]:
+    """Return the rows appended to the shards since the last full build.
+
+    Reading whole shards and keeping every id not in the DB would re-insert
+    the ~159k rows each full build deletes as duplicates or stubs: their ids
+    are in the shards but not in `decisions`. So each shard is read only from
+    the size the last full build recorded for it.
+
+    A shard whose bytes before that size changed (shorter now, or a different
+    tail hash) was rewritten by a repair or removal. Its offset no longer
+    lines up, so it is skipped and its rows wait for the next full build,
+    which is also where its corrections take effect.
+
+    Without a checkpoint, a run limited to --courts (the BGer poller) reads
+    those shards whole, as before; an all-courts run refuses.
+    """
+    from build_fts5 import shard_tail_sha256
+
+    checkpoint = _load_full_build_checkpoint()
+    if checkpoint is None and not courts:
+        raise MissingFullBuildCheckpoint(
+            f"{FULL_BUILD_CHECKPOINT_PATH} is missing or unusable; an all-courts "
+            "quick_publish without the last full build's shard sizes would "
+            "re-insert the rows that build removed")
+    if checkpoint is None:
+        logger.warning("No full-build checkpoint; reading %s whole", ",".join(courts))
+
+    new_rows: list[dict] = []
+    rewritten: list[str] = []
+    # Direct shards before es_* shards, as build_fts5.import_jsonl reads them:
+    # when both carry an id, the direct row (chamber-specific court code) wins.
+    shards = sorted(JSONL_DIR.glob("*.jsonl"),
+                    key=lambda p: (p.name.startswith("es_"), p.name))
+    for jf in shards:
+        if courts and jf.stem not in courts:
             continue
         try:
-            with open(jf) as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    row = json.loads(line)
-                    did = row.get("decision_id", "")
-                    if did and did not in existing_ids:
-                        new_rows.append(row)
+            size = jf.stat().st_size
+            entry = checkpoint.get(jf.name) if checkpoint is not None else None
+            if checkpoint is None or entry is None:
+                # A shard the last full build never saw is new in full.
+                if checkpoint is not None:
+                    logger.info("  %s: not in the last full build, reading all of it", jf.name)
+                _read_shard(jf, 0, existing_ids, new_rows)
+                continue
+            offset = int(entry.get("size", 0))
+            if size == offset:
+                continue
+            tail = entry.get("tail_sha256")
+            if size < offset or (tail and shard_tail_sha256(jf, offset) != tail):
+                rewritten.append(jf.name)
+                continue
+            with open(jf, "rb") as fb:
+                start = _line_start(fb, offset)
+            _read_shard(jf, start, existing_ids, new_rows)
         except Exception as e:
             logger.warning("Failed to read %s: %s", jf, e)
 
+    if rewritten:
+        logger.warning(
+            "%d shard(s) were rewritten since the last full build and are skipped "
+            "until the next one: %s", len(rewritten), ", ".join(rewritten))
     return new_rows
 
 
@@ -205,6 +313,11 @@ def _quick_publish_locked(courts: list[str] | None = None, dry_run: bool = False
             )
         except OSError as e:
             logger.error("Failed to clean stale .quick: %s", e)
+
+    # Refuse before the multi-GB copy, not after it (_read_new_jsonl rechecks).
+    if not courts and _load_full_build_checkpoint() is None:
+        raise MissingFullBuildCheckpoint(
+            f"{FULL_BUILD_CHECKPOINT_PATH} is missing or unusable")
 
     t0 = time.time()
     swap_done = False
@@ -368,7 +481,11 @@ def main():
         return
 
     courts = args.courts.split(",") if args.courts else None
-    inserted = quick_publish(courts=courts, dry_run=args.dry_run)
+    try:
+        inserted = quick_publish(courts=courts, dry_run=args.dry_run)
+    except MissingFullBuildCheckpoint as e:
+        logger.error("Refusing to quick_publish: %s", e)
+        sys.exit(2)
     if inserted is None:
         # Deliberately skipped (a lock was held); wrapper already logged why.
         return
