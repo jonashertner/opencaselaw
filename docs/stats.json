@@ -2700,7 +2700,7 @@
     "2026-09": 2451,
     "2026-10": 648
   },
-  "generated_at": "2026-10-31T12:30:44.073051+00:00",
+  "generated_at": "2026-10-31T19:17:43.396574+00:00",
   "scraper_health": {
     "run_at": "2026-10-31T02:29:44.288037+00:00",
     "run_duration_s": 5323.1,
@@ -3923,19 +3923,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 10013643,
-    "statute_edges": 12700340
+    "citation_edges": 10020412,
+    "statute_edges": 12728298
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 111509,
+      "citation_count": 111518,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196714
+      "ref_count": 196744
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -3944,20 +3944,20 @@
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_1_I_3"
     },
     "language_split": {
-      "de_pct": 45.5,
-      "fr_pct": 45.9,
-      "it_pct": 8.6,
-      "total": 1047559
+      "de_pct": 46.5,
+      "fr_pct": 45.0,
+      "it_pct": 8.5,
+      "total": 1068055
     },
     "regeste_coverage": {
-      "pct": 38.6,
-      "with_regeste": 406802,
-      "total": 1053732
+      "pct": 37.9,
+      "with_regeste": 406811,
+      "total": 1074228
     },
     "graph_size": {
-      "decision_edges": 9453643,
-      "statute_edges": 12700340,
-      "total": 22153983
+      "decision_edges": 9487835,
+      "statute_edges": 12728298,
+      "total": 22216133
     },
     "echr_switzerland": {
       "total": 1535,
@@ -3974,19 +3974,19 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 111509,
+        "citation_count": 111518,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 58492,
+        "citation_count": 58495,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39842,
+        "citation_count": 39845,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
@@ -4007,27 +4007,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196714
+        "ref_count": 196744
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 121005
+        "ref_count": 121020
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109354
+        "ref_count": 109353
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98468
+        "ref_count": 98475
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61040
+        "ref_count": 61028
       }
     ],
     "materialien_coverage": {
@@ -4134,6 +4134,13 @@
         "decision_count": 35704
       },
       {
+        "court": "ch_vb",
+        "earliest": "1900-09-17",
+        "latest": "2016-12-29",
+        "span_years": 116,
+        "decision_count": 22916
+      },
+      {
         "court": "ur_gerichte",
         "earliest": "1901-01-01",
         "latest": "2026-09-02",
@@ -4159,14 +4166,7 @@
         "earliest": "1908-11-08",
         "latest": "2026-10-16",
         "span_years": 118,
-        "decision_count": 171678
-      },
-      {
-        "court": "ne_gerichte",
-        "earliest": "1913-04-02",
-        "latest": "2026-10-15",
-        "span_years": 113,
-        "decision_count": 10881
+        "decision_count": 171718
       }
     ]
   },
@@ -4798,7 +4798,10 @@
       "SZ": 2,
       "ZG": 1
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 6769,
+      "statute_edges": 27958
+    },
     "previous_generated_at": "2026-10-30T23:54:16.545485+00:00"
   }
 }
