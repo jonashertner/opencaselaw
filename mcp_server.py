@@ -20004,8 +20004,22 @@ _STATUTE_AUDIT_PATTERN = re.compile(
     #     AHV-IV, …). Each chunk after a hyphen must start uppercase
     #     or digit so we don't drift into lowercase prose.
     #   • Optional cantonal suffix (/ZH, /BE).
-    \s+(?P<law>
-        [A-Z][A-Za-zÄÖÜ0-9]{1,11}
+    #   • Tried first: a section name of more than one token — the final
+    #     title of the ZGB/CC in DE/FR/IT (SchlT ZGB, ZGB SchlT,
+    #     Schlusstitel ZGB, Tit. fin. CC, Titre final du CC, Titolo finale
+    #     CC). The one-token slot read these as law 'SchlT' or 'Tit', so the
+    #     article was never checked (2026-10 agent-bench pilot). The name
+    #     resolves through the section entries of law_aliases.json, see
+    #     _statute_ref_key; "du"/"del" before "titre"/"titolo" is allowed.
+    \s+(?:(?i:du|del)\s+(?=(?i:tit)))?
+    (?P<law>
+        (?P<section_name>(?i:
+            SchlT\.?\s*ZGB | ZGB\s*SchlT | Schlusstitel\s+(?:des\s+)?ZGB
+          | Tit(?:\.|re)\s*fin(?:\.|al)\s*(?:du\s+)?CC
+          | Titolo\s+finale\s+(?:del\s+)?CC
+          | SchlT
+        ))
+      | [A-Z][A-Za-zÄÖÜ0-9]{1,11}
         (?:-[A-Z0-9][A-Za-zÄÖÜ0-9]{0,11})*
         (?:/[A-Z0-9]{2,6})?
     )\b
@@ -20041,6 +20055,26 @@ _STATUTE_AUDIT_INVALID_LAWS = {
     # in headings or list items
     "UND", "ODER", "BZW", "USW", "ET", "OU", "EE", "OD",
 }
+
+_SECTION_NAME_CONNECTIVE_RE = re.compile(r"\b(?:du|del|des)\b", re.IGNORECASE)
+
+
+def _statute_ref_key(sm: re.Match) -> tuple[str, str, str] | None:
+    """(law_raw, law_code, article) for one _STATUTE_AUDIT_PATTERN match, or
+    None when the law slot is a subdivision marker or connective.
+
+    A section name keeps its own words but loses the connectives
+    ('Titre final du CC' -> 'TITRE FINAL CC'), so it normalises to the
+    alias-table key _fetch_statute_text resolves it by."""
+    article = re.sub(r"\s+", "", (sm.group("article") or "").lower())
+    law_raw = (sm.group("law") or "").strip()
+    if sm.group("section_name"):
+        law_code = " ".join(_SECTION_NAME_CONNECTIVE_RE.sub(" ", law_raw).split()).upper()
+    else:
+        law_code = law_raw.upper()
+    if not article or not law_code or law_code in _STATUTE_AUDIT_INVALID_LAWS:
+        return None
+    return law_raw, law_code, article
 
 # Quotes: a single permissive pattern matches every common open/close
 # pair AND mixed forms (real LLM output frequently mixes German „
@@ -20118,17 +20152,13 @@ def _audit_statutes(draft_text: str, ledger: dict | None = None) -> list[dict]:
     seen: set[tuple[str, str]] = set()  # (law, article) — dedup repeats
 
     for m in _STATUTE_AUDIT_PATTERN.finditer(draft_text):
-        article = re.sub(r"\s+", "", (m.group("article") or "").lower())
-        law_raw = (m.group("law") or "").strip()
-        law_up = law_raw.upper()
-
-        if not article or not law_up:
-            continue
-        if law_up in _STATUTE_AUDIT_INVALID_LAWS:
-            continue
         # Skip references that are clearly part of a case citation
         # (e.g. "BGE" in "Art. 5 BGE" never happens — but "Art. 5 ABS"
         # does, so we whitelist by the invalid-laws set above).
+        ref = _statute_ref_key(m)
+        if ref is None:
+            continue
+        law_raw, law_up, article = ref
         key = (law_up, article)
         if key in seen:
             continue
@@ -20145,7 +20175,11 @@ def _audit_statutes(draft_text: str, ledger: dict | None = None) -> list[dict]:
         #   {} or {law_code,article} only       → law not in statutes.db
         #   {..., sr_number} but no text_de     → law OK, article missing
         #   {..., sr_number, text_de}           → both OK
-        if not result.get("sr_number"):
+        # plus section_unavailable: a section name (SchlT ZGB) whose block
+        # this mirror does not expose — nothing was checked, nothing is wrong.
+        if result.get("section_unavailable"):
+            ledger["not_checked"] += 1
+        elif not result.get("sr_number"):
             ledger["unknown_law"] += 1
             issues.append({
                 "category": "statute",
@@ -20382,11 +20416,10 @@ def _statute_source_pool(draft_text: str) -> list[dict]:
         return pool
     seen: set[tuple[str, str]] = set()
     for sm in _STATUTE_AUDIT_PATTERN.finditer(draft_text):
-        article = re.sub(r"\s+", "", (sm.group("article") or "").lower())
-        law_raw = (sm.group("law") or "").strip()
-        law_up = law_raw.upper()
-        if not article or not law_up or law_up in _STATUTE_AUDIT_INVALID_LAWS:
+        ref = _statute_ref_key(sm)
+        if ref is None:
             continue
+        _, law_up, article = ref
         key = (law_up, article)
         if key in seen:
             continue
@@ -20413,6 +20446,179 @@ def _statute_source_pool(draft_text: str) -> list[dict]:
                 "paragraphs": [],
             })
     return pool
+
+
+# Dated statute editions for the quote rail (2026-10 agent-bench pilot). A
+# verbatim quote of an article's wording before an amendment, read with
+# get_law(as_of=...), was reported as fabricated: the pool holds the text in
+# force today only. Such an answer names the edition it quotes ("édition
+# Fedlex de 2017", "Fassung vom 1.1.2019", "en vigueur jusqu'au 31 décembre
+# 2019"), so a quote missing from the current text is looked up in the
+# edition in force on a date stated next to it, fetched as get_law(as_of)
+# fetches it. Without such a date nothing is fetched and the quote stays
+# flagged; a quote no edition carries stays flagged too.
+_EDITION_WINDOW_BEFORE = 300      # chars before the quote searched for refs + dates
+_EDITION_WINDOW_AFTER = 120       # chars after it
+_EDITION_MAX_FETCHES = 6          # Fedlex edition lookups per attest call
+_EDITION_MONTHS = {name.casefold(): i + 1
+                   for names in _MONTH_NAMES.values() for i, name in enumerate(names)}
+_EDITION_DATE_RE = re.compile(
+    r"\b(?P<iso>(?:19|20)\d\d-\d\d-\d\d)\b"
+    r"|\b(?P<d>\d{1,2})\.\s?(?P<mo>\d{1,2})\.\s?(?P<y>(?:19|20)\d\d)\b"
+    r"|\b(?P<td>\d{1,2})(?:er|\.)?\s+(?P<tmo>[A-Za-zÀ-ÖØ-öø-ÿ]+)\s+(?P<ty>(?:19|20)\d\d)\b"
+    r"|\b(?P<year>(?:19|20)\d\d)\b"
+)
+_QUOTE_LANGUAGE_WORDS = {
+    "de": {"der", "die", "das", "und", "ist", "des", "den", "dem", "wird", "oder", "von", "mit"},
+    "fr": {"le", "la", "les", "et", "est", "du", "des", "une", "par", "qui", "dans", "ou"},
+    "it": {"il", "di", "che", "della", "delle", "per", "una", "dei", "sono", "nel", "od", "è"},
+}
+
+
+def _edition_as_of_candidates(text: str, anchor: int) -> list[str]:
+    """ISO as_of dates for the dates and years stated in `text`, the one
+    nearest `anchor` first. A full date D gives D and the day before (an
+    amendment's entry into force: the old text applied until D - 1); a bare
+    year Y gives Y-12-31 and Y-01-01. Future dates are dropped."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    found: list[tuple[int, list[str]]] = []
+    for dm in _EDITION_DATE_RE.finditer(text):
+        dates: list[str] = []
+        try:
+            if dm.group("iso"):
+                d = datetime.strptime(dm.group("iso"), "%Y-%m-%d")
+                dates = [d.strftime("%Y-%m-%d"), (d - timedelta(days=1)).strftime("%Y-%m-%d")]
+            elif dm.group("y"):
+                d = datetime(int(dm.group("y")), int(dm.group("mo")), int(dm.group("d")))
+                dates = [d.strftime("%Y-%m-%d"), (d - timedelta(days=1)).strftime("%Y-%m-%d")]
+            elif dm.group("ty"):
+                mo = _EDITION_MONTHS.get(dm.group("tmo").casefold())
+                if mo:
+                    d = datetime(int(dm.group("ty")), mo, int(dm.group("td")))
+                    dates = [d.strftime("%Y-%m-%d"), (d - timedelta(days=1)).strftime("%Y-%m-%d")]
+                else:
+                    dates = [f"{dm.group('ty')}-12-31", f"{dm.group('ty')}-01-01"]
+            else:
+                dates = [f"{dm.group('year')}-12-31", f"{dm.group('year')}-01-01"]
+        except ValueError:
+            continue
+        found.append((abs(dm.start() - anchor), [d for d in dates if d <= today]))
+    found.sort(key=lambda f: f[0])
+    return list(dict.fromkeys(d for _, ds in found for d in ds))
+
+
+def _quote_language(text: str) -> str:
+    """'de' / 'fr' / 'it' by function words — the edition is fetched in the
+    language the quote is in, one download per edition."""
+    words = re.findall(r"[^\W\d_]+", (text or "").casefold())
+    scores = {lang: sum(w in vocab for w in words) for lang, vocab in _QUOTE_LANGUAGE_WORDS.items()}
+    best = max(scores, key=scores.get)
+    return best if scores[best] else "de"
+
+
+def _dated_statute_editions(draft_text: str, quote_issues: list[dict]) -> tuple[list[dict], dict]:
+    """(pool, tried) for the quotes the current statute text did not carry.
+
+    `pool` holds one entry per edition article that carries one of those
+    quotes verbatim, id 'statute:{LAW}_{art}@{edition date}'. `tried` maps a
+    quote's position to the editions searched for it (with status
+    'searched' or 'unavailable'), so a still-flagged quote says which
+    editions were checked. Section names are skipped (the edition fetch
+    serves the main body, as get_law(as_of) does)."""
+    pool: list[dict] = []
+    tried: dict[int, list[dict]] = {}
+    if not quote_issues or not STATUTES_DB_PATH.exists():
+        return pool, tried
+    fetches = 0
+    sr_by_law: dict[str, str | None] = {}
+    editions: dict[tuple, dict | None] = {}
+    for issue in quote_issues:
+        qpos = issue.get("position")
+        qm = _QUOTE_AUDIT_PATTERNS[0].match(draft_text, qpos) if isinstance(qpos, int) else None
+        if not qm:
+            continue
+        inner_norm = _normalise_for_quote_match(qm.group("inner"))
+        lo = max(0, qm.start() - _EDITION_WINDOW_BEFORE)
+        window = draft_text[lo:qm.end() + _EDITION_WINDOW_AFTER]
+        as_ofs = _edition_as_of_candidates(window, qm.start() - lo)
+        if not as_ofs:
+            continue
+        refs = []
+        for sm in _STATUTE_AUDIT_PATTERN.finditer(window):
+            ref = _statute_ref_key(sm)
+            if ref and not sm.group("section_name"):
+                refs.append((abs(sm.start() - (qm.start() - lo)), ref[1], ref[2]))
+        refs = list(dict.fromkeys((law, art) for _, law, art in sorted(refs)))
+        lang = _quote_language(qm.group("inner"))
+        matched = False
+        for law, art in refs:
+            if law not in sr_by_law:
+                conn = _get_statutes_conn()
+                sr_by_law[law] = None
+                if conn is not None:
+                    try:
+                        sr, how = _resolve_federal_abbreviation(conn, law)
+                        if sr and (how or {}).get("kind") != "section":
+                            sr_by_law[law] = sr
+                    except sqlite3.Error:
+                        pass
+                    finally:
+                        conn.close()
+            sr = sr_by_law[law]
+            if not sr:
+                continue
+            for as_of in as_ofs:
+                key = (sr, art, lang, as_of)
+                if key not in editions:
+                    if fetches >= _EDITION_MAX_FETCHES:
+                        break
+                    fetches += 1
+                    editions[key] = _fetch_historical_law_version(sr, art, lang, as_of)
+                ed = editions[key]
+                if not ed or ed.get("error"):
+                    tried.setdefault(qm.start(), []).append(
+                        {"law": law, "article": art, "as_of": as_of, "status": "unavailable"})
+                    continue
+                snapshot = ed.get("snapshot_date") or as_of
+                bodies = [a.get("text") or "" for a in ed.get("articles") or []
+                          if a.get("text_status", "ok") == "ok" and not a.get("empty_body")]
+                tried.setdefault(qm.start(), []).append(
+                    {"law": law, "article": art, "as_of": as_of, "edition": snapshot,
+                     "status": "searched"})
+                hit = next((b for b in bodies if inner_norm in _normalise_for_quote_match(b)), None)
+                if hit:
+                    pool.append({
+                        "decision_id": f"statute:{law}_{art}@{snapshot}",
+                        "lang": lang, "edition": snapshot, "as_of": as_of,
+                        "source_url": ed.get("source_url"),
+                        "regeste": hit, "full_text": "", "paragraphs": [],
+                    })
+                    matched = True
+                    break
+            if matched:
+                break
+    return pool, tried
+
+
+def _audit_quotes_with_editions(draft_text: str, sources: list[dict],
+                                ledger: dict | None = None) -> list[dict]:
+    """_audit_quotes, then a second pass over the quotes it could not find,
+    against the dated statute editions the draft names (see
+    _dated_statute_editions). The ledger is that of the final pass."""
+    issues = _audit_quotes(draft_text, sources, ledger=ledger)
+    if not issues:
+        return issues
+    editions, tried = _dated_statute_editions(draft_text, issues)
+    if editions:
+        final_ledger = _quote_ledger_defaults()
+        issues = _audit_quotes(draft_text, list(sources) + editions, ledger=final_ledger)
+        if ledger is not None:
+            ledger.clear()
+            ledger.update(final_ledger)
+    for issue in issues:
+        if issue.get("position") in tried:
+            issue["dated_editions_searched"] = tried[issue["position"]][:6]
+    return issues
 
 
 def _date_ledger_defaults() -> dict:
@@ -21625,8 +21831,8 @@ def _handle_attest_response(*, draft_text: str,
         # (see the docstring); audit_quotes=False leaves user-supplied
         # quotes alone (party narrative, witness statements, defined terms).
         quote_ledger = _quote_ledger_defaults()
-        quote_issues = (_audit_quotes(draft_text, _statute_source_pool(draft_text),
-                                      ledger=quote_ledger)
+        quote_issues = (_audit_quotes_with_editions(draft_text, _statute_source_pool(draft_text),
+                                                    ledger=quote_ledger)
                         if audit_quotes else [])
         empty_issues = statute_issues + quote_issues
         empty_issues.sort(key=lambda i: i.get("position", 0))
@@ -21884,7 +22090,7 @@ def _handle_attest_response(*, draft_text: str,
     quote_ledger = _quote_ledger_defaults()
     if audit_quotes:
         cited_sources.extend(_statute_source_pool(draft_text))
-        quote_issues = _audit_quotes(draft_text, cited_sources, ledger=quote_ledger)
+        quote_issues = _audit_quotes_with_editions(draft_text, cited_sources, ledger=quote_ledger)
     else:
         quote_issues = []
     date_ledger = _date_ledger_defaults()
@@ -22494,20 +22700,37 @@ def _fetch_statute_text(*, law_code: str, article: str, lang: str = "de",
             "OR UPPER(abbr_fr) = UPPER(?) OR UPPER(abbr_it) = UPPER(?) LIMIT 1",
             (law_code, law_code, law_code),
         ).fetchone()
+        sr, section_how = (law_row["sr_number"] if law_row else None), None
         if not law_row:
+            # A section name (SchlT ZGB, Tit. fin. CC) is no abbreviation in
+            # the mirror; the verified section entries of law_aliases.json
+            # name its act and block. Other alias kinds stay misses here.
+            sr, section_how = _resolve_federal_abbreviation(conn, law_code)
+            if (section_how or {}).get("kind") != "section":
+                sr, section_how = None, None
+        if not sr:
             result = {"law_code": law_code, "article": article}
         else:
-            sr = law_row["sr_number"]
-            art_row, served = None, None
+            art_row, served, block_seen = None, None, False
             # Main-body article only: transitional blocks reuse its number.
             _cols = _articles_columns(conn)   # one schema probe
             main_only = " AND section = ''" if "section" in _cols else ""
             fn_col = ", footnote" if "footnote" in _cols else ""
             for cand in dict.fromkeys((lang or "de", "de", "fr", "it")):
+                where, args = main_only, (sr, article, cand)
+                if section_how:
+                    # The block, and only when its heading in this language
+                    # carries the marker; never the main-body article.
+                    block, _ = _alias_section_in_mirror(conn, sr, cand, section_how,
+                                                        "section" in _cols)
+                    if not block:
+                        continue
+                    block_seen = True
+                    where, args = " AND section = ?", args + (block["section"],)
                 art_row = conn.execute(
                     "SELECT article_num, text, lang" + fn_col + " FROM articles "
-                    "WHERE sr_number = ? AND article_num = ? AND lang = ?" + main_only + " LIMIT 1",
-                    (sr, article, cand),
+                    "WHERE sr_number = ? AND article_num = ? AND lang = ?" + where + " LIMIT 1",
+                    args,
                 ).fetchone()
                 if art_row:
                     try:
@@ -22515,7 +22738,10 @@ def _fetch_statute_text(*, law_code: str, article: str, lang: str = "de",
                     except (KeyError, IndexError):
                         served = cand
                     break
-            if not art_row:
+            if section_how and not block_seen:
+                result = {"law_code": law_code, "article": article, "sr_number": sr,
+                          "section_unavailable": True}
+            elif not art_row:
                 result = {"law_code": law_code, "article": article, "sr_number": sr}
             else:
                 body = art_row["text"] or ""
@@ -22532,6 +22758,8 @@ def _fetch_statute_text(*, law_code: str, article: str, lang: str = "de",
                     "lang_served": served,
                     "text": body if full else body[:600],
                 }
+                if section_how:
+                    result["section"] = section_how.get("section")
                 if served == "de":
                     result["text_de"] = body[:600]
     except Exception:
