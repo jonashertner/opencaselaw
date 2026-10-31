@@ -2700,7 +2700,7 @@
     "2026-09": 2451,
     "2026-10": 648
   },
-  "generated_at": "2026-10-31T19:17:43.396574+00:00",
+  "generated_at": "2026-10-31T21:58:51.751741+00:00",
   "scraper_health": {
     "run_at": "2026-10-31T02:29:44.288037+00:00",
     "run_duration_s": 5323.1,
@@ -3230,7 +3230,7 @@
         "note": null,
         "state_count": 100042,
         "jsonl_size_mb": 1514.1,
-        "jsonl_mtime": "2026-10-31T01:15:49.980033+00:00"
+        "jsonl_mtime": "2026-10-31T20:57:26.506630+00:00"
       },
       "ne_jurisprudence_adm": {
         "success": true,
@@ -3955,9 +3955,9 @@
       "total": 1074228
     },
     "graph_size": {
-      "decision_edges": 9487835,
+      "decision_edges": 9456952,
       "statute_edges": 12728298,
-      "total": 22216133
+      "total": 22185250
     },
     "echr_switzerland": {
       "total": 1535,
