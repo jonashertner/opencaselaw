@@ -1,0 +1,267 @@
+{
+ "id": "rec_25_board_desk_agent",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.ai_deployment",
+  "text": "Introduction from 1 September 2026 of 'Board Desk', an AI agent that summarises board papers and drafts minutes, excluding agenda items with conflicts of interest, with every draft checked by the secretary."
+ },
+ "purpose": "Reduce the secretary's drafting work while keeping board information confidential and in Switzerland.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2026-06-18",
+ "minutes": "dms://board/2026-06-18_minutes.md#4",
+ "owner": {
+  "person": "cdo",
+  "name": "Samuel Okafor",
+  "role": "Chief Digital Officer"
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "No processing of agenda items involving a conflict of interest",
+  "Drafts never sent automatically; checked by the secretary",
+  "Storage in Switzerland"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Provider BoardFlow AG, Swiss cloud region, no storage by the model provider, deletion after 90 days",
+    "source": "dms://ai/board-desk-risk-assessment-2026.md",
+    "as_of": "2026-06-05"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717",
+    "article_label": "Art. 717",
+    "paragraph": "1",
+    "as_of": "2026-06-18",
+    "edition": "2026-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Die Mitglieder des Verwaltungsrates sowie Dritte, die mit der Geschäftsführung befasst sind, müssen ihre Aufgaben mit aller Sorgfalt erfüllen und die Interessen der Gesellschaft in guten Treuen wahren.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20260101/de",
+    "source_snapshot": "get_law__OR-717-2026-06-18__ac4d1d1536",
+    "proposition": "Directors must perform their duties with all due diligence and safeguard the company's interests in good faith, which includes confidentiality.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:51+00:00",
+     "snapshot": "attest_response__Art--717-Abs--1-OR__9411282178",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:04+00:00",
+      "as_of": "2026-06-18",
+      "edition": "2026-01-01",
+      "snapshot": "get_law__OR-717-2026-06-18__ac4d1d1536"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "9",
+    "article_label": "Art. 9 — Bearbeitung durch Auftragsbearbeiter",
+    "paragraph": "1",
+    "as_of": "2026-06-18",
+    "edition": "2025-07-07",
+    "act_in_force": "2023-09-01 – (open)",
+    "text": "1 Die Bearbeitung von Personendaten kann vertraglich oder durch die Gesetzgebung einem Auftragsbearbeiter übertragen werden, wenn: a. die Daten so bearbeitet werden, wie der Verantwortliche selbst es tun dürfte; und b. keine gesetzliche oder vertragliche Geheimhaltungspflicht die Übertragung verbietet.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2022/491/20250707/de",
+    "source_snapshot": "get_law__DSG-9-2026-06-18__3550dc2a7d",
+    "proposition": "Processing may be entrusted to a processor by contract if the processor processes the data only as the controller itself may.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:59+00:00",
+     "snapshot": "attest_response__Art--9-Abs--1-DSG__8bcb28cd4d",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:04+00:00",
+      "as_of": "2026-06-18",
+      "edition": "2025-07-07",
+      "snapshot": "get_law__DSG-9-2026-06-18__3550dc2a7d"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "16",
+    "article_label": "Art. 16 — Grundsätze",
+    "paragraph": "1",
+    "as_of": "2026-06-18",
+    "edition": "2025-07-07",
+    "act_in_force": "2023-09-01 – (open)",
+    "text": "1 Personendaten dürfen ins Ausland bekanntgegeben werden, wenn der Bundesrat festgestellt hat, dass die Gesetzgebung des betreffenden Staates oder das internationale Organ einen angemessenen Schutz gewährleistet.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2022/491/20250707/de",
+    "source_snapshot": "get_law__DSG-16-2026-06-18__9e114cf435",
+    "proposition": "Personal data may be disclosed abroad if the Federal Council has found that the recipient state ensures adequate protection.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:59+00:00",
+     "snapshot": "attest_response__Art--16-Abs--1-DSG__b2bce131a4",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:04+00:00",
+      "as_of": "2026-06-18",
+      "edition": "2025-07-07",
+      "snapshot": "get_law__DSG-16-2026-06-18__9e114cf435"
+     }
+    }
+   },
+   {
+    "id": "l4",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "22",
+    "article_label": "Art. 22 — Datenschutz-Folgenabschätzung",
+    "paragraph": "1",
+    "as_of": "2026-06-18",
+    "edition": "2025-07-07",
+    "act_in_force": "2023-09-01 – (open)",
+    "text": "1 Der Verantwortliche erstellt vorgängig eine Datenschutz-Folgenabschätzung, wenn eine Bearbeitung ein hohes Risiko für die Persönlichkeit oder die Grundrechte der betroffenen Person mit sich bringen kann. Sind mehrere ähnliche Bearbeitungsvorgänge geplant, so kann eine gemeinsame Abschätzung erstellt werden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2022/491/20250707/de",
+    "source_snapshot": "get_law__DSG-22-2026-06-18__d99ed7284f",
+    "proposition": "A data protection impact assessment is required where processing may entail a high risk to the personality or fundamental rights of data subjects.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:00+00:00",
+     "snapshot": "attest_response__Art--22-Abs--1-DSG__91d16a74c5",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:05+00:00",
+      "as_of": "2026-06-18",
+      "edition": "2025-07-07",
+      "snapshot": "get_law__DSG-22-2026-06-18__d99ed7284f"
+     }
+    }
+   }
+  ],
+  "commitments": []
+ },
+ "objections": [
+  {
+   "by": "Prof. Dr. Thomas Bärtschi (board member)",
+   "text": "Papers on conflicts of interest must not be processed.",
+   "answer": "Accepted as a restriction."
+  }
+ ],
+ "review": {
+  "date": "2027-03-31",
+  "reopen_if": [
+   "l1 to l4 amended",
+   "f1 provider stores data outside Switzerland",
+   "conflict items processed",
+   "drafts sent automatically"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l4",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://ai/board-desk-risk-assessment-2026.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "No processing of agenda items involving a conflict of interest",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "Drafts never sent automatically; checked by the secretary",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r3",
+   "kind": "restriction",
+   "text": "Storage in Switzerland",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

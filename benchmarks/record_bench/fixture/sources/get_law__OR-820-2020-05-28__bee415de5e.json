@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "OR",
+  "article": "820",
+  "as_of": "2020-05-28"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:47+00:00",
+ "result": {
+  "_markdown": "# OR — SR 220\n**Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2020-04-01, applicable on 2020-05-28\nAct in force: 1912-01-01 – (open)\nText source: Fedlex PDF edition — NO article structure recovered; verbatim quotation NOT guaranteed.\nWARNING: do not quote this text. Cite the edition (Quelle below) and paraphrase; marginal notes and page headers may be interleaved.\nQuelle: [Fedlex (Fassung vom 2020-04-01)](https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20200401/de)\n\n### Excerpt around \"Art. 820\" (unstructured PDF text, 1 of 2 candidate positions)\n\nArt. 820 \n1 Für die Anzeigepflichten bei Kapitalverlust und Überschuldung der \nGesellschaft sowie für die Eröffnung und den Aufschub des Konkurses \nsind die Vorschriften des Aktienrechts entsprechend anwendbar. \nVII. Abberufung \nvon Geschäfts-\nführern; \nEntziehung der \nVertretungs-\nbefugnis \nVIII. Nichtigkeit \nvon Beschlüssen \nIX. Haftung \nC. Revisions-\nstelle \nD. Mängel in der \nOrganisation der \nGesellschaft \nE. Kapitalverlust \nund Über-\nschuldung \n\nErgänzung des Schweizerischen Zivilgesetzbuches. BG \n313 \n220 \n2 Das Gericht kann den Konkurs auf Antrag der Geschäftsführer oder \neines Gläubigers aufschieben, namentlich wenn ausstehende Nach-\nschüsse unverzüglich einbezahlt werden und Aussicht auf Sanierung \nbesteht. \nVierter Abschnitt: Auflösung und Ausscheiden\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

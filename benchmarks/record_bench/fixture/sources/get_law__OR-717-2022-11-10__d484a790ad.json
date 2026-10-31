@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "OR",
+  "article": "717",
+  "as_of": "2022-11-10"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:53+00:00",
+ "result": {
+  "_markdown": "# OR — SR 220\n**Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2022-01-01, applicable on 2022-11-10\nAct in force: 1912-01-01 – (open)\nText source: Fedlex Akoma Ntoso XML — per-article, verbatim\nQuelle: [Fedlex (Fassung vom 2022-01-01)](https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20220101/de)\n\n### Art. 717\n\n1 Die Mitglieder des Verwaltungsrates sowie Dritte, die mit der Geschäftsführung befasst sind, müssen ihre Aufgaben mit aller Sorgfalt erfüllen und die Interessen der Gesellschaft in guten Treuen wahren.\n2 Sie haben die Aktionäre unter gleichen Voraussetzungen gleich zu behandeln.\n\n> Footnote: Fassung gemäss Ziff. I des BG vom 4. Okt. 1991, in Kraft seit 1. Juli 1992 (AS 1992 733; BBl 1983 II 745).\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

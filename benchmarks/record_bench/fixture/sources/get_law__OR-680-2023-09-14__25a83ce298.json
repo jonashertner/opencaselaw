@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "OR",
+  "article": "680",
+  "as_of": "2023-09-14"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:56+00:00",
+ "result": {
+  "_markdown": "# OR — SR 220\n**Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2023-09-01, applicable on 2023-09-14\nAct in force: 1912-01-01 – (open)\nText source: Fedlex Akoma Ntoso XML — per-article, verbatim\nQuelle: [Fedlex (Fassung vom 2023-09-01)](https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20230901/de)\n\n### Art. 680\n\n1 Der Aktionär kann auch durch die Statuten nicht verpflichtet werden, mehr zu leisten als den für den Bezug einer Aktie bei ihrer Ausgabe festgesetzten Betrag.\n2 Ein Recht, den eingezahlten Betrag zurückzufordern, steht dem Aktionär nicht zu.\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

@@ -1,0 +1,225 @@
+{
+ "id": "rec_24_kaelin_supply_renewal_2026",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.conflict_transaction",
+  "text": "Renewal of the castings supply framework agreement with Kälin Giesserei AG for 1 July 2026 to 30 June 2029 with an aluminium price index, annual benchmark and a termination right above 5% over market."
+ },
+ "purpose": "Keep a short-lead-time castings supply at near-market prices while protecting the company from the director's conflict of interest.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG (members without conflict)",
+ "decided_at": "2026-05-14",
+ "minutes": "dms://board/2026-05-14_minutes.md#3",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "chair",
+  "name": "Dr. Regula Imhof",
+  "role": "Chair of the Board"
+ },
+ "restrictions": [
+  "Annual price comparison",
+  "Termination right if Kälin is more than 5% above the market mean",
+  "Peter Kälin does not sign for the company"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "2026 benchmark: Kälin +1.5% over the mean of three suppliers, lead time 4 weeks against 7–10",
+    "source": "dms://contracts/kaelin-benchmark-2026.md",
+    "as_of": "2026-05-04"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717a",
+    "article_label": "Art. 717a",
+    "paragraph": "1",
+    "as_of": "2026-05-14",
+    "edition": "2026-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Die Mitglieder des Verwaltungsrats und der Geschäftsleitung informieren den Verwaltungsrat unverzüglich und vollständig über sie betreffende Interessenkonflikte.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20260101/de",
+    "source_snapshot": "get_law__OR-717a-2026-05-14__029c4e291a",
+    "proposition": "Directors and managers must inform the board without delay of conflicts of interest affecting them.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:57+00:00",
+     "snapshot": "attest_response__Art--717a-Abs--1-OR__efe0618ad7",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:03+00:00",
+      "as_of": "2026-05-14",
+      "edition": "2026-01-01",
+      "snapshot": "get_law__OR-717a-2026-05-14__029c4e291a"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717a",
+    "article_label": "Art. 717a",
+    "paragraph": "2",
+    "as_of": "2026-05-14",
+    "edition": "2026-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Der Verwaltungsrat ergreift die Massnahmen, die zur Wahrung der Interessen der Gesellschaft nötig sind.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20260101/de",
+    "source_snapshot": "get_law__OR-717a-2026-05-14__029c4e291a",
+    "proposition": "The board must take the measures needed to safeguard the company's interests in case of a conflict of interest.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:57+00:00",
+     "snapshot": "attest_response__Art--717a-Abs--2-OR__4c1c08865b",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:03+00:00",
+      "as_of": "2026-05-14",
+      "edition": "2026-01-01",
+      "snapshot": "get_law__OR-717a-2026-05-14__029c4e291a"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_127_III_332",
+    "citation": "BGE 127 III 332, E. 2",
+    "decision_date": "2001-05-02",
+    "pinpoint": "2",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_127_III_332#e-2",
+    "source_snapshot": "cite__bge-BGE-127-III-332-2__0f56069d68",
+    "proposition": "A self-dealing transaction of a director can be approved by another director with signing authority.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:52+00:00",
+     "snapshot": "attest_response__BGE-127-III-332--E--2__7653842f89"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Annual benchmark; termination right above 5% over market (clause 7.3)",
+    "source": "dms://contracts/kaelin-supply-agreement-2026.md#7.3",
+    "test_date": "2027-05-31"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Sophie Marchand (board member)",
+   "text": "Are there alternatives?",
+   "answer": "A second supplier for 30% of the volume is being built up."
+  }
+ ],
+ "review": {
+  "date": "2027-06-30",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified",
+   "c1 benchmark above 5% over market"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://contracts/kaelin-benchmark-2026.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://contracts/kaelin-supply-agreement-2026.md#7.3",
+   "test_date": "2027-05-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Annual price comparison",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "Termination right if Kälin is more than 5% above the market mean",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r3",
+   "kind": "restriction",
+   "text": "Peter Kälin does not sign for the company",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

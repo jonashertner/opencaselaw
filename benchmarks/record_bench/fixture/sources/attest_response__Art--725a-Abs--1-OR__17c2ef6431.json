@@ -1,0 +1,81 @@
+{
+ "tool": "attest_response",
+ "args": {
+  "draft_text": "Art. 725a Abs. 1 OR"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:56+00:00",
+ "result": {
+  "ok": true,
+  "citations_found": 0,
+  "citations_ok": 0,
+  "statutes_checked": 1,
+  "quotes_checked": 0,
+  "issues_count": 0,
+  "issues_by_category": {
+   "case": 0,
+   "statute": 0,
+   "quote": 0,
+   "date": 0,
+   "grounding": 0
+  },
+  "ledger": {
+   "citations": {
+    "found": 0,
+    "resolved": 0,
+    "unresolved": 0,
+    "unknown_pattern": 0,
+    "out_of_scope": []
+   },
+   "pinpoints": {
+    "found": 0,
+    "verified_structure": 0,
+    "verified_text": 0,
+    "unverified": 0,
+    "invalid": 0
+   },
+   "quotations": {
+    "found": 0,
+    "examined": 0,
+    "verbatim": 0,
+    "not_found": 0,
+    "skipped_short": 0,
+    "skipped_unanchored": 0,
+    "matches": [],
+    "searched_sources": [
+     "statute:OR_725a",
+     "statute:OR_725a",
+     "statute:OR_725a"
+    ],
+    "audited": true
+   },
+   "statutes": {
+    "found_unique": 1,
+    "verified": 1,
+    "unknown_law": 0,
+    "missing_article": 0,
+    "not_checked": 0,
+    "checked": true
+   },
+   "dates": {
+    "found": 0,
+    "plausible": 0,
+    "issues": 0,
+    "not_checked": 0
+   },
+   "certifies": "the draft's own citations, quotations and statute references",
+   "does_not_certify": "that no relevant authority is missing; out_of_scope lists references the parser did not recognise and did not audit"
+  },
+  "grounding_meta": {
+   "requested": false,
+   "checked": 0,
+   "note": "no case citations to ground"
+  },
+  "annotated_text": "Art. 725a Abs. 1 OR",
+  "linked_text": "Art. 725a Abs. 1 OR",
+  "issues": [],
+  "warnings": [],
+  "warnings_count": 0,
+  "_note": "No Swiss-case citation patterns detected. Statute and quote audits still ran; `ledger` carries the denominator of each (statutes.not_checked > 0 means the statute mirror was unavailable, not that the references passed). ledger.citations.out_of_scope lists references the parser did not recognise (cantonal, European); they were NOT audited. This audit certifies the draft's own citations, quotations and statute references; it does not certify that no relevant authority is missing. Completeness of the research is outside its scope. If your response makes legal claims without citing authority, consider whether that's appropriate — Swiss legal writing expects citations for normative propositions."
+ }
+}

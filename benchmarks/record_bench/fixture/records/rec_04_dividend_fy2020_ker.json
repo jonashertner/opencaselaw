@@ -1,0 +1,216 @@
+{
+ "id": "rec_04_dividend_fy2020_ker",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.dividend",
+  "text": "Proposal to the AGM of a distribution of CHF 1.50 per share (CHF 3.0m) for financial year 2020 out of the reserves from capital contributions, without withholding tax."
+ },
+ "purpose": "Return capital to shareholders without Swiss withholding tax while keeping the 2020 profit in the company.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2021-03-18",
+ "minutes": "dms://board/2021-03-18_minutes.md#5",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "acc",
+  "name": "Prof. Dr. Thomas Bärtschi",
+  "role": "Chair of the Audit Committee"
+ },
+ "restrictions": [
+  "Distribution only out of the reserves from capital contributions confirmed by the ESTV"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Reserves from capital contributions of CHF 45.0m confirmed by the ESTV as of 31 December 2020",
+    "source": "dms://tax/estv-ker-confirmation-2021.md",
+    "as_of": "2020-12-31"
+   },
+   {
+    "id": "f2",
+    "text": "Statutory capital reserve CHF 45.0m and balance-sheet profit CHF 104.6m per audited 2020 accounts",
+    "source": "dms://finance/2020/audited-accounts-extract.md",
+    "as_of": "2020-12-31"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "VStG",
+    "sr_number": "642.21",
+    "act_title": "Bundesgesetz vom 13. Oktober 1965 über die Verrechnungssteuer (Verrechnungssteuergesetz, VStG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "5",
+    "article_label": "Art. 5",
+    "paragraph": "1bis",
+    "as_of": "2021-03-18",
+    "edition": "2020-01-01",
+    "act_in_force": "1967-01-01 – (open)",
+    "text": "1bis Die Rückzahlung von Reserven aus Kapitaleinlagen, die von den Inhabern der Beteiligungsrechte nach dem 31. Dezember 1996 geleistet worden sind, wird gleich behandelt wie die Rückzahlung von Grund- oder Stammkapital, wenn die Reserven aus Kapitaleinlagen von der Kapitalgesellschaft oder Genossenschaft in der Handelsbilanz auf einem gesonderten Konto ausgewiesen werden und die Gesellschaft oder Genossenschaft jede Veränderung auf diesem Konto der Eidgenössischen Steuerverwaltung (ESTV) meldet. Absatz 1ter bleibt vorbehalten.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/1966/371_385_384/20200101/de",
+    "source_snapshot": "get_law__VStG-5-2021-03-18__26d468f171",
+    "proposition": "Repayments of reserves from capital contributions made by shareholders after 31 December 1996 are exempt from withholding tax if shown separately in the commercial balance sheet.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:48+00:00",
+     "snapshot": "attest_response__Art--5-Abs--1bis-VStG__a400e48a9d",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:48+00:00",
+      "as_of": "2021-03-18",
+      "edition": "2020-01-01",
+      "snapshot": "get_law__VStG-5-2021-03-18__26d468f171"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "675",
+    "article_label": "Art. 675",
+    "paragraph": "2",
+    "as_of": "2021-03-18",
+    "edition": "2021-02-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Dividenden dürfen nur aus dem Bilanzgewinn und aus hierfür gebildeten Reserven ausgerichtet werden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20210201/de",
+    "source_snapshot": "get_law__OR-675-2021-03-18__9fe637ac03",
+    "proposition": "Dividends may be paid only out of the balance-sheet profit and out of reserves created for this purpose.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:46+00:00",
+     "snapshot": "attest_response__Art--675-Abs--2-OR__0c9ebe1408",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:48+00:00",
+      "as_of": "2021-03-18",
+      "edition": "2021-02-01",
+      "snapshot": "get_law__OR-675-2021-03-18__9fe637ac03"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "practice",
+    "doc_id": "estv_ks_dbst_ks_2015_1_029a_dvs_de",
+    "title": "[ESTV] KS Nr. 29a — Kreisschreiben Nr. 29a: KEP neues Rechnungslegungsrecht Kapitaleinlageprinzip neues Rechnungslegungsrecht vom 09.09.2015 (Direkte Bundessteuer, Verrechnungssteuer und Stempelabgaben) PDF 406.04 kB 10. Oktober 2023 (2015-09-09)",
+    "url": null,
+    "source_snapshot": "search_practice__Kapitaleinlagereserven-Verrechnungssteuer-Kreiss__cb352174e0",
+    "proposition": "ESTV practice on the capital contribution principle governs which reserves qualify and how they must be reported.",
+    "verification": {
+     "tool": "search_practice",
+     "ok": true,
+     "at": "2026-10-14T23:06:49+00:00",
+     "snapshot": "search_practice__Kapitaleinlagereserven-Verrechnungssteuer-Kreiss__cb352174e0"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Report every change in the reserves from capital contributions to the ESTV (form 170)",
+    "source": "dms://tax/estv-ker-confirmation-2021.md",
+    "test_date": "2021-06-30"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Peter Kälin (board member)",
+   "text": "What is the tax risk?",
+   "answer": "ESTV confirmation of 12 February 2021 and ESTV practice on the capital contribution principle."
+  }
+ ],
+ "review": {
+  "date": "2022-03-31",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 new version",
+   "f1 ESTV confirmation revised"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "practice",
+   "triggers": [
+    "T7"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://tax/estv-ker-confirmation-2021.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://finance/2020/audited-accounts-extract.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://tax/estv-ker-confirmation-2021.md",
+   "test_date": "2021-06-30",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Distribution only out of the reserves from capital contributions confirmed by the ESTV",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

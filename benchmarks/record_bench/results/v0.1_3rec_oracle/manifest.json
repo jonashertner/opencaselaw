@@ -1,0 +1,22 @@
+{
+  "harness_version": "0.1.0",
+  "started_at": "2026-10-15T01:24:32",
+  "agent": {
+    "agent": "oracle"
+  },
+  "records": [
+    "rec_02_service_gmbh_subordination_2020",
+    "rec_16_sernfeld_assist_genai",
+    "rec_23_dividend_fy2025"
+  ],
+  "k": 1,
+  "timeout": 300.0,
+  "attest": false,
+  "replay": {
+    "start": "2020-03-26",
+    "end": "2026-10-01"
+  },
+  "events": 44,
+  "answer_key_sha": "b22e910f8d1520c5",
+  "fixture_version": "0.1"
+}

@@ -1,0 +1,77 @@
+{
+ "tool": "attest_response",
+ "args": {
+  "draft_text": "BGE 126 III 361, E. 3"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:54+00:00",
+ "result": {
+  "ok": true,
+  "citations_found": 1,
+  "citations_ok": 1,
+  "statutes_checked": 0,
+  "quotes_checked": 0,
+  "issues_count": 0,
+  "issues_by_category": {
+   "case": 0,
+   "statute": 0,
+   "quote": 0,
+   "date": 0,
+   "grounding": 0
+  },
+  "ledger": {
+   "citations": {
+    "found": 1,
+    "resolved": 1,
+    "unresolved": 0,
+    "unknown_pattern": 0,
+    "out_of_scope": []
+   },
+   "pinpoints": {
+    "found": 1,
+    "verified_structure": 1,
+    "verified_text": 0,
+    "unverified": 0,
+    "invalid": 0
+   },
+   "quotations": {
+    "found": 0,
+    "examined": 0,
+    "verbatim": 0,
+    "not_found": 0,
+    "skipped_short": 0,
+    "skipped_unanchored": 0,
+    "matches": [],
+    "searched_sources": [
+     "bge_BGE_126_III_361"
+    ],
+    "audited": true
+   },
+   "statutes": {
+    "found_unique": 0,
+    "verified": 0,
+    "unknown_law": 0,
+    "missing_article": 0,
+    "not_checked": 0,
+    "checked": true
+   },
+   "dates": {
+    "found": 0,
+    "plausible": 0,
+    "issues": 0,
+    "not_checked": 0
+   },
+   "certifies": "the draft's own citations, quotations and statute references",
+   "does_not_certify": "that no relevant authority is missing; out_of_scope lists references the parser did not recognise and did not audit"
+  },
+  "grounding_meta": {
+   "requested": false
+  },
+  "annotated_text": "BGE 126 III 361, E. 3 ✓",
+  "linked_text": "[BGE 126 III 361, E. 3](https://mcp.opencaselaw.ch/entscheid/bge_BGE_126_III_361#e-3)",
+  "issues": [],
+  "warnings": [],
+  "warnings_count": 0,
+  "_note": "Closing audit covers up to FIVE hallucination classes:\n  • case      — citation exists in corpus, pinpoint resolves\n  • statute   — Art. X LAW reference resolves in statutes.db\n  • quote     — \"…\"-text appears verbatim in a cited source\n  • date      — 'vom DD.MM.YYYY' adjacent to citation matches\n  • grounding — (opt-in via audit_grounding=True) the proposition\n               attached to each verified citation is actually\n               supported by the cited Erwägung / Regeste / text.\n               Closes the 'reasoning error' class identified by\n               Butler & Butler, 'Legal RAG Bench' (Isaacus, 2026):\n               citation correct + source retrieved + proposition\n               unsupported. Costs one Sonnet call (~3 s, ≈$0.005)\n               regardless of citation count.\n\nCitations marked ✓ passed case-existence + pinpoint checks. Citations marked ✓? exist, but the decision has no structured Erwägungen, so the pinpoint could not be confirmed either way — see `warnings`; it is not an error, and you may keep the citation. Citations marked ⚠️ did NOT pass. Statute/quote/date/grounding issues are in the `issues` list (no inline markers). Fix every issue before sending. Possible fixes: (a) re-call cite() / get_law for the right reference, (b) pick a different decision whose text actually supports the claim, (c) replace a fabricated quote with a verbatim get_erwaegung extract, (d) qualify or drop the proposition.\n\n`ledger` is the denominator of every rail: citations (found / resolved / unresolved / unknown_pattern, with out_of_scope listing cantonal or European references the parser did not recognise and did NOT audit), pinpoints (verified by structure or by text / unverified / invalid), quotations (found / examined / verbatim / not_found / skipped), statutes (found_unique / verified / unknown_law / missing_article / not_checked when the statute mirror is unavailable) and dates. Read ok=true together with the ledger: 0 issues over 0 examined is not a pass. This audit certifies the draft's own citations, quotations and statute references; it does not certify that no relevant authority is missing. Completeness of the research is outside its scope.\n\nWHEN to set audit_grounding=True: any answer with ≥2 citations, or where a wrong proposition would mislead a Swiss lawyer.\n\nWHEN ok=true: send the `linked_text` field VERBATIM to the user — it is your draft with every validated case citation wrapped in a clickable Markdown link to mcp.opencaselaw.ch. Do NOT re-paraphrase after attestation; that strips the links."
+ }
+}
