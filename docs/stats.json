@@ -2698,7 +2698,7 @@
     "2026-09": 2400,
     "2026-10": 601
   },
-  "generated_at": "2026-10-30T21:11:26.414178+00:00",
+  "generated_at": "2026-10-30T23:54:16.545485+00:00",
   "scraper_health": {
     "run_at": "2026-10-30T01:52:20.125061+00:00",
     "run_duration_s": 3078.8,
@@ -3953,9 +3953,9 @@
       "total": 1053732
     },
     "graph_size": {
-      "decision_edges": 9484514,
+      "decision_edges": 9453643,
       "statute_edges": 12700340,
-      "total": 22184854
+      "total": 22153983
     },
     "echr_switzerland": {
       "total": 1535,
@@ -4054,14 +4054,14 @@
       "by_doc_type": {
         "ergebnisbericht": 2010,
         "erlaeuternder_bericht": 2643,
-        "stellungnahmen": 1360,
+        "stellungnahmen": 1361,
         "synoptische_tabelle": 249,
         "vernehmlassung_diverses": 936,
         "vernehmlassungsvorlage": 3355
       },
-      "counted_at": "2026-10-29T22:52:42+00:00",
-      "documents": 10553,
-      "paragraphs": 11515514,
+      "counted_at": "2026-10-30T22:49:48+00:00",
+      "documents": 10554,
+      "paragraphs": 11547690,
       "procedures": 2694,
       "procedures_fedlex": 2582,
       "year_range": {
@@ -4761,39 +4761,10 @@
     }
   ],
   "delta": {
-    "total": 205,
-    "by_court": {
-      "bger": 55,
-      "ge_gerichte": 88,
-      "bvger": 11,
-      "vd_gerichte": 21,
-      "zh_sozialversicherungsgericht": 2,
-      "bl_gerichte": 1,
-      "gr_gerichte": 2,
-      "be_verwaltungsgericht": 9,
-      "bs_appellationsgericht": 6,
-      "bs_sozialversicherungsgericht": 1,
-      "ag_strafgericht": 4,
-      "ag_zivilgericht": 1,
-      "ag_verwaltungsgericht": 1,
-      "ur_gerichte": 2,
-      "ag_spezialverwaltungsgericht": 1
-    },
-    "by_canton": {
-      "GE": 88,
-      "VD": 21,
-      "ZH": 2,
-      "BE": 9,
-      "BL": 1,
-      "GR": 2,
-      "AG": 7,
-      "BS": 7,
-      "UR": 2
-    },
-    "corpus": {
-      "citation_edges": 3014,
-      "statute_edges": 2665
-    },
-    "previous_generated_at": "2026-10-29T23:47:28.947013+00:00"
+    "total": 0,
+    "by_court": {},
+    "by_canton": {},
+    "corpus": {},
+    "previous_generated_at": "2026-10-30T21:11:26.414178+00:00"
   }
 }
