@@ -201,6 +201,9 @@ OUTPUT_DIR = REPO_DIR / "output"
 DATASET_DIR = OUTPUT_DIR / "dataset"
 DOCS_DIR = REPO_DIR / "docs"
 DB_PATH = OUTPUT_DIR / "decisions.db"
+# Set when a full (non-DAG) run starts. Step 5e passes it to generate_stats
+# so a stats.json written by this run's Step 5a is reused, not recomputed.
+_RUN_STARTED_AT: str | None = None
 
 HF_REPO_ID = "voilaj/swiss-caselaw"
 
@@ -1343,6 +1346,15 @@ def step_5e_interesting_stats(dry_run: bool = False) -> bool:
     graph_size). The 2026-05-16-evening fix using --interesting-stats-only
     refreshed the wrong block — caught in code review same day.
 
+    --post-graph (2026-10-19): when this run's Step 5a wrote stats.json, the
+    decisions block already describes this build's swapped DB; only corpus
+    (graph edge counts), interesting_stats and delta.corpus are refreshed.
+    Re-running the decisions block walked most of the 72 GB file again
+    (by_court's MAX(scraped_at) sits after full_text) and hit the 3600 s
+    cap on 2026-10-05 and 2026-10-18. If 5a did not write it this run (it
+    failed, or this is a manual --step 5e), generate_stats falls back to the
+    full regenerate. The 3600 s cap stays as the regression alarm.
+
     Non-fatal: on failure the dashboard keeps whatever Step 5a wrote
     (early-tier counts + previous build's graph). Step 6 commits the
     merged result regardless.
@@ -1356,13 +1368,16 @@ def step_5e_interesting_stats(dry_run: bool = False) -> bool:
     if not graph_db.exists():
         logger.warning("  reference_graph.db not found, skipping (Step 2c didn't run)")
         return True
+    cmd = [sys.executable, str(script),
+           "--db", str(DB_PATH),
+           "--output", str(DOCS_DIR / "stats.json")]
+    if _RUN_STARTED_AT:
+        cmd += ["--post-graph", "--base-since", _RUN_STARTED_AT]
     return run_cmd(
-        [sys.executable, str(script),
-         "--db", str(DB_PATH),
-         "--output", str(DOCS_DIR / "stats.json")],
+        cmd,
         "Refresh stats.json with fresh graph counts",
         dry_run,
-        timeout=3600,  # full stats incl. interesting_stats: 30-60 min worst case
+        timeout=3600,  # regression alarm; the post-graph refresh needs minutes
     )
 
 
@@ -2299,6 +2314,8 @@ def main():
     start = time.time()
     # One id per run, shared by every publish_runs.jsonl record it writes.
     run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+    global _RUN_STARTED_AT
+    _RUN_STARTED_AT = datetime.now(timezone.utc).isoformat(timespec="seconds")
     _append_run_record({
         "type": "run_start", "run_id": run_id,
         "full_rebuild": bool(args.full_rebuild), "dry_run": bool(args.dry_run),
@@ -2657,16 +2674,19 @@ def main():
             logger.warning(
                 f"Publish OK (non-fatal failures: {', '.join(non_fatal_failures)})"
             )
-        # Count decisions from stats if available
+        # Count decisions from stats if available ("total"; the old
+        # "total_decisions" key never existed, so every alert read "?").
         try:
             stats = json.loads((DOCS_DIR / "stats.json").read_text())
-            n = stats.get("total_decisions", "?")
+            n = stats.get("total", "?")
         except Exception:
             n = "?"
-        _notify(
-            "Publish OK",
-            f"{n} decisions, {total_elapsed/60:.0f} min",
-        )
+        msg = f"{n} decisions, {total_elapsed/60:.0f} min"
+        # Non-fatal failures (a 5e or 5a timeout) used to reach only the log;
+        # name them in the notification so a silent miss gets looked at.
+        if non_fatal_failures:
+            msg += f"\nNon-fatal failures: {', '.join(non_fatal_failures)}"
+        _notify("Publish OK", msg)
 
 
 if __name__ == "__main__":
