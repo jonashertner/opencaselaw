@@ -55,7 +55,7 @@ def test_dry_run_reports_and_writes_nothing(tmp_path, cut_entry):
     stats = rep.run(p, apply=False)
     assert stats["removed:foreign_volume"] == 1 and stats["cut:foreign_pages_appended"] == 1
     assert stats["untouched"] == 1 and stats["rows_changed"] == 2
-    assert p.read_bytes() == before and not list(tmp_path.glob("*.source-repair-*"))
+    assert p.read_bytes() == before and not list(tmp_path.glob("*.undo-source-repair-*"))
 
 
 def test_apply_removes_cuts_keeps_an_undo_file_and_is_idempotent(tmp_path, cut_entry):
@@ -70,7 +70,8 @@ def test_apply_removes_cuts_keeps_an_undo_file_and_is_idempotent(tmp_path, cut_e
     assert cut["full_text"] == OWN.rstrip() and "Frigaliment" not in cut["full_text"]
     assert cut["source_repair"]["chars_before"] == len(TEXT)
     assert cut["source_repair"]["sha256_before"] == hashlib.sha256(TEXT.encode()).hexdigest()
-    undo = next(tmp_path.glob("bge_historical.jsonl.source-repair-*.jsonl"))
+    undo = next(tmp_path.glob("bge_historical.jsonl.undo-source-repair-*.jsonl.bak"))
+    assert list(tmp_path.glob("*.jsonl")) == [p]   # the build ingests every *.jsonl beside the shard
     assert sorted(json.loads(l)["decision_id"] for l in undo.read_text(encoding="utf-8").splitlines()) == [
         "bge_historical_39_I_469", "bge_historical_52_I_8", "bge_historical_71_II_223"]
     assert json.loads(undo.read_text(encoding="utf-8").splitlines()[2])["full_text"] == TEXT
