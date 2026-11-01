@@ -5,9 +5,45 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sat, 31 Oct 2026 22:07:06 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 01 Nov 2026 10:24:16 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>bs_appellationsgericht AUS.2026.97 vom 2026-10-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bs_appellationsgericht_AG.2026.667</link>
+      <description>Appellationsgericht
+
+des Kantons Basel-Stadt
+
+als Verwaltungsgericht
+
+Einzelrichter für Zwangsmassnahmen im Ausländerrecht
+
+AUS.2026.97
+
+URTEIL
+
+vom 30.
+Oktober 2026
+
+Beteiligte
+
+Migrationsamt des Kantons
+Basel-Stadt,
+
+Spiegelgasse 12, Postfach, 40…</description>
+      <pubDate>Sat, 31 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">bs_appellationsgericht_AG.2026.667</guid>
+      <category>bs_appellationsgericht</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht E-5384/2026 vom 2026-10-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5384_2026</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Sat, 31 Oct 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-5384.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesverwaltungsgericht E-5533/2025 vom 2026-10-22</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-5533_2025</link>
@@ -1089,67 +1125,6 @@ Schweiz…</description>
       <pubDate>Fri, 30 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">bs_sozialversicherungsgericht_SVG.2026.182</guid>
       <category>bs_sozialversicherungsgericht</category>
-    </item>
-    <item>
-      <title>bs_sozialversicherungsgericht IV.2025.139 vom 2026-04-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bs_sozialversicherungsgericht_SVG.2026.174</link>
-      <description>Sozialversicherungsgericht
-
-des Kantons Basel-Stadt
-
-URTEIL
-
-vom 30.
-April 2026
-
-Mitwirkende
-
-lic. iur. R. Schnyder (Vorsitz), P.
-Kaderli , Dr. phil. N. Bechtel
-
-und
-Gerichtsschreiber Dr. iur. M. Kreis
-
-Parteien
-
-A____
-
-[...]
-
-Beschwerdeführer
-
-IV…</description>
-      <pubDate>Fri, 30 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">bs_sozialversicherungsgericht_SVG.2026.174</guid>
-      <category>bs_sozialversicherungsgericht</category>
-    </item>
-    <item>
-      <title>bs_appellationsgericht AUS.2026.96 vom 2026-10-28</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bs_appellationsgericht_AG.2026.660</link>
-      <description>Appellationsgericht
-
-des Kantons Basel-Stadt
-
-als Verwaltungsgericht
-
-Einzelrichter für Zwangsmassnahmen im Ausländerrecht
-
-AUS.2026.96
-
-URTEIL
-
-vom 28.
-Oktober 2026
-
-Beteiligte
-
-Migrationsamt des Kantons
-Basel-Stadt,
-
-Spiegelgasse 12, Postfach, 40…</description>
-      <pubDate>Thu, 29 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">bs_appellationsgericht_AG.2026.660</guid>
-      <category>bs_appellationsgericht</category>
     </item>
   </channel>
 </rss>
