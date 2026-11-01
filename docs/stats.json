@@ -2699,7 +2699,7 @@
     "2026-09": 2455,
     "2026-10": 651
   },
-  "generated_at": "2026-11-01T10:17:55.814968+00:00",
+  "generated_at": "2026-11-01T19:57:51.704396+00:00",
   "scraper_health": {
     "run_at": "2026-11-01T01:58:26.652067+00:00",
     "run_duration_s": 3445.5,
@@ -3195,7 +3195,7 @@
         "note": "1 listed on portal but content not downloadable (empty page or missing PDF)",
         "state_count": 1203,
         "jsonl_size_mb": 42.3,
-        "jsonl_mtime": "2026-11-01T01:14:35.334698+00:00"
+        "jsonl_mtime": "2026-11-01T10:25:00.213878+00:00"
       },
       "nw_gerichte": {
         "success": true,
@@ -3331,7 +3331,7 @@
         "note": null,
         "state_count": 1648,
         "jsonl_size_mb": 33.1,
-        "jsonl_mtime": "2026-11-01T01:20:49.264075+00:00"
+        "jsonl_mtime": "2026-11-01T10:26:26.476283+00:00"
       },
       "sz_gerichte": {
         "success": true,
@@ -3756,7 +3756,7 @@
         "note": null,
         "state_count": 7825,
         "jsonl_size_mb": 195.4,
-        "jsonl_mtime": "2026-11-01T01:46:32.018422+00:00"
+        "jsonl_mtime": "2026-11-01T10:54:39.161391+00:00"
       },
       "sg_publikationen": {
         "success": true,
@@ -3824,7 +3824,7 @@
         "note": null,
         "state_count": 58389,
         "jsonl_size_mb": 268.3,
-        "jsonl_mtime": "2026-11-01T01:58:26.577483+00:00"
+        "jsonl_mtime": "2026-11-01T10:51:26.431663+00:00"
       }
     },
     "run_at_daily": "2026-11-01T01:58:26.652067+00:00",
@@ -3880,25 +3880,25 @@
       "ZH": 135
     },
     "commentaries": 1194,
-    "scholarship_publications": 49269,
+    "scholarship_publications": 51892,
     "scholarship_by_source": {
       "zora_law": 14097,
-      "boris_law": 7625,
-      "unige_law": 6554,
-      "alexandria_law": 3117,
-      "zhaw_digitalcollection": 3103,
+      "boris_law": 7627,
+      "unige_law": 6562,
+      "alexandria_law": 5672,
+      "zhaw_digitalcollection": 3128,
       "e_periodica_polsci": 3098,
       "e_periodica_law": 3041,
-      "libra_unine": 2027,
+      "libra_unine": 2028,
       "eth_research_collection": 1817,
       "e_periodica_pubadmin": 857,
       "unifr_law": 794,
-      "fhnw_irf": 512,
-      "edoc_unibas_law": 442,
-      "onlinekommentar": 392,
+      "fhnw_irf": 513,
+      "edoc_unibas_law": 466,
+      "onlinekommentar": 398,
       "sui_generis": 296,
       "medialex": 282,
-      "eizpublishing": 275,
+      "eizpublishing": 276,
       "leges": 210,
       "ex_ante": 186,
       "thegoodboard": 140,
@@ -3911,24 +3911,24 @@
       "usi_law": 8
     },
     "scholarship_by_type": {
-      "article": 33639,
-      "book": 11866,
-      "dissertation": 2255,
-      "report": 665,
-      "commentary": 520,
+      "article": 35361,
+      "book": 12750,
+      "dissertation": 2257,
+      "report": 674,
+      "commentary": 526,
       "working_paper": 199,
       "guidance": 70,
       "reference_article": 40,
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 10020412,
-    "statute_edges": 12728298
+    "citation_edges": 10020910,
+    "statute_edges": 12728801
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 111518,
+      "citation_count": 111529,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
@@ -3946,17 +3946,17 @@
       "de_pct": 46.5,
       "fr_pct": 45.0,
       "it_pct": 8.5,
-      "total": 1068055
+      "total": 1068089
     },
     "regeste_coverage": {
       "pct": 37.9,
-      "with_regeste": 406811,
-      "total": 1074228
+      "with_regeste": 406816,
+      "total": 1074262
     },
     "graph_size": {
-      "decision_edges": 9456952,
-      "statute_edges": 12728298,
-      "total": 22185250
+      "decision_edges": 9488318,
+      "statute_edges": 12728801,
+      "total": 22217119
     },
     "echr_switzerland": {
       "total": 1535,
@@ -3973,31 +3973,31 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 111518,
+        "citation_count": 111529,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 58495,
+        "citation_count": 58496,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39845,
+        "citation_count": 39852,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
       {
         "docket": "126 V 75",
-        "citation_count": 35933,
+        "citation_count": 35934,
         "regeste_excerpt": "Regeste\n Art. 28 Abs. 2 IVG: Kürzung von Tabellenlöhnen. - Für die Bestimmung des Invalideneinkommens ist primär von der beruflich-erwerblichen Situation auszug",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_126 V 75"
       },
       {
         "docket": "130 V 343",
-        "citation_count": 34798,
+        "citation_count": 34801,
         "regeste_excerpt": "Regeste\n Art. 1 Abs. 1 IVG (in der seit 1. Januar 2003 geltenden Fassung) in Verbindung mit Art. 6, 7, 8 Abs. 1, Art. 16 und 17 ATSG; Art. 4 Abs. 1, Art. 28 Abs",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_130 V 343"
       }
@@ -4021,7 +4021,7 @@
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98475
+        "ref_count": 98496
       },
       {
         "law_code": "BGG",
@@ -4772,7 +4772,10 @@
       "ZH": 21,
       "BS": 1
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 498,
+      "statute_edges": 503
+    },
     "previous_generated_at": "2026-10-31T21:58:51.751741+00:00"
   }
 }
