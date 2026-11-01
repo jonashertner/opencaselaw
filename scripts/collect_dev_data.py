@@ -45,6 +45,10 @@ from pathlib import Path
 log = logging.getLogger("collect_dev_data")
 
 REPO = Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+from metric_tools import UNKNOWN_TOOL, metric_tool_name  # noqa: E402
 
 # Keys that must never appear in an exported record, at any nesting depth.
 FORBIDDEN_KEYS = {"ip", "client_ip", "remote_addr", "user_id", "session_id",
@@ -86,6 +90,62 @@ def _scan(obj, path="$"):
         for i, v in enumerate(obj[:50]):
             hits.extend(_scan(v, f"{path}[{i}]"))
     return hits
+
+
+# The per-tool counters _get_metrics() writes under `tools`. They add up;
+# avg_ms and the percentiles do not, so a folded bucket carries no latency.
+_TOOL_COUNTS = ("calls", "errors", "substantive", "empty",
+                "outcome_declared", "outcome_from_status")
+_TOOL_STAT_KEYS = {*_TOOL_COUNTS, "avg_ms", "p50_ms", "p95_ms", "empty_reasons"}
+
+
+def _is_tool_stats(stats) -> bool:
+    """True only for exactly what _get_metrics() writes for one tool: known
+    counters holding numbers, and empty_reasons mapping text to a count."""
+    if not isinstance(stats, dict) or not stats.keys() <= _TOOL_STAT_KEYS:
+        return False
+    reasons = stats.get("empty_reasons", {})
+    return (isinstance(reasons, dict)
+            and all(isinstance(n, (int, float)) for n in reasons.values())
+            and all(isinstance(v, (int, float))
+                    for k, v in stats.items() if k != "empty_reasons"))
+
+
+def _fold_unknown_tools(rec: dict) -> dict:
+    """Give a daily_metrics record the shape the server writes now: counts
+    under a name off the metric_tools list move into UNKNOWN_TOOL, and the
+    name is dropped.
+
+    Lines written before the server bucketed these names still hold whatever
+    a client put in a URL, and a worker keeps writing them until it restarts,
+    so `tools.email` from one request to /api/email would otherwise abort every run
+    while such a line sits in the window. _scan does not change. Only a value
+    of the exact counter shape folds, and its empty_reasons keys land in the
+    bucket where the scan still reads them; any other value stays where it
+    is, so `tools.ip = "1.2.3.4"` or an identifier nested under an unknown
+    name still aborts.
+    """
+    tools = rec.get("tools")
+    if not isinstance(tools, dict):
+        return rec
+    strays = {name: stats for name, stats in tools.items()
+              if name != UNKNOWN_TOOL
+              and metric_tool_name(name) == UNKNOWN_TOOL
+              and _is_tool_stats(stats)}
+    bucket = tools.get(UNKNOWN_TOOL, {})
+    if not strays or not _is_tool_stats(bucket):
+        return rec
+    bucket = dict(bucket)
+    reasons = dict(bucket.get("empty_reasons", {}))
+    for stats in strays.values():
+        for key in _TOOL_COUNTS:
+            bucket[key] = bucket.get(key, 0) + stats.get(key, 0)
+        for reason, count in stats.get("empty_reasons", {}).items():
+            reasons[reason] = reasons.get(reason, 0) + count
+    bucket["empty_reasons"] = reasons
+    kept = {name: stats for name, stats in tools.items()
+            if name not in strays}
+    return {**rec, "tools": {**kept, UNKNOWN_TOOL: bucket}}
 
 
 class Collector:
@@ -222,12 +282,14 @@ class Collector:
         # Daily metrics: aggregate counters incl. outcome provenance.
         self._write_jsonl_gz(
             "daily_metrics",
-            self._read_jsonl(
+            [_fold_unknown_tools(r) for r in self._read_jsonl(
                 REPO / "output" / "research_logs" / "daily_metrics.jsonl",
-                since=yesterday),
+                since=yesterday)],
             "Periodic `_get_metrics()` snapshots: per-tool calls, errors, "
             "latency percentiles, substantive/empty outcomes, "
             "outcome_declared vs outcome_from_status, empty_reasons. "
+            "Calls under a name that is no known tool (scanner paths, "
+            "invented tool names) are counted in `_unknown`. "
             "Aggregates only; no query content, no identifiers.")
 
         # LLM spend: cost per feature, no prompt/completion text.

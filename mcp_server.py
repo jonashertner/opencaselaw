@@ -237,6 +237,7 @@ from db_schema import SCHEMA_SQL, INSERT_OR_IGNORE_SQL, INSERT_COLUMNS  # noqa: 
 import appeal_refs  # noqa: E402  (the court's appeal note, read from json_data)
 import docket_aliases  # noqa: E402  (joined-docket resolution, issue #41)
 import decision_suppression  # noqa: E402  (host-local privacy takedowns, served at once)
+from metric_tools import metric_tool_name  # noqa: E402
 import reference_parser
 import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; honest not-found reasons)
 import source_defects  # references whose stored text is another ruling's
@@ -2526,7 +2527,9 @@ _SESSION_LOG_MAX = 2000  # cap to prevent memory growth
 
 
 def _record_tool_call(name: str, duration_ms: float, *, error: bool = False):
-    """Record a tool invocation for metrics."""
+    """Record a tool invocation for metrics. The name is client-chosen on
+    every path here, see metric_tools."""
+    name = metric_tool_name(name)
     _metrics["tool_calls"][name] += 1
     # Store individual latencies for percentile calc (cap at 500 per tool)
     lat_list = _metrics["tool_latency_ms"][name]
@@ -2661,7 +2664,7 @@ def _record_tool_outcome(name: str, outcome: str) -> None:
     """Count one labelled outcome. Never raises: telemetry must not be able
     to fail a request that already produced a good answer."""
     try:
-        _metrics["tool_outcomes"][name][outcome] += 1
+        _metrics["tool_outcomes"][metric_tool_name(name)][outcome] += 1
     except Exception:                                   # pragma: no cover
         pass
 
@@ -2674,7 +2677,7 @@ def _record_outcome_source(name: str, source: str) -> None:
     measured and how much is assumed.
     """
     try:
-        _metrics["outcome_sources"][name][source] += 1
+        _metrics["outcome_sources"][metric_tool_name(name)][source] += 1
     except Exception:                                   # pragma: no cover
         pass
 
@@ -2687,7 +2690,7 @@ def _record_empty_reason(name: str, reason: str) -> None:
     only the reason says what to fix.
     """
     try:
-        _metrics["empty_reasons"][name][reason[:48]] += 1
+        _metrics["empty_reasons"][metric_tool_name(name)][reason[:48]] += 1
     except Exception:                                   # pragma: no cover
         pass
 

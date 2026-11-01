@@ -104,6 +104,7 @@ py-modules = [
     "integrity",
     "law_widget",
     "mcp_server",
+    "metric_tools",
     "models",
     "pipeline",
     "proceeding_map",

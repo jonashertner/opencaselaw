@@ -58,14 +58,14 @@ def test_mark_outcome_never_raises():
 
 
 def test_counters_record_source_and_reason():
-    before_src = dict(m._metrics["outcome_sources"]["t_test"])
-    m._record_outcome_source("t_test", "declared")
-    m._record_outcome_source("t_test", "status")
-    m._record_empty_reason("t_test", "filters_excluded_all")
-    src = m._metrics["outcome_sources"]["t_test"]
+    before_src = dict(m._metrics["outcome_sources"]["cite"])
+    m._record_outcome_source("cite", "declared")
+    m._record_outcome_source("cite", "status")
+    m._record_empty_reason("cite", "filters_excluded_all")
+    src = m._metrics["outcome_sources"]["cite"]
     assert src["declared"] == before_src.get("declared", 0) + 1
     assert src["status"] == before_src.get("status", 0) + 1
-    assert m._metrics["empty_reasons"]["t_test"]["filters_excluded_all"] >= 1
+    assert m._metrics["empty_reasons"]["cite"]["filters_excluded_all"] >= 1
 
 
 def test_recorders_never_raise():
@@ -88,10 +88,10 @@ def test_status_fallback_counts_rejections_as_unanswered():
 
 def test_metrics_expose_provenance():
     """A reader must be able to tell measured from assumed."""
-    m._record_tool_call("t_prov", 1.0, error=False)
-    m._record_tool_outcome("t_prov", "substantive")
-    m._record_outcome_source("t_prov", "status")
-    stats = m._get_metrics()["tools"]["t_prov"]
+    m._record_tool_call("cite", 1.0, error=False)
+    m._record_tool_outcome("cite", "substantive")
+    m._record_outcome_source("cite", "status")
+    stats = m._get_metrics()["tools"]["cite"]
     for key in ("substantive", "empty", "outcome_declared",
                 "outcome_from_status", "empty_reasons"):
         assert key in stats, key

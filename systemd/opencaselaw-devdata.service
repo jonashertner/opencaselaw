@@ -3,6 +3,7 @@ Description=OpenCaseLaw dev-data collection into the private data repo
 # After the nightly pipeline's usual exit; the collector is read-only
 # against production files and light, but there is no reason to overlap.
 After=network-online.target
+OnFailure=ntfy-alert@%n.service
 
 [Service]
 Type=oneshot
