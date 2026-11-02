@@ -126,6 +126,16 @@ def test_autoban_unit_loads_the_operator_topic():
     assert "EnvironmentFile=-/opt/caselaw/ops.env" in conf.read_text(encoding="utf-8")
 
 
+def test_failure_alert_template_uses_the_operator_topic():
+    script = (REPO / "scripts/install_smoke_timer.sh").read_text(encoding="utf-8")
+    template = script.split("ntfy-alert@.service <<EOF\n")[1].split("\nEOF")[0]
+    assert template.index("-/opt/caselaw/ops.env") < template.index("ntfy-alert-%i.env")
+    assert "/bin/sh -c" in template  # without a shell, systemd posts "$(date)" literally
+    assert r"\$\$(date -Is)" in template
+    assert r"\$\${NTFY_TOPIC:?" in template
+    assert "ntfy.sh/$NTFY_TOPIC" not in template
+
+
 def test_no_alert_script_names_the_old_public_topic_as_its_target():
     for rel in ("publish.py", "suggestions.py", "scripts/publish_failure_alert.py",
                 "scripts/dispatch_health_alerts.py", "scripts/autoban_harvesters.py"):

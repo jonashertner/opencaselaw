@@ -41,16 +41,20 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-# Generic ntfy alert template — reused by Step 6b health check too.
-mkdir -p /etc/systemd/system/ntfy-alert@.service.d
+# Generic ntfy alert template — reused by Step 6b health check too. Every unit
+# alerts on the operator topic from ops.env; the per-instance file overrides it,
+# which keeps the smoke probe's I/O-pressure failures off that channel.
+mkdir -p /etc/systemd/system/ntfy-alert@.service.d /etc/opencaselaw
+echo "NTFY_TOPIC=$NTFY_TOPIC" >/etc/opencaselaw/ntfy-alert-opencaselaw-smoke.service.env
 cat >/etc/systemd/system/ntfy-alert@.service <<EOF
 [Unit]
 Description=Send ntfy alert for failure of %i
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/curl -sS -d "Service \$(systemd-escape -u %i) failed at \$(date -Is)" \\
-  https://ntfy.sh/$NTFY_TOPIC
+EnvironmentFile=-/opt/caselaw/ops.env
+EnvironmentFile=-/etc/opencaselaw/ntfy-alert-%i.env
+ExecStart=/bin/sh -c '/usr/bin/curl -sS -m 20 -d "Service %i failed at \$\$(date -Is)" "https://ntfy.sh/\$\${NTFY_TOPIC:?NTFY_TOPIC not set}"'
 EOF
 
 mkdir -p /var/log/opencaselaw-smoke
