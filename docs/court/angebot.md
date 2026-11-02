@@ -32,7 +32,7 @@ Ob ein Entscheid die Aussage trägt, ob die Praxis seither geändert wurde und o
 | Entscheide, 1875 bis heute, 118 Gerichte | 1,07 Mio. |
 | Erwägungen mit Nummerierung erschlossen | 76 % der Entscheide; Bundesgericht 88 %, Obergericht Zürich 96 % |
 | Bundeserlasse (Fedlex) | 5'500 |
-| Kantonale Erlasse | 15'600 |
+| Kantonale Erlasse | 16'400 |
 | Lokales Prüfpaket, wöchentlich erneuert | ca. 9 GB |
 
 Daten und Code sind offen (CC0 und MIT). Das Gericht kann beides jederzeit selbst prüfen und weiterverwenden.

@@ -7757,7 +7757,7 @@ def get_materialien(law_code: str, article: str | None = None,
                     f"No digest and no linked Federal Council message for {where}"
                     + (" — only the AS/BBl amendment references below."
                        if amendment_refs else ".")
-                    + " search_botschaft runs full-text over all 10,100+ Federal "
+                    + " search_botschaft runs full-text over all 14,600+ Federal "
                       "Council messages, the other Bundesblatt Materialien and the "
                       "Vernehmlassung documents, and is the better tool when an "
                       "article has no link."
@@ -7913,7 +7913,7 @@ def search_materialien(
             out["note"] = (
                 "No hit in the curated digest, which covers only BV and BGFA. "
                 "This is a coverage limit, not an absence of materials: use "
-                "search_botschaft for full-text search across all 10,100+ Federal "
+                "search_botschaft for full-text search across all 14,600+ Federal "
                 "Council messages, the other Bundesblatt Materialien and the "
                 "Vernehmlassung documents, or "
                 "get_materialien(law_code) for the messages linked to a "
@@ -14939,12 +14939,12 @@ server = Server(
         "translations, HUDOC.CH) plus every ECtHR Chamber and Grand Chamber "
         "judgment of importance 1-3 against any of the 46 respondent states, "
         "in French or English, "
-        "5,525 federal laws (Fedlex SPARQL), 15,600 cantonal laws (direct "
-        "portal scraping for 19 cantons + LexFind fallback for the rest), "
+        "5,525 federal laws (Fedlex SPARQL), 16,400 cantonal laws (direct "
+        "portal scraping for 23 cantons + LexFind for JU, SZ, VD and ZH's gaps), "
         "1,100+ scholarly commentaries, verbatim federal Materialien — "
-        "19,800+ Bundesblatt documents (Federal Council Botschaften, Berichte "
+        "28,100+ Bundesblatt documents (Federal Council Botschaften, Berichte "
         "and Stellungnahmen, parliamentary committee reports, Erlassentwürfe; "
-        "complete since 1999, 1850-1999 being added; ~1.65M paragraphs) and "
+        "complete since 1999, 1850-1999 being added; ~2.88M paragraphs) and "
         "2,694 Vernehmlassungen since 1993 with 10,296 documents (Erläuternde "
         "Berichte, Vorlagen, Ergebnisberichte, Stellungnahmen), via "
         "search_botschaft and get_materialien — "
@@ -31775,7 +31775,7 @@ def _list_tools() -> list[Tool]:
                 "means 'outside this index', not 'no materials exist'. Each hit names its "
                 "source message (bbl_ref, title, publication_date from Fedlex where "
                 "available, with `publication_date_source`). "
-                "Prefer search_botschaft, which covers all 10,100+ Federal Council messages "
+                "Prefer search_botschaft, which covers all 14,600+ Federal Council messages "
                 "plus Berichte, Stellungnahmen, committee reports, Erlassentwürfe and the "
                 "Vernehmlassung documents (Erläuternde Berichte, Ergebnisberichte) "
                 "verbatim (filter by doc_type), or get_materialien(law_code) for the "
@@ -34968,7 +34968,7 @@ setInterval(load, 30000);
         description=(
             "Swiss court decisions, statutes, commentaries, scholarship, and citation graph. "
             "1,050,000+ published decisions from Swiss federal, cantonal, and regulatory bodies, "
-            "5,525 federal laws, 15,600 cantonal acts, 1,100+ commentaries, 44,000+ OA scholarship records."
+            "5,525 federal laws, 16,400 cantonal acts, 1,100+ commentaries, 44,000+ OA scholarship records."
         ),
         version="1.0.0",
         docs_url="/docs",

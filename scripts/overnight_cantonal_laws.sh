@@ -81,7 +81,7 @@ echo "=== Sanity check ==="
 laws=$(python3 -c "import sqlite3;print(sqlite3.connect('file:$DB_OUT?mode=ro',uri=True).execute('SELECT count(*) FROM laws').fetchone()[0])")
 echo "  laws: $laws"
 if [ "$laws" -lt 14000 ] || [ "$laws" -gt 18000 ]; then
-    echo "  ABORT: expected ~15,600 laws — not swapping workers onto this DB."
+    echo "  ABORT: expected ~16,400 laws — not swapping workers onto this DB."
     exit 1
 fi
 

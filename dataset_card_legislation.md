@@ -32,7 +32,7 @@ configs.
   Public domain.
 - **`cantonal`** (`cantonal/<canton>.parquet`, one shard per canton) — 349,704
   article rows across all 26 cantons. Sourced by direct scraping of the official
-  cantonal law portals for 19 cantons, with LexFind as fallback for the rest.
+  cantonal law portals for 23 cantons, with LexFind for JU, SZ, VD and ZH's gaps.
   The `text_source` column preserves this provenance per row.
 
 ## Why private
