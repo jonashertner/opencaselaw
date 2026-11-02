@@ -29,16 +29,28 @@ update all listed consumers in the same commit.
 | Cantons | 26 | 26 | constant | all |
 | Languages | DE 449,575 (46.3 %), FR 441,158 (45.4 %), IT 80,704 (8.3 %) | same | corpus_overview.tex | paper §3, methodology.html |
 | Date range | 1875–2026 | 1875–2026 | constant | all |
+| `ch_vb` rows | — | **22,916** = 2,502 VPB/JAAC + 20,414 restored pages | `stats.json::by_court` (split: see below) | README.md, coverage_notes.json, coverage page, stats page, mcp_server.py instructions |
 | Snapshot date (paper) | **2026-05-13** | — | `corpus_graph_stats.json::snapshot_date` | paper, methodology.html date references |
 
 **Record vs. unique (cross-identifier dual-count):** the live corpus is a RECORD
 count (`decisions.db` rows). Romandie portals (GE, VD) and a few smaller sources
-(ch_vb, nw, edoeb, ur) publish one ruling under two identifiers, so ~141k rows are
+(ch_vb, nw, edoeb, ur) carry one document under two identifiers, so ~141k rows are
 duplicate representations that we retain and link (never delete). Live figures:
 **~1.05M records → ~909k unique decisions** (`stats.json::unique_decisions`,
 generation-tracked via `representation_manifest.db`). Public surfaces state both;
 the paper snapshot predates this and reports the record count only. See
 `docs/superpowers/specs/2026-07-15-cross-identifier-representations-design.md`.
+
+**`ch_vb` is two sets, always named apart.** The VPB/JAAC series (2,502 rulings and
+legal opinions, 1987–2017, cited as `VPB <number>`) and the Bundesblatt, Amtliches
+Bulletin and Amtliche Sammlung pages restored on 2026-10-31 (shard census 12,261
+BBl, 7,091 AB, 833 AS, 238 small series = 20,423 rows; 20,414 after the build).
+The restored pages are not rulings: dates unreliable, all tagged `language=de` though
+many are French or Italian, cited as `Bundesverwaltung <docket>`. Never write ~23k
+VPB, and never say this material is not in the corpus. The swap took the total
+from 1,053,732 to 1,074,228, and these pages count in records and unique decisions
+alike. Live 2026-11-01: 1,074,262 records, 933,478 unique; the ~1.05M / ~909k
+headline values above date from the 2026-07-24 sweep and were not re-swept here.
 
 ### Citation graph
 

@@ -14800,8 +14800,12 @@ server = Server(
         "concluding observations, UPR recommendations with Switzerland's position, "
         "SPT and special-procedure reports; source='un_uhri', EN/FR), the treaty bodies' "
         "General Comments and General Recommendations (source='un_gc', FR/EN) — via "
-        "search_practice / get_practice, plus the VPB/JAAC series 1987–2017 (2,500 rulings and "
-        "legal opinions of the federal administration, full text) under court='ch_vb', "
+        "search_practice / get_practice, plus, under court='ch_vb', two separate sets: the VPB/JAAC "
+        "series 1987–2017 (2,502 rulings and legal opinions of the federal administration, full "
+        "text, cited as VPB <number>) and ~20,400 archived pages of the Bundesblatt, the Amtliches "
+        "Bulletin 1982–1999 and the Amtliche Sammlung, which are not rulings: their dates are "
+        "unreliable, all are tagged language=de though many are French or Italian, and they cite "
+        "as 'Bundesverwaltung <docket>', "
         "44,000+ open-access scholarship records from 24 Swiss legal sources "
         "(thousands with full-text — see find_scholarship_citing_decision and "
         "find_scholarship_citing_statute for the bidirectional bridge), "
@@ -15068,6 +15072,9 @@ server = Server(
         "• 'WEL / KSIH / RWL / AVIG-Praxis / Handbuch Asyl / Existenzminimum-Richtlinien?' → search_practice\n"
         "• 'circulaire / directive / istruzioni / circolare?'      → search_practice\n"
         "• 'Verwaltungspraxis des Bundes vor 2018 (VPB/JAAC)?'     → search_decisions(court='ch_vb')\n"
+        "• 'Amtliches Bulletin 1982–1999 / alte Bundesblatt- oder AS-Seiten?' → search_decisions(court='ch_vb')\n"
+        "     with no language filter (Botschaften: search_botschaft first). A 'Bundesverwaltung <docket>' citation\n"
+        "     marks such a page, not a ruling, and its date is unreliable (7 VPB rows without a number print the same)\n"
         "• 'What did the UN (CAT, CCPR, CRC, UPR …) recommend to Switzerland on X?' /\n"
         "  'UNO-Empfehlungen an die Schweiz?' → search_practice(source='un_uhri'); the committees'\n"
         "     decisions on individual complaints are search_decisions(court='untb_*')\n"
@@ -16085,9 +16092,9 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
         }
 
     # VPB/JAAC/GAAC: the series title of each language and the item number,
-    # 'VPB 64.104 vom 17. Mai 2000'. A row still carrying its portal id as
-    # docket (no item number on record) is labelled by its author, the federal
-    # administration, never 'Gericht'.
+    # 'VPB 64.104 vom 17. Mai 2000'. A row with no item number on record (7 VPB
+    # rows on a portal id, every restored Bundesblatt / Bulletin / Sammlung page)
+    # is labelled 'Bundesverwaltung', never 'Gericht'.
     if court == "ch_vb":
         reliable = _citation_date_reliable(decision_date)
         m = _VPB_DOCKET_RE.match(docket)

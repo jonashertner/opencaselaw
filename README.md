@@ -1164,7 +1164,8 @@ Full 34-field Parquet export schema: [`export_parquet.py`](export_parquet.py)
 | Federal Supreme Court (BGer) | `bger` | ~173,000 | 1996–present | bger.ch |
 | BGE Leading Cases | `bge` | ~45,000 | 1954–present | bger.ch CLIR |
 | Federal Administrative Court (BVGer) | `bvger` | ~91,000 | 2007–present | bvger.ch |
-| Federal Admin. Practice (VPB) | `ch_vb` | ~2,500 | 1987–2017 | amtsdruckschriften.bar.admin.ch (Bundesarchiv; frozen, the series ended 2018) |
+| Federal Admin. Practice (VPB/JAAC) | `ch_vb` | 2,502 | 1987–2017 | amtsdruckschriften.bar.admin.ch (Bundesarchiv; frozen, the series ended 2018) |
+| Bundesblatt, Amtliches Bulletin and Amtliche Sammlung pages (not rulings: dates unreliable, all tagged `language=de` though many are French or Italian, cited as "Bundesverwaltung &lt;docket&gt;") | `ch_vb` | ~20,400 | mixed | same archive (frozen; restored 2026-10-31) |
 | Federal Criminal Court (BStGer) | `bstger` | ~11,000 | 2004–present | bstger.weblaw.ch |
 | EDÖB (Data Protection) | `edoeb` | ~1,200 | 1994–present | edoeb.admin.ch |
 | FINMA | `finma` | ~1,200 | 2008–2024 | finma.ch |
