@@ -17,8 +17,11 @@ description ("for a topic or statute") against a parameter called `query`
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
@@ -85,3 +88,67 @@ def test_an_unknown_tool_is_not_second_guessed():
 def test_normalisation_survives_odd_input():
     assert m._normalise_tool_args("search_decisions", None) == []
     assert m._prepend_arg_warning([], "search_decisions", ["x"]) == []
+
+
+@pytest.mark.parametrize("arg", ["law", "law_code", "statute"])
+def test_the_act_reaches_get_law_under_any_name_callers_use(arg):
+    args = {arg: "ZGB", "article": "28"}
+    assert m._normalise_tool_args("get_law", args) == []
+    assert args == {"abbreviation": "ZGB", "article": "28"}
+
+
+def test_a_get_law_alias_never_overwrites_an_explicit_abbreviation():
+    args = {"law": "ZGB", "abbreviation": "OR"}
+    assert m._normalise_tool_args("get_law", args) == ["law"]
+    assert args["abbreviation"] == "OR"
+
+
+def _outcome_record(tmp_path):
+    lines = next(tmp_path.glob("capture_*.jsonl")).read_text().splitlines()
+    return next(r for r in map(json.loads, lines) if r["src"] == "outcome")
+
+
+@pytest.mark.asyncio
+async def test_a_get_law_miss_is_labelled_empty_not_answered(tmp_path, monkeypatch):
+    """Live: `law_id` was dropped, the act never arrived, and the reply
+    "Provide sr_number or abbreviation." was counted as substantive."""
+    monkeypatch.setattr(m, "_RESEARCH_LOG_DIR", tmp_path)
+    monkeypatch.setattr(m, "_FULL_CAPTURE", True)
+    monkeypatch.setattr(m, "get_law",
+                        lambda **kw: {"error": "Provide sr_number or abbreviation."})
+
+    result = await m._dispatch_with_timeout("get_law", {"law_id": "ZGB", "article": "28"})
+
+    assert _response_text_starts_with_note(result)
+    rec = _outcome_record(tmp_path)
+    assert rec["outcome"] == "empty"
+    assert rec["unknown_args"] == ["law_id"]
+
+
+def _response_text_starts_with_note(result):
+    return m._response_text(result).startswith("NOTE: ignored unrecognised")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload, outcome, ids", [
+    ({"error": "no such filter"}, "empty", []),
+    ({"results": [{"decision_id": "bge_140 III 86"}]}, "substantive", ["bge_140 III 86"]),
+])
+async def test_the_note_cannot_change_how_an_answer_is_recorded(
+        tmp_path, monkeypatch, payload, outcome, ids):
+    """The note makes a JSON answer unparseable, so it goes on last."""
+    from mcp.types import TextContent
+    monkeypatch.setattr(m, "_RESEARCH_LOG_DIR", tmp_path)
+    monkeypatch.setattr(m, "_FULL_CAPTURE", True)
+
+    async def _answer(name, arguments):
+        return [TextContent(type="text", text=json.dumps(payload))]
+
+    monkeypatch.setattr(m, "_handle_call_tool_inner", _answer)
+    result = await m._dispatch_with_timeout("search_decisions",
+                                            {"query": "x", "legal_area": "Mietrecht"})
+
+    assert _response_text_starts_with_note(result)
+    rec = _outcome_record(tmp_path)
+    assert rec["outcome"] == outcome
+    assert rec["returned_ids"] == ids

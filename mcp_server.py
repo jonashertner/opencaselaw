@@ -2628,6 +2628,11 @@ def _classify_outcome(result) -> str:
     caller asked and we had nothing, which is a coverage question rather
     than a failure.
     """
+    # A research tool hands its dictionary back beside the text, and a miss
+    # worded "Provide sr_number or abbreviation." has no marker to find.
+    if (isinstance(result, tuple) and len(result) > 1
+            and isinstance(result[1], dict) and result[1].get("error")):
+        return "empty"
     text = _response_text(result).strip()
     if not text:
         return "empty"
@@ -32098,6 +32103,9 @@ def _deep_research_fetch(doc_id: str) -> dict:
 _TOOL_ARG_ALIASES: dict[str, dict[str, str]] = {
     "find_leading_cases": {"topic": "query"},
     "get_decision": {"include_full_text": "full_text"},
+    # Callers name the act ("ZGB", "BV") under these about 1,700 times a week.
+    "get_law": {"law": "abbreviation", "law_code": "abbreviation",
+                "statute": "abbreviation"},
 }
 
 _declared_args_cache: dict[str, set] | None = None
@@ -32287,8 +32295,6 @@ async def _dispatch_with_timeout(name: str, arguments: dict):
             _handle_call_tool_inner(name, arguments),
             timeout=_timeout,
         )
-        result = _prepend_arg_warning(
-            result, _TOOL_NAME_ALIASES.get(name, name), _unknown)
         # Single choke point for every MCP tool: label whether the call
         # actually answered. _handle_call_tool_inner's own finally has
         # already counted the call and any exception; it cannot see the
@@ -32300,7 +32306,10 @@ async def _dispatch_with_timeout(name: str, arguments: dict):
         # rather than a request whose answer nobody kept.
         _capture_outcome(name, _outcome, _started, result=result,
                          unknown=_unknown)
-        return result
+        # Last: the note makes a JSON answer unparseable, so a miss read
+        # after it would count as substantive and lose its ids.
+        return _prepend_arg_warning(
+            result, _TOOL_NAME_ALIASES.get(name, name), _unknown)
     except (asyncio.TimeoutError, _LaneDeadlineExpired):
         logger.warning(
             "tool dispatch aborted: %s exceeded %ss server-side timeout (load/backlog)",
