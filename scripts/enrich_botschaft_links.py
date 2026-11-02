@@ -20,10 +20,19 @@ JOLUX graph:
     Consolidated work (cc/...)
         ↔ statutes.db.work_uri ↔ sr_number
 
-For each (botschaft, sr_number) pair found this way, every distinct
-``article_anchor`` value already extracted by the parser into
-``botschaft_paragraphs`` becomes a (sr_number, article, botschaft_id)
-link row. Idempotent via INSERT OR IGNORE.
+For each (botschaft, sr_number) pair found this way, the ``article_anchor``
+values the parser extracted into ``botschaft_paragraphs`` become
+(sr_number, article, botschaft_id) link rows. In an XML document they must be
+about that act: a bill explains the articles of several acts, and BBl 2023
+679's comment on Art. 26 VwVG must not link to Art. 26 BEKJ. And a comment
+follows the draft's numbering, which Parliament changes: where the enacted
+heading shows that, the link goes to the enacted article and its evidence keeps
+the document's number (``sparql_parliament_chain:draft_art=40``), which the
+server reads to find the paragraphs (search_stack.article_scope.place_runs).
+A PDF has no reliable outline (any capitalised line reads as a section), so its
+anchors still go to every act of the bill, by the draft's numbers. Each run
+replaces the chain links of the documents it covers, so a link that no longer
+holds goes away; other evidence is left alone.
 
 Usage:
     python3 scripts/enrich_botschaft_links.py
@@ -46,6 +55,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scrapers.fedlex_materialien import (  # noqa: E402
     FGA_DOC_TYPES, fga_type_uri, parse_doc_types,
 )
+from search_stack.article_scope import (  # noqa: E402
+    DRAFT_ARTICLE_EVIDENCE, _law_names_from_row, place_runs,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,6 +66,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("enrich_botschaft_links")
 
+XML_FORMAT = "akoma-ntoso-xml"
 SPARQL_ENDPOINT = "https://fedlex.data.admin.ch/sparqlendpoint"
 SPARQL_HEADERS = {
     "Accept": "application/sparql-results+json",
@@ -109,6 +122,33 @@ def build_cc_to_sr_index(statutes_db: Path) -> dict[str, str]:
     ).fetchall()
     conn.close()
     return {uri: sr for uri, sr in rows if uri}
+
+
+def load_law_names(statutes_db: Path) -> dict[str, tuple[set[str], set[str]]]:
+    """sr_number → (abbreviations, title names) in DE/FR/IT."""
+    conn = sqlite3.connect(f"file:{statutes_db}?mode=ro", uri=True)
+    rows = conn.execute(
+        "SELECT sr_number, abbr_de, abbr_fr, abbr_it, title_de, title_fr, title_it FROM laws"
+    ).fetchall()
+    conn.close()
+    return {r[0]: _law_names_from_row(r[1:]) for r in rows}
+
+
+def load_enacted_headings(statutes_db: Path, srs: set[str]) -> dict[tuple[str, str], dict[str, str]]:
+    """(sr_number, lang) → {article_num: heading}, main body only."""
+    conn = sqlite3.connect(f"file:{statutes_db}?mode=ro", uri=True)
+    out: dict[tuple[str, str], dict[str, str]] = {}
+    for sr, lang, num, heading in conn.execute(
+            "SELECT sr_number, lang, article_num, heading FROM articles WHERE section = ''"):
+        if sr in srs:
+            out.setdefault((sr, lang), {})[num] = heading
+    conn.close()
+    return out
+
+
+def chain_evidence(article: str, anchor: str) -> str:
+    return ("sparql_parliament_chain" if article == anchor
+            else f"sparql_parliament_chain:{DRAFT_ARTICLE_EVIDENCE}{anchor}")
 
 
 def main() -> int:
@@ -196,7 +236,10 @@ def main() -> int:
 
     # 4. Open materialien.db and join (Botschaft, SR) × article_anchor.
     conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    law_names = load_law_names(statutes_path)
+    enacted = load_enacted_headings(statutes_path, {s for v in bot_to_srs.values() for s in v})
 
     # Map URI → list[botschaft_id]. A Botschaft URI shares across DE/FR/IT
     # language versions in materialien.db (eli_uri carries no language
@@ -205,10 +248,13 @@ def main() -> int:
     # mapping is true regardless of which expression we look at — so we
     # insert a link for EACH language version, not just one.
     bot_uri_to_ids: dict[str, list[int]] = {}
-    for bid, uri in conn.execute(
-        "SELECT botschaft_id, eli_uri FROM botschaft_documents"
+    xml_lang: dict[int, str] = {}
+    for bid, uri, fmt, lang in conn.execute(
+        "SELECT botschaft_id, eli_uri, format, language FROM botschaft_documents"
     ):
         bot_uri_to_ids.setdefault(uri, []).append(bid)
+        if fmt == XML_FORMAT:
+            xml_lang[bid] = lang
     log.info(
         f"  → {sum(len(v) for v in bot_uri_to_ids.values())} Botschaft rows "
         f"across {len(bot_uri_to_ids)} distinct URIs in materialien.db"
@@ -219,48 +265,67 @@ def main() -> int:
         "SELECT COUNT(*) FROM article_botschaft_links"
     ).fetchone()[0]
 
-    pending: list[tuple[str, str, int]] = []
+    pending: list[tuple[str, str, int, str]] = []
+    covered: list[int] = []
     skipped_no_id = 0
     skipped_no_anchors = 0
+    out_of_scope = 0
+    renumbered = 0
     for bot_uri, srs in bot_to_srs.items():
         bids = bot_uri_to_ids.get(bot_uri, [])
         if not bids:
             skipped_no_id += 1
             continue
         for bid in bids:
-            anchors = [
-                r[0] for r in conn.execute(
-                    "SELECT DISTINCT article_anchor FROM botschaft_paragraphs "
-                    "WHERE botschaft_id = ? AND article_anchor IS NOT NULL",
-                    (bid,),
-                ).fetchall()
-            ]
-            if not anchors:
+            covered.append(bid)
+            rows = conn.execute(
+                "SELECT article_anchor, section_path, text FROM botschaft_paragraphs "
+                "WHERE botschaft_id = ? AND article_anchor IS NOT NULL "
+                "ORDER BY para_order",
+                (bid,),
+            ).fetchall()
+            if not rows:
                 skipped_no_anchors += 1
                 continue
+            anchors = {r["article_anchor"] for r in rows}
             for sr in srs:
-                for art in anchors:
-                    pending.append((sr, art, bid))
+                if bid in xml_lang:
+                    abbrs, names = law_names.get(sr, (set(), set()))
+                    kept = place_runs(rows, sr, abbrs, names, len(srs) > 1,
+                                      enacted.get((sr, xml_lang[bid]), {}))
+                else:
+                    kept = {a: a for a in anchors}
+                out_of_scope += len(anchors - set(kept.values()))
+                renumbered += sum(1 for art, anchor in kept.items() if art != anchor)
+                pending.extend((sr, art, bid, chain_evidence(art, anchor))
+                               for art, anchor in sorted(kept.items()))
 
     log.info(
         f"  → candidate inserts: {len(pending)} "
-        f"(skipped: no_botschaft_id={skipped_no_id}, no_anchors={skipped_no_anchors})"
+        f"(skipped: no_botschaft_id={skipped_no_id}, no_anchors={skipped_no_anchors}, "
+        f"not_placed={out_of_scope}, renumbered={renumbered})"
     )
 
     if args.dry_run:
         log.info("Dry-run — first 10 candidates:")
-        for sr, art, bid in pending[:10]:
-            log.info(f"  sr={sr}  art={art}  botschaft_id={bid}")
+        for sr, art, bid, evidence in pending[:10]:
+            log.info(f"  sr={sr}  art={art}  botschaft_id={bid}  {evidence}")
         log.info(f"  …and {max(0, len(pending) - 10)} more")
         return 0
 
-    # Bulk insert with INSERT OR IGNORE.
-    log.info("Inserting links (idempotent via INSERT OR IGNORE)…")
+    # Only documents this run saw: a partial SPARQL answer must not wipe the
+    # links of the documents it left out.
+    log.info("Replacing the chain links of the covered documents…")
+    conn.executemany(
+        "DELETE FROM article_botschaft_links "
+        "WHERE botschaft_id = ? AND evidence LIKE 'sparql_parliament_chain%'",
+        [(bid,) for bid in covered],
+    )
     conn.executemany(
         """
         INSERT OR IGNORE INTO article_botschaft_links
             (sr_number, article, botschaft_id, relation, evidence)
-        VALUES (?, ?, ?, 'considered', 'sparql_parliament_chain')
+        VALUES (?, ?, ?, 'considered', ?)
         """,
         pending,
     )
@@ -279,7 +344,7 @@ def main() -> int:
         """
         SELECT sr_number, COUNT(*) AS n
         FROM article_botschaft_links
-        WHERE evidence = 'sparql_parliament_chain'
+        WHERE evidence LIKE 'sparql_parliament_chain%'
         GROUP BY sr_number
         ORDER BY n DESC
         LIMIT 10

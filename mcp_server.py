@@ -243,6 +243,16 @@ import decision_ref  # noqa: E402  (typed docket -> candidate decision_ids; hone
 import source_defects  # references whose stored text is another ruling's
 import ecthr_docket  # noqa: E402  (shared ECtHR docket display form)
 from search_stack.law_code_forms import FAMILIES as _LAW_CODE_FAMILIES  # noqa: E402
+from search_stack.article_scope import (  # noqa: E402  (one reading of "which act is this passage about")
+    anchor_runs as _anchor_runs,
+    _heading_is_about_act,
+    _law_names_from_row,
+    linked_anchor as _linked_anchor,
+    _passage_names_act,
+    _passage_names_other_act,
+    _section_names_other_act,
+    _title_names,
+)
 from search_stack.reference_extraction import (  # noqa: E402  (one law-code normalizer for graph and queries)
     canonical_law_code,
     graph_law_codes,
@@ -6770,34 +6780,6 @@ def _search_consultations(
     return hits
 
 
-_DRAFT_PREFIXES = r"(?:E|VE|AP|P|nE|D|PA)-"
-_DRAFT_PREFIX_RE = re.compile("^" + _DRAFT_PREFIXES)
-
-
-def _title_names(title: str | None) -> set[str]:
-    """Names an Erläuternder Bericht uses for an act, from its official
-    title: the title without its "vom <date>" clause ("Bundesgesetz über die
-    Alters- und Hinterlassenenversicherung"), the short names in its
-    parentheses ("Datenschutzgesetz", "Obligationenrecht" from "Fünfter
-    Teil: Obligationenrecht"), and the noun of a "Schweizerisches X"
-    title ("Zivilgesetzbuch")."""
-    if not title:
-        return set()
-    t = re.sub(r"\s+", " ", title).strip()
-    t = re.sub(r"\s(?:vom|du|del)\s\d{1,2}\.?\s?\w+\s\d{4}", "", t)   # date clause
-    names = {re.sub(r"\s*\([^)]*\)\s*", " ", t).strip()}
-    for inner in re.findall(r"\(([^)]*)\)", t):
-        for part in re.split(r"[,;]", inner):
-            part = part.split(":")[-1].strip()
-            if len(part) >= 6 and not part.isupper():
-                names.add(part)
-    m = re.match(r"^(?:Schweizerische[rs]?|suisse|svizzer[oa])\s+(\w+)$", next(iter(names)), re.I)
-    m = m or re.match(r"^(?:Code|Codice)\s+(\w+(?:\s\w+)?)\s+suisse$", next(iter(names)), re.I)
-    if m:
-        names.add(m.group(1))
-    return {n for n in names if len(n) >= 6}
-
-
 def _law_names(sr: str | None, law_code: str | None = None) -> tuple[set[str], set[str]]:
     """(abbreviations, title names) of the act in DE/FR/IT from statutes.db,
     plus the caller's law_code: ({AHVG, LAVS}, {Bundesgesetz über die Alters-
@@ -6816,56 +6798,13 @@ def _law_names(sr: str | None, law_code: str | None = None) -> tuple[set[str], s
     except sqlite3.Error:
         row = None
     if row:
-        abbrs |= {a.strip() for a in row[:3] if a and a.strip()}
-        for t in row[3:]:
-            names |= _title_names(t)
+        row_abbrs, names = _law_names_from_row(row)
+        abbrs |= row_abbrs
     return abbrs, names
 
 
 def _law_abbreviations(sr: str | None, law_code: str | None = None) -> set[str]:
     return _law_names(sr, law_code)[0]
-
-
-def _passage_names_act(section: str | None, text: str | None, abbreviations: set[str],
-                       names: set[str] = frozenset()) -> bool:
-    """True when the section heading, or the passage's own first line, names
-    the act: an abbreviation as a whole word ("4.1 … (AHVG)", "Art. 23 E-AHVG")
-    or one of its title names ("2.1 Zivilgesetzbuch")."""
-    first = (text or "").split("\n", 1)[0][:200]
-    hay = f"{section or ''} {first}"
-    if any(re.search(rf"(?<![\w-])(?:{_DRAFT_PREFIXES})?{re.escape(a)}(?![\w-])", hay)
-           for a in abbreviations):
-        return True
-    low = hay.lower()
-    return any(n.lower() in low for n in names)
-
-
-_ARTICLE_REF_ACT_RE = re.compile(
-    r"^\s*(?:Art(?:ikel|icle|icolo)?\.?)\s*\d+[a-z]*"
-    r"(?:\s+(?:Abs|al|cpv|Bst|let|lit|Ziff|ch|n|Satz|phrase|periodo)\.?\s*[\w]+)*"
-    r"\s+((?:[A-Za-zÄÖÜäöü]+-)?[A-ZÄÖÜ][A-Za-zÄÖÜäöü]*[A-ZÄÖÜ][A-Za-zÄÖÜäöü]*)\b")
-
-
-_ACT_WORD_RE = re.compile(
-    r"(gesetz|gesetzbuch|verordnung|prozess|ordnung|reglement|\bloi\b|ordonnance|\bcode\b"
-    r"|legge|ordinanza|codice|regolamento)", re.IGNORECASE)
-_ACT_DATE_RE = re.compile(r"\b(?:vom|du|del)\s\d{1,2}\.?\s?\w+\s\d{4}\b")
-_PAREN_ABBR_RE = re.compile(r"\(((?:[A-Za-zÄÖÜäöü]+-)?[A-ZÄÖÜ][\w-]*[A-ZÄÖÜ][\w-]*)\)")
-
-
-def _section_names_other_act(section: str | None, abbreviations: set[str],
-                             names: set[str] = frozenset()) -> bool:
-    """True when the section heading is about an act and that act is not
-    this one ("8.2.13 Militärstrafprozess vom 23. März 1979" for the DSG):
-    it names none of this act's names and carries an act's date, an
-    abbreviation in parentheses, or an act word (Gesetz, Verordnung, loi…)."""
-    if not section or _passage_names_act(section, "", abbreviations, names):
-        return False
-    if _ACT_DATE_RE.search(section):
-        return True
-    if any(_DRAFT_PREFIX_RE.sub("", a) not in abbreviations for a in _PAREN_ABBR_RE.findall(section)):
-        return True
-    return bool(_ACT_WORD_RE.search(section))
 
 
 _SECTION_NUMBER_RE = re.compile(r"^\s*(\d{1,2}(?:\.\d{1,2})*)\.?\s")
@@ -6895,19 +6834,6 @@ def _heading_path(conn: sqlite3.Connection, file_id: int, para_order: int,
     path = [latest[".".join(parts[:k])] for k in range(1, len(parts))
             if ".".join(parts[:k]) in latest]
     return path + [section]
-
-
-def _passage_names_other_act(text: str | None, abbreviations: set[str]) -> bool:
-    """True when the passage's heading line cites the article of ANOTHER act
-    ("Art. 5 Abs. 1 E-VDSG" for the DSG): an abbreviation-like word (two or
-    more capitals) right after the article reference, not one of this act's
-    abbreviations once a draft prefix (E-, VE-, AP-…) is removed."""
-    first = (text or "").split("\n", 1)[0][:200]
-    m = _ARTICLE_REF_ACT_RE.match(first)
-    if not m:
-        return False
-    tok = _DRAFT_PREFIX_RE.sub("", m.group(1))
-    return tok not in abbreviations
 
 
 def _consultations_naming_act(conn: sqlite3.Connection, sr: str) -> list:
@@ -7292,6 +7218,12 @@ def _article_purpose_hint(sources: list[dict], draft_texts: list[dict]) -> str:
             "No Botschaft or report in the corpus is linked to this article, so "
             "there is no verbatim explanation of it here. Use search_botschaft "
             "to look for one."
+        )
+    if any("draft_article" in s for s in [*sources, *draft_texts]):
+        parts.append(
+            "`draft_article` is this article's number in that document: Parliament "
+            "renumbered the act, so the document calls it by another number. Quote "
+            "the document's number with its text."
         )
     if draft_texts:
         parts.append(
@@ -18273,6 +18205,9 @@ def _handle_find_relevant_erwaegung(
         conn.close()
 
 
+_XML_FORMAT = "akoma-ntoso-xml"
+
+
 def _handle_get_article_purpose(
     *,
     sr_number: str,
@@ -18347,7 +18282,7 @@ def _handle_get_article_purpose(
             f"""
             SELECT bd.botschaft_id, bd.bbl_citation, bd.bbl_year, bd.bbl_page,
                    bd.eli_uri, bd.format,
-                   bd.title, bd.publication_date, {_ds}, abl.relation,
+                   bd.title, bd.publication_date, {_ds}, abl.relation, abl.evidence,
                    bd.language, {_dt} AS doc_type,
                    {_collection_select(_botschaft_documents_columns(conn))}
             FROM article_botschaft_links abl
@@ -18468,18 +18403,30 @@ def _handle_get_article_purpose(
 
         sources: list[dict] = []
         draft_texts: list[dict] = []
+        abbrs, names = _law_names(sr_number)
         for r in rows:
-            paras = conn.execute(
+            anchor = _linked_anchor(article, r["evidence"])
+            anchored = conn.execute(
                 """
-                SELECT page_number, section_path, text
+                SELECT page_number, section_path, text, article_anchor
                 FROM botschaft_paragraphs
                 WHERE botschaft_id = ? AND article_anchor = ?
                 ORDER BY para_order
-                LIMIT ?
                 """,
-                (r["botschaft_id"], article, max_paragraphs),
+                (r["botschaft_id"], anchor),
             ).fetchall()
-            if not paras:
+            paras = anchored[:max_paragraphs]
+            if anchored and r["format"] == _XML_FORMAT and (abbrs or names):
+                # The number recurs per act in a bill: BBl 2023 679 explains
+                # Art. 26 BEKJ and, in its annex section, Art. 26 VwVG. Only the
+                # XML has an outline to tell them apart, and a statute footnote
+                # may link a passage no heading names, so only evidence for
+                # another act excludes one.
+                paras = [p for run in _anchor_runs(anchored)
+                         if _heading_is_about_act(run[0]["text"], run[0]["section_path"],
+                                                  sr_number, abbrs, names, False)
+                         for p in run][:max_paragraphs]
+            if not anchored:
                 # FTS5 fallback: phrase search for "Art. {article}" inside
                 # this Botschaft. Useful when the parser missed an anchor.
                 try:
@@ -18501,6 +18448,7 @@ def _handle_get_article_purpose(
                     paras = []
             target = draft_texts if r["doc_type"] in _DRAFT_TEXT_DOC_TYPES else sources
             target.append({
+                **({"draft_article": anchor} if anchor != article else {}),
                 "bbl_citation": r["bbl_citation"],
                 "eli_uri": r["eli_uri"],
                 "title": r["title"],

@@ -74,7 +74,8 @@ _AKN_FIXTURE = b"""<?xml version="1.0" encoding="UTF-8"?>
 
 def test_akn_parser_yields_paragraphs() -> None:
     paras = list(parse_akoma_ntoso_xml(_AKN_FIXTURE))
-    assert len(paras) == 5
+    # five text paragraphs plus the heading row of art_1
+    assert len(paras) == 6
 
 
 def test_akn_parser_assigns_article_anchors() -> None:

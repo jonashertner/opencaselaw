@@ -61,6 +61,10 @@ from xml.etree import ElementTree as ET
 # returns actual filestore URLs. (Imported lazily so unit tests can
 # monkeypatch without spinning up the SPARQL endpoint.)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from search_stack.article_scope import (  # noqa: E402
+    ARTICLE_DETAIL_RE, ARTICLE_LINE_RE, SECTION_SEPARATOR,
+)
+from search_stack.build_statutes_db import _eid_article_num  # noqa: E402
 try:
     from scrapers.fedlex_materialien import fetch_manifestations  # noqa: E402
 except ImportError:
@@ -574,15 +578,108 @@ def _strip_ns(tag: str) -> str:
     return tag.rsplit("}", 1)[-1] if "}" in tag else tag
 
 
+# Tags whose content starts a new line in print: a space keeps "<num>1</num>
+# <content>Ist…" from gluing, and none goes anywhere else, so "1<sup>bis</sup>"
+# stays 1bis and a word split by <i> stays one word.
+_AKN_BREAK_TAGS = frozenset({
+    "br", "num", "heading", "p", "content", "item", "blockList", "listIntroduction",
+    "paragraph", "tr", "td", "th",
+})
+
+
 def _akn_text(elem: ET.Element) -> str:
-    """Concatenate all text within an element, normalising whitespace."""
+    """The element's text in reading order, whitespace normalised. Footnotes
+    are left out: they are not part of the sentence they hang on, and spliced
+    into it they broke every verbatim quotation of the paragraph."""
     parts: list[str] = []
-    for x in elem.iter():
+
+    def walk(x: ET.Element) -> None:
+        tag = _strip_ns(x.tag)
+        if tag == "authorialNote":
+            return
+        brk = tag in _AKN_BREAK_TAGS
+        if brk:
+            parts.append(" ")
         if x.text:
             parts.append(x.text)
-        if x.tail:
-            parts.append(x.tail)
-    return re.sub(r"\s+", " ", " ".join(parts)).strip()
+        for child in x:
+            walk(child)
+            if child.tail:
+                parts.append(child.tail)
+        if brk:
+            parts.append(" ")
+
+    walk(elem)
+    return re.sub(r"\s+", " ", "".join(parts)).strip()
+
+
+def _akn_notes(elem: ET.Element) -> list[ET.Element]:
+    return [x for x in elem.iter() if _strip_ns(x.tag) == "authorialNote"]
+
+
+# Containers of the document's outline. Botschaften since 2022 use <level>.
+_AKN_CONTAINERS = frozenset({"level", "chapter", "section", "subsection", "part", "title"})
+# One row each; whatever they contain is that row's text.
+_AKN_LEAVES = frozenset({"p", "paragraph", "intro", "listIntroduction", "item"})
+_AKN_SR_NOTE_RE = re.compile(r"\b(?:SR|RS)\s+\d[\d.]*\d")
+_AKN_HEADING_MAX = 160
+
+_AKN_ARTICLE_HEAD_MAX = 120
+# "Artikel 7 Absatz 2: Der Bundesrat kann …": a comment on one provision.
+_AKN_INLINE_ARTICLE_RE = re.compile(r"^[^.:]*(?:\.[^.:]*){0,4}:\s")
+_AKN_SUBHEAD_RE = re.compile(
+    r"^(?:Abs|Absatz|Absätze|Al|Alinéa|Alinéas|Cpv|Capoverso|Capoversi|Bst|Let|Lett|Ziff|Ch|N)"
+    r"\b.{0,30}$", re.IGNORECASE)
+
+
+def _akn_article_heading(text: str, lead: str = "") -> str | None:
+    """The article number when this paragraph opens the comment on an article.
+
+    A heading line ("Art. 26 Nichterreichbarkeit einer Plattform", "Art. 5
+    Abs. 2 Bst. a"), a comment opening with the number in emphasis or before a
+    colon. Not prose that merely starts with an article ("Artikel 86 des
+    Bundesgesetzes …;", "Artikel 65 Absatz 1 BV gibt dem Bund …").
+    """
+    m = ARTICLE_LINE_RE.match(text)
+    if not m:
+        return None
+    number, tail = m.group(1), m.group(2).strip().lstrip(", ")
+    if lead and ARTICLE_LINE_RE.match(lead):
+        return number
+    if _AKN_INLINE_ARTICLE_RE.match(text):
+        return number
+    if len(text) > _AKN_ARTICLE_HEAD_MAX or tail[-1:] in (".", ";", ",", ":"):
+        return None
+    if not tail or ARTICLE_DETAIL_RE.match(tail) or tail[0].isupper() or tail[0] == "[":
+        return number
+    return None
+
+
+def _akn_lead(elem: ET.Element) -> str:
+    """The emphasised run a paragraph opens with: "<i>Art. 5</i> regelt …"."""
+    if (elem.text or "").strip() or not len(elem):
+        return ""
+    first = elem[0]
+    return _akn_text(first) if _strip_ns(first.tag) in ("i", "b") else ""
+
+
+def _akn_heading(container: ET.Element) -> str | None:
+    """A container's "<num> <heading>", with the SR number its footnote gives."""
+    num = next((c for c in container if _strip_ns(c.tag) == "num"), None)
+    heading = next((c for c in container if _strip_ns(c.tag) == "heading"), None)
+    if heading is None:
+        return None
+    text = " ".join(t for t in (_akn_text(num) if num is not None else "",
+                                _akn_text(heading)) if t)[:_AKN_HEADING_MAX]
+    for note in _akn_notes(heading):
+        sr = _AKN_SR_NOTE_RE.search(_akn_text_of_note(note))
+        if sr:
+            return f"{text} [{sr.group(0)}]"
+    return text
+
+
+def _akn_text_of_note(note: ET.Element) -> str:
+    return re.sub(r"\s+", " ", "".join(note.itertext())).strip()
 
 
 def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
@@ -593,11 +690,19 @@ def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
 
     Notes
     -----
-    Akoma Ntoso uses ``<article eId="art_N">`` to anchor per-article
-    sections. Sections / chapters provide the breadcrumb. ``<p>`` and
-    ``<paragraph>`` carry the text. Many Fedlex FGA publications are
-    metadata-only wrappers (no ``<body>``) — yielding 0 paragraphs is
-    a valid signal to fall through to PDF.
+    Two shapes carry an article. A draft act marks it up, ``<article
+    eId="art_41">``. A Botschaft explains it in plain paragraphs under a
+    numbered ``<level>``: ``<p>Art. 26 Nichterreichbarkeit einer Plattform</p>``
+    (2023/679: no <article> at all, no anchor stored, no link made). Either
+    way the anchor ends with its article or heading run and never crosses into
+    the next outline level; ``section_path`` is the whole heading path,
+    because the same number recurs per act in a bill's "Änderung anderer
+    Erlasse" and only the path tells them apart (search_stack.article_scope).
+
+    Footnotes come as rows of their own after their paragraph, unanchored:
+    still searchable, not part of the quotation. Many Fedlex FGA publications
+    are metadata-only wrappers (no ``<body>``) — yielding 0 paragraphs is a
+    valid signal to fall through to PDF. XML has no pages.
     """
     try:
         root = ET.fromstring(xml_bytes)
@@ -613,51 +718,74 @@ def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
     if body is None:
         return
 
-    section_stack: list[str] = []
-    current_anchor: str | None = None
-    para_order = 0
+    rows: list[dict] = []
+    anchor: str | None = None
 
-    def _emit(text: str) -> dict | None:
-        nonlocal para_order
+    def emit(text: str, path: list[str], row_anchor: str | None, keep_short: bool = False) -> None:
         text = text.strip()
-        if len(text) < 20:
-            return None
-        para_order += 1
-        return {
-            "para_order": para_order,
+        if len(text) < 20 and not (keep_short and text):
+            return
+        rows.append({
+            "para_order": len(rows) + 1,
             "page_number": None,  # XML doesn't carry pages
-            "section_path": " > ".join(section_stack) or None,
-            "article_anchor": current_anchor,
+            "section_path": SECTION_SEPARATOR.join(path) or None,
+            "article_anchor": row_anchor,
             "text": text,
             "text_length": len(text),
-        }
+        })
 
-    for elem in body.iter():
-        tag = _strip_ns(elem.tag)
-        if tag == "article":
-            # Anchor change. eId="art_41" → "41"
-            eid = elem.attrib.get("eId") or elem.attrib.get("id") or ""
-            m = re.match(r"art_(\d+[a-z]?)$", eid)
-            if m:
-                current_anchor = m.group(1)
-        elif tag in ("chapter", "section", "subsection", "part"):
-            heading_el = next(
-                (c for c in elem if _strip_ns(c.tag) == "heading"), None,
-            )
-            if heading_el is not None:
-                section_stack = [_akn_text(heading_el)[:80]]
-        elif tag in ("p", "paragraph", "blockList", "intro"):
-            # Skip nested paragraphs — outer iter() already visits them.
-            # Only emit when this element has no <p>/<paragraph> children
-            # (it's a leaf paragraph).
-            has_inner = any(
-                _strip_ns(c.tag) in ("p", "paragraph") for c in elem
-            )
-            if has_inner:
+    def notes_of(elem: ET.Element | None, path: list[str]) -> None:
+        # A short note is usually a citation ("BBl 2018 6949, 7321"): keep it.
+        for note in (_akn_notes(elem) if elem is not None else ()):
+            emit(_akn_text_of_note(note), path, None, keep_short=True)
+
+    def walk(elem: ET.Element, path: list[str], inherited: str | None,
+             in_article: bool) -> None:
+        nonlocal anchor
+        for child in elem:
+            tag = _strip_ns(child.tag)
+            if tag == "article":
+                eid = child.attrib.get("eId") or child.attrib.get("id") or ""
+                compact = re.fullmatch(r"art_(\d+[a-z])", eid)  # older files: art_41a
+                number = _eid_article_num(eid) or (compact.group(1) if compact else None)
+                anchor = number or inherited
+                num = next((c for c in child if _strip_ns(c.tag) == "num"), None)
+                heading_el = next((c for c in child if _strip_ns(c.tag) == "heading"), None)
+                emit(" ".join(t for t in (_akn_text(num) if num is not None else "",
+                                          _akn_text(heading_el) if heading_el is not None else "")
+                              if t), path, anchor, keep_short=True)
+                notes_of(num, path)
+                notes_of(heading_el, path)
+                walk(child, path, anchor, True)
+                anchor = inherited
+            elif tag in _AKN_CONTAINERS:
+                title = _akn_heading(child)
+                heading_el = next((c for c in child if _strip_ns(c.tag) == "heading"), None)
+                notes_of(next((c for c in child if _strip_ns(c.tag) == "num"), None), path)
+                notes_of(heading_el, path)
+                # An outline level can itself be the article: "5.1.3 Art. 3 Zweck".
+                own = _akn_article_heading(_akn_text(heading_el)) if heading_el is not None else None
+                scope = own or inherited
+                anchor = scope
+                walk(child, path + [title] if title else path, scope, in_article)
+                anchor = inherited
+            elif tag == "authorialNote":
                 continue
-            row = _emit(_akn_text(elem))
-            if row is not None:
-                yield row
+            elif tag in _AKN_LEAVES:
+                text = _akn_text(child)
+                head = None
+                if not in_article and tag == "p":
+                    head = _akn_article_heading(text, _akn_lead(child))
+                if head:
+                    anchor = head
+                subhead = bool(anchor) and bool(_AKN_SUBHEAD_RE.match(text))
+                emit(text, path, anchor, keep_short=bool(head) or subhead)
+                notes_of(child, path)
+            elif tag not in ("num", "heading"):
+                walk(child, path, inherited, in_article)
+
+    walk(body, [], None, False)
+    yield from rows
 
 
 # ── Article-anchor parsing ────────────────────────────────────────────
