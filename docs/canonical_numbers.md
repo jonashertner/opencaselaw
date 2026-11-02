@@ -29,7 +29,7 @@ update all listed consumers in the same commit.
 | Cantons | 26 | 26 | constant | all |
 | Languages | DE 449,575 (46.3 %), FR 441,158 (45.4 %), IT 80,704 (8.3 %) | same | corpus_overview.tex | paper §3, methodology.html |
 | Date range | 1875–2026 | 1875–2026 | constant | all |
-| `ch_vb` rows | — | **22,916** = 2,502 VPB/JAAC + 20,414 restored pages | `stats.json::by_court` (split: see below) | README.md, coverage_notes.json, coverage page, stats page, mcp_server.py instructions |
+| `ch_vb` rows | — | **22,916** = 2,502 VPB/JAAC + 20,414 restored pages | `stats.json::by_court` (split: see below) | README.md, dataset_card.md, coverage_notes.json, coverage page, stats page, mcp_server.py instructions |
 | Snapshot date (paper) | **2026-05-13** | — | `corpus_graph_stats.json::snapshot_date` | paper, methodology.html date references |
 
 **Record vs. unique (cross-identifier dual-count):** the live corpus is a RECORD
