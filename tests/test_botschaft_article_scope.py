@@ -241,6 +241,73 @@ def test_footnote_paragraph_is_never_a_heading():
     assert {r["article_anchor"] for r in rows} == {None}
 
 
+def with_annex(body: str, components: str) -> bytes:
+    return (b"<?xml version='1.0' encoding='UTF-8'?><akomaNtoso " + AKN + b"><act><meta/><body>"
+            + body.encode() + b"</body><components>" + components.encode()
+            + b"</components></act></akomaNtoso>")
+
+
+ANNEX = """<component><doc name="annex"><meta><identification source="#x"/></meta>
+  <preface><p>Anhang</p></preface>
+  <mainBody>
+    <p>Die nachstehenden Bundesgesetze werden wie folgt geändert:</p>
+    <level eId="annex_1/lvl_3"><num>3.</num>
+      <heading>Zivilprozessordnung<authorialNote marker="1"><p>SR 272</p></authorialNote></heading>
+      <article eId="annex_1/lvl_3/art_128_c"><num>Art. 128c</num>
+        <paragraph eId="p"><num>1</num><content><p>Die Einreichung erfolgt über eine Plattform.</p></content></paragraph>
+      </article>
+      <article eId="annex_1/lvl_3/art_26"><num>Art. 26</num>
+        <paragraph eId="q"><num>1</num><content><p>Für Klagen gilt der neue Gerichtsstand des Gesetzes.</p></content></paragraph>
+      </article>
+    </level>
+  </mainBody></doc></component>"""
+
+
+def test_components_are_read_after_the_body_under_their_title():
+    rows = list(parse(with_annex("<p>Der Text des Erlasses selbst, lang genug zum Testen.</p>", ANNEX)))
+    texts = [r["text"] for r in rows]
+    assert texts[0].startswith("Der Text des Erlasses")
+    assert "1 Die Einreichung erfolgt über eine Plattform." in texts
+    row = next(r for r in rows if r["text"].startswith("1 Die Einreichung"))
+    assert row["section_path"] == "Anhang > 3. Zivilprozessordnung [SR 272]"
+
+
+def test_attached_text_is_never_anchored():
+    """Its Art. 26 is the ZPO's, or the attached treaty's. It must not reach
+    Art. 26 of the act, and must not read as a comment on it."""
+    rows = list(parse(with_annex(
+        "<article eId='art_26'><num>Art. 26</num><heading>Eigener Artikel des Erlasses</heading></article>",
+        ANNEX)))
+    anchored = [r for r in rows if r["article_anchor"]]
+    assert [r["text"] for r in anchored] == ["Art. 26 Eigener Artikel des Erlasses"]
+    assert any(r["text"].startswith("1 Für Klagen") for r in rows)
+
+
+def test_anchor_does_not_leak_from_the_body_into_the_attachment():
+    rows = list(parse(with_annex("<level><num>5</num><heading>Erläuterungen</heading><content>"
+                                 "<p>Art. 5 Zweck</p></content></level>", ANNEX)))
+    assert next(r for r in rows if r["text"].startswith("Die nachstehenden"))["article_anchor"] is None
+
+
+def test_para_order_runs_on_through_the_attachment():
+    rows = list(parse(with_annex("<p>Der Text des Erlasses selbst, lang genug zum Testen.</p>", ANNEX)))
+    assert [r["para_order"] for r in rows] == list(range(1, len(rows) + 1))
+
+
+def test_attached_mainbody_is_read_once_when_the_act_has_no_body():
+    xml = (b"<?xml version='1.0' encoding='UTF-8'?><akomaNtoso " + AKN + b"><act><meta/><components>"
+           + ANNEX.encode() + b"</components></act></akomaNtoso>")
+    texts = [r["text"] for r in parse(xml)]
+    assert texts.count("Die nachstehenden Bundesgesetze werden wie folgt geändert:") == 1
+
+
+def test_directly_nested_outline_in_components_is_read():
+    rows = list(parse(with_annex("<p>Der Text des Erlasses selbst, lang genug zum Testen.</p>",
+                                 "<level eId='x'><num>9</num><heading>Beilage</heading>"
+                                 "<content><p>Ein Absatz der Beilage, lang genug zum Testen.</p></content></level>")))
+    assert rows[-1]["section_path"] == "9 Beilage" and rows[-1]["article_anchor"] is None
+
+
 # ── scope ─────────────────────────────────────────────────────────────────
 
 

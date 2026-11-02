@@ -6,11 +6,9 @@ from their source files. Identity, citation, title and dates stay; so does a
 document for which the file yields nothing. Run scripts/enrich_botschaft_links.py
 afterwards: the links follow the anchors.
 
-Paragraphs shrink (the old parser stored list items and numbered paragraphs
-twice), so under the swap wrapper this needs --allow-shrink. Never against the
-live file:
+Never against the live file:
 
-    python3 -m search_stack.materialien_swap --db output/materialien.db --allow-shrink -- \\
+    python3 -m search_stack.materialien_swap --db output/materialien.db -- \\
         python3 scripts/reparse_xml_materialien.py --db {db} --rate-limit 0.5
 
 Usage:

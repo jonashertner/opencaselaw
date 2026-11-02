@@ -471,11 +471,12 @@ and adds 23. Nothing else moves.
 3. Run:
 
 ```bash
-cd /opt/caselaw/repo && python3 -m search_stack.materialien_swap --db output/materialien.db --allow-shrink --lock-file logs/materialien_swap.lock -- /bin/bash -c 'python3 scripts/reparse_xml_materialien.py --db {db} --rate-limit 0.5 && python3 scripts/enrich_botschaft_links.py --types 23,24,25,30,38,39,40 --db {db} --statutes output/statutes.db'
+cd /opt/caselaw/repo && python3 -m search_stack.materialien_swap --db output/materialien.db --lock-file logs/materialien_swap.lock -- /bin/bash -c 'python3 scripts/reparse_xml_materialien.py --db {db} --rate-limit 0.5 && python3 scripts/enrich_botschaft_links.py --types 23,24,25,30,38,39,40 --db {db} --statutes output/statutes.db'
 ```
 
-`--allow-shrink` is needed once: paragraphs drop by ~6 % because the old parser
-stored numbered paragraphs and list items twice. Exit 4 from the re-parse means a
+No `--allow-shrink`: duplicates go, but `<components>` adds more (XML paragraphs
+451,530 → 513,554 on the copy), so the swap's shrink check stays on. Exit 4 from
+the re-parse means a
 refusal or five failures in a row; rerun. Stop conditions: exit 5 or 6 (nothing
 was swapped), or articles linked falling instead of rising.
 

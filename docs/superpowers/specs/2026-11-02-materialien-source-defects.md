@@ -175,11 +175,11 @@ Rules:
 - First version covers new acts. Pending amendments to existing acts need a separate shape, since their text is an amending instruction; list them next to `pending_changes`.
 - Fetch through SPARQL manifestations. Never guess a filename, and reject a response that is not XML.
 
-## M10: annexes under `<components>` are never read (reported 2026-11-02, not built)
+## M10: annexes under `<components>`, built and rehearsed
 
-Reported by the BEKJ commentary session, confirmed here on all 4,394 cached files. `parse_akoma_ntoso_xml` reads the first `body` or `mainBody` and never `<components>`. The old parser did the same, so G1 did not cause this and does not fix it.
+Reported by the BEKJ commentary session, confirmed on all 4,394 cached files, built with Jonas's OK of 2026-11-02. `parse_akoma_ntoso_xml` read the first `body` and never `<components>`. The old parser did the same, so G1 neither caused nor fixed it.
 
-German XML documents with components, words in them against words in the body:
+German XML documents with components, as they stood:
 
 | Type | With components | In body | In components |
 |---|---|---|---|
@@ -189,11 +189,20 @@ German XML documents with components, words in them against words in the body:
 | Bericht einer Kommission | 39 of 146 | 970,430 | 85,657 |
 | Stellungnahme des Bundesrates | 1 of 94 | 1,065 | 759 |
 
-In 39 of 175 such documents components hold most of the text; BBl 2026 1528 keeps 933 of about 42,000 words. For a draft or final text they carry the changes to other acts: the BEKJ's Art. 128c ZPO sentence is there. `search_botschaft` cannot find any of this text.
+In 39 of 175 such documents components held most of the text; BBl 2026 1528 kept 933 of about 42,000 words. For a draft or final text they carry the changes to other acts.
 
-**Effect on the G1 + G2 deploy: none.** The re-parse neither fixes nor worsens this, and with the cache it takes minutes, so running it again for M10 costs little. M10 should not hold back the wrong-quotation fixes.
+**Fix.** The parser reads `<components>` after the body, under the attachment's title (`Anhang > Änderung anderer Erlasse > 6. Zivilprozessordnung [SR 272]`).
 
-**Fix when approved.** Walk `<components>` after the body with the same reader. Annex articles carry the amended act's numbers, so they need the act scoping of G2 and a rehearsal; a component without a heading naming its act gets no article link. It must land before or with G6, because final texts carry their amendments there.
+**Attached rows are never anchored.** An attachment is another act's articles, or a treaty or draft attached to a Botschaft. Neither explains the article asked about. Anchored, its Art. 26 could come back in `sources` as Botschaft commentary, the defect this work started from. So annex text is searchable through `search_botschaft`, but `get_article_purpose` does not answer from it.
+
+**Rehearsed on a copy.**
+- BBl 2023 680 de: 5,147 to 9,089 words, with the Art. 128c ZPO sentence.
+- BBl 2025 19 de, parsed from the file: 10,124 words. It reaches the corpus only with G6.
+- XML paragraphs 451,530 to 513,554; 11,030 rows under an `Anhang` path.
+- Article links identical to the G1 + G2 rehearsal: 28,180, none added or removed. Anchored rows are byte-identical, so the G1 + G2 regression sweep holds unchanged.
+- No attached row carries an anchor, in any document type.
+
+The rows lost to the old parser cannot be searched until the re-parse has run.
 
 Also reported, not verified here: S9 (`-an` means anonymised on Fedlex, while `_FORMAT_PRIORITY` treats it as Akoma Ntoso and prefers it), S10 (wrong date and title on PKG rows), S11 (`cite` misses). See `docs/claude/bekj-fixes-handover-2026-11-02.md`, in the primary checkout.
 

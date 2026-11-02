@@ -683,6 +683,17 @@ def _akn_text_of_note(note: ET.Element) -> str:
     return re.sub(r"\s+", " ", "".join(note.itertext())).strip()
 
 
+def _akn_components(elem: ET.Element) -> list[ET.Element]:
+    """The outermost ``<components>`` under ``elem``."""
+    out: list[ET.Element] = []
+    for child in elem:
+        if _strip_ns(child.tag) == "components":
+            out.append(child)
+        else:
+            out.extend(_akn_components(child))
+    return out
+
+
 def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
     """Parse a Fedlex Akoma Ntoso BBl document into paragraph dicts.
 
@@ -704,6 +715,13 @@ def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
     still searchable, not part of the quotation. Many Fedlex FGA publications
     are metadata-only wrappers (no ``<body>``) — yielding 0 paragraphs is a
     valid signal to fall through to PDF. XML has no pages.
+
+    ``<components>`` holds what the document attaches: a draft's "Änderung
+    anderer Erlasse", the treaty a Botschaft submits, the annexes of a report.
+    It follows the body, under its own title ("Anhang > 3. Zivilprozessordnung
+    [SR 272]"). Its rows are never anchored: their Art. 26 is another act's, or
+    the attached text itself, not a comment on the article. A third of the
+    words of the XML Botschaften sit there (2026-11-02).
     """
     try:
         root = ET.fromstring(xml_bytes)
@@ -711,16 +729,20 @@ def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
         log.warning(f"  XML parse error: {e}")
         return
 
-    # Walk the body. If there's no body, we yield nothing.
+    # Walk the body, then what is attached. With neither, we yield nothing.
+    attached = _akn_components(root)
+    in_attached = {id(x) for c in attached for x in c.iter()}
     body = next(
-        (x for x in root.iter() if _strip_ns(x.tag) in ("body", "mainBody")),
+        (x for x in root.iter() if _strip_ns(x.tag) in ("body", "mainBody")
+         and id(x) not in in_attached),
         None,
     )
-    if body is None:
+    if body is None and not attached:
         return
 
     rows: list[dict] = []
     anchor: str | None = None
+    reading_attached = False
 
     def emit(text: str, path: list[str], row_anchor: str | None, keep_short: bool = False) -> None:
         text = text.strip()
@@ -730,7 +752,7 @@ def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
             "para_order": len(rows) + 1,
             "page_number": None,  # XML doesn't carry pages
             "section_path": SECTION_SEPARATOR.join(path) or None,
-            "article_anchor": row_anchor,
+            "article_anchor": None if reading_attached else row_anchor,
             "text": text,
             "text_length": len(text),
         })
@@ -770,7 +792,11 @@ def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
                 anchor = scope
                 walk(child, path + [title] if title else path, scope, in_article)
                 anchor = inherited
-            elif tag == "authorialNote":
+            elif tag == "doc":
+                preface = next((c for c in child if _strip_ns(c.tag) == "preface"), None)
+                title = _akn_text(preface)[:_AKN_HEADING_MAX] if preface is not None else ""
+                walk(child, path + [title] if title else path, None, False)
+            elif tag in ("authorialNote", "meta", "preface", "coverPage"):
                 continue
             elif tag in _AKN_LEAVES:
                 text = _akn_text(child)
@@ -785,7 +811,11 @@ def parse_akoma_ntoso_xml(xml_bytes: bytes) -> Iterator[dict]:
             elif tag not in ("num", "heading"):
                 walk(child, path, inherited, in_article)
 
-    walk(body, [], None, False)
+    if body is not None:
+        walk(body, [], None, False)
+    reading_attached = True
+    for component in attached:
+        walk(component, [], None, False)
     yield from rows
 
 
