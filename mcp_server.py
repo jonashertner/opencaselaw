@@ -6910,6 +6910,46 @@ def _passage_names_other_act(text: str | None, abbreviations: set[str]) -> bool:
     return tok not in abbreviations
 
 
+def _consultations_naming_act(conn: sqlite3.Connection, sr: str) -> list:
+    """Procedures Fedlex links to no act whose German title or description
+    names this act's abbreviation in parentheses, title matches first.
+
+    A consultation on a NEW act cannot carry an SR link, the number does not
+    exist yet, and an ordinance's consultation points at no statute: 1,209 of
+    2,694 procedures have none, BEKJ's two among them (2026-11-02). German text
+    only, because French and Italian abbreviations collide with other acts
+    (LIA); an abbreviation two acts share, or of under three letters, is not
+    used. On 36 sampled matches of 355 two were another RPV and BPV: the
+    caller gets ``link_basis``, and the match never counts as a Fedlex link.
+    """
+    try:
+        st = sqlite3.connect(f"file:{STATUTES_DB_PATH}?mode=ro&immutable=1", uri=True, timeout=0.5)
+        try:
+            row = st.execute("SELECT abbr_de FROM laws WHERE sr_number = ? LIMIT 1", (sr,)).fetchone()
+            abbr = (row[0] or "").strip() if row else ""
+            if len(abbr) < 3 or st.execute("SELECT COUNT(*) FROM laws WHERE abbr_de = ?",
+                                           (abbr,)).fetchone()[0] != 1:
+                return []
+        finally:
+            st.close()
+    except sqlite3.Error:
+        return []
+    forms = (f"({abbr})", f"({abbr};", f"({abbr},", f"; {abbr})", f", {abbr})")
+    def names(col: str) -> str:
+        return "(" + " OR ".join(f"instr({col}, ?) > 0" for _ in forms) + ")"
+    try:
+        return conn.execute(
+            f"""SELECT pr.*, {names("pr.title_de")} AS abbr_in_title
+                FROM consultation_procedures pr
+                WHERE NOT EXISTS (SELECT 1 FROM consultation_laws cl
+                                  WHERE cl.procedure_uri = pr.procedure_uri)
+                  AND ({names("pr.title_de")} OR {names("pr.description_de")})
+                ORDER BY abbr_in_title DESC, COALESCE(pr.start_date, pr.year) DESC""",
+            (*forms, *forms, *forms)).fetchall()
+    except sqlite3.Error:
+        return []
+
+
 def _consultations_for_sr(
     conn: sqlite3.Connection, sr: str | None, article: str | None, *,
     language: str | None = None, limit: int = 30, law_code: str | None = None,
@@ -6929,6 +6969,12 @@ def _consultations_for_sr(
             (sr, int(limit))).fetchall()
     except sqlite3.Error:
         return []
+    named = _consultations_naming_act(conn, sr)
+    procs = sorted([*procs, *named[:max(0, int(limit) - len(procs))]],
+                   key=lambda r: str(r["start_date"] or r["year"] or ""), reverse=True)
+    name_basis = {r["procedure_uri"]: (
+        "abbreviation_in_title" if r["abbr_in_title"] else "abbreviation_in_description")
+        for r in named}
     vocab = _consultation_vocab(
         conn, [u for r in procs for u in (r["status_uri"], r["institution_uri"])])
     out = []
@@ -6977,6 +7023,14 @@ def _consultations_for_sr(
                 e["text_searchable"] = True
         entry = {**_consultation_procedure_meta(pr, vocab, language),
                  "documents": list(docs.values())}
+        basis = name_basis.get(pr["procedure_uri"])
+        if basis:
+            entry["link_basis"] = basis
+            entry["link_note"] = (
+                "Fedlex links no act to this procedure; its German "
+                f"{'title' if basis == 'abbreviation_in_title' else 'description'} "
+                "names this act's abbreviation. A name match, not a Fedlex link. "
+                "Article numbers in its documents follow its own draft.")
         if article:
             # An "Art. N" heading in an Erläuternder Bericht belongs to whatever
             # act the report is discussing there; a procedure that touches
@@ -7037,6 +7091,12 @@ def _consultations_for_sr(
                         verdict = False
                         break
                 if verdict is False and not own_line:
+                    continue
+                # A name-matched procedure has no act list to go by, and the
+                # ordinance under an act numbers its articles for itself: only
+                # a passage whose own heading names this act counts ("5
+                # Erläuterungen zu Artikel 26 Absatz 5 BEKJ" in the VEKJ report).
+                if basis and not (own_line or verdict):
                     continue
                 if n_acts > 1 and not (own_line or verdict or (verdict is None and title_names_act)):
                     continue
@@ -7176,6 +7236,125 @@ def _bbl_text_flags(row) -> dict:
     return {}
 
 
+# Fedlex resource types that reproduce the text of a draft act. They show what
+# was proposed, not why, so they are never returned as the explanation of an
+# article (BEKJ Art. 26: BBl 2023 680 came back as "the Federal Council Botschaft").
+_DRAFT_TEXT_DOC_TYPES = frozenset({"erlassentwurf", "vorentwurf_erlass"})
+
+# A draft is printed right after its Botschaft; a Botschaft with several drafts
+# (one per Bundesbeschluss) stays within a few numbers of them.
+_BOTSCHAFT_BEFORE_DRAFT_SPAN = 6
+_DRAFT_TITLE_TAIL_RE = re.compile(
+    r"(?:\s*\((?:Entwurf|Projet|Disegno|Vorentwurf|Avant-projet|Avamprogetto)\))+\s*$"
+    r"|\s*\([^()]*\)\s*(?:\((?:Entwurf|Projet|Disegno)\)\s*)?$", re.IGNORECASE)
+
+
+def _bbl_printed_page(row, page: int | None) -> int | None:
+    """The printed Bundesblatt page of a stored PDF page, None where unknown.
+
+    ``page_number`` counts the pages of the stored file. Until 2020 the BBl ran
+    through the year, so the printed page is the document's first page plus
+    that count; since 2021 every document is paginated on its own. Measured
+    2026-11-02 on the production corpus against the printed running heads,
+    per language: 2000-2020 held for 2,490 of 2,491 testable DE documents, 2021- for
+    all 208. 1999 mixes both and the Federal Archives scans carry
+    no reliable head, so neither is mapped. Akoma Ntoso files have no pages.
+    """
+    if page is None or _row_get(row, "source_collection") == _BAR_COLLECTION:
+        return None
+    year, start = _row_get(row, "bbl_year"), _row_get(row, "bbl_page")
+    if not year:
+        return None
+    if year >= 2021:
+        return page
+    if year >= 2000 and start:
+        return start + page - 1
+    return None
+
+
+def _article_purpose_hint(sources: list[dict], draft_texts: list[dict]) -> str:
+    """Say what the answer really holds; the document types decide the wording."""
+    parts: list[str] = []
+    if sources:
+        kinds = ", ".join(dict.fromkeys(s["doc_type_label"] for s in sources))
+        parts.append(
+            f"`sources` text is verbatim from: {kinds}. Attribute a passage to "
+            "the document named on its own entry (doc_type_label, bbl_citation)."
+        )
+        parts.append(
+            f"Cite a page as '{sources[0]['bbl_citation']}, S. {{printed_page}}'. "
+            "printed_page null = no printed page is known (Akoma Ntoso files carry "
+            "none): cite the document without a pinpoint, via bbl_citation or "
+            "eli_uri. `page` counts the pages of the stored file; never cite it."
+        )
+    else:
+        parts.append(
+            "No Botschaft or report in the corpus is linked to this article, so "
+            "there is no verbatim explanation of it here. Use search_botschaft "
+            "to look for one."
+        )
+    if draft_texts:
+        parts.append(
+            "`draft_texts` is the text of the DRAFT act, not an explanation and "
+            "not Botschaft text: it shows what was proposed and may differ from "
+            "the adopted article."
+        )
+    return " ".join(parts)
+
+
+def _botschaft_candidates(conn, sr: str, article: str | None,
+                          language: str = "de") -> list[dict]:
+    """Botschaften printed just before a draft linked to (sr, article), where no
+    Botschaft is linked: a pointer, never text. Fedlex's graph ties them to the
+    act, but a Botschaft without parsed "Art. N" headings gets no link row.
+
+    Only a Botschaft whose title contains the draft's title qualifies. Matching
+    its paragraphs to the article at read time was tried and dropped
+    (2026-11-02): of 246 draft-only articles 2 matched on heading and title, the
+    other hits included the same number in another act of the same bill.
+    """
+    dt = _botschaft_doc_type_expr(conn, "d")
+    placeholders = ",".join("?" * len(_DRAFT_TEXT_DOC_TYPES))
+    sql = (f"""SELECT DISTINCT d.bbl_year, d.bbl_page, d.title
+               FROM article_botschaft_links l
+               JOIN botschaft_documents d ON d.botschaft_id = l.botschaft_id
+               WHERE l.sr_number = ? AND d.language = ?
+                 AND {dt} IN ({placeholders})""")
+    params: list = [sr, language, *sorted(_DRAFT_TEXT_DOC_TYPES)]
+    if article:
+        sql += " AND l.article = ?"
+        params.append(article)
+    out: dict[str, dict] = {}
+    try:
+        for draft in conn.execute(sql, params).fetchall():
+            core = _DRAFT_TITLE_TAIL_RE.sub("", draft["title"] or "").strip().casefold()
+            if len(core) < 12 or not draft["bbl_page"]:
+                continue
+            for r in conn.execute(
+                    f"""SELECT d.bbl_citation, d.eli_uri, d.title, d.language,
+                               {dt} AS doc_type
+                        FROM botschaft_documents d
+                        WHERE d.language = ? AND d.bbl_year = ? AND {dt} = 'botschaft'
+                          AND d.bbl_page < ? AND d.bbl_page >= ?
+                        ORDER BY d.bbl_page DESC""",
+                    (language, draft["bbl_year"], draft["bbl_page"],
+                     draft["bbl_page"] - _BOTSCHAFT_BEFORE_DRAFT_SPAN)):
+                if core in (r["title"] or "").casefold():
+                    out.setdefault(r["bbl_citation"], {
+                        "bbl_citation": r["bbl_citation"],
+                        "eli_uri": r["eli_uri"],
+                        "title": r["title"],
+                        "doc_type": r["doc_type"],
+                        "doc_type_label": _materialien_doc_type_label(
+                            r["doc_type"], r["language"]),
+                        "basis": "printed_before_the_linked_draft_same_title",
+                    })
+                    break
+    except sqlite3.Error:
+        return []
+    return list(out.values())
+
+
 def _date_source_select(cols: set[str], alias: str = "bd") -> str:
     """SELECT fragment for date_source that degrades to NULL on a table
     without the column."""
@@ -7202,6 +7381,45 @@ def _publication_date_source(publication_date, date_source) -> str | None:
     return None
 
 
+def _linked_document_key(row) -> tuple | str:
+    """One message across its language editions. A 1850-1999 document is keyed
+    by its Fedlex work: (year, page) would join two documents on the same page
+    of different volumes and split one whose FF page differs from its BBl page.
+    The volume-less post-1998 gazette keeps (year, page), shared by BBl / FF / FF.
+    """
+    if _row_get(row, "source_collection") == _BAR_COLLECTION:
+        return row["eli_uri"] or (row["bbl_year"], row["bbl_page"])
+    return (row["bbl_year"], row["bbl_page"])
+
+
+def _linked_document_keys(conn, sr: str, article: str | None,
+                          doc_type: str | None = None) -> dict:
+    """{message key: [botschaft_id per language edition]}, newest first, for
+    the documents linked to (sr, article)."""
+    cols = _botschaft_documents_columns(conn)
+    dt = _botschaft_doc_type_expr(conn, "d")
+    sql = f"""SELECT DISTINCT d.botschaft_id, d.bbl_year, d.bbl_page, d.eli_uri,
+                     {_collection_select(cols, "d")}
+              FROM article_botschaft_links l
+              JOIN botschaft_documents d ON d.botschaft_id = l.botschaft_id
+              WHERE l.sr_number = ?"""
+    params: list = [sr]
+    if article:
+        sql += " AND l.article = ?"
+        params.append(article)
+    if doc_type:
+        sql += f" AND {dt} = ?"
+        params.append(doc_type)
+    sql += " ORDER BY d.bbl_year DESC, d.bbl_page DESC"
+    keys: dict = {}
+    try:
+        for r in conn.execute(sql, params):
+            keys.setdefault(_linked_document_key(r), []).append(r["botschaft_id"])
+    except sqlite3.Error:
+        return {}
+    return keys
+
+
 def _linked_botschaft_documents(conn, sr: str, article: str | None,
                                 limit: int = 20,
                                 doc_type: str | None = None) -> list[dict]:
@@ -7220,6 +7438,13 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
     """
     if not sr:
         return []
+    # Cap documents, not link rows: at 3 × limit rows one message with many
+    # linked articles used up the allowance (OR listed 3 of its 88 documents,
+    # 93 of 786 acts were cut this way, measured 2026-11-02).
+    keys = _linked_document_keys(conn, sr, article, doc_type)
+    ids = [bid for key in list(keys)[:limit] for bid in keys[key]]
+    if not ids:
+        return []
     _cols = _botschaft_documents_columns(conn)
     _ds = _date_source_select(_cols, "d")
     _cs = _collection_select(_cols, "d")
@@ -7233,21 +7458,14 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
                JOIN botschaft_documents d ON d.botschaft_id = l.botschaft_id
                LEFT JOIN botschaft_paragraphs p
                       ON p.botschaft_id = d.botschaft_id AND p.para_order = 1
-              WHERE l.sr_number = ?"""
-    params: list = [sr]
+              WHERE l.sr_number = ? AND d.botschaft_id IN ({",".join("?" * len(ids))})"""
+    params: list = [sr, *ids]
     if article:
         sql += " AND l.article = ?"
         params.append(article)
-    if doc_type:
-        sql += f" AND {dt} = ?"
-        params.append(doc_type)
     # bbl_year/bbl_page is the stable ordering (publication_date is a bare
     # year on rows Fedlex has no date for).
-    # Fetch extra: one message exists once per language (BBl 2022 2743 and
-    # FF 2022 2743 are the same document), and those are grouped below, so a
-    # bare LIMIT would return half as many distinct messages as asked for.
-    sql += " ORDER BY d.bbl_year DESC, d.bbl_page DESC LIMIT ?"
-    params.append(limit * 3)
+    sql += " ORDER BY d.bbl_year DESC, d.bbl_page DESC"
     grouped: dict[tuple, dict] = {}
     try:
         rows = list(conn.execute(sql, params))
@@ -7257,17 +7475,9 @@ def _linked_botschaft_documents(conn, sr: str, article: str | None,
         # One entry per MESSAGE, not per (message, article): a law-level
         # query otherwise lists the same Botschaft twenty times, once for
         # each article it touches. The articles it covers go in a list.
-        # A 1850-1999 document is keyed by its Fedlex work: (year, page) would
-        # join two documents on the same page of different volumes and split
-        # one whose FF page differs from its BBl page. The volume-less
-        # post-1998 gazette keeps (year, page), shared by BBl / FF / FF.
-        key = ((r["eli_uri"] or (r["bbl_year"], r["bbl_page"]))
-               if _row_get(r, "source_collection") == _BAR_COLLECTION
-               else (r["bbl_year"], r["bbl_page"]))
+        key = _linked_document_key(r)
         item = grouped.get(key)
         if item is None:
-            if len(grouped) >= limit:
-                continue
             head_title, date = _botschaft_header(r["head_text"] or "")
             # The Fedlex title is authoritative (R1: titles only from
             # Fedlex); the opening-paragraph header is the fallback for
@@ -7498,6 +7708,13 @@ def get_materialien(law_code: str, article: str | None = None,
             finally:
                 cconn.close()
 
+        linked_total = (len(_linked_document_keys(conn, sr, article, doc_type))
+                        if sr and len(botschaft_docs) >= 20 else len(botschaft_docs))
+        candidates = (_botschaft_candidates(conn, sr, article)
+                      if sr and not doc_type and botschaft_docs
+                      and not any(d["doc_type"] == "botschaft" for d in botschaft_docs)
+                      else [])
+
         amendment_refs = []
         try:
             if sr:
@@ -7576,18 +7793,33 @@ def get_materialien(law_code: str, article: str | None = None,
             "amendment_refs": amendment_refs,
             "parliamentary_modifications": modifications,
         }
+        if linked_total > len(botschaft_docs):
+            out["botschaft_documents_total"] = linked_total
+        if candidates:
+            out["botschaft_candidates"] = candidates
         # Say plainly which of the two corpora answered, so a caller never
         # mistakes "no digest" for "no preparatory materials".
         if not sources:
             where = f"{law}" + (f" Art. {article}" if article else "")
             if botschaft_docs:
+                kinds = ", ".join(dict.fromkeys(d["doc_type_label"] for d in botschaft_docs))
                 out["note"] = (
                     f"No curated digest exists for {where} (the digest corpus "
-                    "covers BV and BGFA only). Listed instead are the Federal "
-                    "Council messages that concern this article, from the "
-                    "statute's AS/BBl footnotes. Use search_botschaft to search "
-                    "their full text; quote only verbatim."
+                    f"covers BV and BGFA only). Listed instead are the linked "
+                    f"Bundesblatt documents ({kinds}); each entry says its "
+                    "doc_type. Use search_botschaft to search their full text; "
+                    "quote only verbatim."
                 )
+                if linked_total > len(botschaft_docs):
+                    out["note"] += (f" The {len(botschaft_docs)} newest of "
+                                    f"{linked_total} documents are listed.")
+                if not any(d["doc_type"] == "botschaft" for d in botschaft_docs):
+                    out["note"] += (
+                        " No Botschaft is linked, which does not mean there is "
+                        "none: a Botschaft whose article headings were not "
+                        "parsed has no link."
+                        + (" See botschaft_candidates." if candidates else
+                           " Use search_botschaft to find it."))
             else:
                 out["note"] = (
                     f"No digest and no linked Federal Council message for {where}"
@@ -7819,18 +8051,26 @@ def _verbatim_botschaft_pointer(
     if not sr or not article:
         return None
     try:
+        dt = _botschaft_doc_type_expr(conn, "d")
+        drafts = ",".join("?" * len(_DRAFT_TEXT_DOC_TYPES))
         rows = conn.execute(
-            """SELECT DISTINCT d.bbl_citation, d.eli_uri
+            f"""SELECT DISTINCT d.bbl_citation, d.eli_uri, {dt} AS doc_type
                FROM article_botschaft_links abl
                JOIN botschaft_documents d ON d.botschaft_id = abl.botschaft_id
                WHERE abl.sr_number = ? AND abl.article = ?
+                 AND {dt} NOT IN ({drafts})
+               ORDER BY CASE WHEN {dt} = 'botschaft' THEN 0 ELSE 1 END
                LIMIT 5""",
-            (sr, article),
+            (sr, article, *sorted(_DRAFT_TEXT_DOC_TYPES)),
         ).fetchall()
     except sqlite3.OperationalError:
         return None
     if not rows:
         return None
+    what = ("Botschaft paragraphs" if any(r["doc_type"] == "botschaft" for r in rows)
+            else "Bundesblatt paragraphs ("
+                 + ", ".join(dict.fromkeys(_materialien_doc_type_label(
+                     r["doc_type"], "de") for r in rows)) + ")")
     return {
         "available": True,
         "tool": "get_article_purpose",
@@ -7838,7 +8078,7 @@ def _verbatim_botschaft_pointer(
         "bbl_citations": [r["bbl_citation"] for r in rows if r["bbl_citation"]],
         "eli_uris": [r["eli_uri"] for r in rows if r["eli_uri"]],
         "note": (
-            "Verbatim Botschaft paragraphs for this article are available — "
+            f"Verbatim {what} for this article are available — "
             "call get_article_purpose for quotable text (R2/R4). Any digest "
             "fields above are paraphrase, not verbatim."
         ),
@@ -18098,13 +18338,15 @@ def _handle_get_article_purpose(
             }
 
         # doc_type is additive (2026-09-09). The Botschaft explains the
-        # provision; Berichte, Stellungnahmen and Erlassentwürfe linked to
-        # the same article come after it, never instead of it.
+        # provision; Berichte and Stellungnahmen linked to the same article
+        # come after it. An Erlassentwurf explains nothing: it goes in
+        # draft_texts, never in sources.
         _ds = _date_source_select(_botschaft_documents_columns(conn))
         _dt = _botschaft_doc_type_expr(conn)
         rows = conn.execute(
             f"""
-            SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri, bd.format,
+            SELECT bd.botschaft_id, bd.bbl_citation, bd.bbl_year, bd.bbl_page,
+                   bd.eli_uri, bd.format,
                    bd.title, bd.publication_date, {_ds}, abl.relation,
                    bd.language, {_dt} AS doc_type,
                    {_collection_select(_botschaft_documents_columns(conn))}
@@ -18146,7 +18388,8 @@ def _handle_get_article_purpose(
                 fts_q = f'"{sr_token} {sr_number}" "{art_token} {article}"'
                 fb_rows = conn.execute(
                     f"""
-                    SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
+                    SELECT bd.botschaft_id, bd.bbl_citation, bd.bbl_year,
+                           bd.bbl_page, bd.eli_uri,
                            bd.format, bd.title, bd.publication_date, {_ds},
                            bd.language, {_dt} AS doc_type,
                            {_collection_select(_botschaft_documents_columns(conn))},
@@ -18158,10 +18401,12 @@ def _handle_get_article_purpose(
                       ON bd.botschaft_id = bp.botschaft_id
                     WHERE botschaft_paragraphs_fts MATCH ?
                       AND bd.language = ?
+                      AND {_dt} NOT IN ({",".join("?" * len(_DRAFT_TEXT_DOC_TYPES))})
                     ORDER BY rank
                     LIMIT ?
                     """,
-                    (fts_q, language, max_paragraphs * 3),
+                    (fts_q, language, *sorted(_DRAFT_TEXT_DOC_TYPES),
+                     max_paragraphs * 3),
                 ).fetchall()
             except sqlite3.OperationalError:
                 fb_rows = []
@@ -18190,6 +18435,7 @@ def _handle_get_article_purpose(
                         }
                     by_doc[bid]["paragraphs"].append({
                         "page": r["page_number"],
+                        "printed_page": _bbl_printed_page(r, r["page_number"]),
                         "section": r["section_path"],
                         "text": r["text"],
                     })
@@ -18203,7 +18449,8 @@ def _handle_get_article_purpose(
                         "and article reference inside the verbatim corpus. "
                         "Quote with care — verify the snippet is actually "
                         "discussing the article in question, not just "
-                        "naming it in passing."
+                        "naming it in passing. Cite a page via printed_page; "
+                        "where it is null, cite the document without a pinpoint."
                     ),
                 }
             return {
@@ -18220,6 +18467,7 @@ def _handle_get_article_purpose(
             }
 
         sources: list[dict] = []
+        draft_texts: list[dict] = []
         for r in rows:
             paras = conn.execute(
                 """
@@ -18251,7 +18499,8 @@ def _handle_get_article_purpose(
                     ).fetchall()
                 except sqlite3.OperationalError:
                     paras = []
-            sources.append({
+            target = draft_texts if r["doc_type"] in _DRAFT_TEXT_DOC_TYPES else sources
+            target.append({
                 "bbl_citation": r["bbl_citation"],
                 "eli_uri": r["eli_uri"],
                 "title": r["title"],
@@ -18266,6 +18515,7 @@ def _handle_get_article_purpose(
                 "paragraphs": [
                     {
                         "page": p["page_number"],
+                        "printed_page": _bbl_printed_page(r, p["page_number"]),
                         "section": p["section_path"],
                         "text": p["text"],
                     }
@@ -18274,18 +18524,25 @@ def _handle_get_article_purpose(
                 **_bbl_text_flags(r),
             })
 
-        return {
+        out = {
             "sr_number": sr_number,
             "article": article,
             "language": language,
             "sources": sources,
-            "_hint": (
-                "All text is verbatim from the Federal Council Botschaft. "
-                f"Cite as '{rows[0]['bbl_citation']}, S. {{page}}' or via "
-                "the eli_uri. Multiple sources = original Botschaft + any "
-                "amendment Botschaften that touched this article."
-            ),
+            "_hint": _article_purpose_hint(sources, draft_texts),
         }
+        if draft_texts:
+            out["draft_texts"] = draft_texts
+        if not sources:
+            candidates = _botschaft_candidates(conn, sr_number, article, language)
+            if candidates:
+                out["botschaft_candidates"] = candidates
+                out["_hint"] += (
+                    " botschaft_candidates names the Botschaft printed before "
+                    "the draft under the same title; it is not linked to this "
+                    "article, so its text is not returned here."
+                )
+        return out
     finally:
         conn.close()
 
@@ -18404,10 +18661,13 @@ def _handle_search_botschaft(
             }
 
         _ds = _date_source_select(_botschaft_documents_columns(conn))
+        _pg = ("bd.bbl_page" if "bbl_page" in _botschaft_documents_columns(conn)
+               else "NULL AS bbl_page")
         _dt = _botschaft_doc_type_expr(conn)
         sql = f"""
             SELECT bd.botschaft_id, bd.bbl_citation, bd.eli_uri,
                    bd.language, bd.title, bd.publication_date, {_ds}, bd.bbl_year,
+                   {_pg},
                    {_dt} AS doc_type,
                    {_collection_select(_botschaft_documents_columns(conn))},
                    bp.paragraph_id, bp.page_number, bp.section_path,
@@ -18505,6 +18765,7 @@ def _handle_search_botschaft(
                 r["publication_date"], r["date_source"]),
             "bbl_year":         r["bbl_year"],
             "page":             r["page_number"],
+            "printed_page":     _bbl_printed_page(r, r["page_number"]),
             "section":          r["section_path"],
             "article_anchor":   r["article_anchor"],
             "snippet":          _render_fts_snippet(r["snippet"]),
@@ -18747,7 +19008,9 @@ def _handle_get_article_history(
         "statute":   statute_text,
         "timeline":  timeline,
         "summary": {
-            "botschaft_count":     len(botschaften),
+            "botschaft_count":     sum(1 for b in botschaften
+                                       if b["doc_type"] == "botschaft"),
+            "bundesblatt_document_count": len(botschaften),
             "leading_cases_count": len(leading_cases),
             "has_commentary":      commentary is not None,
         },
@@ -25745,6 +26008,16 @@ def _select_historical_articles(articles: list[dict], sr_number: str,
     )}
 
 
+# Fedlex's footnote on a provision adopted but not in force, as worded across
+# the mirror (2026-11-02). Fedlex prints the same note on the placeholder rows
+# of the consolidated edition (BEKJ Art. 18-26).
+_NOT_IN_FORCE_NOTE_RE = re.compile(
+    r"später\w* Zeitpunkt in Kraft|noch nicht in Kraft|nicht in Kraft gesetzt"
+    r"|en vigueur ultérieurement|pas encore en vigueur"
+    r"|in vigore in un secondo tempo|in vigore ulteriormente|non ancora (?:entrat\w+ )?in vigore",
+    re.IGNORECASE)
+
+
 def _label_statute_stubs(articles: list[dict]) -> None:
     """Blank the body of articles whose only content is their amendment note.
 
@@ -25766,6 +26039,12 @@ def _label_statute_stubs(articles: list[dict]) -> None:
         if body == note or not re.search(r"\w", body):
             art["text"] = ""
             art["empty_body"] = True
+        if _NOT_IN_FORCE_NOTE_RE.search(note):
+            art["in_force_note"] = (
+                "Not in force: this provision has no text in the consolidated edition."
+                if art.get("empty_body") else
+                "A footnote says that part or all of this article is not yet in "
+                "force; check `footnote` before treating the text as current law.")
 
 
 def _fetch_historical_law_version(
@@ -26696,6 +26975,25 @@ def get_law(
             _rows = [dict(a) for a in articles]
             _label_statute_stubs(_rows)
             result["articles"] = _rows
+            if not _rows:
+                # The consolidated edition drops a not-yet-in-force provision
+                # to a placeholder the mirror does not store, so an empty answer
+                # must not read as "this article does not exist".
+                try:
+                    _notes = conn.execute(
+                        "SELECT footnote FROM articles WHERE sr_number = ? AND lang = ? "
+                        "AND footnote IS NOT NULL AND footnote != ''",
+                        (sr_number, language)).fetchall()
+                except sqlite3.OperationalError:  # a DB without the column
+                    _notes = []
+                if any(_NOT_IN_FORCE_NOTE_RE.search(n["footnote"]) for n in _notes):
+                    result["article_note"] = (
+                        f"Art. {article} has no text in the consolidated edition of "
+                        f"{result.get('consolidation_date')}. This act has provisions "
+                        "adopted but not yet in force, which Fedlex leaves out of the "
+                        "consolidated text, so the article may be one of them: do not "
+                        "conclude that it does not exist, and do not supply its "
+                        "wording. Check source_url.")
 
             # Enrich with Materialien (legislative history) when fetching
             # a specific article — gives the LLM the "why" alongside the "what".
@@ -28048,6 +28346,8 @@ def _format_get_law_response(result: dict) -> str:
                  f"block(s): {names}.\n")
     if result.get("article_section_note"):
         text += f"Note: {result['article_section_note']}\n"
+    if result.get("article_note"):
+        text += f"Note: {result['article_note']}\n"
     if isinstance(result.get("section"), dict):
         sec = result["section"]
         text += (f"Section: {sec.get('section_heading') or sec.get('section')} "
@@ -28085,9 +28385,12 @@ def _format_get_law_response(result: dict) -> str:
                              f"open the edition on Fedlex (Quelle above)._\n\n")
             else:
                 text += f"### {marker} {art['article_num']}{heading}\n\n"
+            if art.get("in_force_note"):
+                text += f"_{art['in_force_note']}_\n\n"
             if art.get("empty_body"):
-                text += ("_No article text in this edition (repealed or left empty); "
-                         "see the footnote._\n\n")
+                if not art.get("in_force_note"):
+                    text += ("_No article text in this edition (repealed or left empty); "
+                             "see the footnote._\n\n")
             else:
                 text += (art.get("text") or "") + "\n\n"
             if art.get("footnote"):
@@ -30484,7 +30787,9 @@ def _list_tools() -> list[Tool]:
                 "PDF fallback otherwise) with the article-Botschaft link "
                 "table. Returns one entry per source — original Botschaft + "
                 "any amendment Botschaften. All paragraphs are verbatim text "
-                "the LLM can quote with `bbl_citation, S. {page}` references. "
+                "to quote with `bbl_citation, S. {printed_page}`; printed_page "
+                "null = cite without a pinpoint. Draft statute text comes "
+                "apart in `draft_texts` and is not an explanation. "
                 "USE THIS when the user asks 'what was the purpose of Art. X' "
                 "or 'what did Parliament intend' or 'why does Art. X exist'. "
                 "Coverage is rolling — empty `sources` means the verbatim "
@@ -35149,6 +35454,9 @@ setInterval(load, 30000);
                             "empty_body":  {"type": "boolean", "description":
                                             "True when the article has no text in this edition "
                                             "(repealed or left empty); `footnote` says why."},
+                            "in_force_note": {"type": "string", "nullable": True, "description":
+                                              "Set when `footnote` says the provision is not "
+                                              "yet in force."},
                             "text_status": {"type": "string", "nullable": True, "description":
                                             "PDF-edition excerpts only: 'ok', 'heading_only' "
                                             "or 'empty' (see the top-level field)."},
@@ -37132,8 +37440,9 @@ setInterval(load, 30000);
                               "(post-2003 BBl, Akoma Ntoso XML preferred) with the "
                               "article-Botschaft link table. Returns one entry per "
                               "Botschaft (originating + amendments) with verbatim "
-                              "paragraphs the LLM can quote with `bbl_citation, S. {page}` "
-                              "references. Coverage rolls out as the Phase 2 ingestion "
+                              "paragraphs the LLM can quote with `bbl_citation, S. {printed_page}` "
+                              "references (printed_page null = no pinpoint). Draft statute "
+                              "text comes apart in `draft_texts`. Coverage rolls out as the Phase 2 ingestion "
                               "processes ~1500 BBl publications from amendment_refs.")
     async def api_get_article_purpose(
         sr_number: str = PathParam(description="SR number of the law (e.g. '220' for OR)"),

@@ -470,7 +470,8 @@ def test_get_article_purpose_orders_botschaft_before_other_types(tmp_path, monke
     conn.execute("INSERT INTO article_botschaft_links VALUES ('220', '5', ?, 'considered', 'fixture')", (eid,))
     conn.commit(); conn.close()
     out = mcp_server._handle_get_article_purpose(sr_number="220", article="5", language="de")
-    assert [s["doc_type"] for s in out["sources"]] == ["botschaft", "erlassentwurf"]
+    assert [s["doc_type"] for s in out["sources"]] == ["botschaft"]
+    assert [d["doc_type"] for d in out["draft_texts"]] == ["erlassentwurf"]
 
 
 def test_tool_schemas_expose_doc_type():
