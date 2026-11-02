@@ -10,6 +10,7 @@ already over is never started.
 from __future__ import annotations
 
 import asyncio
+import gc
 import json
 import sys
 import threading
@@ -264,7 +265,15 @@ def test_mcp_heavy_call_is_refused_fast_when_busy(lanes, monkeypatch):
         res = await m._dispatch_with_timeout("search_decisions", {"query": "Mietrecht"})
         return res, time.monotonic() - t0
 
-    result, elapsed = asyncio.run(_timed())
+    # Neither the one-time schema read nor a full collection over the whole
+    # collected suite (0.15 s on CI) is the refusal; either trips the limit.
+    m._declared_tool_args()
+    gc.collect()
+    gc.disable()
+    try:
+        result, elapsed = asyncio.run(_timed())
+    finally:
+        gc.enable()
     assert elapsed < 0.05
     payload = json.loads(result[0].text)
     assert payload["error"] == "server_busy"
