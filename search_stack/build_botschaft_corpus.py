@@ -622,7 +622,8 @@ _AKN_CONTAINERS = frozenset({"level", "chapter", "section", "subsection", "part"
 # One row each; whatever they contain is that row's text.
 _AKN_LEAVES = frozenset({"p", "paragraph", "intro", "listIntroduction", "item"})
 _AKN_SR_NOTE_RE = re.compile(r"\b(?:SR|RS)\s+\d[\d.]*\d")
-_AKN_HEADING_MAX = 160
+# Long enough for a full act title: the "(MinVG)" at its end names the act.
+_AKN_HEADING_MAX = 400
 
 _AKN_ARTICLE_HEAD_MAX = 120
 # "Artikel 7 Absatz 2: Der Bundesrat kann …": a comment on one provision.

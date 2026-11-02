@@ -198,7 +198,8 @@ def place_runs(rows: list, sr: str, abbreviations: set[str], names: set[str],
       A wrong article quoted verbatim is worse than none.
 
     In a bill on several acts a title match also answers what no heading says;
-    it never overrides a section about another act.
+    it never overrides a section about another act. Called for acts Fedlex's
+    chain ties to the document, hence ``own_bill``.
     """
     placed: list[tuple[str, str | None]] = []   # (anchor, enacted article or None)
     for run in anchor_runs(rows):
@@ -206,11 +207,11 @@ def place_runs(rows: list, sr: str, abbreviations: set[str], names: set[str],
         anchor, title = head["article_anchor"], article_title(head["text"])
         target = enacted_article(title, anchor, enacted) if title else None
         if not _heading_is_about_act(head["text"], head["section_path"], sr,
-                                     abbreviations, names, several_acts):
+                                     abbreviations, names, several_acts, own_bill=True):
             undecided = (several_acts
                          and not _passage_names_other_act(head["text"], abbreviations)
-                         and _section_verdict(head["section_path"], sr,
-                                              abbreviations, names) is None)
+                         and _section_verdict(head["section_path"], sr, abbreviations,
+                                              names, own_bill=True) is None)
             if not (undecided and target):
                 continue
         placed.append((anchor, target))
@@ -239,16 +240,29 @@ def _law_names_from_row(row) -> tuple[set[str], set[str]]:
     return abbrs, names
 
 
+# A Botschaft heads its own bill by the draft's title, undated: "5.1 Legge
+# federale concernente le piattaforme … nella giustizia". Parliament may rename
+# the act ("… in ambito giudiziario"), and for the act Fedlex ties to the
+# document such a heading must not read as another act. An act the bill amends
+# is cited with its date or SR number.
+_BILL_HEADING_RE = re.compile(
+    r"^\s*(?:\d+(?:\.\d+)*\.?\s+)?(?:Bundesgesetz|Bundesbeschluss|Loi fédérale|Arrêté fédéral"
+    r"|Legge federale|Decreto federale)\b", re.IGNORECASE)
+
+
 def _section_verdict(section_path: str | None, sr: str, abbreviations: set[str],
-                     names: set[str]) -> bool | None:
+                     names: set[str], own_bill: bool = False) -> bool | None:
     """Is this heading path about the act? The nearest heading that is about
-    an act decides; None when no heading is about any act."""
+    an act decides; None when no heading is about any act. ``own_bill``: the
+    document is this act's own bill, per Fedlex."""
     for heading in reversed((section_path or "").split(SECTION_SEPARATOR)):
         tagged = _SR_TAG_RE.findall(heading)
         if tagged:
             return sr in tagged
         if _passage_names_act(heading, None, abbreviations, names):
             return True
+        if own_bill and _BILL_HEADING_RE.match(heading) and not _ACT_DATE_RE.search(heading):
+            continue
         if _section_names_other_act(heading, abbreviations, names):
             return False
     return None
@@ -256,7 +270,7 @@ def _section_verdict(section_path: str | None, sr: str, abbreviations: set[str],
 
 def _heading_is_about_act(head_text: str | None, section_path: str | None, sr: str,
                           abbreviations: set[str], names: set[str],
-                          several_acts: bool) -> bool:
+                          several_acts: bool, own_bill: bool = False) -> bool:
     """Does the run of paragraphs under this "Art. N" heading explain this act?
 
     Its heading line decides first ("Art. 5 Abs. 1 VwVG" for the BEKJ: no), then
@@ -267,5 +281,5 @@ def _heading_is_about_act(head_text: str | None, section_path: str | None, sr: s
         return False
     if _passage_names_act(None, head_text, abbreviations, names):
         return True
-    verdict = _section_verdict(section_path, sr, abbreviations, names)
+    verdict = _section_verdict(section_path, sr, abbreviations, names, own_bill)
     return verdict if verdict is not None else not several_acts

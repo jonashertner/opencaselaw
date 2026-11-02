@@ -98,6 +98,16 @@ def test_section_path_is_the_whole_heading_path_with_the_sr_of_the_footnote():
         "5.2.2 Verwaltungsverfahrensgesetz vom 20. Dezember 1968 [SR 172.021]")
 
 
+def test_long_act_title_in_a_heading_keeps_its_abbreviation():
+    title = ("Bundesgesetz über die Verwendung der zweckgebundenen Mineralölsteuer und weiterer "
+             "für den Strassen- und Luftverkehr zweckgebundener Mittel, in der Fassung der "
+             "Änderung im Bereich des Autoverlads und der Autoverladeterminals (MinVG)")
+    rows = list(parse(doc(f"<level><num>4.2</num><heading>{title}</heading><content>"
+                          "<p>Der neue Artikel 19 führt die Möglichkeit von Bürgschaften ein.</p>"
+                          "</content></level>")))
+    assert rows[0]["section_path"].endswith("(MinVG)")
+
+
 def test_footnote_leaves_the_sentence_and_stays_searchable_on_its_own():
     rows = list(parse(BEKJ_BOTSCHAFT))
     sentence = next(r for r in rows if r["text"].startswith("Ist die Plattform"))
@@ -244,6 +254,23 @@ def test_section_decides_between_acts():
             "Kommunikation in der Justiz")
     assert _about("Art. 26 Nichterreichbarkeit", main)
     assert not _about("Art. 26 Abs. 1 Einleitungssatz", annex)
+
+
+def test_draft_title_of_a_renamed_act_is_not_another_act():
+    """The Italian title changed in Parliament: BBl 2023 679 IT lost every link."""
+    names = ({"LCEG"}, {"Legge federale concernente le piattaforme per la comunicazione "
+                        "elettronica in ambito giudiziario"})
+    section = ("5 Commento ai singoli articoli > 5.1 Legge federale concernente le piattaforme "
+               "per la comunicazione elettronica nella giustizia")
+    assert scope._heading_is_about_act("Art. 26 Inaccessibilità", section, "172.023", *names,
+                                       False, own_bill=True)
+    # for an act that merely appears in the bill, the same heading is another act
+    assert not _about("Art. 26 Inaccessibilità", section, names=names)
+
+
+def test_dated_act_in_the_annex_stays_another_act():
+    section = "5.2 Modifica > 5.2.1 Legge federale del 4 dicembre 1947 sulla procedura"
+    assert not _about("Art. 26 Abs. 1", section)
 
 
 def test_sr_tag_for_this_act_counts():
@@ -465,6 +492,29 @@ def test_renumbered_comment_is_served_under_the_enacted_number(tmp_path, monkeyp
     assert "renumbered" in out["_hint"]
     # the enacted Art. 37 is another provision: this comment must not answer it
     assert m._handle_get_article_purpose(sr_number="172.023", article="37")["sources"] == []
+
+
+def test_placement_on_the_german_edition_holds_for_the_others(tmp_path, monkeypatch):
+    """The mirror has no Italian Art. 38 of the BEKJ: Italian alone cannot see
+    the shift and would keep a comment on the referendum under Art. 37."""
+    db, st = tmp_path / "m.db", tmp_path / "s.db"
+    conn, _ = _db(db, RENUMBERED)
+    it = doc("""<level><num>5</num><heading>Commento ai singoli articoli</heading><content>
+      <p>Art. 37 Referendum ed entrata in vigore</p>
+      <p>La disposizione disciplina il referendum e l'entrata in vigore.</p>
+      </content></level>""")
+    bid = conn.execute(
+        "INSERT INTO botschaft_documents (bbl_year, bbl_page, bbl_citation, eli_uri, source_url, "
+        "format, language, ingested_at, doc_type) VALUES (2023, 679, 'FF 2023 679', ?, 'https://x', "
+        "'akoma-ntoso-xml', 'it', '2026-01-01', 'botschaft')",
+        ("https://fedlex.data.admin.ch/eli/fga/2023/679",)).lastrowid
+    rx.replace_paragraphs(conn, bid, list(parse(it)), it)
+    conn.commit(); conn.close()
+    _statutes(st, enacted=[("37", "Übergangsbestimmungen"), ("38", "Referendum und Inkrafttreten")])
+    _enrich(monkeypatch, db, st, CHAIN)
+    rows = sqlite3.connect(db).execute(
+        "SELECT article, botschaft_id FROM article_botschaft_links WHERE botschaft_id = ?", (bid,)).fetchall()
+    assert rows == [("38", bid)]
 
 
 def test_link_with_a_draft_number_is_replaced_on_the_next_run(tmp_path, monkeypatch):

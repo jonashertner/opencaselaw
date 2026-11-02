@@ -447,3 +447,36 @@ pass there would need a `text_source` on botschaft_paragraphs (materialien.db
 schema, step 2f) and is not built. But that text IS the Bundesarchiv's OCR:
 the completeness report now labels it `text_source: bar_ocr_layer`;
 since 42860b92 search_botschaft, get_article_purpose and get_materialien flag every historical passage `text_source` / `verbatim_quotation: ocr` with a note (R2).
+
+## Re-parse XML documents and rebuild chain links (G1 + G2, 2026-11-02)
+
+One-off. Ingest keeps an unchanged file, so a parser change reaches stored
+documents only through `scripts/reparse_xml_materialien.py`. Rehearsed on a copy
+(`docs/superpowers/specs/2026-11-02-materialien-source-defects.md`).
+
+Order: **code first, data second.** The old server cannot read
+`evidence LIKE '%draft_art=%'` and would answer a renumbered article with
+nothing. The new server works on the old data.
+
+1. Land the commits on main, get them onto the VPS and restart the workers.
+2. Pick a window: not while the 04:30 unit, the 00:20 historical night or step 2f
+   writes materialien.db (the swap would be refused, not harmful). About 4,400
+   files at the production rate: ~2 h.
+3. Run:
+
+```bash
+cd /opt/caselaw/repo && python3 -m search_stack.materialien_swap --db output/materialien.db --allow-shrink --lock-file logs/materialien_swap.lock -- /bin/bash -c 'python3 scripts/reparse_xml_materialien.py --db {db} --rate-limit 0.5 && python3 scripts/enrich_botschaft_links.py --types 23,24,25,30,38,39,40 --db {db} --statutes output/statutes.db'
+```
+
+`--allow-shrink` is needed once: paragraphs drop by ~6 % because the old parser
+stored numbered paragraphs and list items twice. Exit 4 from the re-parse means a
+refusal or five failures in a row; rerun. Stop conditions: exit 5 or 6 (nothing
+was swapped), or articles linked falling instead of rising.
+
+4. Verify on the live server: `get_article_purpose(sr_number="172.023",
+   article="26")` returns BBl 2023 679, `article="38"` carries `draft_article`
+   37; `get_article_purpose(sr_number="955.3", article="33")` carries 40.
+5. Update `docs/canonical_numbers.md` (article links, paragraphs).
+
+The nightly enrichment needs no change: from now on it replaces chain links per
+covered document.

@@ -1,6 +1,6 @@
 # Materialien source defects found on the BEKJ (SR 172.023)
 
-Date: 2026-11-02. Status: tool-layer fixes on branch `claude/zealous-kirch-8889ed`, not deployed. Everything under "Gated changes" waits for Jonas's OK.
+Date: 2026-11-02. Status: tool-layer fixes, G1 and G2 on branch `claude/zealous-kirch-8889ed`, rehearsed on a copy, not pushed or deployed. G3-G7 wait for Jonas's OK.
 
 Measured on copies of production `materialien.db` (built 2026-11-02 04:31 UTC) and `statutes.db` (06:26 UTC), on the `consultations.db` metadata tables, and on Fedlex SPARQL. `decisions.db` was not touched. German rows unless stated.
 
@@ -80,13 +80,58 @@ Four separate causes:
 - Vernehmlassungen: unlinked procedures matched by the act's unique German abbreviation in parentheses, labelled `link_basis`. 274 procedures, 245 acts. Sampled precision 34 of 36 (RPV and BPV had other meanings), which is why it is labelled and never presented as a Fedlex link. Passages need their own heading to name the act.
 - `get_law`: `in_force_note` on marked articles, `article_note` on an empty answer in a partly enacted act.
 
-**Considered and rejected:** returning Botschaft text at read time by matching headings. Of 246 draft-only articles, 2 matched exactly and 180 loosely, and loose hits include the same number in another act of the bill (`Art. 26 Abs. 1` of the VwVG in BBl 2023 679). A quotation tool should not guess. Until G1 ships, BEKJ users get the pointer and `search_botschaft`.
+**Considered and rejected:** returning Botschaft text at read time by matching headings. Of 246 draft-only articles, 2 matched exactly and 180 loosely, and loose hits include the same number in another act of the bill (`Art. 26 Abs. 1` of the VwVG in BBl 2023 679). A quotation tool should not guess. Until G1 + G2 are deployed, BEKJ users get the pointer and `search_botschaft`.
 
 **Live effect on BEKJ.** `get_materialien("BEKJ", article="26")` now returns both consultations and the VEKJ report's passage on Art. 26 Abs. 5, p. 37.
 
+## G1 + G2: built and rehearsed (Jonas's OK, 2026-11-02)
+
+Commits on the branch, not pushed. Run through `materialien_swap` on a copy with the production commands: 4,394 XML documents re-parsed, no failures, every source file matched its stored hash, `quick_check` and FTS `integrity-check` pass, 95 seconds offline.
+
+**What changed beyond the plan.** Building this found three things the proposal did not cover:
+
+1. **Renumbering produces wrong quotations.** A Botschaft numbers its comments by the draft, and Parliament inserts and drops articles. TJPG Art. 33 is Art. 40 of the Botschaft; BEKJ Art. 38 is its Art. 37. Before this, `get_article_purpose(TJPG, 40)` could quote the comment on a different provision. Only headings reveal it. G2 therefore places each comment by comparing its title with the enacted heading: same number, a different unique article, or, in a shifted stretch with nothing to compare, no link. The link keeps the document's number in `evidence` (`sparql_parliament_chain:draft_art=40`, no schema change), and the answer carries `draft_article`.
+2. **The old text was often scrambled.** `_akn_text` put an element's tail before its children: `BBl , 2018 6949 7321` for `BBl 2018 6949, 7321`. The new reader keeps reading order, fixes spaces around `<sup>` and `<i>`, and stores each paragraph once.
+3. **Ingest never re-parses an unchanged file**, and enrichment never deleted a link. `scripts/reparse_xml_materialien.py` is new, and each run now replaces the chain links of the documents it covers.
+
+**Scope is XML only.** Applied to PDFs, the act filter would have dropped about 3,500 links that return the right text, because any capitalised line reads as a section there. PDF behaviour is unchanged.
+
+**Results (German rows, production copy):**
+
+| Measure | Before | After |
+|---|---|---|
+| XML Botschaften with anchors | 74 of 298 | 239 of 298 |
+| XML paragraphs with a section path | 37,962 | 399,262 |
+| Articles answered by a draft only | 246 (32 acts) | 29 (12 acts) |
+| Articles with a Botschaft linked | 12,426 | 12,841 |
+| National acts missing a Botschaft that Fedlex ties to them | 102 | 93 (all but one PDF) |
+| Chain links, German | 2,200 | 2,589 (+460, -71) |
+| Article links, all languages | 27,026 | 28,180 |
+| Links corrected to the enacted number | 0 | 246 (7 acts, TJPG 210) |
+
+- First Botschaft link: BEKJ, BVVG, FPG, GüTG, SIAG, UEG and three more acts.
+- BEKJ Art. 26 and Art. 38 answer in DE, FR and IT. The new Art. 37 correctly has no comment.
+- Language parity: 0 gaps across 75 document-act pairs. Placement is decided on the German edition and applied to all three, because the mirror lacks some rows in other languages (no Italian BEKJ Art. 38).
+
+**Regression sweep** through the real handler, all 13,474 linked articles: 22 had text before and have none now. All were reviewed and are correct removals:
+- 10 TJPG numbers that do not exist in the act or belong to annex acts (Art. 57-62, 88, 718, 747, 814).
+- 9 TJPG articles in the shifted stretch that could not be placed (6 of them because the mirror has no heading to compare).
+- SR 312.53 Art. 7 and 8, renumbered.
+- GwG Art. 25, which was returning TJPG Art. 25.
+
+**Remaining limits:**
+- `page` stays null for XML documents until G3.
+- PDF anchors still follow draft numbers and still cross all acts of a bill until G4. The renumbering fix does not reach them, and how many PDF-era acts were renumbered is unknown. This is the largest remaining risk of a wrong quotation.
+- Three note exchanges (SR 0.362.381.019, .020, .031) lost all article links. Those links pointed at EU regulation articles, but the acts now list no document until G5.
+- A range heading (`Art. 32–34`) anchors its first number only.
+- BBl 2024 1201 keeps no link to its Bundesgesetz, because no heading separates it from the treaty.
+- `docs/canonical_numbers.md` needs the new counts after the swap.
+
+**Deploy, in this order. Not done.** See the section in `runbooks/materialien_completeness.md`. Code first: the old server cannot read `draft_art`.
+
 ## Gated changes (need Jonas's OK)
 
-Order matters. G1 must ship together with G2.
+G1 and G2 are built, see above; deploying them still needs his OK.
 
 | # | Change | Touches | Fixes |
 |---|---|---|---|
@@ -135,4 +180,6 @@ Rules:
 - Precision of the abbreviation match rests on a 36-row sample.
 - The 54-act marker count is a text search on German XML with two phrases, so it is a floor. Some hits may refer to treaties.
 - `printed_page` was tested by page number in running text, not by opening PDFs, except for a few documents.
+- G1 + G2 ran on copies from 2026-11-02 04:31 UTC. Live data will differ slightly by deploy time.
+- Anchor detection was reviewed on samples and by FR/DE parity (4,053 against 4,065 anchors, before the last two heading forms were added), not by reading all 4,394 documents.
 - Why the mirror kept Art. 28 and not the other placeholders was not traced.

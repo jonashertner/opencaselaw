@@ -18206,6 +18206,7 @@ def _handle_find_relevant_erwaegung(
 
 
 _XML_FORMAT = "akoma-ntoso-xml"
+_CHAIN_EVIDENCE = "sparql_parliament_chain"
 
 
 def _handle_get_article_purpose(
@@ -18423,8 +18424,9 @@ def _handle_get_article_purpose(
                 # may link a passage no heading names, so only evidence for
                 # another act excludes one.
                 paras = [p for run in _anchor_runs(anchored)
-                         if _heading_is_about_act(run[0]["text"], run[0]["section_path"],
-                                                  sr_number, abbrs, names, False)
+                         if _heading_is_about_act(
+                             run[0]["text"], run[0]["section_path"], sr_number, abbrs, names,
+                             False, own_bill=(r["evidence"] or "").startswith(_CHAIN_EVIDENCE))
                          for p in run][:max_paragraphs]
             if not anchored:
                 # FTS5 fallback: phrase search for "Art. {article}" inside

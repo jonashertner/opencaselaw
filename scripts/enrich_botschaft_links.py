@@ -276,25 +276,34 @@ def main() -> int:
         if not bids:
             skipped_no_id += 1
             continue
-        for bid in bids:
-            covered.append(bid)
-            rows = conn.execute(
+        covered.extend(bids)
+        rows_by_bid = {
+            bid: conn.execute(
                 "SELECT article_anchor, section_path, text FROM botschaft_paragraphs "
                 "WHERE botschaft_id = ? AND article_anchor IS NOT NULL "
                 "ORDER BY para_order",
                 (bid,),
             ).fetchall()
-            if not rows:
-                skipped_no_anchors += 1
-                continue
-            anchors = {r["article_anchor"] for r in rows}
-            for sr in srs:
-                if bid in xml_lang:
-                    abbrs, names = law_names.get(sr, (set(), set()))
-                    kept = place_runs(rows, sr, abbrs, names, len(srs) > 1,
-                                      enacted.get((sr, xml_lang[bid]), {}))
-                else:
-                    kept = {a: a for a in anchors}
+            for bid in bids
+        }
+        skipped_no_anchors += sum(1 for rows in rows_by_bid.values() if not rows)
+        # The language editions of a document share its numbering, so one
+        # placement holds for all of them: decided on the German edition, whose
+        # enacted headings are the most complete (BEKJ has no Italian Art. 38
+        # row, so Italian alone would not see that Art. 37 moved).
+        xml_bids = [b for b in bids if b in xml_lang and rows_by_bid[b]]
+        primary = next((b for b in xml_bids if xml_lang[b] == "de"),
+                       xml_bids[0] if xml_bids else None)
+        for sr in srs:
+            placed = None
+            if primary is not None:
+                abbrs, names = law_names.get(sr, (set(), set()))
+                placed = place_runs(rows_by_bid[primary], sr, abbrs, names, len(srs) > 1,
+                                    enacted.get((sr, xml_lang[primary]), {}))
+            for bid, rows in rows_by_bid.items():
+                anchors = {r["article_anchor"] for r in rows}
+                kept = ({art: a for art, a in placed.items() if a in anchors}
+                        if bid in xml_lang and placed is not None else {a: a for a in anchors})
                 out_of_scope += len(anchors - set(kept.values()))
                 renumbered += sum(1 for art, anchor in kept.items() if art != anchor)
                 pending.extend((sr, art, bid, chain_evidence(art, anchor))
