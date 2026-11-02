@@ -1,9 +1,9 @@
 {
-  "total": 1074268,
-  "source_representations": 1074268,
+  "total": 1074330,
+  "source_representations": 1074330,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 933484,
-  "unique_decisions_lower_bound": 933434,
+  "unique_decisions": 933546,
+  "unique_decisions_lower_bound": 933496,
   "duplicate_representations": 140784,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -19,10 +19,10 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194184,
+      "count": 194246,
       "earliest": "1996-01-19",
-      "latest": "2026-10-21",
-      "last_scraped": "2026-10-30T11:04:00.573813+00:00",
+      "latest": "2026-10-23",
+      "last_scraped": "2026-11-02T11:01:41.568819+00:00",
       "languages": [
         "de",
         "fr",
@@ -1774,8 +1774,8 @@
   ],
   "federal_seats": {
     "bger": {
-      "LU": 36791,
-      "VD": 157393
+      "LU": 36804,
+      "VD": 157442
     },
     "bge": {
       "LU": 3300,
@@ -2129,9 +2129,9 @@
     }
   ],
   "by_language": {
-    "de": 496823,
-    "fr": 480732,
-    "it": 90540,
+    "de": 496857,
+    "fr": 480746,
+    "it": 90554,
     "en": 6173
   },
   "by_year": {
@@ -2284,27 +2284,27 @@
     "2021": 53180,
     "2022": 52762,
     "2023": 52714,
-    "2024": 52731,
-    "2025": 50400,
-    "2026": 28834,
+    "2024": 52739,
+    "2025": 50426,
+    "2026": 28862,
     "2027": 1
   },
   "recent_daily": {
     "2026-10-05": 57,
     "2026-10-06": 79,
-    "2026-10-07": 67,
-    "2026-10-08": 58,
+    "2026-10-07": 69,
+    "2026-10-08": 60,
     "2026-10-09": 30,
     "2026-10-12": 46,
-    "2026-10-13": 57,
-    "2026-10-14": 33,
-    "2026-10-15": 30,
+    "2026-10-13": 58,
+    "2026-10-14": 35,
+    "2026-10-15": 31,
     "2026-10-16": 14,
-    "2026-10-19": 20,
+    "2026-10-19": 21,
     "2026-10-20": 11,
-    "2026-10-21": 11,
-    "2026-10-22": 11,
-    "2026-10-23": 2,
+    "2026-10-21": 12,
+    "2026-10-22": 13,
+    "2026-10-23": 3,
     "2026-10-26": 1,
     "2026-10-27": 1,
     "2026-10-28": 2,
@@ -2320,7 +2320,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194184
+      "count": 194246
     },
     {
       "court": "ge_gerichte",
@@ -2523,7 +2523,7 @@
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 385357,
+    "federal": 385419,
     "cantonal": 688911
   },
   "language_by_year": {
@@ -2642,22 +2642,22 @@
       "it": 2417
     },
     "2024": {
-      "de": 23590,
+      "de": 23592,
       "en": 364,
-      "fr": 26554,
-      "it": 2223
+      "fr": 26557,
+      "it": 2226
     },
     "2025": {
-      "de": 23816,
+      "de": 23826,
       "en": 377,
-      "fr": 24648,
-      "it": 1559
+      "fr": 24654,
+      "it": 1569
     },
     "2026": {
-      "de": 15037,
+      "de": 15059,
       "en": 236,
-      "fr": 12460,
-      "it": 1101
+      "fr": 12465,
+      "it": 1102
     }
   },
   "by_month": {
@@ -2671,34 +2671,34 @@
     "2024-06": 4859,
     "2024-07": 4099,
     "2024-08": 4012,
-    "2024-09": 4278,
-    "2024-10": 4525,
+    "2024-09": 4279,
+    "2024-10": 4530,
     "2024-11": 4615,
-    "2024-12": 4361,
-    "2025-01": 4225,
+    "2024-12": 4363,
+    "2025-01": 4229,
     "2025-02": 4206,
-    "2025-03": 4405,
-    "2025-04": 4142,
-    "2025-05": 4295,
-    "2025-06": 4712,
+    "2025-03": 4407,
+    "2025-04": 4147,
+    "2025-05": 4298,
+    "2025-06": 4713,
     "2025-07": 3933,
     "2025-08": 3861,
-    "2025-09": 4474,
-    "2025-10": 4370,
-    "2025-11": 4051,
-    "2025-12": 3726,
-    "2026-01": 3078,
-    "2026-02": 3770,
+    "2025-09": 4475,
+    "2025-10": 4373,
+    "2025-11": 4052,
+    "2025-12": 3732,
+    "2026-01": 3085,
+    "2026-02": 3771,
     "2026-03": 3843,
     "2026-04": 3157,
     "2026-05": 2969,
     "2026-06": 3486,
     "2026-07": 2789,
     "2026-08": 2636,
-    "2026-09": 2455,
-    "2026-10": 651
+    "2026-09": 2462,
+    "2026-10": 664
   },
-  "generated_at": "2026-11-02T10:50:45.949871+00:00",
+  "generated_at": "2026-11-02T19:05:07.999107+00:00",
   "scraper_health": {
     "run_at": "2026-11-02T01:49:37.497315+00:00",
     "run_duration_s": 2916.5,
@@ -3226,9 +3226,9 @@
         "duration_s": 830.9,
         "error": null,
         "note": null,
-        "state_count": 100042,
+        "state_count": 100062,
         "jsonl_size_mb": 1514.1,
-        "jsonl_mtime": "2026-11-02T01:15:01.057889+00:00"
+        "jsonl_mtime": "2026-11-02T11:02:23.814656+00:00"
       },
       "postcom": {
         "success": true,
@@ -3772,7 +3772,7 @@
         "note": null,
         "state_count": 7825,
         "jsonl_size_mb": 195.4,
-        "jsonl_mtime": "2026-11-02T01:47:17.704518+00:00"
+        "jsonl_mtime": "2026-11-02T10:55:39.677321+00:00"
       },
       "sg_publikationen": {
         "success": true,
@@ -3878,7 +3878,7 @@
       "ZG": 610,
       "ZH": 135
     },
-    "commentaries": 1194,
+    "commentaries": 1796,
     "scholarship_publications": 51892,
     "scholarship_by_source": {
       "zora_law": 14097,
@@ -3921,19 +3921,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 10020910,
-    "statute_edges": 12728801
+    "citation_edges": 10021670,
+    "statute_edges": 12729246
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 111529,
+      "citation_count": 111533,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196744
+      "ref_count": 196747
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -3945,17 +3945,17 @@
       "de_pct": 46.5,
       "fr_pct": 45.0,
       "it_pct": 8.5,
-      "total": 1068089
+      "total": 1068157
     },
     "regeste_coverage": {
       "pct": 37.9,
-      "with_regeste": 406816,
-      "total": 1074262
+      "with_regeste": 406818,
+      "total": 1074330
     },
     "graph_size": {
-      "decision_edges": 9488318,
-      "statute_edges": 12728801,
-      "total": 22217119
+      "decision_edges": 9489289,
+      "statute_edges": 12729246,
+      "total": 22218535
     },
     "echr_switzerland": {
       "total": 1535,
@@ -3972,19 +3972,19 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 111529,
+        "citation_count": 111533,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 58496,
+        "citation_count": 58497,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39852,
+        "citation_count": 39853,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
@@ -4005,7 +4005,7 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196744
+        "ref_count": 196747
       },
       {
         "law_code": "LTF",
@@ -4015,17 +4015,17 @@
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109353
+        "ref_count": 109363
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98496
+        "ref_count": 98510
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61028
+        "ref_count": 61040
       }
     ],
     "materialien_coverage": {
@@ -4465,6 +4465,30 @@
   "recent": {
     "bge": [
       {
+        "decision_id": "bger_4A_595_2026",
+        "docket": "4A_595/2026",
+        "date": "2026-10-23",
+        "court": "bger",
+        "language": "de",
+        "summary": ""
+      },
+      {
+        "decision_id": "bger_4A_428_2026",
+        "docket": "4A_428/2026",
+        "date": "2026-10-22",
+        "court": "bger",
+        "language": "de",
+        "summary": ""
+      },
+      {
+        "decision_id": "bger_1C_582_2026",
+        "docket": "1C_582/2026",
+        "date": "2026-10-22",
+        "court": "bger",
+        "language": "de",
+        "summary": ""
+      },
+      {
         "decision_id": "bger_9C_407_2026",
         "docket": "9C_407/2026",
         "date": "2026-10-21",
@@ -4479,6 +4503,14 @@
         "court": "bger",
         "language": "de",
         "summary": "Konkurseröffnung,"
+      },
+      {
+        "decision_id": "bger_2C_648_2026",
+        "docket": "2C_648/2026",
+        "date": "2026-10-21",
+        "court": "bger",
+        "language": "de",
+        "summary": ""
       },
       {
         "decision_id": "bger_6B_731_2026",
@@ -4511,38 +4543,6 @@
         "court": "bger",
         "language": "de",
         "summary": "Konkurseröffnung,"
-      },
-      {
-        "decision_id": "bger_5A_835_2026",
-        "docket": "5A_835/2026",
-        "date": "2026-10-19",
-        "court": "bger",
-        "language": "de",
-        "summary": "Konkurseröffnung,"
-      },
-      {
-        "decision_id": "bger_4A_573_2026",
-        "docket": "4A_573/2026",
-        "date": "2026-10-19",
-        "court": "bger",
-        "language": "de",
-        "summary": "Mietvertrag; Abschreibung des Schlichtungsverfahrens; Zwischenentscheid,"
-      },
-      {
-        "decision_id": "bger_1C_458_2026",
-        "docket": "1C_458/2026",
-        "date": "2026-10-19",
-        "court": "bger",
-        "language": "de",
-        "summary": "Eidgenössische Volksinitiative \"Für eine direktdemokratische und wettbewerbsfähige Schweiz (Kompass-Initiative) \"; Äusserungen von Bundesrat Beat Jans anlässlich der Pressekonferenz des Bundesrates vom 13. August 2026,"
-      },
-      {
-        "decision_id": "bger_9D_15_2026",
-        "docket": "9D_15/2026",
-        "date": "2026-10-16",
-        "court": "bger",
-        "language": "de",
-        "summary": "Erlass von Verfahrenskosten (unentgeltliche Rechtspflege),"
       }
     ],
     "cantonal": [
@@ -4680,6 +4680,14 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/2015/847"
     },
     {
+      "sr_number": "916.151.6",
+      "in_force_date": "2026-12-01",
+      "title_de": "Verordnung des BLW vom 12. Juni 2013 über Sortenkataloge und Sortenlisten landwirtschaftlich genutzter Pflanzenarten (Sortenverordnung)",
+      "title_fr": "Ordonnance de l'OFAG du 12 juin 2013 sur les catalogues et les listes de variétés végétales utilisées à des fins agricoles (Ordonnance sur les variétés)",
+      "title_it": "Ordinanza dell'UFAG del 12 giugno 2013 concernente i cataloghi delle varietà e gli elenchi delle varietà di specie vegetali utilizzate a scopo agricolo (Ordinanza sulle varietà)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2013/417"
+    },
+    {
       "sr_number": "814.81",
       "in_force_date": "2026-12-01",
       "title_de": "Verordnung vom 18. Mai 2005 zur Reduktion von Risiken beim Umgang mit bestimmten besonders gefährlichen Stoffen, Zubereitungen und Gegenständen (Chemikalien-Risikoreduktions-Verordnung, ChemRRV)",
@@ -4750,19 +4758,12 @@
       "title_fr": "Ordonnance du 29 mars 2017 sur les structures de l'armée (OStrA)",
       "title_it": "Ordinanza del 29 marzo 2017 sulle strutture dell'esercito (OStrE)",
       "url": "https://www.fedlex.admin.ch/eli/cc/2017/218"
-    },
-    {
-      "sr_number": "513.111",
-      "in_force_date": "2027-01-01",
-      "title_de": "Verordnung des VBS vom 29. März 2017 über die Detailorganisation der Armee (VDA) ",
-      "title_fr": "Ordonnance du DDPS du 29 mars 2017 sur l'organisation détaillée de l'armée (OODA) ",
-      "title_it": "Ordinanza del DDPS del 29 marzo 2017 sull'organizzazione di dettaglio dell'esercito (OODE) ",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2017/219"
     }
   ],
   "delta": {
-    "total": 6,
+    "total": 68,
     "by_court": {
+      "bger": 62,
       "zh_sozialversicherungsgericht": 4,
       "icj": 2
     },
@@ -4774,7 +4775,10 @@
       "federal_laws": 3,
       "federal_law_articles": 97,
       "cantonal_laws": 2,
-      "cantonal_law_articles": 83
+      "cantonal_law_articles": 83,
+      "commentaries": 602,
+      "citation_edges": 760,
+      "statute_edges": 445
     },
     "previous_generated_at": "2026-11-01T19:57:51.704396+00:00"
   }
