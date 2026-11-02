@@ -458,10 +458,16 @@ Order: **code first, data second.** The old server cannot read
 `evidence LIKE '%draft_art=%'` and would answer a renumbered article with
 nothing. The new server works on the old data.
 
+The nightly enrichment may run between the two. Tested on a copy: new code on
+old data removes 38 cross-act draft links, the same ones the re-parse removes,
+and adds 23. Nothing else moves.
+
 1. Land the commits on main, get them onto the VPS and restart the workers.
 2. Pick a window: not while the 04:30 unit, the 00:20 historical night or step 2f
    writes materialien.db (the swap would be refused, not harmful). About 4,400
-   files at the production rate: ~2 h.
+   files at the production rate: ~2 h. With a cache of the files, minutes:
+   `scripts/reparse_xml_materialien.py --cache-dir DIR` reads `<botschaft_id>.xml`
+   from DIR and fetches only what is missing, so upload one and add the flag.
 3. Run:
 
 ```bash
