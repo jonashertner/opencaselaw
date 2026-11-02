@@ -175,6 +175,28 @@ Rules:
 - First version covers new acts. Pending amendments to existing acts need a separate shape, since their text is an amending instruction; list them next to `pending_changes`.
 - Fetch through SPARQL manifestations. Never guess a filename, and reject a response that is not XML.
 
+## M10: annexes under `<components>` are never read (reported 2026-11-02, not built)
+
+Reported by the BEKJ commentary session, confirmed here on all 4,394 cached files. `parse_akoma_ntoso_xml` reads the first `body` or `mainBody` and never `<components>`. The old parser did the same, so G1 did not cause this and does not fix it.
+
+German XML documents with components, words in them against words in the body:
+
+| Type | With components | In body | In components |
+|---|---|---|---|
+| Botschaft | 51 of 298 | 689,138 | 340,346 |
+| Erlassentwurf | 68 of 482 | 154,504 | 95,388 |
+| Bericht des Bundesrates | 16 of 31 | 118,351 | 274,112 |
+| Bericht einer Kommission | 39 of 146 | 970,430 | 85,657 |
+| Stellungnahme des Bundesrates | 1 of 94 | 1,065 | 759 |
+
+In 39 of 175 such documents components hold most of the text; BBl 2026 1528 keeps 933 of about 42,000 words. For a draft or final text they carry the changes to other acts: the BEKJ's Art. 128c ZPO sentence is there. `search_botschaft` cannot find any of this text.
+
+**Effect on the G1 + G2 deploy: none.** The re-parse neither fixes nor worsens this, and with the cache it takes minutes, so running it again for M10 costs little. M10 should not hold back the wrong-quotation fixes.
+
+**Fix when approved.** Walk `<components>` after the body with the same reader. Annex articles carry the amended act's numbers, so they need the act scoping of G2 and a rehearsal; a component without a heading naming its act gets no article link. It must land before or with G6, because final texts carry their amendments there.
+
+Also reported, not verified here: S9 (`-an` means anonymised on Fedlex, while `_FORMAT_PRIORITY` treats it as Akoma Ntoso and prefers it), S10 (wrong date and title on PKG rows), S11 (`cite` misses). See `docs/claude/bekj-fixes-handover-2026-11-02.md`, in the primary checkout.
+
 ## Not verified
 
 - Precision of the abbreviation match rests on a 36-row sample.
