@@ -184,8 +184,9 @@ def scrape_canton(
     }
 
 
-def write_report(output_dir: Path, results: list[dict]) -> Path:
-    path = output_dir / REPORT_NAME
+def write_report(output_dir: Path, results: list[dict],
+                 report_name: str = REPORT_NAME) -> Path:
+    path = output_dir / report_name
     report = {
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "output_dir": str(output_dir),
@@ -197,10 +198,10 @@ def write_report(output_dir: Path, results: list[dict]) -> Path:
     return path
 
 
-def check_report(output_dir: Path) -> int:
+def check_report(output_dir: Path, report_name: str = REPORT_NAME) -> int:
     """Exit status for the last run: 0 all refreshed, 1 a canton was not,
     2 no fresh report (the scrape never finished)."""
-    path = output_dir / REPORT_NAME
+    path = output_dir / report_name
     if not path.exists():
         print(f"no scrape report at {path}")
         return 2

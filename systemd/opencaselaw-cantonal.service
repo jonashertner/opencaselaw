@@ -7,6 +7,6 @@ Type=oneshot
 WorkingDirectory=/opt/caselaw/repo
 ExecStart=/bin/bash -c "python3 scrape_cantonal_laws.py --output /mnt/HC_Volume_104655575/output/cantonal_laws_direct && python3 -m search_stack.build_cantonal_laws_db --input-direct /mnt/HC_Volume_104655575/output/cantonal_laws_direct --input-lexfind /opt/caselaw/repo/output/lexfind_cantonal --output /mnt/HC_Volume_104655575/output/cantonal_laws.db"
 EnvironmentFile=/opt/caselaw/repo/.env.publish
-TimeoutStartSec=14400
+TimeoutStartSec=18000
 StandardOutput=append:/opt/caselaw/repo/logs/cantonal_laws_scrape.log
 StandardError=append:/opt/caselaw/repo/logs/cantonal_laws_scrape.log

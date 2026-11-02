@@ -10,11 +10,14 @@ symptom was the total going UP (15,608 -> 28,957), because the fallback
 indexes more instruments than the portals do.
 
 These tests pin the selection rule and the warning that makes a
-suspicious override audible.
+suspicious override audible. ZH is the one exception: its portal holds a
+fraction of the collection, so it adds LexFind's in-force laws it lacks
+(LEXFIND_COMPLEMENT_CANTONS).
 """
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -67,14 +70,14 @@ def test_a_canton_without_a_direct_shard_falls_back_to_lexfind(tmp_path):
 def test_direct_replaces_lexfind_wholesale_for_the_same_canton(tmp_path):
     """Not a merge: the LexFind row for the same canton does not survive
     alongside the direct one, even under a different sr_number."""
-    _shard(tmp_path / "lexfind" / "ZH.jsonl",
-           [_law("ZH", "554.5", "Hundegesetz (LexFind)"),
-            _law("ZH", "170.4", "Gemeindegesetz (LexFind)")])
-    _shard(tmp_path / "direct" / "ZH.jsonl",
-           [_law("ZH", "554.5", "Hundegesetz (Portal)")])
+    _shard(tmp_path / "lexfind" / "AG.jsonl",
+           [_law("AG", "554.5", "Hundegesetz (LexFind)"),
+            _law("AG", "170.4", "Gemeindegesetz (LexFind)")])
+    _shard(tmp_path / "direct" / "AG.jsonl",
+           [_law("AG", "554.5", "Hundegesetz (Portal)")])
     laws = _laws_in(_build(tmp_path))
-    assert laws[("ZH", "554.5")] == "Hundegesetz (Portal)"
-    assert ("ZH", "170.4") not in laws, \
+    assert laws[("AG", "554.5")] == "Hundegesetz (Portal)"
+    assert ("AG", "170.4") not in laws, \
         "the override is wholesale — this is why a stale shard loses laws"
 
 
@@ -82,13 +85,24 @@ def test_a_direct_shard_shadowing_a_much_larger_fallback_warns(tmp_path, caplog)
     """The 2026-08-19 signature: a tiny direct shard displacing a large
     fallback. Legitimate when the portal is simply more selective, so it
     warns rather than aborts — but it must not pass in silence."""
+    _shard(tmp_path / "lexfind" / "AG.jsonl",
+           [_law("AG", f"1.{i}", f"Gesetz {i}", pad=2000) for i in range(50)])
+    _shard(tmp_path / "direct" / "AG.jsonl", [_law("AG", "554.5", "Portal")])
+    with caplog.at_level("WARNING"):
+        _build(tmp_path)
+    assert any("shadows" in r.getMessage() for r in caplog.records), \
+        "a silent truncation is the bug"
+
+
+def test_a_complement_canton_does_not_warn_about_shadowing(tmp_path, caplog):
+    """ZH's portal is small by nature and its gaps are filled, so the warning
+    would fire every month and say nothing."""
     _shard(tmp_path / "lexfind" / "ZH.jsonl",
            [_law("ZH", f"1.{i}", f"Gesetz {i}", pad=2000) for i in range(50)])
     _shard(tmp_path / "direct" / "ZH.jsonl", [_law("ZH", "554.5", "Portal")])
     with caplog.at_level("WARNING"):
         _build(tmp_path)
-    assert any("shadows" in r.getMessage() for r in caplog.records), \
-        "a silent truncation is the bug"
+    assert not any("shadows" in r.getMessage() for r in caplog.records)
 
 
 def test_a_comparable_direct_shard_does_not_warn(tmp_path, caplog):
@@ -97,3 +111,83 @@ def test_a_comparable_direct_shard_does_not_warn(tmp_path, caplog):
     with caplog.at_level("WARNING"):
         _build(tmp_path)
     assert not [r for r in caplog.records if "shadows" in r.getMessage()]
+
+
+def _lexfind_law(lid, sr, title, active=True, **extra):
+    return {**_law("ZH", sr, title), "lexfind_id": lid, "is_active": active,
+            "text_source": "lexfind_pdf", **extra}
+
+
+def _complement_case(tmp_path):
+    direct = _law("ZH", "101", "Portal")
+    direct["text_source"] = "zhlex_pdf"
+    _shard(tmp_path / "direct" / "ZH.jsonl", [direct])
+    _shard(tmp_path / "lexfind" / "ZH.jsonl", [
+        _lexfind_law(1, "101", "LexFind copy"),
+        _lexfind_law(2, "700.1", "Planungs- und Baugesetz"),
+        _lexfind_law(3, "999", "Aufgehoben", active=False),
+    ])
+    return _build(tmp_path)
+
+
+def test_zh_takes_the_laws_in_force_its_portal_lacks(tmp_path):
+    """The portal publishes 135 of 944 acts in force. A failed LexFind lookup
+    for the rest answered that the law did not exist."""
+    assert _laws_in(_complement_case(tmp_path)) == {
+        ("ZH", "101"): "Portal",
+        ("ZH", "700.1"): "Planungs- und Baugesetz",
+    }
+
+
+def test_the_complement_is_named_like_any_other_law(tmp_path):
+    con = sqlite3.connect(_complement_case(tmp_path))
+    try:
+        assert con.execute(
+            "SELECT 1 FROM law_names WHERE canton='ZH' AND sr_number='700.1'"
+        ).fetchone()
+        assert con.execute(
+            "SELECT text_source FROM laws WHERE sr_number='700.1'"
+        ).fetchone() == ("lexfind_pdf",)
+    finally:
+        con.close()
+
+
+def test_a_portal_only_canton_takes_no_complement(tmp_path):
+    _shard(tmp_path / "direct" / "AG.jsonl", [_law("AG", "101", "Portal")])
+    _shard(tmp_path / "lexfind" / "AG.jsonl", [_lexfind_law(1, "700", "Zweites")])
+    assert set(_laws_in(_build(tmp_path))) == {("AG", "101")}
+
+
+def test_a_row_keeps_the_date_of_its_text(tmp_path):
+    _shard(tmp_path / "lexfind" / "JU.jsonl", [
+        _lexfind_law(1, "1", "Datiert", fetched_at="2026-04-11T00:00:00+00:00")])
+    con = sqlite3.connect(_build(tmp_path))
+    try:
+        assert con.execute("SELECT fetched_at FROM laws").fetchone() == (
+            "2026-04-11T00:00:00+00:00",)
+    finally:
+        con.close()
+
+
+def test_an_unchanged_text_reads_as_of_its_last_check(tmp_path):
+    _shard(tmp_path / "lexfind" / "JU.jsonl", [_lexfind_law(
+        1, "1", "Geprüft", fetched_at="2026-04-11T00:00:00+00:00",
+        checked_at="2026-11-02T00:00:00+00:00")])
+    con = sqlite3.connect(_build(tmp_path))
+    try:
+        assert con.execute("SELECT fetched_at FROM laws").fetchone() == (
+            "2026-11-02T00:00:00+00:00",)
+    finally:
+        con.close()
+
+
+def test_a_row_without_a_date_takes_its_shard_not_the_build(tmp_path):
+    """Stamping the build date made an April shard read as fresh every month."""
+    path = tmp_path / "lexfind" / "JU.jsonl"
+    _shard(path, [_lexfind_law(1, "1", "Alt")])
+    os.utime(path, (1775865600, 1775865600))  # 2026-04-11
+    con = sqlite3.connect(_build(tmp_path))
+    try:
+        assert con.execute("SELECT fetched_at FROM laws").fetchone()[0].startswith("2026-04-11")
+    finally:
+        con.close()

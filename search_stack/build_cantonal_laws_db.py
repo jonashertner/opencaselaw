@@ -6,7 +6,9 @@ Reads from two sources (direct takes priority over LexFind):
     1. output/cantonal_laws_direct/{canton}.jsonl  (direct from official portals)
     2. output/lexfind_cantonal/{canton}.jsonl       (LexFind PDF fallback)
 
-For cantons with both, direct-source data wins (better text quality).
+For cantons with both, direct-source data wins (better text quality). A canton
+in LEXFIND_COMPLEMENT_CANTONS also takes the laws in force that its direct shard
+does not hold.
 
 Schema:
     laws             — one row per (lexfind_id, language) pair
@@ -39,6 +41,13 @@ log = logging.getLogger("build_cantonal_laws")
 DIRECT_DIR = Path(os.environ.get("CANTONAL_LAWS_DIRECT", "output/cantonal_laws_direct"))
 LEXFIND_DIR = Path(os.environ.get("LEXFIND_CANTONAL_OUTPUT", "output/lexfind_cantonal"))
 OUTPUT_DB = Path(os.environ.get("CANTONAL_LAWS_DB", "output/cantonal_laws.db"))
+
+
+# Direct portals that publish only part of a collection. ZH's holds 135 acts
+# where LexFind lists 944 in force, the Planungs- und Baugesetz and Steuergesetz
+# among those missing, so a failed LexFind lookup answered "no such law". These
+# cantons keep their direct shard and add LexFind's in-force laws it lacks.
+LEXFIND_COMPLEMENT_CANTONS = ("ZH",)
 
 
 # Synthetic ids are namespaced above every real LexFind id (the largest
@@ -264,7 +273,8 @@ def build(direct_dir: Path, lexfind_dir: Path, output_db: Path) -> None:
             if f.stat().st_size > 0:  # Only override if non-empty
                 canton = f.stem.upper()
                 prev = canton_files.get(canton)
-                if prev is not None and f.stat().st_size * 5 < prev.stat().st_size:
+                if (prev is not None and canton not in LEXFIND_COMPLEMENT_CANTONS
+                        and f.stat().st_size * 5 < prev.stat().st_size):
                     log.warning(
                         "[%s] direct shard is %.1f MB but shadows a %.1f MB "
                         "LexFind shard — check %s is current",
@@ -284,9 +294,14 @@ def build(direct_dir: Path, lexfind_dir: Path, output_db: Path) -> None:
     conn.execute("PRAGMA synchronous = OFF")
 
     jsonl_files = [canton_files[c] for c in sorted(canton_files)]
+    complements = {
+        lexfind_dir / f"{c}.jsonl" for c in LEXFIND_COMPLEMENT_CANTONS
+        if (lexfind_dir / f"{c}.jsonl").exists()
+        and canton_files.get(c) != lexfind_dir / f"{c}.jsonl"
+    }
+    jsonl_files.extend(sorted(complements))
     log.info("Processing %d canton JSONL files", len(jsonl_files))
 
-    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     # id -> the canton_sr it was minted from. Two DIFFERENT laws hashing
     # to one id would have one of them silently dropped by INSERT OR
     # REPLACE, and now that the ids are stable it would happen on every
@@ -300,6 +315,16 @@ def build(direct_dir: Path, lexfind_dir: Path, output_db: Path) -> None:
         canton = path.stem.upper()
         c_laws = 0
         c_arts = 0
+        # When the text was last known current, not when this build ran: a
+        # shard nobody refreshed must not look new. Rows carry their own date;
+        # older rows take the date the shard was written.
+        shard_date = time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                   time.gmtime(path.stat().st_mtime))
+        direct_held = set()
+        if path in complements:
+            direct_held = set(conn.execute(
+                "SELECT sr_number, language FROM laws WHERE canton = ?",
+                (canton,)))
         with path.open("r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
@@ -309,6 +334,12 @@ def build(direct_dir: Path, lexfind_dir: Path, output_db: Path) -> None:
                     row = json.loads(line)
                 except json.JSONDecodeError as e:
                     log.warning("[%s] bad JSON: %s", canton, e)
+                    continue
+
+                if path in complements and (
+                        not row.get("is_active", True)
+                        or (row.get("sr_number"), row.get("language") or "de")
+                        in direct_held):
                     continue
 
                 full_text = row.get("full_text") or ""
@@ -352,7 +383,7 @@ def build(direct_dir: Path, lexfind_dir: Path, output_db: Path) -> None:
                         len(articles),
                         row.get("text_source"),
                         full_text,
-                        now_iso,
+                        row.get("checked_at") or row.get("fetched_at") or shard_date,
                     ),
                 )
 
@@ -381,7 +412,8 @@ def build(direct_dir: Path, lexfind_dir: Path, output_db: Path) -> None:
                 c_laws += 1
 
         log.info("[%s] %d laws, %d articles (%s)", canton, c_laws, c_arts,
-                 "direct" if path.parent == direct_dir else "lexfind")
+                 "direct" if path.parent == direct_dir
+                 else "lexfind complement" if path in complements else "lexfind")
         total_laws += c_laws
         total_articles += c_arts
 

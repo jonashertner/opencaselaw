@@ -687,8 +687,8 @@ Two tools provide direct access to **Swiss law text** from the local mirror, cov
 
 - **Federal:** 5,525 laws / ~133,359 articles in each of DE/FR/IT from the [Fedlex](https://www.fedlex.admin.ch) SPARQL endpoint, mirrored monthly into `statutes.db`. Covers every consolidated federal act in German, French, and Italian.
 - **Cantonal:** 15,600 laws / 361,430 articles in `cantonal_laws.db`, sourced via two layers:
-  - **Direct portal scraping (primary)** — 22 cantons whose official Gesetzessammlungen are published via the LexWork, SIL, ZH OpenData, or TI Raccolta delle Leggi platforms (AG, AI, AR, BE, BL, BS, FR, GE, GL, GR, LU, NE, NW, OW, SG, SH, SO, TG, TI, VS, ZG, ZH). The HTML is parsed natively — no PDF extraction, no OCR — yielding clean article-level data.
-  - **LexFind PDF fallback** — 4 cantons not yet covered by direct scrapers (JU, SZ, UR, VD). PDFs from [LexFind.ch](https://www.lexfind.ch) are extracted with PyMuPDF and segmented into articles. Bilingual secondary-language passes for BE / FR / VS / GR.
+  - **Direct portal scraping (primary)** — 23 cantons whose official Gesetzessammlungen are published via the LexWork, SIL, ZH OpenData, or TI Raccolta delle Leggi platforms (AG, AI, AR, BE, BL, BS, FR, GE, GL, GR, LU, NE, NW, OW, SG, SH, SO, TG, TI, UR, VS, ZG, ZH). The HTML is parsed natively — no PDF extraction, no OCR — yielding clean article-level data.
+  - **LexFind PDF fallback** — refreshed monthly for JU, SZ and VD, which have no direct scraper, and for the ZH acts its portal does not publish. PDFs from [LexFind.ch](https://www.lexfind.ch) are extracted with PyMuPDF and segmented into articles. Bilingual secondary-language passes for BE / FR / VS / GR.
   - Combined and federated via SQLite FTS5 with the federal table.
 
 **`get_law`** — Look up any Swiss law (federal or cantonal) by SR number or abbreviation, optionally fetching a specific article with full text.

@@ -77,8 +77,8 @@ headline values above date from the 2026-07-24 sweep and were not re-swept here.
 | Federal articles | 400,405 (across DE/FR/IT) | constant | all |
 | Cantonal laws | 15,600 | `cantonal_laws.db` | all |
 | Cantonal articles | 353,437 | same | all |
-| Direct portal coverage | **all 26 cantons** (LexWork 18 + SIL 2 + ZH 1 + TI 1) | `cantonal_laws.db.laws.text_source` | paper §3, README, methodology |
-| LexFind PDF supplements | **4 cantons** | same | same |
+| Direct portal coverage | **23 cantons** (LexWork 19 + SIL 2 + ZH 1 + TI 1) | `cantonal_laws.db.laws.text_source` | paper §3, README, methodology |
+| LexFind PDF supplements | **4 cantons**: JU, SZ, VD whole, ZH for the acts its portal lacks | same | same |
 | Top provision | BGG/LTF Art. 100, 205,725 decisions | `top_statutes_canonical.json` | paper §4 |
 
 ### Materialien

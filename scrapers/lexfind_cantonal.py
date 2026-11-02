@@ -1,7 +1,20 @@
 #!/usr/bin/env python3
 """
-LexFind cantonal scraper — enumerates and downloads every active cantonal
-law from lexfind.ch and writes a per-canton JSONL with parsed article text.
+LexFind cantonal scraper — enumerates every cantonal law on lexfind.ch and
+keeps a per-canton JSONL with parsed article text current.
+
+Run monthly for the cantons the mirror takes from LexFind: JU, SZ and VD have
+no portal scraper, and ZH's portal publishes only part of the collection (see
+LEXFIND_COMPLEMENT_CANTONS in search_stack/build_cantonal_laws_db.py). Each run
+downloads only laws whose version date changed and reuses the rest, so the
+monthly load on LexFind stays small.
+
+A shard is written to {canton}.jsonl.part and promoted with an atomic rename.
+A run whose enumeration comes back short leaves the shard as it was and parks
+the output as {canton}.jsonl.failed. A law whose download fails keeps its
+previous row, and a law the enumeration did not reach stays in the shard:
+LexFind flags a repealed act inactive, so absence from a search is no evidence
+that it went away.
 
 Enumeration strategy: LexFind has no public listing endpoint, but the
 fulltext-search API with `search_in_content=True` and a common-word seed
@@ -22,7 +35,10 @@ Output: output/lexfind_cantonal/{canton}.jsonl
     "version_active_since": "...",
     "text_source": "lexfind_pdf",
     "full_text": "...",
-    "articles": [{"article_num": "1", "heading": "...", "text": "..."}, ...]
+    "articles": [{"article_num": "1", "heading": "...", "text": "..."}, ...],
+    "fetched_at": "2026-04-11T07:00:00+00:00",  # when THIS text was downloaded
+    "checked_at": "2026-11-02T07:00:00+00:00"   # when LexFind last showed this
+                                                # version as the current one
   }
 
 Usage:
@@ -30,6 +46,11 @@ Usage:
     python -m scrapers.lexfind_cantonal --canton ZH    # single canton
     python -m scrapers.lexfind_cantonal --max 50       # cap per canton (pilot)
     python -m scrapers.lexfind_cantonal --delay 0.5    # inter-request delay
+    python -m scrapers.lexfind_cantonal --refetch-all  # ignore the version check
+    python -m scrapers.lexfind_cantonal --check-report DIR   # exit 1 if the last
+                                                             # run left a canton
+                                                             # un-refreshed, 2 if
+                                                             # it did not finish
 """
 
 from __future__ import annotations
@@ -39,11 +60,16 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+
+from scrape_cantonal_laws import MIN_KEEP_RATIO, check_report, write_report
+from scrapers.cantonal_laws import mount_retries
 
 logging.basicConfig(
     level=logging.INFO,
@@ -106,6 +132,12 @@ SEEDS = {
 }
 
 DEFAULT_DELAY = 0.35
+REPORT_NAME = "_harvest_report.json"
+# Above this share of failed downloads the run is reported as not refreshed,
+# though what did arrive is kept: a law that always fails (LexFind serves a
+# few as HTML, not PDF) must not turn the unit red every month, a LexFind
+# outage must.
+MAX_DOWNLOAD_FAILURES = 0.2
 
 
 def _clean_html(text: str | None) -> str:
@@ -135,6 +167,7 @@ class LexFindClient:
             "OpenCaseLaw/1.0 (cantonal scraper; +https://opencaselaw.ch)"
         )
         self.session.headers["Accept"] = "application/json"
+        mount_retries(self.session)
 
     def _sleep(self) -> None:
         if self.delay > 0:
@@ -353,67 +386,153 @@ def _segment_articles(text: str) -> list[dict]:
     return articles
 
 
+def _load_shard(path: Path) -> dict[tuple[int, str], dict]:
+    """The shard on disk, keyed like the enumeration.
+
+    Rows from before `fetched_at` existed take the file's date, which is when
+    they were written.
+    """
+    rows: dict[tuple[int, str], dict] = {}
+    if not path.exists():
+        return rows
+    written = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
+    with path.open(encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            row.setdefault("fetched_at", written)
+            rows[(row["lexfind_id"], row["language"])] = row
+    return rows
+
+
+def _law_row(law: Law, text: dict, fetched_at: str, checked_at: str) -> dict:
+    return {
+        "lexfind_id": law.lexfind_id,
+        "canton": law.canton,
+        "sr_number": law.sr_number,
+        "title": law.title,
+        "language": law.language,
+        "is_active": law.is_active,
+        "category": law.category,
+        "original_url": law.original_url,
+        "version_active_since": law.version_active_since,
+        "text_source": text["text_source"],
+        "full_text": text["full_text"],
+        "articles": text["articles"],
+        "fetched_at": fetched_at,
+        "checked_at": checked_at,
+    }
+
+
 def scrape_canton(
     client: LexFindClient,
     canton: str,
     max_laws: int | None,
     include_secondary: bool,
-) -> int:
-    """Scrape one canton and write output/lexfind_cantonal/{canton}.jsonl.
-
-    Returns number of laws written.
-    """
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = OUTPUT_DIR / f"{canton}.jsonl"
+    output_dir: Path | None = None,
+    refetch_all: bool = False,
+) -> dict:
+    """Refresh one canton's shard. Returns its report entry."""
+    output_dir = output_dir or OUTPUT_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
+    final_path = output_dir / f"{canton}.jsonl"
+    part_path = output_dir / f"{canton}.jsonl.part"
+    previous_rows = _load_shard(final_path)
+    previous = len(previous_rows) or None
     primary = CANTON_LANG[canton]
     languages: list[str] = [primary]
     if include_secondary and canton in SECONDARY_LANG:
         sec = SECONDARY_LANG[canton]
         languages.extend([sec] if isinstance(sec, str) else sec)
 
+    start = time.time()
     log.info("=== [%s] enumerating (languages=%s) ===", canton, ",".join(languages))
     all_laws: dict[tuple[int, str], Law] = {}
     for lang in languages:
         laws = client.enumerate_canton(canton, lang)
         for lid, law in laws.items():
             all_laws[(lid, lang)] = law
+    enumerated = len(all_laws)
 
     if max_laws is not None:
         pairs = list(all_laws.items())[:max_laws]
         all_laws = dict(pairs)
 
-    log.info("[%s] %d laws to download", canton, len(all_laws))
+    log.info("[%s] %d laws enumerated, %d in the shard", canton, enumerated, len(previous_rows))
 
-    written = 0
-    failed = 0
-    with out_path.open("w", encoding="utf-8") as f:
-        for i, ((lid, lang), law) in enumerate(all_laws.items(), 1):
-            client._sleep()
-            text = client.fetch_law_text(lid, lang)
-            if not text:
-                failed += 1
-                continue
-            row = {
-                "lexfind_id": law.lexfind_id,
-                "canton": law.canton,
-                "sr_number": law.sr_number,
-                "title": law.title,
-                "language": law.language,
-                "is_active": law.is_active,
-                "category": law.category,
-                "original_url": law.original_url,
-                "version_active_since": law.version_active_since,
-                "text_source": text["text_source"],
-                "full_text": text["full_text"],
-                "articles": text["articles"],
-            }
+    fetched = reused = kept_stale = failed = 0
+    with part_path.open("w", encoding="utf-8") as f:
+        for i, (key, law) in enumerate(all_laws.items(), 1):
+            prev = previous_rows.get(key)
+            unchanged = (prev is not None and prev.get("full_text")
+                         and prev.get("version_active_since") == law.version_active_since)
+            now = datetime.now(timezone.utc).isoformat()
+            if unchanged and not refetch_all:
+                row = _law_row(law, prev, prev["fetched_at"], now)
+                reused += 1
+            else:
+                client._sleep()
+                text = client.fetch_law_text(law.lexfind_id, law.language)
+                if text:
+                    row = _law_row(law, text, now, now)
+                    fetched += 1
+                elif prev is not None:
+                    row = prev
+                    kept_stale += 1
+                else:
+                    failed += 1
+                    continue
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
-            written += 1
-            if i % 50 == 0:
-                log.info("  [%s] %d/%d downloaded (%d failed)", canton, i, len(all_laws), failed)
+            if i % 200 == 0:
+                log.info("  [%s] %d/%d (%d downloaded, %d failed)",
+                         canton, i, len(all_laws), fetched, kept_stale + failed)
+        carried = 0
+        if max_laws is None:
+            for key, row in previous_rows.items():
+                if key not in all_laws:
+                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    carried += 1
 
-    log.info("[%s] DONE — %d laws written, %d failed → %s", canton, written, failed, out_path)
-    return written
+    # Promotion. Failed downloads cost nothing here, they kept their old row;
+    # only an enumeration that came back short says this run saw too little.
+    floor = int(previous * MIN_KEEP_RATIO) if previous else 1
+    promoted = kept_previous = False
+    errors = kept_stale + failed
+    if max_laws is not None:
+        parked = output_dir / f"{canton}.jsonl.pilot"
+        os.replace(part_path, parked)
+        log.info("[%s] pilot run parked at %s; shard untouched", canton, parked)
+    elif enumerated >= floor:
+        os.replace(part_path, final_path)
+        promoted = True
+    else:
+        parked = output_dir / f"{canton}.jsonl.failed"
+        os.replace(part_path, parked)
+        kept_previous = previous is not None
+        log.error("[%s] NOT promoted: %d enumerated, floor %d; output parked at %s",
+                  canton, enumerated, floor, parked)
+
+    tried = fetched + errors
+    ok = (promoted or max_laws is not None) and errors <= max(5, tried * MAX_DOWNLOAD_FAILURES)
+    log.info("[%s] DONE — %d downloaded, %d unchanged, %d not enumerated, "
+             "%d failed with an old row kept, %d failed with no row",
+             canton, fetched, reused, carried, kept_stale, failed)
+    return {
+        "canton": canton,
+        "ok": ok,
+        "promoted": promoted,
+        "kept_previous": kept_previous,
+        "enumerated": enumerated,
+        "fetched": fetched,
+        "reused": reused,
+        "carried": carried,
+        "kept_stale": kept_stale,
+        "failed": failed,
+        "errors": errors,
+        "previous": previous,
+        "duration": time.time() - start,
+    }
 
 
 def main() -> None:
@@ -424,26 +543,40 @@ def main() -> None:
                         help="Inter-request delay (seconds)")
     parser.add_argument("--include-secondary", action="store_true",
                         help="Also enumerate bilingual cantons in their secondary language")
+    parser.add_argument("--refetch-all", action="store_true",
+                        help="Download every law, not only those whose version changed")
+    parser.add_argument("--check-report", metavar="DIR",
+                        help="Do not scrape; exit 1 if the last run in DIR left a "
+                             "canton un-refreshed, 2 if there is no fresh report")
     args = parser.parse_args()
+
+    if args.check_report:
+        sys.exit(check_report(Path(args.check_report), REPORT_NAME))
 
     client = LexFindClient(delay=args.delay)
     targets: list[str] = args.canton or sorted(ENTITY_IDS.keys())
 
-    total = 0
+    results: list[dict] = []
     for canton in targets:
         canton = canton.upper()
         if canton not in ENTITY_IDS:
             log.warning("Unknown canton %s, skipping", canton)
             continue
         try:
-            total += scrape_canton(
+            results.append(scrape_canton(
                 client, canton, max_laws=args.max,
                 include_secondary=args.include_secondary,
-            )
+                refetch_all=args.refetch_all,
+            ))
         except Exception as e:
             log.error("[%s] CRASHED: %s", canton, e, exc_info=True)
+            results.append({"canton": canton, "ok": False, "errors": 1,
+                            "kept_previous": (OUTPUT_DIR / f"{canton}.jsonl").exists()})
 
-    log.info("============== ALL DONE — %d laws total ==============", total)
+    if args.max is None:
+        write_report(OUTPUT_DIR, results, REPORT_NAME)
+    log.info("============== ALL DONE — %d downloaded ==============",
+             sum(r.get("fetched", 0) for r in results))
 
 
 if __name__ == "__main__":
