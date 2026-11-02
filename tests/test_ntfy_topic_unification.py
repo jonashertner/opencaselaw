@@ -110,9 +110,25 @@ def test_suggestions_topic_env_only(monkeypatch):
     assert urls == ["https://ntfy.sh/ops-test-topic", "https://ntfy.sh/suggest-topic"]
 
 
+def test_autoban_topic_env_only(monkeypatch):
+    m = _reload("scripts.autoban_harvesters", monkeypatch, NTFY_TOPIC="ops-test-topic")
+    assert m.NTFY_URL == "https://ntfy.sh/ops-test-topic"
+    m = _reload("scripts.autoban_harvesters", monkeypatch, NTFY_TOPIC=None)
+    assert m.NTFY_URL == ""
+    sent = []
+    monkeypatch.setattr(m.urllib.request, "urlopen", lambda *a, **k: sent.append(a))
+    m.notify(["203.0.113.0/24"], {"203.0.113.0/24": {"reason": "test"}})
+    assert sent == []
+
+
+def test_autoban_unit_loads_the_operator_topic():
+    conf = REPO / "systemd/opencaselaw-autoban.service.d/ntfy.conf"
+    assert "EnvironmentFile=-/opt/caselaw/ops.env" in conf.read_text(encoding="utf-8")
+
+
 def test_no_alert_script_names_the_old_public_topic_as_its_target():
     for rel in ("publish.py", "suggestions.py", "scripts/publish_failure_alert.py",
-                "scripts/dispatch_health_alerts.py"):
+                "scripts/dispatch_health_alerts.py", "scripts/autoban_harvesters.py"):
         src = (REPO / rel).read_text(encoding="utf-8")
         assert "ntfy.sh/opencaselaw-publish" not in src, rel
         assert '"opencaselaw-publish")' not in src, rel

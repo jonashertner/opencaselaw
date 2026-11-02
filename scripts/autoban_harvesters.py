@@ -82,8 +82,12 @@ WIDE_MEMBER_MIN = int(os.environ.get("OCL_AUTOBAN_WIDE_MEMBER_MIN", "50"))
 TTL_H = float(os.environ.get("OCL_AUTOBAN_TTL_H", "24"))
 MAX_NEW = int(os.environ.get("OCL_AUTOBAN_MAX_NEW", "64"))
 DRY_RUN = os.environ.get("OCL_AUTOBAN_DRY") == "1"
-NTFY_URL = (os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/") + "/"
-            + os.environ.get("NTFY_TOPIC", "opencaselaw-publish"))
+# The operator topic comes from /opt/caselaw/ops.env (systemd drop-in ntfy.conf),
+# never from the code: a ban alert names client networks and an ntfy.sh topic is
+# open to anyone who knows its name. Unset, the ban stands without an alert.
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
+NTFY_URL = (os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/") + "/" + NTFY_TOPIC
+            if NTFY_TOPIC else "")
 
 # tier1: $remote_addr $time_iso8601 "$request_method $uri" $status $request_time "$http_user_agent"
 LINE = re.compile(r'^(\S+) (\S+) "\S+ (\S*)" (\d{3}) ')
@@ -318,6 +322,9 @@ def apply_geo(text: str) -> bool:
 
 
 def notify(new: list, bans: dict) -> None:
+    if not NTFY_URL:
+        log("ntfy skipped: NTFY_TOPIC not set")
+        return
     body = "\n".join(f"{c}: {bans[c]['reason']}" for c in new)
     try:
         req = urllib.request.Request(

@@ -62,6 +62,7 @@ f=/etc/nginx/sites-available/mcp-server; cp $f $f.bak-autoban && awk '{print} /^
 ```bash
 cd /opt/caselaw/repo && OCL_AUTOBAN_DRY=1 python3 scripts/autoban_harvesters.py
 install -m 644 systemd/opencaselaw-autoban.service systemd/opencaselaw-autoban.timer /etc/systemd/system/
+install -D -m 644 systemd/opencaselaw-autoban.service.d/ntfy.conf /etc/systemd/system/opencaselaw-autoban.service.d/ntfy.conf
 systemctl daemon-reload && systemctl enable --now opencaselaw-autoban.timer
 ```
 
