@@ -450,7 +450,7 @@ since 42860b92 search_botschaft, get_article_purpose and get_materialien flag ev
 
 ## Re-parse XML documents and rebuild chain links (G1 + G2, 2026-11-02)
 
-One-off. Ingest keeps an unchanged file, so a parser change reaches stored
+One-off, **run 2026-11-02 19:27 UTC** (27,026 → 28,180 links, 2,880,484 paragraphs, all probes in step 4 passed). Do not repeat it for this change. Ingest keeps an unchanged file, so a parser change reaches stored
 documents only through `scripts/reparse_xml_materialien.py`. Rehearsed on a copy
 (`docs/superpowers/specs/2026-11-02-materialien-source-defects.md`).
 
