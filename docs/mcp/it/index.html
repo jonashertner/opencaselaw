@@ -100,10 +100,10 @@
       <p class="page-lead" data-t="mcp_sub">Il server MCP pubblico di OpenCaseLaw dà ai modelli linguistici accesso diretto a oltre 1’050’000 decisioni giudiziarie svizzere, al grafo delle citazioni, alle leggi federali e agli atti cantonali. 42 strumenti specializzati, nessuna registrazione, nessuna chiave API.</p>
       <nav class="toc" aria-label="On this page">
         <span class="toc-label" data-t="page_toc">In questa pagina</span>
-        <a href="#modes" data-t="mcp_toc_modes">Betriebsmodi</a>
-        <a href="#setup" data-t="mcp_toc_setup">Einrichtung</a>
-        <a href="#tools" data-t="mcp_toc_tools">Tools</a>
-        <a href="#tech" data-t="mcp_toc_tech">Technisches</a>
+        <a href="#modes" data-t="mcp_toc_modes">Modalità</a>
+        <a href="#setup" data-t="mcp_toc_setup">Configurazione</a>
+        <a href="#tools" data-t="mcp_toc_tools">Strumenti</a>
+        <a href="#tech" data-t="mcp_toc_tech">Tecnica</a>
       </nav>
     </div>
   </section>
@@ -112,31 +112,32 @@
 
     <!-- ── Operating modes ─────────────────────────────────────── -->
     <div id="modes">
-      <p class="sec-tag"><span class="n">§01</span> <span data-t="mcp_toc_modes">Betriebsmodi</span></p>
-      <h2 class="sec-h" data-t="mcp_modes_heading">Zwei Betriebsmodi</h2>
+      <p class="sec-tag"><span class="n">§01</span> <span data-t="mcp_toc_modes">Modalità</span></p>
+      <h2 class="sec-h" data-t="mcp_modes_heading">Due modalità di funzionamento</h2>
       <div class="modes">
         <div class="mode">
-          <p class="mode-head"><strong>Remote</strong> <span class="badge rec" data-t="mcp_badge_recommended">empfohlen</span></p>
+          <p class="mode-head"><strong>Remote</strong> <span class="badge rec" data-t="mcp_badge_recommended">consigliato</span></p>
           <p data-t="mcp_remote_desc">Immediatamente disponibile, sempre aggiornato. Nessun download richiesto. Endpoint server:</p>
           <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
         </div>
         <div class="mode">
-          <p class="mode-head"><strong data-t="mcp_mode_local_label">Lokal</strong> <span class="badge">offline</span></p>
-          <p data-t="mcp_local_desc">Volle Kontrolle, funktioniert offline. ~65 GB Speicher, einmalige Einrichtung ca. 30–60 Minuten. Siehe <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.</p>
+          <p class="mode-head"><strong data-t="mcp_mode_local_label">Locale</strong> <span class="badge">offline</span></p>
+          <p data-t="mcp_local_desc">Pieno controllo, funziona offline. ~65 GB di spazio, configurazione unica di circa 30–60 minuti. Vedi il <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.</p>
         </div>
       </div>
     </div>
 
     <!-- ── Setup per client ────────────────────────────────────── -->
     <div id="setup" class="blk">
-      <p class="sec-tag"><span class="n">§02</span> <span data-t="mcp_toc_setup">Einrichtung</span></p>
-      <h2 class="sec-h" data-t="mcp_setup_heading">Einrichtung nach Client</h2>
-      <p class="lead-note" data-t="mcp_setup_intro">Endpunkt <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (empfohlen) und SSE · keine Authentifizierung · Werkzeuge sind nur-lesend.</p>
+      <p class="sec-tag"><span class="n">§02</span> <span data-t="mcp_toc_setup">Configurazione</span></p>
+      <h2 class="sec-h" data-t="mcp_setup_heading">Configurazione per client</h2>
+      <p class="lead-note" data-t="mcp_setup_intro">Endpoint <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (consigliato), SSE legacy su <code>/sse</code> · senza accesso · tutti gli strumenti in sola lettura. Il modello scelto deve saper chiamare strumenti (function calling); i piccoli modelli locali spesso non ci riescono in modo affidabile.</p>
 
       <div class="setup">
+
         <div class="setup-block">
-          <h3>Claude.ai (Web) &amp; Claude Desktop</h3>
-          <p data-t="mcp_claudeai_step"><strong>Customize</strong> (Anpassen · Personnaliser · Personalizza) → <strong>Connectors</strong> → „+" → „Add custom connector" → URL einfügen. Alternativ direkt: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Verfügbar in Free (max. 1 Connector), Pro, Max, Team, Enterprise. Bei Team/Enterprise muss zuerst der Owner unter <em>Organization Settings → Connectors → Add → Custom → Web</em> freischalten.</p>
+          <h3>Claude (Web, Desktop, Mobile)</h3>
+          <p data-t="mcp_claudeai_step"><strong>Customize</strong> (Personalizza) → <strong>Connectors</strong> → «+» → «Add custom connector» → inserire un nome e l’URL, senza accesso. Diretto: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Disponibile in tutti i piani; il piano Free consente un connettore personalizzato. In Team ed Enterprise lo abilita prima l’Owner: <em>Organization settings → Connectors → Add → Custom → Web</em>. Aggiunto sul web o in Claude Desktop, è disponibile anche nelle app mobili.</p>
           <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
         </div>
 
@@ -146,14 +147,32 @@
         </div>
 
         <div class="setup-block">
-          <h3>ChatGPT (Business / Enterprise / Edu)</h3>
-          <p data-t="mcp_chatgpt_step">Settings → Connectors → „Create" (ggf. Advanced settings → Developer mode aktivieren). Name „Swiss Caselaw" + URL einfügen, Auth: None. Nur ChatGPT-Web auf Business / Enterprise / Edu; Modell muss MCP-Tool-Calls unterstützen.</p>
+          <h3>ChatGPT</h3>
+          <p data-t="mcp_chatgpt_step">Settings → <strong>Apps &amp; Connectors</strong> → Advanced settings → attivare il <strong>Developer mode</strong> → «Create»: nome «Swiss Caselaw», incollare l’URL, Authentication: None. Solo web; secondo OpenAI in Plus, Pro, Business, Enterprise ed Edu, in Business, Enterprise ed Edu solo dopo l’autorizzazione di un admin. Senza Developer mode (deep research, connettori aziendali) ChatGPT usa solo gli strumenti <code>search</code> e <code>fetch</code>.</p>
+          <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
+        </div>
+
+        <div class="setup-block">
+          <h3>Gemini (CLI, Enterprise, App)</h3>
+          <p data-t="mcp_gemini_step">Gemini CLI: il comando qui sotto, oppure in <code>~/.gemini/settings.json</code> sotto <code>mcpServers</code> con <code>"type": "http", "url": "https://mcp.opencaselaw.ch"</code>. Gemini Enterprise: un admin aggiunge il server in <em>Settings &amp; help → Manage team → Connected apps → Add MCP Server</em> (solo Streamable HTTP). Nell’app Gemini (gemini.google.com) i server MCP personalizzati sono disponibili solo in parte (Connected Apps, account personali Google AI Pro o Ultra); se l’opzione manca, usare Gemini CLI.</p>
+          <div class="codewrap"><pre class="code wrap">gemini mcp add --transport http swiss-caselaw https://mcp.opencaselaw.ch</pre></div>
+        </div>
+
+        <div class="setup-block">
+          <h3>Mistral Le Chat</h3>
+          <p data-t="mcp_lechat_step"><strong>Connectors</strong> → «+ Add Connector» → scheda «Custom MCP Connector» → inserire un nome e l’URL, Authentication: None → Connect. I connettori li aggiungono gli admin; in Free, Pro e Student il titolare dell’account è admin.</p>
+          <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
+        </div>
+
+        <div class="setup-block">
+          <h3>Microsoft Copilot Studio &amp; Microsoft 365 Copilot</h3>
+          <p data-t="mcp_copilot_step">Agent → <strong>Tools</strong> → Add a tool → New tool → «Model Context Protocol». Nome del server «Swiss Caselaw» e URL, Authentication: None. Solo Streamable HTTP (SSE non più supportato da agosto 2025). In Microsoft 365 Copilot gli utenti non possono aggiungere da sé un server MCP; esiste un pacchetto agente pronto che l’IT carica una volta, senza licenza Copilot Studio: <a href="/copilot/it/">opencaselaw.ch/copilot</a>.</p>
           <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
         </div>
 
         <div class="setup-block">
           <h3>Cursor</h3>
-          <p data-t="mcp_cursor_step">Settings → Features → MCP → „+ Add new MCP server", oder in <code>~/.cursor/mcp.json</code>:</p>
+          <p data-t="mcp_cursor_step">Aggiungerlo in <code>~/.cursor/mcp.json</code> (globale) o <code>.cursor/mcp.json</code> (progetto); il server compare poi nelle impostazioni MCP di Cursor:</p>
           <div class="codewrap"><pre class="code">{
   "mcpServers": {
     "swiss-caselaw": {
@@ -164,33 +183,40 @@
         </div>
 
         <div class="setup-block">
-          <h3>Gemini CLI</h3>
-          <p data-t="mcp_gemini_step">CLI-Befehl oder <code>~/.gemini/settings.json</code>. Die Web-App gemini.google.com unterstützt aktuell keine eigenen MCP-Server — nur Gemini CLI, Gemini Enterprise, Android Studio und Firebase Studio.</p>
-          <div class="codewrap"><pre class="code wrap">gemini mcp add --transport http swiss-caselaw https://mcp.opencaselaw.ch</pre></div>
+          <h3>VS Code (GitHub Copilot)</h3>
+          <p data-t="mcp_vscode_step">Riquadro comandi → «MCP: Add Server» → HTTP → incollare l’URL, oppure aggiungerlo in <code>.vscode/mcp.json</code> (la chiave è <code>servers</code>, non <code>mcpServers</code>):</p>
+          <div class="codewrap"><pre class="code">{
+  "servers": {
+    "swiss-caselaw": {
+      "type": "http",
+      "url": "https://mcp.opencaselaw.ch"
+    }
+  }
+}</pre></div>
         </div>
 
         <div class="setup-block">
-          <h3>Microsoft Copilot Studio</h3>
-          <p data-t="mcp_copilot_step">Agent → Tools → Add a tool → New tool → „Model Context Protocol". Server-Name „Swiss Caselaw" + URL eintragen, Auth: None. Nur Streamable HTTP (SSE seit August 2025 nicht mehr unterstützt).</p>
-          <div class="codewrap"><pre class="code">https://mcp.opencaselaw.ch</pre></div>
+          <h3>OpenAI Codex CLI</h3>
+          <p data-t="mcp_codex_step">Il comando qui sotto, oppure in <code>~/.codex/config.toml</code> sotto <code>[mcp_servers.swiss-caselaw]</code> con <code>url = "https://mcp.opencaselaw.ch"</code>. Codex supporta solo Streamable HTTP, non <code>/sse</code>.</p>
+          <div class="codewrap"><pre class="code wrap">codex mcp add swiss-caselaw --url https://mcp.opencaselaw.ch</pre></div>
         </div>
 
         <div class="setup-block">
-          <h3 data-t="mcp_other_heading">Andere MCP-Clients</h3>
-          <p data-t="mcp_other_step">Funktioniert mit jedem MCP-fähigen Client (Continue, Zed, Cody, Windsurf, …) über Streamable HTTP an <code>https://mcp.opencaselaw.ch</code>. SSE ist ebenfalls unter <code>/sse</code> erreichbar, aber MCP-spec-seitig veraltet.</p>
+          <h3 data-t="mcp_other_heading">Altri client</h3>
+          <p data-t="mcp_other_step"><strong>Perplexity:</strong> in Connectors, creare un connettore remoto personalizzato con l’URL. <strong>Grok:</strong> <a href="https://grok.com/connectors">grok.com/connectors</a> → «New Connector» → Custom → URL. <strong>Windsurf:</strong> nel file di configurazione MCP di Cascade, una voce con <code>"serverUrl"</code>. <strong>Zed:</strong> <code>settings.json</code>, sotto <code>context_servers</code> con <code>"url"</code>. <strong>Continue:</strong> <code>type: streamable-http</code> e <code>url</code>. Qualsiasi altro client compatibile MCP si collega via Streamable HTTP a <code>https://mcp.opencaselaw.ch</code>. Solo per client più vecchi: SSE su <code>https://mcp.opencaselaw.ch/sse</code> (deprecato dalla specifica MCP; Copilot Studio, Codex e Gemini Enterprise non lo accettano).</p>
         </div>
       </div>
     </div>
 
     <!-- ── Tool catalogue ──────────────────────────────────────── -->
     <div id="tools" class="blk">
-      <p class="sec-tag"><span class="n">§03</span> <span data-t="mcp_toc_tools">Tools</span></p>
+      <p class="sec-tag"><span class="n">§03</span> <span data-t="mcp_toc_tools">Strumenti</span></p>
       <h2 class="sec-h" data-t="mcp_tools_heading">42 strumenti pubblici in sintesi (+ 2 strumenti locali di amministrazione)</h2>
       <p class="page-lead" style="margin-top:14px;font-size:16px" data-t="mcp_tools_desc">Ogni strumento è ottimizzato per uno specifico caso d'uso di ricerca. Schemi completi via <code>tools/list</code> del protocollo MCP, qui raggruppati per funzione.</p>
 
       <div class="toolgrid">
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_search">Entscheide suchen &amp; abrufen</p>
+          <p class="toolcard-k" data-t="mcp_grp_search">Cercare e consultare decisioni</p>
           <ul>
             <li>search_decisions</li>
             <li>get_decision</li>
@@ -201,7 +227,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_structure">Entscheidstruktur (Bund)</p>
+          <p class="toolcard-k" data-t="mcp_grp_structure">Struttura delle decisioni (Confederazione)</p>
           <ul>
             <li>get_decision_structure</li>
             <li>get_erwaegung</li>
@@ -210,7 +236,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_citation">Zitationsgraph</p>
+          <p class="toolcard-k" data-t="mcp_grp_citation">Grafo delle citazioni</p>
           <ul>
             <li>find_citations</li>
             <li>find_appeal_chain</li>
@@ -219,7 +245,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_statutes">Gesetzestext</p>
+          <p class="toolcard-k" data-t="mcp_grp_statutes">Testo di legge</p>
           <ul>
             <li>get_law</li>
             <li>search_laws</li>
@@ -231,7 +257,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_doctrine">Doktrin &amp; Kommentare</p>
+          <p class="toolcard-k" data-t="mcp_grp_doctrine">Dottrina e commentari</p>
           <ul>
             <li>get_doctrine</li>
             <li>get_commentary</li>
@@ -239,7 +265,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_scholarship">Rechtswissenschaft (Open Access)</p>
+          <p class="toolcard-k" data-t="mcp_grp_scholarship">Pubblicazioni scientifiche (open access)</p>
           <ul>
             <li>search_scholarship</li>
             <li>get_scholarship</li>
@@ -250,7 +276,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_materials">Materialien (Botschaften, Vernehmlassungen)</p>
+          <p class="toolcard-k" data-t="mcp_grp_materials">Materiali legislativi (messaggi, consultazioni)</p>
           <ul>
             <li>get_materialien</li>
             <li>search_materialien</li>
@@ -258,7 +284,7 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_verify">Verifikation &amp; Zitation</p>
+          <p class="toolcard-k" data-t="mcp_grp_verify">Verifica e citazione</p>
           <ul>
             <li>check_claim_support</li>
             <li>attest_response</li>
@@ -266,28 +292,28 @@
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_practice">Verwaltungspraxis (Bund)</p>
+          <p class="toolcard-k" data-t="mcp_grp_practice">Prassi amministrativa (Confederazione)</p>
           <ul>
             <li>search_practice</li>
             <li>get_practice</li>
           </ul>
         </div>
         <div class="toolcard">
-          <p class="toolcard-k" data-t="mcp_grp_drafting">Drafting &amp; Studium</p>
+          <p class="toolcard-k" data-t="mcp_grp_drafting">Redazione e studio</p>
           <ul>
             <li>generate_exam_question</li>
             <li>draft_mock_decision</li>
           </ul>
         </div>
         <div class="toolcard muted">
-          <p class="toolcard-k" data-t="mcp_grp_openai">ChatGPT Deep Research (Aliase)</p>
+          <p class="toolcard-k" data-t="mcp_grp_openai">ChatGPT Deep Research (alias)</p>
           <ul>
             <li>search</li>
             <li>fetch</li>
           </ul>
         </div>
         <div class="toolcard muted">
-          <p class="toolcard-k" data-t="mcp_grp_local">Lokal-Modus (Wartung)</p>
+          <p class="toolcard-k" data-t="mcp_grp_local">Modalità locale (manutenzione)</p>
           <ul>
             <li>update_database</li>
             <li>check_update_status</li>
@@ -298,13 +324,13 @@
 
     <!-- ── Technical ───────────────────────────────────────────── -->
     <div id="tech" class="blk">
-      <p class="sec-tag"><span class="n">§04</span> <span data-t="mcp_toc_tech">Technisches</span></p>
+      <p class="sec-tag"><span class="n">§04</span> <span data-t="mcp_toc_tech">Tecnica</span></p>
       <h2 class="sec-h" data-t="mcp_tech_heading">Dettagli tecnici</h2>
       <ul class="tech-list">
         <li data-t="mcp_tech_transport">Trasporto: Server-Sent Events (SSE) + Streamable HTTP, compatibile con tutti i client MCP comuni</li>
         <li data-t="mcp_tech_tls">TLS tramite Let's Encrypt, rate limiting nginx, endpoint di health: <a href="https://mcp.opencaselaw.ch/health">/health</a></li>
-        <li data-t="mcp_tech_workers">4× worker uvicorn dietro load balancer, failover automatico</li>
-        <li data-t="mcp_tech_backend">Backend: 990'000+ decisioni in SQLite FTS5 con ranking BM25+RRF, grafo di citazioni di 8,9 M di archi (8,3 M risolti)</li>
+        <li data-t="mcp_tech_workers">8× worker uvicorn dietro load balancer nginx, failover automatico</li>
+        <li data-t="mcp_tech_backend">Backend: 1’050’000+ decisioni in SQLite FTS5 con ranking BM25+RRF, grafo di citazioni con 10 M di citazioni estratte (9,65 M di archi risolti)</li>
         <li data-t="mcp_tech_data">Dati da fonti pubbliche (tribunali federali, tribunali cantonali, Fedlex, LexFind), aggiornati quotidianamente</li>
       </ul>
       <p class="lead-note" id="ts" style="margin-top:28px"></p>
@@ -331,14 +357,17 @@ OCL.init({
       mcp_remote_desc:'Sofort verfügbar, immer aktuell. Kein Download nötig. Server-Endpunkt:',
       mcp_local_desc:'Volle Kontrolle, funktioniert offline. ~65 GB Speicher, einmalige Einrichtung ca. 30–60 Minuten. Siehe <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.',
       mcp_setup_heading:'Einrichtung nach Client',
-      mcp_setup_intro:'Endpunkt <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (empfohlen) und SSE · keine Authentifizierung · Werkzeuge sind nur-lesend.',
-      mcp_claudeai_step:'<strong>Customize</strong> (Anpassen · Personnaliser · Personalizza) → <strong>Connectors</strong> → „+" → „Add custom connector" → URL einfügen. Alternativ direkt: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Verfügbar in Free (max. 1 Connector), Pro, Max, Team, Enterprise. Bei Team/Enterprise muss zuerst der Owner unter <em>Organization Settings → Connectors → Add → Custom → Web</em> freischalten.',
-      mcp_chatgpt_step:'Settings → Connectors → „Create" (ggf. Advanced settings → Developer mode aktivieren). Name „Swiss Caselaw" + URL einfügen, Auth: None. Nur ChatGPT-Web auf Business / Enterprise / Edu; Modell muss MCP-Tool-Calls unterstützen.',
-      mcp_cursor_step:'Settings → Features → MCP → „+ Add new MCP server", oder in <code>~/.cursor/mcp.json</code>:',
-      mcp_gemini_step:'CLI-Befehl oder <code>~/.gemini/settings.json</code>. Die Web-App gemini.google.com unterstützt aktuell keine eigenen MCP-Server — nur Gemini CLI, Gemini Enterprise, Android Studio und Firebase Studio.',
-      mcp_copilot_step:'Agent → Tools → Add a tool → New tool → „Model Context Protocol". Server-Name „Swiss Caselaw" + URL eintragen, Auth: None. Nur Streamable HTTP (SSE seit August 2025 nicht mehr unterstützt).',
-      mcp_other_heading:'Andere MCP-Clients',
-      mcp_other_step:'Funktioniert mit jedem MCP-fähigen Client (Continue, Zed, Cody, Windsurf, …) über Streamable HTTP an <code>https://mcp.opencaselaw.ch</code>. SSE ist ebenfalls unter <code>/sse</code> erreichbar, aber MCP-spec-seitig veraltet.',
+      mcp_setup_intro:'Endpunkt <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (empfohlen), älteres SSE unter <code>/sse</code> · keine Anmeldung · alle Tools nur lesend. Das gewählte Modell muss Tool-Calls (Function Calling) beherrschen; kleine lokale Modelle schaffen das oft nicht zuverlässig.',
+      mcp_claudeai_step:'<strong>Customize</strong> (Anpassen) → <strong>Connectors</strong> → „+" → „Add custom connector" → Name und URL einfügen, ohne Anmeldung. Direkt: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. In allen Plänen verfügbar, im Free-Plan ein eigener Connector. Bei Team und Enterprise gibt ihn zuerst der Owner frei: <em>Organization settings → Connectors → Add → Custom → Web</em>. Im Web oder in Claude Desktop hinzugefügt, steht er auch in den Mobile-Apps bereit.',
+      mcp_chatgpt_step:'Settings → <strong>Apps &amp; Connectors</strong> → Advanced settings → <strong>Developer mode</strong> einschalten → „Create": Name „Swiss Caselaw", URL einfügen, Authentication: None. Nur im Web; laut OpenAI in Plus, Pro, Business, Enterprise und Edu, in Business, Enterprise und Edu erst nach Freigabe durch einen Admin. Ohne Developer mode (Deep Research, Firmen-Connectors) verwendet ChatGPT nur die Tools <code>search</code> und <code>fetch</code>.',
+      mcp_gemini_step:'Gemini CLI: Befehl unten, oder in <code>~/.gemini/settings.json</code> unter <code>mcpServers</code> mit <code>"type": "http", "url": "https://mcp.opencaselaw.ch"</code>. Gemini Enterprise: Ein Admin fügt den Server unter <em>Settings &amp; help → Manage team → Connected apps → Add MCP Server</em> hinzu (nur Streamable HTTP). In der Gemini-App (gemini.google.com) sind eigene MCP-Server erst teilweise freigeschaltet (Connected Apps, Privatkonten mit Google AI Pro oder Ultra); fehlt die Option, Gemini CLI verwenden.',
+      mcp_lechat_step:'<strong>Connectors</strong> → „+ Add Connector" → Tab „Custom MCP Connector" → Name und URL einfügen, Authentication: None → Connect. Connectors fügen Admins hinzu; in Free, Pro und Student ist der Kontoinhaber Admin.',
+      mcp_copilot_step:'Agent → <strong>Tools</strong> → Add a tool → New tool → „Model Context Protocol". Server-Name „Swiss Caselaw" + URL eintragen, Authentication: None. Nur Streamable HTTP (SSE seit August 2025 nicht mehr unterstützt). In Microsoft 365 Copilot können Nutzer selbst keinen MCP-Server hinzufügen; dafür gibt es ein fertiges Agent-Paket, das die IT einmal hochlädt, ohne Copilot-Studio-Lizenz: <a href="/copilot/">opencaselaw.ch/copilot</a>.',
+      mcp_cursor_step:'In <code>~/.cursor/mcp.json</code> (global) oder <code>.cursor/mcp.json</code> (Projekt) eintragen; der Server erscheint danach in den MCP-Einstellungen von Cursor:',
+      mcp_vscode_step:'Befehlspalette → „MCP: Add Server" → HTTP → URL einfügen, oder in <code>.vscode/mcp.json</code> eintragen (Schlüssel <code>servers</code>, nicht <code>mcpServers</code>):',
+      mcp_codex_step:'Befehl unten, oder in <code>~/.codex/config.toml</code> unter <code>[mcp_servers.swiss-caselaw]</code> mit <code>url = "https://mcp.opencaselaw.ch"</code>. Codex spricht nur Streamable HTTP, nicht <code>/sse</code>.',
+      mcp_other_heading:'Weitere Clients',
+      mcp_other_step:'<strong>Perplexity:</strong> unter Connectors einen eigenen Remote-Connector mit der URL anlegen. <strong>Grok:</strong> <a href="https://grok.com/connectors">grok.com/connectors</a> → „New Connector" → Custom → URL. <strong>Windsurf:</strong> in der MCP-Konfigurationsdatei von Cascade ein Eintrag mit <code>"serverUrl"</code>. <strong>Zed:</strong> <code>settings.json</code>, unter <code>context_servers</code> mit <code>"url"</code>. <strong>Continue:</strong> <code>type: streamable-http</code> und <code>url</code>. Jeder andere MCP-fähige Client verbindet sich über Streamable HTTP mit <code>https://mcp.opencaselaw.ch</code>. Nur für ältere Clients: SSE unter <code>https://mcp.opencaselaw.ch/sse</code> (vom MCP-Standard als veraltet geführt; Copilot Studio, Codex und Gemini Enterprise akzeptieren es nicht).',
       mcp_tools_heading:'42 öffentliche Tools (+ 2 lokale Admin-Tools)',
       mcp_tools_desc:'Jedes Tool ist für einen spezifischen Rechercheanwendungsfall optimiert. Volle Schemas via MCP-Protokoll-<code>tools/list</code>, hier gruppiert nach Funktion.',
       mcp_grp_search:'Entscheide suchen & abrufen',
@@ -356,12 +385,44 @@ OCL.init({
       mcp_tech_heading:'Technisches',
       mcp_tech_transport:'Transport: Server-Sent Events (SSE) + Streamable HTTP, kompatibel mit allen gängigen MCP-Clients',
       mcp_tech_tls:'TLS via Let\'s Encrypt, nginx Rate-Limiting, Health-Endpoint: <a href="https://mcp.opencaselaw.ch/health">/health</a>',
-      mcp_tech_workers:'4× uvicorn-Worker hinter Load-Balancer, automatisches Failover',
-      mcp_tech_backend:'Backend: 990\'000+ Entscheide in SQLite FTS5 mit BM25+RRF-Ranking, Graph-DB mit 8,9 Mio Zitationskanten (8,3 Mio aufgelöst)',
+      mcp_tech_workers:'8× uvicorn-Worker hinter nginx-Load-Balancer, automatisches Failover',
+      mcp_tech_backend:'Backend: 1’050’000+ Entscheide in SQLite FTS5 mit BM25+RRF-Ranking, Graph-DB mit 10 Mio extrahierten Zitaten (9,65 Mio aufgelöste Kanten)',
       mcp_tech_data:'Daten aus öffentlichen Quellen (Bundesgerichte, kantonale Gerichte, Fedlex, LexFind), täglich aktualisiert',
       updated:'Aktualisiert am', copy:'Kopieren', copied:'Kopiert!'
     },
     fr:{
+      mcp_toc_modes:'Modes',
+      mcp_toc_setup:'Configuration',
+      mcp_toc_tools:'Outils',
+      mcp_toc_tech:'Technique',
+      mcp_modes_heading:'Deux modes de fonctionnement',
+      mcp_badge_recommended:'recommandé',
+      mcp_mode_local_label:'Local',
+      mcp_local_desc:'Contrôle total, fonctionne hors ligne. ~65 Go d’espace disque, installation unique d’environ 30–60 minutes. Voir le <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.',
+      mcp_setup_heading:'Configuration par client',
+      mcp_setup_intro:'Endpoint <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (recommandé), ancien SSE sous <code>/sse</code> · sans connexion · tous les outils en lecture seule. Le modèle choisi doit savoir appeler des outils (function calling) ; les petits modèles locaux n’y parviennent souvent pas de manière fiable.',
+      mcp_claudeai_step:'<strong>Customize</strong> (Personnaliser) → <strong>Connectors</strong> → « + » → « Add custom connector » → saisir un nom et l’URL, sans connexion. Directement : <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Disponible dans tous les forfaits ; le forfait Free permet un connecteur personnalisé. Sur Team et Enterprise, l’Owner l’active d’abord : <em>Organization settings → Connectors → Add → Custom → Web</em>. Ajouté sur le web ou dans Claude Desktop, il est aussi disponible dans les apps mobiles.',
+      mcp_chatgpt_step:'Settings → <strong>Apps &amp; Connectors</strong> → Advanced settings → activer le <strong>Developer mode</strong> → « Create » : nom « Swiss Caselaw », coller l’URL, Authentication : None. Web uniquement ; selon OpenAI dans Plus, Pro, Business, Enterprise et Edu, dans Business, Enterprise et Edu seulement après autorisation par un admin. Sans Developer mode (deep research, connecteurs d’entreprise), ChatGPT n’utilise que les outils <code>search</code> et <code>fetch</code>.',
+      mcp_gemini_step:'Gemini CLI : la commande ci-dessous, ou dans <code>~/.gemini/settings.json</code> sous <code>mcpServers</code> avec <code>"type": "http", "url": "https://mcp.opencaselaw.ch"</code>. Gemini Enterprise : un admin ajoute le serveur sous <em>Settings &amp; help → Manage team → Connected apps → Add MCP Server</em> (Streamable HTTP uniquement). Dans l’app Gemini (gemini.google.com), les serveurs MCP personnalisés ne sont que partiellement déployés (Connected Apps, comptes personnels Google AI Pro ou Ultra) ; si l’option manque, utiliser Gemini CLI.',
+      mcp_lechat_step:'<strong>Connectors</strong> → « + Add Connector » → onglet « Custom MCP Connector » → saisir un nom et l’URL, Authentication : None → Connect. Ce sont les admins qui ajoutent des connecteurs ; dans Free, Pro et Student, le titulaire du compte est admin.',
+      mcp_copilot_step:'Agent → <strong>Tools</strong> → Add a tool → New tool → « Model Context Protocol ». Nom du serveur « Swiss Caselaw » et URL, Authentication : None. Streamable HTTP uniquement (SSE n’est plus pris en charge depuis août 2025). Dans Microsoft 365 Copilot, les utilisateurs ne peuvent pas ajouter eux-mêmes un serveur MCP ; il existe un paquet d’agent prêt à l’emploi que votre IT charge une fois, sans licence Copilot Studio : <a href="/copilot/fr/">opencaselaw.ch/copilot</a>.',
+      mcp_cursor_step:'L’ajouter dans <code>~/.cursor/mcp.json</code> (global) ou <code>.cursor/mcp.json</code> (projet) ; le serveur apparaît ensuite dans les réglages MCP de Cursor :',
+      mcp_vscode_step:'Palette de commandes → « MCP: Add Server » → HTTP → coller l’URL, ou l’ajouter dans <code>.vscode/mcp.json</code> (la clé est <code>servers</code>, pas <code>mcpServers</code>) :',
+      mcp_codex_step:'La commande ci-dessous, ou dans <code>~/.codex/config.toml</code> sous <code>[mcp_servers.swiss-caselaw]</code> avec <code>url = "https://mcp.opencaselaw.ch"</code>. Codex ne prend en charge que Streamable HTTP, pas <code>/sse</code>.',
+      mcp_other_heading:'Autres clients',
+      mcp_other_step:'<strong>Perplexity :</strong> sous Connectors, créer un connecteur distant personnalisé avec l’URL. <strong>Grok :</strong> <a href="https://grok.com/connectors">grok.com/connectors</a> → « New Connector » → Custom → URL. <strong>Windsurf :</strong> dans le fichier de configuration MCP de Cascade, une entrée avec <code>"serverUrl"</code>. <strong>Zed :</strong> <code>settings.json</code>, sous <code>context_servers</code> avec <code>"url"</code>. <strong>Continue :</strong> <code>type: streamable-http</code> et <code>url</code>. Tout autre client compatible MCP se connecte en Streamable HTTP à <code>https://mcp.opencaselaw.ch</code>. Uniquement pour les clients plus anciens : SSE sous <code>https://mcp.opencaselaw.ch/sse</code> (déprécié par la spécification MCP ; Copilot Studio, Codex et Gemini Enterprise ne l’acceptent pas).',
+      mcp_grp_search:'Rechercher et consulter des décisions',
+      mcp_grp_structure:'Structure des décisions (Confédération)',
+      mcp_grp_citation:'Graphe de citations',
+      mcp_grp_statutes:'Texte législatif',
+      mcp_grp_doctrine:'Doctrine et commentaires',
+      mcp_grp_scholarship:'Publications scientifiques (libre accès)',
+      mcp_grp_materials:'Travaux préparatoires (messages, consultations)',
+      mcp_grp_verify:'Vérification et citation',
+      mcp_grp_practice:'Pratique administrative (Confédération)',
+      mcp_grp_drafting:'Rédaction et études',
+      mcp_grp_openai:'ChatGPT Deep Research (alias)',
+      mcp_grp_local:'Mode local (maintenance)',
       kicker:'IA · serveur MCP',
       mcp_h1:'Connecter des agents IA',
       mcp_sub:'Le serveur MCP public d\'OpenCaseLaw donne aux modèles de langage un accès direct à plus de 1’050’000 décisions judiciaires suisses, au graphe de citations, aux lois fédérales et aux actes cantonaux. 42 outils spécialisés, aucune inscription, aucune clé API.',
@@ -372,12 +433,44 @@ OCL.init({
       mcp_tech_heading:'Détails techniques',
       mcp_tech_transport:'Transport : Server-Sent Events (SSE) + Streamable HTTP, compatible avec tous les clients MCP courants',
       mcp_tech_tls:'TLS via Let\'s Encrypt, rate-limiting nginx, endpoint de santé : <a href="https://mcp.opencaselaw.ch/health">/health</a>',
-      mcp_tech_workers:'4× workers uvicorn derrière un load balancer, failover automatique',
-      mcp_tech_backend:'Backend : 990 000+ décisions dans SQLite FTS5 avec ranking BM25+RRF, graphe de citations de 8,9 M d\'arêtes (8,3 M résolues)',
+      mcp_tech_workers:'8× workers uvicorn derrière un load balancer nginx, failover automatique',
+      mcp_tech_backend:'Backend : 1 050 000+ décisions dans SQLite FTS5 avec ranking BM25+RRF, graphe de citations de 10 M de citations extraites (9,65 M d\'arêtes résolues)',
       mcp_tech_data:'Données issues de sources publiques (tribunaux fédéraux, juridictions cantonales, Fedlex, LexFind), mises à jour quotidiennement',
       updated:'Mis à jour le', copy:'Copier', copied:'Copié !'
     },
     it:{
+      mcp_toc_modes:'Modalità',
+      mcp_toc_setup:'Configurazione',
+      mcp_toc_tools:'Strumenti',
+      mcp_toc_tech:'Tecnica',
+      mcp_modes_heading:'Due modalità di funzionamento',
+      mcp_badge_recommended:'consigliato',
+      mcp_mode_local_label:'Locale',
+      mcp_local_desc:'Pieno controllo, funziona offline. ~65 GB di spazio, configurazione unica di circa 30–60 minuti. Vedi il <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.',
+      mcp_setup_heading:'Configurazione per client',
+      mcp_setup_intro:'Endpoint <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (consigliato), SSE legacy su <code>/sse</code> · senza accesso · tutti gli strumenti in sola lettura. Il modello scelto deve saper chiamare strumenti (function calling); i piccoli modelli locali spesso non ci riescono in modo affidabile.',
+      mcp_claudeai_step:'<strong>Customize</strong> (Personalizza) → <strong>Connectors</strong> → «+» → «Add custom connector» → inserire un nome e l’URL, senza accesso. Diretto: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Disponibile in tutti i piani; il piano Free consente un connettore personalizzato. In Team ed Enterprise lo abilita prima l’Owner: <em>Organization settings → Connectors → Add → Custom → Web</em>. Aggiunto sul web o in Claude Desktop, è disponibile anche nelle app mobili.',
+      mcp_chatgpt_step:'Settings → <strong>Apps &amp; Connectors</strong> → Advanced settings → attivare il <strong>Developer mode</strong> → «Create»: nome «Swiss Caselaw», incollare l’URL, Authentication: None. Solo web; secondo OpenAI in Plus, Pro, Business, Enterprise ed Edu, in Business, Enterprise ed Edu solo dopo l’autorizzazione di un admin. Senza Developer mode (deep research, connettori aziendali) ChatGPT usa solo gli strumenti <code>search</code> e <code>fetch</code>.',
+      mcp_gemini_step:'Gemini CLI: il comando qui sotto, oppure in <code>~/.gemini/settings.json</code> sotto <code>mcpServers</code> con <code>"type": "http", "url": "https://mcp.opencaselaw.ch"</code>. Gemini Enterprise: un admin aggiunge il server in <em>Settings &amp; help → Manage team → Connected apps → Add MCP Server</em> (solo Streamable HTTP). Nell’app Gemini (gemini.google.com) i server MCP personalizzati sono disponibili solo in parte (Connected Apps, account personali Google AI Pro o Ultra); se l’opzione manca, usare Gemini CLI.',
+      mcp_lechat_step:'<strong>Connectors</strong> → «+ Add Connector» → scheda «Custom MCP Connector» → inserire un nome e l’URL, Authentication: None → Connect. I connettori li aggiungono gli admin; in Free, Pro e Student il titolare dell’account è admin.',
+      mcp_copilot_step:'Agent → <strong>Tools</strong> → Add a tool → New tool → «Model Context Protocol». Nome del server «Swiss Caselaw» e URL, Authentication: None. Solo Streamable HTTP (SSE non più supportato da agosto 2025). In Microsoft 365 Copilot gli utenti non possono aggiungere da sé un server MCP; esiste un pacchetto agente pronto che l’IT carica una volta, senza licenza Copilot Studio: <a href="/copilot/it/">opencaselaw.ch/copilot</a>.',
+      mcp_cursor_step:'Aggiungerlo in <code>~/.cursor/mcp.json</code> (globale) o <code>.cursor/mcp.json</code> (progetto); il server compare poi nelle impostazioni MCP di Cursor:',
+      mcp_vscode_step:'Riquadro comandi → «MCP: Add Server» → HTTP → incollare l’URL, oppure aggiungerlo in <code>.vscode/mcp.json</code> (la chiave è <code>servers</code>, non <code>mcpServers</code>):',
+      mcp_codex_step:'Il comando qui sotto, oppure in <code>~/.codex/config.toml</code> sotto <code>[mcp_servers.swiss-caselaw]</code> con <code>url = "https://mcp.opencaselaw.ch"</code>. Codex supporta solo Streamable HTTP, non <code>/sse</code>.',
+      mcp_other_heading:'Altri client',
+      mcp_other_step:'<strong>Perplexity:</strong> in Connectors, creare un connettore remoto personalizzato con l’URL. <strong>Grok:</strong> <a href="https://grok.com/connectors">grok.com/connectors</a> → «New Connector» → Custom → URL. <strong>Windsurf:</strong> nel file di configurazione MCP di Cascade, una voce con <code>"serverUrl"</code>. <strong>Zed:</strong> <code>settings.json</code>, sotto <code>context_servers</code> con <code>"url"</code>. <strong>Continue:</strong> <code>type: streamable-http</code> e <code>url</code>. Qualsiasi altro client compatibile MCP si collega via Streamable HTTP a <code>https://mcp.opencaselaw.ch</code>. Solo per client più vecchi: SSE su <code>https://mcp.opencaselaw.ch/sse</code> (deprecato dalla specifica MCP; Copilot Studio, Codex e Gemini Enterprise non lo accettano).',
+      mcp_grp_search:'Cercare e consultare decisioni',
+      mcp_grp_structure:'Struttura delle decisioni (Confederazione)',
+      mcp_grp_citation:'Grafo delle citazioni',
+      mcp_grp_statutes:'Testo di legge',
+      mcp_grp_doctrine:'Dottrina e commentari',
+      mcp_grp_scholarship:'Pubblicazioni scientifiche (open access)',
+      mcp_grp_materials:'Materiali legislativi (messaggi, consultazioni)',
+      mcp_grp_verify:'Verifica e citazione',
+      mcp_grp_practice:'Prassi amministrativa (Confederazione)',
+      mcp_grp_drafting:'Redazione e studio',
+      mcp_grp_openai:'ChatGPT Deep Research (alias)',
+      mcp_grp_local:'Modalità locale (manutenzione)',
       kicker:'IA · server MCP',
       mcp_h1:'Collegare agenti IA',
       mcp_sub:'Il server MCP pubblico di OpenCaseLaw dà ai modelli linguistici accesso diretto a oltre 1’050’000 decisioni giudiziarie svizzere, al grafo delle citazioni, alle leggi federali e agli atti cantonali. 42 strumenti specializzati, nessuna registrazione, nessuna chiave API.',
@@ -388,12 +481,44 @@ OCL.init({
       mcp_tech_heading:'Dettagli tecnici',
       mcp_tech_transport:'Trasporto: Server-Sent Events (SSE) + Streamable HTTP, compatibile con tutti i client MCP comuni',
       mcp_tech_tls:'TLS tramite Let\'s Encrypt, rate limiting nginx, endpoint di health: <a href="https://mcp.opencaselaw.ch/health">/health</a>',
-      mcp_tech_workers:'4× worker uvicorn dietro load balancer, failover automatico',
-      mcp_tech_backend:'Backend: 990\'000+ decisioni in SQLite FTS5 con ranking BM25+RRF, grafo di citazioni di 8,9 M di archi (8,3 M risolti)',
+      mcp_tech_workers:'8× worker uvicorn dietro load balancer nginx, failover automatico',
+      mcp_tech_backend:'Backend: 1’050’000+ decisioni in SQLite FTS5 con ranking BM25+RRF, grafo di citazioni con 10 M di citazioni estratte (9,65 M di archi risolti)',
       mcp_tech_data:'Dati da fonti pubbliche (tribunali federali, tribunali cantonali, Fedlex, LexFind), aggiornati quotidianamente',
       updated:'Aggiornato il', copy:'Copia', copied:'Copiato!'
     },
     rm:{
+      mcp_toc_modes:'Modus',
+      mcp_toc_setup:'Configuraziun',
+      mcp_toc_tools:'Utensils',
+      mcp_toc_tech:'Tecnica',
+      mcp_modes_heading:'Dus modus da funcziun',
+      mcp_badge_recommended:'recumandà',
+      mcp_mode_local_label:'Local',
+      mcp_local_desc:'Controlla cumpletta, funcziuna offline. ~65 GB memoria, installaziun unica da var 30–60 minutas. Vesair il <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.',
+      mcp_setup_heading:'Configuraziun tenor client',
+      mcp_setup_intro:'Endpoint <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (recumandà), SSE vegl sut <code>/sse</code> · nagina annunzia · tut ils utensils mo per leger. Il model tschernì sto savair clamar utensils (function calling); pitschens models locals na san savens betg far quai a moda fidabla.',
+      mcp_claudeai_step:'<strong>Customize</strong> → <strong>Connectors</strong> → «+» → «Add custom connector» → endatar in num e l’URL, senza annunzia. Directamain: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Disponibel en tut ils plans; il plan Free permetta in connector agen. Tar Team ed Enterprise al activescha l’Owner l’emprim: <em>Organization settings → Connectors → Add → Custom → Web</em>. Agiuntà en il web u en Claude Desktop, è el era disponibel en las apps mobilas.',
+      mcp_chatgpt_step:'Settings → <strong>Apps &amp; Connectors</strong> → Advanced settings → activar il <strong>Developer mode</strong> → «Create»: num «Swiss Caselaw», encollar l’URL, Authentication: None. Mo en il web; tenor OpenAI en Plus, Pro, Business, Enterprise ed Edu, en Business, Enterprise ed Edu pir suenter la permissiun d’in admin. Senza Developer mode (deep research, connectors da firma) dovra ChatGPT mo ils utensils <code>search</code> e <code>fetch</code>.',
+      mcp_gemini_step:'Gemini CLI: il cumond sutvart, u en <code>~/.gemini/settings.json</code> sut <code>mcpServers</code> cun <code>"type": "http", "url": "https://mcp.opencaselaw.ch"</code>. Gemini Enterprise: in admin agiunta il server sut <em>Settings &amp; help → Manage team → Connected apps → Add MCP Server</em> (mo Streamable HTTP). En l’app Gemini (gemini.google.com) èn servers MCP agens disponibels mo per part (Connected Apps, contos privats cun Google AI Pro u Ultra); sche l’opziun manca, duvrar Gemini CLI.',
+      mcp_lechat_step:'<strong>Connectors</strong> → «+ Add Connector» → tab «Custom MCP Connector» → endatar in num e l’URL, Authentication: None → Connect. Connectors agiuntan ils admins; en Free, Pro e Student è il titular dal conto admin.',
+      mcp_copilot_step:'Agent → <strong>Tools</strong> → Add a tool → New tool → «Model Context Protocol». Num dal server «Swiss Caselaw» ed URL, Authentication: None. Mo Streamable HTTP (SSE betg pli sustegnì dapi l’avust 2025). En Microsoft 365 Copilot na pon ils utilisaders betg agiuntar sezs in server MCP; per quai datti in pachet d’agent pront che l’IT chargia ina giada, senza licenza Copilot Studio: <a href="/copilot/">opencaselaw.ch/copilot</a>.',
+      mcp_cursor_step:'Endatar en <code>~/.cursor/mcp.json</code> (global) u <code>.cursor/mcp.json</code> (project); il server cumpara lura en las configuraziuns MCP da Cursor:',
+      mcp_vscode_step:'Paletta da cumonds → «MCP: Add Server» → HTTP → encollar l’URL, u endatar en <code>.vscode/mcp.json</code> (la clav è <code>servers</code>, betg <code>mcpServers</code>):',
+      mcp_codex_step:'Il cumond sutvart, u en <code>~/.codex/config.toml</code> sut <code>[mcp_servers.swiss-caselaw]</code> cun <code>url = "https://mcp.opencaselaw.ch"</code>. Codex sustegna mo Streamable HTTP, betg <code>/sse</code>.',
+      mcp_other_heading:'Ulteriurs clients',
+      mcp_other_step:'<strong>Perplexity:</strong> sut Connectors crear in agen connector remot cun l’URL. <strong>Grok:</strong> <a href="https://grok.com/connectors">grok.com/connectors</a> → «New Connector» → Custom → URL. <strong>Windsurf:</strong> en la datoteca da configuraziun MCP da Cascade, ina endataziun cun <code>"serverUrl"</code>. <strong>Zed:</strong> <code>settings.json</code>, sut <code>context_servers</code> cun <code>"url"</code>. <strong>Continue:</strong> <code>type: streamable-http</code> ed <code>url</code>. Mintga auter client cumpatibel cun MCP sa colliescha via Streamable HTTP cun <code>https://mcp.opencaselaw.ch</code>. Mo per clients pli vegls: SSE sut <code>https://mcp.opencaselaw.ch/sse</code> (antiquà tenor la specificaziun MCP; Copilot Studio, Codex e Gemini Enterprise na l’acceptan betg).',
+      mcp_grp_search:'Tschertgar e consultar decisiuns',
+      mcp_grp_structure:'Structura da las decisiuns (Confederaziun)',
+      mcp_grp_citation:'Graf da citaziuns',
+      mcp_grp_statutes:'Text da lescha',
+      mcp_grp_doctrine:'Doctrina e commentaris',
+      mcp_grp_scholarship:'Publicaziuns scientificas (open access)',
+      mcp_grp_materials:'Materialias (messadis, consultaziuns)',
+      mcp_grp_verify:'Verificaziun e citaziun',
+      mcp_grp_practice:'Pratica administrativa (Confederaziun)',
+      mcp_grp_drafting:'Redacziun e studi',
+      mcp_grp_openai:'ChatGPT Deep Research (alias)',
+      mcp_grp_local:'Modus local (mantegniment)',
       kicker:'IA · server MCP',
       mcp_h1:'Connectar agents AI',
       mcp_sub:'Il server MCP public da OpenCaseLaw dà als models linguistics access direct a passa 1’050’000 decisiuns giudizialas svizras, al grafic da citaziuns, a las leschas federalas ed als acts chantunals. 42 utensils specialisàs, nagina registraziun, nagins API keys.',
@@ -404,8 +529,8 @@ OCL.init({
       mcp_tech_heading:'Detagls tecnics',
       mcp_tech_transport:'Transport: Server-Sent Events (SSE) + Streamable HTTP, cumpatibel cun tut ils clients MCP usitads',
       mcp_tech_tls:'TLS via Let\'s Encrypt, rate-limiting nginx, endpoint da sanadad: <a href="https://mcp.opencaselaw.ch/health">/health</a>',
-      mcp_tech_workers:'4× workers uvicorn davos load-balancer, failover automatic',
-      mcp_tech_backend:'Backend: 990\'000+ decisiuns en SQLite FTS5 cun ranking BM25+RRF, graf da citaziuns cun 8,9 mio. charnieras',
+      mcp_tech_workers:'8× workers uvicorn davos load-balancer nginx, failover automatic',
+      mcp_tech_backend:'Backend: 1’050’000+ decisiuns en SQLite FTS5 cun ranking BM25+RRF, graf da citaziuns cun 10 mio. citaziuns extratgas (9,65 mio. charnieras schliadas)',
       mcp_tech_data:'Datas da funtaunas publicas (dretgiras federalas, dretgiras chantunalas, Fedlex, LexFind), actualisadas mintga di',
       updated:'Actualisà ils', copy:'Copiar', copied:'Copià!'
     },
@@ -421,14 +546,17 @@ OCL.init({
       mcp_remote_desc:'Immediately available, always up to date. No download required. Server endpoint:',
       mcp_local_desc:'Full control, works offline. ~65 GB storage, one-time setup approx. 30-60 minutes. See <a href="https://github.com/jonashertner/opencaselaw#local-setup">README</a>.',
       mcp_setup_heading:'Setup per client',
-      mcp_setup_intro:'Endpoint <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (recommended) and SSE · no authentication · tools are read-only.',
-      mcp_claudeai_step:'<strong>Customize</strong> (Anpassen · Personnaliser · Personalizza) → <strong>Connectors</strong> → "+" → "Add custom connector" → paste the URL. Or direct: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Available on Free (max. 1 connector), Pro, Max, Team, Enterprise. On Team/Enterprise the Owner must first enable it via <em>Organization Settings → Connectors → Add → Custom → Web</em>.',
-      mcp_chatgpt_step:'Settings → Connectors → "Create" (if needed: Advanced settings → enable Developer mode). Name "Swiss Caselaw" and paste the URL, auth: None. ChatGPT Web on Business / Enterprise / Edu only; the model must support MCP tool calls.',
-      mcp_cursor_step:'Settings → Features → MCP → "+ Add new MCP server", or in <code>~/.cursor/mcp.json</code>:',
-      mcp_gemini_step:'CLI command or <code>~/.gemini/settings.json</code>. The web app gemini.google.com does not currently support custom MCP servers — only Gemini CLI, Gemini Enterprise, Android Studio and Firebase Studio do.',
-      mcp_copilot_step:'Agent → Tools → Add a tool → New tool → "Model Context Protocol". Server name "Swiss Caselaw" and URL, auth: None. Streamable HTTP only (SSE no longer supported since August 2025).',
-      mcp_other_heading:'Other MCP clients',
-      mcp_other_step:'Works with any MCP-capable client (Continue, Zed, Cody, Windsurf, …) over Streamable HTTP at <code>https://mcp.opencaselaw.ch</code>. SSE is also reachable at <code>/sse</code> but is deprecated by the MCP spec.',
+      mcp_setup_intro:'Endpoint <code>https://mcp.opencaselaw.ch</code> · Streamable HTTP (recommended), legacy SSE at <code>/sse</code> · no sign-in · all tools read-only. The model you pick must support tool calls (function calling); small local models often cannot do this reliably.',
+      mcp_claudeai_step:'<strong>Customize</strong> → <strong>Connectors</strong> → "+" → "Add custom connector" → enter a name and the URL, no sign-in. Direct: <a href="https://claude.ai/settings/connectors?modal=add-custom-connector">claude.ai/settings/connectors</a>. Available on every plan; the Free plan allows one custom connector. On Team and Enterprise the Owner enables it first: <em>Organization settings → Connectors → Add → Custom → Web</em>. Once added on the web or in Claude Desktop, it is also available in the mobile apps.',
+      mcp_chatgpt_step:'Settings → <strong>Apps &amp; Connectors</strong> → Advanced settings → turn on <strong>Developer mode</strong> → "Create": name "Swiss Caselaw", paste the URL, Authentication: None. Web only; per OpenAI on Plus, Pro, Business, Enterprise and Edu, on Business, Enterprise and Edu only once an admin allows it. Without Developer mode (deep research, company connectors) ChatGPT uses only the <code>search</code> and <code>fetch</code> tools.',
+      mcp_gemini_step:'Gemini CLI: the command below, or in <code>~/.gemini/settings.json</code> under <code>mcpServers</code> with <code>"type": "http", "url": "https://mcp.opencaselaw.ch"</code>. Gemini Enterprise: an admin adds the server under <em>Settings &amp; help → Manage team → Connected apps → Add MCP Server</em> (Streamable HTTP only). In the Gemini app (gemini.google.com) custom MCP servers are only partly rolled out (Connected Apps, personal accounts on Google AI Pro or Ultra); where the option is missing, use Gemini CLI.',
+      mcp_lechat_step:'<strong>Connectors</strong> → "+ Add Connector" → "Custom MCP Connector" tab → enter a name and the URL, Authentication: None → Connect. Admins add connectors; on Free, Pro and Student the account owner is the admin.',
+      mcp_copilot_step:'Agent → <strong>Tools</strong> → Add a tool → New tool → "Model Context Protocol". Server name "Swiss Caselaw" and the URL, Authentication: None. Streamable HTTP only (SSE no longer supported since August 2025). In Microsoft 365 Copilot users cannot add an MCP server themselves; there is a ready-made agent package your IT uploads once, no Copilot Studio licence needed: <a href="/copilot/en/">opencaselaw.ch/copilot</a>.',
+      mcp_cursor_step:'Add it to <code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> (project); the server then shows up in Cursor’s MCP settings:',
+      mcp_vscode_step:'Command Palette → "MCP: Add Server" → HTTP → paste the URL, or add it to <code>.vscode/mcp.json</code> (the key is <code>servers</code>, not <code>mcpServers</code>):',
+      mcp_codex_step:'The command below, or in <code>~/.codex/config.toml</code> under <code>[mcp_servers.swiss-caselaw]</code> with <code>url = "https://mcp.opencaselaw.ch"</code>. Codex speaks Streamable HTTP only, not <code>/sse</code>.',
+      mcp_other_heading:'Other clients',
+      mcp_other_step:'<strong>Perplexity:</strong> under Connectors, create a custom remote connector with the URL. <strong>Grok:</strong> <a href="https://grok.com/connectors">grok.com/connectors</a> → "New Connector" → Custom → URL. <strong>Windsurf:</strong> in Cascade’s MCP config file, an entry with <code>"serverUrl"</code>. <strong>Zed:</strong> <code>settings.json</code>, under <code>context_servers</code> with <code>"url"</code>. <strong>Continue:</strong> <code>type: streamable-http</code> and <code>url</code>. Any other MCP-capable client connects over Streamable HTTP to <code>https://mcp.opencaselaw.ch</code>. For older clients only: SSE at <code>https://mcp.opencaselaw.ch/sse</code> (deprecated by the MCP spec; Copilot Studio, Codex and Gemini Enterprise do not accept it).',
       mcp_tools_heading:'42 public tools at a glance (+ 2 local admin tools)',
       mcp_tools_desc:'Each tool is optimised for a specific research use case. Full schemas via the MCP protocol <code>tools/list</code>, grouped here by function.',
       mcp_grp_search:'Search & retrieve decisions',
@@ -446,8 +574,8 @@ OCL.init({
       mcp_tech_heading:'Technical details',
       mcp_tech_transport:'Transport: Server-Sent Events (SSE) + Streamable HTTP, compatible with every common MCP client',
       mcp_tech_tls:'TLS via Let\'s Encrypt, nginx rate limiting, health endpoint: <a href="https://mcp.opencaselaw.ch/health">/health</a>',
-      mcp_tech_workers:'4× uvicorn workers behind a load balancer, automatic failover',
-      mcp_tech_backend:'Backend: 1,050,000+ decisions in SQLite FTS5 with BM25+RRF ranking, citation graph of 8.9M edges (8.3M resolved)',
+      mcp_tech_workers:'8× uvicorn workers behind an nginx load balancer, automatic failover',
+      mcp_tech_backend:'Backend: 1,050,000+ decisions in SQLite FTS5 with BM25+RRF ranking, citation graph of 10M extracted citations (9.65M resolved edges)',
       mcp_tech_data:'Data from public sources (federal courts, cantonal courts, Fedlex, LexFind), updated daily',
       updated:'Updated', copy:'Copy', copied:'Copied!'
     }
