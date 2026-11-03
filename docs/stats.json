@@ -1,9 +1,9 @@
 {
-  "total": 1074419,
-  "source_representations": 1074419,
+  "total": 1074490,
+  "source_representations": 1074490,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 933635,
-  "unique_decisions_lower_bound": 933585,
+  "unique_decisions": 933706,
+  "unique_decisions_lower_bound": 933656,
   "duplicate_representations": 140784,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -19,10 +19,10 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194204,
+      "count": 194275,
       "earliest": "1996-01-19",
-      "latest": "2026-10-23",
-      "last_scraped": "2026-11-02T11:01:41.568819+00:00",
+      "latest": "2026-10-26",
+      "last_scraped": "2026-11-03T11:02:19.108605+00:00",
       "languages": [
         "de",
         "fr",
@@ -1774,8 +1774,8 @@
   ],
   "federal_seats": {
     "bger": {
-      "LU": 36800,
-      "VD": 157404
+      "LU": 36809,
+      "VD": 157466
     },
     "bge": {
       "LU": 3300,
@@ -2129,9 +2129,9 @@
     }
   ],
   "by_language": {
-    "de": 496898,
-    "fr": 480807,
-    "it": 90541,
+    "de": 496925,
+    "fr": 480834,
+    "it": 90558,
     "en": 6173
   },
   "by_year": {
@@ -2284,28 +2284,28 @@
     "2021": 53180,
     "2022": 52762,
     "2023": 52714,
-    "2024": 52731,
-    "2025": 50400,
-    "2026": 28984,
+    "2024": 52739,
+    "2025": 50426,
+    "2026": 29021,
     "2027": 1
   },
   "recent_daily": {
-    "2026-10-05": 60,
-    "2026-10-06": 81,
-    "2026-10-07": 76,
+    "2026-10-05": 62,
+    "2026-10-06": 83,
+    "2026-10-07": 78,
     "2026-10-08": 60,
     "2026-10-09": 35,
     "2026-10-12": 57,
-    "2026-10-13": 62,
-    "2026-10-14": 40,
-    "2026-10-15": 41,
-    "2026-10-16": 15,
-    "2026-10-19": 21,
+    "2026-10-13": 63,
+    "2026-10-14": 42,
+    "2026-10-15": 42,
+    "2026-10-16": 17,
+    "2026-10-19": 22,
     "2026-10-20": 12,
-    "2026-10-21": 13,
-    "2026-10-22": 15,
-    "2026-10-23": 5,
-    "2026-10-26": 1,
+    "2026-10-21": 16,
+    "2026-10-22": 17,
+    "2026-10-23": 7,
+    "2026-10-26": 2,
     "2026-10-27": 1,
     "2026-10-28": 2,
     "2026-10-29": 3,
@@ -2320,7 +2320,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194204
+      "count": 194275
     },
     {
       "court": "ge_gerichte",
@@ -2519,11 +2519,11 @@
     "2023": -0.1,
     "2024": 0.0,
     "2025": -4.4,
-    "2026": -42.5,
+    "2026": -42.4,
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 385387,
+    "federal": 385458,
     "cantonal": 689032
   },
   "language_by_year": {
@@ -2642,22 +2642,22 @@
       "it": 2417
     },
     "2024": {
-      "de": 23590,
+      "de": 23592,
       "en": 364,
-      "fr": 26554,
-      "it": 2223
+      "fr": 26557,
+      "it": 2226
     },
     "2025": {
-      "de": 23816,
+      "de": 23826,
       "en": 377,
-      "fr": 24648,
-      "it": 1559
+      "fr": 24654,
+      "it": 1569
     },
     "2026": {
-      "de": 15112,
+      "de": 15127,
       "en": 236,
-      "fr": 12534,
-      "it": 1102
+      "fr": 12552,
+      "it": 1106
     }
   },
   "by_month": {
@@ -2671,34 +2671,34 @@
     "2024-06": 4859,
     "2024-07": 4099,
     "2024-08": 4012,
-    "2024-09": 4278,
-    "2024-10": 4525,
+    "2024-09": 4279,
+    "2024-10": 4530,
     "2024-11": 4615,
-    "2024-12": 4361,
-    "2025-01": 4225,
+    "2024-12": 4363,
+    "2025-01": 4229,
     "2025-02": 4206,
-    "2025-03": 4405,
-    "2025-04": 4142,
-    "2025-05": 4295,
-    "2025-06": 4712,
+    "2025-03": 4407,
+    "2025-04": 4147,
+    "2025-05": 4298,
+    "2025-06": 4713,
     "2025-07": 3933,
     "2025-08": 3861,
-    "2025-09": 4474,
-    "2025-10": 4370,
-    "2025-11": 4051,
-    "2025-12": 3726,
-    "2026-01": 3078,
-    "2026-02": 3770,
+    "2025-09": 4475,
+    "2025-10": 4373,
+    "2025-11": 4052,
+    "2025-12": 3732,
+    "2026-01": 3085,
+    "2026-02": 3771,
     "2026-03": 3844,
     "2026-04": 3158,
     "2026-05": 2969,
     "2026-06": 3489,
     "2026-07": 2792,
     "2026-08": 2654,
-    "2026-09": 2492,
-    "2026-10": 738
+    "2026-09": 2500,
+    "2026-10": 759
   },
-  "generated_at": "2026-11-03T11:04:13.324850+00:00",
+  "generated_at": "2026-11-03T19:06:48.085889+00:00",
   "scraper_health": {
     "run_at": "2026-11-03T01:52:42.184675+00:00",
     "run_duration_s": 3101.2,
@@ -3921,19 +3921,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 10021670,
-    "statute_edges": 12729246
+    "citation_edges": 10023599,
+    "statute_edges": 12731174
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 111533,
+      "citation_count": 111553,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196747
+      "ref_count": 196803
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -3945,17 +3945,17 @@
       "de_pct": 46.5,
       "fr_pct": 45.0,
       "it_pct": 8.5,
-      "total": 1068157
+      "total": 1068317
     },
     "regeste_coverage": {
       "pct": 37.9,
-      "with_regeste": 406818,
-      "total": 1074330
+      "with_regeste": 406835,
+      "total": 1074490
     },
     "graph_size": {
-      "decision_edges": 9489289,
-      "statute_edges": 12729246,
-      "total": 22218535
+      "decision_edges": 9491102,
+      "statute_edges": 12731174,
+      "total": 22222276
     },
     "echr_switzerland": {
       "total": 1535,
@@ -3972,31 +3972,31 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 111533,
+        "citation_count": 111553,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 58497,
+        "citation_count": 58501,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39853,
+        "citation_count": 39863,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
       {
         "docket": "126 V 75",
-        "citation_count": 35934,
+        "citation_count": 35936,
         "regeste_excerpt": "Regeste\n Art. 28 Abs. 2 IVG: Kürzung von Tabellenlöhnen. - Für die Bestimmung des Invalideneinkommens ist primär von der beruflich-erwerblichen Situation auszug",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_126 V 75"
       },
       {
         "docket": "130 V 343",
-        "citation_count": 34801,
+        "citation_count": 34803,
         "regeste_excerpt": "Regeste\n Art. 1 Abs. 1 IVG (in der seit 1. Januar 2003 geltenden Fassung) in Verbindung mit Art. 6, 7, 8 Abs. 1, Art. 16 und 17 ATSG; Art. 4 Abs. 1, Art. 28 Abs",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_130 V 343"
       }
@@ -4005,44 +4005,44 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196747
+        "ref_count": 196803
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 121020
+        "ref_count": 121044
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109363
+        "ref_count": 109381
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98510
+        "ref_count": 98545
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61040
+        "ref_count": 61050
       }
     ],
     "materialien_coverage": {
-      "total_documents": 28104,
-      "paragraphs": 2818460,
-      "article_links": 27026,
+      "total_documents": 28107,
+      "paragraphs": 2880619,
+      "article_links": 28213,
       "by_language": {
-        "de": 16838,
-        "fr": 5635,
-        "it": 5631
+        "de": 16839,
+        "fr": 5636,
+        "it": 5632
       },
       "by_doc_type": {
         "bericht_bundesrat": 2605,
         "bericht_kommission": 2954,
         "botschaft": 14644,
         "erlassentwurf": 1932,
-        "stellungnahme_bundesrat": 1681,
+        "stellungnahme_bundesrat": 1684,
         "vernehmlassung_eroeffnung": 4288
       },
       "year_range": {
@@ -4054,14 +4054,14 @@
       "by_doc_type": {
         "ergebnisbericht": 2010,
         "erlaeuternder_bericht": 2643,
-        "stellungnahmen": 1361,
+        "stellungnahmen": 1362,
         "synoptische_tabelle": 249,
         "vernehmlassung_diverses": 936,
         "vernehmlassungsvorlage": 3355
       },
-      "counted_at": "2026-10-31T22:49:30+00:00",
-      "documents": 10554,
-      "paragraphs": 11571488,
+      "counted_at": "2026-11-02T22:52:13+00:00",
+      "documents": 10555,
+      "paragraphs": 11634187,
       "procedures": 2694,
       "procedures_fedlex": 2582,
       "year_range": {
@@ -4164,7 +4164,7 @@
         "earliest": "1908-11-08",
         "latest": "2026-10-16",
         "span_years": 118,
-        "decision_count": 171718
+        "decision_count": 171765
       }
     ]
   },
@@ -4465,12 +4465,52 @@
   "recent": {
     "bge": [
       {
+        "decision_id": "bger_5A_1029_2026",
+        "docket": "5A_1029/2026",
+        "date": "2026-10-26",
+        "court": "bger",
+        "language": "de",
+        "summary": "Rückführung eines Kindes,"
+      },
+      {
+        "decision_id": "bger_5A_1067_2026",
+        "docket": "5A_1067/2026",
+        "date": "2026-10-23",
+        "court": "bger",
+        "language": "de",
+        "summary": "Aufschiebende Wirkung (Lohnpfändung),"
+      },
+      {
+        "decision_id": "bger_5A_1062_2026",
+        "docket": "5A_1062/2026",
+        "date": "2026-10-23",
+        "court": "bger",
+        "language": "de",
+        "summary": "Fürsorgerische Unterbringung / Beistandschaft,"
+      },
+      {
         "decision_id": "bger_4A_595_2026",
         "docket": "4A_595/2026",
         "date": "2026-10-23",
         "court": "bger",
         "language": "de",
         "summary": ""
+      },
+      {
+        "decision_id": "bger_4A_517_2026",
+        "docket": "4A_517/2026",
+        "date": "2026-10-22",
+        "court": "bger",
+        "language": "de",
+        "summary": "Arbeitsvertrag; Rückzug,"
+      },
+      {
+        "decision_id": "bger_4A_507_2026",
+        "docket": "4A_507/2026",
+        "date": "2026-10-22",
+        "court": "bger",
+        "language": "de",
+        "summary": "Kaufvertrag; Ausstand; Rückzug,"
       },
       {
         "decision_id": "bger_4A_428_2026",
@@ -4497,52 +4537,12 @@
         "summary": "Assurance-invalidité,"
       },
       {
-        "decision_id": "bger_5A_964_2026",
-        "docket": "5A_964/2026",
+        "decision_id": "bger_9C_354_2026",
+        "docket": "9C_354/2026",
         "date": "2026-10-21",
         "court": "bger",
-        "language": "de",
-        "summary": "Konkurseröffnung,"
-      },
-      {
-        "decision_id": "bger_2C_648_2026",
-        "docket": "2C_648/2026",
-        "date": "2026-10-21",
-        "court": "bger",
-        "language": "de",
-        "summary": ""
-      },
-      {
-        "decision_id": "bger_6B_731_2026",
-        "docket": "6B_731/2026",
-        "date": "2026-10-20",
-        "court": "bger",
-        "language": "de",
-        "summary": "Schreckung der Bevölkerung, falscher Alarm, mehrfache Drohung usw.; Nichteintreten,"
-      },
-      {
-        "decision_id": "bger_5D_36_2026",
-        "docket": "5D_36/2026",
-        "date": "2026-10-20",
-        "court": "bger",
-        "language": "de",
-        "summary": "Vorläufige Einstellung von Betreibungen (Art. 85a Abs. 2 SchKG), Ausstand,"
-      },
-      {
-        "decision_id": "bger_1C_583_2026",
-        "docket": "1C_583/2026",
-        "date": "2026-10-20",
-        "court": "bger",
-        "language": "de",
-        "summary": "Kostenerlassgesuch,"
-      },
-      {
-        "decision_id": "bger_5A_866_2026",
-        "docket": "5A_866/2026",
-        "date": "2026-10-19",
-        "court": "bger",
-        "language": "de",
-        "summary": "Konkurseröffnung,"
+        "language": "fr",
+        "summary": "Assurance-maladie (condition de recevabilité),"
       }
     ],
     "cantonal": [
@@ -4680,6 +4680,14 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/2015/847"
     },
     {
+      "sr_number": "822.112",
+      "in_force_date": "2026-12-01",
+      "title_de": "Verordnung 2 vom 10. Mai 2000 zum Arbeitsgesetz (ArGV 2) (Sonderbestimmungen für bestimmte Gruppen von Betrieben oder Arbeitnehmern und Arbeitnehmerinnen)",
+      "title_fr": "Ordonnance 2 du 10 mai 2000 relative à la loi sur le travail (OLT 2) (Dispositions spéciales pour certaines catégories d'entreprises ou de travailleurs)",
+      "title_it": "Ordinanza 2 del 10 maggio 2000 concernente la legge sul lavoro (OLL 2) (Disposizioni speciali per determinate categorie di aziende e di lavoratori)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/2000/244"
+    },
+    {
       "sr_number": "916.151.6",
       "in_force_date": "2026-12-01",
       "title_de": "Verordnung des BLW vom 12. Juni 2013 über Sortenkataloge und Sortenlisten landwirtschaftlich genutzter Pflanzenarten (Sortenverordnung)",
@@ -4750,19 +4758,12 @@
       "title_fr": "Règlement du 28 septembre 2011 sur les émoluments administratifs du Tribunal fédéral des brevets (REmol-TFB)",
       "title_it": "Regolamento del 28 settembre 2011 sulle tasse amministrative del Tribunale federale dei brevetti (TA-TFB)",
       "url": "https://www.fedlex.admin.ch/eli/cc/2011/894"
-    },
-    {
-      "sr_number": "173.413.4",
-      "in_force_date": "2027-01-01",
-      "title_de": "Informationsreglement vom 28. September 2011 für das Bundespatentgericht (IR-PatGer)",
-      "title_fr": "Règlement du 28 septembre 2011 du Tribunal fédéral des brevets relatif à l'information (RInfo-TFB)",
-      "title_it": "Regolamento del 28 settembre 2011 del Tribunale federale dei brevetti concernente l'informazione (RInfo-TFB)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2011/895"
     }
   ],
   "delta": {
-    "total": 89,
+    "total": 160,
     "by_court": {
+      "bger": 29,
       "ge_gerichte": 47,
       "bvger": 7,
       "vd_gerichte": 25,
@@ -4786,7 +4787,9 @@
     },
     "corpus": {
       "cantonal_laws": 824,
-      "cantonal_law_articles": 19260
+      "cantonal_law_articles": 19260,
+      "citation_edges": 1929,
+      "statute_edges": 1928
     },
     "previous_generated_at": "2026-11-02T19:05:07.999107+00:00"
   }
