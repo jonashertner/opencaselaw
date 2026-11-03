@@ -87,3 +87,64 @@ def test_list_courts_says_its_dates_are_decision_dates(monkeypatch):
 def test_r12_rejects_the_claim_in_the_system_prompt():
     src = open(m.__file__, encoding="utf-8").read()
     assert "NEVER call a court poorly covered" in src
+
+
+# 2026-11-03, Jonas: no model connected here should tell a user the corpus is
+# incomplete or not up to date because the newest decisions are older than today.
+
+def test_the_note_tells_the_model_how_to_answer_a_request_for_the_latest():
+    note = m._DATE_SEMANTICS_NOTE
+    assert "updated daily" in note
+    assert "courts publish weeks to months after deciding" in note
+    assert "Do not call this corpus, or a court in it, incomplete, outdated" in note
+
+
+def test_r12_rules_out_calling_the_corpus_outdated():
+    src = open(m.__file__, encoding="utf-8").read()
+    assert "NEVER describe opencaselaw as incomplete, outdated" in src
+    assert "When a user asks for the latest or most recent decisions" in src
+
+
+def test_recent_year_counts_get_the_lag_note():
+    this_year = datetime.now(timezone.utc).year
+    assert m._recent_years_note({this_year: 3, this_year - 5: 40}) == m._RECENT_YEARS_NOTE
+    assert m._recent_years_note({str(this_year - 1): 7, None: 1}) == m._RECENT_YEARS_NOTE
+    assert m._recent_years_note({"2001": 9, "2002": 8}) == ""
+    assert "not decisions missing from this corpus" in m._RECENT_YEARS_NOTE
+
+
+def test_get_statistics_carries_the_note_to_mcp(monkeypatch):
+    import sqlite3
+    this_year = datetime.now(timezone.utc).year
+
+    def db():
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute("CREATE TABLE decisions (court TEXT, canton TEXT, language TEXT, decision_date TEXT)")
+        conn.executemany("INSERT INTO decisions VALUES (?,?,?,?)", [
+            ("lagtest_court", "ZH", "de", f"{this_year}-03-01"),
+            ("lagtest_court", "ZH", "de", "2015-03-01")])
+        return conn
+    monkeypatch.setattr(m, "get_db", db)
+    stats = m.get_statistics(court="lagtest_court")
+    assert stats["note"] == m._RECENT_YEARS_NOTE
+    res = asyncio.run(wire("get_statistics", {"court": "lagtest_court"}))
+    assert m._RECENT_YEARS_NOTE in res.content[0].text
+
+
+def test_trend_text_ends_with_the_note():
+    this_year = datetime.now(timezone.utc).year
+    result = {"years": [{"year": this_year - 1, "count": 30}, {"year": this_year, "count": 4}],
+              "total": 34, "law_code": None, "article": None, "query": "x",
+              "note": m._recent_years_note({this_year: 4})}
+    assert m._RECENT_YEARS_NOTE in m._format_trend_response(result)
+
+
+def test_tool_descriptions_frame_recency_as_publication_lag():
+    tools = {t.name: t.description for t in m._list_tools()}
+    assert "courts publish after they" in tools["search_decisions"]
+    assert "courts publish weeks to months" in tools["search"]
+    assert "updated daily" in tools["list_courts"]
+    assert "publication lag, not missing data" in tools["get_statistics"]
+    assert "recent decisions rank low" in tools["find_leading_cases"]
+    assert "publication lag" in tools["analyze_legal_trend"]

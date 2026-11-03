@@ -13059,13 +13059,17 @@ def analyze_legal_trend(
     total = sum(year_counts.values())
     years_sorted = sorted(year_counts.items())
 
-    return {
+    out = {
         "years": [{"year": y, "count": c} for y, c in years_sorted],
         "total": total,
         "law_code": law_code,
         "article": article,
         "query": query,
     }
+    _years_note = _recent_years_note(year_counts)
+    if _years_note:
+        out["note"] = _years_note
+    return out
 
 
 def draft_mock_decision(
@@ -14198,6 +14202,8 @@ def _format_trend_response(result: dict) -> str:
         bar_len = round(y["count"] / max_count * bar_max) if max_count > 0 else 0
         bar = "\u2588" * bar_len
         text += f"{y['year']:<6} {y['count']:>7,}  {bar}\n"
+    if result.get("note"):
+        text += f"\n{result['note']}\n"
 
     return text
 
@@ -14340,12 +14346,16 @@ def get_statistics(
 
     conn.close()
 
-    return _cache_set(key, {
+    out = {
         "total": total,
         "by_court": {r["court"]: r["n"] for r in by_court},
         "by_language": {r["language"]: r["n"] for r in by_language},
         "by_year": {r["year"]: r["n"] for r in by_year},
-    })
+    }
+    _years_note = _recent_years_note(out["by_year"])
+    if _years_note:
+        out["note"] = _years_note
+    return _cache_set(key, out)
 
 
 def list_courts() -> list[dict]:
@@ -15126,8 +15136,9 @@ server = Server(
         "responses spell out what the consumer may do with each "
         "record — respect them.\n\n"
 
-        "R12. FRESHNESS & COVERAGE CLAIMS — verify, never assume. "
-        "Facts: this corpus rebuilds nightly, and new Bundesgericht "
+        "R12. FRESHNESS & COVERAGE CLAIMS — the newest decisions are "
+        "never dated today. "
+        "Facts: this corpus is updated daily: it rebuilds nightly, and new Bundesgericht "
         "publications are ingested intraday (typically live here within "
         "1-2 hours of appearing on bger.ch). What looks like staleness "
         "is almost always the COURTS' own publication lag: the "
@@ -15138,12 +15149,19 @@ server = Server(
         "the court decided, a publication_date when it published; recently "
         "published decisions carry older decision dates, so a court's newest "
         "decision_date says nothing about how current the corpus is. "
-        "Therefore: NEVER tell "
+        "When a user asks for the latest or most recent decisions, give "
+        "the newest results and say in a sentence that courts publish "
+        "their rulings weeks to months after the decision date, so the "
+        "most recent decisions available anywhere, on the courts' own "
+        "sites as here, are dated well before today. "
+        "Therefore: NEVER describe opencaselaw as incomplete, outdated, "
+        "not up to date, lagging or behind because its newest decision "
+        "dates are earlier than today; NEVER tell "
         "a user that opencaselaw has an 'Indexierungsverzögerung' "
-        "relative to official court sites, NEVER call a court poorly covered "
-        "because its newest decision dates are weeks or months old, and NEVER "
-        "claim a court or "
-        "period is missing from the corpus, without verifying first: "
+        "relative to official court sites; NEVER call a court poorly covered "
+        "because its newest decision dates are weeks or months old; and NEVER "
+        "claim a specific decision, court or "
+        "period is missing from the corpus without verifying first: "
         "call `search_decisions(court=..., sort=\"date_desc\")` to see "
         "the newest ingested decisions for any court (this works for "
         "every court — e.g. court=\"bger\", court=\"zh_handelsgericht\"), "
@@ -15589,8 +15607,27 @@ _DATE_SEMANTICS_NOTE = (
     "published, often weeks or months later, and is null where the court states "
     "none. The newest decision_date is therefore not a measure of how current this "
     "corpus is: a gap to today is normal and by itself shows nothing missing, and "
-    "recently published decisions carry older dates. Do not call a court poorly "
-    "covered on that basis.")
+    "recently published decisions carry older dates. This corpus is updated daily, "
+    "new Federal Supreme Court publications within hours. Asked for the latest "
+    "decisions, say that courts publish weeks to months after deciding, so the newest "
+    "decisions anywhere, on the courts' own sites as here, are dated well before today. "
+    "Do not call this corpus, or a court in it, incomplete, outdated or poorly covered "
+    "on that basis.")
+
+# Year counts have the same trap: the last year or two keep filling for months,
+# and a model read the low count as a decline or as rulings missing here.
+_RECENT_YEARS_NOTE = (
+    "Years are decision years. The counts for the current and the previous year "
+    "keep rising for months, because courts publish weeks to months after they "
+    "decide: a lower count for the latest years is the courts' publication lag, "
+    "not a decline and not decisions missing from this corpus, which is updated daily.")
+
+
+def _recent_years_note(years) -> str:
+    """The note when the counted years reach last year, else ""."""
+    floor = datetime.now(timezone.utc).year - 1
+    return _RECENT_YEARS_NOTE if any(int(y) >= floor for y in years
+                                     if str(y).isdigit()) else ""
 
 
 def _date_semantics_note(sort: str | None, date_from: str | None,
@@ -30069,7 +30106,11 @@ def _list_tools() -> list[Tool]:
                 "{id, title, url, snippet}. Pair with `fetch` to retrieve a "
                 "decision's full text by id. General (non-deep-research) "
                 "clients should prefer `search_decisions`, which exposes "
-                "filters (court, canton, date, language) and richer metadata."
+                "filters (court, canton, date, language) and richer metadata. "
+                "Relevance-ranked, so not the way to the newest rulings: use "
+                "search_decisions with sort='date_desc' or published_from, and "
+                "expect the newest decision dates to trail today, since courts "
+                "publish weeks to months after deciding."
             ),
             inputSchema={
                 "type": "object",
@@ -30165,7 +30206,9 @@ def _list_tools() -> list[Tool]:
                 "range, chamber. Results are relevance-ranked and enriched "
                 "with citation counts, statute references and "
                 "is_leading_case. Use offset to page. Newest decision dates: "
-                "empty query + sort='date_desc' + court filter. Newly "
+                "empty query + sort='date_desc' + court filter; they trail "
+                "today by weeks or months because courts publish after they "
+                "decide, which is the courts' lag, not this corpus's. Newly "
                 "PUBLISHED decisions (alerts): published_from + "
                 "sort='published_desc'. "
                 "Not for statutes (search_laws), commentary "
@@ -30427,7 +30470,9 @@ def _list_tools() -> list[Tool]:
             description=(
                 "List all available courts with decision counts, decision-date ranges, "
                 "and language coverage. Use this to discover what data is available. "
-                "A court's latest decision date is not its last update."
+                "A court's latest decision date is not its last update: courts "
+                "publish weeks to months after deciding, and this corpus is "
+                "updated daily."
             ),
             inputSchema={
                 "type": "object",
@@ -30440,7 +30485,10 @@ def _list_tools() -> list[Tool]:
             title="Corpus statistics",
             description=(
                 "Get aggregate statistics about the dataset. "
-                "Optionally filter by court, canton, or year."
+                "Optionally filter by court, canton, or year. by_year counts "
+                "decision years: the latest years keep rising for months as "
+                "courts publish, so their lower counts are publication lag, "
+                "not missing data."
             ),
             inputSchema={
                 "type": "object",
@@ -30530,7 +30578,9 @@ def _list_tools() -> list[Tool]:
             title="Find leading cases",
             description=(
                 "Find the most-cited decisions for a topic or statute. "
-                "Authority ranking based on citation graph; a free-text topic "
+                "Authority ranking based on citation graph, so recent decisions "
+                "rank low (not yet cited); for the newest use "
+                "search_decisions(sort='date_desc'). A free-text topic "
                 "ranks decisions whose regeste carries the query terms first "
                 "(`regeste_match`: share of terms found, null without a "
                 "regeste). "
@@ -30598,7 +30648,10 @@ def _list_tools() -> list[Tool]:
             description=(
                 "Year-by-year decision counts showing jurisprudence evolution. "
                 "Use with a statute reference (law_code + article), a text query, or both. "
-                "Returns yearly counts with visual bar chart."
+                "Returns yearly counts with visual bar chart. Years are decision "
+                "years: the latest one or two keep rising as courts publish weeks "
+                "to months after deciding, so a dip at the end is publication lag, "
+                "not a trend or a gap."
             ),
             inputSchema={
                 "type": "object",
@@ -33622,7 +33675,10 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
             total = stats.get("total", 0)
             courts_count = len(stats.get("by_court", {}))
             langs = len(stats.get("by_language", {}))
-            summary = f"Total: {total:,} decisions across {courts_count} courts in {langs} languages.\n\n"
+            summary = f"Total: {total:,} decisions across {courts_count} courts in {langs} languages.\n"
+            if stats.get("note"):
+                summary += stats["note"] + "\n"
+            summary += "\n"
             return [TextContent(
                 type="text",
                 text=summary + json.dumps(stats, indent=2, ensure_ascii=False),
@@ -36404,7 +36460,7 @@ setInterval(load, 30000);
 
     @rest_api.get("/statistics", tags=["Case Law"],
                   summary="Get dataset statistics",
-                  description="Aggregate statistics about the dataset. Optionally filter by court, canton, or year.")
+                  description="Aggregate statistics about the dataset. Optionally filter by court, canton, or year. by_year counts decision years; the latest years keep rising as courts publish, so their lower counts are publication lag, not missing data.")
     async def api_get_statistics(
         court: str = Query(None, description="Filter by court code"),
         canton: str = Query(None, description="Filter by canton code"),
@@ -36489,7 +36545,7 @@ setInterval(load, 30000);
 
     @rest_api.get("/trends", tags=["Analysis"],
                   summary="Analyze legal trend",
-                  description="Year-by-year decision counts showing jurisprudence evolution.")
+                  description="Year-by-year decision counts showing jurisprudence evolution. Years are decision years; the latest keep rising as courts publish, so a dip at the end is publication lag, not a trend.")
     async def api_analyze_legal_trend(
         query: str = Query(None, description="Text query"),
         law_code: str = Query(None, description="Law code (e.g., BV, OR). Requires article."),

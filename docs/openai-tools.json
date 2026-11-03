@@ -52,7 +52,7 @@
       "type": "function",
       "function": {
         "name": "search_decisions",
-        "description": "Search Swiss court decisions AND European Court of Human Rights decisions concerning Switzerland (~2,800 ECHR docs across bge_egmr, hudoc_ch, ecthr_chamber, ecthr_committee, ecthr_grand_chamber) using full-text search. Supports keywords, phrases (in quotes), Boolean operators (AND, OR, NOT), and prefix matching (word*). Filter by court, canton, language, date range, and chamber. Also handles docket number lookup (e.g., 6B_1234/2025) and column-scoped search (regeste:keyword, full_text:keyword). Returns relevance-ranked results enriched with:\n- court_name (human-readable), court_level, legal_area\n- statutes: relevant statute articles (e.g. Art. 41 OR)\n- citation_count: how many decisions cite this one\n- cited_by_results: how many other results cite this one\n- is_leading_case: true for highly-cited authoritative decisions\nUse offset for pagination through large result sets.\n\nTo find the MOST RECENT decisions: omit the query (or set it empty) and use sort='date_desc' with optional court/canton filters. Example: query='', court='bger', sort='date_desc', limit=5.",
+        "description": "Search Swiss court decisions AND European Court of Human Rights decisions concerning Switzerland (~2,800 ECHR docs across bge_egmr, hudoc_ch, ecthr_chamber, ecthr_committee, ecthr_grand_chamber) using full-text search. Supports keywords, phrases (in quotes), Boolean operators (AND, OR, NOT), and prefix matching (word*). Filter by court, canton, language, date range, and chamber. Also handles docket number lookup (e.g., 6B_1234/2025) and column-scoped search (regeste:keyword, full_text:keyword). Returns relevance-ranked results enriched with:\n- court_name (human-readable), court_level, legal_area\n- statutes: relevant statute articles (e.g. Art. 41 OR)\n- citation_count: how many decisions cite this one\n- cited_by_results: how many other results cite this one\n- is_leading_case: true for highly-cited authoritative decisions\nUse offset for pagination through large result sets.\n\nTo find the MOST RECENT decisions: omit the query (or set it empty) and use sort='date_desc' with optional court/canton filters. Example: query='', court='bger', sort='date_desc', limit=5. The newest decision dates trail today by weeks or months because courts publish after they decide; that is the courts' lag, not this corpus's, which is updated daily.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -168,7 +168,7 @@
       "type": "function",
       "function": {
         "name": "list_courts",
-        "description": "List all available courts with decision counts, decision-date ranges, and language coverage. Use this to discover what data is available. A court's latest decision date is not its last update.",
+        "description": "List all available courts with decision counts, decision-date ranges, and language coverage. Use this to discover what data is available. A court's latest decision date is not its last update: courts publish weeks to months after deciding, and this corpus is updated daily.",
         "parameters": {
           "type": "object",
           "properties": {}
@@ -179,7 +179,7 @@
       "type": "function",
       "function": {
         "name": "get_statistics",
-        "description": "Get aggregate statistics about the dataset. Optionally filter by court, canton, or year.",
+        "description": "Get aggregate statistics about the dataset. Optionally filter by court, canton, or year. by_year counts decision years: the latest years keep rising for months as courts publish, so their lower counts are publication lag, not missing data.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -266,7 +266,7 @@
       "type": "function",
       "function": {
         "name": "find_leading_cases",
-        "description": "Find the most-cited decisions for a topic or statute. Authority ranking based on citation graph. Filter by statute (law_code + article), topic query, court, and date range. Top-3 results auto-attach a `pinpoint` field {e_number, matched_sentence, confidence, url, score, source} anchoring the most-relevant Erwägung — see system instructions U3 for how to surface it. Each result also carries citation_string_{de,fr,it} + canonical_url + is_leading_case + citation_count for ready-to-quote Swiss-format citations.",
+        "description": "Find the most-cited decisions for a topic or statute. Authority ranking based on citation graph, so recent decisions rank low (not yet cited); for the newest use search_decisions(sort='date_desc'). Filter by statute (law_code + article), topic query, court, and date range. Top-3 results auto-attach a `pinpoint` field {e_number, matched_sentence, confidence, url, score, source} anchoring the most-relevant Erwägung — see system instructions U3 for how to surface it. Each result also carries citation_string_{de,fr,it} + canonical_url + is_leading_case + citation_count for ready-to-quote Swiss-format citations.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -312,7 +312,7 @@
       "type": "function",
       "function": {
         "name": "analyze_legal_trend",
-        "description": "Year-by-year decision counts showing jurisprudence evolution. Use with a statute reference (law_code + article), a text query, or both. Returns yearly counts with visual bar chart.",
+        "description": "Year-by-year decision counts showing jurisprudence evolution. Use with a statute reference (law_code + article), a text query, or both. Returns yearly counts with visual bar chart. Years are decision years: the latest one or two keep rising as courts publish weeks to months after deciding, so a dip at the end is publication lag, not a trend or a gap.",
         "parameters": {
           "type": "object",
           "properties": {
