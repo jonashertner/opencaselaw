@@ -2698,7 +2698,7 @@
     "2026-09": 2500,
     "2026-10": 759
   },
-  "generated_at": "2026-11-03T19:06:48.085889+00:00",
+  "generated_at": "2026-11-03T22:19:27.064238+00:00",
   "scraper_health": {
     "run_at": "2026-11-03T01:52:42.184675+00:00",
     "run_duration_s": 3101.2,
@@ -3953,9 +3953,9 @@
       "total": 1074490
     },
     "graph_size": {
-      "decision_edges": 9491102,
+      "decision_edges": 9460196,
       "statute_edges": 12731174,
-      "total": 22222276
+      "total": 22191370
     },
     "echr_switzerland": {
       "total": 1535,
