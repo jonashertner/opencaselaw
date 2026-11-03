@@ -1623,10 +1623,79 @@ def step_6_git_push(dry_run: bool = False) -> bool:
     # to handle temp scripts and other untracked files that block rebase.
     run_cmd(["git", "stash", "--include-untracked"], "git stash --include-untracked", dry_run)
     rebase_ok = run_cmd(["git", "pull", "--rebase", "origin", "main"], "git pull --rebase", dry_run)
+    if not rebase_ok:
+        # Never leave the checkout mid-rebase: the pop below cannot apply
+        # onto a conflicted tree, and every later git step fails behind it
+        # (2026-11-02 22:51 — wedged until a hand repair the next morning).
+        rebase_ok = _finish_or_abort_rebase(paths, dry_run)
     run_cmd(["git", "stash", "pop"], "git stash pop", dry_run)
     if not rebase_ok:
         return False
     return run_cmd(["git", "push"], "git push", dry_run)
+
+
+def _rebase_in_progress() -> bool:
+    for name in ("rebase-merge", "rebase-apply"):
+        p = subprocess.run(
+            ["git", "rev-parse", "--git-path", name],
+            capture_output=True, text=True, cwd=str(REPO_DIR),
+        ).stdout.strip()
+        if p and (REPO_DIR / p).exists():
+            return True
+    return False
+
+
+def _finish_or_abort_rebase(paths: list[str], dry_run: bool = False) -> bool:
+    """Resolve a stopped step-6 rebase, or abort it. Returns True when the
+    rebase completed and the bot commit sits on top of origin/main.
+
+    The bot commit holds generated files only, so a conflict there means
+    origin/main touched the same or an adjacent line by hand (2026-11-02:
+    the f_laws_t text right under the #f-laws count). Resolution: the
+    upstream docs/index.html with this run's numbers re-synced into it, and
+    the bot's side for every other generated file. A conflict on any other
+    path is a human's to settle, so the rebase is aborted and the checkout
+    returns to main with the bot commit unpushed.
+    """
+    if not _rebase_in_progress():
+        return False  # the pull failed before rebasing (network, auth)
+    for _ in range(5):  # one round per replayed commit
+        conflicted = subprocess.run(
+            ["git", "diff", "--name-only", "--diff-filter=U"],
+            capture_output=True, text=True, cwd=str(REPO_DIR),
+        ).stdout.split()
+        if not conflicted:
+            # Resolved to upstream's content: the replayed commit is empty.
+            run_cmd(["git", "rebase", "--skip"], "git rebase --skip", dry_run)
+            if not _rebase_in_progress():
+                return True
+            continue
+        foreign = [f for f in conflicted
+                   if not any(f == p or f.startswith(p + "/") for p in paths)]
+        if foreign:
+            logger.error("  rebase conflict outside the generated files: %s",
+                         ", ".join(foreign))
+            break
+        logger.warning("  rebase conflict in generated files, resolving: %s",
+                       ", ".join(conflicted))
+        resolved = True
+        for f in conflicted:
+            # During a rebase --ours is upstream, --theirs the bot commit.
+            side = "--ours" if f == "docs/index.html" else "--theirs"
+            resolved = resolved and run_cmd(
+                ["git", "checkout", side, "--", f], f"git checkout {side} {f}", dry_run)
+        if not resolved:
+            break
+        if "docs/index.html" in conflicted:
+            _sync_homepage_fallbacks(dry_run)
+        if not run_cmd(["git", "add", "--", *conflicted], "git add (resolved)", dry_run):
+            break
+        run_cmd(["git", "-c", "core.editor=true", "rebase", "--continue"],
+                "git rebase --continue", dry_run)
+        if not _rebase_in_progress():
+            return True
+    run_cmd(["git", "rebase", "--abort"], "git rebase --abort", dry_run)
+    return False
 
 
 def _run_parallel_post_build(deferred: list, args, manual_step_mode: bool) -> dict:
