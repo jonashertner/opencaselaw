@@ -64,7 +64,7 @@ The largest open collection of Swiss court decisions: 1,050,000+ decision record
 
 **What this Parquet dataset contains:** the decisions corpus (`data/`), the citation and statute-reference graph (`graph/`), and structured decision sections (`structure/`). `structure/` is refreshed only when its export fits the nightly build's time budget, so it can lag `data/` by days; the live sidecar behind the MCP tools is always current.
 
-**Not included as bulk Parquet — served live via the [MCP API](https://mcp.opencaselaw.ch) and [dashboard](https://opencaselaw.ch):** the full **law texts** and **legislative materials**. These are queried in real time (`get_law`, `search_laws`, `get_legislation`, `get_materialien`) and sourced from Fedlex SPARQL (5,525 federal laws / 132,586 articles in DE/FR/IT), direct cantonal-portal scraping with LexFind fallback (16,400 cantonal laws / 381,725 articles), and verbatim federal Materialien: the Bundesblatt documents (Federal Council Botschaften, Berichte and Stellungnahmen, parliamentary committee reports, Erlassentwürfe; complete against Fedlex since 1999, 1850–1999 being added from the Federal Archives scans) and the federal Vernehmlassungen (every Fedlex consultation since 1993 with its Erläuternde Berichte, Vorlagen, Ergebnisberichte and Stellungnahmen, plus the FOJ legislative projects), alongside references for ~33,000 statute articles, digests for BV and BGFA, and Amtliches-Bulletin debate transcripts for the BV. The statute-decision *links* above are included in the download; the article *texts* are not.
+**Not included as bulk Parquet — served live via the [MCP API](https://mcp.opencaselaw.ch) and [dashboard](https://opencaselaw.ch):** the full **law texts** and **legislative materials**. These are queried in real time (`get_law`, `search_laws`, `get_legislation`, `get_materialien`) and sourced from Fedlex SPARQL (5,546 federal laws / ~134,400 articles in each of DE/FR/IT), direct cantonal-portal scraping with LexFind fallback (16,400 cantonal laws / 381,725 articles), and verbatim federal Materialien: the Bundesblatt documents (Federal Council Botschaften, Berichte and Stellungnahmen, parliamentary committee reports, Erlassentwürfe; complete against Fedlex since 1999, 1850–1999 being added from the Federal Archives scans) and the federal Vernehmlassungen (every Fedlex consultation since 1993 with its Erläuternde Berichte, Vorlagen, Ergebnisberichte and Stellungnahmen, plus the FOJ legislative projects), alongside references for ~33,000 statute articles, digests for BV and BGFA, and Amtliches-Bulletin debate transcripts for the BV. The statute-decision *links* above are included in the download; the article *texts* are not.
 
 ## Quick Start
 
@@ -178,7 +178,7 @@ This snapshot is intended for local MCP/server bootstrap tools that want to avoi
 | Regeste (headnote) coverage | 38.7% |
 | Case-citation references | 9.65 million resolved (10 million extracted) |
 | Statute-decision links | 12.4 million |
-| Federal laws indexed | 5,525 (400,405 articles total / ~133,359 per DE/FR/IT) |
+| Federal laws indexed | 5,546 (403,181 articles total / ~134,400 per DE/FR/IT) |
 | Cantonal laws indexed | 16,400 (381,725 articles, direct-scraped + LexFind) |
 | Laws with Botschaft refs | 2,615 (33,465 articles) |
 | Verbatim Bundesblatt Materialien | 28,100+ documents (DE/FR/IT) / ~2.88M paragraphs; 14,600+ Botschaften plus Berichte, Stellungnahmen, committee reports, Erlassentwürfe; 28,100+ article links |
@@ -365,7 +365,7 @@ See the governance policy for source withdrawals, re-anonymization, and verified
   url={https://huggingface.co/datasets/voilaj/swiss-caselaw},
   note={1,050,000+ Swiss federal, cantonal, and regulatory decision records (~909,000 unique) with full text,
         structured metadata, 9.65M resolved citation edges, 12.4M statute links,
-        5,525 federal laws, 16,400 cantonal laws,
+        5,546 federal laws, 16,400 cantonal laws,
         and legislative history (28,100+ verbatim Bundesblatt documents,
         2,694 Vernehmlassungen with 10,296 documents).
         Searchable via 44 MCP tools (42 remote in public mode + 2 local-only) from Claude, ChatGPT, Cursor, Gemini, Grok, or any MCP/function-calling client. Updated daily.}

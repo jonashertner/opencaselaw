@@ -18,7 +18,7 @@ OpenCaseLaw gives lawyers, judges, legal scholars, and students instant access t
 - **Core features are free**: search across 1,050,000+ decisions, statute lookup, citation insertion. No account, no card, no trial expiry.
 - **Optional Pro subscription — CHF 5/month**, billed via **Stripe**. Cancelable at any time from your Stripe billing portal. Adds AI reference verification, argument search, and document scanning. The first 100 verifications per day are included; no overage charges. No other in-app purchases or hidden fees.
 
-**1,050,000+ court decisions. 5,525 federal laws. 16,400 cantonal laws. One search.**
+**1,050,000+ court decisions. 5,546 federal laws. 16,400 cantonal laws. One search.**
 
 Search the full text of decisions from the Federal Supreme Court (BGer/TF), Federal Administrative Court (BVGer/TAF), Federal Criminal Court (BStGer/TPF), Federal Patent Court (BPatGer/TFB), FINMA, WEKO/COMCO, and all 26 cantonal courts. The database is updated daily (BGer decisions within 15 minutes of publication) and covers decisions from 1875 to today.
 
@@ -33,7 +33,7 @@ No more manual formatting. No more typos in docket numbers.
 
 **Look up federal and cantonal statutes inline**
 
-Search for "Art. 41 OR" or "Art. 8 BV" — the full article text appears directly in the panel. Covers 5,525 Swiss federal laws (133,359 articles in DE/FR/IT) and 16,400 cantonal laws across all 26 cantons. The current consolidated text is shown alongside the Federal Council Botschaft reference (legislative intent).
+Search for "Art. 41 OR" or "Art. 8 BV" — the full article text appears directly in the panel. Covers 5,546 Swiss federal laws (~134,400 articles in each of DE/FR/IT) and 16,400 cantonal laws across all 26 cantons. The current consolidated text is shown alongside the Federal Council Botschaft reference (legislative intent).
 
 **Find related decisions**
 

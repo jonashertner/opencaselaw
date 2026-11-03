@@ -73,8 +73,8 @@ headline values above date from the 2026-07-24 sweep and were not re-swept here.
 | Decision–statute edges (paper snapshot) | 11,261,717 | `corpus_graph_stats.json::rg_statute_edges` | paper |
 | **Decision–statute edges (live)** | **~12.4M** | `reference_graph.db::decision_statutes` | README, dataset_card, dashboards |
 | Distinct provisions | 283,119 | `rg_distinct_statutes` | all |
-| Federal SR laws | 5,525 | live (Fedlex; grows) | all |
-| Federal articles | 400,405 (across DE/FR/IT) | constant | all |
+| Federal SR laws | 5,546 | live (Fedlex; grows) | all |
+| Federal articles | 403,181 (DE 134,188 / FR 134,826 / IT 134,167) | live (Fedlex; grows) | all |
 | Cantonal laws | 16,400 | `cantonal_laws.db` | all |
 | Cantonal articles | 381,725 | same | all |
 | Direct portal coverage | **23 cantons** (LexWork 19 + SIL 2 + ZH 1 + TI 1) | `cantonal_laws.db.laws.text_source` | paper §3, README, methodology |
@@ -203,4 +203,6 @@ Source: `analytics.db::weekly_reach` (after 2026-05-18 cohort-derivation upgrade
 
 **Materialien re-verified 2026-11-02** after the XML re-parse, against production materialien.db: Bundesblatt 28,104 rows (16,842 works, 14,644 Botschaften), 2,880,484 paragraphs, 28,180 article links / 785 acts. Most of the rise in rows and paragraphs since 10-21 is the historical backfill, which still runs nightly; the re-parse added 62,024 paragraphs and 1,154 links. Consumers synced the same day: README, dataset_card, llms.txt, mcp_server.py instructions + tool descriptions.
 
-**Cantonal laws re-verified 2026-11-02** against production cantonal_laws.db after the monthly LexFind harvest: 16,442 laws (15,556 active, 886 repealed), 381,725 articles; lexwork 19 cantons, sil 2, ti_rl 1, zhlex_pdf 1 (ZH), lexfind_pdf JU, SZ, VD and 809 ZH acts. index.html's 515,000+ articles = ~133,359 federal per language + 381,725 cantonal. Consumers synced: README, dataset_card, index.html, courts/local, court/angebot, Word add-in listing, mcp_server.py.
+**Cantonal laws re-verified 2026-11-02** against production cantonal_laws.db after the monthly LexFind harvest: 16,442 laws (15,556 active, 886 repealed), 381,725 articles; lexwork 19 cantons, sil 2, ti_rl 1, zhlex_pdf 1 (ZH), lexfind_pdf JU, SZ, VD and 809 ZH acts. index.html's 515,000+ articles = ~134,400 federal per language + 381,725 cantonal. Consumers synced: README, dataset_card, index.html, courts/local, court/angebot, Word add-in listing, mcp_server.py.
+
+**Federal laws and scholarship re-verified 2026-11-03** against production statutes.db and legal_scholarship.db: 5,546 federal laws (4,859 with article text), 403,181 articles (DE 134,188 / FR 134,826 / IT 134,167); 51,892 scholarship records from 27 sources (the scholarship page counts the keys of stats.json's scholarship_by_source), 8,619 with full text. Consumers synced: README, dataset_card, index.html, scholarship/ and search/ pages (all languages), mcp_server.py, Word add-in listing, Connectors Directory sheet. stats.json still carried 15,618 cantonal laws / 362,465 articles on 2026-11-03, behind cantonal_laws.db.

@@ -14939,7 +14939,7 @@ server = Server(
         "translations, HUDOC.CH) plus every ECtHR Chamber and Grand Chamber "
         "judgment of importance 1-3 against any of the 46 respondent states, "
         "in French or English, "
-        "5,525 federal laws (Fedlex SPARQL), 16,400 cantonal laws (direct "
+        "5,546 federal laws (Fedlex SPARQL), 16,400 cantonal laws (direct "
         "portal scraping for 23 cantons + LexFind for JU, SZ, VD and ZH's gaps), "
         "1,100+ scholarly commentaries, verbatim federal Materialien — "
         "28,100+ Bundesblatt documents (Federal Council Botschaften, Berichte "
@@ -14978,7 +14978,7 @@ server = Server(
         "Bulletin 1982–1999 and the Amtliche Sammlung, which are not rulings: their dates are "
         "unreliable, all are tagged language=de though many are French or Italian, and they cite "
         "as 'Bundesverwaltung <docket>', "
-        "44,000+ open-access scholarship records from 24 Swiss legal sources "
+        "51,000+ open-access scholarship records from 27 Swiss legal sources "
         "(thousands with full-text — see find_scholarship_citing_decision and "
         "find_scholarship_citing_statute for the bidirectional bridge), "
         "structured federal decisions (Sachverhalt/Erwägungen/Dispositiv), "
@@ -34968,7 +34968,7 @@ setInterval(load, 30000);
         description=(
             "Swiss court decisions, statutes, commentaries, scholarship, and citation graph. "
             "1,050,000+ published decisions from Swiss federal, cantonal, and regulatory bodies, "
-            "5,525 federal laws, 16,400 cantonal acts, 1,100+ commentaries, 44,000+ OA scholarship records."
+            "5,546 federal laws, 16,400 cantonal acts, 1,100+ commentaries, 51,000+ OA scholarship records."
         ),
         version="1.0.0",
         docs_url="/docs",
