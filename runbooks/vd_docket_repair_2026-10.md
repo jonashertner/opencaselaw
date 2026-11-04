@@ -1,9 +1,10 @@
 # Runbook: Vaud dockets that are ruling numbers or uuids
 
 **Status: scraper fix, build line and chamber form approved by Jonas 2026-10-30.
-Not deployed. The repair below has not run and its script is not written; applying
-it to the production shard needs Jonas to name that step.** Counts are from the
-public HF data of 2026-10-29, read-only.
+Not deployed. `scripts/vd_docket_repair.py` written and rehearsed 2026-11-04 on a
+copy of the live shard (below); applying it to the production shard needs Jonas to
+name that step.** Counts in "Size" are from the public HF data of 2026-10-29,
+read-only.
 
 ## Root cause
 
@@ -92,12 +93,35 @@ unaffected: ids do not change).
 
 1. Land the code. Confirm on the VPS that `vd_gerichte` is in
    `DECISION_NUMBER_COURTS` **before** step 3.
-2. Write `scripts/vd_docket_repair.py` on the model of `vd_uuid_sidecar.py --dedupe`:
-   dry run by default, `--apply` hard-links `.bak-<date>` and swaps atomically.
-   Select lines whose docket matches `RULING_NO_RE` or equals the pdf uuid, resolve
-   through `_resolve_docket` with the row's `chamber`. Abort unless, for every
-   line: same `decision_id`, same text, same `scraped_at`, same canonical key
-   before and after; and the line count is unchanged.
+2. `scripts/vd_docket_repair.py` (on the model of `vd_uuid_sidecar.py --dedupe`):
+   dry run by default, `--apply` hard-links `<shard>.bak-<date>`, writes
+   `<shard>.tmp` (neither matches the build's `*.jsonl` glob) and swaps atomically.
+   Selects lines whose docket matches `RULING_NO_RE` or equals the pdf uuid and
+   resolves them through `_resolve_docket` with the row's `chamber`. Refuses to
+   run unless `vd_gerichte` is in `DECISION_NUMBER_COURTS`, and refuses to write
+   unless every line keeps `decision_id`, `full_text`, `scraped_at`, `decision_date`
+   and its dedup key, and the line count is unchanged.
+
+   Rehearsed 2026-11-04 on a copy of the live shard (67,529 lines, 01:50 UTC),
+   branch code shipped to a quarantine dir:
+
+   | Outcome | Rows |
+   |---|---:|
+   | `header` (case number from the PDF) | 9,556 |
+   | `chamber_year_number` (`CREP 2021/344`) | 3,550 |
+   | `stays_uuid` | 11 |
+   | **rows_changed** | **13,117** |
+   | `real_docket` (untouched) | 54,412 |
+
+   Apply on the copy: line count 67,529 before and after, no `.tmp` left, second
+   run 0 changed; `02949903-…` → `DA21.000826` / `344`, `ffa44e63-…` →
+   `TF23.022423` / uuid. Derived `branch` and `proceeding_type` identical for all
+   13,117 rows.
+
+   ```bash
+   ssh -i ~/.ssh/caselaw root@46.225.212.40 'cd /opt/caselaw/repo; python3 -c "import build_fts5; assert \"vd_gerichte\" in build_fts5.DECISION_NUMBER_COURTS; print(\"build line ok\")"; D=/mnt/HC_Volume_104655575/output/decisions; python3 scripts/vd_docket_repair.py --shard $D/vd_gerichte.jsonl --examples 5'
+   ssh -i ~/.ssh/caselaw root@46.225.212.40 'cd /opt/caselaw/repo; D=/mnt/HC_Volume_104655575/output/decisions; wc -l < $D/vd_gerichte.jsonl; systemd-run --unit=vd-docket-repair --collect --wait --pipe python3 scripts/vd_docket_repair.py --shard $D/vd_gerichte.jsonl --apply; wc -l < $D/vd_gerichte.jsonl; ls $D/*.tmp 2>/dev/null'
+   ```
 3. Window: both publish units inactive, no scrape appending. After the 01:00
    scrape's `Done.` and before 03:30, or ~11:00 UTC to the incremental start.
    Dry run, compare with the table above, then apply.
