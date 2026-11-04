@@ -11929,6 +11929,38 @@ def _bound_abstracts(result: dict) -> None:
         result["abstract_truncated"] = cut
 
 
+_DATE_ESTIMATE_NOTE = "estimated — placeholder, not the real Urteilsdatum"
+
+
+def _is_estimated_date(decision_date, provenance) -> bool:
+    """A missing or YYYY-01-01 date is a placeholder unless the canonical
+    sidecar verified it from the decision text."""
+    dd = decision_date or ""
+    return bool((not dd or dd.endswith("-01-01")) and provenance != "extracted_from_text")
+
+
+def _date_estimate_fields(shown_date, record: dict | None) -> dict:
+    """date_is_estimated / date_provenance (+ a note) for a tool that shows
+    `shown_date` next to `record`, a get_decision_by_id result.
+
+    The record's provenance describes the record's own decision_date; when a
+    tool shows another date (get_regeste's structure row), the provenance
+    does not carry over and only the date's shape decides.
+    """
+    rec = record or {}
+    prov = rec.get("date_provenance") if (shown_date or "") == (rec.get("decision_date") or "") else None
+    estimated = _is_estimated_date(shown_date, prov)
+    out: dict = {"date_is_estimated": estimated}
+    if prov:
+        out["date_provenance"] = prov
+    if estimated:
+        out["date_estimate_note"] = (
+            f"⚠ decision_date {shown_date or '(none)'} is {_DATE_ESTIMATE_NOTE}. "
+            "Do not present it as the date of the ruling."
+        )
+    return out
+
+
 def get_decision_by_id(decision_id: str) -> dict | None:
     """Fetch a single decision with full text.
 
@@ -12145,10 +12177,7 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     # the same foreign text.
     result = source_defects.apply(result)
     _dd = result.get("decision_date") or ""
-    _prov = result.get("date_provenance")
-    result["date_is_estimated"] = bool(
-        (not _dd or _dd.endswith("-01-01")) and _prov != "extracted_from_text"
-    )
+    result["date_is_estimated"] = _is_estimated_date(_dd, result.get("date_provenance"))
     _future = _future_date_warning(_dd)
     if _future:
         result["date_is_implausible"] = True
@@ -19267,6 +19296,7 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
             "decision_id": decision.get("decision_id"),
             "court": decision.get("court"),
             "decision_date": decision.get("decision_date"),
+            **_date_estimate_fields(decision.get("decision_date"), decision),
             "language": decision.get("language"),
             "regeste": _auto_link_citations(regeste),
             **({"regeste_source": _regeste_source} if _regeste_source else {}),
@@ -19318,6 +19348,7 @@ def _handle_get_regeste(*, decision_id: str) -> dict:
         "decision_id": canonical_id,
         "court": row["court"],
         "decision_date": row["decision_date"],
+        **_date_estimate_fields(row["decision_date"], main_decision),
         "language": row["language"],
         "regeste": _auto_link_citations(_regeste),
         **({"regeste_source": _regeste_source} if _regeste_source else {}),
@@ -19712,6 +19743,7 @@ def _handle_cite(
         "court": decision.get("court"),
         "language": decision.get("language"),
         "decision_date": decision.get("decision_date"),
+        **_date_estimate_fields(decision.get("decision_date"), decision),
         # Primary (the language the caller asked for) + all three variants so
         # the LLM can output the appropriate one depending on the user's
         # language without another round-trip.
@@ -33897,7 +33929,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 f"# {h1}\n"
                 f"**Court:** {result['court']} | "
                 f"**Date:** {result['decision_date']}"
-                + (" ⚠ (estimated — placeholder, not the real Urteilsdatum)"
+                + (f" ⚠ ({_DATE_ESTIMATE_NOTE})"
                    if result.get("date_is_estimated") else "")
                 + (f" | **Published:** {result['publication_date']}"
                    if result.get("publication_date") else "")
@@ -36032,6 +36064,9 @@ setInterval(load, 30000);
                 "decision_id":  {"type": "string"},
                 "regeste":      {"type": "string"},
                 "language":     {"type": "string"},
+                "decision_date": {"type": "string", "nullable": True},
+                "date_is_estimated": {"type": "boolean"},
+                "date_provenance": {"type": "string", "nullable": True},
             },
         },
         # /structure wire fields (verified live): decision_id, regeste,
@@ -36120,6 +36155,8 @@ setInterval(load, 30000);
                 "decision_id":         {"type": "string", "nullable": True},
                 "court":               {"type": "string", "nullable": True},
                 "decision_date":       {"type": "string", "nullable": True},
+                "date_is_estimated":   {"type": "boolean", "nullable": True},
+                "date_provenance":     {"type": "string", "nullable": True},
                 "language":            {"type": "string", "nullable": True},
                 "citation_string":     {"type": "string", "nullable": True},
                 "citation_string_de":  {"type": "string", "nullable": True},

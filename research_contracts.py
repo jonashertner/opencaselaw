@@ -177,6 +177,8 @@ class CiteResponse(CitationFields):
     resolved_id: str | None = None
     citation_string: str | None = None
     close_matches: list[DecisionRecord] | None = None
+    date_is_estimated: bool | None = Field(default=None, description="True when decision_date is a placeholder (missing, or a YYYY-01-01 volume date not verified from the text), not the real date of the ruling.")
+    date_provenance: str | None = Field(default=None, description="Where decision_date came from when known, e.g. 'volume_synthetic' or 'extracted_from_text'.")
     joined_dockets: list[str] | None = Field(default=None, description="Secondary dockets of the resolved consolidated proceeding; absent when there are none.")
     canonical_decision_id: str | None = Field(default=None, description="Canonical decision_id of the resolved record when the representation manifest is loaded; decision_id is never changed.")
     is_canonical: bool | None = Field(default=None, description="Whether the resolved record is the canonical representation; absent when the manifest is not loaded.")
