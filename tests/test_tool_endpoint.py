@@ -27,6 +27,22 @@ def test_payload_is_parked_and_read_back(monkeypatch):
     assert out["_is_error"] is True and out["error"] == "No data"
 
 
+def test_research_pair_answers_with_its_payload(monkeypatch):
+    # cite, get_law and the other research tools return (content, payload);
+    # the endpoint answered {"text": ""} for all of them until 2026-11-04.
+    async def pair(name, arguments):
+        return m._research_tool_result("BGE 140 III 86", {"citation_string_de": "BGE 140 III 86", "decision_id": "bge_140 III 86"})
+    monkeypatch.setattr(m, "_handle_call_tool_inner", pair)
+    out = asyncio.run(m._call_tool_json("cite", {"reference": "BGE 140 III 86"}))
+    assert out == {"citation_string_de": "BGE 140 III 86", "decision_id": "bge_140 III 86", "_tool": "cite"}
+
+    async def pair_without_payload(name, arguments):
+        return ([TextContent(type="text", text='{"error": "not found"}')], None)
+    monkeypatch.setattr(m, "_handle_call_tool_inner", pair_without_payload)
+    out = asyncio.run(m._call_tool_json("get_law", {}))
+    assert out["error"] == "not found" and out["_is_error"] is True
+
+
 def test_every_tool_lists_an_input_schema():
     names = {t.name for t in m._list_tools()}
     assert "find_leading_cases" in names and m._tool_input_schema("find_leading_cases")["type"] == "object"

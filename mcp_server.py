@@ -33137,6 +33137,13 @@ async def _call_tool_json(name: str, arguments: dict) -> dict:
         payload = _ctx_tool_payload.get()
     finally:
         _ctx_tool_payload.reset(token)
+    # The research tools (cite, get_law, ...) answer with a (content, payload)
+    # pair, as _research_tool_result builds it. Iterating the pair as content
+    # gave {"text": ""} for every one of them on this endpoint.
+    if isinstance(content, tuple) and len(content) == 2:
+        content, pair_payload = content
+        if payload is None and isinstance(pair_payload, (dict, list)):
+            payload = pair_payload
     text = "\n".join(getattr(c, "text", "") for c in content if getattr(c, "type", "") == "text")
     if isinstance(payload, dict):
         result = dict(payload)
