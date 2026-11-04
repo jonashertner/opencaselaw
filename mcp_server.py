@@ -578,6 +578,8 @@ VECTOR_SEARCH_ENABLED = os.environ.get("SWISS_CASELAW_VECTOR_SEARCH", "auto").lo
 VECTOR_WEIGHT = float(os.environ.get("SWISS_CASELAW_VECTOR_WEIGHT", "1.0"))
 VECTOR_K = int(os.environ.get("SWISS_CASELAW_VECTOR_K", "50"))
 VECTOR_SIGNAL_WEIGHT = float(os.environ.get("SWISS_CASELAW_VECTOR_SIGNAL_WEIGHT", "3.0"))
+# The model that built vectors.db; queries must be encoded with the same one.
+VECTOR_MODEL_ID = "BAAI/bge-m3"
 
 # ── Pinpoint semantic-rescue (paragraph-level embeddings) ──────
 # Per-paragraph embedding DB built by search_stack/build_paragraph_embeddings.py.
@@ -8258,7 +8260,7 @@ def _get_vector_model():
         return None
     if not VECTOR_DB_PATH.exists():
         return None
-    model_id = "BAAI/bge-m3"
+    model_id = VECTOR_MODEL_ID
     # Prefer FlagEmbedding — same library used to build the vectors DB
     try:
         from FlagEmbedding import BGEM3FlagModel  # type: ignore[import-untyped]
@@ -15072,10 +15074,102 @@ def update_from_huggingface() -> str:
         return f"Update failed: {e}"
 
 
+# ── Server version ────────────────────────────────────────────
+# serverInfo.version and /health report the commit the worker was started
+# from, so a client can tell which build answered. Resolved once at import:
+# a worker keeps serving the code it loaded until it is restarted, so the
+# value must not follow a later `git merge` in the checkout.
+
+_SERVER_VERSION_UNKNOWN = "unknown"
+_SHORT_SHA_LEN = 8
+_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _git_dir(repo_dir: Path) -> Path | None:
+    dot_git = repo_dir / ".git"
+    if dot_git.is_dir():
+        return dot_git
+    if dot_git.is_file():  # linked worktree: "gitdir: <path>"
+        text = dot_git.read_text(encoding="utf-8").strip()
+        if text.startswith("gitdir:"):
+            gd = Path(text[len("gitdir:"):].strip())
+            return gd if gd.is_absolute() else (repo_dir / gd).resolve()
+    return None
+
+
+def _read_git_head_sha(repo_dir: Path) -> str | None:
+    """The HEAD commit read from .git files, without the git binary.
+
+    Covers a detached HEAD, a loose ref, packed-refs and linked worktrees
+    (whose branch refs live in the common dir). None when anything is off.
+    """
+    try:
+        gd = _git_dir(repo_dir)
+        if gd is None:
+            return None
+        head = (gd / "HEAD").read_text(encoding="utf-8").strip()
+        if _SHA_RE.match(head):
+            return head
+        if not head.startswith("ref:"):
+            return None
+        ref = head[len("ref:"):].strip()
+        dirs = [gd]
+        common = gd / "commondir"
+        if common.is_file():
+            cd = Path(common.read_text(encoding="utf-8").strip())
+            dirs.append(cd if cd.is_absolute() else (gd / cd).resolve())
+        for d in dirs:
+            loose = d / ref
+            if loose.is_file():
+                sha = loose.read_text(encoding="utf-8").strip()
+                return sha if _SHA_RE.match(sha) else None
+        for d in dirs:
+            packed = d / "packed-refs"
+            if packed.is_file():
+                for line in packed.read_text(encoding="utf-8").splitlines():
+                    parts = line.split()
+                    if len(parts) == 2 and parts[1] == ref and _SHA_RE.match(parts[0]):
+                        return parts[0]
+    except Exception:
+        return None
+    return None
+
+
+def _resolve_server_version(repo_dir: Path | None = None) -> str:
+    """Short commit SHA of the checkout this module was loaded from.
+
+    OCL_SERVER_VERSION wins when set (a deploy that is not a git checkout).
+    Then `git rev-parse`, then the .git files read directly (the worker user
+    may not own the checkout, which git refuses as "dubious ownership").
+    Never raises: startup must not fail over a version string.
+    """
+    override = os.environ.get("OCL_SERVER_VERSION", "").strip()
+    if override:
+        return override
+    repo_dir = repo_dir or Path(__file__).resolve().parent
+    try:
+        import subprocess
+        out = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(repo_dir), capture_output=True, text=True, timeout=3,
+        )
+        sha = out.stdout.strip()
+        if out.returncode == 0 and _SHA_RE.match(sha):
+            return sha[:_SHORT_SHA_LEN]
+    except Exception:
+        pass
+    sha = _read_git_head_sha(repo_dir)
+    return sha[:_SHORT_SHA_LEN] if sha else _SERVER_VERSION_UNKNOWN
+
+
+SERVER_VERSION = _resolve_server_version()
+
+
 # ── MCP Server ────────────────────────────────────────────────
 
 server = Server(
     "swiss-caselaw",
+    version=SERVER_VERSION,
     instructions=(
         "Swiss legal research platform: 1,050,000+ published decisions from "
         "federal + cantonal courts, ~9,600 European Court of Human Rights "
@@ -32471,6 +32565,100 @@ async def handle_list_tools() -> list[Tool]:
     return _list_tools()
 
 
+# ── Build identity (/health) ──────────────────────────────────
+
+def _tools_hash(tools: list[Tool]) -> str:
+    """sha256 of the tool list as tools/list serialises it (canonical JSON).
+
+    Order is kept (it is part of what a client sees); keys are sorted so
+    the hash does not depend on pydantic's field order.
+    """
+    payload = [t.model_dump(mode="json", by_alias=True, exclude_none=True) for t in tools]
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+_TOOLS_HASH_CACHE: tuple[str, int] | None = None
+
+
+def _cached_tools_hash() -> tuple[str, int]:
+    """(tools_hash, tool_count) for this process, computed on first use."""
+    global _TOOLS_HASH_CACHE
+    if _TOOLS_HASH_CACHE is None:
+        tools = _list_tools()
+        _TOOLS_HASH_CACHE = (_tools_hash(tools), len(tools))
+    return _TOOLS_HASH_CACHE
+
+
+def _data_snapshot_utc(db_generation: int) -> str | None:
+    """db_generation is the epoch second the served decisions.db was last
+    written (build_fts5 / quick_publish, docs/db_contract.md)."""
+    if not db_generation or db_generation <= 0:
+        return None
+    try:
+        return datetime.fromtimestamp(db_generation, tz=timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _build_identity(db_generation: int) -> dict:
+    """What answered: code, data snapshot, models, tool surface.
+
+    Reads module constants, one stat and a cached hash; no DB access.
+    """
+    tools_hash, tool_count = _cached_tools_hash()
+    llm_on = bool(ANTHROPIC_API_KEY)
+    try:
+        vector_db = VECTOR_DB_PATH.exists()
+    except OSError:
+        vector_db = False
+    return {
+        "commit": SERVER_VERSION,
+        "data_snapshot": _data_snapshot_utc(db_generation),
+        "models": {
+            "query_llm": HAIKU_MODEL,
+            "cross_encoder": CROSS_ENCODER_MODEL,
+            "embedding": VECTOR_MODEL_ID,
+        },
+        "search_steps": {
+            "llm_expansion": LLM_EXPANSION_ENABLED and llm_on,
+            "llm_rerank": LLM_RERANK_ENABLED and llm_on,
+            "cross_encoder": CROSS_ENCODER_ENABLED,
+            "vector_search": VECTOR_SEARCH_ENABLED not in {"0", "false", "no"} and vector_db,
+        },
+        "tools_hash": tools_hash,
+        "tool_count": tool_count,
+    }
+
+
+def _health_payload() -> tuple[dict, int]:
+    """Body and status code for GET /health."""
+    try:
+        conn = get_db()
+        try:
+            row = conn.execute("SELECT COUNT(*) FROM decisions").fetchone()
+        finally:
+            conn.close()
+        # db_generation reflects the value get_db() last observed via
+        # PRAGMA user_version — see docs/db_contract.md. Lets operators
+        # detect stuck workers without a separate diagnostic endpoint.
+        gen = get_db_generation()
+        body = {"status": "ok", "decisions": row[0], "db_generation": gen}
+        status = 200
+    except Exception as e:
+        gen = get_db_generation()
+        body = {"status": "error", "detail": str(e)}
+        status = 503
+    try:
+        body.update(_build_identity(gen))
+    except Exception as e:  # identity is informative; never fail /health over it
+        logger.warning("build identity failed: %s", e)
+        body["commit"] = SERVER_VERSION
+    return body, status
+
+
 _KNOWN_FREE_CLIENTS = re.compile(
     r"claude-user|claude-code|claude-vscode|anthropic|undici|chatgpt|openai|gemini",
     re.IGNORECASE,
@@ -34698,22 +34886,8 @@ def main_remote(host: str, port: int):
     # ── Health / readiness endpoint (exempt from auth) ────────
     async def handle_health(request):
         _record_tool_call("health", 0)
-        try:
-            conn = get_db()
-            row = conn.execute("SELECT COUNT(*) FROM decisions").fetchone()
-            conn.close()
-            # db_generation reflects the value get_db() last observed via
-            # PRAGMA user_version — see docs/db_contract.md. Lets operators
-            # detect stuck workers without a separate diagnostic endpoint.
-            return JSONResponse({
-                "status": "ok",
-                "decisions": row[0],
-                "db_generation": get_db_generation(),
-            })
-        except Exception as e:
-            return JSONResponse(
-                {"status": "error", "detail": str(e)}, status_code=503,
-            )
+        body, status = _health_payload()
+        return JSONResponse(body, status_code=status)
 
     _DEV_DASHBOARD_HTML = """<!DOCTYPE html>
 <html lang="en">

@@ -66,6 +66,8 @@ The check is one `SELECT`-style PRAGMA per request — sub-millisecond.
 JSON response alongside `decisions` count. Operators and external
 monitors can poll `/health` to detect stuck workers (generation
 not advancing despite known swap activity).
+`data_snapshot` in the same response is `db_generation` rendered as a
+UTC timestamp (the time the served file was last written).
 
 ## What this does NOT do
 
