@@ -67,8 +67,16 @@ _MONTHS_DE = {
     "September": 9, "Oktober": 10, "November": 11, "Dezember": 12,
 }
 _MONTH_NAMES = "|".join(_MONTHS_DE.keys())
+# The ruling's own opening, "Urteil vom 4. Juli 2022" (the portal's text
+# often loses the space: "Urteilvom4. Juli 2022"). A bare "vom <Datum>" is
+# NOT enough: the first one in a social-insurance or administrative ruling is
+# usually the decision under appeal ("Einspracheentscheid vom 21. Dezember
+# 2017"), which is how 4,174 rows of the 2026-02 crawl came to carry the lower
+# instance's date (user test 2026-11-04). The lookbehinds keep compounds such
+# as "Einspracheentscheid" and narrative "Mit Verfügung vom …" from matching.
 RE_LONG_DATE = re.compile(
-    rf"vom\s+(\d{{1,2}})\.?\s*({_MONTH_NAMES})\s+(\d{{4}})"
+    rf"(?<![A-Za-zÄÖÜäöü])(?<!Mit )(?<!mit )(?:Urteil|Beschluss|Entscheid|Verfügung)\s*vom\s*"
+    rf"(\d{{1,2}})\.?\s*({_MONTH_NAMES})\s+(\d{{4}})"
 )
 
 
@@ -398,7 +406,9 @@ class SOGerichteScraper(BaseScraper):
             # Try extracting from document body
             ws = soup.find("div", class_="WordSection1")
             if ws:
-                body_text = ws.get_text()[:2000]
+                # Only the opening: the ruling names its own date before
+                # anything else; further down every "vom" is another decision's.
+                body_text = re.sub(r"\s+", " ", ws.get_text())[:400]
                 m = RE_LONG_DATE.search(body_text)
                 if m:
                     day = int(m.group(1))

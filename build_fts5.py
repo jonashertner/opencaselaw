@@ -823,7 +823,8 @@ for _group in _COURT_OVERLAP_GROUPS:
         _COURT_TO_GROUP[_code] = _frozen
 
 
-def _record_folded_id(conn: sqlite3.Connection, dropped_id: str, kept_id: str) -> None:
+def _record_folded_id(conn: sqlite3.Connection, dropped_id: str, kept_id: str,
+                      source: str = "cross_court_dedup") -> None:
     """Keep the id of a deleted twin resolving to the copy that was kept
     (decision_id_aliases, the table re-keyed rows use). A ruling held as both
     sg_gerichte_VZ.2004.35 and sg_publikationen_VZ.2004.35 is served once; a
@@ -832,8 +833,8 @@ def _record_folded_id(conn: sqlite3.Connection, dropped_id: str, kept_id: str) -
     try:
         conn.execute(
             "INSERT OR IGNORE INTO decision_id_aliases (previous_id, decision_id, source) "
-            "VALUES (?, ?, 'cross_court_dedup')",
-            (dropped_id, kept_id),
+            "VALUES (?, ?, ?)",
+            (dropped_id, kept_id, source),
         )
     except sqlite3.OperationalError as e:
         logger.debug("decision_id_aliases not recorded for %s: %s", dropped_id, e)
@@ -911,6 +912,12 @@ BUCKET_TWIN_MIN_OVERLAP = 0.9
 _TWIN_WINDOW = 60
 
 
+def _window_share(x: str, y: str) -> float:
+    """Share of x's overlapping 60-character windows found verbatim in y."""
+    wins = [x[i:i + _TWIN_WINDOW] for i in range(0, max(len(x) - _TWIN_WINDOW, 1), _TWIN_WINDOW // 2)]
+    return sum(1 for w in wins if w in y) / len(wins)
+
+
 def _same_ruling_text(a: str, b: str) -> bool:
     """Identical after normalisation, or near-identical both ways (two
     extractions of one PDF differ by hyphenation and page furniture)."""
@@ -918,12 +925,8 @@ def _same_ruling_text(a: str, b: str) -> bool:
         return False
     if a == b:
         return True
-
-    def share(x: str, y: str) -> float:
-        wins = [x[i:i + _TWIN_WINDOW] for i in range(0, max(len(x) - _TWIN_WINDOW, 1), _TWIN_WINDOW // 2)]
-        return sum(1 for w in wins if w in y) / len(wins)
-
-    return share(a, b) >= BUCKET_TWIN_MIN_OVERLAP and share(b, a) >= BUCKET_TWIN_MIN_OVERLAP
+    return (_window_share(a, b) >= BUCKET_TWIN_MIN_OVERLAP
+            and _window_share(b, a) >= BUCKET_TWIN_MIN_OVERLAP)
 
 
 def _generic_bucket_twin_dedup(conn: sqlite3.Connection) -> int:
@@ -965,6 +968,313 @@ def _generic_bucket_twin_dedup(conn: sqlite3.Connection) -> int:
     if deleted:
         logger.info(f"  Generic-bucket twins (same docket, same text, other date): removed {deleted}")
     return deleted
+
+
+# ── Federation twins (entscheidsuche copies with another date) ──────────
+#
+# The entscheidsuche shards hold a second copy of rulings the direct scrapers
+# hold, often under another date: the date of the decision under appeal
+# (BVGer: "Verfügung des SEM vom …"; NE: dates years before the docket) or,
+# for so_gerichte, the right date where the direct scraper took the wrong one.
+# insert_decision reads "same id, other date" as a second ruling under one
+# docket and keeps the copy as <id>_dYYYYMMDD, and Pass 2 deletes only exact
+# prefixes, which a re-rendered copy never is. Measured 2026-11-04 on the HF
+# mirror: 29,170 such rows (bvger 14,661, ti 7,207, so 4,207, ne 3,052),
+# each a ruling served twice under two dates.
+#
+# The copy's text opens with a header naming the court's own date for it:
+# "Solothurn Versicherungsgericht 25.07.2018 VSBES.2018.30". That header,
+# not the copy's date field, says which ruling the copy is.
+
+FEDERATION_SOURCE = "entscheidsuche"
+_DATE_SUFFIX_ID_RE = re.compile(r"^(?P<base>.+)_d(?P<date>\d{8})$")
+_FEDERATION_HEADER_RE = re.compile(r"(\d{2})\.(\d{2})\.(\d{4})\s+([^\n(]+)")
+# A copy whose text (header removed) is shorter than this carries no ruling
+# text to compare: a header-only stub.
+FEDERATION_STUB_MAX_CHARS = 600
+# Share of the shorter text's windows found in the longer one: a truncated
+# copy (the Ticino direct rows stop after ~1,000 characters) of the same text.
+FEDERATION_CONTAINED_MIN = 0.8
+_OPENING_MONTHS = {
+    m: i for i, names in enumerate([
+        ("januar", "janvier", "gennaio"), ("februar", "février", "fevrier", "febbraio"),
+        ("märz", "maerz", "mars", "marzo"), ("april", "avril", "aprile"),
+        ("mai", "maggio"), ("juni", "juin", "giugno"),
+        ("juli", "juillet", "luglio"), ("august", "août", "aout", "agosto"),
+        ("september", "septembre", "settembre"), ("oktober", "octobre", "ottobre"),
+        ("november", "novembre"), ("dezember", "décembre", "decembre", "dicembre"),
+    ], start=1) for m in names
+}
+# "Urteil vom 25. Mai 2020", "Beschlussvom 15. Oktober 2024" (lost space),
+# "arrêt du 9 mai 2023", "sentenza del 3 maggio 2017". A word boundary before
+# the type keeps "Einspracheentscheid vom …" (the decision under appeal) out.
+_OPENING_DATE_RE = re.compile(
+    r"(?<![A-Za-zÀ-ÿ])(?<!Mit )(?<!mit )(?<!Par )(?<!par )(?<!Con )(?<!con )(?:Urteil|Beschluss|Entscheid|Verfügung|Arrêt|Arret|Jugement|"
+    r"Décision|Decision|Ordonnance|Sentenza|Decisione|Decreto|Ordinanza)\s*"
+    r"(?:vom|du|del|dell['’]|dello)\s*(\d{1,2})\.?\s*(?:er|°)?\s*([A-Za-zÀ-ÿ]+)\s+(\d{4})",
+    re.IGNORECASE,
+)
+
+
+_ANY_LONG_DATE_RE = re.compile(r"(?<!\d)(\d{1,2})\.?\s*(?:er|°)?\s*([A-Za-zÀ-ÿ]+)\s*(\d{4})")
+_ANY_NUMERIC_DATE_RE = re.compile(r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)")
+
+
+def _own_date(text: str | None) -> str | None:
+    """The date a ruling gives itself: its "Urteil vom …" opening, else the
+    first date in its first 250 characters (the place-and-date line,
+    "Lugano, 19 febbraio 2000"). Further down, dates are other decisions'
+    ("Einspracheentscheid vom 21. Dezember 2017")."""
+    own = _opening_ruling_date(text)
+    if own:
+        return own
+    head = re.sub(r"\s+", " ", (text or "")[:750])[:250]
+    first = None
+    for rx, long_form in ((_ANY_LONG_DATE_RE, True), (_ANY_NUMERIC_DATE_RE, False)):
+        for m in rx.finditer(head):
+            if long_form:
+                month = _OPENING_MONTHS.get(m.group(2).lower())
+                iso = _iso_or_none(int(m.group(3)), month, int(m.group(1))) if month else None
+            else:
+                iso = _iso_or_none(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+            if iso and (first is None or m.start() < first[0]):
+                first = (m.start(), iso)
+            if iso:
+                break
+    return first[1] if first else None
+
+
+def _norm_docket_key(docket: str | None) -> str:
+    return re.sub(r"[^A-Z0-9]", "", (docket or "").upper())
+
+
+def _iso_or_none(y: int, m: int, d: int) -> str | None:
+    try:
+        return date(y, m, d).isoformat()
+    except ValueError:
+        return None
+
+
+def _federation_header_date(text: str | None, docket: str | None) -> str | None:
+    """ISO date the federation header gives for ``docket`` ("<court> DD.MM.YYYY
+    <docket>" in the first lines), else None. The docket must match exactly
+    after normalisation, so a header for another case never counts."""
+    want = _norm_docket_key(docket)
+    if not want:
+        return None
+    for line in (text or "").splitlines()[:4]:
+        for m in _FEDERATION_HEADER_RE.finditer(line):
+            if _norm_docket_key(m.group(4)) == want:
+                return _iso_or_none(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+    return None
+
+
+def _strip_federation_header(text: str | None) -> str:
+    """The text without the federation header lines (and blank lines) it opens with."""
+    lines = (text or "").splitlines()
+    i = 0
+    while i < len(lines) and i < 6 and (not lines[i].strip() or _FEDERATION_HEADER_RE.search(lines[i])):
+        i += 1
+    return "\n".join(lines[i:])
+
+
+def _opening_ruling_date(text: str | None) -> str | None:
+    """Date a ruling gives itself in its opening ("Urteil vom 25. Mai 2020"),
+    read from its first 400 characters; None when it names none."""
+    head = re.sub(r"\s+", " ", (text or "")[:1200])[:400]
+    for m in _OPENING_DATE_RE.finditer(head):
+        month = _OPENING_MONTHS.get(m.group(2).lower())
+        if month:
+            iso = _iso_or_none(int(m.group(3)), month, int(m.group(1)))
+            if iso:
+                return iso
+    return None
+
+
+def _federation_twin_verdict(twin_text: str | None, base_text: str | None,
+                             base_date: str | None, header_date: str | None) -> str | None:
+    """Why a federation copy and its base row are one ruling, or None when
+    they are two. In order: the header gives the base row's own date (same
+    court, docket and date); the texts match or one contains the other; the
+    copy is a header-only stub; the base text opens with the header's date
+    (the base row's date field is what is wrong)."""
+    if header_date and base_date and header_date == base_date:
+        return "same_date"
+    opening_matches = bool(header_date) and _opening_ruling_date(base_text) == header_date
+    a = _norm_for_dedup(_strip_federation_header(twin_text))
+    b = _norm_for_dedup(base_text)
+    if len(a) < FEDERATION_STUB_MAX_CHARS:
+        # No ruling text to compare. Without a header (an OCR'd PDF copy) it
+        # is the base row's ruling; with one, only a matching opening date
+        # says so — a stub of another ruling of the docket must stay.
+        if header_date is None:
+            return "stub"
+        return "opening_date" if opening_matches else None
+    if b and _same_ruling_text(a, b):
+        return "same_text"
+    short, longer = (a, b) if len(a) <= len(b) else (b, a)
+    if len(short) >= 200 and _window_share(short, longer) >= FEDERATION_CONTAINED_MIN:
+        return "contained_text"
+    if opening_matches:
+        return "opening_date"
+    return None
+
+
+def _fold_federation_date_twins(conn: sqlite3.Connection) -> dict:
+    """Fold each entscheidsuche ``<id>_dYYYYMMDD`` copy into its base row when
+    both are one ruling (see _federation_twin_verdict).
+
+    The base row keeps its id (the public URL). Its date becomes the federation
+    header's date when the ruling's own opening confirms that date and not the
+    base date (or the base row has none); its text becomes the copy's when the
+    copy's is substantially fuller (same threshold as the import's text
+    upgrade). The copy is deleted and its id kept as an alias of the base row,
+    so links, citations and dataset rows naming it still resolve. A copy that
+    is another ruling of the docket stays, dated from its header when its own
+    text confirms it. Returns counts by outcome."""
+    counts: dict[str, int] = defaultdict(int)
+    twins = conn.execute(
+        "SELECT decision_id, court, docket_number, decision_date, full_text, regeste "
+        "FROM decisions WHERE source = ? "
+        "AND decision_id GLOB '*_d[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'",
+        (FEDERATION_SOURCE,),
+    ).fetchall()
+    for tid, court, docket, tdate, ttext, tregeste in twins:
+        m = _DATE_SUFFIX_ID_RE.match(tid)
+        if not m:
+            continue
+        base = conn.execute(
+            "SELECT decision_id, docket_number, decision_date, full_text, regeste "
+            "FROM decisions WHERE decision_id = ? AND court = ?",
+            (m.group("base"), court),
+        ).fetchone()
+        if not base:
+            counts["no_base"] += 1
+            continue
+        bid, bdocket, bdate, btext, bregeste = base
+        # A short copy may have had its text moved to the regeste on import.
+        header = (_federation_header_date(ttext, bdocket or docket)
+                  or _federation_header_date(tregeste, bdocket or docket))
+        verdict = _federation_twin_verdict(ttext, btext, bdate, header)
+        twin_own = _own_date(_strip_federation_header(ttext))
+        if verdict is None:
+            # Another ruling of the docket: keep it, under the date its own
+            # header gives when its own text confirms it (the copy's date
+            # field is the unreliable part).
+            if header and header != tdate and header == twin_own:
+                conn.execute(
+                    "UPDATE decisions SET decision_date = ?, canonical_key = ? WHERE decision_id = ?",
+                    (header, make_canonical_key(court, docket, header), tid),
+                )
+                counts["kept_distinct_redated"] += 1
+            else:
+                counts["kept_distinct"] += 1
+            continue
+        sets, params = [], []
+        # The header can be wrong as well (ti 11.1999.150: header 2001-02-19,
+        # text "Lugano, 19 febbraio 2000" = the base date). Move the base date
+        # only to a header date the ruling's own date line confirms and the
+        # base date is not confirmed by; an undated base takes the header.
+        new_date = bdate
+        if header and header != bdate:
+            own = {_own_date(btext), twin_own} - {None}
+            if not bdate or (header in own and bdate not in own):
+                new_date = header
+            else:
+                counts["header_date_unconfirmed"] += 1
+        if new_date != bdate:
+            sets += ["decision_date = ?", "canonical_key = ?"]
+            params += [new_date, make_canonical_key(court, bdocket or docket, new_date)]
+            counts["redated"] += 1
+        tlen, blen = len(ttext or ""), len(btext or "")
+        if tlen > blen * 2 and tlen - blen > 1000:
+            final_regeste = bregeste or tregeste
+            sets += ["full_text = ?", "regeste = ?", "content_hash = ?"]
+            params += [ttext, final_regeste, _compute_row_content_hash_inline(final_regeste, ttext)]
+            counts["text_upgraded"] += 1
+        elif not bregeste and tregeste:
+            sets += ["regeste = ?", "content_hash = ?"]
+            params += [tregeste, _compute_row_content_hash_inline(tregeste, btext)]
+        if sets:
+            conn.execute(f"UPDATE decisions SET {', '.join(sets)} WHERE decision_id = ?",
+                         (*params, bid))
+        conn.execute("DELETE FROM decisions WHERE decision_id = ?", (tid,))
+        _record_folded_id(conn, tid, bid, "federation_twin")
+        counts["folded"] += 1
+        counts[f"folded_{verdict}"] += 1
+    if counts:
+        conn.commit()
+    return dict(counts)
+
+
+# ── Federal rulings filed under a cantonal court ─────────────────────────
+#
+# justice.ge.ch lists résumés of Federal Supreme Court rulings on Geneva cases
+# under the BGer docket; ge_gerichte stored them as Geneva rulings, so cite()
+# printed "Gericht GE 4A_645/2011". Measured 2026-11-04: 522 ge_gerichte rows
+# (514 with a bger row of the docket), plus 2 zh_gerichte and 3 ag rows.
+
+_FEDERAL_DOCKET_RE = re.compile(r"^\s*(\d{1,2}[A-Z])[\s_.](\d{1,5})/(\d{2,4})\s*$")
+_FEDERAL_COURTS = frozenset({"bger", "bge", "bvger", "bstger", "bpatger"})
+
+
+def _federal_docket_key(docket: str | None) -> str | None:
+    """'4A_645/2011', '4A 645/2011', '4C.95/2004', '4P.54/99' → '4A_645/2011'
+    style key; None for anything not shaped like a BGer docket."""
+    m = _FEDERAL_DOCKET_RE.match(docket or "")
+    if not m:
+        return None
+    year = m.group(3)
+    if len(year) == 2:
+        year = ("19" if int(year) > 50 else "20") + year
+    return f"{m.group(1).upper()}_{int(m.group(2))}/{year}"
+
+
+def _fold_cantonal_copies_of_federal_rulings(conn: sqlite3.Connection) -> dict:
+    """Delete a cantonal row filed under a BGer docket when the corpus holds
+    that BGer ruling, keeping its id as an alias of the bger row (the one of
+    the same date, else the nearest). A cantonal row whose BGer ruling the
+    corpus lacks stays as it is. Returns counts."""
+    counts: dict[str, int] = defaultdict(int)
+    marks = ",".join("?" * len(_FEDERAL_COURTS))
+    candidates = [
+        r for r in conn.execute(
+            f"SELECT decision_id, court, docket_number, decision_date FROM decisions "
+            f"WHERE court NOT IN ({marks}) AND docket_number GLOB '[0-9]*/[0-9]*'",
+            list(_FEDERAL_COURTS),
+        ).fetchall()
+        if not str(r[1]).startswith(("ecthr", "untb", "cjeu", "icj", "ch_"))
+        and _federal_docket_key(r[2])
+    ]
+    if not candidates:
+        return {}
+    bger: dict[str, list[tuple[str, str | None]]] = defaultdict(list)
+    for did, docket, ddate in conn.execute(
+            "SELECT decision_id, docket_number, decision_date FROM decisions "
+            "WHERE court = 'bger' AND docket_number GLOB '[0-9]*/[0-9]*'"):
+        key = _federal_docket_key(docket)
+        if key:
+            bger[key].append((did, ddate))
+
+    def _days(a: str | None, b: str | None) -> int:
+        try:
+            return abs((date.fromisoformat(a) - date.fromisoformat(b)).days)
+        except (TypeError, ValueError):
+            return 10 ** 6
+
+    for did, court, docket, ddate in candidates:
+        twins = bger.get(_federal_docket_key(docket))
+        if not twins:
+            counts["no_bger_row"] += 1
+            continue
+        kept = min(twins, key=lambda t: (t[1] != ddate, _days(t[1], ddate)))
+        conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+        _record_folded_id(conn, did, kept[0], "federal_ruling_in_cantonal_feed")
+        counts["folded"] += 1
+        counts[f"folded_{court}"] += 1
+    if counts.get("folded"):
+        conn.commit()
+    return dict(counts)
 
 
 def _normalize_dockets(conn: sqlite3.Connection) -> int:
@@ -2495,10 +2805,35 @@ def build_database(
             if deduped:
                 logger.info(f"  Removed {deduped} duplicate decisions")
 
+        with _phase_timer("federation twin fold"):
+            fed = _fold_federation_date_twins(conn)
+            if fed:
+                logger.info(
+                    "  Federation twins: folded %d into their base rows (%s); "
+                    "redated %d base rows, upgraded text on %d; kept %d as other "
+                    "rulings of the docket (%d of them redated from their header)",
+                    fed.get("folded", 0),
+                    ", ".join(f"{k[7:]} {v}" for k, v in sorted(fed.items())
+                              if k.startswith("folded_")),
+                    fed.get("redated", 0), fed.get("text_upgraded", 0),
+                    fed.get("kept_distinct", 0) + fed.get("kept_distinct_redated", 0),
+                    fed.get("kept_distinct_redated", 0))
+
         with _phase_timer("cross-court dedup"):
             cross_deduped = _cross_court_dedup(conn)
             if cross_deduped:
                 logger.info(f"  Removed {cross_deduped} cross-court duplicates")
+
+        with _phase_timer("federal rulings in cantonal feeds"):
+            fedc = _fold_cantonal_copies_of_federal_rulings(conn)
+            if fedc.get("folded"):
+                logger.info(
+                    "  Folded %d cantonal copies of BGer rulings into the bger rows (%s); "
+                    "%d have no bger row and stay",
+                    fedc["folded"],
+                    ", ".join(f"{k[7:]} {v}" for k, v in sorted(fedc.items())
+                              if k.startswith("folded_")),
+                    fedc.get("no_bger_row", 0))
 
         with _phase_timer("EGMR dedup"):
             egmr_deduped = _dedup_egmr_in_bge(conn)
