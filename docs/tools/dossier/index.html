@@ -1119,11 +1119,16 @@ function casesCard(c, text) {
 //   - [boris_law/2026] **Title**
 //     *Author; Author*
 //     [Volltext](https://…)
-const REPOS = { boris_law: 'BORIS, Universität Bern', zora_law: 'ZORA, Universität Zürich', zora: 'ZORA, Universität Zürich', unige_law: 'Archive ouverte UNIGE', libra_unine: 'LIBRA, Université de Neuchâtel', alexandria_unisg: 'Alexandria, HSG', alexandria: 'Alexandria, HSG', zhaw: 'ZHAW digitalcollection', zhaw_law: 'ZHAW digitalcollection', eperiodica: 'e-periodica', e_periodica: 'e-periodica', serval_unil: 'Serval, UNIL', edoc_unibas: 'edoc, Universität Basel', rero_doc: 'RERO DOC' };
+const REPOS = { boris_law: 'BORIS, Universität Bern', zora_law: 'ZORA, Universität Zürich', zora: 'ZORA, Universität Zürich', unige_law: 'Archive ouverte UNIGE', libra_unine: 'LIBRA, Université de Neuchâtel', alexandria_unisg: 'Alexandria, HSG', alexandria: 'Alexandria, HSG', zhaw: 'ZHAW digitalcollection', zhaw_law: 'ZHAW digitalcollection', eperiodica: 'e-periodica', e_periodica: 'e-periodica', serval_unil: 'Serval, UNIL', edoc_unibas: 'edoc, Universität Basel', rero_doc: 'RERO DOC', onlinekommentar: 'Onlinekommentar' };
+// Authors arrive as "A; B" or, for some repositories, as a JSON array.
+function authorNames(s) {
+  if (s.startsWith('[')) { try { const a = JSON.parse(s); if (Array.isArray(a)) return a.filter((x) => typeof x === 'string').join(', '); } catch (e) { /* plain text */ } }
+  return s;
+}
 function scholarshipCard(c, text) {
   const items = [];
   const re = /^- \[([^\]\/]+)\/(\d{4})\]\s+\*\*([\s\S]+?)\*\*\s*\n\s*\*([^\n]*?)\*\s*\n\s*\[[^\]]+\]\((https:\/\/[^)\s]+)\)/gm;
-  for (const m of OCL.stripNote(text).matchAll(re)) items.push({ repo: m[1], year: m[2], title: m[3].replace(/\s+/g, ' ').trim(), authors: m[4].trim(), url: m[5] });
+  for (const m of OCL.stripNote(text).matchAll(re)) items.push({ repo: m[1], year: m[2], title: m[3].replace(/\s+/g, ' ').trim(), authors: authorNames(m[4].trim()), url: m[5] });
   if (!items.length) { markdownCard(c, text, t('scholarship_note')); return; }
   const list = el('ul', 'lit');
   for (const x of items) {
