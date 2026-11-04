@@ -1397,4 +1397,39 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://opencaselaw.ch/vorschlag/en/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://opencaselaw.ch/vorschlag/" />
   </url>
+  <url>
+    <loc>https://opencaselaw.ch/tools/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/tools/answer-check/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/tools/dossier/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/tools/practice/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/tools/radar/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/tools/chain/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://opencaselaw.ch/tools/minimum/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>

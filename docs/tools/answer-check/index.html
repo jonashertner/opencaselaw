@@ -1,0 +1,1378 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Antwortprüfung · OpenCaseLaw</title>
+<meta name="description" content="Prüft die Zitate in einem juristischen Text, etwa einer KI-Antwort: Gibt es den Entscheid, stimmt die Fundstelle, trägt er die Aussage?">
+<link rel="canonical" href="https://opencaselaw.ch/tools/answer-check/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpenCaseLaw">
+<meta property="og:title" content="Antwortprüfung · OpenCaseLaw">
+<meta property="og:description" content="Prüft die Zitate in einem juristischen Text, etwa einer KI-Antwort: Gibt es den Entscheid, stimmt die Fundstelle, trägt er die Aussage?">
+<meta property="og:url" content="https://opencaselaw.ch/tools/answer-check/">
+<meta property="og:image" content="https://opencaselaw.ch/tools/answer-check/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="color-scheme" content="light dark">
+<style>
+/* OpenCaseLaw artifacts: one family with citecheck (its palette and faces).
+   Layout: a slim masthead band, then a centred work area of one or two columns. */
+:root {
+  --frame: #ebe9e4;
+  --ground: #f6f5f2;
+  --paper: #ffffff;
+  --ink: #20252a;
+  --muted: #59636d;
+  --rule: #dddeda;
+  --rule-strong: #808892;
+  --action: #244d72;
+  --action-ink: #ffffff;
+  --good: #236746;
+  --warn: #8a5400;
+  --bad: #b0352b;
+  --wash-good: #e6f1ea;
+  --wash-warn: #f7efdd;
+  --wash-bad: #faece9;
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --frame: #171a1d; --ground: #1e2226; --paper: #272c31; --ink: #f0eee8; --muted: #b1b7bd;
+    --rule: #3a4147; --rule-strong: #73808d; --action: #9ec2e6; --action-ink: #17222d;
+    --good: #85c7a3; --warn: #e4b45f; --bad: #f28d83;
+    --wash-good: #22302a; --wash-warn: #332d22; --wash-bad: #382928;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --frame: #171a1d; --ground: #1e2226; --paper: #272c31; --ink: #f0eee8; --muted: #b1b7bd;
+  --rule: #3a4147; --rule-strong: #73808d; --action: #9ec2e6; --action-ink: #17222d;
+  --good: #85c7a3; --warn: #e4b45f; --bad: #f28d83;
+  --wash-good: #22302a; --wash-warn: #332d22; --wash-bad: #382928;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+p, h1, h2, h3, ol, ul, dl, dd, figure, blockquote { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+a { color: var(--action); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; border-radius: 3px; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* ── masthead ── */
+.site { border-bottom: 1px solid var(--rule); padding-block: 14px 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.site-in { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: baseline; }
+.brand { font: 600 19px/1.25 var(--serif); letter-spacing: 0.005em; min-width: 0; overflow-wrap: anywhere; }
+.brand small { display: inline-block; }
+.brand small { font: 500 12px/1 var(--sans); color: var(--muted); margin-left: 8px; letter-spacing: 0.04em; text-transform: uppercase; }
+.intro { grid-column: 1 / -1; color: var(--muted); max-width: 72ch; }
+.langs { display: flex; }
+.lang { border: 0; background: none; padding: 0 6px; min-height: 30px; min-width: 28px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.lang[aria-pressed="true"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
+
+/* ── work area ── */
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 18px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+.wrap.single { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--ground); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; min-width: 0; }
+.panel + .panel { margin-top: 0; }
+.stack { display: grid; gap: 12px; min-width: 0; }
+.h { font: 600 15px/1.3 var(--sans); }
+.eyebrow { font: 600 11px/1.3 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.serif { font-family: var(--serif); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.spread { justify-content: space-between; }
+
+/* ── controls ── */
+label.field { display: grid; gap: 4px; font-weight: 600; }
+textarea, input[type="text"], input[type="search"], input[type="number"], select {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--paper); color: var(--ink); font-weight: 400; }
+textarea { resize: vertical; font: 15px/1.55 var(--serif); }
+.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
+.check input { margin-top: 3px; }
+.primary { border: 0; border-radius: 4px; padding: 9px 16px; min-height: 38px; cursor: pointer; background: var(--action); color: var(--action-ink); font-weight: 600; }
+.primary:disabled { opacity: 0.45; cursor: default; }
+.quiet { border: 1px solid var(--rule-strong); border-radius: 4px; padding: 6px 11px; min-height: 32px; background: var(--paper); cursor: pointer; }
+.quiet:hover:not(:disabled) { border-color: var(--ink); }
+.quiet:disabled { opacity: 0.55; cursor: default; }
+.link { border: 0; padding: 0; background: none; color: var(--action); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── states ── */
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill-good { color: var(--good); box-shadow: inset 0 0 0 1.5px var(--good); }
+.pill-warn { color: var(--warn); background: var(--wash-warn); }
+.pill-bad { color: var(--bad); background: var(--wash-bad); }
+.pill-plain { color: var(--muted); box-shadow: inset 0 0 0 1px var(--rule-strong); }
+.alert { padding: 8px 10px; border-left: 3px solid var(--bad); background: var(--wash-bad); border-radius: 0 4px 4px 0; }
+.note { padding: 8px 10px; border-left: 3px solid var(--rule-strong); background: var(--paper); border-radius: 0 4px 4px 0; color: var(--muted); }
+.error-line { color: var(--bad); }
+.code { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.busy { color: var(--muted); }
+.busy::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border: 2px solid var(--rule-strong); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .busy::after { animation: none; } }
+.empty { padding: 8px 0; }
+.empty p { margin-top: 6px; color: var(--muted); max-width: 60ch; }
+.excerpt { margin-top: 4px; padding: 4px 10px; border-left: 2px solid var(--rule-strong); font: 14px/1.55 var(--serif); overflow-wrap: anywhere; }
+.cite { font-family: var(--serif); overflow-wrap: anywhere; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── foot ── */
+.foot { max-width: 1120px; margin: 0 auto; padding-block: 0 24px; color: var(--muted); font-size: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* ── Markdown from the tools ── */
+.md { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.md-h { font: 600 14px/1.35 var(--sans); margin-top: 6px; }
+h3.md-h { font-size: 15px; }
+.md-p { max-width: 75ch; }
+.md-list { display: grid; gap: 6px; padding-left: 0; }
+.md-list > li { padding-left: 12px; border-left: 2px solid var(--rule); }
+ol.md-list { list-style: none; }
+.md-quote { padding: 4px 10px; border-left: 2px solid var(--rule-strong); font-family: var(--serif); }
+.md-hr { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; width: 100%; }
+.md code { font: 12px/1.4 var(--mono); }
+
+.block { display: block; font-weight: 400; margin-top: 1px; }
+
+/* ── one-click examples on a first view ── */
+.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.chip-btn { border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--paper); padding: 3px 11px; min-height: 28px; cursor: pointer; font-size: 13px; }
+.chip-btn:hover { border-color: var(--action); color: var(--action); }
+.empty .examples { margin-top: 10px; }
+
+/* ── the frame: setup card in claude.ai, site bar on opencaselaw.ch ── */
+.ocl-setup { grid-column: 1 / -1; display: grid; gap: 8px; border-left: 3px solid var(--action); }
+.ocl-setup-title { font: 600 15px/1.3 var(--sans); }
+.ocl-setup p { max-width: 75ch; }
+.ocl-steps { list-style: decimal; padding-left: 22px; display: grid; gap: 4px; max-width: 75ch; }
+.ocl-setup-links { margin-top: 4px; }
+.button-link { display: inline-block; border-radius: 4px; padding: 7px 14px; background: var(--action); color: var(--action-ink); font-weight: 600; text-decoration: none; }
+.button-link:hover { filter: brightness(1.08); }
+.ocl-bar { background: var(--paper); border-bottom: 1px solid var(--rule); font-size: 13px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.ocl-bar-in { max-width: 1120px; margin: 0 auto; min-height: 40px; display: flex; align-items: center; gap: 8px; }
+.ocl-bar a { color: var(--ink); text-decoration: none; }
+.ocl-bar a:hover { color: var(--action); text-decoration: underline; }
+.ocl-home { font: 600 15px/1 var(--serif); }
+.ocl-sep { color: var(--muted); margin: 0 4px; }
+.ocl-links { margin-top: 8px; }
+
+[hidden] { display: none !important; }
+
+/* Antwortprüfung: the text on the left, the audit on the right; in the audit the text
+   again, every reference marked where it stands, and the findings below it. */
+.block { display: block; font-weight: 400; margin-top: 1px; }
+.example-note { color: var(--warn); }
+.opts { gap: 8px; }
+.copy-fallback { width: 100%; height: 6em; font: 12px/1.4 var(--mono); }
+
+.verdict { font: 600 17px/1.35 var(--sans); }
+.verdict.good { color: var(--good); }
+.verdict.bad { color: var(--bad); }
+.verdict.plain { color: var(--ink); }
+.stale { color: var(--warn); }
+
+/* the tally: one cell per check, the count that passed over the count examined */
+.ledger { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.cell { background: var(--paper); padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
+.cell .label { font-size: 12px; color: var(--muted); }
+.cell .value { font: 600 18px/1.2 var(--sans); font-variant-numeric: tabular-nums; }
+.cell .sub { font-size: 11px; color: var(--muted); }
+.cell.good .value { color: var(--good); }
+.cell.bad { box-shadow: inset 0 3px 0 var(--bad); }
+.cell.bad .value { color: var(--bad); }
+.cell.none .value { color: var(--muted); font-weight: 500; font-size: 14px; }
+
+@media (max-width: 520px) { .ledger { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* the text with its marks */
+.reading { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; font: 15px/1.7 var(--serif); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 60vh; overflow-y: auto; }
+.m { background: none; color: inherit; border-radius: 2px; }
+.m-bad { box-shadow: inset 0 -0.5em 0 var(--wash-bad); text-decoration: underline wavy var(--bad); text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer; }
+.m-claim { text-decoration: underline dotted var(--warn); text-decoration-thickness: 2px; text-underline-offset: 4px; cursor: pointer; }
+.m-good { box-shadow: inset 0 -0.45em 0 var(--wash-good); }
+.m-focus { outline: 2px solid var(--action); outline-offset: 1px; }
+.chip { display: inline-block; margin-left: 3px; padding: 0 5px; border-radius: 999px; font: 600 11px/1.5 var(--sans); vertical-align: 1px; white-space: nowrap; }
+.chip-ok { color: var(--good); box-shadow: inset 0 0 0 1px var(--good); }
+.chip-maybe { color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn); }
+.chip-bad { color: var(--bad); background: var(--wash-bad); cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.swatch { width: 18px; height: 9px; border-radius: 2px; display: inline-block; }
+.swatch.bad { background: var(--wash-bad); border-bottom: 2px solid var(--bad); }
+.swatch.claim { border-bottom: 2px dotted var(--warn); }
+.swatch.good { background: var(--wash-good); }
+
+/* findings */
+.issues { display: grid; gap: 8px; }
+.issue { background: var(--paper); border: 1px solid var(--rule); border-left: 3px solid var(--bad); border-radius: 0 6px 6px 0; padding: 10px 12px; display: grid; gap: 4px; min-width: 0; scroll-margin: 12px; }
+.issue.cat-grounding { border-left-color: var(--warn); }
+.issue.focus { outline: 2px solid var(--action); outline-offset: 1px; }
+.issue-head { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.issue-title { font-weight: 600; }
+.issue .cite { font-size: 15px; }
+.issue .jump { justify-self: start; font-size: 12px; }
+.goodlist li { padding: 4px 0; border-top: 1px solid var(--rule); }
+.goodlist li:first-child { border-top: 0; }
+.scope li { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 2px 12px; padding: 6px 0; border-top: 1px solid var(--rule); }
+.scope li:first-child { border-top: 0; }
+.scope .what { font-family: var(--serif); }
+
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="site-in">
+    <p class="brand"><span id="brand">Antwortprüfung</span><small>OpenCaseLaw</small></p>
+    <div class="langs" id="langs"></div>
+    <p class="intro" id="intro"></p>
+  </div>
+</header>
+<main class="wrap">
+  <form class="panel stack" id="form">
+    <div class="row spread">
+      <label class="h" for="draft" id="draft-label"></label>
+      <span class="small muted num" id="count"></span>
+    </div>
+    <p class="small example-note" id="example-note" hidden></p>
+    <textarea id="draft" rows="14" spellcheck="false"></textarea>
+    <div class="row small">
+      <button type="button" class="link" id="example"></button>
+      <button type="button" class="link" id="clear"></button>
+    </div>
+    <div class="stack opts">
+      <label class="check"><input type="checkbox" id="opt-grounding" checked> <span><span id="opt-grounding-l"></span><span class="small muted block" id="opt-grounding-h"></span></span></label>
+      <label class="check"><input type="checkbox" id="opt-quotes" checked> <span><span id="opt-quotes-l"></span><span class="small muted block" id="opt-quotes-h"></span></span></label>
+    </div>
+    <p class="note small" id="sent"></p>
+    <button type="submit" class="primary" id="go"></button>
+  </form>
+  <section class="panel stack" id="out" aria-live="polite"></section>
+</main>
+<footer class="foot"><p id="foot"></p></footer>
+<textarea id="copy-fallback" class="copy-fallback" hidden aria-hidden="true" tabindex="-1"></textarea>
+<script>
+"use strict";
+const OCL_BUILD = {"mode": "web", "page": "answer-check", "web": "https://opencaselaw.ch/tools/answer-check/", "artifact": "https://claude.ai/artifact/69FBAd5jfi9uxfTt2EVYYn"};
+// Shared by the OpenCaseLaw artifacts: languages, small DOM helpers, and the calls to
+// the viewer's own "opencaselaw" connector. Text from tools and viewers is only ever
+// set with textContent; nothing here parses it as HTML.
+const OCL = (() => {
+  const LANGS = ['de', 'fr', 'it', 'en'];
+  const LOCALES = { de: 'de-CH', fr: 'fr-CH', it: 'it-CH', en: 'en-GB' };
+  const SERVER = 'opencaselaw';
+  // Set by build.py: which build this is, and where the page's twin lives.
+  const BUILD = (typeof OCL_BUILD === 'object' && OCL_BUILD) || { mode: 'artifact' };
+  const MODE = BUILD.mode === 'web' ? 'web' : 'artifact';
+  const ENDPOINT = 'https://mcp.opencaselaw.ch/mcp';
+  const ADD_URL = 'https://claude.ai/settings/connectors?modal=add-custom-connector';
+  const SHARED = {
+    de: {
+      examples: 'Zum Beispiel:',
+      languages: 'Sprache', retry: 'Erneut versuchen', perm_open: 'Berechtigungen öffnen',
+      perm_menu: 'Das Fenster liess sich nicht öffnen. Die Berechtigungen der Seite stehen im Menü oben bei ihrem Namen.',
+      e_unavailable: 'Diese Seite fragt OpenCaseLaw über den Connector «opencaselaw» in claude.ai. Öffnen Sie sie in claude.ai, angemeldet.',
+      e_connect: 'In Ihrem claude.ai-Konto fehlt der Connector «opencaselaw». Fügen Sie ihn unter Einstellungen → Connectors hinzu: Name «opencaselaw», Adresse https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Der Connector ist für diese Seite noch nicht erlaubt. Beim nächsten Versuch fragt claude.ai wieder.',
+      e_denied: 'Der Connector ist für diese Seite nicht erlaubt.',
+      e_policy: 'Ihre Organisation erlaubt diesen Connector hier nicht.',
+      e_reauth: 'Der Connector «opencaselaw» muss in claude.ai neu verbunden werden (Einstellungen → Connectors).',
+      e_busy: 'Zu viele Anfragen. Bitte kurz warten und erneut versuchen.',
+      e_server: 'OpenCaseLaw antwortet gerade nicht. Bitte später erneut versuchen.',
+      e_tool: 'OpenCaseLaw meldet einen Fehler: {message}',
+      copy: 'Kopieren', copied: 'Kopiert.', copy_failed: 'Kopieren ging nicht; der Text ist markiert.',
+      model_reasons: 'Begründung des Modells (englisch)', source_open: 'Quelle öffnen',
+      foot: 'Daten: OpenCaseLaw, offenes Korpus der Schweizer Rechtsprechung und Gesetzgebung (CC0). Die Seite fragt nur den Connector «opencaselaw».',
+    },
+    fr: {
+      examples: 'Par exemple:',
+      languages: 'Langue', retry: 'Réessayer', perm_open: 'Ouvrir les autorisations',
+      perm_menu: 'La fenêtre n’a pas pu s’ouvrir. Les autorisations de la page se trouvent dans le menu en haut, à côté de son nom.',
+      e_unavailable: 'Cette page interroge OpenCaseLaw par le connecteur «opencaselaw» de claude.ai. Ouvrez-la dans claude.ai, connecté.',
+      e_connect: 'Le connecteur «opencaselaw» manque dans votre compte claude.ai. Ajoutez-le sous Paramètres → Connecteurs: nom «opencaselaw», adresse https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Le connecteur n’est pas encore autorisé pour cette page. Au prochain essai, claude.ai le demandera à nouveau.',
+      e_denied: 'Le connecteur n’est pas autorisé pour cette page.',
+      e_policy: 'Votre organisation n’autorise pas ce connecteur ici.',
+      e_reauth: 'Le connecteur «opencaselaw» doit être reconnecté dans claude.ai (Paramètres → Connecteurs).',
+      e_busy: 'Trop de demandes. Patientez un instant et réessayez.',
+      e_server: 'OpenCaseLaw ne répond pas pour l’instant. Réessayez plus tard.',
+      e_tool: 'OpenCaseLaw signale une erreur: {message}',
+      copy: 'Copier', copied: 'Copié.', copy_failed: 'La copie n’a pas fonctionné; le texte est sélectionné.',
+      model_reasons: 'Motifs du modèle (en anglais)', source_open: 'Ouvrir la source',
+      foot: 'Données: OpenCaseLaw, corpus ouvert de la jurisprudence et de la législation suisses (CC0). La page n’interroge que le connecteur «opencaselaw».',
+    },
+    it: {
+      examples: 'Per esempio:',
+      languages: 'Lingua', retry: 'Riprovare', perm_open: 'Aprire le autorizzazioni',
+      perm_menu: 'Non è stato possibile aprire la finestra. Le autorizzazioni della pagina sono nel menu in alto, accanto al suo nome.',
+      e_unavailable: 'Questa pagina interroga OpenCaseLaw tramite il connettore «opencaselaw» di claude.ai. Apritela in claude.ai, con accesso.',
+      e_connect: 'Nel vostro account claude.ai manca il connettore «opencaselaw». Aggiungetelo in Impostazioni → Connettori: nome «opencaselaw», indirizzo https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Il connettore non è ancora autorizzato per questa pagina. Al prossimo tentativo claude.ai lo chiederà di nuovo.',
+      e_denied: 'Il connettore non è autorizzato per questa pagina.',
+      e_policy: 'La vostra organizzazione non consente questo connettore qui.',
+      e_reauth: 'Il connettore «opencaselaw» va ricollegato in claude.ai (Impostazioni → Connettori).',
+      e_busy: 'Troppe richieste. Attendete un momento e riprovate.',
+      e_server: 'OpenCaseLaw al momento non risponde. Riprovate più tardi.',
+      e_tool: 'OpenCaseLaw segnala un errore: {message}',
+      copy: 'Copiare', copied: 'Copiato.', copy_failed: 'La copia non è riuscita; il testo è selezionato.',
+      model_reasons: 'Motivazione del modello (in inglese)', source_open: 'Aprire la fonte',
+      foot: 'Dati: OpenCaseLaw, corpus aperto della giurisprudenza e della legislazione svizzere (CC0). La pagina interroga solo il connettore «opencaselaw».',
+    },
+    en: {
+      examples: 'For instance:',
+      languages: 'Language', retry: 'Try again', perm_open: 'Open permissions',
+      perm_menu: 'The panel did not open. The page’s permissions are in the menu at the top, by its name.',
+      e_unavailable: 'This page asks OpenCaseLaw through the “opencaselaw” connector in claude.ai. Open it in claude.ai, signed in.',
+      e_connect: 'Your claude.ai account has no “opencaselaw” connector. Add it under Settings → Connectors: name “opencaselaw”, address https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'The connector is not allowed for this page yet. On the next try claude.ai asks again.',
+      e_denied: 'The connector is not allowed for this page.',
+      e_policy: 'Your organisation does not allow this connector here.',
+      e_reauth: 'The “opencaselaw” connector must be reconnected in claude.ai (Settings → Connectors).',
+      e_busy: 'Too many requests. Please wait a moment and try again.',
+      e_server: 'OpenCaseLaw is not answering right now. Please try again later.',
+      e_tool: 'OpenCaseLaw reports an error: {message}',
+      copy: 'Copy', copied: 'Copied.', copy_failed: 'Copying did not work; the text is selected.',
+      model_reasons: 'The model’s reasons', source_open: 'Open the source',
+      foot: 'Data: OpenCaseLaw, the open corpus of Swiss case law and legislation (CC0). The page asks only the “opencaselaw” connector.',
+    },
+  };
+
+  // The frame around every page: the one-time setup in claude.ai, the site bar on the web.
+  // A key ending in "_web" replaces its plain twin in the web build.
+  const SITE = {
+    de: {
+      setup_title: 'Einmal einrichten',
+      setup_missing: 'Diese Seite fragt OpenCaseLaw über Ihren claude.ai-Connector «opencaselaw». In Ihrem Konto fehlt er noch.',
+      setup_none: 'Diese Seite fragt OpenCaseLaw über einen claude.ai-Connector und läuft darum nur in claude.ai, angemeldet.',
+      setup_1: 'In claude.ai: Einstellungen → Connectors → «Add custom connector».',
+      setup_2: 'Name genau «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, ohne Anmeldung. Kostenlos.',
+      setup_3: 'Diese Seite neu laden. Beim ersten Abruf fragt claude.ai, ob die Seite den Connector nutzen darf.',
+      setup_add: 'Connector hinzufügen',
+      setup_web: 'Ohne Einrichtung: dieselbe Seite auf opencaselaw.ch',
+      web_tools: 'Werkzeuge', web_privacy: 'Datenschutz',
+      web_connect: 'OpenCaseLaw auch in Claude, ChatGPT und anderen KI-Assistenten',
+      foot_web: 'Daten: OpenCaseLaw, offenes Korpus der Schweizer Rechtsprechung und Gesetzgebung (CC0). Abfragen gehen an den öffentlichen Server mcp.opencaselaw.ch; ohne Anmeldung, ohne Cookies.',
+    },
+    fr: {
+      setup_title: 'Configuration unique',
+      setup_missing: 'Cette page interroge OpenCaseLaw par votre connecteur claude.ai «opencaselaw», qui manque encore dans votre compte.',
+      setup_none: 'Cette page interroge OpenCaseLaw par un connecteur claude.ai et ne fonctionne donc que dans claude.ai, connecté.',
+      setup_1: 'Dans claude.ai: Paramètres → Connecteurs → «Add custom connector».',
+      setup_2: 'Nom exactement «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, sans connexion. Gratuit.',
+      setup_3: 'Rechargez cette page. Au premier appel, claude.ai demande si la page peut utiliser le connecteur.',
+      setup_add: 'Ajouter le connecteur',
+      setup_web: 'Sans configuration: la même page sur opencaselaw.ch',
+      web_tools: 'Outils', web_privacy: 'Protection des données',
+      web_connect: 'OpenCaseLaw aussi dans Claude, ChatGPT et d’autres assistants IA',
+      foot_web: 'Données: OpenCaseLaw, corpus ouvert de la jurisprudence et de la législation suisses (CC0). Les requêtes vont au serveur public mcp.opencaselaw.ch; sans compte, sans cookies.',
+    },
+    it: {
+      setup_title: 'Configurazione unica',
+      setup_missing: 'Questa pagina interroga OpenCaseLaw tramite il vostro connettore claude.ai «opencaselaw», che manca ancora nel vostro account.',
+      setup_none: 'Questa pagina interroga OpenCaseLaw tramite un connettore claude.ai e funziona quindi solo in claude.ai, con accesso.',
+      setup_1: 'In claude.ai: Impostazioni → Connettori → «Add custom connector».',
+      setup_2: 'Nome esattamente «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, senza accesso. Gratuito.',
+      setup_3: 'Ricaricate questa pagina. Alla prima richiesta claude.ai chiede se la pagina può usare il connettore.',
+      setup_add: 'Aggiungere il connettore',
+      setup_web: 'Senza configurazione: la stessa pagina su opencaselaw.ch',
+      web_tools: 'Strumenti', web_privacy: 'Protezione dei dati',
+      web_connect: 'OpenCaseLaw anche in Claude, ChatGPT e altri assistenti IA',
+      foot_web: 'Dati: OpenCaseLaw, corpus aperto della giurisprudenza e della legislazione svizzere (CC0). Le richieste vanno al server pubblico mcp.opencaselaw.ch; senza account, senza cookie.',
+    },
+    en: {
+      setup_title: 'One-time setup',
+      setup_missing: 'This page asks OpenCaseLaw through your claude.ai connector “opencaselaw”, which your account does not have yet.',
+      setup_none: 'This page asks OpenCaseLaw through a claude.ai connector, so it only runs in claude.ai, signed in.',
+      setup_1: 'In claude.ai: Settings → Connectors → “Add custom connector”.',
+      setup_2: 'Name exactly “opencaselaw”, URL https://mcp.opencaselaw.ch/mcp, no sign-in. Free.',
+      setup_3: 'Reload this page. On the first request claude.ai asks whether the page may use the connector.',
+      setup_add: 'Add the connector',
+      setup_web: 'Without setup: the same page on opencaselaw.ch',
+      web_tools: 'Tools', web_privacy: 'Privacy',
+      web_connect: 'OpenCaseLaw in Claude, ChatGPT and other AI assistants too',
+      foot_web: 'Data: OpenCaseLaw, the open corpus of Swiss case law and legislation (CC0). Requests go to the public server mcp.opencaselaw.ch; no account, no cookies.',
+    },
+  };
+
+  // ── language ──
+  let lang = 'de';
+  const strings = {};
+  const listeners = [];
+  function setStrings(page) { for (const l of LANGS) strings[l] = { ...SHARED[l], ...SITE[l], ...((page && page[l]) || {}) }; }
+  function lookup(l, key) {
+    const s = strings[l];
+    if (!s) return undefined;
+    return (MODE === 'web' && s[key + '_web'] !== undefined) ? s[key + '_web'] : s[key];
+  }
+  function t(key, values = {}) {
+    const s = lookup(lang, key) ?? lookup('de', key) ?? key;
+    return String(s).replace(/\{(\w+)\}/g, (all, name) => (name in values ? String(values[name]) : all));
+  }
+  function setLang(l) {
+    lang = LANGS.includes(l) ? l : 'de';
+    document.documentElement.lang = lang;
+    try { localStorage.setItem('ocl.lang', lang); } catch { /* private mode */ }
+    for (const f of listeners) f();
+  }
+  function initLang() {
+    let l = null;
+    // A shared link may name its language (?lang=fr); then the viewer's own choice.
+    try { l = new URLSearchParams(location.search).get('lang'); } catch { /* none */ }
+    if (!LANGS.includes(l)) { l = null; try { l = localStorage.getItem('ocl.lang'); } catch { /* private mode */ } }
+    listeners.unshift(renderFrame);
+    setLang(l || String(navigator.language || 'de').slice(0, 2).toLowerCase());
+    if (MODE === 'artifact') checkSetup();
+    else {
+      // On the site every page title carries the site's name.
+      const suffix = () => { if (!/OpenCaseLaw$/.test(document.title)) document.title += ' · OpenCaseLaw'; };
+      listeners.push(suffix);
+      suffix();
+    }
+  }
+
+  // ── the frame ──
+  // Web: a slim bar back to the site, and links under the page's own footer.
+  // claude.ai: a setup card above the work area when this viewer cannot reach the
+  // connector, decided before the first click rather than after a failed call.
+  let setup = null; // null | 'none' | 'missing' | 'reauth'
+  function renderFrame() {
+    if (MODE === 'web') {
+      let bar = document.getElementById('ocl-bar');
+      if (!bar) { bar = el('nav', 'ocl-bar'); bar.id = 'ocl-bar'; document.body.prepend(bar); }
+      const home = link('https://opencaselaw.ch/', 'OpenCaseLaw', 'ocl-home');
+      home.removeAttribute('target');
+      const tools = link('https://opencaselaw.ch/tools/' + (lang === 'de' ? '' : '?lang=' + lang), t('web_tools'));
+      tools.removeAttribute('target');
+      bar.replaceChildren(el('div', 'ocl-bar-in'));
+      bar.firstChild.append(home, el('span', 'ocl-sep', '/'), tools);
+      let links = document.getElementById('ocl-links');
+      if (!links) {
+        links = el('p', 'ocl-links small');
+        links.id = 'ocl-links';
+        const foot = document.querySelector('footer.foot') || document.body;
+        foot.append(links);
+      }
+      links.replaceChildren(link('https://opencaselaw.ch/mcp/', t('web_connect')), el('span', 'ocl-sep', '·'),
+        link('https://opencaselaw.ch/datenschutz/', t('web_privacy')));
+      return;
+    }
+    let card = document.getElementById('ocl-setup');
+    if (!setup) { if (card) card.remove(); return; }
+    if (!card) {
+      card = el('section', 'panel ocl-setup');
+      card.id = 'ocl-setup';
+      card.setAttribute('role', 'note');
+      const main = document.querySelector('main') || document.body;
+      main.prepend(card);
+    }
+    const parts = [el('h2', 'ocl-setup-title', t('setup_title'))];
+    if (setup === 'reauth') parts.push(el('p', null, t('e_reauth')));
+    else {
+      parts.push(el('p', null, t(setup === 'none' ? 'setup_none' : 'setup_missing')));
+      if (setup === 'missing') {
+        const steps = el('ol', 'ocl-steps');
+        steps.append(el('li', null, t('setup_1')), el('li', null, t('setup_2')), el('li', null, t('setup_3')));
+        parts.push(steps);
+      }
+    }
+    const row = el('p', 'row ocl-setup-links');
+    if (setup === 'missing') row.append(link(ADD_URL, t('setup_add'), 'button-link'));
+    if (BUILD.web) row.append(link(BUILD.web + (lang === 'de' ? '' : '?lang=' + lang), t('setup_web')));
+    if (row.childNodes.length) parts.push(row);
+    card.replaceChildren(...parts);
+  }
+  async function checkSetup() {
+    const m = await mcp();
+    let state = null;
+    if (!m) state = 'none';
+    else if (typeof m.listTools === 'function') {
+      try {
+        const listed = await m.listTools(SERVER);
+        const s = ((listed && listed.servers) || []).find((x) => x && x.server === SERVER);
+        if (!s || !Array.isArray(s.tools) || !s.tools.length) state = 'missing';
+        else if (s.authStatus === 'needs_reauth') state = 'reauth';
+      } catch { state = null; /* say nothing; a call will tell */ }
+    }
+    setup = state;
+    renderFrame();
+  }
+  const onLang = (f) => listeners.push(f);
+  const language = () => lang;
+  // The citation_string_* field in the interface language; English reads the German one.
+  const citationOf = (p) => (p && (p['citation_string_' + lang] || p.citation_string_de || p.citation_string)) || '';
+  const toolLang = () => (lang === 'en' ? 'de' : lang);
+
+  // ── DOM ──
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = text;
+    return node;
+  }
+  function button(className, text, onClick) {
+    const b = el('button', className, text);
+    b.type = 'button';
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  function link(href, text, className) {
+    const a = el('a', className, text);
+    if (/^https:\/\//.test(href || '')) { a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    return a;
+  }
+  function langButtons(container) {
+    container.setAttribute('role', 'group');
+    container.setAttribute('aria-label', t('languages'));
+    container.replaceChildren(...LANGS.map((code) => {
+      const b = button('lang', code.toUpperCase(), () => setLang(code));
+      b.setAttribute('aria-pressed', String(code === lang));
+      return b;
+    }));
+  }
+  const num = (n) => new Intl.NumberFormat(LOCALES[lang]).format(n);
+  function date(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '';
+    const d = new Date(iso.slice(0, 10) + 'T12:00:00Z');
+    return d.toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  // ── the connector ──
+  // Two builds of every page (build.py): 'artifact' runs in claude.ai and calls the
+  // viewer's own connector; 'web' runs on opencaselaw.ch and sends the same MCP call
+  // to the public server itself, so both see the same answers.
+  let connector = null;
+  const mcp = () => (connector ||= (MODE === 'web' ? Promise.resolve(webConnector())
+    : window.claude && typeof window.claude.use === 'function'
+      ? window.claude.use('mcp').catch(() => null) : Promise.resolve(null)));
+
+  // The public server speaks MCP over plain HTTP with open CORS and no session
+  // (checked 2026-11-04): one JSON-RPC tools/call, answered as JSON or as a short
+  // event stream. The result is shaped as the viewer shapes it: `payload` is
+  // structuredContent, else the text parsed as JSON, else the text.
+  function webConnector() {
+    const cache = new Map();
+    let seq = 0;
+    async function callTool(server, tool, input, options = {}) {
+      const key = tool + '\u0000' + JSON.stringify(input);
+      const staleTime = options.cache && options.cache.staleTime;
+      const hit = staleTime && cache.get(key);
+      if (hit && Date.now() - hit.at < staleTime) return hit.value;
+      const id = ++seq;
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), 120000);
+      let response;
+      let body;
+      try {
+        response = await fetch(ENDPOINT, {
+          method: 'POST', signal: abort.signal,
+          headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'x-client': 'web-tools' },
+          body: JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name: tool, arguments: input } }),
+        });
+        body = await response.text();
+      } catch (error) {
+        throw { code: 'server_unavailable', message: String((error && error.message) || error), retryable: true };
+      } finally { clearTimeout(timer); }
+      if (response.status === 429) throw { code: 'rate_limited', message: 'HTTP 429' };
+      if (!response.ok) throw { code: 'server_unavailable', message: 'HTTP ' + response.status, retryable: true };
+      const message = rpcMessage(body, id);
+      if (!message) throw { code: 'server_unavailable', message: 'no answer', retryable: true };
+      if (message.error) throw { code: 'tool_error', message: String(message.error.message || 'error').slice(0, 300) };
+      const r = message.result || {};
+      const blocks = Array.isArray(r.content) ? r.content : [];
+      const first = (blocks.find((b) => b && b.type === 'text') || {}).text || '';
+      if (r.isError) throw { code: 'tool_error', message: first.slice(0, 300), result: r };
+      let payload = r.structuredContent;
+      if (payload === undefined) { try { payload = JSON.parse(first); } catch { payload = first; } }
+      const value = { content: blocks, structuredContent: r.structuredContent, payload };
+      if (staleTime) cache.set(key, { at: Date.now(), value });
+      return value;
+    }
+    return { callTool };
+  }
+  function rpcMessage(body, id) {
+    const text = String(body || '').trim();
+    const candidates = text.startsWith('{') ? [text]
+      : text.split(/\r?\n\r?\n/).map((event) => event.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n')).filter(Boolean);
+    for (const c of candidates) {
+      try { const m = JSON.parse(c); if (m && m.id === id && (m.result || m.error)) return m; } catch { /* not this one */ }
+    }
+    return null;
+  }
+
+  // One tool call; resolves the JSON payload, rejects with the platform's error object.
+  // `text: true` for the few tools that answer in Markdown rather than JSON.
+  async function call(tool, input, { staleTime = 600000, text = false } = {}) {
+    const m = await mcp();
+    if (!m) throw { code: 'unavailable', message: 'no viewer' };
+    const result = await m.callTool(SERVER, tool, input, staleTime ? { cache: { staleTime, gcTime: Math.max(staleTime, 300000) } } : { cache: false });
+    const p = result && result.payload;
+    if (text) {
+      const s = typeof p === 'string' ? p : ((result && result.content) || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+      if (!s) throw { code: 'tool_error', message: 'empty answer' };
+      return s;
+    }
+    const obj = asObject(p, result);
+    if (!obj) throw { code: 'tool_error', message: typeof p === 'string' ? p.slice(0, 300) : 'empty answer' };
+    return guard(obj);
+  }
+
+  // The server may follow its JSON with a note in the same text block ("---\nℹ️ This
+  // data is provided by OpenCaseLaw.ch …", seen 2026-10-29 over plain JSON-RPC); then
+  // the platform cannot parse it and hands over text. The object is taken out of it.
+  function asObject(p, result) {
+    if (p && typeof p === 'object') return p;
+    const text = typeof p === 'string' ? p : ((result && result.content) || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+    const i = text.indexOf('{');
+    const j = text.lastIndexOf('}');
+    if (i < 0 || j <= i) return null;
+    try { return JSON.parse(text.slice(i, j + 1)); } catch { /* try the text before a trailing note */ }
+    const cut = text.search(/\n-{3,}\s*\n/);
+    if (cut > i) { try { return JSON.parse(text.slice(i, cut).trim()); } catch { return null; } }
+    return null;
+  }
+
+  function guard(p) {
+    if (p.error && !p.ok && Object.keys(p).length <= 3) throw { code: 'tool_error', message: String(p.error).slice(0, 300) };
+    return p;
+  }
+
+  async function permissionState() {
+    try {
+      const permissions = window.claude && await window.claude.use('permissions');
+      if (!permissions) return null;
+      let state = await permissions.state('mcp:' + SERVER);
+      if (state === 'unavailable') state = await permissions.state('mcp');
+      return state;
+    } catch { return null; }
+  }
+
+  // A failed call, kept as data so its sentence follows a later change of language.
+  // Closing claude.ai's permission prompt refuses nothing: the call fails with
+  // upstream_error ("connector access isn't confirmed for this artifact right now",
+  // seen 2026-10-29) and the permission stays "prompt". So before saying anything the
+  // page asks the permissions capability: "denied" is a refusal (the panel undoes it),
+  // "prompt" means not allowed yet (trying again asks again).
+  async function failure(error) {
+    const code = (error && error.code) || 'upstream_error';
+    let denied = ['not_in_manifest', 'not_granted', 'consent_required', 'approval_required'].includes(code);
+    let pending = false;
+    if (!denied && code !== 'unavailable') {
+      const state = await permissionState();
+      denied = state === 'denied';
+      pending = state === 'prompt';
+    }
+    return { code, denied, pending, message: (error && error.message) || String(error) };
+  }
+
+  function errorText(e) {
+    if (e.denied) return t('e_denied');
+    if (e.pending) return t('e_pending');
+    if (e.code === 'unavailable') return t('e_unavailable');
+    if (['server_not_connected', 'server_not_found', 'selection_required'].includes(e.code)) return t('e_connect');
+    if (e.code === 'blocked_by_policy') return t('e_policy');
+    if (e.code === 'needs_reauth') return t('e_reauth');
+    if (e.code === 'rate_limited') return t('e_busy');
+    if (['server_unavailable', 'upstream_error', 'cancelled'].includes(e.code)) return t('e_server');
+    return t('e_tool', { message: e.message });
+  }
+
+  // The error, its code for support, and the one way forward: the Permissions panel for
+  // a refusal, otherwise trying again (never on its own).
+  function renderError(e, retry, rerender) {
+    const box = el('div', 'stack failed');
+    const said = el('p', 'error-line', errorText(e) + ' ');
+    if (!e.pending) said.append(el('span', 'code', '(' + e.code + ')'));
+    box.append(said);
+    const row = el('div', 'row');
+    if (e.denied) {
+      row.append(button('quiet', t('perm_open'), async () => {
+        try {
+          const permissions = window.claude && await window.claude.use('permissions');
+          if (!permissions) throw new Error('unavailable');
+          await permissions.manage();
+          e.denied = (await permissionState()) === 'denied';
+          if (!e.denied && retry) { retry(); return; }
+        } catch { e.manageFailed = true; }
+        rerender();
+      }));
+      if (e.manageFailed) box.append(el('p', 'muted small', t('perm_menu')));
+    } else if (retry && e.code !== 'unavailable') {
+      row.append(button('quiet', t('retry'), retry));
+    }
+    if (row.childNodes.length) box.append(row);
+    return box;
+  }
+
+  // Copy on a click; where the host refuses the clipboard, the text is selected instead.
+  async function copy(text, fallback) {
+    try {
+      // Some hosts never answer the clipboard request; after a moment the text is selected instead.
+      await Promise.race([navigator.clipboard.writeText(text), new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), 1500))]);
+      return true;
+    } catch {
+      if (fallback) { fallback.hidden = false; fallback.value = text; fallback.focus(); fallback.select(); }
+      return false;
+    }
+  }
+
+  // ── Markdown from the tools, as DOM nodes only ──
+  // Several tools answer in Markdown. This reads the few forms they use (headings, lists,
+  // quotes, rules, **bold**, *italic*, `code`, [text](https link), ^superscript) and builds
+  // nodes with textContent, so nothing in the answer is ever parsed as HTML. The server's
+  // closing note ("---" then "ℹ️ …") is left out.
+  function stripNote(text) {
+    const s = String(text || '');
+    const cut = s.search(/\n-{3,}\s*\n\s*ℹ️/);
+    return cut >= 0 ? s.slice(0, cut) : s;
+  }
+  function inline(text, into) {
+    const re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|`([^`]+)`|(?<![\w*])\*([^*\s][^*]*?)\*(?!\w)|\^(\d+[a-z]?)/g;
+    let at = 0;
+    for (const m of text.matchAll(re)) {
+      if (m.index > at) into.append(text.slice(at, m.index));
+      if (m[1] !== undefined) into.append(el('strong', null, m[1]));
+      else if (m[2] !== undefined) into.append(link(m[3], m[2]));
+      else if (m[4] !== undefined) into.append(el('code', null, m[4]));
+      else if (m[5] !== undefined) into.append(el('em', null, m[5]));
+      else if (m[6] !== undefined) into.append(el('sup', null, m[6]));
+      at = m.index + m[0].length;
+    }
+    if (at < text.length) into.append(text.slice(at));
+    return into;
+  }
+  function markdown(text, { skipFirstHeading = false } = {}) {
+    const box = el('div', 'md');
+    let list = null;
+    let para = null;
+    let headingSeen = false;
+    const close = () => { list = null; para = null; };
+    for (const raw of stripNote(text).split('\n')) {
+      const line = raw.replace(/\s+$/, '');
+      const h = /^(#{1,4})\s+(.*)$/.exec(line);
+      const li = /^\s*(?:[-*•]|\d+\.)\s+(.*)$/.exec(line);
+      if (!line.trim()) { close(); continue; }
+      if (h) {
+        close();
+        if (skipFirstHeading && !headingSeen) { headingSeen = true; continue; }
+        headingSeen = true;
+        box.append(inline(h[2], el(h[1].length <= 1 ? 'h3' : 'h4', 'md-h')));
+      } else if (/^-{3,}$/.test(line.trim())) { close(); box.append(el('hr', 'md-hr')); }
+      else if (/^>\s?/.test(line)) { close(); box.append(inline(line.replace(/^>\s?/, ''), el('blockquote', 'md-quote'))); }
+      else if (li) {
+        para = null;
+        if (!list) { list = el(/^\s*\d+\./.test(line) ? 'ol' : 'ul', 'md-list'); box.append(list); }
+        list.append(inline(li[1], el('li')));
+      } else if (list && /^\s{2,}\S/.test(raw)) {
+        const last = list.lastElementChild;
+        last.append(el('br'));
+        inline(line.trim(), last);
+      } else {
+        list = null;
+        if (!para) { para = el('p', 'md-p'); box.append(para); } else para.append(el('br'));
+        inline(line.trim(), para);
+      }
+    }
+    return box;
+  }
+
+  // "Zum Beispiel: [chip] [chip]": one click fills the form and runs it. `items` is a
+  // string key whose text lists the examples separated by "|".
+  function examples(key, onPick) {
+    const box = el('p', 'examples');
+    box.append(el('span', 'muted', t('examples') + ' '));
+    for (const item of t(key).split('|').map((x) => x.trim()).filter(Boolean)) box.append(button('chip-btn', item, () => onPick(item)));
+    return box;
+  }
+
+  // Text from a tool that may carry Markdown links ("[BGE 140 III 86](https://…)"): links
+  // become links, everything else stays text.
+  const rich = (text, into) => inline(String(text || ''), into || el('span'));
+
+  return { LANGS, SERVER, MODE, BUILD, setStrings, t, setLang, initLang, onLang, language, citationOf, toolLang,
+    el, button, link, langButtons, num, date, call, failure, errorText, renderError, copy, markdown, stripNote, examples, rich };
+})();
+
+// Antwortprüfung: a legal text (an AI answer, a memo, a draft) is sent once to
+// OpenCaseLaw's attest_response, which checks five things: that each cited decision
+// exists and its Erwägung resolves, that each "Art. X LAW" resolves, that quoted passages
+// are verbatim in the cited source, that dates beside citations match, and (on request)
+// that the cited text carries the sentence before it. References the server does not
+// recognise (cantonal, European) are listed as not audited and looked up with cite.
+const { t, el, button, link } = OCL;
+const MAX = 20000;
+const EXAMPLE = 'Nach Art. 18 Abs. 1 OR ist bei der Beurteilung eines Vertrages der übereinstimmende wirkliche Wille zu beachten. ' +
+  'Das Bundesgericht hält fest, dass der Richter zuerst den wirklichen Willen der Parteien ermitteln muss (BGE 140 III 86 E. 4.1). ' +
+  'Die Grundbuchberichtigungsklage dient nur der Korrektur ursprünglich ungerechtfertigter Einträge (BGE 133 III 641 E. 4). ' +
+  'Nach BGE 199 II 1 E. 2 ist jede mündliche Abrede nichtig. Siehe auch das Urteil 4A_747/2012 vom 3. März 2011 und das Urteil LB190012 des Obergerichts Zürich. ' +
+  'Das Gericht schrieb: «Die Auslegung eines Vertrages richtet sich ausschliesslich nach dem Wortlaut, ohne jede Rücksicht auf den Willen der Parteien» (BGE 140 III 86 E. 4.1).';
+
+OCL.setStrings({
+  de: {
+    brand: 'Antwortprüfung',
+    intro: 'Prüft die Belege in einem Rechtstext, etwa einer KI-Antwort: ob es die zitierten Entscheide, Erwägungen und Gesetzesartikel gibt, ob wörtliche Zitate wörtlich stimmen, ob Daten passen und ob die Quelle die Aussage trägt. Gegen das offene Korpus von OpenCaseLaw.',
+    draft_label: 'Text, der geprüft werden soll', count: '{n} von {max} Zeichen', count_over: '{n} Zeichen: höchstens {max}.',
+    example_note: 'Beispiel mit absichtlichen Fehlern.', example: 'Beispiel einsetzen', clear: 'Leeren',
+    opt_grounding: 'Prüfen, ob die Quelle die Aussage trägt', opt_grounding_h: 'Ein Sprachmodell liest dafür die zitierte Stelle und den Satz davor.',
+    opt_quotes: 'Wörtliche Zitate prüfen', opt_quotes_h: 'Ausschalten, wenn der Text aus Eingaben, Verträgen oder Aussagen zitiert.',
+    sent: 'Der ganze Text geht über Ihren Connector «opencaselaw» an mcp.opencaselaw.ch; für die inhaltliche Prüfung liest ihn ein Sprachmodell (Claude) mit. Personendaten und Berufsgeheimnisse vorher entfernen.',
+    sent_web: 'Der ganze Text geht an den Server mcp.opencaselaw.ch; für die inhaltliche Prüfung liest ihn ein Sprachmodell (Claude) mit. Personendaten und Berufsgeheimnisse vorher entfernen.',
+    go: 'Prüfen', busy: 'Prüfe die Belege …', busy_grounding: 'Prüfe die Belege und lasse die Aussagen lesen …',
+    empty_title: 'Noch nichts geprüft', empty_body: 'Text einfügen, dann «Prüfen». Das Ergebnis zeigt den Text mit jedem Beleg, der stimmt oder nicht stimmt, und darunter, was nicht stimmt.',
+    checks_title: 'Was geprüft wird',
+    check_case: 'Zitierte Entscheide (BGE, BGer, BVGer, BStGer, BPatGer) gibt es, die Erwägung auch.',
+    check_statute: '«Art. X Gesetz» gibt es in diesem Gesetz.',
+    check_quote: 'Wörtliche Zitate stehen so in der zitierten Quelle.',
+    check_date: 'Daten neben Zitaten stimmen.',
+    check_grounding: 'Die zitierte Stelle trägt den Satz davor (Sprachmodell).',
+    too_long: 'Der Text ist zu lang: höchstens {max} Zeichen.', too_short: 'Bitte zuerst einen Text einfügen.',
+    verdict_ok: 'Keine Beanstandung.', verdict_one: 'Eine Beanstandung.', verdict_n: '{n} Beanstandungen.',
+    verdict_nothing: 'Im Text steht nichts, was sich prüfen liesse.',
+    stale: 'Der Text hat sich seit der Prüfung geändert. «Prüfen» prüft ihn neu.',
+    led_cases: 'Entscheide', led_pins: 'Erwägungen', led_statutes: 'Gesetzesartikel', led_quotes: 'Wörtliche Zitate', led_dates: 'Daten', led_grounding: 'Aussagen',
+    led_of: '{ok} / {n}', led_sub_ok: 'stimmen', led_none: 'keine im Text', led_off: 'nicht geprüft', led_skipped: '{n} nicht prüfbar',
+    h_text: 'Der Text', h_issues: 'Was nicht stimmt', h_good: 'Wörtlich gefunden', h_scope: 'Nicht geprüft', h_copy: 'Text mit Links',
+    lg_bad: 'beanstandet', lg_claim: 'Aussage, die die Quelle nicht trägt', lg_good: 'wörtlich gefunden', lg_ok: 'Beleg stimmt',
+    chip_ok: '✓', chip_ok_title: 'Entscheid und Erwägung stimmen', chip_maybe: '✓?', chip_maybe_title: 'Entscheid stimmt; die Erwägung liess sich nicht prüfen (Entscheid ohne gegliederte Erwägungen)',
+    cat_case: 'Entscheid', cat_statute: 'Gesetz', cat_quote: 'Zitat', cat_date: 'Datum', cat_grounding: 'Aussage',
+    p_pinpoint_not_in_decision: 'Diese Erwägung gibt es im Entscheid nicht.', d_valid_pinpoints: 'Vorhanden sind: {list}.',
+    p_decision_not_in_corpus: 'Diesen Entscheid gibt es bei OpenCaseLaw nicht.', d_not_in_corpus: 'Falsch zitiert, nicht veröffentlicht oder erfunden.',
+    p_date_does_not_match_decision: 'Das Datum stimmt nicht.', d_date: 'Im Text: {claimed}. Der Entscheid ist vom {actual}.',
+    p_quote_not_in_cited_sources: 'Dieses Zitat steht so in keiner zitierten Quelle.', d_quote: 'Durchsucht: {list}.',
+    p_article_not_in_law: 'Diesen Artikel gibt es im {law} nicht.', d_article: 'Gesucht: Art. {article} {law}{sr}.',
+    p_law_abbreviation_unknown: 'Das Gesetz «{law}» ist nicht bekannt.', d_law: 'Abkürzung falsch, oder kantonales Recht, das diese Prüfung nicht abdeckt.',
+    p_grounding_no: 'Die zitierte Stelle trägt die Aussage nicht.', p_grounding_contradicts: 'Die zitierte Stelle widerspricht der Aussage.',
+    p_grounding_partial: 'Die zitierte Stelle trägt die Aussage nur teilweise.', p_grounding_unrelated: 'Die zitierte Stelle behandelt etwas anderes.',
+    d_grounding: 'Verglichen mit: {source}. Sicherheit des Modells {pct} %.', d_claim: 'Aussage',
+    p_unknown: 'Beanstandung ({problem})', d_server_hint: 'Hinweis des Servers (englisch)',
+    jump: 'Im Text zeigen',
+    good_in: 'in {source}',
+    scope_intro: 'Diese Verweise erkennt die Prüfung nicht (vor allem kantonale und europäische Entscheide). Sie sind nicht geprüft; die Seite hat sie bei OpenCaseLaw nachgeschlagen.',
+    look_busy: 'sehe nach …', look_found: 'vorhanden:', look_close: 'nicht so, ähnlich:', look_none: 'nicht gefunden', look_name: 'kein Aktenzeichen',
+    copy_intro: 'Der Text mit den geprüften Entscheiden als Links (Markdown).', copy_btn: 'Text mit Links kopieren',
+    certify: 'Geprüft sind die Belege, die im Text stehen. Ob relevante Entscheide oder Artikel fehlen, prüft die Seite nicht.',
+  },
+  fr: {
+    brand: 'Contrôle de réponse',
+    intro: 'Contrôle les sources d’un texte juridique, par exemple une réponse d’IA: les décisions, considérants et articles cités existent-ils, les citations littérales sont-elles exactes, les dates concordent-elles et la source étaye-t-elle l’affirmation? Sur le corpus ouvert d’OpenCaseLaw.',
+    draft_label: 'Texte à contrôler', count: '{n} sur {max} caractères', count_over: '{n} caractères: {max} au plus.',
+    example_note: 'Exemple avec des erreurs voulues.', example: 'Insérer l’exemple', clear: 'Vider',
+    opt_grounding: 'Contrôler si la source étaye l’affirmation', opt_grounding_h: 'Un modèle de langage lit pour cela le passage cité et la phrase qui le précède.',
+    opt_quotes: 'Contrôler les citations littérales', opt_quotes_h: 'À désactiver si le texte cite des écritures, des contrats ou des déclarations.',
+    sent: 'Le texte entier passe par votre connecteur «opencaselaw» vers mcp.opencaselaw.ch; pour le contrôle du contenu, un modèle de langage (Claude) le lit aussi. Retirez d’abord les données personnelles et les secrets professionnels.',
+    sent_web: 'Le texte entier va au serveur mcp.opencaselaw.ch; pour le contrôle du contenu, un modèle de langage (Claude) le lit aussi. Retirez d’abord les données personnelles et les secrets professionnels.',
+    go: 'Contrôler', busy: 'Contrôle des sources …', busy_grounding: 'Contrôle des sources et lecture des affirmations …',
+    empty_title: 'Rien n’a encore été contrôlé', empty_body: 'Insérez un texte, puis «Contrôler». Le résultat montre le texte avec chaque source, exacte ou non, et en dessous ce qui ne va pas.',
+    checks_title: 'Ce qui est contrôlé',
+    check_case: 'Les décisions citées (ATF, TF, TAF, TPF, TFB) existent, le considérant aussi.',
+    check_statute: '«Art. X loi» existe dans cette loi.',
+    check_quote: 'Les citations littérales figurent telles quelles dans la source citée.',
+    check_date: 'Les dates à côté des citations sont exactes.',
+    check_grounding: 'Le passage cité étaye la phrase qui le précède (modèle de langage).',
+    too_long: 'Le texte est trop long: {max} caractères au plus.', too_short: 'Insérez d’abord un texte.',
+    verdict_ok: 'Aucune remarque.', verdict_one: 'Une remarque.', verdict_n: '{n} remarques.',
+    verdict_nothing: 'Le texte ne contient rien qui puisse être contrôlé.',
+    stale: 'Le texte a changé depuis le contrôle. «Contrôler» le contrôle à nouveau.',
+    led_cases: 'Décisions', led_pins: 'Considérants', led_statutes: 'Articles de loi', led_quotes: 'Citations littérales', led_dates: 'Dates', led_grounding: 'Affirmations',
+    led_of: '{ok} / {n}', led_sub_ok: 'exacts', led_none: 'aucun dans le texte', led_off: 'non contrôlé', led_skipped: '{n} non contrôlables',
+    h_text: 'Le texte', h_issues: 'Ce qui ne va pas', h_good: 'Trouvé tel quel', h_scope: 'Non contrôlé', h_copy: 'Texte avec liens',
+    lg_bad: 'remarque', lg_claim: 'affirmation que la source n’étaye pas', lg_good: 'trouvé tel quel', lg_ok: 'source exacte',
+    chip_ok: '✓', chip_ok_title: 'Décision et considérant exacts', chip_maybe: '✓?', chip_maybe_title: 'Décision exacte; le considérant n’a pas pu être contrôlé (décision sans considérants structurés)',
+    cat_case: 'Décision', cat_statute: 'Loi', cat_quote: 'Citation', cat_date: 'Date', cat_grounding: 'Affirmation',
+    p_pinpoint_not_in_decision: 'Ce considérant n’existe pas dans la décision.', d_valid_pinpoints: 'Existants: {list}.',
+    p_decision_not_in_corpus: 'Cette décision n’existe pas chez OpenCaseLaw.', d_not_in_corpus: 'Mal citée, non publiée ou inventée.',
+    p_date_does_not_match_decision: 'La date ne concorde pas.', d_date: 'Dans le texte: {claimed}. La décision date du {actual}.',
+    p_quote_not_in_cited_sources: 'Cette citation ne figure telle quelle dans aucune source citée.', d_quote: 'Sources examinées: {list}.',
+    p_article_not_in_law: 'Cet article n’existe pas dans la {law}.', d_article: 'Recherché: art. {article} {law}{sr}.',
+    p_law_abbreviation_unknown: 'La loi «{law}» n’est pas connue.', d_law: 'Abréviation erronée, ou droit cantonal que ce contrôle ne couvre pas.',
+    p_grounding_no: 'Le passage cité n’étaye pas l’affirmation.', p_grounding_contradicts: 'Le passage cité contredit l’affirmation.',
+    p_grounding_partial: 'Le passage cité n’étaye l’affirmation qu’en partie.', p_grounding_unrelated: 'Le passage cité traite d’autre chose.',
+    d_grounding: 'Comparé avec: {source}. Certitude du modèle {pct} %.', d_claim: 'Affirmation',
+    p_unknown: 'Remarque ({problem})', d_server_hint: 'Indication du serveur (en anglais)',
+    jump: 'Montrer dans le texte',
+    good_in: 'dans {source}',
+    scope_intro: 'Ces renvois ne sont pas reconnus par le contrôle (surtout des décisions cantonales et européennes). Ils ne sont pas contrôlés; la page les a recherchés chez OpenCaseLaw.',
+    look_busy: 'recherche …', look_found: 'trouvée:', look_close: 'pas ainsi, proche:', look_none: 'introuvable', look_name: 'pas de numéro de dossier',
+    copy_intro: 'Le texte avec les décisions contrôlées en liens (Markdown).', copy_btn: 'Copier le texte avec liens',
+    certify: 'Sont contrôlées les sources qui figurent dans le texte. La page ne vérifie pas si des décisions ou articles pertinents manquent.',
+  },
+  it: {
+    brand: 'Verifica della risposta',
+    intro: 'Verifica le fonti di un testo giuridico, per esempio una risposta di IA: esistono le decisioni, i considerandi e gli articoli citati, le citazioni letterali sono esatte, le date corrispondono, la fonte sostiene l’affermazione? Sul corpus aperto di OpenCaseLaw.',
+    draft_label: 'Testo da verificare', count: '{n} di {max} caratteri', count_over: '{n} caratteri: al massimo {max}.',
+    example_note: 'Esempio con errori voluti.', example: 'Inserire l’esempio', clear: 'Svuotare',
+    opt_grounding: 'Verificare se la fonte sostiene l’affermazione', opt_grounding_h: 'Un modello linguistico legge il passo citato e la frase che lo precede.',
+    opt_quotes: 'Verificare le citazioni letterali', opt_quotes_h: 'Da disattivare se il testo cita atti, contratti o dichiarazioni.',
+    sent: 'L’intero testo va tramite il vostro connettore «opencaselaw» a mcp.opencaselaw.ch; per la verifica del contenuto lo legge anche un modello linguistico (Claude). Togliete prima dati personali e segreti professionali.',
+    sent_web: 'L’intero testo va al server mcp.opencaselaw.ch; per la verifica del contenuto lo legge anche un modello linguistico (Claude). Togliete prima dati personali e segreti professionali.',
+    go: 'Verificare', busy: 'Verifica delle fonti …', busy_grounding: 'Verifica delle fonti e lettura delle affermazioni …',
+    empty_title: 'Nulla è stato ancora verificato', empty_body: 'Inserite un testo, poi «Verificare». Il risultato mostra il testo con ogni fonte, esatta o no, e sotto ciò che non va.',
+    checks_title: 'Che cosa si verifica',
+    check_case: 'Le decisioni citate (DTF, TF, TAF, TPF, TFB) esistono, anche il considerando.',
+    check_statute: '«Art. X legge» esiste in quella legge.',
+    check_quote: 'Le citazioni letterali figurano così nella fonte citata.',
+    check_date: 'Le date accanto alle citazioni sono esatte.',
+    check_grounding: 'Il passo citato sostiene la frase che lo precede (modello linguistico).',
+    too_long: 'Il testo è troppo lungo: al massimo {max} caratteri.', too_short: 'Inserite prima un testo.',
+    verdict_ok: 'Nessuna osservazione.', verdict_one: 'Un’osservazione.', verdict_n: '{n} osservazioni.',
+    verdict_nothing: 'Nel testo non c’è nulla da verificare.',
+    stale: 'Il testo è cambiato dalla verifica. «Verificare» lo verifica di nuovo.',
+    led_cases: 'Decisioni', led_pins: 'Considerandi', led_statutes: 'Articoli di legge', led_quotes: 'Citazioni letterali', led_dates: 'Date', led_grounding: 'Affermazioni',
+    led_of: '{ok} / {n}', led_sub_ok: 'esatti', led_none: 'nessuno nel testo', led_off: 'non verificato', led_skipped: '{n} non verificabili',
+    h_text: 'Il testo', h_issues: 'Ciò che non va', h_good: 'Trovato alla lettera', h_scope: 'Non verificato', h_copy: 'Testo con link',
+    lg_bad: 'osservazione', lg_claim: 'affermazione che la fonte non sostiene', lg_good: 'trovato alla lettera', lg_ok: 'fonte esatta',
+    chip_ok: '✓', chip_ok_title: 'Decisione e considerando esatti', chip_maybe: '✓?', chip_maybe_title: 'Decisione esatta; il considerando non era verificabile (decisione senza considerandi strutturati)',
+    cat_case: 'Decisione', cat_statute: 'Legge', cat_quote: 'Citazione', cat_date: 'Data', cat_grounding: 'Affermazione',
+    p_pinpoint_not_in_decision: 'Questo considerando non esiste nella decisione.', d_valid_pinpoints: 'Esistono: {list}.',
+    p_decision_not_in_corpus: 'Questa decisione non esiste presso OpenCaseLaw.', d_not_in_corpus: 'Citata male, non pubblicata o inventata.',
+    p_date_does_not_match_decision: 'La data non corrisponde.', d_date: 'Nel testo: {claimed}. La decisione è del {actual}.',
+    p_quote_not_in_cited_sources: 'Questa citazione non figura così in nessuna fonte citata.', d_quote: 'Fonti esaminate: {list}.',
+    p_article_not_in_law: 'Questo articolo non esiste nella {law}.', d_article: 'Cercato: art. {article} {law}{sr}.',
+    p_law_abbreviation_unknown: 'La legge «{law}» non è conosciuta.', d_law: 'Abbreviazione errata, o diritto cantonale che questa verifica non copre.',
+    p_grounding_no: 'Il passo citato non sostiene l’affermazione.', p_grounding_contradicts: 'Il passo citato contraddice l’affermazione.',
+    p_grounding_partial: 'Il passo citato sostiene l’affermazione solo in parte.', p_grounding_unrelated: 'Il passo citato tratta d’altro.',
+    d_grounding: 'Confrontato con: {source}. Certezza del modello {pct} %.', d_claim: 'Affermazione',
+    p_unknown: 'Osservazione ({problem})', d_server_hint: 'Indicazione del server (in inglese)',
+    jump: 'Mostrare nel testo',
+    good_in: 'in {source}',
+    scope_intro: 'Questi rinvii non sono riconosciuti dalla verifica (soprattutto decisioni cantonali ed europee). Non sono verificati; la pagina li ha cercati presso OpenCaseLaw.',
+    look_busy: 'cerco …', look_found: 'presente:', look_close: 'non così, simile:', look_none: 'non trovata', look_name: 'nessun numero d’incarto',
+    copy_intro: 'Il testo con le decisioni verificate come link (Markdown).', copy_btn: 'Copiare il testo con link',
+    certify: 'Sono verificate le fonti che figurano nel testo. La pagina non verifica se mancano decisioni o articoli rilevanti.',
+  },
+  en: {
+    brand: 'Answer check',
+    intro: 'Checks the authorities in a legal text, such as an AI answer: do the cited decisions, Erwägungen and statute articles exist, are verbatim quotes verbatim, do the dates match, and does the source carry the statement? Against OpenCaseLaw’s open corpus.',
+    draft_label: 'Text to check', count: '{n} of {max} characters', count_over: '{n} characters: at most {max}.',
+    example_note: 'Example with deliberate errors.', example: 'Insert the example', clear: 'Clear',
+    opt_grounding: 'Check whether the source carries the statement', opt_grounding_h: 'A language model reads the cited passage and the sentence before it.',
+    opt_quotes: 'Check verbatim quotes', opt_quotes_h: 'Turn off when the text quotes submissions, contracts or statements.',
+    sent: 'The whole text goes through your “opencaselaw” connector to mcp.opencaselaw.ch; for the content check a language model (Claude) reads it too. Remove personal data and professional secrets first.',
+    sent_web: 'The whole text goes to the server mcp.opencaselaw.ch; for the content check a language model (Claude) reads it too. Remove personal data and professional secrets first.',
+    go: 'Check', busy: 'Checking the authorities …', busy_grounding: 'Checking the authorities and having the statements read …',
+    empty_title: 'Nothing checked yet', empty_body: 'Paste a text, then “Check”. The result shows the text with every authority that holds or fails, and below it what fails.',
+    checks_title: 'What is checked',
+    check_case: 'Cited decisions (BGE, BGer, BVGer, BStGer, BPatGer) exist, and so does the Erwägung.',
+    check_statute: '“Art. X LAW” exists in that law.',
+    check_quote: 'Verbatim quotes stand as quoted in the cited source.',
+    check_date: 'Dates beside citations are right.',
+    check_grounding: 'The cited passage carries the sentence before it (language model).',
+    too_long: 'The text is too long: at most {max} characters.', too_short: 'Please paste a text first.',
+    verdict_ok: 'Nothing to object to.', verdict_one: 'One objection.', verdict_n: '{n} objections.',
+    verdict_nothing: 'The text holds nothing that could be checked.',
+    stale: 'The text has changed since the check. “Check” checks it again.',
+    led_cases: 'Decisions', led_pins: 'Erwägungen', led_statutes: 'Statute articles', led_quotes: 'Verbatim quotes', led_dates: 'Dates', led_grounding: 'Statements',
+    led_of: '{ok} / {n}', led_sub_ok: 'hold', led_none: 'none in the text', led_off: 'not checked', led_skipped: '{n} not checkable',
+    h_text: 'The text', h_issues: 'What fails', h_good: 'Found verbatim', h_scope: 'Not checked', h_copy: 'Text with links',
+    lg_bad: 'objection', lg_claim: 'statement the source does not carry', lg_good: 'found verbatim', lg_ok: 'authority holds',
+    chip_ok: '✓', chip_ok_title: 'Decision and Erwägung hold', chip_maybe: '✓?', chip_maybe_title: 'Decision holds; the Erwägung could not be checked (decision without structured Erwägungen)',
+    cat_case: 'Decision', cat_statute: 'Statute', cat_quote: 'Quote', cat_date: 'Date', cat_grounding: 'Statement',
+    p_pinpoint_not_in_decision: 'This Erwägung does not exist in the decision.', d_valid_pinpoints: 'It has: {list}.',
+    p_decision_not_in_corpus: 'OpenCaseLaw has no such decision.', d_not_in_corpus: 'Miscited, unpublished or invented.',
+    p_date_does_not_match_decision: 'The date is wrong.', d_date: 'In the text: {claimed}. The decision is of {actual}.',
+    p_quote_not_in_cited_sources: 'This quote is not verbatim in any cited source.', d_quote: 'Searched: {list}.',
+    p_article_not_in_law: 'The {law} has no such article.', d_article: 'Looked for: Art. {article} {law}{sr}.',
+    p_law_abbreviation_unknown: 'The law “{law}” is not known.', d_law: 'A wrong abbreviation, or cantonal law, which this check does not cover.',
+    p_grounding_no: 'The cited passage does not carry the statement.', p_grounding_contradicts: 'The cited passage contradicts the statement.',
+    p_grounding_partial: 'The cited passage carries the statement only in part.', p_grounding_unrelated: 'The cited passage is about something else.',
+    d_grounding: 'Compared with: {source}. Model confidence {pct} %.', d_claim: 'Statement',
+    p_unknown: 'Objection ({problem})', d_server_hint: 'The server’s note',
+    jump: 'Show in the text',
+    good_in: 'in {source}',
+    scope_intro: 'The check does not recognise these references (mostly cantonal and European decisions). They are not checked; the page looked them up at OpenCaseLaw.',
+    look_busy: 'looking …', look_found: 'found:', look_close: 'not as written, close:', look_none: 'not found', look_name: 'no docket number',
+    copy_intro: 'The text with the checked decisions as links (Markdown).', copy_btn: 'Copy the text with links',
+    certify: 'Checked are the authorities the text cites. Whether relevant decisions or articles are missing, the page does not check.',
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const state = { busy: false, error: null, result: null, checked: '', grounding: true, lookups: new Map(), focus: null };
+
+// ── where things stand in the text ────────────────────────────────────────
+// The server counts positions in code points, the page in UTF-16 units; the two agree
+// unless the text holds characters outside the BMP. So a position is trusted only where
+// the cited text really stands there, else the nearest occurrence is used.
+function locate(text, needle, near) {
+  if (!needle) return null;
+  if (near >= 0 && text.substr(near, needle.length) === needle) return [near, near + needle.length];
+  let best = null;
+  for (let at = text.indexOf(needle); at >= 0; at = text.indexOf(needle, at + 1)) {
+    if (best === null || Math.abs(at - near) < Math.abs(best - near)) best = at;
+  }
+  return best === null ? null : [best, best + needle.length];
+}
+
+// The server's annotated text is the draft with " ✓", " ✓?" or " ⚠️[CODE]" inserted
+// after each case citation; walking both side by side gives where each mark belongs.
+function markersOf(text, annotated) {
+  const out = [];
+  if (!annotated) return out;
+  let i = 0;
+  let j = 0;
+  while (j < annotated.length) {
+    // A mark is looked for first: its leading space would otherwise pass as the text's own.
+    const m = annotated[j] === ' ' && /^ (✓\?|✓|⚠️\[[A-Z_]+\])/u.exec(annotated.slice(j, j + 40));
+    if (m && text.slice(i, i + m[0].length) !== m[0]) {
+      out.push({ at: i, kind: m[1] === '✓' ? 'ok' : m[1] === '✓?' ? 'maybe' : 'bad' });
+      j += m[0].length;
+      continue;
+    }
+    if (i < text.length && text[i] === annotated[j]) { i++; j++; continue; }
+    return [];                               // out of step: no marks rather than wrong ones
+  }
+  return i === text.length ? out : [];
+}
+
+// A quote the server found: from its start to the closing quotation mark.
+function quoteSpan(text, match) {
+  const head = String(match.quote || '').replace(/…$/, '');
+  const at = locate(text, head.slice(0, 40), match.position);
+  if (!at) return null;
+  let start = at[0];
+  if (start > 0 && /[«"„“‹]/.test(text[start - 1])) start--;
+  const close = /[«]/.test(text[start]) ? '»' : /[„“]/.test(text[start]) ? '“”' : /[‹]/.test(text[start]) ? '›' : '"';
+  let end = start + 1;
+  while (end < text.length && !close.includes(text[end]) && end - start < 600) end++;
+  return [start, Math.min(end + 1, text.length)];
+}
+
+function spansOf(text, payload) {
+  const spans = [];
+  (payload.issues || []).forEach((issue, n) => {
+    const at = locate(text, issue.citation, issue.position);
+    if (at) spans.push({ s: at[0], e: at[1], kind: issue.category === 'grounding' ? 'claim-cite' : 'bad', issue: n });
+    if (issue.category === 'grounding' && issue.claim) {
+      const c = locate(text, issue.claim, Math.max(0, (issue.position || 0) - issue.claim.length - 4));
+      if (c) spans.push({ s: c[0], e: c[1], kind: 'claim', issue: n });
+    }
+  });
+  const matches = (((payload.ledger || {}).quotations || {}).matches) || [];
+  for (const m of matches) {
+    const q = quoteSpan(text, m);
+    if (q) spans.push({ s: q[0], e: q[1], kind: 'good', issue: null });
+  }
+  return spans;
+}
+
+// ── rendering ─────────────────────────────────────────────────────────────
+function issueTitle(issue) {
+  if (issue.category === 'grounding') return t('p_grounding_' + (['no', 'contradicts', 'partial', 'unrelated'].includes(issue.supports) ? issue.supports : 'no'));
+  const known = ['pinpoint_not_in_decision', 'decision_not_in_corpus', 'date_does_not_match_decision', 'quote_not_in_cited_sources', 'article_not_in_law', 'law_abbreviation_unknown'];
+  return known.includes(issue.problem) ? t('p_' + issue.problem, { law: issue.law_code || '' }) : t('p_unknown', { problem: issue.problem || issue.category });
+}
+
+function issueDetails(issue) {
+  const out = [];
+  switch (issue.problem) {
+    case 'pinpoint_not_in_decision':
+      if (Array.isArray(issue.valid_pinpoints) && issue.valid_pinpoints.length) out.push(el('p', null, t('d_valid_pinpoints', { list: issue.valid_pinpoints.map((p) => 'E. ' + p).join(', ') })));
+      break;
+    case 'decision_not_in_corpus': out.push(el('p', 'muted', t('d_not_in_corpus'))); break;
+    case 'date_does_not_match_decision': out.push(el('p', null, t('d_date', { claimed: OCL.date(issue.claimed_date), actual: OCL.date(issue.actual_date) }))); break;
+    case 'quote_not_in_cited_sources': {
+      const sources = [...new Set((issue.searched_sources || []).map((s) => s.replace(/^statute:(\w+)_(\w+)$/, 'Art. $2 $1').replace(/^bge_/, 'BGE ').replace(/^bger_(\w+)_(\w+)_(\d{4})$/, '$1_$2/$3')))];
+      if (sources.length) out.push(el('p', 'muted small', t('d_quote', { list: sources.join(', ') })));
+      break;
+    }
+    case 'article_not_in_law': out.push(el('p', 'muted small', t('d_article', { article: issue.article || '', law: issue.law_code || '', sr: issue.sr_number ? ' (SR ' + issue.sr_number + ')' : '' }))); break;
+    case 'law_abbreviation_unknown': out.push(el('p', 'muted', t('d_law'))); break;
+    default:
+      if (issue.category !== 'grounding' && issue.suggestion) {
+        out.push(el('p', 'eyebrow', t('d_server_hint')), el('p', 'small', issue.suggestion));
+      }
+  }
+  if (issue.category === 'grounding') {
+    if (issue.claim) out.push(el('p', 'eyebrow', t('d_claim')), el('blockquote', 'excerpt', issue.claim));
+    out.push(el('p', 'muted small', t('d_grounding', { source: issue.checked_text_source || '–', pct: typeof issue.confidence === 'number' ? OCL.num(Math.round(issue.confidence * 100)) : '–' })));
+    if (issue.reasoning) out.push(el('p', 'eyebrow', t('model_reasons')), el('p', 'small', issue.reasoning));
+  }
+  return out;
+}
+
+function focusIssue(n, from) {
+  state.focus = n;
+  for (const node of document.querySelectorAll('.m-focus, .issue.focus')) node.classList.remove('m-focus', 'focus');
+  const card = document.getElementById('issue-' + n);
+  const marks = document.querySelectorAll(`[data-issue="${n}"]`);
+  if (card) card.classList.add('focus');
+  marks.forEach((m) => m.classList.add('m-focus'));
+  const target = from === 'text' ? card : marks[0];
+  if (target) target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function renderReading(text, payload) {
+  const box = el('div', 'reading');
+  box.tabIndex = 0;
+  const spans = spansOf(text, payload);
+  const markers = markersOf(text, payload.annotated_text).filter((m) => m.kind !== 'bad');
+  const cuts = new Set([0, text.length]);
+  for (const s of spans) { cuts.add(s.s); cuts.add(s.e); }
+  for (const m of markers) cuts.add(m.at);
+  const points = [...cuts].sort((a, b) => a - b);
+  const chipsAt = new Map();
+  for (const m of markers) chipsAt.set(m.at, [...(chipsAt.get(m.at) || []), m.kind]);
+  for (let k = 0; k < points.length; k++) {
+    const at = points[k];
+    for (const kind of chipsAt.get(at) || []) {
+      const chip = el('span', 'chip chip-' + kind, t(kind === 'ok' ? 'chip_ok' : 'chip_maybe'));
+      chip.title = t(kind === 'ok' ? 'chip_ok_title' : 'chip_maybe_title');
+      box.append(chip);
+    }
+    if (k === points.length - 1) break;
+    const s = at;
+    const e = points[k + 1];
+    const piece = text.slice(s, e);
+    const over = spans.filter((x) => x.s <= s && x.e >= e);
+    if (!over.length) { box.append(piece); continue; }
+    const kinds = new Set(over.map((x) => x.kind));
+    const issue = (over.find((x) => x.kind === 'bad') || over.find((x) => x.issue !== null) || {}).issue;
+    const mark = el('mark', 'm ' + [kinds.has('bad') ? 'm-bad' : '', kinds.has('claim') || kinds.has('claim-cite') ? 'm-claim' : '', kinds.has('good') ? 'm-good' : ''].join(' ').trim(), piece);
+    if (issue !== undefined && issue !== null) {
+      mark.dataset.issue = String(issue);
+      mark.tabIndex = 0;
+      mark.setAttribute('role', 'button');
+      const go = () => focusIssue(issue, 'text');
+      mark.addEventListener('click', go);
+      mark.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } });
+    }
+    box.append(mark);
+  }
+  return box;
+}
+
+function ledgerCell(label, ok, n, extra) {
+  const cell = el('div', 'cell');
+  cell.append(el('span', 'label', label));
+  if (n === null) { cell.classList.add('none'); cell.append(el('span', 'value', extra || t('led_off'))); return cell; }
+  if (n === 0) { cell.classList.add('none'); cell.append(el('span', 'value', t('led_none'))); return cell; }
+  cell.classList.add(ok === n ? 'good' : 'bad');
+  cell.append(el('span', 'value', t('led_of', { ok: OCL.num(ok), n: OCL.num(n) })), el('span', 'sub', extra || t('led_sub_ok')));
+  return cell;
+}
+
+function renderLedger(payload) {
+  const L = payload.ledger || {};
+  const by = payload.issues_by_category || {};
+  const issues = payload.issues || [];
+  const c = L.citations || {}; const p = L.pinpoints || {}; const s = L.statutes || {}; const q = L.quotations || {}; const d = L.dates || {};
+  const g = payload.grounding_meta || {};
+  const grid = el('div', 'ledger');
+  const resolvedOk = Math.max(0, (c.resolved || 0));
+  grid.append(ledgerCell(t('led_cases'), resolvedOk, c.found || 0));
+  const pinsBad = issues.filter((i) => i.problem === 'pinpoint_not_in_decision').length;
+  grid.append(ledgerCell(t('led_pins'), Math.max(0, (p.found || 0) - pinsBad), p.found || 0, p.unverified ? t('led_skipped', { n: OCL.num(p.unverified) }) : null));
+  grid.append(ledgerCell(t('led_statutes'), s.verified || 0, s.checked === false ? null : (s.found_unique || 0)));
+  grid.append(ledgerCell(t('led_quotes'), q.verbatim || 0, q.audited === false ? null : (q.examined || 0), (q.skipped_short || 0) + (q.skipped_unanchored || 0) ? t('led_skipped', { n: OCL.num((q.skipped_short || 0) + (q.skipped_unanchored || 0)) }) : null));
+  grid.append(ledgerCell(t('led_dates'), (d.found || 0) - (d.issues || 0), d.found || 0));
+  grid.append(ledgerCell(t('led_grounding'), Math.max(0, (g.checked || 0) - (by.grounding || 0)), g.requested && g.available !== false ? (g.checked || 0) : null));
+  return grid;
+}
+
+function renderScope(items) {
+  const list = el('ul', 'scope');
+  for (const item of items) {
+    const li = el('li');
+    li.append(el('span', 'what', item));
+    const look = state.lookups.get(item);
+    const said = el('span', 'small');
+    if (!/\d/.test(item)) said.append(el('span', 'muted', t('look_name')));
+    else if (!look || look.busy) said.append(el('span', 'busy', t('look_busy')));
+    else if (look.error) said.append(el('span', 'error-line', OCL.errorText(look.error)));
+    else if (look.result.exists) said.append(t('look_found') + ' ', OCL.link(look.result.canonical_url, OCL.citationOf(look.result), 'cite'));
+    else if ((look.result.close_matches || []).length) {
+      said.append(t('look_close') + ' ');
+      look.result.close_matches.slice(0, 3).forEach((m, k) => {
+        if (k) said.append('; ');
+        said.append(OCL.link(m.canonical_url, OCL.citationOf(m) || m.decision_id, 'cite'));
+      });
+    } else said.append(el('span', 'muted', t('look_none')));
+    li.append(said);
+    list.append(li);
+  }
+  return list;
+}
+
+async function lookUp(items) {
+  for (const item of items.filter((x) => /\d/.test(x)).slice(0, 8)) {
+    if (state.lookups.has(item)) continue;
+    const entry = { busy: true };
+    state.lookups.set(item, entry);
+    render();
+    try { entry.result = await OCL.call('cite', { reference: item, language: OCL.toolLang() }); } catch (error) { entry.error = await OCL.failure(error); }
+    entry.busy = false;
+    render();
+  }
+}
+
+function render() {
+  const out = $('out');
+  const draft = $('draft').value;
+  if (state.busy) {
+    out.replaceChildren(el('p', 'busy', t(state.grounding ? 'busy_grounding' : 'busy')));
+    return;
+  }
+  if (state.error) {
+    out.replaceChildren(OCL.renderError(state.error, runCheck, render));
+    return;
+  }
+  const payload = state.result;
+  if (!payload) {
+    const box = el('div', 'empty stack');
+    box.append(el('h2', 'h', t('empty_title')), el('p', null, t('empty_body')));
+    const list = el('ul', 'goodlist small');
+    for (const k of ['check_case', 'check_statute', 'check_quote', 'check_date', 'check_grounding']) list.append(el('li', null, t(k)));
+    box.append(el('p', 'eyebrow', t('checks_title')), list);
+    out.replaceChildren(box);
+    return;
+  }
+  const text = state.checked;
+  const issues = payload.issues || [];
+  const nothing = !((payload.ledger || {}).citations || {}).found && !((payload.ledger || {}).statutes || {}).found_unique && !((payload.ledger || {}).quotations || {}).examined && !((payload.ledger || {}).dates || {}).found;
+  const parts = [];
+  const verdict = el('p', 'verdict ' + (nothing ? 'plain' : issues.length ? 'bad' : 'good'),
+    nothing ? t('verdict_nothing') : issues.length === 0 ? t('verdict_ok') : issues.length === 1 ? t('verdict_one') : t('verdict_n', { n: OCL.num(issues.length) }));
+  parts.push(verdict);
+  if (draft !== text) parts.push(el('p', 'stale small', t('stale')));
+  parts.push(renderLedger(payload));
+
+  parts.push(el('h2', 'h', t('h_text')));
+  const legend = el('div', 'legend');
+  const sw = (cls, label) => { const s = el('span'); s.append(el('i', 'swatch ' + cls), label); return s; };
+  const okChip = el('span'); okChip.append(el('span', 'chip chip-ok', t('chip_ok')), t('lg_ok'));
+  legend.append(sw('bad', t('lg_bad')), sw('claim', t('lg_claim')), sw('good', t('lg_good')), okChip);
+  parts.push(legend, renderReading(text, payload));
+
+  if (issues.length) {
+    parts.push(el('h2', 'h', t('h_issues')));
+    const list = el('div', 'issues');
+    issues.map((issue, n) => ({ issue, n })).sort((a, b) => (a.issue.position || 0) - (b.issue.position || 0)).forEach(({ issue, n }) => {
+      const card = el('article', 'issue cat-' + issue.category);
+      card.id = 'issue-' + n;
+      const head = el('div', 'issue-head');
+      head.append(el('span', 'pill ' + (issue.category === 'grounding' ? 'pill-warn' : 'pill-bad'), t('cat_' + issue.category)), el('span', 'issue-title', issueTitle(issue)));
+      card.append(head, el('p', 'cite', issue.category === 'grounding' ? issue.citation : issue.citation));
+      card.append(...issueDetails(issue));
+      if (document.querySelector) card.append(button('link jump', t('jump'), () => focusIssue(n, 'card')));
+      if (state.focus === n) card.classList.add('focus');
+      list.append(card);
+    });
+    parts.push(list);
+  }
+
+  const matches = (((payload.ledger || {}).quotations || {}).matches) || [];
+  if (matches.length) {
+    parts.push(el('h2', 'h', t('h_good')));
+    const list = el('ul', 'goodlist');
+    for (const m of matches) {
+      const li = el('li');
+      li.append(el('span', 'serif', '«' + String(m.quote || '').replace(/…$/, '') + '…» '), el('span', 'muted small', t('good_in', { source: String(m.matched_source || '').replace(/^bge_/, 'BGE ') })));
+      list.append(li);
+    }
+    parts.push(list);
+  }
+
+  const scope = ((payload.ledger || {}).citations || {}).out_of_scope || [];
+  if (scope.length) {
+    parts.push(el('h2', 'h', t('h_scope')), el('p', 'small muted', t('scope_intro')), renderScope(scope));
+  }
+
+  if (payload.linked_text && payload.linked_text !== text) {
+    parts.push(el('h2', 'h', t('h_copy')));
+    const row = el('div', 'row');
+    const said = el('span', 'small muted', t('copy_intro'));
+    const b = button('quiet', t('copy_btn'), async () => {
+      const ok = await OCL.copy(payload.linked_text, $('copy-fallback'));
+      said.textContent = ok ? t('copied') : t('copy_failed');
+    });
+    row.append(b, said);
+    parts.push(row);
+  }
+  parts.push(el('p', 'note small', t('certify')));
+  out.replaceChildren(...parts);
+  if (state.focus !== null) for (const m of out.querySelectorAll(`[data-issue="${state.focus}"]`)) m.classList.add('m-focus');
+}
+
+function renderChrome() {
+  document.title = 'Antwortprüfung';
+  $('brand').textContent = t('brand');
+  $('intro').textContent = t('intro');
+  OCL.langButtons($('langs'));
+  $('draft-label').textContent = t('draft_label');
+  $('example').textContent = t('example');
+  $('clear').textContent = t('clear');
+  $('example-note').textContent = t('example_note');
+  $('example-note').hidden = $('draft').value !== EXAMPLE;
+  $('opt-grounding-l').textContent = t('opt_grounding');
+  $('opt-grounding-h').textContent = t('opt_grounding_h');
+  $('opt-quotes-l').textContent = t('opt_quotes');
+  $('opt-quotes-h').textContent = t('opt_quotes_h');
+  $('sent').textContent = t('sent');
+  $('go').textContent = state.busy ? t('busy') : t('go');
+  $('go').disabled = state.busy;
+  $('foot').textContent = t('foot');
+  updateCount();
+}
+
+function updateCount() {
+  const n = $('draft').value.length;
+  $('count').textContent = n > MAX ? t('count_over', { n: OCL.num(n), max: OCL.num(MAX) }) : t('count', { n: OCL.num(n), max: OCL.num(MAX) });
+  $('count').classList.toggle('error-line', n > MAX);
+  $('example-note').hidden = $('draft').value !== EXAMPLE;
+}
+
+async function runCheck() {
+  const text = $('draft').value;
+  if (!text.trim()) { state.error = null; state.result = null; render(); $('draft').focus(); return; }
+  if (text.length > MAX) { updateCount(); $('draft').focus(); return; }
+  if (state.busy) return;
+  state.busy = true;
+  state.error = null;
+  state.focus = null;
+  state.grounding = $('opt-grounding').checked;
+  renderChrome();
+  render();
+  try {
+    const payload = await OCL.call('attest_response', { draft_text: text, audit_grounding: state.grounding, audit_quotes: $('opt-quotes').checked });
+    if (!payload.ledger && !Array.isArray(payload.issues)) throw { code: 'tool_error', message: 'unexpected answer' };
+    state.result = payload;
+    state.checked = text;
+    state.lookups = new Map();
+  } catch (error) {
+    state.error = await OCL.failure(error);
+  }
+  state.busy = false;
+  renderChrome();
+  render();
+  if (state.result) {
+    $('out').focus({ preventScroll: true });
+    lookUp((((state.result.ledger || {}).citations || {}).out_of_scope) || []);
+  }
+}
+
+function start() {
+  $('out').tabIndex = -1;
+  $('draft').value = EXAMPLE;
+  $('form').addEventListener('submit', (ev) => { ev.preventDefault(); runCheck(); });
+  $('draft').addEventListener('input', () => { updateCount(); if (state.result) render(); });
+  $('example').addEventListener('click', () => { $('draft').value = EXAMPLE; updateCount(); $('draft').focus(); });
+  $('clear').addEventListener('click', () => { $('draft').value = ''; updateCount(); $('draft').focus(); });
+  OCL.onLang(() => { renderChrome(); render(); });
+  OCL.initLang();
+}
+
+start();
+
+</script>
+</body>
+</html>

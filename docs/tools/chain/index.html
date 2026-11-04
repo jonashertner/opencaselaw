@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Instanzenzug · OpenCaseLaw</title>
+<meta name="description" content="Ein Entscheid mit seinen Vorinstanzen und den Entscheiden, die ihn zitieren oder die er zitiert.">
+<link rel="canonical" href="https://opencaselaw.ch/tools/chain/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpenCaseLaw">
+<meta property="og:title" content="Instanzenzug · OpenCaseLaw">
+<meta property="og:description" content="Ein Entscheid mit seinen Vorinstanzen und den Entscheiden, die ihn zitieren oder die er zitiert.">
+<meta property="og:url" content="https://opencaselaw.ch/tools/chain/">
+<meta property="og:image" content="https://opencaselaw.ch/tools/chain/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="color-scheme" content="light dark">
+<style>
+/* OpenCaseLaw artifacts: one family with citecheck (its palette and faces).
+   Layout: a slim masthead band, then a centred work area of one or two columns. */
+:root {
+  --frame: #ebe9e4;
+  --ground: #f6f5f2;
+  --paper: #ffffff;
+  --ink: #20252a;
+  --muted: #59636d;
+  --rule: #dddeda;
+  --rule-strong: #808892;
+  --action: #244d72;
+  --action-ink: #ffffff;
+  --good: #236746;
+  --warn: #8a5400;
+  --bad: #b0352b;
+  --wash-good: #e6f1ea;
+  --wash-warn: #f7efdd;
+  --wash-bad: #faece9;
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --frame: #171a1d; --ground: #1e2226; --paper: #272c31; --ink: #f0eee8; --muted: #b1b7bd;
+    --rule: #3a4147; --rule-strong: #73808d; --action: #9ec2e6; --action-ink: #17222d;
+    --good: #85c7a3; --warn: #e4b45f; --bad: #f28d83;
+    --wash-good: #22302a; --wash-warn: #332d22; --wash-bad: #382928;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --frame: #171a1d; --ground: #1e2226; --paper: #272c31; --ink: #f0eee8; --muted: #b1b7bd;
+  --rule: #3a4147; --rule-strong: #73808d; --action: #9ec2e6; --action-ink: #17222d;
+  --good: #85c7a3; --warn: #e4b45f; --bad: #f28d83;
+  --wash-good: #22302a; --wash-warn: #332d22; --wash-bad: #382928;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+p, h1, h2, h3, ol, ul, dl, dd, figure, blockquote { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+a { color: var(--action); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; border-radius: 3px; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* ── masthead ── */
+.site { border-bottom: 1px solid var(--rule); padding-block: 14px 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.site-in { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: baseline; }
+.brand { font: 600 19px/1.25 var(--serif); letter-spacing: 0.005em; min-width: 0; overflow-wrap: anywhere; }
+.brand small { display: inline-block; }
+.brand small { font: 500 12px/1 var(--sans); color: var(--muted); margin-left: 8px; letter-spacing: 0.04em; text-transform: uppercase; }
+.intro { grid-column: 1 / -1; color: var(--muted); max-width: 72ch; }
+.langs { display: flex; }
+.lang { border: 0; background: none; padding: 0 6px; min-height: 30px; min-width: 28px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.lang[aria-pressed="true"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
+
+/* ── work area ── */
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 18px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+.wrap.single { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--ground); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; min-width: 0; }
+.panel + .panel { margin-top: 0; }
+.stack { display: grid; gap: 12px; min-width: 0; }
+.h { font: 600 15px/1.3 var(--sans); }
+.eyebrow { font: 600 11px/1.3 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.serif { font-family: var(--serif); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.spread { justify-content: space-between; }
+
+/* ── controls ── */
+label.field { display: grid; gap: 4px; font-weight: 600; }
+textarea, input[type="text"], input[type="search"], input[type="number"], select {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--paper); color: var(--ink); font-weight: 400; }
+textarea { resize: vertical; font: 15px/1.55 var(--serif); }
+.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
+.check input { margin-top: 3px; }
+.primary { border: 0; border-radius: 4px; padding: 9px 16px; min-height: 38px; cursor: pointer; background: var(--action); color: var(--action-ink); font-weight: 600; }
+.primary:disabled { opacity: 0.45; cursor: default; }
+.quiet { border: 1px solid var(--rule-strong); border-radius: 4px; padding: 6px 11px; min-height: 32px; background: var(--paper); cursor: pointer; }
+.quiet:hover:not(:disabled) { border-color: var(--ink); }
+.quiet:disabled { opacity: 0.55; cursor: default; }
+.link { border: 0; padding: 0; background: none; color: var(--action); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── states ── */
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill-good { color: var(--good); box-shadow: inset 0 0 0 1.5px var(--good); }
+.pill-warn { color: var(--warn); background: var(--wash-warn); }
+.pill-bad { color: var(--bad); background: var(--wash-bad); }
+.pill-plain { color: var(--muted); box-shadow: inset 0 0 0 1px var(--rule-strong); }
+.alert { padding: 8px 10px; border-left: 3px solid var(--bad); background: var(--wash-bad); border-radius: 0 4px 4px 0; }
+.note { padding: 8px 10px; border-left: 3px solid var(--rule-strong); background: var(--paper); border-radius: 0 4px 4px 0; color: var(--muted); }
+.error-line { color: var(--bad); }
+.code { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.busy { color: var(--muted); }
+.busy::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border: 2px solid var(--rule-strong); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .busy::after { animation: none; } }
+.empty { padding: 8px 0; }
+.empty p { margin-top: 6px; color: var(--muted); max-width: 60ch; }
+.excerpt { margin-top: 4px; padding: 4px 10px; border-left: 2px solid var(--rule-strong); font: 14px/1.55 var(--serif); overflow-wrap: anywhere; }
+.cite { font-family: var(--serif); overflow-wrap: anywhere; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── foot ── */
+.foot { max-width: 1120px; margin: 0 auto; padding-block: 0 24px; color: var(--muted); font-size: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* ── Markdown from the tools ── */
+.md { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.md-h { font: 600 14px/1.35 var(--sans); margin-top: 6px; }
+h3.md-h { font-size: 15px; }
+.md-p { max-width: 75ch; }
+.md-list { display: grid; gap: 6px; padding-left: 0; }
+.md-list > li { padding-left: 12px; border-left: 2px solid var(--rule); }
+ol.md-list { list-style: none; }
+.md-quote { padding: 4px 10px; border-left: 2px solid var(--rule-strong); font-family: var(--serif); }
+.md-hr { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; width: 100%; }
+.md code { font: 12px/1.4 var(--mono); }
+
+.block { display: block; font-weight: 400; margin-top: 1px; }
+
+/* ── one-click examples on a first view ── */
+.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.chip-btn { border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--paper); padding: 3px 11px; min-height: 28px; cursor: pointer; font-size: 13px; }
+.chip-btn:hover { border-color: var(--action); color: var(--action); }
+.empty .examples { margin-top: 10px; }
+
+/* ── the frame: setup card in claude.ai, site bar on opencaselaw.ch ── */
+.ocl-setup { grid-column: 1 / -1; display: grid; gap: 8px; border-left: 3px solid var(--action); }
+.ocl-setup-title { font: 600 15px/1.3 var(--sans); }
+.ocl-setup p { max-width: 75ch; }
+.ocl-steps { list-style: decimal; padding-left: 22px; display: grid; gap: 4px; max-width: 75ch; }
+.ocl-setup-links { margin-top: 4px; }
+.button-link { display: inline-block; border-radius: 4px; padding: 7px 14px; background: var(--action); color: var(--action-ink); font-weight: 600; text-decoration: none; }
+.button-link:hover { filter: brightness(1.08); }
+.ocl-bar { background: var(--paper); border-bottom: 1px solid var(--rule); font-size: 13px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.ocl-bar-in { max-width: 1120px; margin: 0 auto; min-height: 40px; display: flex; align-items: center; gap: 8px; }
+.ocl-bar a { color: var(--ink); text-decoration: none; }
+.ocl-bar a:hover { color: var(--action); text-decoration: underline; }
+.ocl-home { font: 600 15px/1 var(--serif); }
+.ocl-sep { color: var(--muted); margin: 0 4px; }
+.ocl-links { margin-top: 8px; }
+
+[hidden] { display: none !important; }
+
+/* Instanzenzug: the decision in the middle of its path through the courts (lower courts
+   to the left, appeals to the right), then who cites it, by year and by name, and what it cites. */
+#form { align-items: flex-end; }
+.field.ref { flex: 1 1 16em; }
+.hint { flex: 1 1 100%; }
+
+.head { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; }
+.head h1 { font: 600 21px/1.3 var(--serif); }
+.head .meta { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.head .twin { font-size: 13px; }
+
+.path { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.step { display: grid; gap: 2px; padding: 8px 12px; border: 1px solid var(--rule-strong); border-radius: 6px; background: var(--paper); min-width: 9em; max-width: 100%; }
+.step.self { border-color: var(--action); box-shadow: inset 0 0 0 1px var(--action); }
+.step .court { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.step .docket { font: 600 15px/1.3 var(--serif); overflow-wrap: anywhere; }
+.step .when { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.arrow { align-self: center; color: var(--muted); font-size: 18px; }
+/* Narrow: the instances share the row; a phone stacks them. */
+@media (max-width: 860px) { .path { flex-wrap: nowrap; } .step { flex: 1 1 0; min-width: 0; } }
+@media (max-width: 500px) { .path { flex-direction: column; } .arrow { align-self: flex-start; margin-left: 1.5em; transform: rotate(90deg); } }
+
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--ground); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; justify-content: space-between; }
+.total { font: 600 22px/1.1 var(--sans); font-variant-numeric: tabular-nums; }
+
+.years { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: end; gap: 2px; height: 96px; padding-top: 14px; border-bottom: 1px solid var(--rule-strong); }
+.ybar { position: relative; background: var(--action); border-radius: 2px 2px 0 0; min-height: 1px; opacity: 0.85; }
+.ybar span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ylabels { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; font-size: 10px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.ylabels span:nth-child(even) { visibility: hidden; }
+.courts { display: flex; flex-wrap: wrap; gap: 6px; }
+.courts .pill { font-weight: 500; }
+
+.cites li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 5px 0; border-top: 1px solid var(--rule); }
+.cites li:first-child { border-top: 0; }
+.cites .d { font-family: var(--serif); overflow-wrap: anywhere; }
+.cites .c { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cites .n { font-size: 11px; color: var(--muted); }
+.card.quiet-card { background: none; border-style: dashed; padding: 10px 16px; gap: 2px; }
+
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="site-in">
+    <p class="brand"><span id="brand">Instanzenzug</span><small>OpenCaseLaw</small></p>
+    <div class="langs" id="langs"></div>
+    <p class="intro" id="intro"></p>
+  </div>
+</header>
+<main class="wrap single">
+  <form class="panel row" id="form">
+    <label class="field ref" for="ref"><span id="ref-label"></span>
+      <input type="text" id="ref" autocomplete="off" spellcheck="false">
+    </label>
+    <button type="submit" class="primary" id="go"></button>
+    <p class="small muted hint" id="hint"></p>
+  </form>
+  <div class="stack" id="out" aria-live="polite"></div>
+</main>
+<footer class="foot"><p id="foot"></p></footer>
+<script>
+"use strict";
+const OCL_BUILD = {"mode": "web", "page": "chain", "web": "https://opencaselaw.ch/tools/chain/", "artifact": "https://claude.ai/artifact/9WayyJinUeN11JKtUpPz4h"};
+// Shared by the OpenCaseLaw artifacts: languages, small DOM helpers, and the calls to
+// the viewer's own "opencaselaw" connector. Text from tools and viewers is only ever
+// set with textContent; nothing here parses it as HTML.
+const OCL = (() => {
+  const LANGS = ['de', 'fr', 'it', 'en'];
+  const LOCALES = { de: 'de-CH', fr: 'fr-CH', it: 'it-CH', en: 'en-GB' };
+  const SERVER = 'opencaselaw';
+  // Set by build.py: which build this is, and where the page's twin lives.
+  const BUILD = (typeof OCL_BUILD === 'object' && OCL_BUILD) || { mode: 'artifact' };
+  const MODE = BUILD.mode === 'web' ? 'web' : 'artifact';
+  const ENDPOINT = 'https://mcp.opencaselaw.ch/mcp';
+  const ADD_URL = 'https://claude.ai/settings/connectors?modal=add-custom-connector';
+  const SHARED = {
+    de: {
+      examples: 'Zum Beispiel:',
+      languages: 'Sprache', retry: 'Erneut versuchen', perm_open: 'Berechtigungen öffnen',
+      perm_menu: 'Das Fenster liess sich nicht öffnen. Die Berechtigungen der Seite stehen im Menü oben bei ihrem Namen.',
+      e_unavailable: 'Diese Seite fragt OpenCaseLaw über den Connector «opencaselaw» in claude.ai. Öffnen Sie sie in claude.ai, angemeldet.',
+      e_connect: 'In Ihrem claude.ai-Konto fehlt der Connector «opencaselaw». Fügen Sie ihn unter Einstellungen → Connectors hinzu: Name «opencaselaw», Adresse https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Der Connector ist für diese Seite noch nicht erlaubt. Beim nächsten Versuch fragt claude.ai wieder.',
+      e_denied: 'Der Connector ist für diese Seite nicht erlaubt.',
+      e_policy: 'Ihre Organisation erlaubt diesen Connector hier nicht.',
+      e_reauth: 'Der Connector «opencaselaw» muss in claude.ai neu verbunden werden (Einstellungen → Connectors).',
+      e_busy: 'Zu viele Anfragen. Bitte kurz warten und erneut versuchen.',
+      e_server: 'OpenCaseLaw antwortet gerade nicht. Bitte später erneut versuchen.',
+      e_tool: 'OpenCaseLaw meldet einen Fehler: {message}',
+      copy: 'Kopieren', copied: 'Kopiert.', copy_failed: 'Kopieren ging nicht; der Text ist markiert.',
+      model_reasons: 'Begründung des Modells (englisch)', source_open: 'Quelle öffnen',
+      foot: 'Daten: OpenCaseLaw, offenes Korpus der Schweizer Rechtsprechung und Gesetzgebung (CC0). Die Seite fragt nur den Connector «opencaselaw».',
+    },
+    fr: {
+      examples: 'Par exemple:',
+      languages: 'Langue', retry: 'Réessayer', perm_open: 'Ouvrir les autorisations',
+      perm_menu: 'La fenêtre n’a pas pu s’ouvrir. Les autorisations de la page se trouvent dans le menu en haut, à côté de son nom.',
+      e_unavailable: 'Cette page interroge OpenCaseLaw par le connecteur «opencaselaw» de claude.ai. Ouvrez-la dans claude.ai, connecté.',
+      e_connect: 'Le connecteur «opencaselaw» manque dans votre compte claude.ai. Ajoutez-le sous Paramètres → Connecteurs: nom «opencaselaw», adresse https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Le connecteur n’est pas encore autorisé pour cette page. Au prochain essai, claude.ai le demandera à nouveau.',
+      e_denied: 'Le connecteur n’est pas autorisé pour cette page.',
+      e_policy: 'Votre organisation n’autorise pas ce connecteur ici.',
+      e_reauth: 'Le connecteur «opencaselaw» doit être reconnecté dans claude.ai (Paramètres → Connecteurs).',
+      e_busy: 'Trop de demandes. Patientez un instant et réessayez.',
+      e_server: 'OpenCaseLaw ne répond pas pour l’instant. Réessayez plus tard.',
+      e_tool: 'OpenCaseLaw signale une erreur: {message}',
+      copy: 'Copier', copied: 'Copié.', copy_failed: 'La copie n’a pas fonctionné; le texte est sélectionné.',
+      model_reasons: 'Motifs du modèle (en anglais)', source_open: 'Ouvrir la source',
+      foot: 'Données: OpenCaseLaw, corpus ouvert de la jurisprudence et de la législation suisses (CC0). La page n’interroge que le connecteur «opencaselaw».',
+    },
+    it: {
+      examples: 'Per esempio:',
+      languages: 'Lingua', retry: 'Riprovare', perm_open: 'Aprire le autorizzazioni',
+      perm_menu: 'Non è stato possibile aprire la finestra. Le autorizzazioni della pagina sono nel menu in alto, accanto al suo nome.',
+      e_unavailable: 'Questa pagina interroga OpenCaseLaw tramite il connettore «opencaselaw» di claude.ai. Apritela in claude.ai, con accesso.',
+      e_connect: 'Nel vostro account claude.ai manca il connettore «opencaselaw». Aggiungetelo in Impostazioni → Connettori: nome «opencaselaw», indirizzo https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Il connettore non è ancora autorizzato per questa pagina. Al prossimo tentativo claude.ai lo chiederà di nuovo.',
+      e_denied: 'Il connettore non è autorizzato per questa pagina.',
+      e_policy: 'La vostra organizzazione non consente questo connettore qui.',
+      e_reauth: 'Il connettore «opencaselaw» va ricollegato in claude.ai (Impostazioni → Connettori).',
+      e_busy: 'Troppe richieste. Attendete un momento e riprovate.',
+      e_server: 'OpenCaseLaw al momento non risponde. Riprovate più tardi.',
+      e_tool: 'OpenCaseLaw segnala un errore: {message}',
+      copy: 'Copiare', copied: 'Copiato.', copy_failed: 'La copia non è riuscita; il testo è selezionato.',
+      model_reasons: 'Motivazione del modello (in inglese)', source_open: 'Aprire la fonte',
+      foot: 'Dati: OpenCaseLaw, corpus aperto della giurisprudenza e della legislazione svizzere (CC0). La pagina interroga solo il connettore «opencaselaw».',
+    },
+    en: {
+      examples: 'For instance:',
+      languages: 'Language', retry: 'Try again', perm_open: 'Open permissions',
+      perm_menu: 'The panel did not open. The page’s permissions are in the menu at the top, by its name.',
+      e_unavailable: 'This page asks OpenCaseLaw through the “opencaselaw” connector in claude.ai. Open it in claude.ai, signed in.',
+      e_connect: 'Your claude.ai account has no “opencaselaw” connector. Add it under Settings → Connectors: name “opencaselaw”, address https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'The connector is not allowed for this page yet. On the next try claude.ai asks again.',
+      e_denied: 'The connector is not allowed for this page.',
+      e_policy: 'Your organisation does not allow this connector here.',
+      e_reauth: 'The “opencaselaw” connector must be reconnected in claude.ai (Settings → Connectors).',
+      e_busy: 'Too many requests. Please wait a moment and try again.',
+      e_server: 'OpenCaseLaw is not answering right now. Please try again later.',
+      e_tool: 'OpenCaseLaw reports an error: {message}',
+      copy: 'Copy', copied: 'Copied.', copy_failed: 'Copying did not work; the text is selected.',
+      model_reasons: 'The model’s reasons', source_open: 'Open the source',
+      foot: 'Data: OpenCaseLaw, the open corpus of Swiss case law and legislation (CC0). The page asks only the “opencaselaw” connector.',
+    },
+  };
+
+  // The frame around every page: the one-time setup in claude.ai, the site bar on the web.
+  // A key ending in "_web" replaces its plain twin in the web build.
+  const SITE = {
+    de: {
+      setup_title: 'Einmal einrichten',
+      setup_missing: 'Diese Seite fragt OpenCaseLaw über Ihren claude.ai-Connector «opencaselaw». In Ihrem Konto fehlt er noch.',
+      setup_none: 'Diese Seite fragt OpenCaseLaw über einen claude.ai-Connector und läuft darum nur in claude.ai, angemeldet.',
+      setup_1: 'In claude.ai: Einstellungen → Connectors → «Add custom connector».',
+      setup_2: 'Name genau «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, ohne Anmeldung. Kostenlos.',
+      setup_3: 'Diese Seite neu laden. Beim ersten Abruf fragt claude.ai, ob die Seite den Connector nutzen darf.',
+      setup_add: 'Connector hinzufügen',
+      setup_web: 'Ohne Einrichtung: dieselbe Seite auf opencaselaw.ch',
+      web_tools: 'Werkzeuge', web_privacy: 'Datenschutz',
+      web_connect: 'OpenCaseLaw auch in Claude, ChatGPT und anderen KI-Assistenten',
+      foot_web: 'Daten: OpenCaseLaw, offenes Korpus der Schweizer Rechtsprechung und Gesetzgebung (CC0). Abfragen gehen an den öffentlichen Server mcp.opencaselaw.ch; ohne Anmeldung, ohne Cookies.',
+    },
+    fr: {
+      setup_title: 'Configuration unique',
+      setup_missing: 'Cette page interroge OpenCaseLaw par votre connecteur claude.ai «opencaselaw», qui manque encore dans votre compte.',
+      setup_none: 'Cette page interroge OpenCaseLaw par un connecteur claude.ai et ne fonctionne donc que dans claude.ai, connecté.',
+      setup_1: 'Dans claude.ai: Paramètres → Connecteurs → «Add custom connector».',
+      setup_2: 'Nom exactement «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, sans connexion. Gratuit.',
+      setup_3: 'Rechargez cette page. Au premier appel, claude.ai demande si la page peut utiliser le connecteur.',
+      setup_add: 'Ajouter le connecteur',
+      setup_web: 'Sans configuration: la même page sur opencaselaw.ch',
+      web_tools: 'Outils', web_privacy: 'Protection des données',
+      web_connect: 'OpenCaseLaw aussi dans Claude, ChatGPT et d’autres assistants IA',
+      foot_web: 'Données: OpenCaseLaw, corpus ouvert de la jurisprudence et de la législation suisses (CC0). Les requêtes vont au serveur public mcp.opencaselaw.ch; sans compte, sans cookies.',
+    },
+    it: {
+      setup_title: 'Configurazione unica',
+      setup_missing: 'Questa pagina interroga OpenCaseLaw tramite il vostro connettore claude.ai «opencaselaw», che manca ancora nel vostro account.',
+      setup_none: 'Questa pagina interroga OpenCaseLaw tramite un connettore claude.ai e funziona quindi solo in claude.ai, con accesso.',
+      setup_1: 'In claude.ai: Impostazioni → Connettori → «Add custom connector».',
+      setup_2: 'Nome esattamente «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, senza accesso. Gratuito.',
+      setup_3: 'Ricaricate questa pagina. Alla prima richiesta claude.ai chiede se la pagina può usare il connettore.',
+      setup_add: 'Aggiungere il connettore',
+      setup_web: 'Senza configurazione: la stessa pagina su opencaselaw.ch',
+      web_tools: 'Strumenti', web_privacy: 'Protezione dei dati',
+      web_connect: 'OpenCaseLaw anche in Claude, ChatGPT e altri assistenti IA',
+      foot_web: 'Dati: OpenCaseLaw, corpus aperto della giurisprudenza e della legislazione svizzere (CC0). Le richieste vanno al server pubblico mcp.opencaselaw.ch; senza account, senza cookie.',
+    },
+    en: {
+      setup_title: 'One-time setup',
+      setup_missing: 'This page asks OpenCaseLaw through your claude.ai connector “opencaselaw”, which your account does not have yet.',
+      setup_none: 'This page asks OpenCaseLaw through a claude.ai connector, so it only runs in claude.ai, signed in.',
+      setup_1: 'In claude.ai: Settings → Connectors → “Add custom connector”.',
+      setup_2: 'Name exactly “opencaselaw”, URL https://mcp.opencaselaw.ch/mcp, no sign-in. Free.',
+      setup_3: 'Reload this page. On the first request claude.ai asks whether the page may use the connector.',
+      setup_add: 'Add the connector',
+      setup_web: 'Without setup: the same page on opencaselaw.ch',
+      web_tools: 'Tools', web_privacy: 'Privacy',
+      web_connect: 'OpenCaseLaw in Claude, ChatGPT and other AI assistants too',
+      foot_web: 'Data: OpenCaseLaw, the open corpus of Swiss case law and legislation (CC0). Requests go to the public server mcp.opencaselaw.ch; no account, no cookies.',
+    },
+  };
+
+  // ── language ──
+  let lang = 'de';
+  const strings = {};
+  const listeners = [];
+  function setStrings(page) { for (const l of LANGS) strings[l] = { ...SHARED[l], ...SITE[l], ...((page && page[l]) || {}) }; }
+  function lookup(l, key) {
+    const s = strings[l];
+    if (!s) return undefined;
+    return (MODE === 'web' && s[key + '_web'] !== undefined) ? s[key + '_web'] : s[key];
+  }
+  function t(key, values = {}) {
+    const s = lookup(lang, key) ?? lookup('de', key) ?? key;
+    return String(s).replace(/\{(\w+)\}/g, (all, name) => (name in values ? String(values[name]) : all));
+  }
+  function setLang(l) {
+    lang = LANGS.includes(l) ? l : 'de';
+    document.documentElement.lang = lang;
+    try { localStorage.setItem('ocl.lang', lang); } catch { /* private mode */ }
+    for (const f of listeners) f();
+  }
+  function initLang() {
+    let l = null;
+    // A shared link may name its language (?lang=fr); then the viewer's own choice.
+    try { l = new URLSearchParams(location.search).get('lang'); } catch { /* none */ }
+    if (!LANGS.includes(l)) { l = null; try { l = localStorage.getItem('ocl.lang'); } catch { /* private mode */ } }
+    listeners.unshift(renderFrame);
+    setLang(l || String(navigator.language || 'de').slice(0, 2).toLowerCase());
+    if (MODE === 'artifact') checkSetup();
+    else {
+      // On the site every page title carries the site's name.
+      const suffix = () => { if (!/OpenCaseLaw$/.test(document.title)) document.title += ' · OpenCaseLaw'; };
+      listeners.push(suffix);
+      suffix();
+    }
+  }
+
+  // ── the frame ──
+  // Web: a slim bar back to the site, and links under the page's own footer.
+  // claude.ai: a setup card above the work area when this viewer cannot reach the
+  // connector, decided before the first click rather than after a failed call.
+  let setup = null; // null | 'none' | 'missing' | 'reauth'
+  function renderFrame() {
+    if (MODE === 'web') {
+      let bar = document.getElementById('ocl-bar');
+      if (!bar) { bar = el('nav', 'ocl-bar'); bar.id = 'ocl-bar'; document.body.prepend(bar); }
+      const home = link('https://opencaselaw.ch/', 'OpenCaseLaw', 'ocl-home');
+      home.removeAttribute('target');
+      const tools = link('https://opencaselaw.ch/tools/' + (lang === 'de' ? '' : '?lang=' + lang), t('web_tools'));
+      tools.removeAttribute('target');
+      bar.replaceChildren(el('div', 'ocl-bar-in'));
+      bar.firstChild.append(home, el('span', 'ocl-sep', '/'), tools);
+      let links = document.getElementById('ocl-links');
+      if (!links) {
+        links = el('p', 'ocl-links small');
+        links.id = 'ocl-links';
+        const foot = document.querySelector('footer.foot') || document.body;
+        foot.append(links);
+      }
+      links.replaceChildren(link('https://opencaselaw.ch/mcp/', t('web_connect')), el('span', 'ocl-sep', '·'),
+        link('https://opencaselaw.ch/datenschutz/', t('web_privacy')));
+      return;
+    }
+    let card = document.getElementById('ocl-setup');
+    if (!setup) { if (card) card.remove(); return; }
+    if (!card) {
+      card = el('section', 'panel ocl-setup');
+      card.id = 'ocl-setup';
+      card.setAttribute('role', 'note');
+      const main = document.querySelector('main') || document.body;
+      main.prepend(card);
+    }
+    const parts = [el('h2', 'ocl-setup-title', t('setup_title'))];
+    if (setup === 'reauth') parts.push(el('p', null, t('e_reauth')));
+    else {
+      parts.push(el('p', null, t(setup === 'none' ? 'setup_none' : 'setup_missing')));
+      if (setup === 'missing') {
+        const steps = el('ol', 'ocl-steps');
+        steps.append(el('li', null, t('setup_1')), el('li', null, t('setup_2')), el('li', null, t('setup_3')));
+        parts.push(steps);
+      }
+    }
+    const row = el('p', 'row ocl-setup-links');
+    if (setup === 'missing') row.append(link(ADD_URL, t('setup_add'), 'button-link'));
+    if (BUILD.web) row.append(link(BUILD.web + (lang === 'de' ? '' : '?lang=' + lang), t('setup_web')));
+    if (row.childNodes.length) parts.push(row);
+    card.replaceChildren(...parts);
+  }
+  async function checkSetup() {
+    const m = await mcp();
+    let state = null;
+    if (!m) state = 'none';
+    else if (typeof m.listTools === 'function') {
+      try {
+        const listed = await m.listTools(SERVER);
+        const s = ((listed && listed.servers) || []).find((x) => x && x.server === SERVER);
+        if (!s || !Array.isArray(s.tools) || !s.tools.length) state = 'missing';
+        else if (s.authStatus === 'needs_reauth') state = 'reauth';
+      } catch { state = null; /* say nothing; a call will tell */ }
+    }
+    setup = state;
+    renderFrame();
+  }
+  const onLang = (f) => listeners.push(f);
+  const language = () => lang;
+  // The citation_string_* field in the interface language; English reads the German one.
+  const citationOf = (p) => (p && (p['citation_string_' + lang] || p.citation_string_de || p.citation_string)) || '';
+  const toolLang = () => (lang === 'en' ? 'de' : lang);
+
+  // ── DOM ──
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = text;
+    return node;
+  }
+  function button(className, text, onClick) {
+    const b = el('button', className, text);
+    b.type = 'button';
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  function link(href, text, className) {
+    const a = el('a', className, text);
+    if (/^https:\/\//.test(href || '')) { a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    return a;
+  }
+  function langButtons(container) {
+    container.setAttribute('role', 'group');
+    container.setAttribute('aria-label', t('languages'));
+    container.replaceChildren(...LANGS.map((code) => {
+      const b = button('lang', code.toUpperCase(), () => setLang(code));
+      b.setAttribute('aria-pressed', String(code === lang));
+      return b;
+    }));
+  }
+  const num = (n) => new Intl.NumberFormat(LOCALES[lang]).format(n);
+  function date(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '';
+    const d = new Date(iso.slice(0, 10) + 'T12:00:00Z');
+    return d.toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  // ── the connector ──
+  // Two builds of every page (build.py): 'artifact' runs in claude.ai and calls the
+  // viewer's own connector; 'web' runs on opencaselaw.ch and sends the same MCP call
+  // to the public server itself, so both see the same answers.
+  let connector = null;
+  const mcp = () => (connector ||= (MODE === 'web' ? Promise.resolve(webConnector())
+    : window.claude && typeof window.claude.use === 'function'
+      ? window.claude.use('mcp').catch(() => null) : Promise.resolve(null)));
+
+  // The public server speaks MCP over plain HTTP with open CORS and no session
+  // (checked 2026-11-04): one JSON-RPC tools/call, answered as JSON or as a short
+  // event stream. The result is shaped as the viewer shapes it: `payload` is
+  // structuredContent, else the text parsed as JSON, else the text.
+  function webConnector() {
+    const cache = new Map();
+    let seq = 0;
+    async function callTool(server, tool, input, options = {}) {
+      const key = tool + '\u0000' + JSON.stringify(input);
+      const staleTime = options.cache && options.cache.staleTime;
+      const hit = staleTime && cache.get(key);
+      if (hit && Date.now() - hit.at < staleTime) return hit.value;
+      const id = ++seq;
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), 120000);
+      let response;
+      let body;
+      try {
+        response = await fetch(ENDPOINT, {
+          method: 'POST', signal: abort.signal,
+          headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'x-client': 'web-tools' },
+          body: JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name: tool, arguments: input } }),
+        });
+        body = await response.text();
+      } catch (error) {
+        throw { code: 'server_unavailable', message: String((error && error.message) || error), retryable: true };
+      } finally { clearTimeout(timer); }
+      if (response.status === 429) throw { code: 'rate_limited', message: 'HTTP 429' };
+      if (!response.ok) throw { code: 'server_unavailable', message: 'HTTP ' + response.status, retryable: true };
+      const message = rpcMessage(body, id);
+      if (!message) throw { code: 'server_unavailable', message: 'no answer', retryable: true };
+      if (message.error) throw { code: 'tool_error', message: String(message.error.message || 'error').slice(0, 300) };
+      const r = message.result || {};
+      const blocks = Array.isArray(r.content) ? r.content : [];
+      const first = (blocks.find((b) => b && b.type === 'text') || {}).text || '';
+      if (r.isError) throw { code: 'tool_error', message: first.slice(0, 300), result: r };
+      let payload = r.structuredContent;
+      if (payload === undefined) { try { payload = JSON.parse(first); } catch { payload = first; } }
+      const value = { content: blocks, structuredContent: r.structuredContent, payload };
+      if (staleTime) cache.set(key, { at: Date.now(), value });
+      return value;
+    }
+    return { callTool };
+  }
+  function rpcMessage(body, id) {
+    const text = String(body || '').trim();
+    const candidates = text.startsWith('{') ? [text]
+      : text.split(/\r?\n\r?\n/).map((event) => event.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n')).filter(Boolean);
+    for (const c of candidates) {
+      try { const m = JSON.parse(c); if (m && m.id === id && (m.result || m.error)) return m; } catch { /* not this one */ }
+    }
+    return null;
+  }
+
+  // One tool call; resolves the JSON payload, rejects with the platform's error object.
+  // `text: true` for the few tools that answer in Markdown rather than JSON.
+  async function call(tool, input, { staleTime = 600000, text = false } = {}) {
+    const m = await mcp();
+    if (!m) throw { code: 'unavailable', message: 'no viewer' };
+    const result = await m.callTool(SERVER, tool, input, staleTime ? { cache: { staleTime, gcTime: Math.max(staleTime, 300000) } } : { cache: false });
+    const p = result && result.payload;
+    if (text) {
+      const s = typeof p === 'string' ? p : ((result && result.content) || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+      if (!s) throw { code: 'tool_error', message: 'empty answer' };
+      return s;
+    }
+    const obj = asObject(p, result);
+    if (!obj) throw { code: 'tool_error', message: typeof p === 'string' ? p.slice(0, 300) : 'empty answer' };
+    return guard(obj);
+  }
+
+  // The server may follow its JSON with a note in the same text block ("---\nℹ️ This
+  // data is provided by OpenCaseLaw.ch …", seen 2026-10-29 over plain JSON-RPC); then
+  // the platform cannot parse it and hands over text. The object is taken out of it.
+  function asObject(p, result) {
+    if (p && typeof p === 'object') return p;
+    const text = typeof p === 'string' ? p : ((result && result.content) || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+    const i = text.indexOf('{');
+    const j = text.lastIndexOf('}');
+    if (i < 0 || j <= i) return null;
+    try { return JSON.parse(text.slice(i, j + 1)); } catch { /* try the text before a trailing note */ }
+    const cut = text.search(/\n-{3,}\s*\n/);
+    if (cut > i) { try { return JSON.parse(text.slice(i, cut).trim()); } catch { return null; } }
+    return null;
+  }
+
+  function guard(p) {
+    if (p.error && !p.ok && Object.keys(p).length <= 3) throw { code: 'tool_error', message: String(p.error).slice(0, 300) };
+    return p;
+  }
+
+  async function permissionState() {
+    try {
+      const permissions = window.claude && await window.claude.use('permissions');
+      if (!permissions) return null;
+      let state = await permissions.state('mcp:' + SERVER);
+      if (state === 'unavailable') state = await permissions.state('mcp');
+      return state;
+    } catch { return null; }
+  }
+
+  // A failed call, kept as data so its sentence follows a later change of language.
+  // Closing claude.ai's permission prompt refuses nothing: the call fails with
+  // upstream_error ("connector access isn't confirmed for this artifact right now",
+  // seen 2026-10-29) and the permission stays "prompt". So before saying anything the
+  // page asks the permissions capability: "denied" is a refusal (the panel undoes it),
+  // "prompt" means not allowed yet (trying again asks again).
+  async function failure(error) {
+    const code = (error && error.code) || 'upstream_error';
+    let denied = ['not_in_manifest', 'not_granted', 'consent_required', 'approval_required'].includes(code);
+    let pending = false;
+    if (!denied && code !== 'unavailable') {
+      const state = await permissionState();
+      denied = state === 'denied';
+      pending = state === 'prompt';
+    }
+    return { code, denied, pending, message: (error && error.message) || String(error) };
+  }
+
+  function errorText(e) {
+    if (e.denied) return t('e_denied');
+    if (e.pending) return t('e_pending');
+    if (e.code === 'unavailable') return t('e_unavailable');
+    if (['server_not_connected', 'server_not_found', 'selection_required'].includes(e.code)) return t('e_connect');
+    if (e.code === 'blocked_by_policy') return t('e_policy');
+    if (e.code === 'needs_reauth') return t('e_reauth');
+    if (e.code === 'rate_limited') return t('e_busy');
+    if (['server_unavailable', 'upstream_error', 'cancelled'].includes(e.code)) return t('e_server');
+    return t('e_tool', { message: e.message });
+  }
+
+  // The error, its code for support, and the one way forward: the Permissions panel for
+  // a refusal, otherwise trying again (never on its own).
+  function renderError(e, retry, rerender) {
+    const box = el('div', 'stack failed');
+    const said = el('p', 'error-line', errorText(e) + ' ');
+    if (!e.pending) said.append(el('span', 'code', '(' + e.code + ')'));
+    box.append(said);
+    const row = el('div', 'row');
+    if (e.denied) {
+      row.append(button('quiet', t('perm_open'), async () => {
+        try {
+          const permissions = window.claude && await window.claude.use('permissions');
+          if (!permissions) throw new Error('unavailable');
+          await permissions.manage();
+          e.denied = (await permissionState()) === 'denied';
+          if (!e.denied && retry) { retry(); return; }
+        } catch { e.manageFailed = true; }
+        rerender();
+      }));
+      if (e.manageFailed) box.append(el('p', 'muted small', t('perm_menu')));
+    } else if (retry && e.code !== 'unavailable') {
+      row.append(button('quiet', t('retry'), retry));
+    }
+    if (row.childNodes.length) box.append(row);
+    return box;
+  }
+
+  // Copy on a click; where the host refuses the clipboard, the text is selected instead.
+  async function copy(text, fallback) {
+    try {
+      // Some hosts never answer the clipboard request; after a moment the text is selected instead.
+      await Promise.race([navigator.clipboard.writeText(text), new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), 1500))]);
+      return true;
+    } catch {
+      if (fallback) { fallback.hidden = false; fallback.value = text; fallback.focus(); fallback.select(); }
+      return false;
+    }
+  }
+
+  // ── Markdown from the tools, as DOM nodes only ──
+  // Several tools answer in Markdown. This reads the few forms they use (headings, lists,
+  // quotes, rules, **bold**, *italic*, `code`, [text](https link), ^superscript) and builds
+  // nodes with textContent, so nothing in the answer is ever parsed as HTML. The server's
+  // closing note ("---" then "ℹ️ …") is left out.
+  function stripNote(text) {
+    const s = String(text || '');
+    const cut = s.search(/\n-{3,}\s*\n\s*ℹ️/);
+    return cut >= 0 ? s.slice(0, cut) : s;
+  }
+  function inline(text, into) {
+    const re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|`([^`]+)`|(?<![\w*])\*([^*\s][^*]*?)\*(?!\w)|\^(\d+[a-z]?)/g;
+    let at = 0;
+    for (const m of text.matchAll(re)) {
+      if (m.index > at) into.append(text.slice(at, m.index));
+      if (m[1] !== undefined) into.append(el('strong', null, m[1]));
+      else if (m[2] !== undefined) into.append(link(m[3], m[2]));
+      else if (m[4] !== undefined) into.append(el('code', null, m[4]));
+      else if (m[5] !== undefined) into.append(el('em', null, m[5]));
+      else if (m[6] !== undefined) into.append(el('sup', null, m[6]));
+      at = m.index + m[0].length;
+    }
+    if (at < text.length) into.append(text.slice(at));
+    return into;
+  }
+  function markdown(text, { skipFirstHeading = false } = {}) {
+    const box = el('div', 'md');
+    let list = null;
+    let para = null;
+    let headingSeen = false;
+    const close = () => { list = null; para = null; };
+    for (const raw of stripNote(text).split('\n')) {
+      const line = raw.replace(/\s+$/, '');
+      const h = /^(#{1,4})\s+(.*)$/.exec(line);
+      const li = /^\s*(?:[-*•]|\d+\.)\s+(.*)$/.exec(line);
+      if (!line.trim()) { close(); continue; }
+      if (h) {
+        close();
+        if (skipFirstHeading && !headingSeen) { headingSeen = true; continue; }
+        headingSeen = true;
+        box.append(inline(h[2], el(h[1].length <= 1 ? 'h3' : 'h4', 'md-h')));
+      } else if (/^-{3,}$/.test(line.trim())) { close(); box.append(el('hr', 'md-hr')); }
+      else if (/^>\s?/.test(line)) { close(); box.append(inline(line.replace(/^>\s?/, ''), el('blockquote', 'md-quote'))); }
+      else if (li) {
+        para = null;
+        if (!list) { list = el(/^\s*\d+\./.test(line) ? 'ol' : 'ul', 'md-list'); box.append(list); }
+        list.append(inline(li[1], el('li')));
+      } else if (list && /^\s{2,}\S/.test(raw)) {
+        const last = list.lastElementChild;
+        last.append(el('br'));
+        inline(line.trim(), last);
+      } else {
+        list = null;
+        if (!para) { para = el('p', 'md-p'); box.append(para); } else para.append(el('br'));
+        inline(line.trim(), para);
+      }
+    }
+    return box;
+  }
+
+  // "Zum Beispiel: [chip] [chip]": one click fills the form and runs it. `items` is a
+  // string key whose text lists the examples separated by "|".
+  function examples(key, onPick) {
+    const box = el('p', 'examples');
+    box.append(el('span', 'muted', t('examples') + ' '));
+    for (const item of t(key).split('|').map((x) => x.trim()).filter(Boolean)) box.append(button('chip-btn', item, () => onPick(item)));
+    return box;
+  }
+
+  // Text from a tool that may carry Markdown links ("[BGE 140 III 86](https://…)"): links
+  // become links, everything else stays text.
+  const rich = (text, into) => inline(String(text || ''), into || el('span'));
+
+  return { LANGS, SERVER, MODE, BUILD, setStrings, t, setLang, initLang, onLang, language, citationOf, toolLang,
+    el, button, link, langButtons, num, date, call, failure, errorText, renderError, copy, markdown, stripNote, examples, rich };
+})();
+
+// Instanzenzug: one decision, its path through the courts and its place in the citation
+// network. cite resolves any reference form (and ties a BGE to its full judgment and back);
+// find_appeal_chain gives the lower and higher instances the graph knows (Markdown);
+// find_citations gives what cites it and what it cites. It shows who cites a decision,
+// not how: the treatment layer (confirmed, distinguished, overruled) is not built yet.
+const { t, el, button } = OCL;
+const PAGE = 200;
+const FULL_HISTORY = 1000;     // the year chart is drawn only from a complete list
+
+OCL.setStrings({
+  de: {
+    brand: 'Instanzenzug',
+    intro: 'Ein Entscheid, sein Weg durch die Instanzen und seine Stellung im Zitiernetz: welche Vorinstanzen und Rechtsmittelentscheide das Korpus kennt, wer ihn zitiert, seit wann und wie oft, und was er selbst zitiert.',
+    ex: 'BGE 140 III 86|BGE 147 I 73|4A_747/2012|LB190012',
+    ref_label: 'Entscheid', ref_example: 'BGE 140 III 86', hint: 'BGE, Aktenzeichen (4A_747/2012, A-1234/2019, LB190012) oder OpenCaseLaw-Kennung.', go: 'Zeigen',
+    empty_title: 'Noch nichts gezeigt', empty_body: 'Einen Entscheid eingeben, etwa «BGE 140 III 86», dann «Zeigen».',
+    busy: 'Suche den Entscheid …', not_found: 'Diesen Entscheid findet OpenCaseLaw nicht: «{ref}».', similar: 'Ähnlich:',
+    published_as: 'Veröffentlicht als', full_decision: 'Vollständiges Urteil', open: 'Entscheid öffnen',
+    chain_title: 'Instanzenzug', chain_busy: 'Suche Vor- und Nachinstanzen …', chain_none: 'Das Korpus kennt keine Vor- oder Nachinstanz dieses Entscheids. Das heisst nicht, dass es keine gibt: Verbindungen zwischen Instanzen sind erst teilweise erfasst.',
+    prior: 'Vorinstanz', subsequent: 'Rechtsmittel', self: 'dieser Entscheid',
+    in_title: 'Zitiert von', out_title: 'Zitiert selbst', cites_busy: 'lade Zitierungen …', none_in: 'Kein Entscheid im Korpus zitiert ihn.', none_out: 'Er zitiert keinen Entscheid, den das Korpus auflösen kann.',
+    years: 'Zitierungen pro Jahr', years_partial: 'Bei {n} Zitierungen zeigt die Seite die neuesten statt einer Jahresreihe.', by_court: 'Nach Gericht (geladene)',
+    total_in: '{n} Entscheide', merged: 'zusammen mit dem vollständigen Urteil bzw. dem BGE', more: 'Weitere {n} laden', mentions: '{n}× erwähnt',
+    caveat: 'Gezeigt wird, wer den Entscheid zitiert, nicht wie (bestätigend, abgrenzend, aufgebend). Diese Einordnung ist in Arbeit. Zitierungen mit einer Erkennungssicherheit unter 0,3 sind ausgelassen.',
+  },
+  fr: {
+    brand: 'Voies de recours',
+    intro: 'Une décision, son parcours à travers les instances et sa place dans le réseau des citations: instances précédentes et suivantes connues du corpus, qui la cite, depuis quand et combien, et ce qu’elle cite elle-même.',
+    ex: 'ATF 140 III 86|ATF 147 I 73|4A_747/2012|LB190012',
+    ref_label: 'Décision', ref_example: 'ATF 140 III 86', hint: 'ATF, numéro de dossier (4A_747/2012, A-1234/2019, LB190012) ou identifiant OpenCaseLaw.', go: 'Afficher',
+    empty_title: 'Rien n’a encore été affiché', empty_body: 'Saisissez une décision, par exemple «ATF 140 III 86», puis «Afficher».',
+    busy: 'Recherche de la décision …', not_found: 'OpenCaseLaw ne trouve pas cette décision: «{ref}».', similar: 'Proches:',
+    published_as: 'Publiée comme', full_decision: 'Arrêt complet', open: 'Ouvrir la décision',
+    chain_title: 'Voies de recours', chain_busy: 'Recherche des instances …', chain_none: 'Le corpus ne connaît ni instance précédente ni instance suivante. Cela ne veut pas dire qu’il n’y en a pas: les liens entre instances ne sont saisis qu’en partie.',
+    prior: 'Instance précédente', subsequent: 'Recours', self: 'cette décision',
+    in_title: 'Citée par', out_title: 'Cite elle-même', cites_busy: 'chargement des citations …', none_in: 'Aucune décision du corpus ne la cite.', none_out: 'Elle ne cite aucune décision que le corpus peut résoudre.',
+    years: 'Citations par année', years_partial: 'Avec {n} citations, la page montre les plus récentes au lieu d’une série annuelle.', by_court: 'Par tribunal (chargées)',
+    total_in: '{n} décisions', merged: 'avec l’arrêt complet ou l’ATF', more: 'Charger {n} de plus', mentions: '{n}× mentionnée',
+    caveat: 'La page montre qui cite la décision, pas comment (confirmation, distinction, revirement). Ce classement est en préparation. Les citations reconnues avec une certitude inférieure à 0,3 sont omises.',
+  },
+  it: {
+    brand: 'Via ricorsuale',
+    intro: 'Una decisione, il suo percorso attraverso le istanze e il suo posto nella rete delle citazioni: istanze precedenti e successive note al corpus, chi la cita, da quando e quanto, e che cosa cita essa stessa.',
+    ex: 'DTF 140 III 86|DTF 147 I 73|4A_747/2012|LB190012',
+    ref_label: 'Decisione', ref_example: 'DTF 140 III 86', hint: 'DTF, numero d’incarto (4A_747/2012, A-1234/2019, LB190012) o identificativo OpenCaseLaw.', go: 'Mostrare',
+    empty_title: 'Nulla è stato ancora mostrato', empty_body: 'Inserite una decisione, per esempio «DTF 140 III 86», poi «Mostrare».',
+    busy: 'Ricerca della decisione …', not_found: 'OpenCaseLaw non trova questa decisione: «{ref}».', similar: 'Simili:',
+    published_as: 'Pubblicata come', full_decision: 'Sentenza completa', open: 'Aprire la decisione',
+    chain_title: 'Via ricorsuale', chain_busy: 'Ricerca delle istanze …', chain_none: 'Il corpus non conosce né istanze precedenti né successive. Ciò non significa che non ve ne siano: i legami tra istanze sono registrati solo in parte.',
+    prior: 'Istanza precedente', subsequent: 'Ricorso', self: 'questa decisione',
+    in_title: 'Citata da', out_title: 'Cita essa stessa', cites_busy: 'caricamento delle citazioni …', none_in: 'Nessuna decisione del corpus la cita.', none_out: 'Non cita alcuna decisione che il corpus possa risolvere.',
+    years: 'Citazioni per anno', years_partial: 'Con {n} citazioni la pagina mostra le più recenti invece di una serie annuale.', by_court: 'Per tribunale (caricate)',
+    total_in: '{n} decisioni', merged: 'insieme alla sentenza completa o alla DTF', more: 'Caricarne altre {n}', mentions: 'menzionata {n}×',
+    caveat: 'La pagina mostra chi cita la decisione, non come (conferma, distinzione, cambiamento di prassi). Questa classificazione è in preparazione. Le citazioni riconosciute con certezza inferiore a 0,3 sono omesse.',
+  },
+  en: {
+    brand: 'Appeal chain',
+    intro: 'One decision, its path through the courts and its place in the citation network: the lower and higher instances the corpus knows, who cites it, since when and how often, and what it cites itself.',
+    ex: 'BGE 140 III 86|BGE 147 I 73|4A_747/2012|LB190012',
+    ref_label: 'Decision', ref_example: 'BGE 140 III 86', hint: 'BGE, docket number (4A_747/2012, A-1234/2019, LB190012) or OpenCaseLaw id.', go: 'Show',
+    empty_title: 'Nothing shown yet', empty_body: 'Enter a decision, for instance “BGE 140 III 86”, then “Show”.',
+    busy: 'Finding the decision …', not_found: 'OpenCaseLaw does not find this decision: “{ref}”.', similar: 'Close:',
+    published_as: 'Published as', full_decision: 'Full judgment', open: 'Open the decision',
+    chain_title: 'Appeal chain', chain_busy: 'Finding the instances …', chain_none: 'The corpus knows no lower or higher instance of this decision. That does not mean there is none: links between instances are only partly recorded.',
+    prior: 'Lower instance', subsequent: 'Appeal', self: 'this decision',
+    in_title: 'Cited by', out_title: 'Cites', cites_busy: 'loading citations …', none_in: 'No decision in the corpus cites it.', none_out: 'It cites no decision the corpus can resolve.',
+    years: 'Citations per year', years_partial: 'With {n} citations the page lists the newest instead of a yearly series.', by_court: 'By court (loaded)',
+    total_in: '{n} decisions', merged: 'together with the full judgment or the BGE', more: 'Load {n} more', mentions: 'mentioned {n}×',
+    caveat: 'The page shows who cites the decision, not how (following, distinguishing, overruling). That classification is in the works. Citations recognised with a confidence below 0.3 are left out.',
+  },
+});
+
+const COURTS = { bge: 'BGE', bger: 'BGer', bvger: 'BVGer', bstger: 'BStGer', bpatger: 'BPatGer', mkge: 'MKGE', hudoc_ch: 'EGMR', ecthr_chamber: 'EGMR', ecthr_grand_chamber: 'EGMR GK', ch_vb: 'VPB' };
+// Cantonal sources are named after the canton and, where the source is one court, that court
+// ("zh_obergericht" → "ZH Obergericht"); collective sources ("ge_gerichte", "vd_findinfo") by the canton alone.
+const COLLECTIVE = /^(gerichte|findinfo|tribunaux|tribunali|courts|ks|entscheide|decisions)$/;
+function courtLabel(c) {
+  if (COURTS[c]) return COURTS[c];
+  const m = /^([a-z]{2})_(.+)$/.exec(c || '');
+  if (!m) return (c || '').toUpperCase();
+  const rest = m[2].replace(/_/g, ' ');
+  return m[1].toUpperCase() + (COLLECTIVE.test(m[2]) ? '' : ' ' + rest.charAt(0).toUpperCase() + rest.slice(1));
+}
+const decisionUrl = (id) => 'https://mcp.opencaselaw.ch/entscheid/' + String(id).split('/').map(encodeURIComponent).join('/');
+
+const $ = (id) => document.getElementById(id);
+const state = { run: 0, ref: '', busy: false, error: null, notFound: null, decision: null, ids: [], chain: null, inc: null, out: null };
+const part = () => ({ busy: true, error: null, items: [], total: 0, offsets: {}, more: false });
+
+// ── answers ───────────────────────────────────────────────────────────────
+// "## Prior instances (n)" / "## Subsequent instances (n)" with "- [docket](url) (date) [court] conf=0.87".
+function parseChain(text) {
+  const out = { prior: [], subsequent: [] };
+  let section = null;
+  for (const line of OCL.stripNote(text).split('\n')) {
+    if (/^##\s+Prior instances/i.test(line)) section = 'prior';
+    else if (/^##\s+Subsequent instances/i.test(line)) section = 'subsequent';
+    else if (/^##\s/.test(line)) section = null;
+    const m = section && /^-\s+\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)\s+\(([^)]*)\)\s+\[([^\]]+)\](?:\s+conf=([\d.]+))?/.exec(line);
+    if (m) out[section].push({ docket: m[1], url: m[2], date: m[3], court: m[4], conf: Number(m[5] || 0) });
+  }
+  return out;
+}
+
+// "bger_4A_563_2017", "4A_563/2017" and "bge_145 III 143", "145 III 143" each give one key.
+const docketKey = (s) => (s || '').replace(/^(bger|bge|bvger|bstger|bpatger)_/, '').replace(/[\s/_.-]+/g, '_').toLowerCase();
+
+async function show() {
+  const ref = $('ref').value.trim() || t('ref_example');
+  $('ref').value = ref;
+  const run = ++state.run;
+  Object.assign(state, { ref, busy: true, error: null, notFound: null, decision: null, ids: [], chain: null, inc: null, out: null });
+  render();
+  let d;
+  try { d = await OCL.call('cite', { reference: ref, language: OCL.toolLang() }); } catch (error) {
+    const e = await OCL.failure(error);
+    if (run !== state.run) return;
+    Object.assign(state, { busy: false, error: e }); render(); return;
+  }
+  if (run !== state.run) return;
+  state.busy = false;
+  if (!d.exists) { state.notFound = d; render(); return; }
+  state.decision = d;
+  // A BGE and its full judgment are two nodes of the graph: both are asked, citations merged.
+  const twin = (d.full_decision && d.full_decision.decision_id) || ((d.published_as_bge || [])[0] || {}).decision_id;
+  state.ids = [d.decision_id, twin].filter(Boolean);
+  state.chain = { busy: true, error: null, data: null };
+  state.inc = part();
+  state.out = part();
+  render();
+  const chainJob = OCL.call('find_appeal_chain', { decision_id: d.decision_id }, { text: true })
+    .then((text) => { if (run === state.run) Object.assign(state.chain, { busy: false, data: parseChain(text) }); },
+      async (error) => { const e = await OCL.failure(error); if (run === state.run) Object.assign(state.chain, { busy: false, error: e }); })
+    .then(render);
+  await Promise.all([chainJob, loadCites('incoming', run), loadCites('outgoing', run)]);
+}
+
+// One page per decision id; for a list that fits in FULL_HISTORY, all pages (for the year chart).
+async function loadCites(direction, run, next = false) {
+  const p = direction === 'incoming' ? state.inc : state.out;
+  p.busy = true; p.error = null;
+  if (next) render();
+  try {
+    let again = true;
+    while (again) {
+      again = false;
+      const answers = await Promise.all(state.ids.map((id) => {
+        if (p.offsets[id] === null) return null;
+        return OCL.call('find_citations', { decision_id: id, direction, limit: PAGE, offset: p.offsets[id] || 0 }).then((r) => ({ id, r }));
+      }));
+      if (run !== state.run) return;
+      p.total = 0;
+      // The decision itself (its BGE, its full judgment, a cantonal copy of it) is no citation;
+      // nor is a "cited" decision dated after it (a later ruling under the same docket).
+      const day = state.decision.decision_date || '';
+      const own = state.ids.map(docketKey);
+      const self = (x) => state.ids.includes(x.id) || (x.date === day && own.includes(docketKey(x.docket)));
+      for (const a of answers.filter(Boolean)) {
+        const list = a.r[direction] || [];
+        const key = direction === 'incoming' ? 'source_decision_id' : 'target_decision_id';
+        for (const x of list) {
+          const item = { id: x[key], docket: x.docket_number || x.target_ref || x[key], court: x.court, date: x.decision_date || '', mentions: x.mention_count || 1 };
+          if (!item.id || self(item) || p.items.some((y) => y.id === item.id)) continue;
+          if (direction === 'outgoing' && day && item.date > day) continue;
+          p.items.push(item);
+        }
+        p.offsets[a.id] = a.r[direction + '_has_more'] ? (a.r.next_offset || (p.offsets[a.id] || 0) + list.length) : null;
+        p.totals = { ...(p.totals || {}), [a.id]: a.r[direction + '_total'] || list.length };
+      }
+      p.more = Object.values(p.offsets).some((o) => o !== null && o !== undefined);
+      // A BGE and its full judgment often cite (and are cited by) the same decisions: a
+      // complete list is counted after merging; an incomplete one can only add the totals.
+      p.total = p.more ? Object.values(p.totals || {}).reduce((n, x) => n + x, 0) : p.items.length;
+      // Fetch on, unasked, only while the whole list stays small enough for the year chart.
+      if (direction === 'incoming' && p.more && p.total <= FULL_HISTORY && !next) again = true;
+    }
+    p.items.sort((a, b) => b.date.localeCompare(a.date));
+  } catch (error) {
+    const e = await OCL.failure(error);
+    if (run !== state.run) return;
+    p.error = e;
+  }
+  p.busy = false;
+  render();
+}
+
+// ── rendering ─────────────────────────────────────────────────────────────
+function header() {
+  const d = state.decision;
+  const box = el('section', 'head');
+  const h = el('h1');
+  h.append(OCL.link(d.canonical_url || decisionUrl(d.decision_id), OCL.citationOf(d)));
+  box.append(h);
+  const meta = el('p', 'meta');
+  meta.append(el('span', null, courtLabel(d.court)), el('span', null, OCL.date(d.decision_date)));
+  box.append(meta);
+  const twins = [];
+  for (const b of d.published_as_bge || []) twins.push([t('published_as'), b]);
+  if (d.full_decision) twins.push([t('full_decision'), d.full_decision]);
+  for (const [label, x] of twins) {
+    const p = el('p', 'twin');
+    p.append(label + ': ', OCL.link(x.canonical_url || decisionUrl(x.decision_id), OCL.citationOf(x)));
+    box.append(p);
+  }
+  return box;
+}
+
+function step(kind, x) {
+  const s = el('div', 'step' + (kind === 'self' ? ' self' : ''));
+  s.append(el('span', 'court', kind === 'self' ? t('self') : t(kind) + ' · ' + courtLabel(x.court)));
+  const d = el('span', 'docket');
+  d.append(kind === 'self' ? OCL.citationOf(x) : OCL.link(x.url, x.docket));
+  s.append(d, el('span', 'when', OCL.date(kind === 'self' ? x.decision_date : x.date)));
+  return s;
+}
+
+function chainCard() {
+  const c = el('section', 'card');
+  c.append(el('h2', 'h', t('chain_title')));
+  const ch = state.chain;
+  if (ch.busy) { c.append(el('p', 'busy', t('chain_busy'))); return c; }
+  if (ch.error) { c.append(OCL.renderError(ch.error, show, render)); return c; }
+  const prior = [...ch.data.prior].sort((a, b) => a.date.localeCompare(b.date));
+  const next = [...ch.data.subsequent].sort((a, b) => a.date.localeCompare(b.date));
+  if (!prior.length && !next.length) { c.classList.add('quiet-card'); c.append(el('p', 'small muted', t('chain_none'))); return c; }
+  const path = el('div', 'path');
+  const items = [...prior.map((x) => step('prior', x)), step('self', state.decision), ...next.map((x) => step('subsequent', x))];
+  items.forEach((n, i) => { if (i) path.append(el('span', 'arrow', '→')); path.append(n); });
+  c.append(path);
+  return c;
+}
+
+function yearChart(items) {
+  const by = new Map();
+  for (const x of items) { const y = (x.date || '').slice(0, 4); if (/^\d{4}$/.test(y)) by.set(y, (by.get(y) || 0) + 1); }
+  if (by.size < 2) return null;
+  const years = [...by.keys()].sort();
+  const all = [];
+  for (let y = Number(years[0]); y <= Number(years[years.length - 1]); y++) all.push(String(y));
+  const max = Math.max(...by.values());
+  const box = el('figure', 'stack');
+  box.append(el('figcaption', 'eyebrow', t('years')));
+  const bars = el('div', 'years');
+  bars.setAttribute('role', 'img');
+  bars.setAttribute('aria-label', all.map((y) => y + ': ' + (by.get(y) || 0)).join(', '));
+  for (const y of all) {
+    const n = by.get(y) || 0;
+    const b = el('div', 'ybar');
+    b.style.height = Math.max(n ? 3 : 0, (n / max) * 100) + '%';
+    if (n === max || y === all[all.length - 1]) b.append(el('span', null, OCL.num(n)));
+    b.title = y + ': ' + n;
+    bars.append(b);
+  }
+  const labels = el('div', 'ylabels');
+  for (const y of all) labels.append(el('span', null, "'" + y.slice(2)));
+  box.append(bars, labels);
+  return box;
+}
+
+function citesCard(direction) {
+  const p = direction === 'incoming' ? state.inc : state.out;
+  const c = el('section', 'card');
+  const head = el('div', 'card-head');
+  head.append(el('h2', 'h', t(direction === 'incoming' ? 'in_title' : 'out_title')));
+  if (!p.busy || p.items.length) head.append(el('span', 'total', OCL.num(p.total)));
+  c.append(head);
+  if (p.error) { c.append(OCL.renderError(p.error, () => loadCites(direction, state.run, true), render)); return c; }
+  if (p.busy && !p.items.length) { c.append(el('p', 'busy', t('cites_busy'))); return c; }
+  if (!p.items.length) { c.append(el('p', 'muted', t(direction === 'incoming' ? 'none_in' : 'none_out'))); return c; }
+  if (direction === 'incoming' && state.ids.length > 1) c.append(el('p', 'small muted', t('merged')));
+  if (direction === 'incoming') {
+    if (!p.more) { const chart = yearChart(p.items); if (chart) c.append(chart); }
+    else c.append(el('p', 'small muted', t('years_partial', { n: OCL.num(p.total) })));
+    const by = new Map();
+    for (const x of p.items) by.set(courtLabel(x.court), (by.get(courtLabel(x.court)) || 0) + 1);
+    const courts = el('div', 'courts');
+    courts.setAttribute('aria-label', t('by_court'));
+    for (const [k, n] of [...by].sort((a, b) => b[1] - a[1]).slice(0, 8)) courts.append(el('span', 'pill pill-plain', k + ' ' + OCL.num(n)));
+    c.append(courts);
+  }
+  const list = el('ul', 'cites');
+  for (const x of p.items.slice(0, p.shown || 20)) {
+    const li = el('li');
+    const d = el('span', 'd');
+    d.append(OCL.link(decisionUrl(x.id), x.docket));
+    if (x.mentions > 1) d.append(' ', el('span', 'n', t('mentions', { n: x.mentions })));
+    li.append(d, el('span', 'c', courtLabel(x.court) + ' · ' + (x.date ? OCL.date(x.date) : '')));
+    list.append(li);
+  }
+  c.append(list);
+  const hidden = p.items.length - (p.shown || 20);
+  if (hidden > 0) c.append(button('link', t('more', { n: OCL.num(Math.min(40, hidden)) }), () => { p.shown = (p.shown || 20) + 40; render(); }));
+  else if (direction === 'incoming') {
+    if (p.more) {
+      const b = button('quiet', p.busy ? t('cites_busy') : t('more', { n: OCL.num(Math.min(PAGE, p.total - p.items.length)) }), () => { p.shown = (p.shown || 20) + PAGE; loadCites('incoming', state.run, true); });
+      b.disabled = p.busy;
+      c.append(b);
+    }
+  }
+  return c;
+}
+
+function render() {
+  const out = $('out');
+  if (state.busy) { out.replaceChildren(el('p', 'busy', t('busy'))); return; }
+  if (state.error) { out.replaceChildren(OCL.renderError(state.error, show, render)); return; }
+  if (state.notFound) {
+    const box = el('div', 'stack');
+    box.append(el('p', 'alert', t('not_found', { ref: state.ref })));
+    const close = state.notFound.close_matches || [];
+    if (close.length) {
+      const p = el('p', 'small');
+      p.append(t('similar') + ' ');
+      close.slice(0, 5).forEach((m, i) => { if (i) p.append(', '); p.append(OCL.link(m.canonical_url || decisionUrl(m.decision_id), OCL.citationOf(m) || m.decision_id)); });
+      box.append(p);
+    }
+    out.replaceChildren(box);
+    return;
+  }
+  if (!state.decision) {
+    const box = el('section', 'panel empty');
+    box.append(el('h2', 'h', t('empty_title')), el('p', null, t('empty_body')), OCL.examples('ex', (x) => { $('ref').value = x; show(); }));
+    out.replaceChildren(box);
+    return;
+  }
+  const cols = el('div', 'cols');
+  cols.append(citesCard('incoming'), citesCard('outgoing'));
+  out.replaceChildren(header(), chainCard(), cols, el('p', 'note small', t('caveat')));
+}
+
+function renderChrome() {
+  document.title = 'Instanzenzug';
+  $('brand').textContent = t('brand');
+  $('intro').textContent = t('intro');
+  OCL.langButtons($('langs'));
+  $('ref-label').textContent = t('ref_label');
+  $('ref').placeholder = t('ref_example');
+  $('hint').textContent = t('hint');
+  $('go').textContent = t('go');
+  $('foot').textContent = t('foot');
+}
+
+function start() {
+  $('form').addEventListener('submit', (ev) => { ev.preventDefault(); show(); });
+  OCL.onLang(() => { renderChrome(); render(); });
+  OCL.initLang();
+  if (!$('ref').value) $('ref').value = t('ref_example');
+}
+
+start();
+
+</script>
+</body>
+</html>

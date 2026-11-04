@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Existenzminimum-Rechner · OpenCaseLaw</title>
+<meta name="description" content="Das betreibungsrechtliche Existenzminimum nach Art. 93 SchKG, mit den kantonalen Richtlinien samt Quelle.">
+<link rel="canonical" href="https://opencaselaw.ch/tools/minimum/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpenCaseLaw">
+<meta property="og:title" content="Existenzminimum-Rechner · OpenCaseLaw">
+<meta property="og:description" content="Das betreibungsrechtliche Existenzminimum nach Art. 93 SchKG, mit den kantonalen Richtlinien samt Quelle.">
+<meta property="og:url" content="https://opencaselaw.ch/tools/minimum/">
+<meta property="og:image" content="https://opencaselaw.ch/tools/minimum/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="color-scheme" content="light dark">
+<style>
+/* OpenCaseLaw artifacts: one family with citecheck (its palette and faces).
+   Layout: a slim masthead band, then a centred work area of one or two columns. */
+:root {
+  --frame: #ebe9e4;
+  --ground: #f6f5f2;
+  --paper: #ffffff;
+  --ink: #20252a;
+  --muted: #59636d;
+  --rule: #dddeda;
+  --rule-strong: #808892;
+  --action: #244d72;
+  --action-ink: #ffffff;
+  --good: #236746;
+  --warn: #8a5400;
+  --bad: #b0352b;
+  --wash-good: #e6f1ea;
+  --wash-warn: #f7efdd;
+  --wash-bad: #faece9;
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --frame: #171a1d; --ground: #1e2226; --paper: #272c31; --ink: #f0eee8; --muted: #b1b7bd;
+    --rule: #3a4147; --rule-strong: #73808d; --action: #9ec2e6; --action-ink: #17222d;
+    --good: #85c7a3; --warn: #e4b45f; --bad: #f28d83;
+    --wash-good: #22302a; --wash-warn: #332d22; --wash-bad: #382928;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --frame: #171a1d; --ground: #1e2226; --paper: #272c31; --ink: #f0eee8; --muted: #b1b7bd;
+  --rule: #3a4147; --rule-strong: #73808d; --action: #9ec2e6; --action-ink: #17222d;
+  --good: #85c7a3; --warn: #e4b45f; --bad: #f28d83;
+  --wash-good: #22302a; --wash-warn: #332d22; --wash-bad: #382928;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+p, h1, h2, h3, ol, ul, dl, dd, figure, blockquote { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+a { color: var(--action); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; border-radius: 3px; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* ── masthead ── */
+.site { border-bottom: 1px solid var(--rule); padding-block: 14px 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.site-in { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: baseline; }
+.brand { font: 600 19px/1.25 var(--serif); letter-spacing: 0.005em; min-width: 0; overflow-wrap: anywhere; }
+.brand small { display: inline-block; }
+.brand small { font: 500 12px/1 var(--sans); color: var(--muted); margin-left: 8px; letter-spacing: 0.04em; text-transform: uppercase; }
+.intro { grid-column: 1 / -1; color: var(--muted); max-width: 72ch; }
+.langs { display: flex; }
+.lang { border: 0; background: none; padding: 0 6px; min-height: 30px; min-width: 28px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.lang[aria-pressed="true"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
+
+/* ── work area ── */
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 18px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+.wrap.single { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--ground); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; min-width: 0; }
+.panel + .panel { margin-top: 0; }
+.stack { display: grid; gap: 12px; min-width: 0; }
+.h { font: 600 15px/1.3 var(--sans); }
+.eyebrow { font: 600 11px/1.3 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.serif { font-family: var(--serif); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.spread { justify-content: space-between; }
+
+/* ── controls ── */
+label.field { display: grid; gap: 4px; font-weight: 600; }
+textarea, input[type="text"], input[type="search"], input[type="number"], select {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--paper); color: var(--ink); font-weight: 400; }
+textarea { resize: vertical; font: 15px/1.55 var(--serif); }
+.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
+.check input { margin-top: 3px; }
+.primary { border: 0; border-radius: 4px; padding: 9px 16px; min-height: 38px; cursor: pointer; background: var(--action); color: var(--action-ink); font-weight: 600; }
+.primary:disabled { opacity: 0.45; cursor: default; }
+.quiet { border: 1px solid var(--rule-strong); border-radius: 4px; padding: 6px 11px; min-height: 32px; background: var(--paper); cursor: pointer; }
+.quiet:hover:not(:disabled) { border-color: var(--ink); }
+.quiet:disabled { opacity: 0.55; cursor: default; }
+.link { border: 0; padding: 0; background: none; color: var(--action); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── states ── */
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill-good { color: var(--good); box-shadow: inset 0 0 0 1.5px var(--good); }
+.pill-warn { color: var(--warn); background: var(--wash-warn); }
+.pill-bad { color: var(--bad); background: var(--wash-bad); }
+.pill-plain { color: var(--muted); box-shadow: inset 0 0 0 1px var(--rule-strong); }
+.alert { padding: 8px 10px; border-left: 3px solid var(--bad); background: var(--wash-bad); border-radius: 0 4px 4px 0; }
+.note { padding: 8px 10px; border-left: 3px solid var(--rule-strong); background: var(--paper); border-radius: 0 4px 4px 0; color: var(--muted); }
+.error-line { color: var(--bad); }
+.code { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.busy { color: var(--muted); }
+.busy::after { content: ""; display: inline-block; width: 10px; height: 10px; margin-left: 8px; border: 2px solid var(--rule-strong); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .busy::after { animation: none; } }
+.empty { padding: 8px 0; }
+.empty p { margin-top: 6px; color: var(--muted); max-width: 60ch; }
+.excerpt { margin-top: 4px; padding: 4px 10px; border-left: 2px solid var(--rule-strong); font: 14px/1.55 var(--serif); overflow-wrap: anywhere; }
+.cite { font-family: var(--serif); overflow-wrap: anywhere; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── foot ── */
+.foot { max-width: 1120px; margin: 0 auto; padding-block: 0 24px; color: var(--muted); font-size: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* ── Markdown from the tools ── */
+.md { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.md-h { font: 600 14px/1.35 var(--sans); margin-top: 6px; }
+h3.md-h { font-size: 15px; }
+.md-p { max-width: 75ch; }
+.md-list { display: grid; gap: 6px; padding-left: 0; }
+.md-list > li { padding-left: 12px; border-left: 2px solid var(--rule); }
+ol.md-list { list-style: none; }
+.md-quote { padding: 4px 10px; border-left: 2px solid var(--rule-strong); font-family: var(--serif); }
+.md-hr { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; width: 100%; }
+.md code { font: 12px/1.4 var(--mono); }
+
+.block { display: block; font-weight: 400; margin-top: 1px; }
+
+/* ── one-click examples on a first view ── */
+.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.chip-btn { border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--paper); padding: 3px 11px; min-height: 28px; cursor: pointer; font-size: 13px; }
+.chip-btn:hover { border-color: var(--action); color: var(--action); }
+.empty .examples { margin-top: 10px; }
+
+/* ── the frame: setup card in claude.ai, site bar on opencaselaw.ch ── */
+.ocl-setup { grid-column: 1 / -1; display: grid; gap: 8px; border-left: 3px solid var(--action); }
+.ocl-setup-title { font: 600 15px/1.3 var(--sans); }
+.ocl-setup p { max-width: 75ch; }
+.ocl-steps { list-style: decimal; padding-left: 22px; display: grid; gap: 4px; max-width: 75ch; }
+.ocl-setup-links { margin-top: 4px; }
+.button-link { display: inline-block; border-radius: 4px; padding: 7px 14px; background: var(--action); color: var(--action-ink); font-weight: 600; text-decoration: none; }
+.button-link:hover { filter: brightness(1.08); }
+.ocl-bar { background: var(--paper); border-bottom: 1px solid var(--rule); font-size: 13px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.ocl-bar-in { max-width: 1120px; margin: 0 auto; min-height: 40px; display: flex; align-items: center; gap: 8px; }
+.ocl-bar a { color: var(--ink); text-decoration: none; }
+.ocl-bar a:hover { color: var(--action); text-decoration: underline; }
+.ocl-home { font: 600 15px/1 var(--serif); }
+.ocl-sep { color: var(--muted); margin: 0 4px; }
+.ocl-links { margin-top: 8px; }
+
+[hidden] { display: none !important; }
+
+/* Existenzminimum-Rechner: the inputs on the left in the order of the guidelines (basic
+   amount, additions, income); on the right the reckoning as a ledger, then Art. 93 SchKG. */
+.fs { border: 0; padding: 0; margin: 0; min-width: 0; }
+.fs legend { padding: 0; margin-bottom: 4px; }
+.two > * { flex: 1 1 9em; }
+.money { position: relative; }
+.money input { padding-left: 3.1em; font-variant-numeric: tabular-nums; }
+.money::before { content: "CHF"; position: absolute; left: 10px; bottom: 9px; font-size: 12px; color: var(--muted); pointer-events: none; }
+.src { font: 12px/1.45 var(--serif); color: var(--muted); padding-left: 8px; border-left: 2px solid var(--rule); overflow-wrap: anywhere; }
+.src.missing { border-left-color: var(--warn); color: var(--warn); font-family: var(--sans); }
+.hint-line { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+.ledger { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ledger td { padding: 5px 0; border-top: 1px solid var(--rule); vertical-align: top; }
+.ledger td:last-child { text-align: right; white-space: nowrap; padding-left: 12px; }
+.ledger tr.sum td { border-top: 2px solid var(--ink); font-weight: 600; }
+.ledger tr.income td { border-top: 0; }
+.ledger .sub { color: var(--muted); font-size: 12px; display: block; }
+.big { display: grid; gap: 2px; padding: 12px 14px; border-radius: 6px; background: var(--paper); border: 1px solid var(--rule); }
+.big .label { font-size: 12px; color: var(--muted); }
+.big .value { font: 600 26px/1.15 var(--sans); font-variant-numeric: tabular-nums; }
+.big.good .value { color: var(--good); }
+.big.bad .value { color: var(--bad); }
+.statute .para { display: grid; grid-template-columns: 1.4em minmax(0, 1fr); gap: 0 6px; font: 14px/1.55 var(--serif); }
+.statute .n { font: 600 11px/2 var(--sans); color: var(--muted); text-align: right; }
+
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="site-in">
+    <p class="brand"><span id="brand">Existenzminimum-Rechner</span><small>OpenCaseLaw</small></p>
+    <div class="langs" id="langs"></div>
+    <p class="intro" id="intro"></p>
+  </div>
+</header>
+<main class="wrap">
+  <form class="panel stack" id="form" novalidate>
+    <label class="field" for="canton"><span id="canton-label"></span>
+      <select id="canton"></select>
+    </label>
+    <div id="guide" class="stack small" aria-live="polite"></div>
+    <fieldset class="stack fs">
+      <legend class="eyebrow" id="lg-household"></legend>
+      <label class="field" for="household"><span id="household-label"></span>
+        <select id="household"><option value="single"></option><option value="parent"></option><option value="couple"></option></select>
+      </label>
+      <div class="row two">
+        <label class="field" for="kids10"><span id="kids10-label"></span><input type="number" id="kids10" min="0" max="12" step="1" value="0" inputmode="numeric"></label>
+        <label class="field" for="kids11"><span id="kids11-label"></span><input type="number" id="kids11" min="0" max="12" step="1" value="0" inputmode="numeric"></label>
+      </div>
+    </fieldset>
+    <fieldset class="stack fs" id="amounts"></fieldset>
+    <fieldset class="stack fs" id="costs"></fieldset>
+    <fieldset class="stack fs">
+      <legend class="eyebrow" id="lg-income"></legend>
+      <label class="field" for="income"><span id="income-label"></span><input type="number" id="income" min="0" step="1" inputmode="decimal"></label>
+    </fieldset>
+  </form>
+  <div class="stack">
+    <section class="panel stack" id="result" aria-live="polite"></section>
+    <section class="panel stack" id="law"></section>
+  </div>
+</main>
+<footer class="foot"><p id="foot"></p></footer>
+<script>
+"use strict";
+const OCL_BUILD = {"mode": "web", "page": "minimum", "web": "https://opencaselaw.ch/tools/minimum/", "artifact": "https://claude.ai/artifact/Wdu8zdb5PDCR8r2uCTWhNk"};
+// Shared by the OpenCaseLaw artifacts: languages, small DOM helpers, and the calls to
+// the viewer's own "opencaselaw" connector. Text from tools and viewers is only ever
+// set with textContent; nothing here parses it as HTML.
+const OCL = (() => {
+  const LANGS = ['de', 'fr', 'it', 'en'];
+  const LOCALES = { de: 'de-CH', fr: 'fr-CH', it: 'it-CH', en: 'en-GB' };
+  const SERVER = 'opencaselaw';
+  // Set by build.py: which build this is, and where the page's twin lives.
+  const BUILD = (typeof OCL_BUILD === 'object' && OCL_BUILD) || { mode: 'artifact' };
+  const MODE = BUILD.mode === 'web' ? 'web' : 'artifact';
+  const ENDPOINT = 'https://mcp.opencaselaw.ch/mcp';
+  const ADD_URL = 'https://claude.ai/settings/connectors?modal=add-custom-connector';
+  const SHARED = {
+    de: {
+      examples: 'Zum Beispiel:',
+      languages: 'Sprache', retry: 'Erneut versuchen', perm_open: 'Berechtigungen öffnen',
+      perm_menu: 'Das Fenster liess sich nicht öffnen. Die Berechtigungen der Seite stehen im Menü oben bei ihrem Namen.',
+      e_unavailable: 'Diese Seite fragt OpenCaseLaw über den Connector «opencaselaw» in claude.ai. Öffnen Sie sie in claude.ai, angemeldet.',
+      e_connect: 'In Ihrem claude.ai-Konto fehlt der Connector «opencaselaw». Fügen Sie ihn unter Einstellungen → Connectors hinzu: Name «opencaselaw», Adresse https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Der Connector ist für diese Seite noch nicht erlaubt. Beim nächsten Versuch fragt claude.ai wieder.',
+      e_denied: 'Der Connector ist für diese Seite nicht erlaubt.',
+      e_policy: 'Ihre Organisation erlaubt diesen Connector hier nicht.',
+      e_reauth: 'Der Connector «opencaselaw» muss in claude.ai neu verbunden werden (Einstellungen → Connectors).',
+      e_busy: 'Zu viele Anfragen. Bitte kurz warten und erneut versuchen.',
+      e_server: 'OpenCaseLaw antwortet gerade nicht. Bitte später erneut versuchen.',
+      e_tool: 'OpenCaseLaw meldet einen Fehler: {message}',
+      copy: 'Kopieren', copied: 'Kopiert.', copy_failed: 'Kopieren ging nicht; der Text ist markiert.',
+      model_reasons: 'Begründung des Modells (englisch)', source_open: 'Quelle öffnen',
+      foot: 'Daten: OpenCaseLaw, offenes Korpus der Schweizer Rechtsprechung und Gesetzgebung (CC0). Die Seite fragt nur den Connector «opencaselaw».',
+    },
+    fr: {
+      examples: 'Par exemple:',
+      languages: 'Langue', retry: 'Réessayer', perm_open: 'Ouvrir les autorisations',
+      perm_menu: 'La fenêtre n’a pas pu s’ouvrir. Les autorisations de la page se trouvent dans le menu en haut, à côté de son nom.',
+      e_unavailable: 'Cette page interroge OpenCaseLaw par le connecteur «opencaselaw» de claude.ai. Ouvrez-la dans claude.ai, connecté.',
+      e_connect: 'Le connecteur «opencaselaw» manque dans votre compte claude.ai. Ajoutez-le sous Paramètres → Connecteurs: nom «opencaselaw», adresse https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Le connecteur n’est pas encore autorisé pour cette page. Au prochain essai, claude.ai le demandera à nouveau.',
+      e_denied: 'Le connecteur n’est pas autorisé pour cette page.',
+      e_policy: 'Votre organisation n’autorise pas ce connecteur ici.',
+      e_reauth: 'Le connecteur «opencaselaw» doit être reconnecté dans claude.ai (Paramètres → Connecteurs).',
+      e_busy: 'Trop de demandes. Patientez un instant et réessayez.',
+      e_server: 'OpenCaseLaw ne répond pas pour l’instant. Réessayez plus tard.',
+      e_tool: 'OpenCaseLaw signale une erreur: {message}',
+      copy: 'Copier', copied: 'Copié.', copy_failed: 'La copie n’a pas fonctionné; le texte est sélectionné.',
+      model_reasons: 'Motifs du modèle (en anglais)', source_open: 'Ouvrir la source',
+      foot: 'Données: OpenCaseLaw, corpus ouvert de la jurisprudence et de la législation suisses (CC0). La page n’interroge que le connecteur «opencaselaw».',
+    },
+    it: {
+      examples: 'Per esempio:',
+      languages: 'Lingua', retry: 'Riprovare', perm_open: 'Aprire le autorizzazioni',
+      perm_menu: 'Non è stato possibile aprire la finestra. Le autorizzazioni della pagina sono nel menu in alto, accanto al suo nome.',
+      e_unavailable: 'Questa pagina interroga OpenCaseLaw tramite il connettore «opencaselaw» di claude.ai. Apritela in claude.ai, con accesso.',
+      e_connect: 'Nel vostro account claude.ai manca il connettore «opencaselaw». Aggiungetelo in Impostazioni → Connettori: nome «opencaselaw», indirizzo https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'Il connettore non è ancora autorizzato per questa pagina. Al prossimo tentativo claude.ai lo chiederà di nuovo.',
+      e_denied: 'Il connettore non è autorizzato per questa pagina.',
+      e_policy: 'La vostra organizzazione non consente questo connettore qui.',
+      e_reauth: 'Il connettore «opencaselaw» va ricollegato in claude.ai (Impostazioni → Connettori).',
+      e_busy: 'Troppe richieste. Attendete un momento e riprovate.',
+      e_server: 'OpenCaseLaw al momento non risponde. Riprovate più tardi.',
+      e_tool: 'OpenCaseLaw segnala un errore: {message}',
+      copy: 'Copiare', copied: 'Copiato.', copy_failed: 'La copia non è riuscita; il testo è selezionato.',
+      model_reasons: 'Motivazione del modello (in inglese)', source_open: 'Aprire la fonte',
+      foot: 'Dati: OpenCaseLaw, corpus aperto della giurisprudenza e della legislazione svizzere (CC0). La pagina interroga solo il connettore «opencaselaw».',
+    },
+    en: {
+      examples: 'For instance:',
+      languages: 'Language', retry: 'Try again', perm_open: 'Open permissions',
+      perm_menu: 'The panel did not open. The page’s permissions are in the menu at the top, by its name.',
+      e_unavailable: 'This page asks OpenCaseLaw through the “opencaselaw” connector in claude.ai. Open it in claude.ai, signed in.',
+      e_connect: 'Your claude.ai account has no “opencaselaw” connector. Add it under Settings → Connectors: name “opencaselaw”, address https://mcp.opencaselaw.ch/mcp.',
+      e_pending: 'The connector is not allowed for this page yet. On the next try claude.ai asks again.',
+      e_denied: 'The connector is not allowed for this page.',
+      e_policy: 'Your organisation does not allow this connector here.',
+      e_reauth: 'The “opencaselaw” connector must be reconnected in claude.ai (Settings → Connectors).',
+      e_busy: 'Too many requests. Please wait a moment and try again.',
+      e_server: 'OpenCaseLaw is not answering right now. Please try again later.',
+      e_tool: 'OpenCaseLaw reports an error: {message}',
+      copy: 'Copy', copied: 'Copied.', copy_failed: 'Copying did not work; the text is selected.',
+      model_reasons: 'The model’s reasons', source_open: 'Open the source',
+      foot: 'Data: OpenCaseLaw, the open corpus of Swiss case law and legislation (CC0). The page asks only the “opencaselaw” connector.',
+    },
+  };
+
+  // The frame around every page: the one-time setup in claude.ai, the site bar on the web.
+  // A key ending in "_web" replaces its plain twin in the web build.
+  const SITE = {
+    de: {
+      setup_title: 'Einmal einrichten',
+      setup_missing: 'Diese Seite fragt OpenCaseLaw über Ihren claude.ai-Connector «opencaselaw». In Ihrem Konto fehlt er noch.',
+      setup_none: 'Diese Seite fragt OpenCaseLaw über einen claude.ai-Connector und läuft darum nur in claude.ai, angemeldet.',
+      setup_1: 'In claude.ai: Einstellungen → Connectors → «Add custom connector».',
+      setup_2: 'Name genau «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, ohne Anmeldung. Kostenlos.',
+      setup_3: 'Diese Seite neu laden. Beim ersten Abruf fragt claude.ai, ob die Seite den Connector nutzen darf.',
+      setup_add: 'Connector hinzufügen',
+      setup_web: 'Ohne Einrichtung: dieselbe Seite auf opencaselaw.ch',
+      web_tools: 'Werkzeuge', web_privacy: 'Datenschutz',
+      web_connect: 'OpenCaseLaw auch in Claude, ChatGPT und anderen KI-Assistenten',
+      foot_web: 'Daten: OpenCaseLaw, offenes Korpus der Schweizer Rechtsprechung und Gesetzgebung (CC0). Abfragen gehen an den öffentlichen Server mcp.opencaselaw.ch; ohne Anmeldung, ohne Cookies.',
+    },
+    fr: {
+      setup_title: 'Configuration unique',
+      setup_missing: 'Cette page interroge OpenCaseLaw par votre connecteur claude.ai «opencaselaw», qui manque encore dans votre compte.',
+      setup_none: 'Cette page interroge OpenCaseLaw par un connecteur claude.ai et ne fonctionne donc que dans claude.ai, connecté.',
+      setup_1: 'Dans claude.ai: Paramètres → Connecteurs → «Add custom connector».',
+      setup_2: 'Nom exactement «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, sans connexion. Gratuit.',
+      setup_3: 'Rechargez cette page. Au premier appel, claude.ai demande si la page peut utiliser le connecteur.',
+      setup_add: 'Ajouter le connecteur',
+      setup_web: 'Sans configuration: la même page sur opencaselaw.ch',
+      web_tools: 'Outils', web_privacy: 'Protection des données',
+      web_connect: 'OpenCaseLaw aussi dans Claude, ChatGPT et d’autres assistants IA',
+      foot_web: 'Données: OpenCaseLaw, corpus ouvert de la jurisprudence et de la législation suisses (CC0). Les requêtes vont au serveur public mcp.opencaselaw.ch; sans compte, sans cookies.',
+    },
+    it: {
+      setup_title: 'Configurazione unica',
+      setup_missing: 'Questa pagina interroga OpenCaseLaw tramite il vostro connettore claude.ai «opencaselaw», che manca ancora nel vostro account.',
+      setup_none: 'Questa pagina interroga OpenCaseLaw tramite un connettore claude.ai e funziona quindi solo in claude.ai, con accesso.',
+      setup_1: 'In claude.ai: Impostazioni → Connettori → «Add custom connector».',
+      setup_2: 'Nome esattamente «opencaselaw», URL https://mcp.opencaselaw.ch/mcp, senza accesso. Gratuito.',
+      setup_3: 'Ricaricate questa pagina. Alla prima richiesta claude.ai chiede se la pagina può usare il connettore.',
+      setup_add: 'Aggiungere il connettore',
+      setup_web: 'Senza configurazione: la stessa pagina su opencaselaw.ch',
+      web_tools: 'Strumenti', web_privacy: 'Protezione dei dati',
+      web_connect: 'OpenCaseLaw anche in Claude, ChatGPT e altri assistenti IA',
+      foot_web: 'Dati: OpenCaseLaw, corpus aperto della giurisprudenza e della legislazione svizzere (CC0). Le richieste vanno al server pubblico mcp.opencaselaw.ch; senza account, senza cookie.',
+    },
+    en: {
+      setup_title: 'One-time setup',
+      setup_missing: 'This page asks OpenCaseLaw through your claude.ai connector “opencaselaw”, which your account does not have yet.',
+      setup_none: 'This page asks OpenCaseLaw through a claude.ai connector, so it only runs in claude.ai, signed in.',
+      setup_1: 'In claude.ai: Settings → Connectors → “Add custom connector”.',
+      setup_2: 'Name exactly “opencaselaw”, URL https://mcp.opencaselaw.ch/mcp, no sign-in. Free.',
+      setup_3: 'Reload this page. On the first request claude.ai asks whether the page may use the connector.',
+      setup_add: 'Add the connector',
+      setup_web: 'Without setup: the same page on opencaselaw.ch',
+      web_tools: 'Tools', web_privacy: 'Privacy',
+      web_connect: 'OpenCaseLaw in Claude, ChatGPT and other AI assistants too',
+      foot_web: 'Data: OpenCaseLaw, the open corpus of Swiss case law and legislation (CC0). Requests go to the public server mcp.opencaselaw.ch; no account, no cookies.',
+    },
+  };
+
+  // ── language ──
+  let lang = 'de';
+  const strings = {};
+  const listeners = [];
+  function setStrings(page) { for (const l of LANGS) strings[l] = { ...SHARED[l], ...SITE[l], ...((page && page[l]) || {}) }; }
+  function lookup(l, key) {
+    const s = strings[l];
+    if (!s) return undefined;
+    return (MODE === 'web' && s[key + '_web'] !== undefined) ? s[key + '_web'] : s[key];
+  }
+  function t(key, values = {}) {
+    const s = lookup(lang, key) ?? lookup('de', key) ?? key;
+    return String(s).replace(/\{(\w+)\}/g, (all, name) => (name in values ? String(values[name]) : all));
+  }
+  function setLang(l) {
+    lang = LANGS.includes(l) ? l : 'de';
+    document.documentElement.lang = lang;
+    try { localStorage.setItem('ocl.lang', lang); } catch { /* private mode */ }
+    for (const f of listeners) f();
+  }
+  function initLang() {
+    let l = null;
+    // A shared link may name its language (?lang=fr); then the viewer's own choice.
+    try { l = new URLSearchParams(location.search).get('lang'); } catch { /* none */ }
+    if (!LANGS.includes(l)) { l = null; try { l = localStorage.getItem('ocl.lang'); } catch { /* private mode */ } }
+    listeners.unshift(renderFrame);
+    setLang(l || String(navigator.language || 'de').slice(0, 2).toLowerCase());
+    if (MODE === 'artifact') checkSetup();
+    else {
+      // On the site every page title carries the site's name.
+      const suffix = () => { if (!/OpenCaseLaw$/.test(document.title)) document.title += ' · OpenCaseLaw'; };
+      listeners.push(suffix);
+      suffix();
+    }
+  }
+
+  // ── the frame ──
+  // Web: a slim bar back to the site, and links under the page's own footer.
+  // claude.ai: a setup card above the work area when this viewer cannot reach the
+  // connector, decided before the first click rather than after a failed call.
+  let setup = null; // null | 'none' | 'missing' | 'reauth'
+  function renderFrame() {
+    if (MODE === 'web') {
+      let bar = document.getElementById('ocl-bar');
+      if (!bar) { bar = el('nav', 'ocl-bar'); bar.id = 'ocl-bar'; document.body.prepend(bar); }
+      const home = link('https://opencaselaw.ch/', 'OpenCaseLaw', 'ocl-home');
+      home.removeAttribute('target');
+      const tools = link('https://opencaselaw.ch/tools/' + (lang === 'de' ? '' : '?lang=' + lang), t('web_tools'));
+      tools.removeAttribute('target');
+      bar.replaceChildren(el('div', 'ocl-bar-in'));
+      bar.firstChild.append(home, el('span', 'ocl-sep', '/'), tools);
+      let links = document.getElementById('ocl-links');
+      if (!links) {
+        links = el('p', 'ocl-links small');
+        links.id = 'ocl-links';
+        const foot = document.querySelector('footer.foot') || document.body;
+        foot.append(links);
+      }
+      links.replaceChildren(link('https://opencaselaw.ch/mcp/', t('web_connect')), el('span', 'ocl-sep', '·'),
+        link('https://opencaselaw.ch/datenschutz/', t('web_privacy')));
+      return;
+    }
+    let card = document.getElementById('ocl-setup');
+    if (!setup) { if (card) card.remove(); return; }
+    if (!card) {
+      card = el('section', 'panel ocl-setup');
+      card.id = 'ocl-setup';
+      card.setAttribute('role', 'note');
+      const main = document.querySelector('main') || document.body;
+      main.prepend(card);
+    }
+    const parts = [el('h2', 'ocl-setup-title', t('setup_title'))];
+    if (setup === 'reauth') parts.push(el('p', null, t('e_reauth')));
+    else {
+      parts.push(el('p', null, t(setup === 'none' ? 'setup_none' : 'setup_missing')));
+      if (setup === 'missing') {
+        const steps = el('ol', 'ocl-steps');
+        steps.append(el('li', null, t('setup_1')), el('li', null, t('setup_2')), el('li', null, t('setup_3')));
+        parts.push(steps);
+      }
+    }
+    const row = el('p', 'row ocl-setup-links');
+    if (setup === 'missing') row.append(link(ADD_URL, t('setup_add'), 'button-link'));
+    if (BUILD.web) row.append(link(BUILD.web + (lang === 'de' ? '' : '?lang=' + lang), t('setup_web')));
+    if (row.childNodes.length) parts.push(row);
+    card.replaceChildren(...parts);
+  }
+  async function checkSetup() {
+    const m = await mcp();
+    let state = null;
+    if (!m) state = 'none';
+    else if (typeof m.listTools === 'function') {
+      try {
+        const listed = await m.listTools(SERVER);
+        const s = ((listed && listed.servers) || []).find((x) => x && x.server === SERVER);
+        if (!s || !Array.isArray(s.tools) || !s.tools.length) state = 'missing';
+        else if (s.authStatus === 'needs_reauth') state = 'reauth';
+      } catch { state = null; /* say nothing; a call will tell */ }
+    }
+    setup = state;
+    renderFrame();
+  }
+  const onLang = (f) => listeners.push(f);
+  const language = () => lang;
+  // The citation_string_* field in the interface language; English reads the German one.
+  const citationOf = (p) => (p && (p['citation_string_' + lang] || p.citation_string_de || p.citation_string)) || '';
+  const toolLang = () => (lang === 'en' ? 'de' : lang);
+
+  // ── DOM ──
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = text;
+    return node;
+  }
+  function button(className, text, onClick) {
+    const b = el('button', className, text);
+    b.type = 'button';
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+  function link(href, text, className) {
+    const a = el('a', className, text);
+    if (/^https:\/\//.test(href || '')) { a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    return a;
+  }
+  function langButtons(container) {
+    container.setAttribute('role', 'group');
+    container.setAttribute('aria-label', t('languages'));
+    container.replaceChildren(...LANGS.map((code) => {
+      const b = button('lang', code.toUpperCase(), () => setLang(code));
+      b.setAttribute('aria-pressed', String(code === lang));
+      return b;
+    }));
+  }
+  const num = (n) => new Intl.NumberFormat(LOCALES[lang]).format(n);
+  function date(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '';
+    const d = new Date(iso.slice(0, 10) + 'T12:00:00Z');
+    return d.toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  // ── the connector ──
+  // Two builds of every page (build.py): 'artifact' runs in claude.ai and calls the
+  // viewer's own connector; 'web' runs on opencaselaw.ch and sends the same MCP call
+  // to the public server itself, so both see the same answers.
+  let connector = null;
+  const mcp = () => (connector ||= (MODE === 'web' ? Promise.resolve(webConnector())
+    : window.claude && typeof window.claude.use === 'function'
+      ? window.claude.use('mcp').catch(() => null) : Promise.resolve(null)));
+
+  // The public server speaks MCP over plain HTTP with open CORS and no session
+  // (checked 2026-11-04): one JSON-RPC tools/call, answered as JSON or as a short
+  // event stream. The result is shaped as the viewer shapes it: `payload` is
+  // structuredContent, else the text parsed as JSON, else the text.
+  function webConnector() {
+    const cache = new Map();
+    let seq = 0;
+    async function callTool(server, tool, input, options = {}) {
+      const key = tool + '\u0000' + JSON.stringify(input);
+      const staleTime = options.cache && options.cache.staleTime;
+      const hit = staleTime && cache.get(key);
+      if (hit && Date.now() - hit.at < staleTime) return hit.value;
+      const id = ++seq;
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), 120000);
+      let response;
+      let body;
+      try {
+        response = await fetch(ENDPOINT, {
+          method: 'POST', signal: abort.signal,
+          headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'x-client': 'web-tools' },
+          body: JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name: tool, arguments: input } }),
+        });
+        body = await response.text();
+      } catch (error) {
+        throw { code: 'server_unavailable', message: String((error && error.message) || error), retryable: true };
+      } finally { clearTimeout(timer); }
+      if (response.status === 429) throw { code: 'rate_limited', message: 'HTTP 429' };
+      if (!response.ok) throw { code: 'server_unavailable', message: 'HTTP ' + response.status, retryable: true };
+      const message = rpcMessage(body, id);
+      if (!message) throw { code: 'server_unavailable', message: 'no answer', retryable: true };
+      if (message.error) throw { code: 'tool_error', message: String(message.error.message || 'error').slice(0, 300) };
+      const r = message.result || {};
+      const blocks = Array.isArray(r.content) ? r.content : [];
+      const first = (blocks.find((b) => b && b.type === 'text') || {}).text || '';
+      if (r.isError) throw { code: 'tool_error', message: first.slice(0, 300), result: r };
+      let payload = r.structuredContent;
+      if (payload === undefined) { try { payload = JSON.parse(first); } catch { payload = first; } }
+      const value = { content: blocks, structuredContent: r.structuredContent, payload };
+      if (staleTime) cache.set(key, { at: Date.now(), value });
+      return value;
+    }
+    return { callTool };
+  }
+  function rpcMessage(body, id) {
+    const text = String(body || '').trim();
+    const candidates = text.startsWith('{') ? [text]
+      : text.split(/\r?\n\r?\n/).map((event) => event.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n')).filter(Boolean);
+    for (const c of candidates) {
+      try { const m = JSON.parse(c); if (m && m.id === id && (m.result || m.error)) return m; } catch { /* not this one */ }
+    }
+    return null;
+  }
+
+  // One tool call; resolves the JSON payload, rejects with the platform's error object.
+  // `text: true` for the few tools that answer in Markdown rather than JSON.
+  async function call(tool, input, { staleTime = 600000, text = false } = {}) {
+    const m = await mcp();
+    if (!m) throw { code: 'unavailable', message: 'no viewer' };
+    const result = await m.callTool(SERVER, tool, input, staleTime ? { cache: { staleTime, gcTime: Math.max(staleTime, 300000) } } : { cache: false });
+    const p = result && result.payload;
+    if (text) {
+      const s = typeof p === 'string' ? p : ((result && result.content) || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+      if (!s) throw { code: 'tool_error', message: 'empty answer' };
+      return s;
+    }
+    const obj = asObject(p, result);
+    if (!obj) throw { code: 'tool_error', message: typeof p === 'string' ? p.slice(0, 300) : 'empty answer' };
+    return guard(obj);
+  }
+
+  // The server may follow its JSON with a note in the same text block ("---\nℹ️ This
+  // data is provided by OpenCaseLaw.ch …", seen 2026-10-29 over plain JSON-RPC); then
+  // the platform cannot parse it and hands over text. The object is taken out of it.
+  function asObject(p, result) {
+    if (p && typeof p === 'object') return p;
+    const text = typeof p === 'string' ? p : ((result && result.content) || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+    const i = text.indexOf('{');
+    const j = text.lastIndexOf('}');
+    if (i < 0 || j <= i) return null;
+    try { return JSON.parse(text.slice(i, j + 1)); } catch { /* try the text before a trailing note */ }
+    const cut = text.search(/\n-{3,}\s*\n/);
+    if (cut > i) { try { return JSON.parse(text.slice(i, cut).trim()); } catch { return null; } }
+    return null;
+  }
+
+  function guard(p) {
+    if (p.error && !p.ok && Object.keys(p).length <= 3) throw { code: 'tool_error', message: String(p.error).slice(0, 300) };
+    return p;
+  }
+
+  async function permissionState() {
+    try {
+      const permissions = window.claude && await window.claude.use('permissions');
+      if (!permissions) return null;
+      let state = await permissions.state('mcp:' + SERVER);
+      if (state === 'unavailable') state = await permissions.state('mcp');
+      return state;
+    } catch { return null; }
+  }
+
+  // A failed call, kept as data so its sentence follows a later change of language.
+  // Closing claude.ai's permission prompt refuses nothing: the call fails with
+  // upstream_error ("connector access isn't confirmed for this artifact right now",
+  // seen 2026-10-29) and the permission stays "prompt". So before saying anything the
+  // page asks the permissions capability: "denied" is a refusal (the panel undoes it),
+  // "prompt" means not allowed yet (trying again asks again).
+  async function failure(error) {
+    const code = (error && error.code) || 'upstream_error';
+    let denied = ['not_in_manifest', 'not_granted', 'consent_required', 'approval_required'].includes(code);
+    let pending = false;
+    if (!denied && code !== 'unavailable') {
+      const state = await permissionState();
+      denied = state === 'denied';
+      pending = state === 'prompt';
+    }
+    return { code, denied, pending, message: (error && error.message) || String(error) };
+  }
+
+  function errorText(e) {
+    if (e.denied) return t('e_denied');
+    if (e.pending) return t('e_pending');
+    if (e.code === 'unavailable') return t('e_unavailable');
+    if (['server_not_connected', 'server_not_found', 'selection_required'].includes(e.code)) return t('e_connect');
+    if (e.code === 'blocked_by_policy') return t('e_policy');
+    if (e.code === 'needs_reauth') return t('e_reauth');
+    if (e.code === 'rate_limited') return t('e_busy');
+    if (['server_unavailable', 'upstream_error', 'cancelled'].includes(e.code)) return t('e_server');
+    return t('e_tool', { message: e.message });
+  }
+
+  // The error, its code for support, and the one way forward: the Permissions panel for
+  // a refusal, otherwise trying again (never on its own).
+  function renderError(e, retry, rerender) {
+    const box = el('div', 'stack failed');
+    const said = el('p', 'error-line', errorText(e) + ' ');
+    if (!e.pending) said.append(el('span', 'code', '(' + e.code + ')'));
+    box.append(said);
+    const row = el('div', 'row');
+    if (e.denied) {
+      row.append(button('quiet', t('perm_open'), async () => {
+        try {
+          const permissions = window.claude && await window.claude.use('permissions');
+          if (!permissions) throw new Error('unavailable');
+          await permissions.manage();
+          e.denied = (await permissionState()) === 'denied';
+          if (!e.denied && retry) { retry(); return; }
+        } catch { e.manageFailed = true; }
+        rerender();
+      }));
+      if (e.manageFailed) box.append(el('p', 'muted small', t('perm_menu')));
+    } else if (retry && e.code !== 'unavailable') {
+      row.append(button('quiet', t('retry'), retry));
+    }
+    if (row.childNodes.length) box.append(row);
+    return box;
+  }
+
+  // Copy on a click; where the host refuses the clipboard, the text is selected instead.
+  async function copy(text, fallback) {
+    try {
+      // Some hosts never answer the clipboard request; after a moment the text is selected instead.
+      await Promise.race([navigator.clipboard.writeText(text), new Promise((resolve, reject) => setTimeout(() => reject(new Error('timeout')), 1500))]);
+      return true;
+    } catch {
+      if (fallback) { fallback.hidden = false; fallback.value = text; fallback.focus(); fallback.select(); }
+      return false;
+    }
+  }
+
+  // ── Markdown from the tools, as DOM nodes only ──
+  // Several tools answer in Markdown. This reads the few forms they use (headings, lists,
+  // quotes, rules, **bold**, *italic*, `code`, [text](https link), ^superscript) and builds
+  // nodes with textContent, so nothing in the answer is ever parsed as HTML. The server's
+  // closing note ("---" then "ℹ️ …") is left out.
+  function stripNote(text) {
+    const s = String(text || '');
+    const cut = s.search(/\n-{3,}\s*\n\s*ℹ️/);
+    return cut >= 0 ? s.slice(0, cut) : s;
+  }
+  function inline(text, into) {
+    const re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|`([^`]+)`|(?<![\w*])\*([^*\s][^*]*?)\*(?!\w)|\^(\d+[a-z]?)/g;
+    let at = 0;
+    for (const m of text.matchAll(re)) {
+      if (m.index > at) into.append(text.slice(at, m.index));
+      if (m[1] !== undefined) into.append(el('strong', null, m[1]));
+      else if (m[2] !== undefined) into.append(link(m[3], m[2]));
+      else if (m[4] !== undefined) into.append(el('code', null, m[4]));
+      else if (m[5] !== undefined) into.append(el('em', null, m[5]));
+      else if (m[6] !== undefined) into.append(el('sup', null, m[6]));
+      at = m.index + m[0].length;
+    }
+    if (at < text.length) into.append(text.slice(at));
+    return into;
+  }
+  function markdown(text, { skipFirstHeading = false } = {}) {
+    const box = el('div', 'md');
+    let list = null;
+    let para = null;
+    let headingSeen = false;
+    const close = () => { list = null; para = null; };
+    for (const raw of stripNote(text).split('\n')) {
+      const line = raw.replace(/\s+$/, '');
+      const h = /^(#{1,4})\s+(.*)$/.exec(line);
+      const li = /^\s*(?:[-*•]|\d+\.)\s+(.*)$/.exec(line);
+      if (!line.trim()) { close(); continue; }
+      if (h) {
+        close();
+        if (skipFirstHeading && !headingSeen) { headingSeen = true; continue; }
+        headingSeen = true;
+        box.append(inline(h[2], el(h[1].length <= 1 ? 'h3' : 'h4', 'md-h')));
+      } else if (/^-{3,}$/.test(line.trim())) { close(); box.append(el('hr', 'md-hr')); }
+      else if (/^>\s?/.test(line)) { close(); box.append(inline(line.replace(/^>\s?/, ''), el('blockquote', 'md-quote'))); }
+      else if (li) {
+        para = null;
+        if (!list) { list = el(/^\s*\d+\./.test(line) ? 'ol' : 'ul', 'md-list'); box.append(list); }
+        list.append(inline(li[1], el('li')));
+      } else if (list && /^\s{2,}\S/.test(raw)) {
+        const last = list.lastElementChild;
+        last.append(el('br'));
+        inline(line.trim(), last);
+      } else {
+        list = null;
+        if (!para) { para = el('p', 'md-p'); box.append(para); } else para.append(el('br'));
+        inline(line.trim(), para);
+      }
+    }
+    return box;
+  }
+
+  // "Zum Beispiel: [chip] [chip]": one click fills the form and runs it. `items` is a
+  // string key whose text lists the examples separated by "|".
+  function examples(key, onPick) {
+    const box = el('p', 'examples');
+    box.append(el('span', 'muted', t('examples') + ' '));
+    for (const item of t(key).split('|').map((x) => x.trim()).filter(Boolean)) box.append(button('chip-btn', item, () => onPick(item)));
+    return box;
+  }
+
+  // Text from a tool that may carry Markdown links ("[BGE 140 III 86](https://…)"): links
+  // become links, everything else stays text.
+  const rich = (text, into) => inline(String(text || ''), into || el('span'));
+
+  return { LANGS, SERVER, MODE, BUILD, setStrings, t, setLang, initLang, onLang, language, citationOf, toolLang,
+    el, button, link, langButtons, num, date, call, failure, errorText, renderError, copy, markdown, stripNote, examples, rich };
+})();
+
+// Existenzminimum-Rechner: the betreibungsrechtliche Existenzminimum (Notbedarf, Art. 93
+// SchKG) as the cantonal guidelines reckon it: basic amount for the household and its
+// children, plus the actual costs the guidelines admit; what the income exceeds it by is
+// what can be garnished. The basic amounts are read, at the viewer's request, from the
+// canton's own guideline in the corpus (search_practice / get_practice, source bj_schkg)
+// and shown with the passage they come from; where the corpus has no readable guideline
+// the viewer enters them. The reckoning runs in the page; nothing entered leaves it.
+const { t, el, button } = OCL;
+const CANTONS = ['AG', 'AI', 'AR', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NE', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH'];
+const BASIC = ['single', 'parent', 'couple'];
+const COSTS = ['rent', 'heating', 'health', 'social', 'work', 'maintenance', 'childcare', 'other'];
+const BJ_LIST = 'https://www.bj.admin.ch/de/kreisschreiben-schkg';
+
+OCL.setStrings({
+  de: {
+    brand: 'Existenzminimum-Rechner',
+    intro: 'Wie viel vom Lohn gepfändet werden darf: das betreibungsrechtliche Existenzminimum nach Art. 93 SchKG, gerechnet wie die kantonalen Richtlinien es vorsehen. Zur Orientierung; massgebend ist die Berechnung des Betreibungsamts.',
+    canton_label: 'Kanton', canton_manual: 'Ansätze selbst eingeben', guide_busy: 'Suche die Richtlinie des Kantons …',
+    guide_found: 'Ansätze aus: {title} ({date}).', guide_pdf: 'PDF', guide_old: 'Diese Fassung ist vom {date}. Neuere Ansätze sind möglich; beim Betreibungsamt nachfragen.',
+    guide_scan: 'Die Richtlinie des Kantons liegt im Korpus nicht als lesbarer Text vor (etwa nur als Scan); die Ansätze lassen sich nicht lesen. Bitte aus dem PDF oder beim Betreibungsamt übernehmen.',
+    guide_none: 'Für diesen Kanton hat das Korpus keine lesbare Richtlinie. Ansätze beim Betreibungsamt erfragen oder in der Liste des Bundesamts für Justiz nachsehen.',
+    guide_partial: 'Nicht alle Ansätze liessen sich lesen; die fehlenden bitte ergänzen.', bj_list: 'Liste des Bundesamts für Justiz',
+    lg_household: 'Haushalt', household_label: 'Lebenssituation', single: 'alleinstehend', parent: 'alleinerziehend', couple: 'Ehepaar, eingetragene Partnerschaft',
+    kids10_label: 'Kinder bis 10 Jahre', kids11_label: 'Kinder über 10 Jahre',
+    lg_amounts: 'Grundbeträge pro Monat', a_single: 'Grundbetrag alleinstehend', a_parent: 'Grundbetrag alleinerziehend', a_couple: 'Grundbetrag Ehepaar', a_kid10: 'je Kind bis 10 Jahre', a_kid11: 'je Kind über 10 Jahre',
+    from_guide: 'aus der Richtlinie:', missing: 'nicht in der Richtlinie gefunden: bitte eintragen',
+    lg_costs: 'Zuschläge pro Monat (tatsächliche Kosten)',
+    c_rent: 'Miete oder Hypothekarzins', c_rent_h: 'ohne Strom und Kochgas (im Grundbetrag)',
+    c_heating: 'Heiz- und Nebenkosten', c_heating_h: 'auf zwölf Monate verteilt',
+    c_health: 'Krankenkasse (Grundversicherung)', c_health_h: 'nur was tatsächlich bezahlt wird; Zusatzversicherungen zählen nicht',
+    c_social: 'Sozialbeiträge, nicht vom Lohn abgezogen', c_social_h: 'AHV/IV/EO, ALV, Unfall, Pensionskasse',
+    c_work: 'Berufsauslagen', c_work_h: 'Arbeitsweg, auswärtige Mahlzeiten, Berufskleider, soweit nicht vom Arbeitgeber bezahlt',
+    c_maintenance: 'Unterhaltsbeiträge', c_maintenance_h: 'nur tatsächlich bezahlte',
+    c_childcare: 'Kinderbetreuung', c_childcare_h: 'Fremdbetreuung wegen Erwerbstätigkeit',
+    c_other: 'Weitere notwendige Auslagen', c_other_h: 'z. B. Schulkosten; das Betreibungsamt prüft jeden Posten',
+    lg_income: 'Einkommen', income_label: 'Nettoeinkommen pro Monat', income_h: 'inkl. 13. Monatslohn anteilig, Zulagen, Renten',
+    r_empty: 'Kanton wählen oder den Grundbetrag eintragen, dazu die Kosten; die Berechnung erscheint hier.',
+    result_title: 'Berechnung', r_basic: 'Grundbetrag', r_kids: 'Kinder ({a} × bis 10, {b} × über 10)', r_need: 'Existenzminimum (Notbedarf)',
+    r_income: 'Nettoeinkommen', r_free: 'Pfändbar pro Monat', r_free_none: 'Nichts pfändbar', r_free_note: 'Das Einkommen übersteigt das Existenzminimum nicht.',
+    r_need_only: 'Mit dem Nettoeinkommen zeigt die Seite, wie viel pfändbar ist.', r_missing: 'Es fehlen Grundbeträge; die Summe ist unvollständig.',
+    r_caveat: 'Orientierung, keine Verfügung. Das Betreibungsamt berechnet das Existenzminimum im Einzelfall und kann Posten kürzen (etwa eine zu hohe Miete nach dem nächsten Kündigungstermin). Gegen seine Verfügung ist die Beschwerde an die Aufsichtsbehörde möglich (Art. 17 SchKG, 10 Tage).',
+    privacy: 'Die Zahlen bleiben in diesem Fenster. Nur die Wahl des Kantons fragt OpenCaseLaw nach der Richtlinie.',
+    law_title: 'Art. 93 SchKG', law_busy: 'lade den Gesetzestext …', law_load: 'Gesetzestext laden', law_fedlex: 'Auf Fedlex',
+  },
+  fr: {
+    brand: 'Calcul du minimum vital',
+    intro: 'Quelle part du salaire peut être saisie: le minimum vital du droit des poursuites selon l’art. 93 LP, calculé comme le prévoient les lignes directrices cantonales. À titre indicatif; seul compte le calcul de l’office des poursuites.',
+    canton_label: 'Canton', canton_manual: 'Saisir les montants soi-même', guide_busy: 'Recherche des lignes directrices du canton …',
+    guide_found: 'Montants tirés de: {title} ({date}).', guide_pdf: 'PDF', guide_old: 'Cette version date du {date}. Des montants plus récents sont possibles; renseignez-vous auprès de l’office des poursuites.',
+    guide_scan: 'Les lignes directrices du canton ne sont pas disponibles dans le corpus sous forme de texte lisible (par exemple seulement un scan); les montants ne peuvent pas être lus. Reprenez-les du PDF ou de l’office des poursuites.',
+    guide_none: 'Le corpus n’a pas de lignes directrices lisibles pour ce canton. Renseignez-vous auprès de l’office des poursuites ou consultez la liste de l’Office fédéral de la justice.',
+    guide_partial: 'Tous les montants n’ont pas pu être lus; complétez ceux qui manquent.', bj_list: 'Liste de l’Office fédéral de la justice',
+    lg_household: 'Ménage', household_label: 'Situation', single: 'personne seule', parent: 'parent seul', couple: 'couple marié, partenariat enregistré',
+    kids10_label: 'Enfants jusqu’à 10 ans', kids11_label: 'Enfants de plus de 10 ans',
+    lg_amounts: 'Montants de base par mois', a_single: 'Montant de base personne seule', a_parent: 'Montant de base parent seul', a_couple: 'Montant de base couple', a_kid10: 'par enfant jusqu’à 10 ans', a_kid11: 'par enfant de plus de 10 ans',
+    from_guide: 'selon les lignes directrices:', missing: 'non trouvé dans les lignes directrices: à saisir',
+    lg_costs: 'Suppléments par mois (frais effectifs)',
+    c_rent: 'Loyer ou intérêts hypothécaires', c_rent_h: 'sans électricité ni gaz de cuisine (compris dans le montant de base)',
+    c_heating: 'Chauffage et frais accessoires', c_heating_h: 'répartis sur douze mois',
+    c_health: 'Caisse-maladie (assurance de base)', c_health_h: 'seulement ce qui est effectivement payé; les complémentaires ne comptent pas',
+    c_social: 'Cotisations sociales non retenues sur le salaire', c_social_h: 'AVS/AI/APG, AC, accidents, caisse de pension',
+    c_work: 'Frais professionnels', c_work_h: 'trajets, repas pris à l’extérieur, vêtements de travail, s’ils ne sont pas payés par l’employeur',
+    c_maintenance: 'Contributions d’entretien', c_maintenance_h: 'seulement celles effectivement payées',
+    c_childcare: 'Garde d’enfants', c_childcare_h: 'garde externe due à l’activité lucrative',
+    c_other: 'Autres dépenses nécessaires', c_other_h: 'p. ex. frais scolaires; l’office examine chaque poste',
+    lg_income: 'Revenu', income_label: 'Revenu net par mois', income_h: 'y compris 13e salaire au prorata, allocations, rentes',
+    r_empty: 'Choisissez le canton ou saisissez le montant de base, puis les frais; le calcul apparaît ici.',
+    result_title: 'Calcul', r_basic: 'Montant de base', r_kids: 'Enfants ({a} × jusqu’à 10, {b} × plus de 10)', r_need: 'Minimum vital',
+    r_income: 'Revenu net', r_free: 'Saisissable par mois', r_free_none: 'Rien de saisissable', r_free_note: 'Le revenu ne dépasse pas le minimum vital.',
+    r_need_only: 'Avec le revenu net, la page montre ce qui est saisissable.', r_missing: 'Des montants de base manquent; la somme est incomplète.',
+    r_caveat: 'Indication, pas une décision. L’office des poursuites calcule le minimum vital au cas par cas et peut réduire des postes (par exemple un loyer trop élevé après le prochain terme de résiliation). Sa décision peut faire l’objet d’une plainte à l’autorité de surveillance (art. 17 LP, 10 jours).',
+    privacy: 'Les chiffres restent dans cette fenêtre. Seul le choix du canton interroge OpenCaseLaw sur les lignes directrices.',
+    law_title: 'Art. 93 LP', law_busy: 'chargement du texte de loi …', law_load: 'Charger le texte de loi', law_fedlex: 'Sur Fedlex',
+  },
+  it: {
+    brand: 'Calcolo del minimo vitale',
+    intro: 'Quanta parte del salario può essere pignorata: il minimo esistenziale secondo l’art. 93 LEF, calcolato come prevedono le direttive cantonali. A titolo indicativo; fa stato il calcolo dell’ufficio d’esecuzione.',
+    canton_label: 'Cantone', canton_manual: 'Inserire gli importi da sé', guide_busy: 'Ricerca delle direttive del cantone …',
+    guide_found: 'Importi da: {title} ({date}).', guide_pdf: 'PDF', guide_old: 'Questa versione è del {date}. Importi più recenti sono possibili; informatevi presso l’ufficio d’esecuzione.',
+    guide_scan: 'Le direttive del cantone non sono disponibili nel corpus come testo leggibile (per esempio solo una scansione); gli importi non si possono leggere. Riprendeteli dal PDF o dall’ufficio d’esecuzione.',
+    guide_none: 'Il corpus non ha direttive leggibili per questo cantone. Informatevi presso l’ufficio d’esecuzione o consultate l’elenco dell’Ufficio federale di giustizia.',
+    guide_partial: 'Non tutti gli importi sono leggibili; completate quelli mancanti.', bj_list: 'Elenco dell’Ufficio federale di giustizia',
+    lg_household: 'Economia domestica', household_label: 'Situazione', single: 'persona sola', parent: 'genitore solo', couple: 'coppia sposata, unione domestica registrata',
+    kids10_label: 'Figli fino a 10 anni', kids11_label: 'Figli oltre 10 anni',
+    lg_amounts: 'Importi di base al mese', a_single: 'Importo di base persona sola', a_parent: 'Importo di base genitore solo', a_couple: 'Importo di base coppia', a_kid10: 'per figlio fino a 10 anni', a_kid11: 'per figlio oltre 10 anni',
+    from_guide: 'secondo le direttive:', missing: 'non trovato nelle direttive: da inserire',
+    lg_costs: 'Supplementi al mese (spese effettive)',
+    c_rent: 'Pigione o interessi ipotecari', c_rent_h: 'senza elettricità e gas per cucinare (compresi nell’importo di base)',
+    c_heating: 'Riscaldamento e spese accessorie', c_heating_h: 'ripartiti su dodici mesi',
+    c_health: 'Cassa malati (assicurazione di base)', c_health_h: 'solo quanto effettivamente pagato; le complementari non contano',
+    c_social: 'Contributi sociali non trattenuti dal salario', c_social_h: 'AVS/AI/IPG, AD, infortuni, cassa pensioni',
+    c_work: 'Spese professionali', c_work_h: 'tragitto, pasti fuori casa, abiti da lavoro, se non pagati dal datore di lavoro',
+    c_maintenance: 'Contributi di mantenimento', c_maintenance_h: 'solo quelli effettivamente pagati',
+    c_childcare: 'Custodia dei figli', c_childcare_h: 'custodia esterna dovuta all’attività lucrativa',
+    c_other: 'Altre spese necessarie', c_other_h: 'p. es. spese scolastiche; l’ufficio esamina ogni voce',
+    lg_income: 'Reddito', income_label: 'Reddito netto al mese', income_h: 'compresa la 13a mensilità pro rata, assegni, rendite',
+    r_empty: 'Scegliete il cantone o inserite l’importo di base, poi le spese; il calcolo appare qui.',
+    result_title: 'Calcolo', r_basic: 'Importo di base', r_kids: 'Figli ({a} × fino a 10, {b} × oltre 10)', r_need: 'Minimo esistenziale',
+    r_income: 'Reddito netto', r_free: 'Pignorabile al mese', r_free_none: 'Nulla di pignorabile', r_free_note: 'Il reddito non supera il minimo esistenziale.',
+    r_need_only: 'Con il reddito netto la pagina mostra quanto è pignorabile.', r_missing: 'Mancano importi di base; la somma è incompleta.',
+    r_caveat: 'Indicazione, non una decisione. L’ufficio d’esecuzione calcola il minimo esistenziale caso per caso e può ridurre voci (per esempio una pigione troppo alta dopo il prossimo termine di disdetta). Contro la sua decisione è possibile il ricorso all’autorità di vigilanza (art. 17 LEF, 10 giorni).',
+    privacy: 'Le cifre restano in questa finestra. Solo la scelta del cantone interroga OpenCaseLaw sulle direttive.',
+    law_title: 'Art. 93 LEF', law_busy: 'caricamento del testo di legge …', law_load: 'Caricare il testo di legge', law_fedlex: 'Su Fedlex',
+  },
+  en: {
+    brand: 'Subsistence minimum calculator',
+    intro: 'How much of a wage may be garnished: the debt-enforcement subsistence minimum under Art. 93 SchKG, reckoned as the cantonal guidelines provide. For orientation; the enforcement office’s calculation is what counts.',
+    canton_label: 'Canton', canton_manual: 'Enter the amounts yourself', guide_busy: 'Finding the canton’s guidelines …',
+    guide_found: 'Amounts from: {title} ({date}).', guide_pdf: 'PDF', guide_old: 'This version is of {date}. Newer amounts are possible; ask the enforcement office.',
+    guide_scan: 'The canton’s guidelines are not in the corpus as readable text (a scan only, for instance); the amounts cannot be read. Take them from the PDF or the enforcement office.',
+    guide_none: 'The corpus has no readable guidelines for this canton. Ask the enforcement office or see the Federal Office of Justice list.',
+    guide_partial: 'Not every amount could be read; please fill in the missing ones.', bj_list: 'Federal Office of Justice list',
+    lg_household: 'Household', household_label: 'Situation', single: 'single', parent: 'single parent', couple: 'married couple, registered partnership',
+    kids10_label: 'Children up to 10', kids11_label: 'Children over 10',
+    lg_amounts: 'Basic amounts per month', a_single: 'Basic amount, single', a_parent: 'Basic amount, single parent', a_couple: 'Basic amount, couple', a_kid10: 'per child up to 10', a_kid11: 'per child over 10',
+    from_guide: 'from the guidelines:', missing: 'not found in the guidelines: please enter',
+    lg_costs: 'Additions per month (actual costs)',
+    c_rent: 'Rent or mortgage interest', c_rent_h: 'without electricity and cooking gas (in the basic amount)',
+    c_heating: 'Heating and service charges', c_heating_h: 'spread over twelve months',
+    c_health: 'Health insurance (basic cover)', c_health_h: 'only what is actually paid; supplementary cover does not count',
+    c_social: 'Social contributions not deducted from the wage', c_social_h: 'AHV/IV/EO, unemployment, accident, pension fund',
+    c_work: 'Work expenses', c_work_h: 'commuting, meals away, work clothes, unless the employer pays',
+    c_maintenance: 'Maintenance payments', c_maintenance_h: 'only those actually paid',
+    c_childcare: 'Childcare', c_childcare_h: 'external care because of work',
+    c_other: 'Other necessary expenses', c_other_h: 'e.g. school costs; the office checks each item',
+    lg_income: 'Income', income_label: 'Net income per month', income_h: 'incl. a pro-rata 13th salary, allowances, pensions',
+    r_empty: 'Choose the canton or enter the basic amount, then the costs; the reckoning appears here.',
+    result_title: 'Reckoning', r_basic: 'Basic amount', r_kids: 'Children ({a} × up to 10, {b} × over 10)', r_need: 'Subsistence minimum',
+    r_income: 'Net income', r_free: 'Garnishable per month', r_free_none: 'Nothing garnishable', r_free_note: 'The income does not exceed the subsistence minimum.',
+    r_need_only: 'With the net income the page shows what can be garnished.', r_missing: 'Basic amounts are missing; the sum is incomplete.',
+    r_caveat: 'Orientation, not a ruling. The enforcement office reckons the minimum case by case and may cut items (a rent too high, after the next notice date, for instance). Its ruling can be challenged before the supervisory authority (Art. 17 SchKG, 10 days).',
+    privacy: 'The figures stay in this window. Only choosing a canton asks OpenCaseLaw for its guidelines.',
+    law_title: 'Art. 93 SchKG', law_busy: 'loading the statute …', law_load: 'Load the statute', law_fedlex: 'On Fedlex',
+  },
+});
+
+const $ = (id) => document.getElementById(id);
+const state = { canton: '', guides: null, guide: null, busy: false, error: null, amounts: {}, sources: {}, law: null, run: 0 };
+
+// ── reading the amounts from a guideline ──────────────────────────────────
+// The guidelines follow the conference's model text ("1.1 alleinstehender Schuldner Fr. 1'200.00",
+// "débiteur vivant seul Fr. 1 200.–"). An amount is taken only where its label stands
+// right before it; each comes with the passage it was read from.
+const AMT = "(?:Fr\\.?|CHF)\\s*([0-9][0-9'’ ]{0,6}(?:[.,][0-9–-]{1,2})?)";
+const LABELS = {
+  single: ["alleinstehende[rn]?\\s+(?:Schuldner(?:in)?|Person)", "(?:débit(?:eur|rice)|personne)\\s+(?:vivant\\s+)?seule?"],
+  parent: ["allein\\s*erziehende[rn]?\\s+(?:Schuldner(?:in)?|Person)", "(?:débit(?:eur|rice)|parent)\\s+monoparental(?:e)?|famille monoparentale"],
+  couple: ["Ehepaar", "couple\\s+mari[ée]"],
+  kid10: ["Kind(?:es|er)?\\b[^.;]{0,40}?bis\\s+(?:zu[mr]?\\s+)?(?:vollendeten\\s+)?10\\.?\\s+(?:Alters)?[Jj]ahr", "enfant[^.;]{0,30}?jusqu.{0,4}10\\s+ans"],
+  kid11: ["Kind(?:es|er)?\\b[^.;]{0,40}?über\\s+10\\s+[Jj]ahre", "enfant[^.;]{0,30}?(?:plus\\s+de|dès)\\s+10\\s+ans"],
+};
+function readAmounts(markdown) {
+  const body = OCL.stripNote(markdown).split(/\n-{3,}\s*\n/).slice(1).join('\n') || OCL.stripNote(markdown);
+  if (/Textlayer fehlt/i.test(body) || body.replace(/\s+/g, ' ').length < 600) return { scanned: true, amounts: {}, sources: {} };
+  const flat = body.replace(/\s+/g, ' ');
+  const amounts = {}; const sources = {};
+  for (const [key, labels] of Object.entries(LABELS)) {
+    for (const lab of labels) {
+      const m = new RegExp('(' + lab + ')[^0-9]{0,90}?' + AMT, 'iu').exec(flat);
+      if (!m) continue;
+      const value = Number(m[2].replace(/['’ ]/g, '').replace(',', '.').replace(/[–-]+$/, '').replace(/\.$/, ''));
+      if (!(value > 0 && value < 10000)) continue;
+      amounts[key] = Math.round(value);
+      sources[key] = flat.slice(Math.max(0, m.index - 20), m.index + m[0].length).trim();
+      break;
+    }
+  }
+  return { scanned: false, amounts, sources };
+}
+
+// "1. [BJ] SZ Richtlinien 1 — Richtlinien … (2009-12-07)\n   doc_id: …\n   PDF: [..](url)"
+function parseGuides(text) {
+  const out = [];
+  for (const block of OCL.stripNote(text).split(/\n(?=\d+\.\s+\[)/)) {
+    const head = /^\d+\.\s+\[[^\]]+\]\s+(.+?)\s+—\s+(.+?)\s*$/m.exec(block);
+    const id = /doc_id:\s*(\S+)/.exec(block);
+    if (!head || !id) continue;
+    const canton = (/^([A-Z]{2})\s/.exec(head[1]) || [])[1];
+    if (!canton || !CANTONS.includes(canton)) continue;
+    out.push({ canton, docId: id[1], number: head[1], title: head[2].replace(/\s*\(\d{4}-\d{2}-\d{2}\)\s*$/, ''), date: (/\((\d{4}-\d{2}-\d{2})\)\s*$/.exec(head[2]) || [])[1] || '',
+      pdf: (/PDF:\s*\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/.exec(block) || [])[1] || '' });
+  }
+  return out;
+}
+
+async function chooseCanton(canton) {
+  const run = ++state.run;
+  Object.assign(state, { canton, guide: null, error: null, busy: Boolean(canton), amounts: {}, sources: {} });
+  render();
+  if (!canton) return;
+  try {
+    if (!state.guides) {
+      const text = await OCL.call('search_practice', { query: '"betreibungsrechtlichen Existenzminimums" OR "Existenzminimum" OR "minimum vital"', source: 'bj_schkg', limit: 50 }, { text: true, staleTime: 3600000 });
+      state.guides = parseGuides(text);
+    }
+    if (run !== state.run) return;
+    // The canton's documents, newest first; the first one whose amounts can be read wins.
+    const mine = state.guides.filter((g) => g.canton === canton).sort((a, b) => b.date.localeCompare(a.date));
+    let chosen = null;
+    let scanned = null;
+    for (const g of mine) {
+      const text = await OCL.call('get_practice', { doc_id: g.docId }, { text: true, staleTime: 3600000 });
+      if (run !== state.run) return;
+      const read = readAmounts(text);
+      if (read.scanned) { scanned = scanned || g; continue; }
+      if (Object.keys(read.amounts).length >= 2) { chosen = { ...g, ...read }; break; }
+    }
+    state.guide = chosen || (scanned ? { ...scanned, scanned: true, amounts: {}, sources: {} } : { none: true });
+    state.amounts = { ...(chosen ? chosen.amounts : {}) };
+    state.sources = { ...(chosen ? chosen.sources : {}) };
+  } catch (error) {
+    const e = await OCL.failure(error);
+    if (run !== state.run) return;
+    state.error = e;
+  }
+  state.busy = false;
+  render();
+  if (!state.law) loadLaw();
+}
+
+async function loadLaw() {
+  state.law = { busy: true };
+  renderLaw();
+  try { state.law.data = await OCL.call('get_law', { abbreviation: 'SchKG', article: '93', language: OCL.toolLang() }); } catch (error) { state.law.error = await OCL.failure(error); }
+  state.law.busy = false;
+  renderLaw();
+}
+
+// ── form ──────────────────────────────────────────────────────────────────
+function moneyField(id, label, hint, value, onInput) {
+  const f = el('label', 'field');
+  f.htmlFor = id;
+  const head = el('span', null, label);
+  if (hint) head.append(el('span', 'hint-line block', hint));
+  const wrap = el('span', 'money');
+  const input = el('input');
+  Object.assign(input, { type: 'number', id, min: 0, step: 1, inputMode: 'decimal' });
+  if (value !== undefined && value !== null && value !== '') input.value = value;
+  input.addEventListener('input', () => onInput(input.value === '' ? null : Number(input.value)));
+  wrap.append(input);
+  f.append(head, wrap);
+  return f;
+}
+
+const values = {};
+const num = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+
+function renderAmounts() {
+  const box = $('amounts');
+  const keep = document.activeElement && document.activeElement.id;
+  const household = $('household').value;
+  const parts = [el('legend', 'eyebrow', t('lg_amounts'))];
+  const keys = ['a_' + household, 'a_kid10', 'a_kid11'];
+  const map = { ['a_' + household]: household, a_kid10: 'kid10', a_kid11: 'kid11' };
+  for (const k of keys) {
+    const key = map[k];
+    if ((key === 'kid10' && !num(Number($('kids10').value))) || (key === 'kid11' && !num(Number($('kids11').value)))) continue;
+    parts.push(moneyField('amt-' + key, t(k), null, state.amounts[key], (v) => { state.amounts[key] = v; renderResult(); }));
+    if (state.sources[key]) {
+      const s = el('p', 'src');
+      s.append(t('from_guide') + ' «' + state.sources[key] + '»');
+      parts.push(s);
+    } else if (state.guide && !state.guide.none && !state.guide.scanned && !num(state.amounts[key])) {
+      parts.push(el('p', 'src missing', t('missing')));
+    }
+  }
+  box.replaceChildren(...parts);
+  if (keep && document.getElementById(keep)) document.getElementById(keep).focus();
+}
+
+function renderCosts() {
+  if ($('costs').childNodes.length) return;      // built once; values live in the inputs
+  const parts = [el('legend', 'eyebrow', t('lg_costs'))];
+  for (const c of COSTS) parts.push(moneyField('cost-' + c, t('c_' + c), t('c_' + c + '_h'), values[c], (v) => { values[c] = v; renderResult(); }));
+  $('costs').replaceChildren(...parts);
+}
+
+function renderGuide() {
+  const box = $('guide');
+  const parts = [];
+  if (state.busy) parts.push(el('p', 'busy', t('guide_busy')));
+  else if (state.error) parts.push(OCL.renderError(state.error, () => chooseCanton(state.canton), render));
+  else if (state.guide) {
+    const g = state.guide;
+    const bj = OCL.link(BJ_LIST, t('bj_list'));
+    if (g.none) { const p = el('p', 'note'); p.append(t('guide_none') + ' ', bj); parts.push(p); }
+    else if (g.scanned) { const p = el('p', 'note'); p.append(t('guide_scan') + ' '); if (g.pdf) p.append(OCL.link(g.pdf, t('guide_pdf')), ' · '); p.append(bj); parts.push(p); }
+    else {
+      const p = el('p');
+      p.append(t('guide_found', { title: g.title, date: OCL.date(g.date) }) + ' ');
+      if (g.pdf) p.append(OCL.link(g.pdf, t('guide_pdf')));
+      parts.push(p);
+      if (g.date && g.date < '2009-01-01') parts.push(el('p', 'note', t('guide_old', { date: OCL.date(g.date) })));
+      const household = $('household').value;
+      const needed = [household, ...(num(Number($('kids10').value)) ? ['kid10'] : []), ...(num(Number($('kids11').value)) ? ['kid11'] : [])];
+      if (needed.some((k) => !num(state.amounts[k]))) parts.push(el('p', 'note', t('guide_partial')));
+    }
+  }
+  box.replaceChildren(...parts);
+}
+
+// ── the reckoning ─────────────────────────────────────────────────────────
+function renderResult() {
+  const household = $('household').value;
+  const k10 = Math.max(0, Math.floor(Number($('kids10').value) || 0));
+  const k11 = Math.max(0, Math.floor(Number($('kids11').value) || 0));
+  const basic = state.amounts[household];
+  const kidAmt = k10 * num(state.amounts.kid10) + k11 * num(state.amounts.kid11);
+  const missing = !num(basic) || (k10 && !num(state.amounts.kid10)) || (k11 && !num(state.amounts.kid11));
+  const rows = [[t('r_basic') + ' (' + t(household) + ')', num(basic)]];
+  if (k10 || k11) rows.push([t('r_kids', { a: k10, b: k11 }), kidAmt]);
+  for (const c of COSTS) if (num(values[c])) rows.push([t('c_' + c), num(values[c])]);
+  const need = rows.reduce((n, r) => n + r[1], 0);
+  const chf = (v) => 'CHF ' + OCL.num(Math.round(v));
+  if (!need) {
+    $('result').replaceChildren(el('h2', 'h', t('result_title')), el('p', 'muted', t('r_empty')), el('p', 'small muted', t('privacy')));
+    return;
+  }
+  const table = el('table', 'ledger');
+  const body = el('tbody');
+  for (const [label, v] of rows) { const tr = el('tr'); tr.append(el('td', null, label), el('td', null, chf(v))); body.append(tr); }
+  const sum = el('tr', 'sum'); sum.append(el('td', null, t('r_need')), el('td', null, chf(need))); body.append(sum);
+  table.append(body);
+  const parts = [el('h2', 'h', t('result_title')), table];
+  if (missing) parts.push(el('p', 'note', t('r_missing')));
+  const income = Number($('income').value);
+  if (num(income)) {
+    const free = income - need;
+    const big = el('div', 'big ' + (free > 0 ? 'bad' : 'good'));
+    big.append(el('span', 'label', t('r_income') + ' ' + chf(income)), el('span', 'label', free > 0 ? t('r_free') : t('r_free_none')), el('span', 'value', free > 0 ? chf(free) : chf(0)));
+    if (free <= 0) big.append(el('span', 'label', t('r_free_note')));
+    parts.push(big);
+  } else parts.push(el('p', 'small muted', t('r_need_only')));
+  parts.push(el('p', 'note small', t('r_caveat')), el('p', 'small muted', t('privacy')));
+  $('result').replaceChildren(...parts);
+}
+
+function renderLaw() {
+  const box = $('law');
+  const parts = [el('h2', 'h', t('law_title'))];
+  const L = state.law;
+  if (!L) parts.push(button('quiet', t('law_load'), loadLaw));
+  else if (L.busy) parts.push(el('p', 'busy', t('law_busy')));
+  else if (L.error) parts.push(OCL.renderError(L.error, loadLaw, renderLaw));
+  else {
+    const a = (L.data.articles || [])[0];
+    const st = el('div', 'statute stack');
+    for (const line of String((a && a.text) || '').split('\n').filter((x) => x.trim())) {
+      const m = /^(\d+[a-z]*)\s+(.*)$/.exec(line);
+      const p = el('div', 'para');
+      p.append(el('span', 'n', m ? m[1] : ''), el('span', null, m ? m[2] : line));
+      st.append(p);
+    }
+    parts.push(st);
+    if (L.data.source_url) parts.push(OCL.link(L.data.source_url, t('law_fedlex')));
+  }
+  box.replaceChildren(...parts);
+}
+
+function render() { renderGuide(); renderAmounts(); renderCosts(); renderResult(); renderLaw(); }
+
+function renderChrome() {
+  document.title = 'Existenzminimum-Rechner';
+  $('brand').textContent = t('brand');
+  $('intro').textContent = t('intro');
+  OCL.langButtons($('langs'));
+  $('canton-label').textContent = t('canton_label');
+  const sel = $('canton');
+  sel.replaceChildren(el('option', null, t('canton_manual')), ...CANTONS.map((c) => el('option', null, c)));
+  sel.options[0].value = '';
+  sel.value = state.canton;
+  $('lg-household').textContent = t('lg_household');
+  $('household-label').textContent = t('household_label');
+  for (const o of $('household').options) o.textContent = t(o.value);
+  $('kids10-label').textContent = t('kids10_label');
+  $('kids11-label').textContent = t('kids11_label');
+  $('lg-income').textContent = t('lg_income');
+  $('income-label').textContent = t('income_label');
+  $('foot').textContent = t('foot');
+  $('costs').replaceChildren();                  // labels change with the language
+}
+
+function start() {
+  $('canton').addEventListener('change', () => chooseCanton($('canton').value));
+  for (const id of ['household', 'kids10', 'kids11']) $(id).addEventListener('input', () => { renderGuide(); renderAmounts(); renderResult(); });
+  $('income').addEventListener('input', renderResult);
+  $('form').addEventListener('submit', (ev) => ev.preventDefault());
+  OCL.onLang(() => { renderChrome(); render(); });
+  OCL.initLang();
+}
+
+start();
+
+</script>
+</body>
+</html>
