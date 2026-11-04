@@ -13,6 +13,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[1]
 for p in (REPO, REPO / "scripts"):
     if str(p) not in sys.path:
@@ -446,14 +448,32 @@ def test_shard_repair_cuts_dates_stamps_and_is_idempotent(tmp_path):
     assert fyg["cited_decisions"] == []                  # recomputed from the own text
     assert out[1] == rows[1] and out[2] == rows[2] and out[3] == rows[3]
 
-    undo = list(tmp_path.glob("bge_historical.jsonl.presegment-*.jsonl"))
+    undo = list(tmp_path.glob("bge_historical.jsonl.presegment-*.undo"))
     assert len(undo) == 1
+    # the build ingests every *.jsonl beside the shard: the undo file and the
+    # temp file must not be one
+    assert [p.name for p in tmp_path.glob("*.jsonl")] == ["bge_historical.jsonl"]
+    assert not list(tmp_path.glob(".*.tmp"))
     assert json.loads(undo[0].read_text().splitlines()[0]) == {
         "decision_id": "bge_historical_78_IV_83", "full_text": FYG}
 
     again = script.run(shard, apply=True, examples=0)
     assert again["rows_changed"] == 0
     assert [json.loads(line) for line in shard.read_text().splitlines()] == out
+
+
+def test_shard_repair_keeps_the_shard_mode_and_leaves_no_temp_file_on_error(tmp_path, monkeypatch):
+    shard = tmp_path / "bge_historical.jsonl"
+    shard.write_text(json.dumps(_row("bge_historical_78_IV_83", "78_IV_83", "1951-07-17", FYG)) + "\n")
+    shard.chmod(0o644)
+    script.run(shard, apply=True, examples=0)
+    assert shard.stat().st_mode & 0o777 == 0o644
+
+    shard.write_text(json.dumps(_row("bge_historical_78_IV_83", "78_IV_83", "1951-07-17", FYG)) + "\n")
+    monkeypatch.setattr(script, "decide", lambda obj: (_ for _ in ()).throw(RuntimeError("boom")))
+    with pytest.raises(RuntimeError):
+        script.run(shard, apply=True, examples=0)
+    assert sorted(p.name for p in tmp_path.iterdir() if not p.name.endswith(".undo")) == ["bge_historical.jsonl"]
 
 
 def test_shard_repair_drops_an_unverified_text_date_to_the_placeholder(tmp_path):

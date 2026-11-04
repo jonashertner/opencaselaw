@@ -29,7 +29,9 @@ What it does per row (bge_historical_segment.segment, see there for the rules):
     Every changed date gets a `date_restore` stamp (the previous one is kept
     under "prev").
   * --apply also writes the replaced full_text of every cut row to
-    <shard>.presegment-<UTC date>.jsonl beside the shard (undo file).
+    <shard>.presegment-<UTC date>.undo beside the shard (undo file, JSON lines).
+    Neither it nor the temp file (.<shard>.XXXX.tmp) ends in .jsonl: the build
+    ingests every *.jsonl in the shard directory.
 
 Streaming, temp file + atomic replace, court 'bge_historical' rows only, DRY RUN
 by default, idempotent (a second run changes nothing). Run after publish.py
@@ -144,9 +146,9 @@ def run(path: Path, apply: bool, examples: int) -> Counter:
     tmp_path = None
     now = datetime.now(timezone.utc)
     stamp = now.isoformat(timespec="seconds")
-    undo_path = path.with_name(f"{path.name}.presegment-{now.date().isoformat()}.jsonl")
+    undo_path = path.with_name(f"{path.name}.presegment-{now.date().isoformat()}.undo")
     if apply:
-        fd, tmp_path = tempfile.mkstemp(suffix=".jsonl", dir=str(path.parent))
+        fd, tmp_path = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
         fout = os.fdopen(fd, "w", encoding="utf-8")
         undo = open(undo_path, "a", encoding="utf-8")
     try:
@@ -229,6 +231,8 @@ def run(path: Path, apply: bool, examples: int) -> Counter:
         fout.close()
         undo.close()
         if stats["rows_changed"]:
+            # mkstemp creates 0600; keep the shard's own mode.
+            os.chmod(tmp_path, os.stat(path).st_mode & 0o7777)
             os.replace(tmp_path, str(path))
         else:
             os.unlink(tmp_path)
