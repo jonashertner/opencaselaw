@@ -1323,13 +1323,21 @@
       "type": "function",
       "function": {
         "name": "get_practice",
-        "description": "Retrieve a single federal administrative-practice document by its doc_id (e.g. 'estv_ks_ks_nr_28', 'sem_weisungen_weisungen-aug-d'). Returns full body text, title, date, issuing authority, and PDF URL. Use search_practice first to discover the doc_id.",
+        "description": "Retrieve a single federal administrative-practice document by its doc_id (e.g. 'estv_ks_ks_nr_28', 'sem_weisungen_weisungen-aug-d'). Returns the body text, title, date, issuing authority, and PDF URL. Long documents (circulars run to 140 pages) come in parts of 50,000 characters: when has_more is true, call again with offset=next_offset. Use search_practice first to discover the doc_id.",
         "parameters": {
           "type": "object",
           "properties": {
             "doc_id": {
               "type": "string",
               "description": "Document identifier returned by search_practice."
+            },
+            "offset": {
+              "type": "integer",
+              "description": "Character offset into the body text to start from (default 0); use next_offset from the previous part."
+            },
+            "max_chars": {
+              "type": "integer",
+              "description": "Characters of body text per part (default 50,000, max 150,000)."
             }
           },
           "required": [

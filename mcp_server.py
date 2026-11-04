@@ -4027,14 +4027,46 @@ def _query_length_error(query: str | None) -> str | None:
 def _date_arg_error(date_from: str | None, date_to: str | None) -> str | None:
     """Return an error message if a NON-EMPTY date filter can't be parsed, else
     None. Used to reject an unrecognized date explicitly instead of silently
-    dropping the filter and returning broader results (issue #45, Codex review)."""
+    dropping the filter and returning broader results (issue #45, Codex review).
+    An inverted range is refused too: it can only ever return zero rows, which
+    a caller reads as "no such decisions" rather than as a typo."""
     bad = [f"{lbl}={v!r}" for lbl, v in (("date_from", date_from), ("date_to", date_to))
            if v and v.strip() and _parse_date_param(v) is None]
     if bad:
         return ("Unrecognized date filter (" + ", ".join(bad) +
                 "). Use ISO YYYY-MM-DD or Swiss DD.MM.YYYY. The filter was NOT "
                 "applied — re-issue with a valid date rather than trusting these results.")
+    _from, _to = _parse_date_param(date_from), _parse_date_param(date_to)
+    if _from and _to and _from > _to:
+        return (f"date_from ({_from}) is after date_to ({_to}), so no decision can "
+                "match. Swap the two dates and re-issue the search.")
     return None
+
+
+def _unsearchable_query_error(query: str | None) -> str | None:
+    """Refusal for a query that has text but nothing searchable once FTS5
+    syntax is removed (a bare `OR`, `""`, `?`, `AND NOT`), else None.
+
+    search_fts5 treats an empty sanitized query as "no query" and lists the
+    newest decisions of the whole corpus, so `query="OR"` used to answer
+    "1,074,490 decisions" headed by an unrelated ruling (user test
+    2026-11-04). A caller who typed a query meant to search; tell them why
+    nothing was searched instead of answering a different question."""
+    raw = (query or "").strip()
+    if not raw or len(raw) > QUERY_CONDENSE_THRESHOLD > 0:
+        return None
+    if _sanitize_fts5(raw):
+        return None
+    if raw.strip('"').strip().upper() == "OR":
+        return ("The query \"OR\" alone has nothing to search: it would match "
+                "most of the corpus. For the Obligationenrecht name a provision "
+                "or a concept with it, e.g. 'Art. 41 OR' or 'Haftung OR', or "
+                "read the statute with search_laws / get_law. To list recent "
+                "decisions instead, omit query and filter by court or date.")
+    return (f"The query {raw!r} contains no searchable terms (only search "
+            "operators, quotes or punctuation), so no search was run. Re-issue "
+            "with 3-8 legal terms, e.g. 'missbräuchliche Kündigung Art. 336 OR'. "
+            "To list recent decisions instead, omit query and filter by court or date.")
 
 
 def _published_arg_error(published_from: str | None, published_to: str | None) -> str | None:
@@ -7044,6 +7076,23 @@ def _consultations_for_sr(
     return out
 
 
+def _split_consultations_by_article(
+    procs: list[dict], article: str | None,
+) -> tuple[list[dict], list[dict]]:
+    """(consultations on the article, the act's other consultations).
+
+    With an article, only a procedure whose Erläuternder Bericht has a passage
+    on it (erlaeuternder_bericht_passages, from _consultations_for_sr) is that
+    article's Materialien; the others keep their procedure fields but lose
+    their document lists. Without an article everything is on the act."""
+    if not article or not procs:
+        return procs, []
+    on_article = [p for p in procs if p.get("erlaeuternder_bericht_passages")]
+    others = [{k: v for k, v in p.items() if k != "documents"}
+              for p in procs if not p.get("erlaeuternder_bericht_passages")]
+    return on_article, others
+
+
 def _botschaft_doc_type_expr(conn: sqlite3.Connection, alias: str = "bd") -> str:
     """SQL expression for a document's type: the column where the DB has it,
     the literal 'botschaft' on a materialien.db from before the column
@@ -7639,6 +7688,14 @@ def get_materialien(law_code: str, article: str | None = None,
                 vernehmlassungen = _consultations_for_sr(cconn, sr, article, law_code=law)
             finally:
                 cconn.close()
+        # For an article, a consultation counts as its Materialien only when
+        # the Erläuternder Bericht discusses that article; every other
+        # consultation on the act is listed by title and date alone. Listing
+        # them all with their documents answered get_materialien(OR, 271a)
+        # with all 30 OR consultations (PACS, trusts, Aktienrecht …) in
+        # 272K characters (user test 2026-11-04).
+        vernehmlassungen, vernehmlassungen_on_act = _split_consultations_by_article(
+            vernehmlassungen, article)
 
         linked_total = (len(_linked_document_keys(conn, sr, article, doc_type))
                         if sr and len(botschaft_docs) >= 20 else len(botschaft_docs))
@@ -7671,7 +7728,8 @@ def get_materialien(law_code: str, article: str | None = None,
         except Exception:
             pass
 
-        if not sources and not amendment_refs and not botschaft_docs and not vernehmlassungen:
+        if (not sources and not amendment_refs and not botschaft_docs
+                and not vernehmlassungen and not vernehmlassungen_on_act):
             # Nothing keyed to the provision in either Materialien corpus
             # (~4,100 misses a month, 30 days to 2026-09-08). Keep the
             # success shape, flag the miss, and hand over what the corpus
@@ -7725,6 +7783,15 @@ def get_materialien(law_code: str, article: str | None = None,
             "amendment_refs": amendment_refs,
             "parliamentary_modifications": modifications,
         }
+        if vernehmlassungen_on_act:
+            out["vernehmlassungen_on_act"] = vernehmlassungen_on_act
+            out["vernehmlassungen_note"] = (
+                f"`vernehmlassungen` lists the consultations whose Erläuternder "
+                f"Bericht discusses Art. {article}; `vernehmlassungen_on_act` the "
+                f"{len(vernehmlassungen_on_act)} other consultation(s) on the act, by "
+                "title and date only — their reports have no passage on this article "
+                "(or were not parsed). Call get_materialien without `article` for "
+                "their documents.")
         if linked_total > len(botschaft_docs):
             out["botschaft_documents_total"] = linked_total
         if candidates:
@@ -11835,6 +11902,31 @@ _CANONICAL_ID_PREFIX_RE = re.compile(
 )
 
 
+# A regeste/abstract is a headnote: the longest real ones run to a few
+# thousand characters. Some collections store the whole judgment in the
+# abstract_{de,fr,it} columns instead (bge_egmr: the full French ECtHR text,
+# raw <br/> markup, copied into all three), which made get_decision's
+# structuredContent 2.67M characters for KlimaSeniorinnen even with
+# full_text=false and broke the claude.ai client (user test 2026-11-04).
+_ABSTRACT_MAX_CHARS = 10_000
+
+
+def _bound_abstracts(result: dict) -> None:
+    """Cap each abstract_{de,fr,it} at _ABSTRACT_MAX_CHARS in place.
+
+    The kept text is an unaltered prefix (so R2 verbatim quoting of what is
+    shown still holds) and `abstract_truncated` names the columns that were
+    cut, so a client can tell a clipped headnote from a complete one."""
+    cut = []
+    for col in ("abstract_de", "abstract_fr", "abstract_it"):
+        val = result.get(col)
+        if isinstance(val, str) and len(val) > _ABSTRACT_MAX_CHARS:
+            result[col] = val[:_ABSTRACT_MAX_CHARS]
+            cut.append(col)
+    if cut:
+        result["abstract_truncated"] = cut
+
+
 def get_decision_by_id(decision_id: str) -> dict | None:
     """Fetch a single decision with full text.
 
@@ -11974,6 +12066,7 @@ def get_decision_by_id(decision_id: str) -> dict | None:
     result = dict(row)
     # Remove json_data blob from response (redundant)
     result.pop("json_data", None)
+    _bound_abstracts(result)
     if _appeal:
         result["appeal_info"] = _appeal
         if _appeal_links:
@@ -13550,6 +13643,18 @@ def _resolve_fedlex_statute_article(
         "status": "not_fetched",
         "_cache_dirty": False,
     }
+    # The local Fedlex mirror first: it is what get_law serves, and the live
+    # Fedlex pages are a JavaScript application whose HTML carries no article
+    # text, so the scrape below came back "fetch_failed" for Art. 337 OR and
+    # every other article (user test 2026-11-04). Explicit fedlex_urls still
+    # win — the caller asked for that text.
+    if not fedlex_urls:
+        local = _local_statute_excerpt(law_code, article, preferred_language)
+        if local:
+            result.update(local)
+            result["status"] = "local_mirror"
+            return result
+
     candidates = _fedlex_candidate_urls(
         law_code=law_code,
         preferred_language=preferred_language,
@@ -13635,6 +13740,35 @@ def _fedlex_candidate_urls(
         _add(f"{base.rstrip('/')}/{lang}")
 
     return out[:8]
+
+
+def _local_statute_excerpt(law_code: str, article: str, language: str) -> dict | None:
+    """{fedlex_url, text_excerpt} for a federal article from the statutes
+    mirror (via get_law), or None when the mirror lacks the act/article."""
+    lang = (language or "de").lower()[:2]
+    if lang not in ("de", "fr", "it"):
+        lang = "de"
+    code = (law_code or "").strip()
+    art = str(article or "").strip()
+    if not code or not art:
+        return None
+    try:
+        if re.fullmatch(r"\d[\d.]*", code):
+            law = get_law(sr_number=code, article=art, language=lang)
+        else:
+            law = get_law(abbreviation=code, article=art, language=lang)
+    except Exception:
+        return None
+    if not isinstance(law, dict) or law.get("error") or (law.get("canton") or "CH") != "CH":
+        return None
+    want = art.lower().replace(" ", "")
+    for a in law.get("articles") or []:
+        if str(a.get("article_num") or "").lower().replace(" ", "") == want and a.get("text"):
+            return {
+                "fedlex_url": law.get("source_url"),
+                "text_excerpt": _truncate(a["text"], 1200),
+            }
+    return None
 
 
 def _fetch_fedlex_article_text(*, url: str, article: str, paragraph: str | None) -> dict | None:
@@ -16691,7 +16825,11 @@ def _handle_get_decision_structure(*, decision_id: str, paragraph_excerpt_chars:
         _prep_mats = _materials_for_decision(canonical_id)
     except Exception:
         _prep_mats = None
+    _dispositiv, _disp_cut = _bounded_section(row.get("dispositiv"))
     return {
+        **({"dispositiv_truncated": True,
+            "dispositiv_total_chars": len(row.get("dispositiv") or "")}
+           if _disp_cut else {}),
         "decision_id": canonical_id,
         "preparatory_materials": _prep_mats or [],
         "canonical_url": canonical_url,
@@ -16703,7 +16841,7 @@ def _handle_get_decision_structure(*, decision_id: str, paragraph_excerpt_chars:
         "sachverhalt_excerpt": _auto_link_citations(sachverhalt_excerpt),
         "erwaegungen_paragraph_count": row.get("erwaegungen_paragraph_count") or len(paragraphs),
         "erwaegungen_paragraphs": out_paragraphs,
-        "dispositiv": _auto_link_citations(row.get("dispositiv")),
+        "dispositiv": _auto_link_citations(_dispositiv),
         "dispositiv_orders": dispositiv_orders,
         "extraction_methods": {
             "sachverhalt": row.get("sachverhalt_method"),
@@ -22268,6 +22406,20 @@ def _handle_attest_response(*, draft_text: str,
 # ── get_case_brief and helpers ─────────────────────────────────
 
 
+# A Dispositiv is the operative part: rarely beyond 2-3K characters. When the
+# structure extractor misses its start (ECtHR judgments: the "Par ces motifs"
+# marker came after a table of contents), the stored "dispositiv" is most of
+# the judgment — 866K characters for KlimaSeniorinnen in get_case_brief.
+_SECTION_MAX_CHARS = 8_000
+
+
+def _bounded_section(text: str | None) -> tuple[str | None, bool]:
+    """(prefix of at most _SECTION_MAX_CHARS, whether it was cut)."""
+    if isinstance(text, str) and len(text) > _SECTION_MAX_CHARS:
+        return text[:_SECTION_MAX_CHARS], True
+    return text, False
+
+
 def _handle_get_case_brief(*, case: str) -> dict:
     """Handler for get_case_brief tool.
 
@@ -22359,7 +22511,17 @@ def _handle_get_case_brief(*, case: str) -> dict:
         _prep_mats = _materials_for_decision(decision_id)
     except Exception:
         _prep_mats = None
+    sachverhalt, _sv_cut = _bounded_section(sachverhalt)
+    dispositiv, _disp_cut = _bounded_section(dispositiv)
+    _cut_sections = [n for n, c in (("sachverhalt", _sv_cut), ("dispositiv", _disp_cut)) if c]
     return {
+        **({"truncated_sections": _cut_sections,
+            "truncation_note": (
+                f"{' and '.join(_cut_sections)} cut to the first {_SECTION_MAX_CHARS:,} "
+                "characters (the stored section is far longer than an operative part or "
+                "statement of facts normally is). Read the decision itself with "
+                "get_decision(decision_id) before relying on it.")}
+           if _cut_sections else {}),
         "decision_id": decision_id,
         "preparatory_materials": _prep_mats or [],
         "bge_ref": decision.get("docket_number", ""),
@@ -29754,8 +29916,32 @@ def _search_practice(
     }
 
 
-def _get_practice(*, doc_id: str) -> dict:
-    """Return a single practice document by doc_id (full body included)."""
+# A BSV Kreisschreiben runs to 140 pages (KSIR v6: 244K characters), which
+# no chat client takes in one tool answer. Serve the body in pages.
+_PRACTICE_PAGE_DEFAULT = 50_000
+_PRACTICE_PAGE_MAX = 150_000
+
+
+def _page_text(text: str, offset: int, max_chars: int) -> tuple[str, int, int | None]:
+    """(page, start, next_offset) for text[offset:...], at most max_chars long.
+
+    The page ends at a line break in its last fifth when there is one, so a
+    page does not stop mid-sentence; next_offset is None on the last page.
+    Offsets are character offsets into the full text."""
+    total = len(text)
+    start = min(max(0, offset), total)
+    end = min(start + max_chars, total)
+    if end < total:
+        nl = text.rfind("\n", start + (max_chars * 4) // 5, end)
+        if nl > start:
+            end = nl + 1
+    return text[start:end], start, (end if end < total else None)
+
+
+def _get_practice(*, doc_id: str, offset: int = 0,
+                  max_chars: int = _PRACTICE_PAGE_DEFAULT) -> dict:
+    """Return a single practice document by doc_id, its body paged by
+    `offset` / `max_chars` (characters)."""
     conn = _open_practice_db()
     if conn is None:
         return {"error": "practice_db_unavailable"}
@@ -29773,6 +29959,24 @@ def _get_practice(*, doc_id: str) -> dict:
         out["topics"] = json.loads(out.pop("topics_json") or "[]")
     except Exception:
         out["topics"] = []
+    body = out.get("body_text") or ""
+    try:
+        max_chars = int(max_chars)
+    except (TypeError, ValueError):
+        max_chars = _PRACTICE_PAGE_DEFAULT
+    try:
+        offset = int(offset)
+    except (TypeError, ValueError):
+        offset = 0
+    max_chars = max(1_000, min(max_chars, _PRACTICE_PAGE_MAX))
+    if body:
+        page, start, nxt = _page_text(body, offset, max_chars)
+        out["body_text"] = page
+        out["body_total_chars"] = len(body)
+        out["body_offset"] = start
+        out["body_returned_chars"] = len(page)
+        out["next_offset"] = nxt
+        out["has_more"] = nxt is not None
     return out
 
 
@@ -29831,10 +30035,23 @@ def _format_get_practice_response(result: dict) -> str:
     ]
     if result.get("topics"):
         parts.append(f"**Topics**: {', '.join(result['topics'])}")
+    total = result.get("body_total_chars")
+    paged = total is not None and (result.get("has_more") or result.get("body_offset"))
+    if paged:
+        start = result.get("body_offset") or 0
+        end = start + (result.get("body_returned_chars") or 0)
+        parts.append(f"**Text**: characters {start:,}–{end:,} of {total:,}")
     parts.append("")
     parts.append("---")
     parts.append("")
-    parts.append(result.get("body_text", "(no body text)"))
+    parts.append(result.get("body_text") or "(no body text)")
+    if result.get("has_more"):
+        parts.append("")
+        parts.append("---")
+        parts.append(
+            f"[Continued: {total - result['next_offset']:,} more characters. Call "
+            f"get_practice(doc_id=\"{result['doc_id']}\", offset={result['next_offset']}) "
+            "for the next part.]")
     return "\n".join(parts)
 
 
@@ -32185,7 +32402,10 @@ def _list_tools() -> list[Tool]:
                 "its doc_id (e.g. 'estv_ks_ks_nr_28', 'sem_weisungen_weisungen-aug-d', "
                 "'bsv_weisungen_6930_v20_de', 'seco_alv_avig_ale_de', "
                 "'un_uhri_3f3a9db7-5e9a-416f-ad28-8c8f97a8322c_en'). "
-                "Returns full body text, title, date, issuing authority, and PDF URL. "
+                "Returns the body text, title, date, issuing authority, and PDF URL. "
+                "Long documents (circulars run to 140 pages) come in parts of "
+                "50,000 characters: when has_more is true, call again with "
+                "offset=next_offset. "
                 "Use search_practice first to discover the doc_id."
             ),
             inputSchema={
@@ -32194,6 +32414,19 @@ def _list_tools() -> list[Tool]:
                     "doc_id": {
                         "type": "string",
                         "description": "Document identifier returned by search_practice.",
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Character offset into the body text to start from (default 0); use next_offset from the previous part.",
+                        "default": 0,
+                        "minimum": 0,
+                    },
+                    "max_chars": {
+                        "type": "integer",
+                        "description": "Characters of body text per part (default 50,000, max 150,000).",
+                        "default": 50000,
+                        "minimum": 1000,
+                        "maximum": 150000,
                     },
                 },
                 "required": ["doc_id"],
@@ -33165,7 +33398,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
             if _derr:
                 return ([TextContent(type="text", text=json.dumps({"error": _derr}, ensure_ascii=False))],
                         {"error": _derr})
-            _qerr = _query_length_error(arguments.get("query"))
+            _qerr = (_query_length_error(arguments.get("query"))
+                     or _unsearchable_query_error(arguments.get("query")))
             if _qerr:
                 return ([TextContent(type="text", text=json.dumps({"error": _qerr}, ensure_ascii=False))],
                         {"error": _qerr})
@@ -34033,7 +34267,10 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
             return _text_and_payload(result, _format_search_practice_response(result))
 
         elif name == "get_practice":
-            result = await asyncio.to_thread(_get_practice, doc_id=arguments["doc_id"])
+            result = await asyncio.to_thread(
+                _get_practice, doc_id=arguments["doc_id"],
+                offset=arguments.get("offset", 0),
+                max_chars=arguments.get("max_chars", _PRACTICE_PAGE_DEFAULT))
             return _text_and_payload(result, _format_get_practice_response(result))
 
         elif name == "update_database":
@@ -36154,7 +36391,7 @@ setInterval(load, 30000);
         # Manual length guard rather than Query(max_length=...): FastAPI's
         # built-in 422 says only "String should have at most N characters",
         # which teaches a retrying agent nothing. Ours names the fix.
-        if (_qerr := _query_length_error(query)):
+        if (_qerr := (_query_length_error(query) or _unsearchable_query_error(query))):
             raise HTTPException(status_code=422, detail=_qerr)
         # #46: decision_type / legal_area are no longer supported (too sparse to
         # filter honestly). Reject explicitly rather than silently mislead.
