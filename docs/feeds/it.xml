@@ -5,9 +5,39 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Tue, 03 Nov 2026 22:27:27 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 04 Nov 2026 11:35:46 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 4A_594/2026 vom 2026-10-26</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_594_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+4A_594/2026
+
+Sentenza del 26 ottobre 2026
+
+I Corte di diritto civile
+
+Composizione
+
+Giudice federale Hurni, Presidente,
+
+Cancelliere G. Piatti.
+
+Partecipanti al procedimento
+
+A.__…</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_594.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesgericht 7B_1244/2026 vom 2026-10-19</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1244_2026</link>
@@ -802,14 +832,6 @@ statuendo nella compos…</description>
       <description>Asilo (altro)</description>
       <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-1720.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-3373/2026 vom 2026-07-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-3373_2026</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (paese terzo sicuro - art. 31a cpv. 1 lett. a LAsi)</description>
-      <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-3373.2026</guid>
       <category>bvger</category>
     </item>
   </channel>
