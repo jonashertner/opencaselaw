@@ -8,7 +8,7 @@ Monday's PR 1 gate passes.
 
 | Path | Type | Purpose |
 |---|---|---|
-| `/health` | JSON | Liveness probe (always-on, public). Returns `{status, decisions, db_generation}` plus the build identity: `commit` (the worker's startup commit, also sent as MCP `serverInfo.version`; `OCL_SERVER_VERSION` overrides), `data_snapshot` (UTC time of `db_generation`), `models`, `search_steps`, `tools_hash` (sha256 of the canonical `tools/list` JSON) and `tool_count`. |
+| `/health` | JSON | Liveness probe (always-on, public). Returns `{status, decisions, db_generation}` plus the build identity: `commit` (the worker's startup commit, also sent as MCP `serverInfo.version`; `OCL_SERVER_VERSION` overrides), `data_snapshot` (UTC time of `db_generation`), `models`, `search_steps` (what actually runs: a model that is switched on but failed to load or is missing from the offline cache counts as off), `model_state` (per optional model: `off`, `loaded`, `failed`, `missing`, `not_loaded_yet`), `tools_hash` (sha256 of the canonical `tools/list` JSON) and `tool_count`. |
 | `/metrics` | JSON | Existing in-process tool counters (latency, calls, error rates, queries). Unchanged by D2. |
 | `/metrics/health` | JSON | New (D2). Structured health snapshot + `alerts_dry_run`. Cheap; safe to poll every 30 s. |
 | `/dev/health` | HTML | New (D2). Read-only operator dashboard built on `/metrics/health`. |

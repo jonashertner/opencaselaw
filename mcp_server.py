@@ -11515,7 +11515,7 @@ def _get_cross_encoder():
     try:
         from sentence_transformers import CrossEncoder
     except Exception as e:
-        logger.debug("sentence-transformers unavailable for cross-encoder reranking: %s", e)
+        logger.warning("Cross-encoder enabled but sentence-transformers unavailable; step skipped: %s", e)
         _CROSS_ENCODER_FAILED = True
         return None
 
@@ -11526,7 +11526,7 @@ def _get_cross_encoder():
             _CROSS_ENCODER = CrossEncoder(CROSS_ENCODER_MODEL)
         return _CROSS_ENCODER
     except Exception as e:
-        logger.debug("Cross-encoder model load failed (%s): %s", CROSS_ENCODER_MODEL, e)
+        logger.warning("Cross-encoder model load failed (%s); step skipped: %s", CROSS_ENCODER_MODEL, e)
         _CROSS_ENCODER_FAILED = True
         return None
 
@@ -32635,17 +32635,72 @@ def _data_snapshot_utc(db_generation: int) -> str | None:
         return None
 
 
-def _build_identity(db_generation: int) -> dict:
-    """What answered: code, data snapshot, models, tool surface.
+def _model_in_offline_cache(model_id: str) -> bool | None:
+    """Whether ``model_id`` can load under HF_HUB_OFFLINE: True/False when
+    offline mode is on, None when the hub may be reached (then a missing
+    cache entry would simply be downloaded). A file lookup, no load."""
+    if os.environ.get("HF_HUB_OFFLINE", "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return None
+    try:
+        from huggingface_hub import try_to_load_from_cache
+        hit = try_to_load_from_cache(model_id, "config.json")
+    except Exception:
+        return None
+    return isinstance(hit, str)
 
-    Reads module constants, one stat and a cached hash; no DB access.
+
+def _model_state(*, enabled: bool, loaded: bool, failed: bool, model_id: str) -> str:
+    """What one optional search model is doing in this worker.
+
+    off             switched off in the configuration (or no index to search)
+    loaded          loaded and in use
+    failed          a load was tried and failed; the step is skipped
+    missing         not in the offline model cache, so a load will fail
+    not_loaded_yet  enabled and loadable; loads on the first search
     """
-    tools_hash, tool_count = _cached_tools_hash()
-    llm_on = bool(ANTHROPIC_API_KEY)
+    if not enabled:
+        return "off"
+    if loaded:
+        return "loaded"
+    if failed:
+        return "failed"
+    if _model_in_offline_cache(model_id) is False:
+        return "missing"
+    return "not_loaded_yet"
+
+
+def _search_model_states() -> dict:
     try:
         vector_db = VECTOR_DB_PATH.exists()
     except OSError:
         vector_db = False
+    return {
+        "cross_encoder": _model_state(
+            enabled=CROSS_ENCODER_ENABLED, loaded=_CROSS_ENCODER is not None,
+            failed=_CROSS_ENCODER_FAILED, model_id=CROSS_ENCODER_MODEL,
+        ),
+        "embedding": _model_state(
+            enabled=VECTOR_SEARCH_ENABLED not in {"0", "false", "no"} and vector_db,
+            loaded=_VECTOR_MODEL is not None, failed=_VECTOR_MODEL_FAILED,
+            model_id=VECTOR_MODEL_ID,
+        ),
+    }
+
+
+_MODEL_STATES_THAT_RUN = {"loaded", "not_loaded_yet"}
+
+
+def _build_identity(db_generation: int) -> dict:
+    """What answered: code, data snapshot, models, tool surface.
+
+    Reads module constants, a cache lookup, one stat and a cached hash; no
+    DB access. search_steps says what actually runs: a model that is
+    switched on but failed to load, or cannot load, counts as off, and
+    model_state says why.
+    """
+    tools_hash, tool_count = _cached_tools_hash()
+    llm_on = bool(ANTHROPIC_API_KEY)
+    states = _search_model_states()
     return {
         "commit": SERVER_VERSION,
         "data_snapshot": _data_snapshot_utc(db_generation),
@@ -32657,9 +32712,10 @@ def _build_identity(db_generation: int) -> dict:
         "search_steps": {
             "llm_expansion": LLM_EXPANSION_ENABLED and llm_on,
             "llm_rerank": LLM_RERANK_ENABLED and llm_on,
-            "cross_encoder": CROSS_ENCODER_ENABLED,
-            "vector_search": VECTOR_SEARCH_ENABLED not in {"0", "false", "no"} and vector_db,
+            "cross_encoder": states["cross_encoder"] in _MODEL_STATES_THAT_RUN,
+            "vector_search": states["embedding"] in _MODEL_STATES_THAT_RUN,
         },
+        "model_state": states,
         "tools_hash": tools_hash,
         "tool_count": tool_count,
     }

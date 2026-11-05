@@ -180,6 +180,7 @@ def test_health_reports_build_identity(served_db):
         "llm_expansion", "llm_rerank", "cross_encoder", "vector_search",
     }
     assert all(isinstance(v, bool) for v in body["search_steps"].values())
+    assert set(body["model_state"]) == {"cross_encoder", "embedding"}
     assert (body["tools_hash"], body["tool_count"]) == m._cached_tools_hash()
 
 
@@ -214,3 +215,72 @@ def test_health_route_uses_the_payload():
     handler = handler[:handler.index("\n\n")]
     assert "_health_payload()" in handler
     assert "status_code=status" in handler
+
+
+# ── model_state: what actually runs, not what is switched on ──
+
+def _offline_cache(monkeypatch, cached: set[str]):
+    import huggingface_hub
+    monkeypatch.setenv("HF_HUB_OFFLINE", "1")
+    monkeypatch.setattr(
+        huggingface_hub, "try_to_load_from_cache",
+        lambda repo_id, filename, **k: f"/cache/{repo_id}/{filename}" if repo_id in cached else None,
+    )
+
+
+def _fresh_models(monkeypatch, *, ce_on=True, vec_on="auto", vec_db=True, tmp_path=None):
+    monkeypatch.setattr(m, "CROSS_ENCODER_ENABLED", ce_on)
+    monkeypatch.setattr(m, "_CROSS_ENCODER", None)
+    monkeypatch.setattr(m, "_CROSS_ENCODER_FAILED", False)
+    monkeypatch.setattr(m, "VECTOR_SEARCH_ENABLED", vec_on)
+    monkeypatch.setattr(m, "_VECTOR_MODEL", None)
+    monkeypatch.setattr(m, "_VECTOR_MODEL_FAILED", False)
+    vdb = tmp_path / "vectors.db"
+    if vec_db:
+        vdb.write_bytes(b"")
+    monkeypatch.setattr(m, "VECTOR_DB_PATH", vdb)
+
+
+def test_enabled_model_missing_from_offline_cache_is_not_reported_running(
+        served_db, monkeypatch, tmp_path):
+    """Production 2026-11: SWISS_CASELAW_CROSS_ENCODER=true, model not in
+    the offline cache. /health must not claim the step runs."""
+    _fresh_models(monkeypatch, tmp_path=tmp_path, vec_on="false")
+    _offline_cache(monkeypatch, cached=set())
+    body = m._health_payload()[0]
+    assert body["model_state"] == {"cross_encoder": "missing", "embedding": "off"}
+    assert body["search_steps"]["cross_encoder"] is False
+    assert body["search_steps"]["vector_search"] is False
+
+
+def test_cached_model_counts_as_running_before_first_load(served_db, monkeypatch, tmp_path):
+    _fresh_models(monkeypatch, tmp_path=tmp_path)
+    _offline_cache(monkeypatch, cached={m.CROSS_ENCODER_MODEL, m.VECTOR_MODEL_ID})
+    body = m._health_payload()[0]
+    assert body["model_state"] == {"cross_encoder": "not_loaded_yet", "embedding": "not_loaded_yet"}
+    assert body["search_steps"]["cross_encoder"] is True
+    assert body["search_steps"]["vector_search"] is True
+
+
+def test_failed_and_loaded_states(served_db, monkeypatch, tmp_path):
+    _fresh_models(monkeypatch, tmp_path=tmp_path)
+    _offline_cache(monkeypatch, cached={m.CROSS_ENCODER_MODEL, m.VECTOR_MODEL_ID})
+    monkeypatch.setattr(m, "_CROSS_ENCODER_FAILED", True)
+    monkeypatch.setattr(m, "_VECTOR_MODEL", object())
+    body = m._health_payload()[0]
+    assert body["model_state"] == {"cross_encoder": "failed", "embedding": "loaded"}
+    assert body["search_steps"]["cross_encoder"] is False
+    assert body["search_steps"]["vector_search"] is True
+
+
+def test_vector_search_off_without_an_index(served_db, monkeypatch, tmp_path):
+    _fresh_models(monkeypatch, tmp_path=tmp_path, vec_db=False)
+    _offline_cache(monkeypatch, cached={m.VECTOR_MODEL_ID})
+    assert m._health_payload()[0]["model_state"]["embedding"] == "off"
+
+
+def test_online_hub_does_not_report_missing(served_db, monkeypatch, tmp_path):
+    """Without HF_HUB_OFFLINE a missing cache entry is downloaded on load."""
+    _fresh_models(monkeypatch, tmp_path=tmp_path, vec_on="false")
+    monkeypatch.delenv("HF_HUB_OFFLINE", raising=False)
+    assert m._health_payload()[0]["model_state"]["cross_encoder"] == "not_loaded_yet"
