@@ -11,8 +11,15 @@
 #
 # Deliberately no `set -e`: one sick worker must not abort the loop and leave
 # the rest of the fleet un-restarted.
+#
+# After the loop, scripts/record_deployment.py appends the restart (commit,
+# UTC window, healthy ports, search models) to logs/deployments.jsonl, the
+# source of docs/deployments.{md,json}. Best effort: a logging failure or
+# hang never changes this script's outcome. DEPLOY_CAUSE labels the entry;
+# OCL_DEPLOY_LOG=0 skips it; OCL_DEPLOY_LOG_PATH moves the log.
 
 HEALTH_TRIES="${HEALTH_TRIES:-15}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 units=$(systemctl list-units 'mcp-server@*.service' --state=active --no-legend --plain | awk '{print $1}')
 if [ -z "$units" ]; then
@@ -20,6 +27,9 @@ if [ -z "$units" ]; then
     exit 0
 fi
 
+started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+ok_ports=""
+failed_ports=""
 for u in $units; do
     p="${u#mcp-server@}"
     p="${p%.service}"
@@ -35,7 +45,21 @@ for u in $units; do
     done
     if [ "$ok" = 1 ]; then
         echo "  $u healthy"
+        ok_ports="$ok_ports $p"
     else
         echo "  WARNING: $u not healthy after ${HEALTH_TRIES}s — continuing" >&2
+        failed_ports="$failed_ports $p"
     fi
 done
+finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+if [ "${OCL_DEPLOY_LOG:-1}" != "0" ]; then
+    limit=""
+    command -v timeout >/dev/null 2>&1 && limit="timeout 60"
+    $limit python3 "$SCRIPT_DIR/record_deployment.py" record \
+        --started "$started" --finished "$finished" \
+        --ok "$ok_ports" --failed "$failed_ports" \
+        --cause "${DEPLOY_CAUSE:-rolling_restart_workers.sh}" \
+        || echo "rolling_restart_workers: deployment log not written (continuing)" >&2
+fi
+exit 0
