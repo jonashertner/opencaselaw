@@ -11,6 +11,10 @@ Environment=NE_PROXY=socks5h://127.0.0.1:1080
 Environment=JU_PROXY=socks5h://127.0.0.1:1080
 Environment=TI_PROXY=socks5h://127.0.0.1:1080
 Environment=GL_PROXY=socks5h://127.0.0.1:1080
+# Skip the week while a nightly build is still running (a late Saturday build
+# reaches 21:30): the practice.db rebuild and the worker restart must not land
+# in its tail. A oneshot build reads "activating", not "active".
+ExecCondition=/bin/sh -c '! systemctl is-active opencaselaw-publish.service | grep -qE "^(active|activating)$"'
 ExecStart=/usr/bin/python3 -m scrapers.practice.runner
 ExecStartPost=/usr/bin/python3 -m search_stack.build_practice_db --jsonl-dir /opt/caselaw/repo/output/practice --db /opt/caselaw/repo/output/practice.db
 # Rolling, health-gated, discovers ALL workers (was: simultaneous restart of
