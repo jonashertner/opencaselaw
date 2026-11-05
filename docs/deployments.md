@@ -20,7 +20,7 @@ Machine-readable: [`deployments.json`](deployments.json).
 |---|---|---|
 | Query parse, query expansion, LLM rerank | `claude-haiku-4-5-20251001 -> claude-haiku-5-5` | Changed once, by 2a77d717 (see below). Confirmed by the model recorded for every call in the server's LLM usage log; no rollback. |
 | Cross-encoder rerank | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | Switched on in the server configuration but never ran: the model is not in the workers' offline model cache, so it fails to load and ranking skips the step. Unchanged. |
-| Dense vector retrieval | `BAAI/bge-m3` | Not in the workers' offline model cache, so it cannot load and the step is skipped. Unchanged. |
+| Dense vector retrieval | `BAAI/bge-m3` | Switched off in the server configuration, and the server holds no vector index, so the step never ran. The model is not in the workers' offline model cache either. Unchanged. |
 | Paragraph-level semantic rescue (pinpoints) | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | In the cache and in use; the cache has not changed since 2026-09-03. Unchanged. |
 | Claim check (not search; for completeness) | `claude-sonnet-4-6` | Unchanged (LLM usage log). |
 

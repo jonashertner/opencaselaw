@@ -116,12 +116,14 @@ def test_record_prefers_worker_health_identity():
     ident = {"status": "ok", "commit": "bbbbbbbb", "tools_hash": "f" * 64, "tool_count": 58,
              "models": {"query_llm": "claude-haiku-4-5-20251001", "cross_encoder": "x",
                         "embedding": "y"},
-             "search_steps": {"cross_encoder": False}}
+             "search_steps": {"cross_encoder": False},
+             "model_state": {"cross_encoder": "missing", "embedding": "off"}}
     rec = _record(health={"8770": ident, "8771": dict(ident, commit="cccccccc")})
     assert rec["models_source"] == "worker /health"
     assert rec["models"]["query_llm"] == "claude-haiku-4-5-20251001"
     assert rec["tools_hash"] == "f" * 64 and rec["tool_count"] == 58
     assert rec["worker_commits"] == ["bbbbbbbb", "cccccccc"]
+    assert rec["model_state"] == {"cross_encoder": "missing", "embedding": "off"}
 
 
 def test_record_with_a_failed_port_is_incomplete():

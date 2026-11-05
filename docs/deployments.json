@@ -44,7 +44,7 @@
    "step": "Dense vector retrieval",
    "key": "embedding",
    "model": "BAAI/bge-m3",
-   "status": "Not in the workers' offline model cache, so it cannot load and the step is skipped. Unchanged."
+   "status": "Switched off in the server configuration, and the server holds no vector index, so the step never ran. The model is not in the workers' offline model cache either. Unchanged."
   },
   {
    "step": "Paragraph-level semantic rescue (pinpoints)",

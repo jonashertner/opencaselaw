@@ -56,7 +56,7 @@ MODEL_PATTERNS = {
 }
 # Identity fields /health may carry (bcdc29f5); copied when present.
 HEALTH_IDENTITY_KEYS = ("commit", "data_snapshot", "models", "search_steps",
-                        "tools_hash", "tool_count")
+                        "model_state", "tools_hash", "tool_count")
 
 
 def utc_now() -> str:
@@ -155,7 +155,7 @@ def build_record(*, started: str, finished: str, ok_ports: list[str], failed_por
         if isinstance(first.get("models"), dict):
             rec["models"] = first["models"]
             rec["models_source"] = "worker /health"
-        for k in ("tools_hash", "tool_count", "search_steps", "data_snapshot"):
+        for k in ("tools_hash", "tool_count", "search_steps", "model_state", "data_snapshot"):
             if k in first:
                 rec[k] = first[k]
         commits = sorted({str(v.get("commit")) for v in identities.values() if v.get("commit")})
