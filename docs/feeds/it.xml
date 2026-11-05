@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Wed, 04 Nov 2026 22:28:24 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 05 Nov 2026 11:08:47 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -37,6 +37,54 @@ A.__…</description>
       <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_594.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>ti_gerichte 9.2026.16 vom 2026-08-06</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_9.2026.16</link>
+      <description>Incarto n. 9.2026.16
+
+Lugano
+
+6 agosto 2026
+
+In nome della Repubblica e Cantone Ticino
+
+Il presidente della Camera di protezione del Tribunale d'appello
+
+Damiano Bozzini
+
+giudice unico ai sensi dellart. 48 lett. f n. 7 LOG
+
+assistito dalla
+
+cancelli…</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_9.2026.16</guid>
+      <category>ti_gerichte</category>
+    </item>
+    <item>
+      <title>ti_gerichte 60.2026.114 vom 2026-07-24</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_60.2026.114</link>
+      <description>Incarto n. 60.2026.114
+
+Lugano
+
+24 luglio 2026
+
+In nome della Repubblica e Cantone Ticino
+
+La Corte dei reclami penali del Tribunale d'appello
+
+composta dai giudici:
+
+Nicola Respini, presidente,
+
+Ivano Ranzanici, Giovan Maria Tattarletti
+
+cancelliera…</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_60.2026.114</guid>
+      <category>ti_gerichte</category>
     </item>
     <item>
       <title>Bundesgericht 7B_1244/2026 vom 2026-10-19</title>
@@ -816,22 +864,6 @@ statuendo nella compos…</description>
       <description>Asilo ed allontanamento</description>
       <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-455.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-4474/2026 vom 2026-07-09</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4474_2026</link>
-      <description>Esecuzione dell'allontanamento (riesame)</description>
-      <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4474.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-1720/2026 vom 2026-07-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-1720_2026</link>
-      <description>Asilo (altro)</description>
-      <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-1720.2026</guid>
       <category>bvger</category>
     </item>
   </channel>

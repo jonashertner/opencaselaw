@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Wed, 04 Nov 2026 22:28:24 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 05 Nov 2026 11:08:47 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht F-6937/2026 vom 2026-10-22</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6937_2026</link>
+      <description>Déni de justice/retard injustifié</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6937.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesgericht 1C_367/2026 vom 2026-10-21</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_367_2026</link>
@@ -37,6 +45,14 @@ P…</description>
       <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_367.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-9764/2025 vom 2026-10-20</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-9764_2025</link>
+      <description>Droit à la rente</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-9764.2025</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesgericht 6B_641/2026 vom 2026-10-19</title>
@@ -69,6 +85,44 @@ Participants à la procédur…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>vd_gerichte 830 vom 2026-10-19</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_d13b70e4-d67d-4bd1-9763-86784df9c7a5</link>
+      <description>TRIBUNAL CANTONAL
+PE25.***-***
+PE25.***-***
+PE25.***-***
+PE25.***-***
+830
+CHAMBRE DE S RECO URS PEN ALE
+__________________________________________
+Décision du 19 octobre 2026
+Composition : Mme ELKAIM, présidente
+Mme Byrde et M. Perrot, juges
+Greffier…</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_d13b70e4-d67d-4bd1-9763-86784df9c7a5</guid>
+      <category>vd_gerichte</category>
+    </item>
+    <item>
+      <title>vd_gerichte 716 vom 2026-10-16</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_d1e123bc-6373-4110-9ae6-a8b8e7f95173</link>
+      <description>TRIBUNAL CANTONAL
+PD24.***-***
+716
+CO UR D’APPEL CIVI L E
+_____________________________
+Arrêt du 16 octobre 2026
+Composition : Mme CHERPILLOD, juge unique
+Greffière : Mme Scheinin-Carlsson
+*****
+Art. 286 CC ; 276 CPC
+Statuant sur l’appel interjeté pa…</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_d1e123bc-6373-4110-9ae6-a8b8e7f95173</guid>
+      <category>vd_gerichte</category>
+      <category>Modification de jugement de divorce</category>
+    </item>
+    <item>
       <title>Bundesgericht 8C_271/2026 vom 2026-10-15</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_271_2026</link>
       <description>Bundesgericht
@@ -97,6 +151,24 @@ Participants à…</description>
       <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_271.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>vd_gerichte 542 vom 2026-10-15</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_10a6d90d-f14c-46c8-96c4-61dd40a7f69c</link>
+      <description>TRIBUNAL CANTONAL
+TD23.***-***-***
+542
+CO UR D’APPEL CIVI L E
+_____________________________
+Arrêt du 15 octobre 2026
+Composition : Mme GIROUD WALTHER, juge unique
+Greffière : Mme Lapeyre
+*****
+Art. 159 al. 3, 163 et 178 CC ; art. 117, 264 al. 1 et 31…</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">vd_gerichte_10a6d90d-f14c-46c8-96c4-61dd40a7f69c</guid>
+      <category>vd_gerichte</category>
+      <category>Divorce sur demande unilatérale</category>
     </item>
     <item>
       <title>Bundesgericht 7B_52/2026 vom 2026-10-12</title>
@@ -446,6 +518,22 @@ Greffière : Mme M…</description>
       <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_450.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesstrafgericht RR.2026.32 vom 2026-09-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bstger_RR.2026.32</link>
+      <description>Entraide judiciaire internationale en matière pénale à la Roumanie; remise de moyens de preuve (art. 74 EIMP)</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BStGer:2026:RR.2026.32</guid>
+      <category>bstger</category>
+    </item>
+    <item>
+      <title>Bundesstrafgericht BB.2026.47 vom 2026-09-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bstger_BB.2026.47</link>
+      <description>Ordonnance de non-entrée en matière (art. 310 en lien avec l'art. 322 al. 2 CPP); assistance judiciaire gratuite pour la partie plaignante dans la procédure de recours (art. 136 al. 3 CPP)</description>
+      <pubDate>Wed, 04 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BStGer:2026:BB.2026.47</guid>
+      <category>bstger</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht F-7031/2026 vom 2026-10-22</title>
@@ -1085,137 +1173,6 @@ Statuant sur la …</description>
       <guid isPermaLink="false">vd_gerichte_87685e72-abfc-4c9f-bcc8-ffff31ee1ad4</guid>
       <category>vd_gerichte</category>
       <category>Divorce sur demande unilatérale</category>
-    </item>
-    <item>
-      <title>vd_gerichte 923 vom 2026-10-15</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_2eca183b-7f59-4fa3-88eb-104f46f500aa</link>
-      <description>TRIBUNAL CANTONAL ZD26.***
-923
-CO UR DE S ASSURANCES S OCIALES
-_____________________________________________
-Arrêt du 15 octobre 2026
-Composition : Mme DI FERRO DEMIERRE, juge unique
-Greffière : Mme Sauter
-*****
-Cause pendante entre :
-B.________, à A…</description>
-      <pubDate>Mon, 02 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_2eca183b-7f59-4fa3-88eb-104f46f500aa</guid>
-      <category>vd_gerichte</category>
-      <category>Assurance invalidité</category>
-    </item>
-    <item>
-      <title>vd_gerichte 765 vom 2026-10-15</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_7965f6ac-6998-49e0-bc8c-2b1edeea97f0</link>
-      <description>TRIBUNAL CANTONAL
-JS26.***-***
-765
-CO UR D’APPEL CIVI L E
-_____________________________
-Ordonnance du 15 octobre 2026
-Composition : Mme CHERPILLOD, juge unique
-Greffière : Mme Rosset
-*****
-Art. 315 al. 2 let. b et al. 4 let. b CPC
-Statuant sur la req…</description>
-      <pubDate>Mon, 02 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_7965f6ac-6998-49e0-bc8c-2b1edeea97f0</guid>
-      <category>vd_gerichte</category>
-      <category>Mesures protectrices de l'union conjugale</category>
-    </item>
-    <item>
-      <title>vd_gerichte 824 vom 2026-10-14</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_4cc24359-3c38-4395-adee-a2f6f1a203ad</link>
-      <description>TRIBUNAL CANTONAL
-AP26.***-***
-AP26.***-***
-824
-CHAMBRE DE S RECO URS PEN ALE
-__________________________________________
-Arrêt du 14 octobre 2026
-Composition : Mme ELKAIM, présidente
-MM. Krieger et Perrot, juges
-Greffier : M. Robadey
-*****
-Art. 59 CP…</description>
-      <pubDate>Mon, 02 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_4cc24359-3c38-4395-adee-a2f6f1a203ad</guid>
-      <category>vd_gerichte</category>
-    </item>
-    <item>
-      <title>vd_gerichte 777 vom 2026-10-12</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_30b411df-60a8-4060-a3b5-64271218b2ae</link>
-      <description>TRIBUNAL CANTONAL
-PE25.***-***
-777
-CHAMBRE DE S RECO URS PEN ALE
-__________________________________________
-Arrêt du 12 octobre 2026
-Composition : Mme ELKAIM, présidente
-M. Maytain, juge, et M. Sauterel, juge-suppléant
-Greffier : M. Robadey
-*****
-Art…</description>
-      <pubDate>Mon, 02 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_30b411df-60a8-4060-a3b5-64271218b2ae</guid>
-      <category>vd_gerichte</category>
-    </item>
-    <item>
-      <title>vd_gerichte 736 vom 2026-10-12</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_e912fe61-031d-4d75-b15a-f7b334dc5168</link>
-      <description>TRIBUNAL CANTONAL
-XP26.***-***
-736
-CO UR D’APPEL CIVI L E
-_____________________________
-Arrêt du 12 octobre 2026
-Composition : Mme CHERPILLOD, juge unique
-Greffière : Mme Bubloz
-*****
-Art. 261 al. 1 let. b CPC
-Statuant sur l’appel interjeté par SOCIÉ…</description>
-      <pubDate>Mon, 02 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_e912fe61-031d-4d75-b15a-f7b334dc5168</guid>
-      <category>vd_gerichte</category>
-      <category>Mesures provisionnelles</category>
-    </item>
-    <item>
-      <title>vd_gerichte 345 vom 2026-10-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_48afcf0e-29bb-4db8-b1b6-1613ec9c9df9</link>
-      <description>TRIBUNAL CANTONAL
-KC25.***-***
-345
-CO UR DE S P OURSUITES ET FAILL ITES
-________________________________________________
-Arrêt du 7 octobre 2026
-Composition : Mme GIROUD WALTHER, présidente
-Mme Byrde et Mme Chollet, juges
-Greffière : Mme Kobi
-*****
-A…</description>
-      <pubDate>Mon, 02 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_48afcf0e-29bb-4db8-b1b6-1613ec9c9df9</guid>
-      <category>vd_gerichte</category>
-      <category>Mainlevée 80 ss LP</category>
-    </item>
-    <item>
-      <title>vd_gerichte 347 vom 2026-10-07</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_gerichte_9764531f-71ba-4726-a35d-f4ce8f68ff5c</link>
-      <description>TRIBUNAL CANTONAL
-KC25.***-***
-347
-CO UR DE S P OURSUITES ET FAILL ITES
-________________________________________________
-Arrêt du 7 octobre 2026
-Composition : Mme GIROUD WALTHER, présidente
-Mme Byrde et Mme Chollet, juges
-Greffière : Mme Kobi
-*****
-A…</description>
-      <pubDate>Mon, 02 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_gerichte_9764531f-71ba-4726-a35d-f4ce8f68ff5c</guid>
-      <category>vd_gerichte</category>
-      <category>Mainlevée 80 ss LP</category>
     </item>
   </channel>
 </rss>
