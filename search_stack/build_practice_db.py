@@ -47,6 +47,14 @@ import sqlite3
 import sys
 from pathlib import Path
 
+# Run as a script (the practice timer) the repo root is not on sys.path;
+# dehyphenate lives there.
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from dehyphenate import configured_lexicon, dehyphenate  # noqa: E402
+
 logger = logging.getLogger("build_practice_db")
 
 
@@ -103,6 +111,11 @@ def build(jsonl_dir: Path, db_path: Path) -> dict:
 
     by_source: dict[str, dict] = {}
     inserted = 0
+    # Rejoin words the source PDF / OCR broke across lines ("ge-⏎stützt"),
+    # as build_fts5 does for decisions (dehyphenate.py). Off unless
+    # OPENCASELAW_DEHYPHEN_LEXICON names a lexicon. content_hash stays the
+    # scraper's hash of the source text.
+    lexicon = configured_lexicon()
 
     for jsonl in sorted(jsonl_dir.glob("*.jsonl")):
         logger.info("Reading %s", jsonl.name)
@@ -115,6 +128,11 @@ def build(jsonl_dir: Path, db_path: Path) -> dict:
                     d = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                if lexicon is not None:
+                    lang = d.get("language") or "de"
+                    for field in ("body_text", "title"):
+                        if isinstance(d.get(field), str):
+                            d[field] = dehyphenate(d[field], lang, lexicon)
 
                 # Dedup at the row level — last write wins on doc_id collision
                 conn.execute("""

@@ -42,6 +42,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+from dehyphenate import configured_lexicon, dehyphenate  # noqa: E402
+
 logger = logging.getLogger("extract_decision_structure")
 
 
@@ -585,6 +587,13 @@ def extract(full_text: str, language: str = "de", decision_id: str = "") -> Deci
     text = full_text or ""
     if not text:
         return out
+    # The same line-break rejoining build_fts5 applies to decisions.db, so
+    # the Erwägungen served from here and the full text agree (dehyphenate
+    # is idempotent: text read back from decisions.db is left as it is).
+    # Off unless OPENCASELAW_DEHYPHEN_LEXICON names a lexicon.
+    _lex = configured_lexicon()
+    if _lex is not None:
+        text = dehyphenate(text, lang, _lex)
     # Volumes 1-79 of the BGE come as the page range a ruling is printed on;
     # its neighbours' facts and reasoning are not its structure (BGE 78 IV 83
     # was given No 23's facts and serial number). A shard repaired by

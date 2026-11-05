@@ -28,14 +28,18 @@ import os
 import re
 import sqlite3
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
 
 from db_schema import COVERAGE_SCHEMA_SQL, INSERT_COLUMNS, INSERT_OR_IGNORE_SQL, SCHEMA_SQL
 from models import make_canonical_key
+from dehyphenate import configured_lexicon, dehyphenate
 
 logger = logging.getLogger("build_fts5")
+
+# Per-build counts of dehyphenation decisions on full_text (action:reason).
+DEHYPHEN_STATS: "Counter[str]" = Counter()
 
 
 # Pre-swap safety gate: a freshly-built temp DB must retain at least this
@@ -1971,6 +1975,18 @@ def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
             if field in row and row[field]:
                 row[field] = _clean_text(row[field])
 
+        # Rejoin words the source PDF broke across lines (dehyphenate.py).
+        # Off unless OPENCASELAW_DEHYPHEN_LEXICON names a lexicon.
+        _lex = configured_lexicon()
+        if _lex is not None:
+            _lang = row.get("language") or "de"
+            for field in ("full_text", "regeste", "title"):
+                if row.get(field):
+                    row[field] = dehyphenate(
+                        row[field], _lang, _lex,
+                        DEHYPHEN_STATS if field == "full_text" else None,
+                    )
+
         # ── Inline cleanups (post-pass UPDATEs are now mostly no-ops) ──
 
         # docket whitespace + internal newline collapse
@@ -2895,6 +2911,9 @@ def build_database(
     logger.info(f"  Total decisions: {total}")
     for court, n in courts:
         logger.info(f"    {court}: {n}")
+    if DEHYPHEN_STATS:
+        logger.info("  Dehyphenation (full_text, this run): %s",
+                    ", ".join(f"{k}={v}" for k, v in sorted(DEHYPHEN_STATS.items())))
 
     _log_phase_summary()
 

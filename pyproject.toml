@@ -88,6 +88,7 @@ py-modules = [
     "coverage_report",
     "db_schema",
     "decision_widget",
+    "dehyphenate",
     "derive_from_text",
     "docket_aliases",
     "decision_ref",

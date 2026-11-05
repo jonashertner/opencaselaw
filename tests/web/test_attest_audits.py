@@ -596,7 +596,7 @@ def test_quote_beyond_8k_chars_is_found_and_attributed(m, long_decision):
     assert (q["found"], q["examined"], q["verbatim"], q["not_found"]) == (1, 1, 1, 0)
     [hit] = q["matches"]
     assert hit["matched_source"] == long_decision
-    assert hit["normalisation"] == "fold-v1"
+    assert hit["normalisation"] == "fold-v2"
     # The offset is into the normalised source text and points at the quote.
     norm_src = m._normalise_for_quote_match(LONG_FULL_TEXT)
     assert hit["offset"] > 8_000
@@ -609,7 +609,7 @@ def test_quote_beyond_8k_chars_is_found_and_attributed(m, long_decision):
     [issue] = [i for i in res["issues"] if i["category"] == "quote"]
     assert issue["searched_sources"] == [long_decision]
     assert issue["searched_sources_count"] == 1
-    assert issue["normalisation"] == "fold-v1"
+    assert issue["normalisation"] == "fold-v2"
     assert res["ledger"]["quotations"]["not_found"] == 1
     assert res["ledger"]["quotations"]["searched_sources"] == [long_decision]
 

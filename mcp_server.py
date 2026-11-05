@@ -20602,11 +20602,24 @@ _DATE_ADJACENT_PATTERN = re.compile(
 )
 
 
+_QUOTE_WORD_HYPHEN_RE = re.compile(r"(?<=[^\W\d_])-\s*(?=[^\W\d_])")
+
+
 def _normalise_for_quote_match(text: str) -> str:
-    """Collapse whitespace + harmonise quote characters before substring match."""
+    """Collapse whitespace + harmonise quote characters before substring match.
+
+    Hyphenation is folded away on both sides: a soft hyphen is dropped and a
+    hyphen between two letters is removed with any whitespace after it, so
+    "Über-⏎weisung", "Über- weisung" and "Überweisung" match one another, and
+    a quote copied from text served before or after dehyphenation (see
+    dehyphenate.py) still verifies against either.
+    """
     if not text:
         return ""
-    out = re.sub(r"\s+", " ", text)
+    out = text.replace("\u00ad", "").translate(
+        str.maketrans({"\u2010": "-", "\u2011": "-"}))
+    out = _QUOTE_WORD_HYPHEN_RE.sub("", out)
+    out = re.sub(r"\s+", " ", out)
     # Treat all dashes as plain hyphen, all curly quotes as straight
     out = out.translate(str.maketrans({
         "\u2013": "-", "\u2014": "-", "\u2212": "-",
@@ -20716,7 +20729,7 @@ def _audit_statutes(draft_text: str, ledger: dict | None = None) -> list[dict]:
     return issues
 
 
-_QUOTE_NORMALISATION_LABEL = "fold-v1"
+_QUOTE_NORMALISATION_LABEL = "fold-v2"
 
 
 def _quote_ledger_defaults() -> dict:
