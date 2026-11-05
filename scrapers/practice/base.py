@@ -91,6 +91,60 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
     return ""
 
 
+_TESS_LANGS: set[str] | None = None
+
+
+def tesseract_langs(wanted: str = "deu+fra+ita") -> str:
+    """The subset of `wanted` that the installed tesseract has, joined by
+    '+', or "" when tesseract is missing or has none of them."""
+    global _TESS_LANGS
+    import shutil
+    import subprocess
+    if _TESS_LANGS is None:
+        _TESS_LANGS = set()
+        if shutil.which("tesseract"):
+            try:
+                r = subprocess.run(["tesseract", "--list-langs"], capture_output=True,
+                                   text=True, timeout=30)
+                _TESS_LANGS = {ln.strip() for ln in (r.stdout + r.stderr).splitlines()}
+            except Exception:
+                pass
+    return "+".join(l for l in wanted.split("+") if l in _TESS_LANGS)
+
+
+def ocr_pdf_text(pdf_bytes: bytes, langs: str = "deu+fra+ita",
+                 dpi: int = 300, max_pages: int = 80) -> str:
+    """Render each page and run the tesseract CLI on it. Returns "" when
+    tesseract, its language models or PyMuPDF are missing, or nothing is
+    recognised."""
+    import subprocess
+    import tempfile
+    langs = tesseract_langs(langs)
+    if not langs:
+        logger.warning("tesseract or its deu/fra/ita models missing; scan left without text")
+        return ""
+    try:
+        import fitz
+    except ImportError:
+        return ""
+    pages: list[str] = []
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        with tempfile.TemporaryDirectory() as tmp:
+            for i, page in enumerate(doc):
+                if i >= max_pages:
+                    break
+                img = Path(tmp) / f"p{i}.png"
+                page.get_pixmap(dpi=dpi).save(str(img))
+                r = subprocess.run(["tesseract", str(img), "stdout", "-l", langs],
+                                   capture_output=True, text=True, timeout=300)
+                pages.append(r.stdout.strip())
+    except Exception as e:
+        logger.warning("OCR failed: %s", e)
+        return ""
+    return "\n\n".join(p for p in pages if p).strip()
+
+
 def slugify(s: str) -> str:
     """URL-safe slug for doc IDs."""
     s = re.sub(r"[^A-Za-z0-9]+", "_", s.strip().lower())
@@ -209,6 +263,13 @@ class PracticeScraper(ABC):
     # behaviour (empty body = failure).
     NO_TEXT_LAYER_BODY: str | None = None
 
+    # Opt-in OCR for scans: a PDF whose text layer yields less than
+    # OCR_MIN_CHARS is run through tesseract, and the record is tagged with
+    # the topic "OCR" so get_practice can warn that the wording is machine-read.
+    OCR_SCANS: bool = False
+    OCR_LANGS = "deu+fra+ita"
+    OCR_MIN_CHARS = 200
+
     # ── Tunables ──
     REQUEST_DELAY = 1.0               # seconds between PDF fetches
     PDF_TIMEOUT = 60
@@ -219,6 +280,7 @@ class PracticeScraper(ABC):
         assert self.ISSUING_AUTHORITY, "subclass must set ISSUING_AUTHORITY"
         self.session = build_session()
         self._last_request = 0.0
+        self._last_ocr = False
         self.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         self.output_path = self.OUTPUT_DIR / f"{self.SOURCE_KEY}.jsonl"
         # In-memory dedup of doc_ids already in the output file
@@ -266,7 +328,7 @@ class PracticeScraper(ABC):
             cache_path = cache_dir / f"{url_hash}.pdf"
             if cache_path.exists() and cache_path.stat().st_size > 1024:
                 try:
-                    return self._text_or_placeholder(extract_pdf_text(cache_path.read_bytes()))
+                    return self._text_or_placeholder(self._extract(cache_path.read_bytes()))
                 except Exception:
                     pass
         try:
@@ -282,13 +344,23 @@ class PracticeScraper(ABC):
                 return ""
             if cache_path is not None:
                 cache_path.write_bytes(r.content)
-            return self._text_or_placeholder(extract_pdf_text(r.content))
+            return self._text_or_placeholder(self._extract(r.content))
         except requests.HTTPError as e:
             logger.warning("PDF fetch failed [%s]: %s", e.response.status_code, pdf_url)
             return ""
         except Exception as e:
             logger.warning("PDF fetch error: %s — %s", pdf_url, e)
             return ""
+
+    def _extract(self, pdf_bytes: bytes) -> str:
+        self._last_ocr = False
+        text = extract_pdf_text(pdf_bytes)
+        if self.OCR_SCANS and len(text.strip()) < self.OCR_MIN_CHARS:
+            ocr = ocr_pdf_text(pdf_bytes, self.OCR_LANGS)
+            if len(ocr) > len(text.strip()):
+                self._last_ocr = True
+                return ocr
+        return text
 
     def _text_or_placeholder(self, text: str) -> str:
         """A downloaded PDF with no text layer returns a sentinel (when the
@@ -309,6 +381,10 @@ class PracticeScraper(ABC):
         """Populate the dedup set and, when REVISION_FIELD is set, the
         doc_id -> revision map used to detect re-issued editions."""
         self._seen_revisions: dict[str, str] = {}
+        # Scans indexed under a title placeholder before OCR was enabled:
+        # re-fetched once so they get their text.
+        self._placeholder_ids: set[str] = set()
+        ocr_ready = self.OCR_SCANS and bool(tesseract_langs(self.OCR_LANGS))
         if not self.output_path.exists():
             return set()
         ids = set()
@@ -325,6 +401,11 @@ class PracticeScraper(ABC):
                     if not did:
                         continue
                     ids.add(did)
+                    if ocr_ready and self.NO_TEXT_LAYER_BODY:
+                        if (rec.get("body_text") or "").endswith(self.NO_TEXT_LAYER_BODY):
+                            self._placeholder_ids.add(did)
+                        else:
+                            self._placeholder_ids.discard(did)
                     if self.REVISION_FIELD:
                         # Last line wins: the file is append-only, so the most
                         # recently appended record is the current edition.
@@ -384,7 +465,7 @@ class PracticeScraper(ABC):
         for stub in self.discover_documents():
             doc_id = self._make_doc_id(stub)
 
-            reissued = self._is_reissue(doc_id, stub)
+            reissued = self._is_reissue(doc_id, stub) or doc_id in self._placeholder_ids
             if doc_id in self._seen_ids and not force_refresh and not reissued:
                 skipped_count += 1
                 continue
@@ -401,7 +482,10 @@ class PracticeScraper(ABC):
                 failed_count += 1
                 continue
 
+            self._last_ocr = False
             body = stub["body_text"] if "body_text" in stub else self.fetch_pdf_text(pdf_url)
+            if self._last_ocr:
+                stub = {**stub, "topics": [*stub.get("topics", []), "OCR"]}
             if body == _NO_TEXT_LAYER_SENTINEL:
                 body = self._placeholder_body(stub)
             if not body:
@@ -411,6 +495,7 @@ class PracticeScraper(ABC):
 
             doc = self._normalize(stub, body)
             self._append(doc)
+            self._placeholder_ids.discard(doc_id)
             if self.REVISION_FIELD:
                 self._seen_revisions[doc_id] = str(
                     stub.get(self.REVISION_FIELD, "") or "")

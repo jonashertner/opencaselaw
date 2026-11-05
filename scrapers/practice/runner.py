@@ -28,6 +28,7 @@ from .seco_alv import SecoAlvScraper
 from .bag_kvg import BagKvgScraper
 from .sem_handbuch_asyl import SemHandbuchAsylScraper
 from .bj_schkg import BjSchkgScraper
+from .schkg_kantone import SchkgKantoneScraper
 from .bsv_weisungen import BsvWeisungenScraper
 from .weko_bekanntmachungen import WekoBekanntmachungenScraper
 from .oak_bv import OakBvScraper
@@ -52,6 +53,9 @@ ENABLED_SCRAPERS = {
     "bag_kvg":           BagKvgScraper,
     "sem_handbuch_asyl": SemHandbuchAsylScraper,
     "bj_schkg":          BjSchkgScraper,
+    # Cantonal SchKG supervisory authorities + KBKS (2026-11-05): ~25 pages,
+    # ~175 documents, minutes. ne.ch/jura.ch need SCRAPER_PROXY on the VPS.
+    "schkg_kantone":     SchkgKantoneScraper,
     # UN recommendations to Switzerland from OHCHR's UHRI export: two ~400 MB
     # downloads streamed and filtered, ~2 min; ~3,350 rows.
     "un_uhri":           UnUhriScraper,

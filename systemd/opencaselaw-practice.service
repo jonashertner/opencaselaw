@@ -6,6 +6,10 @@ After=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/caselaw/repo
 Environment=PYTHONPATH=/opt/caselaw/repo
+# schkg_kantone: ne.ch, jura.ch and ti.ch block the server's IP range; same tunnel as the court scrapers.
+Environment=NE_PROXY=socks5h://127.0.0.1:1080
+Environment=JU_PROXY=socks5h://127.0.0.1:1080
+Environment=TI_PROXY=socks5h://127.0.0.1:1080
 ExecStart=/usr/bin/python3 -m scrapers.practice.runner
 ExecStartPost=/usr/bin/python3 -m search_stack.build_practice_db --jsonl-dir /opt/caselaw/repo/output/practice --db /opt/caselaw/repo/output/practice.db
 # Rolling, health-gated, discovers ALL workers (was: simultaneous restart of

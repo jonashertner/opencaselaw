@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+
+<!-- live_sgch_internet_nlb30-1  -->
+<html lang="de" prefix="fb: http://ogp.me/ns/fb# og: http://ogp.me/ns#" xml:lang="de">
+<head>
+<meta charset="utf-8"/>
+
+
+<title>Weisungen | sg.ch</title>
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- START of Swiftype specific Meta Tags -->
+
+
+
+
+
+
+
+
+
+
+
+<!-- END of Swiftype specific Meta Tags -->
+<!-- CSRF Security -->
+
+
+
+
+
+
+<!--[if lt IE 9]><script src="/apps/core/docroot/js/html5shiv.min.js"></script><![endif]-->
+<!--[if lt IE 9]><script src="/apps/core/docroot/js/respond.min.js"></script><![endif]-->
+<!-- siteimprove Tracking Code -->
+
+<!-- silktide Tracking Code -->
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body data-offset="0" data-spy="scroll" data-target="#sgch-sidebar-scrollspy">
+<div class="sgch contentpage" id="wrapper">
+<div id="site-canvas">
+<div class="mobile-visible" id="site-menu"></div>
+<div id="menu-overlay"> </div>
+<nav aria-label="Sprunglinks" id="accesskeys">
+<ul class="nav">
+<li>
+<a accesskey="0" href="https://www.sg.ch" title="[Alt+0] Direkt zur Startseite">Direkt zur Startseite</a>
+</li>
+<li>
+<a accesskey="1" href="#content-navigation" title="[Alt+1] Direkt zur Navigation">Direkt zur Navigation</a>
+</li>
+<li>
+<a accesskey="2" href="#content" title="[Alt+2] Direkt zum Inhalt">Direkt zum Inhalt</a>
+</li>
+<li>
+<a accesskey="5" href="#aiInputField-overlay" title="[Alt+5] Direkt zur Suche">Direkt zur Suche</a>
+</li>
+</ul>
+</nav>
+<div id="main" tabindex="-1">
+<div id="headerprint"><img alt="Logo Kanton St.Gallen" src="/apps/core/docroot/images/design/sgch/bg-head-sgch-print-img.gif"/></div>
+<header>
+<nav aria-label="Top-Navigation" class="navbar top-nav" data-offset-top="0" data-spy="affix" data-swiftype-index="false">
+<div class="container-fluid no-gutter contains-sg-rightaligned">
+<div class="container-sg-rightaligned">
+<div class="navbar-header">
+<a class="navbar-brand txt-brand" href="https://www.sg.ch" title="Zur Startseite Portal Kanton St.Gallen">
+<div class="page-header"><img alt="Logo Kanton St.Gallen" class="img-responsive" src="/apps/core/docroot/images/design/sgch/logo-kanton-stgallen.png"/></div>
+<div class="navbar-brand img-brand phantom-brand">
+<img alt="Logo Kanton St.Gallen" class="img-responsive" src="/apps/core/docroot/images/design/sgch/logo-sg-wappen.png"/>
+</div>
+</a>
+</div>
+<div class="navbar-content pull-right">
+<div class="navbar-header">
+<div class="navbar-brand img-brand">
+<img alt="Logo Kanton St.Gallen" class="img-responsive" src="/apps/core/docroot/images/design/sgch/logo-sg-wappen.png"/>
+</div>
+</div>
+<div class="generic-section pull-right">
+<ul class="nav navbar-nav">
+<li class="dropdown main-nav-top searchtoggler">
+<button aria-controls="dropdown-search" aria-expanded="false" aria-label="Suche öffnen" class="dropdown-toggle" data-placement="bottom" data-toggle="dropdown" data-toggle-second="tooltip" title="Suche" type="button">
+<i aria-hidden="true" class="far fa-search"></i>
+</button>
+<div class="dropdown-menu dropdown-menu-right dropdown-menu-fullwidth" id="dropdown-search">
+<div class="container-fluid highlight">
+<div class="container" data-swiftype-index="false">
+<div class="row tilebox-search">
+<div class="col-xs-12 no-gutter">
+<div class="tilecontainer-search">
+<form autocomplete="off" class="searchform show-loader" id="searchFormBox" name="searchFormBox">
+<label class="input-label search-label" for="aiInputField" id="searchfield-label">
+<span class="sr-only">Frage alles in deiner Sprache</span>
+<input aria-labelledby="searchfield-label" class="searchfield" id="aiInputField" name="searchfield" placeholder="Frage alles in deiner Sprache" type="search"/>
+</label>
+<button class="search-go" type="submit"><i aria-hidden="true" class="far fa-search"></i><span class="sr-only">Suchen</span></button>
+<fieldset class="search-area">
+<legend class="sr-only">Suchbereich</legend>
+<ul>
+<li>
+<div class="oc-radio search-area-1 pull-left fullwidth accessible-radio" onclick="toggleCheckBox(event);" onkeydown="toggleCheckBox(event);" tabindex="0">
+<input checked="checked" class="searchArea" id="ganzerkanton" name="radio" type="radio" value="ganzerkanton"/>
+<label for="ganzerkanton"><span></span><span class="description">Ganzer Kanton</span></label>
+</div>
+</li>
+<li>
+<div class="oc-radio search-area-2 pull-left fullwidth accessible-radio" onclick="toggleCheckBox(event);" onkeydown="toggleCheckBox(event);" tabindex="0">
+<input class="searchArea" id="onlytopic" name="radio" type="radio" value="sg-ch:themen/recht/gerichte::Gerichte"/>
+<label for="onlytopic"><span></span><span class="description">Gerichte</span></label>
+</div>
+</li>
+</ul>
+</fieldset>
+</form>
+</div>
+</div>
+</div>
+</div>
+<div class="container p-2vr-bot">
+<div class="row tilebox-home">
+<div class="col-xs-12 no-gutter">
+
+<div class="tile-filter hidden">
+<div class="row">
+<div class="col-xs-12">
+<h4>Inhaltstyp</h4>
+<ul class="inhaltstyp-items"></ul>
+</div>
+</div>
+</div>
+<div class="tilebox tilebox-main tilebox-desktopsquare-tiles show-loader" data-swiftype-index="false" id="static-results-container">
+<a class="ktsg-tile main-tile width-25 txt-tile desktop-square-tile tilestyle-color-green" href="/recht/gerichte/organisation---standorte.html" title="Interner Link: Organisation und Standorte">
+<div class="tile-header">
+<div class="icon"><i aria-hidden="true" class="fal fa-chevron-right"></i></div>
+</div>
+<div class="tile-content">
+<div class="topic">Gerichte</div>
+<div class="link">Organisation und Standorte</div>
+</div>
+</a>
+<a class="ktsg-tile main-tile width-25 txt-tile desktop-square-tile tilestyle-color-green" href="/recht/gerichte/rechtsprechung.html" title="Interner Link: Rechtsprechung">
+<div class="tile-header">
+<div class="icon"><i aria-hidden="true" class="fal fa-gavel"></i></div>
+</div>
+<div class="tile-content">
+<div class="topic">Gerichte</div>
+<div class="link">Rechtsprechung</div>
+</div>
+</a>
+<a class="ktsg-tile main-tile width-25 txt-tile desktop-square-tile tilestyle-color-green" href="/recht/gerichte/anwalts----notarwesen/anwaltsregister---register-der-notare.html" title="Interner Link: Anwaltsregister und Register der Notare">
+<div class="tile-header">
+<div class="icon"><i aria-hidden="true" class="fal fa-chevron-right"></i></div>
+</div>
+<div class="tile-content">
+<div class="topic">Gerichte</div>
+<div class="link">Anwaltsregister und Register der Notare</div>
+</div>
+</a>
+<a class="ktsg-tile main-tile width-25 txt-tile desktop-square-tile tilestyle-color-green" href="/recht/gerichte/informationen---formulare/existenzminimum.html" title="Interner Link: Existenzminimum, Notbedarf und Grundbetrag">
+<div class="tile-header">
+<div class="icon"><i aria-hidden="true" class="fal fa-chevron-right"></i></div>
+</div>
+<div class="tile-content">
+<div class="topic">Gerichte</div>
+<div class="link">Existenzminimum, Notbedarf und Grundbetrag</div>
+</div>
+</a>
+<a class="ktsg-tile main-tile width-25 txt-tile desktop-square-tile tilestyle-color-green" href="/recht/gerichte/informationen---formulare/elektronischer-rechtsverkehr-im-zivil--und-strafprozess.html" title="Interner Link: Elektronischer Rechtsverkehr">
+<div class="tile-header">
+<div class="icon"><i aria-hidden="true" class="fal fa-chevron-right"></i></div>
+</div>
+<div class="tile-content">
+<div class="topic">Gerichte</div>
+<div class="link">Elektronischer Rechtsverkehr</div>
+</div>
+</a>
+<a class="ktsg-tile main-tile width-25 txt-tile desktop-square-tile tilestyle-color-green" href="/recht/gerichte/anwalts----notarwesen/pruefungen.html" title="Interner Link: Prüfungen (Rechts-anwälte, Notare und Rechtsagenten)">
+<div class="tile-header">
+<div class="icon"><i aria-hidden="true" class="fal fa-chevron-right"></i></div>
+</div>
+<div class="tile-content">
+<div class="topic">Gerichte</div>
+<div class="link">Prüfungen (Rechts-anwälte, Notare und Rechtsagenten)</div>
+</div>
+</a>
+<div aria-hidden="true" class="tilebox-overlay">
+<div aria-live="polite" class="spinner" role="status">
+<span class="sr-only">Suche l&amp;aaumluft...</span>
+</div>
+</div>
+</div>
+<div class="tilebox tilebox-main tilebox-desktopsquare-tiles show-loader hidden" data-swiftype-index="false" id="results-container">
+<span id="no-results">Es wird gesucht...</span>
+<!-- Search results will be displayed here -->
+</div>
+
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</li>
+<li class="dropdown main-nav-top kontakt-link">
+<a aria-label="Zum Kontakt" data-placement="bottom" data-toggle-second="tooltip" href="#contact-row" title="Kontakt">
+<img alt="Kontakt-Icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/menu/kontakt.svg"/>
+</a>
+<li class="dropdown desktop-visible main-nav-top quickmenutoggler">
+<button aria-controls="dropdown-quickmenu" aria-expanded="false" aria-label="Menü öffnen" class="dropdown-toggle" data-placement="bottom" data-toggle="dropdown" data-toggle-second="tooltip" title="Menü" type="button">
+<i aria-hidden="true" class="far fa-bars"></i>
+</button>
+<div class="dropdown-menu dropdown-menu-right" id="dropdown-quickmenu">
+<nav aria-label="Overlay-Navigation" class="navbar phantom-desktop-menu desktop-hidden main-navigation" data-swiftype-index="false">
+<a class="toggle-right-nav mobile-visible" href="#site-menu"><i aria-hidden="true" class="fa fa-times"></i><span class="sr-only">Mobiles Menü öffnen</span></a>
+<div class="navbar-header pull-right mobile-visible">
+<a class="navbar-brand desktop-visible" href="#" title="Home"><div class="logo">logo for mobile-menu</div></a>
+</div>
+<div class="nav navbar-nav" id="topnav-menu">
+<div class="nav-list-overview">
+<ul>
+<li class="nav-list-block nav-level-current">
+<div class="levelup-area">
+<button class="mobile-levelup-trigger mobile-visible" type="button">
+<i aria-hidden="true" class="fas fa-chevron-left"></i><span class="sr-only">Menü Ebene zurück</span>
+<span class="levelup-title">Informationen &amp; Formulare</span>
+</button>
+</div>
+<a href="/recht/gerichte/informationen---formulare/weisungen.html" tabindex="-1" title="Interner Link: Weisungen">Weisungen</a><span class="submenu-trigger"></span>
+<ul>
+</ul>
+</li>
+<li class="nav-list-block nav-level-current ajax-content"></li>
+</ul>
+</div>
+</div>
+
+</nav>
+</div>
+</li>
+<li id="mobile-toggler">
+<a class="toggle-right-nav" href="#site-menu" id="toggle-button" role="button"><i aria-hidden="true" class="fa fa-bars"></i><span class="sr-only">Menü aufklappen</span></a>
+</li>
+</li></ul>
+</div>
+</div>
+</div>
+</div>
+</nav>
+
+<div class="jumbotron">
+<div class="container">
+<div class="page-header">
+<h1>Weisungen</h1>
+</div>
+</div>
+</div>
+</header>
+<div class="has-sidenav" data-swiftype-index="true" id="content" tabindex="0">
+<nav aria-label="Funktions-Buttons" class="side-nav" data-swiftype-index="false" id="sgch-sidebar-functions">
+<ul class="nav nav-pills nav-stacked" data-offset-top="150" data-spy="affix">
+<li><a href="javascript:window.print()" title="Drucken (bei abgeschaltetem JavaScript nutzen sie bitte die Browserfunktion )"><i aria-hidden="true" class="far fa-print"></i> <span class="description">Drucken</span></a></li>
+<li id="social-share">
+<a href="#" id="share-link" title="Teilen"><i aria-hidden="true" class="far fa-share-alt"></i> <span class="description">Teilen</span></a>
+<div class="hidden" id="share-buttons">
+<div class="shariff" data-button-style="icon" data-mail-url="mailto:" data-services='["facebook","twitter","whatsapp","mail"]' data-theme="white"></div>
+</div>
+</li>
+</ul>
+</nav>
+
+
+<div class="container-fluid contains-sg-rightaligned no-gutter no-left-gutter all-paragraph-container">
+<div class="row no-desktop-gutter">
+<div class="col-xs-12 col-md-3 desktop-menu-column">
+<nav aria-label="Hauptnavigation" class="navbar withincontentandmobile main-navigation" data-swiftype-index="false" id="content-navigation" tabindex="0">
+<a class="toggle-right-nav mobile-visible" href="#site-menu"><i aria-hidden="true" class="fa fa-times"></i><span class="sr-only">Mobiles Menü schliessen</span></a>
+<div class="navbar-header pull-right mobile-visible">
+<a class="navbar-brand desktop-visible" href="#" title="Home"><div class="logo">logo for mobile-menu</div></a>
+</div>
+<div class="nav navbar-nav">
+<div class="nav-list-overview">
+<ul>
+<li class="nav-list-block nav-level-parent nav-level-1">
+<a href="https://www.sg.ch" title="Alle Themen">Alle Themen</a><span class="submenu-trigger"><button type="button"><i aria-hidden="true" class="far fa-angle-right"></i><span class="sr-only">Untermenü aufklappen</span></button></span>
+<ul>
+<li><a href="/ueber-den-kanton-st-gallen.html" title="Interner Link: Über den Kanton">Über den Kanton</a></li>
+<li><a href="/politik-verwaltung.html" title="Interner Link: Politik &amp; Verwaltung">Politik &amp; Verwaltung</a></li>
+<li><a href="/bauen.html" title="Interner Link: Bauen">Bauen</a></li>
+<li><a href="/bildung-sport.html" title="Interner Link: Bildung &amp; Sport">Bildung &amp; Sport</a></li>
+<li><a href="/gesundheit-soziales.html" title="Interner Link: Gesundheit &amp; Soziales">Gesundheit &amp; Soziales</a></li>
+<li><a href="/kultur.html" title="Interner Link: Kultur">Kultur</a></li>
+<li><a href="/recht.html" title="Interner Link: Recht">Recht</a></li>
+<li><a href="/sicherheit.html" title="Interner Link: Sicherheit">Sicherheit</a></li>
+<li><a href="/steuern-finanzen.html" title="Interner Link: Steuern &amp; Finanzen">Steuern &amp; Finanzen</a></li>
+<li><a href="/umwelt-natur.html" title="Interner Link: Umwelt &amp; Natur">Umwelt &amp; Natur</a></li>
+<li><a href="/verkehr.html" title="Interner Link: Verkehr">Verkehr</a></li>
+<li><a href="/wirtschaft-arbeit.html" title="Interner Link: Wirtschaft &amp; Arbeit">Wirtschaft &amp; Arbeit</a></li>
+</ul>
+</li>
+<li class="nav-list-block nav-level-parent nav-level-2">
+<a href="/recht.html" title="Interner Link: Recht">Recht</a>
+<span class="submenu-trigger"><button type="button"><i aria-hidden="true" class="far fa-angle-right"></i><span class="sr-only">Untermenü aufklappen</span></button></span>
+<ul>
+<li><a href="/recht/gerichte.html" title="Interner Link: Gerichte">Gerichte</a></li>
+<li><a href="https://www.gesetzessammlung.sg.ch/" target="_blank" title="Externer Link: Es öffnet sich ein neues Fenster: Gesetze">Gesetze<span class="hidden"> neues Fenster</span></a></li>
+<li><a href="/recht/staatsanwaltschaft-jugendanwaltschaft.html" title="Interner Link: Staatsanwaltschaft">Staatsanwaltschaft</a></li>
+<li><a href="/recht/handelsregister-notariate.html" title="Interner Link: Handelsregister &amp; Notariate">Handelsregister &amp; Notariate</a></li>
+<li><a href="/recht/buergerrecht-zivilstand.html" title="Interner Link: Bürgerrecht &amp; Zivilstand">Bürgerrecht &amp; Zivilstand</a></li>
+<li><a href="/recht/unentgeltliche-rechtspflege.html" title="Interner Link: Unentgeltliche Rechtspflege">Unentgeltliche Rechtspflege</a></li>
+<li><a href="/recht/opferhilfe.html" title="Interner Link: Opferhilfe">Opferhilfe</a></li>
+<li><a href="/recht/beglaubigungen.html" title="Interner Link: Apostillen und Legalisationen">Apostillen und Legalisationen</a></li>
+<li><a href="/recht/planungs-bau-umweltrecht.html" title="Interner Link: Planungs-, Bau- und Umweltrecht">Planungs-, Bau- und Umweltrecht</a></li>
+<li><a href="/recht/beschaffungswesen.html" title="Interner Link: Beschaffungswesen">Beschaffungswesen</a></li>
+<li><a href="/recht/geldspiele.html" title="Interner Link: Geldspiele">Geldspiele</a></li>
+</ul>
+</li>
+<li class="nav-list-block nav-level-parent nav-level-3">
+<a href="/recht/gerichte.html" title="Interner Link: Gerichte">Gerichte</a>
+<span class="submenu-trigger"><button type="button"><i aria-hidden="true" class="far fa-angle-right"></i><span class="sr-only">Untermenü aufklappen</span></button></span>
+<ul>
+<li><a href="/recht/gerichte/anwalts----notarwesen.html" title="Interner Link: Anwalts- &amp; Notarwesen">Anwalts- &amp; Notarwesen</a></li>
+<li><a href="/recht/gerichte/informationen---formulare.html" title="Interner Link: Informationen &amp; Formulare">Informationen &amp; Formulare</a></li>
+<li><a href="/recht/gerichte/verhandlungstermine.html" title="Interner Link: Verhandlungstermine">Verhandlungstermine</a></li>
+<li><a href="/recht/gerichte/offenlegung-interessenbindung.html" title="Interner Link: Offenlegung Interessenbindung">Offenlegung Interessenbindung</a></li>
+<li><a href="/recht/gerichte/aktuelles.html" title="Interner Link: Aktuelles">Aktuelles</a></li>
+</ul>
+</li>
+<li class="nav-list-block nav-level-parent nav-level-4">
+<a href="/recht/gerichte/informationen---formulare.html" title="Interner Link: Informationen &amp; Formulare">Informationen &amp; Formulare</a>
+<span class="submenu-trigger"><button type="button"><i aria-hidden="true" class="far fa-angle-right"></i><span class="sr-only">Untermenü aufklappen</span></button></span>
+<ul>
+<li><a href="/recht/gerichte/informationen---formulare/unentgeltliche-rechtspflege.html" title="Interner Link: Unentgeltliche Rechtspflege">Unentgeltliche Rechtspflege</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/unentgeltliche-rechtsauskuenfte.html" title="Interner Link: Unentgeltliche Rechtsauskünfte">Unentgeltliche Rechtsauskünfte</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/existenzminimum.html" title="Interner Link: Existenzminimum">Existenzminimum</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/geschaeftsbericht-der-kantonalen-gerichte.html" title="Interner Link: Geschäftsbericht der kantonalen Gerichte">Geschäftsbericht der kantonalen Gerichte</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/familienrecht.html" title="Interner Link: Familienrecht">Familienrecht</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/mietrecht--mitteilungen-des-vermieters.html" title="Interner Link: Mietrecht: Mitteilungen des Vermieters">Mietrecht: Mitteilungen des Vermieters</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/pikettplan-zwangsmassnahmenrichter.html" title="Interner Link: Pikettplan Zwangsmassnahmenrichter">Pikettplan Zwangsmassnahmenrichter</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/merkblaetter.html" title="Interner Link: Merkblätter">Merkblätter</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/formulare.html" title="Interner Link: Formulare">Formulare</a></li>
+<li class="active"><a href="/recht/gerichte/informationen---formulare/weisungen.html" title="Interner Link: Weisungen">Weisungen</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/elektronischer-rechtsverkehr-im-zivil--und-strafprozess.html" title="Interner Link: Elektronischer Rechtsverkehr im Zivil- und Strafprozess">Elektronischer Rechtsverkehr im Zivil- und Strafprozess</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/kontoverbindungen-gerichte.html" title="Interner Link: Kontoverbindungen Gerichte">Kontoverbindungen Gerichte</a></li>
+<li><a href="/recht/gerichte/informationen---formulare/kontoverbindungen-schlichtungsbehoerden.html" title="Interner Link: Kontoverbindungen Schlichtungsbehörden">Kontoverbindungen Schlichtungsbehörden</a></li>
+</ul>
+</li>
+<li class="nav-list-block nav-level-current">
+<div class="levelup-area">
+<button class="mobile-levelup-trigger mobile-visible" type="button">
+<i aria-hidden="true" class="fas fa-chevron-left"></i><span class="sr-only">Menü Ebene zurück</span>
+<span class="levelup-title">Informationen &amp; Formulare</span>
+</button>
+</div>
+<a href="/recht/gerichte/informationen---formulare/weisungen.html" title="Interner Link: Weisungen">Weisungen</a><span class="submenu-trigger"></span>
+</li>
+<li class="nav-list-block nav-level-current ajax-content"></li>
+</ul>
+</div>
+</div>
+
+</nav>
+<div class="sidebar-infoboxarea">
+<div class="SideParLinks sgch_linklistSidepar parbase">
+</div>
+</div>
+</div>
+<div class="col-xs-12 col-md-9 no-mobile-left-gutter no-mobile-right-gutter">
+<div data-swiftype-name="body" data-swiftype-type="text" id="maincontent">
+<div class="portalsg-paragraph">
+<div class="portalsg-p-container p-readspeaker">
+<div class="rs_skip rsbtn rs_preserve" id="readspeaker_button1">
+<a accesskey="L" class="rsbtn_play" href="//app-eu.readspeaker.com/cgi-bin/rsent?customerid=11974&amp;lang=de_de&amp;readid=maincontent&amp;url=https%3A%2F%2Fwww.sg.ch%2Frecht%2Fgerichte%2Finformationen---formulare%2Fweisungen.html" rel="nofollow" title="Um den Text anzuhören, verwenden Sie bitte ReadSpeaker webReader">
+<span class="rsbtn_left rsimg rspart"><span class="rsbtn_text"><span>Vorlesen</span></span></span>
+<span class="rsbtn_right rsimg rsplay rspart"></span>
+</a>
+</div>
+</div>
+</div>
+<div class="Par parsys"><a name="Par_sgch_downloadlist" style="visibility:hidden"></a>
+<div class="portalsg-paragraph m-2vr-bot">
+<div class="portalsg-p-container p-downloadlist">
+<h3>Kantonsgericht</h3>
+<div class="row">
+<div class="col-xs-12">
+<ul class="linklist">
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kantonsgericht/Weisung%20zum%20Verfahren%20und%20zum%20Entscheid%20im%20Zivilprozess.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster:  Weisung zum Verfahren und zum Entscheid im Zivilprozess"><span class="description"> Weisung zum Verfahren und zum Entscheid im Zivilprozess</span><span class="metadescription">(10 kB, PDF, 25.03.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kantonsgericht/Richtlinien%20zu%20den%20Fristen%20und%20Feststellung%20des%20Ausbleibens%20an%20der%20Verhandlung.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Richtlinien zu den Fristen und Feststellung des Ausbleibens an der Verhandlung"><span class="description">Richtlinien zu den Fristen und Feststellung des Ausbleibens an der Verhandlung</span><span class="metadescription">(62 kB, PDF, 25.03.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kantonsgericht/Richtlinien%20zur%20Protokollierung%20im%20Strafprozess.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Richtlinien zur Protokollierung im Strafprozess"><span class="description">Richtlinien zur Protokollierung im Strafprozess</span><span class="metadescription">(23 kB, PDF, 25.03.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kantonsgericht/Richtlinien%20zur%20Protokollierung%20im%20Zivilprozess.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Richtlinien zur Protokollierung im Zivilprozess"><span class="description">Richtlinien zur Protokollierung im Zivilprozess</span><span class="metadescription">(43 kB, PDF, 25.03.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kantonsgericht/Richtlinien%20zur%20unentgeltliche%20Rechtspflege%20im%20Zivilprozess%20und%20f%C3%BCr%20die%20Privatkl%C3%A4gerschaft%20im%20Strafprozess%20(Stand%2005-2011).pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Richtlinien zur unentgeltliche Rechtspflege im Zivilprozess und für die Privatklägerschaft im Strafprozess"><span class="description">Richtlinien zur unentgeltliche Rechtspflege im Zivilprozess und für die Privatklägerschaft im Strafprozess</span><span class="metadescription">(73 kB, PDF, 25.03.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kantonsgericht/Weisung%20betreffend%20Aktenf%C3%BChrung%20und%20Aktenordnung.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Weisung betreffend Aktenführung und Aktenordnung"><span class="description">Weisung betreffend Aktenführung und Aktenordnung</span><span class="metadescription">(68 kB, PDF, 25.03.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kantonsgericht/Merkblatt%20%C3%BCber%20die%20Auszahlung%20von%20Entsch%C3%A4digungen%20in%20Strafverfahren%20(Stand%2031-10-2017).pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Merkblatt über die Auszahlung von Entschädigungen in Strafverfahren"><span class="description">Merkblatt über die Auszahlung von Entschädigungen in Strafverfahren</span><span class="metadescription">(29 kB, PDF, 25.03.2019)</span></a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- -->
+</div>
+<a name="Par_sgch_anchor_copy" style="visibility:hidden"></a>
+<a class="anchorhidden" id="Schuldbetreibung_Konkurs" name="Schuldbetreibung_Konkurs"> </a>
+<a name="Par_sgch_downloadlist_co" style="visibility:hidden"></a>
+<div class="portalsg-paragraph m-2vr-bot">
+<div class="portalsg-p-container p-downloadlist">
+<h3>Kantonale Aufsichtsbehörde für Schuldbetreibung und Konkurs</h3>
+<div class="row">
+<div class="col-xs-12">
+<ul class="linklist">
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kant-aufsichtsbeh%C3%B6rde-schuldbetreibung-und-konkurs/Richtlinien%20zur%20Erh%C3%B6hung%20des%20Entgelts%20bei%20anspruchsvollen%20Konkursverfahren%20(Art%20%2047%20GebV%20SchKG).pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Richtlinien zur Erhöhung des Entgelts bei anspruchsvollen Konkursverfahren (Art 47 GebV SchKG)"><span class="description">Richtlinien zur Erhöhung des Entgelts bei anspruchsvollen Konkursverfahren (Art 47 GebV SchKG)</span><span class="metadescription">(20 kB, PDF, 25.03.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kant-aufsichtsbeh%C3%B6rde-schuldbetreibung-und-konkurs/Kreisschreiben%20%C3%BCber%20die%20Berechnung%20des%20betreibungsrechtlichen%20Existenzminimums.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Kreisschreiben über die Berechnung des betreibungsrechtlichen Existenzminimums (gültig ab 1. Juli 2023)"><span class="description">Kreisschreiben über die Berechnung des betreibungsrechtlichen Existenzminimums (gültig ab 1. Juli 2023)</span><span class="metadescription">(3315 kB, PDF, 14.06.2023)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/kant-aufsichtsbeh%C3%B6rde-schuldbetreibung-und-konkurs/Begr%C3%BCndung%20f%C3%BCr%20die%20Anpassung%20der%20Indexierung.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Begründung für die Anpassung des Kreisschreibens ab 1. Juli 2023"><span class="description">Begründung für die Anpassung des Kreisschreibens ab 1. Juli 2023</span><span class="metadescription">(348 kB, PDF, 14.06.2023)</span></a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- -->
+</div>
+<a name="Par_sgch_downloadlist_co_476922355" style="visibility:hidden"></a>
+<div class="portalsg-paragraph m-2vr-bot">
+<div class="portalsg-p-container p-downloadlist">
+<h3>Anklagekammer</h3>
+<div class="row">
+<div class="col-xs-12">
+<ul class="linklist">
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/anklagekammer/Weisung%20Aktenherausgabe.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Weisung der Anklagekammer über die Herausgabe von Strafakten und die Erteilung von Auskünften nach rechtskräftigem Abschluss des Strafverfahrens"><span class="description">Weisung der Anklagekammer über die Herausgabe von Strafakten und die Erteilung von Auskünften nach rechtskräftigem Abschluss des Strafverfahrens</span><span class="metadescription">(137 kB, PDF, 01.08.2019)</span></a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- -->
+</div>
+<a name="Par_sgch_downloadlist_co_601782995" style="visibility:hidden"></a>
+<div class="portalsg-paragraph m-2vr-bot">
+<div class="portalsg-p-container p-downloadlist">
+<h3>Anwaltskammer</h3>
+<div class="row">
+<div class="col-xs-12">
+<ul class="linklist">
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/anwaltskammer/Vereinbarung%20%C3%BCber%20die%20gegenseitige%20Anerkennung%20der%20kantonalen%20Rechtspraktikantenbewilligungen%20AR%20AI%20SG.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Vereinbarung über die gegenseitige Anerkennung der kantonalen Rechtspraktikantenbewilligungen AR AI SG"><span class="description">Vereinbarung über die gegenseitige Anerkennung der kantonalen Rechtspraktikantenbewilligungen AR AI SG</span><span class="metadescription">(9 kB, PDF, 10.04.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/anwaltskammer/Vereinbarung%20%C3%BCber%20die%20gegenseitige%20Anerkennung%20der%20kantonalen%20Rechtspraktikantenbewilligungen,%20Anschluss%20TG.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Vereinbarung über die gegenseitige Anerkennung der kantonalen Rechtspraktikantenbewilligungen, Anschluss TG"><span class="description">Vereinbarung über die gegenseitige Anerkennung der kantonalen Rechtspraktikantenbewilligungen, Anschluss TG</span><span class="metadescription">(9 kB, PDF, 10.04.2019)</span></a>
+</li>
+<li class="download">
+<a class="dltype-pdf" href="/content/dam/sgch/recht/gerichte/weisungen_kreisschreiben_reglemente/anwaltskammer/Weisung%20der%20Anwaltskammer%20%C3%BCber%20die%20%C3%9Cbertragung%20von%20Aufgaben%20an%20den%20Pr%C3%A4sidenten,%20%C3%BCber%20das%20Anwaltsregister%20bzw.%20die%20EU-EFTA-Anwaltsliste%20sowie%20%C3%BCber%20den%20Gesch%C3%A4ftsgang.pdf" target="_blank" title="Download: Es öffnet sich ein neues Fenster: Weisung der Anwaltskammer über die Übertragung von Aufgaben an den Präsidenten, über das Anwaltsregister bzw. die EU-EFTA-Anwaltsliste sowie über den Geschäftsgang"><span class="description">Weisung der Anwaltskammer über die Übertragung von Aufgaben an den Präsidenten, über das Anwaltsregister bzw. die EU-EFTA-Anwaltsliste sowie über den Geschäftsgang</span><span class="metadescription">(28 kB, PDF, 10.04.2019)</span></a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- -->
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="container-fluid contains-sg-rightaligned no-gutter no-left-gutter">
+<div class="NewsPar sgch_news parbase">
+</div>
+</div>
+<div class="container-fluid highlight-bluelightest">
+<div class="ContactContainerPar sgch_contactContainer parbase">
+<div class="row" data-swiftype-name="contact" data-swiftype-type="text" id="contact-row">
+<div class="container desktop-only-container">
+<div class="contact-accordion-wrapper">
+<h2 class="contact-title">Noch offene Fragen?</h2>
+<div class="panel-group accordion contact-accordion">
+<div class="sgch_contactaccordio_1547485199 sgch_contactAccordion parbase">
+<div class="panel panel-sgch">
+<div class="panel-heading">
+<button aria-controls="collapse-sgch_contactaccordio_1547485199" aria-expanded="false" class="collapsed" data-target="#collapse-sgch_contactaccordio_1547485199" data-toggle="collapse" id="heading-sgch_contactaccordio_1547485199" type="button">
+<h3 class="contact-subtitle">Kantonsgericht</h3>
+</button>
+</div>
+<div aria-labelledby="heading-sgch_contactaccordio_1547485199" class="panel-collapse collapse" id="collapse-sgch_contactaccordio_1547485199" role="region">
+<div class="panel-body">
+<div class="contact-card">
+<div class="contactcard-info">
+<div class="contact-well">
+<div class="row">
+<div class="col-xxs-12 col-xs-6 col-sm-7">
+<div class="corporate-info">
+<p class="departement"><a href="/recht/gerichte/organisation---standorte/kantonsgericht.html" title="Interner Link: Kantonsgericht">Kantonsgericht</a></p>
+<p class="address">
+						Klosterhof 1<br/>
+						
+						9001 St.Gallen 
+					</p>
+<div class="contact-links">
+<ul class="iconlist">
+<li><a href="tel:+41582293241" title="Anrufen: +41 58 229 32 41"><i aria-hidden="true" class="far fa-phone"></i><span class="description">+41 58 229 32 41</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sgch_contactaccordio_2104752573 sgch_contactAccordion parbase">
+<div class="panel panel-sgch">
+<div class="panel-heading">
+<button aria-controls="collapse-sgch_contactaccordio_2104752573" aria-expanded="false" class="collapsed" data-target="#collapse-sgch_contactaccordio_2104752573" data-toggle="collapse" id="heading-sgch_contactaccordio_2104752573" type="button">
+<h3 class="contact-subtitle">Handelsgericht</h3>
+</button>
+</div>
+<div aria-labelledby="heading-sgch_contactaccordio_2104752573" class="panel-collapse collapse" id="collapse-sgch_contactaccordio_2104752573" role="region">
+<div class="panel-body">
+<div class="contact-card">
+<div class="contactcard-info">
+<div class="contact-well">
+<div class="row">
+<div class="col-xxs-12 col-xs-6 col-sm-7">
+<div class="corporate-info">
+<p class="departement"><a href="/recht/gerichte/organisation---standorte/kantonsgericht.html" title="Interner Link: Handelsgericht ">Handelsgericht </a></p>
+<p class="address">
+						Klosterhof 1<br/>
+						
+						9001 St.Gallen
+					</p>
+<div class="contact-links">
+<ul class="iconlist">
+<li><a href="tel:+41582293245" title="Anrufen: +41 58 229 32 45"><i aria-hidden="true" class="far fa-phone"></i><span class="description">+41 58 229 32 45</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sgch_contactaccordio_522402996 sgch_contactAccordion parbase">
+<div class="panel panel-sgch">
+<div class="panel-heading">
+<button aria-controls="collapse-sgch_contactaccordio_522402996" aria-expanded="false" class="collapsed" data-target="#collapse-sgch_contactaccordio_522402996" data-toggle="collapse" id="heading-sgch_contactaccordio_522402996" type="button">
+<h3 class="contact-subtitle">Anklagekammer</h3>
+</button>
+</div>
+<div aria-labelledby="heading-sgch_contactaccordio_522402996" class="panel-collapse collapse" id="collapse-sgch_contactaccordio_522402996" role="region">
+<div class="panel-body">
+<div class="contact-card">
+<div class="contactcard-info">
+<div class="contact-well">
+<div class="row">
+<div class="col-xxs-12 col-xs-6 col-sm-7">
+<div class="corporate-info">
+<p class="departement"><a href="/recht/gerichte/organisation---standorte/kantonsgericht.html" title="Interner Link: Anklagekammer ">Anklagekammer </a></p>
+<p class="address">
+						Klosterhof 1<br/>
+						
+						9001 St.Gallen
+					</p>
+<div class="contact-links">
+<ul class="iconlist">
+<li><a href="tel:+41582292295" title="Anrufen:  +41 58 229 22 95 "><i aria-hidden="true" class="far fa-phone"></i><span class="description"> +41 58 229 22 95 </span></a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sgch_contactaccordio_1050700280 sgch_contactAccordion parbase">
+<div class="panel panel-sgch">
+<div class="panel-heading">
+<button aria-controls="collapse-sgch_contactaccordio_1050700280" aria-expanded="false" class="collapsed" data-target="#collapse-sgch_contactaccordio_1050700280" data-toggle="collapse" id="heading-sgch_contactaccordio_1050700280" type="button">
+<h3 class="contact-subtitle">Versicherungsgericht</h3>
+</button>
+</div>
+<div aria-labelledby="heading-sgch_contactaccordio_1050700280" class="panel-collapse collapse" id="collapse-sgch_contactaccordio_1050700280" role="region">
+<div class="panel-body">
+<div class="contact-card">
+<div class="contactcard-info">
+<div class="contact-well">
+<div class="row">
+<div class="col-xxs-12 col-xs-6 col-sm-7">
+<div class="corporate-info">
+<p class="departement"><a href="/recht/gerichte/organisation---standorte/versicherungsgericht.html" title="Interner Link: Versicherungsgericht ">Versicherungsgericht </a></p>
+<p class="address">
+						Wassergasse 44 <br/>
+						
+						9001  St.Gallen 
+					</p>
+<div class="contact-links">
+<ul class="iconlist">
+<li><a href="tel:+41582292525" title="Anrufen: +41 58 229 25 25"><i aria-hidden="true" class="far fa-phone"></i><span class="description">+41 58 229 25 25</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sgch_contactaccordio sgch_contactAccordion parbase">
+<div class="panel panel-sgch">
+<div class="panel-heading">
+<button aria-controls="collapse-sgch_contactaccordio" aria-expanded="false" class="collapsed" data-target="#collapse-sgch_contactaccordio" data-toggle="collapse" id="heading-sgch_contactaccordio" type="button">
+<h3 class="contact-subtitle">Verwaltungsgericht</h3>
+</button>
+</div>
+<div aria-labelledby="heading-sgch_contactaccordio" class="panel-collapse collapse" id="collapse-sgch_contactaccordio" role="region">
+<div class="panel-body">
+<div class="contact-card">
+<div class="contactcard-info">
+<div class="contact-well">
+<div class="row">
+<div class="col-xxs-12 col-xs-6 col-sm-7">
+<div class="corporate-info">
+<p class="departement"><a href="/recht/gerichte/organisation---standorte/verwaltungsgericht.html" title="Interner Link: Verwaltungsgericht">Verwaltungsgericht</a></p>
+<p class="address">
+						Webergasse 8 <br/>
+						
+						9001  St.Gallen 
+					</p>
+<div class="contact-links">
+<ul class="iconlist">
+<li><a href="tel:+41582293902" title="Anrufen: +41 58 229 39 02"><i aria-hidden="true" class="far fa-phone"></i><span class="description">+41 58 229 39 02</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer aria-labelledby="footer-heading">
+<h2 class="sr-only" id="footer-heading">Weitere Informationen</h2>
+<section class="footer bright p-2vr-top p-2vr-bot" data-swiftype-index="false">
+<div class="container">
+<div class="row">
+<div class="col-xs-12 col-sm-6 col-md-4">
+<div class="footer-box">
+<h3>Für Sie da</h3>
+<p class="bold grey-darkest">Zuständig für den Inhalt dieser Seite:</p>
+<p class="amt"><a href="/recht/gerichte.html" title="Interner Link: Gerichte St.Gallen">Gerichte St.Gallen</a></p>
+<p class="last-update">Letzte Aktualisierung: 30.04.2020</p>
+<div class="row social-media-row">
+<div class="col-xs-12">
+<p class="bold grey-darkest">Bleiben Sie in Kontakt mit uns:</p>
+<ul class="social-media-nav">
+<li><a href="https://www.facebook.com/KantonSG" rel="noopener" target="_blank" title="Facebook"><img alt="Facebook Icon" class="svg-icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/icons/facebook.svg"/></a></li>
+<li><a href="https://www.youtube.com/channel/UCyMR58kgg4FtEVjvJSInJSQ" rel="noopener" target="_blank" title="Youtube"><img alt="Youtube Icon" class="svg-icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/icons/youtube.svg"/></a></li>
+<li><a href="https://www.instagram.com/kantonsg/" rel="noopener" target="_blank" title="Instagram"><img alt="Instagram Icon" class="svg-icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/icons/instagram.svg"/></a></li>
+<li><a href="https://www.linkedin.com/company/kanton-st-gallen" rel="noopener" target="_blank" title="LinkedIn"><img alt="LinkedIn Icon" class="svg-icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/icons/linkedin.svg"/></a></li>
+<li><a href="https://bit.ly/4aERKhD" rel="noopener" target="_blank" title="Whatsapp"><img alt="Whatsapp Icon" class="svg-icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/icons/whatsapp.svg"/></a></li>
+<li><a href="/content/sgch/ueber-den-kanton-st-gallen/messenger-kanaele-des-kantons-st-gallen" rel="noopener" target="_blank" title="Threema"><img alt="Threema Icon" class="svg-icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/icons/threema.svg"/></a></li>
+<li><a href="/content/sgch/ueber-den-kanton-st-gallen/messenger-kanaele-des-kantons-st-gallen" rel="noopener" target="_blank" title="Telegram"><img alt="Telegram Icon" class="svg-icon" src="/apps/apps/sgch/clientlibs/sgchLibs/images/design/sgch/icons/telegram.svg"/></a></li>
+</ul>
+</div>
+</div>
+<div class="row media-contact">
+<div class="col-xs-12">
+<p class="media-link"><a href="/politik-verwaltung/departemente-und-staatskanzlei/staatskanzlei/kommunikation.html" title="Interner Link: Medienstelle">Medienstelle</a></p>
+</div>
+</div>
+</div>
+</div>
+<div class="hidden-xs col-sm-6 col-md-4">
+<div class="footer-box">
+<h3>Unsere Themen</h3>
+<ul class="pull-left footer-important-links">
+<li><a href="/recht/gerichte/anwalts----notarwesen.html" title="Interner Link: Anwalts- &amp; Notarwesen">Anwalts- &amp; Notarwesen</a></li>
+<li><a href="/recht/gerichte/informationen---formulare.html" title="Interner Link: Informationen &amp; Formulare">Informationen &amp; Formulare</a></li>
+<li><a href="/recht/gerichte/verhandlungstermine.html" title="Interner Link: Verhandlungstermine">Verhandlungstermine</a></li>
+<li><a href="/recht/gerichte/offenlegung-interessenbindung.html" title="Interner Link: Offenlegung Interessenbindung">Offenlegung Interessenbindung</a></li>
+<li><a href="/recht/gerichte/aktuelles.html" title="Interner Link: Aktuelles">Aktuelles</a></li>
+</ul>
+</div>
+</div>
+<div class="col-xs-12 col-sm-6 col-md-4">
+<div class="footer-box">
+<h3>Bestens informiert</h3>
+<div class="newsletter-form">
+<p class="p15">Den Kanton etwas besser kennen lernen? Erhalten Sie täglich die Neuigkeiten aus dem Thema Gerichte.</p>
+<div class="row">
+<div class="col-xs-12">
+<form class="form" id="newsletterForm" name="newsletterForm" novalidate="novalidate">
+<div class="footer-nl-signup collapsed-fields">
+<div class="form-group">
+<label class="input-label fullwidth">
+<span>Ihre E-Mail Adresse</span>
+<input autocomplete="email" class="form-control" id="email" name="email" type="text"/>
+</label>
+</div>
+<div class="form-group toggle-on-focus collapse">
+<p class="p16">Wählen Sie die Bereiche aus, für welche Sie einen Newsletter wünschen:</p>
+<div aria-labelledby="newsletterAreaLabel" class="newsletter-topics" role="group">
+<span class="sr-only" id="newsletterAreaLabel">Newsletter-Bereiche</span>
+<input aria-label="Newsletter-Bereich" class="hidden" id="newsletterArea" name="newsletterArea" type="text"/>
+<div aria-checked="false" class="topic oc-checkbox accessible-checkbox" onclick="toggleCheckBox(event);" onkeydown="toggleCheckBox(event);" role="checkbox" tabindex="0">
+<input class="newsletter-area-group" id="newsletterArea_0" name="newsletterArea_0" type="checkbox" value="--slash--content--slash--applikationen--slash--newsletter--slash--internet--slash--gerichte"/>
+<label for="newsletterArea_0"><span></span>Gerichte</label>
+</div>
+</div>
+<div class="form-group recaptcha">
+<!-- reCAPTCHA -->
+<div id="recaptcha-newsletterFooter"></div>
+</div>
+<div aria-label="Anmeldung Newsletter" class="btn-group full-width tab-navigator" role="group">
+<button class="btn btn-default btn-primary fullwidth" type="submit"><span class="step-description">Anmelden</span></button>
+</div>
+</div>
+</div>
+</form>
+</div>
+</div>
+</div>
+<div class="newsletter-success"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="footer inverse" data-swiftype-index="false">
+<div class="container">
+<div class="organisationsbox">
+<ul class="organisations">
+<li><a href="/politik-verwaltung/kantonsrat.html" title="Interner Link: Kantonsrat"><i aria-hidden="true" class="far fa-comments hidden-xs"></i> Kantonsrat</a></li>
+<li><a href="/politik-verwaltung/regierung.html" title="Interner Link: Regierungsrat"><i aria-hidden="true" class="far fa-book-open hidden-xs"></i> Regierung</a></li>
+<li><a href="/politik-verwaltung/departemente-und-staatskanzlei.html" title="Interner Link: Departemente und Staatskanzlei"><i aria-hidden="true" class="far fa-book-reader hidden-xs"></i> Departemente und Staatskanzlei</a></li>
+<li><a href="/recht/gerichte.html" title="Interner Link: Gerichte"><i aria-hidden="true" class="far fa-balance-scale hidden-xs"></i> Gerichte</a></li>
+</ul>
+</div>
+</div>
+</section>
+<section class="footer darker" data-swiftype-index="false">
+<div class="container">
+<div class="row">
+<div class="col-xs-12 horizontal-footer-menu">
+<ul class="z-footernav">
+<li><a href="/f/impressum.html" title="Interner Link: Impressum und rechtliche Hinweise">Impressum und rechtliche Hinweise</a></li>
+<li><a href="/f/datenschutz-sg-ch.html" title="Interner Link: Datenschutz sg.ch">Datenschutz sg.ch</a></li>
+<li><a href="/f/intern.html" title="Interner Link: Webmail">Webmail</a></li>
+<li><a href="/f/intern.html" title="Interner Link: Webmail, Passwort-Reset und Webtransfer SG (intern)">Webmail, Passwort-Reset und Webtransfer SG (intern)</a></li>
+</ul>
+<span class="copyright">© 2026 Portal Kanton St.Gallen</span>
+</div>
+</div>
+</div>
+</section>
+
+
+</footer>
+<div class="scrolltop">
+<button aria-label="Zum Seitenanfang" class="scroll icon" type="button">
+<i aria-hidden="true" class="far fa-2x fa-long-arrow-up"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

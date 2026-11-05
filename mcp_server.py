@@ -15215,7 +15215,7 @@ server = Server(
         "2,694 Vernehmlassungen since 1993 with 10,296 documents (Erläuternde "
         "Berichte, Vorlagen, Ergebnisberichte, Stellungnahmen), via "
         "search_botschaft and get_materialien — "
-        "federal administrative practice — Verwaltungspraxis, 9,900+ documents: "
+        "federal administrative practice — Verwaltungspraxis, 10,500+ documents: "
         "BSV Wegleitungen, Kreisschreiben, Rundschreiben and Mitteilungen for "
         "AHV/IV/EL/EO/FamZ/BVG (every retained version, DE/FR/IT), "
         "OAK BV Weisungen and Mitteilungen for BVG supervision (every version, with Informationsschreiben and Anhörungsentwürfe, DE/FR/IT), "
@@ -15226,8 +15226,10 @@ server = Server(
         "article (DE/FR/IT) and the AVIG-Praxis for unemployment insurance, "
         "BAG KVG Kreisschreiben, ESTV "
         "Kreisschreiben and MWST-Infos (DE/FR/IT), SEM Weisungen and "
-        "Rundschreiben and the Handbuch Asyl und Rückkehr, BJ SchKG Weisungen "
-        "and cantonal Existenzminimum Kreisschreiben, BAFU Vollzugshilfen, and "
+        "Rundschreiben and the Handbuch Asyl und Rückkehr, BJ SchKG Weisungen, "
+        "Informationen and model forms, the circulars and Existenzminimum "
+        "guidelines of the cantonal SchKG supervisory authorities and the KBKS "
+        "(search_practice canton=), BAFU Vollzugshilfen, and "
         "the decisions and Views of the UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, "
         "CRPD, CESCR, CED) on individual communications against every State party "
         "and the opinions of the Working Group on Arbitrary Detention (2010-), "
@@ -29886,6 +29888,7 @@ def _search_practice(
     query: str,
     source: str | None = None,
     issuing_authority: str | None = None,
+    canton: str | None = None,
     doc_type: str | None = None,
     language: str | None = None,
     limit: int = 10,
@@ -29925,7 +29928,7 @@ def _search_practice(
             "query": query,
             "filters": {k: v for k, v in {
                 "source": source, "issuing_authority": issuing_authority,
-                "doc_type": doc_type, "language": language,
+                "canton": canton, "doc_type": doc_type, "language": language,
             }.items() if v},
             "total": 0,
             "results": [],
@@ -29936,6 +29939,12 @@ def _search_practice(
         where.append("p.source = ?"); params.append(source)
     if issuing_authority:
         where.append("p.issuing_authority = ?"); params.append(issuing_authority.upper())
+    if canton:
+        # schkg_kantone stores the canton as its authority; bj_schkg keeps the
+        # canton of its cantonal copies only as a topic.
+        c = canton.strip().upper()
+        where.append("(p.issuing_authority = ? OR (p.source = 'bj_schkg' AND p.topics_json LIKE ?))")
+        params.extend([c, f'%"{c}"%'])
     if doc_type:
         where.append("p.doc_type = ?"); params.append(doc_type.lower())
     if language:
@@ -30032,7 +30041,7 @@ def _search_practice(
         "query": query,
         "filters": {k: v for k, v in {
             "source": source, "issuing_authority": issuing_authority,
-            "doc_type": doc_type, "language": language,
+            "canton": canton, "doc_type": doc_type, "language": language,
         }.items() if v},
         "total": total,
         "distinct_documents": distinct,
@@ -30085,6 +30094,11 @@ def _get_practice(*, doc_id: str, offset: int = 0,
         out["topics"] = json.loads(out.pop("topics_json") or "[]")
     except Exception:
         out["topics"] = []
+    if "OCR" in out["topics"]:
+        out["text_source"] = "ocr"
+        out["ocr_note"] = ("Machine-read (OCR) from a scanned PDF; recognition errors are "
+                           "possible. Quote it only as OCR text and check the wording "
+                           "against the PDF (pdf_url).")
     body = out.get("body_text") or ""
     try:
         max_chars = int(max_chars)
@@ -32401,7 +32415,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 9,900+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ (SchKG, Existenzminimum), FINMA, ESTV, BAFU. Also UN texts: recommendations to Switzerland (source='un_uhri': concluding observations, UPR with the Swiss position, SPT, special procedures) and treaty-body General Comments (source='un_gc'). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal administrations (Sozialhilfe/SKOS, Prämienverbilligung) — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC 1987–2017: search_decisions(court='ch_vb')."
+                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 10,500+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ + cantons (SchKG, Existenzminimum; canton=), FINMA, ESTV, BAFU. Also UN texts: recommendations to Switzerland (source='un_uhri': concluding observations, UPR with the Swiss position, SPT, special procedures) and treaty-body General Comments (source='un_gc'). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal Sozialhilfe/SKOS, Prämienverbilligung — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC 1987–2017: search_decisions(court='ch_vb')."
             ),
             inputSchema={
                 "type": "object",
@@ -32416,8 +32430,8 @@ def _list_tools() -> list[Tool]:
                         "type": "string",
                         "enum": ["finma_rs", "seco_arg", "bafu_vollzug", "estv_ks", "estv_mwst",
                                  "sem_weisungen", "bsv_weisungen", "seco_alv", "bag_kvg",
-                                 "sem_handbuch_asyl", "bj_schkg", "weko_bekanntmachungen", "oak_bv",
-                                 "un_uhri", "un_gc", "un_ch_translations", "unhcr_country"],
+                                 "sem_handbuch_asyl", "bj_schkg", "schkg_kantone", "weko_bekanntmachungen",
+                                 "oak_bv", "un_uhri", "un_gc", "un_ch_translations", "unhcr_country"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -32425,8 +32439,15 @@ def _list_tools() -> list[Tool]:
                             "every retained version, 6,083, DE/FR/IT), seco_alv (AVIG-Praxis ALE/KAE/SWE/RVEI/"
                             "IE/AMM + thematic Weisungen, 54, DE/FR/IT), bag_kvg (KVG Kreisschreiben, "
                             "38, DE/FR), sem_handbuch_asyl (Handbuch Asyl und Rückkehr, 92 articles, "
-                            "DE/FR), bj_schkg (SchKG Weisungen + cantonal and historical federal "
-                            "Kreisschreiben incl. Existenzminimum-Richtlinien, 174, DE/FR/IT), "
+                            "DE/FR), bj_schkg (BJ Oberaufsicht SchKG: Weisungen, Informationen an die "
+                            "kantonalen Aufsichtsbehörden Nr. 1-24, model forms, the 2015 forms "
+                            "consultation, SchKG reports, plus cantonal and historical federal "
+                            "Kreisschreiben incl. older Existenzminimum-Richtlinien, DE/FR/IT), "
+                            "schkg_kantone (current publications of the cantonal SchKG supervisory "
+                            "authorities — Kreisschreiben/circulaires/circolari, Weisungen, the "
+                            "Existenzminimum guideline in force per canton, earlier editions via "
+                            "include_superseded — plus the KBKS national guidelines; authority = canton "
+                            "code or KBKS, DE/FR/IT), "
                             "weko_bekanntmachungen (WEKO Bekanntmachungen + Erläuterungen, current and "
                             "superseded versions, DE/FR/IT), oak_bv (OAK BV Weisungen W and Mitteilungen M, "
                             "every version, Informationsschreiben/FAQ, Anhörungsentwürfe, DE/FR/IT), "
@@ -32467,6 +32488,18 @@ def _list_tools() -> list[Tool]:
                             "UN-SPECIAL PROCEDURES (special rapporteurs, working groups)."
                         ),
                     },
+                    "canton": {
+                        "type": "string",
+                        "enum": ["ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO",
+                                 "BS", "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD",
+                                 "VS", "NE", "GE", "JU", "KBKS"],
+                        "description": (
+                            "Restrict to one canton's SchKG documents (its supervisory authority's "
+                            "circulars and Existenzminimum guideline, in schkg_kantone and the older "
+                            "copies in bj_schkg). KBKS = the national conference of enforcement "
+                            "officials."
+                        ),
+                    },
                     "doc_type": {
                         "type": "string",
                         "enum": [
@@ -32477,6 +32510,7 @@ def _list_tools() -> list[Tool]:
                             "bekanntmachung", "erlaeuterung", "entwurf",
                             "concluding_observations", "upr_recommendation", "visit_report",
                             "general_comment", "general_recommendation", "country_guidance",
+                            "formular", "bericht",
                         ],
                         "description": (
                             "Filter by document type. wegleitung (SECO ArG 1,102 + BSV WEL/RWL…), "
@@ -32490,7 +32524,8 @@ def _list_tools() -> list[Tool]:
                             "bekanntmachung / erlaeuterung (WEKO), entwurf (OAK BV Anhörungen: drafts, not in force), "
                             "concluding_observations (UN treaty bodies), upr_recommendation (UN UPR), "
                             "visit_report (UN SPT + special procedures), general_comment / "
-                            "general_recommendation (UN treaty bodies, un_gc), country_guidance (UNHCR)."
+                            "general_recommendation (UN treaty bodies, un_gc), country_guidance (UNHCR), "
+                            "formular (BJ SchKG model forms), bericht (BJ SchKG reports and studies)."
                         ),
                     },
                     "include_superseded": {
@@ -34542,6 +34577,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 query=arguments["query"],
                 source=arguments.get("source"),
                 issuing_authority=arguments.get("issuing_authority"),
+                canton=arguments.get("canton"),
                 doc_type=arguments.get("doc_type"),
                 language=arguments.get("language"),
                 limit=arguments.get("limit", 10),
