@@ -144,6 +144,7 @@ def test_blocked_hosts_go_through_their_canton_proxy(monkeypatch):
     proxy = "socks5h://127.0.0.1:1080"
     monkeypatch.setenv("NE_PROXY", proxy)
     monkeypatch.setenv("TI_PROXY", proxy)
+    monkeypatch.setenv("GL_PROXY", proxy)
     monkeypatch.delenv("JU_PROXY", raising=False)
     s = _scraper()
     s._last_request, s.REQUEST_DELAY = 0.0, 0
@@ -153,11 +154,12 @@ def test_blocked_hosts_go_through_their_canton_proxy(monkeypatch):
         def get(self, url, **kw):
             seen[url] = kw.get("proxies")
     s.session = _Sess()
-    for u in ("https://www.ne.ch/a.pdf", "https://www4.ti.ch/a.pdf", "https://jura.ch/a.pdf",
+    for u in ("https://www.ne.ch/a.pdf", "https://www4.ti.ch/a.pdf", "https://jura.ch/a.pdf", "https://www.gl.ch/a.pdf",
               "https://www.ag.ch/a.pdf"):
         s.get(u)
     assert seen["https://www.ne.ch/a.pdf"] == {"http": proxy, "https": proxy}
     assert seen["https://www4.ti.ch/a.pdf"] == {"http": proxy, "https": proxy}
+    assert seen["https://www.gl.ch/a.pdf"] == {"http": proxy, "https": proxy}
     assert seen["https://jura.ch/a.pdf"] is None
     assert seen["https://www.ag.ch/a.pdf"] is None
 

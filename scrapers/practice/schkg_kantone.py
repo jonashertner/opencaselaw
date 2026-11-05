@@ -22,9 +22,10 @@ newest and include_superseded returns the edition in force at an earlier
 date; its doc_id carries the edition year, so a yearly re-issue (GE, NE) is a
 new row rather than an overwrite.
 
-ne.ch, jura.ch and ti.ch refuse connections from the production server's IP
-range; their requests go through NE_PROXY / JU_PROXY / TI_PROXY when set (the
-SOCKS tunnel the court scrapers use) and fail softly otherwise.
+ne.ch, jura.ch, ti.ch and gl.ch refuse connections from the production
+server's IP range; their requests go through NE_PROXY / JU_PROXY / TI_PROXY /
+GL_PROXY when set (the SOCKS tunnel the court scrapers use) and fail softly
+otherwise.
 """
 from __future__ import annotations
 
@@ -42,8 +43,9 @@ from .bj_schkg import _TYPE_RULES
 
 logger = logging.getLogger(__name__)
 
-# Same per-canton variables as the NE/JU/TI court scrapers' units.
-TUNNEL_ENV = {"ne.ch": "NE_PROXY", "jura.ch": "JU_PROXY", "ti.ch": "TI_PROXY"}
+# Same per-canton variables as the NE/JU/TI court scrapers' units; gl.ch
+# also times out from the server (found on the first VPS run, 2026-11-05).
+TUNNEL_ENV = {"ne.ch": "NE_PROXY", "jura.ch": "JU_PROXY", "ti.ch": "TI_PROXY", "gl.ch": "GL_PROXY"}
 
 _EXISTENZMINIMUM = re.compile(
     r"Existenzminimum|Notbedarf|minimum vital|minimum d.existence|insaisissabilit"
