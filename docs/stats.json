@@ -1,16 +1,28 @@
 {
-  "total": 1069494,
-  "source_representations": 1069494,
+  "total": 1069585,
+  "source_representations": 1069585,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions_status": "stale",
+  "unique_decisions": 928802,
+  "unique_decisions_lower_bound": 928750,
+  "duplicate_representations": 140783,
+  "unique_decisions_status": "current",
+  "duplicates_by_court": {
+    "ch_vb": 2315,
+    "edoeb": 550,
+    "ge_gerichte": 76637,
+    "nw_gerichte": 485,
+    "sh_obergericht": 689,
+    "ur_gerichte": 193,
+    "vd_findinfo": 59914
+  },
   "by_court": [
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194265,
+      "count": 194353,
       "earliest": "1996-01-19",
-      "latest": "2026-10-26",
-      "last_scraped": "2026-11-04T11:02:27.723375+00:00",
+      "latest": "2026-10-27",
+      "last_scraped": "2026-11-05T11:03:27.149608+00:00",
       "languages": [
         "de",
         "fr",
@@ -260,10 +272,10 @@
     {
       "court": "ecthr_chamber",
       "canton": "CE",
-      "count": 7638,
+      "count": 7640,
       "earliest": "1960-11-14",
-      "latest": "2026-11-03",
-      "last_scraped": "2026-11-04T14:07:25.816809+00:00",
+      "latest": "2026-11-05",
+      "last_scraped": "2026-11-05T14:02:55.455100+00:00",
       "languages": [
         "fr",
         "en"
@@ -1037,10 +1049,10 @@
     {
       "court": "ecthr_chamber",
       "canton": "CH",
-      "count": 166,
+      "count": 167,
       "earliest": "1979-12-04",
-      "latest": "2026-10-22",
-      "last_scraped": "2026-10-22T14:03:53.557258+00:00",
+      "latest": "2026-11-05",
+      "last_scraped": "2026-11-05T14:02:52.488104+00:00",
       "languages": [
         "fr",
         "en"
@@ -1762,8 +1774,8 @@
   ],
   "federal_seats": {
     "bger": {
-      "LU": 36817,
-      "VD": 157448
+      "LU": 36834,
+      "VD": 157519
     },
     "bge": {
       "LU": 3300,
@@ -1931,10 +1943,10 @@
     {
       "canton": "CE",
       "name": "CE",
-      "count": 8133,
+      "count": 8135,
       "court_count": 2,
       "earliest": "1960-11-14",
-      "latest": "2026-11-03",
+      "latest": "2026-11-05",
       "languages": [
         "fr",
         "en"
@@ -2117,10 +2129,10 @@
     }
   ],
   "by_language": {
-    "de": 497091,
-    "fr": 480948,
-    "it": 85275,
-    "en": 6180
+    "de": 497139,
+    "fr": 480973,
+    "it": 85290,
+    "en": 6183
   },
   "by_year": {
     "1875": 153,
@@ -2272,44 +2284,45 @@
     "2021": 53027,
     "2022": 52642,
     "2023": 52640,
-    "2024": 52714,
-    "2025": 50644,
-    "2026": 29491,
+    "2024": 52722,
+    "2025": 50670,
+    "2026": 29548,
     "2027": 1
   },
   "recent_daily": {
     "2026-10-06": 89,
-    "2026-10-07": 83,
-    "2026-10-08": 62,
-    "2026-10-09": 38,
+    "2026-10-07": 85,
+    "2026-10-08": 64,
+    "2026-10-09": 40,
     "2026-10-10": 1,
     "2026-10-12": 65,
-    "2026-10-13": 65,
-    "2026-10-14": 43,
+    "2026-10-13": 67,
+    "2026-10-14": 49,
     "2026-10-15": 51,
-    "2026-10-16": 20,
-    "2026-10-19": 26,
+    "2026-10-16": 21,
+    "2026-10-19": 27,
     "2026-10-20": 17,
-    "2026-10-21": 24,
+    "2026-10-21": 28,
     "2026-10-22": 23,
-    "2026-10-23": 15,
-    "2026-10-26": 11,
-    "2026-10-27": 3,
+    "2026-10-23": 19,
+    "2026-10-26": 15,
+    "2026-10-27": 4,
     "2026-10-28": 4,
     "2026-10-29": 4,
     "2026-10-30": 3,
-    "2026-11-03": 4
+    "2026-11-03": 4,
+    "2026-11-05": 3
   },
   "date_range": {
     "earliest": "1875-01-01",
-    "latest": "2026-11-03"
+    "latest": "2026-11-05"
   },
   "court_count": 135,
   "top_courts": [
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194265
+      "count": 194353
     },
     {
       "court": "ge_gerichte",
@@ -2506,14 +2519,14 @@
     "2021": 3.1,
     "2022": -0.7,
     "2023": -0.0,
-    "2024": 0.1,
+    "2024": 0.2,
     "2025": -3.9,
-    "2026": -41.8,
+    "2026": -41.7,
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 385475,
-    "cantonal": 684019
+    "federal": 385564,
+    "cantonal": 684021
   },
   "language_by_year": {
     "2005": {
@@ -2631,22 +2644,22 @@
       "it": 2335
     },
     "2024": {
-      "de": 23594,
+      "de": 23596,
       "en": 364,
-      "fr": 26554,
-      "it": 2202
+      "fr": 26557,
+      "it": 2205
     },
     "2025": {
-      "de": 23828,
+      "de": 23838,
       "en": 377,
-      "fr": 24649,
-      "it": 1790
+      "fr": 24655,
+      "it": 1800
     },
     "2026": {
-      "de": 15282,
-      "en": 243,
-      "fr": 12674,
-      "it": 1292
+      "de": 15318,
+      "en": 246,
+      "fr": 12690,
+      "it": 1294
     }
   },
   "by_month": {
@@ -2660,35 +2673,35 @@
     "2024-06": 4846,
     "2024-07": 4103,
     "2024-08": 4006,
-    "2024-09": 4280,
-    "2024-10": 4528,
+    "2024-09": 4281,
+    "2024-10": 4533,
     "2024-11": 4630,
-    "2024-12": 4363,
-    "2025-01": 4227,
+    "2024-12": 4365,
+    "2025-01": 4231,
     "2025-02": 4216,
-    "2025-03": 4411,
-    "2025-04": 4151,
-    "2025-05": 4297,
-    "2025-06": 4739,
+    "2025-03": 4413,
+    "2025-04": 4156,
+    "2025-05": 4300,
+    "2025-06": 4740,
     "2025-07": 3940,
     "2025-08": 3882,
-    "2025-09": 4516,
-    "2025-10": 4418,
-    "2025-11": 4078,
-    "2025-12": 3769,
-    "2026-01": 3106,
-    "2026-02": 3815,
+    "2025-09": 4517,
+    "2025-10": 4421,
+    "2025-11": 4079,
+    "2025-12": 3775,
+    "2026-01": 3113,
+    "2026-02": 3816,
     "2026-03": 3890,
     "2026-04": 3190,
     "2026-05": 2996,
     "2026-06": 3515,
     "2026-07": 2805,
     "2026-08": 2707,
-    "2026-09": 2579,
-    "2026-10": 884,
-    "2026-11": 4
+    "2026-09": 2595,
+    "2026-10": 914,
+    "2026-11": 7
   },
-  "generated_at": "2026-11-05T11:02:24.408121+00:00",
+  "generated_at": "2026-11-05T22:32:56.135547+00:00",
   "scraper_health": {
     "run_at": "2026-11-05T02:06:20.566169+00:00",
     "run_duration_s": 3919.4,
@@ -3182,9 +3195,9 @@
         "duration_s": 848.6,
         "error": null,
         "note": null,
-        "state_count": 100153,
-        "jsonl_size_mb": 1515.5,
-        "jsonl_mtime": "2026-11-05T11:02:23.650250+00:00"
+        "state_count": 100169,
+        "jsonl_size_mb": 1515.6,
+        "jsonl_mtime": "2026-11-05T11:04:09.629565+00:00"
       },
       "nw_gerichte": {
         "success": true,
@@ -3911,19 +3924,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 10026171,
-    "statute_edges": 12733363
+    "citation_edges": 10019040,
+    "statute_edges": 12732422
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 111581,
+      "citation_count": 111521,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196828
+      "ref_count": 196126
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -3932,43 +3945,43 @@
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_1_I_3"
     },
     "language_split": {
-      "de_pct": 46.5,
-      "fr_pct": 45.0,
-      "it_pct": 8.5,
-      "total": 1068475
+      "de_pct": 46.7,
+      "fr_pct": 45.2,
+      "it_pct": 8.0,
+      "total": 1063402
     },
     "regeste_coverage": {
-      "pct": 37.9,
-      "with_regeste": 406852,
-      "total": 1074652
+      "pct": 37.5,
+      "with_regeste": 400768,
+      "total": 1069585
     },
     "graph_size": {
-      "decision_edges": 9462642,
-      "statute_edges": 12733363,
-      "total": 22196005
+      "decision_edges": 9487141,
+      "statute_edges": 12732422,
+      "total": 22219563
     },
     "echr_switzerland": {
-      "total": 1535,
+      "total": 1536,
       "grand_chamber": 19,
-      "in_2026": 67,
-      "ecthr_corpus_total": 9668,
+      "in_2026": 68,
+      "ecthr_corpus_total": 9671,
       "most_recent": {
-        "decision_date": "2026-10-22",
-        "docket": "24268/21_55351/21_20261022",
-        "regeste_excerpt": "Remainder inadmissible (Art. 35) Admissibility criteria;(Art. 35-1) Exhaustion of domestic remedies;Violation of Article 6 - Right to a fair",
-        "url": "https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_24268_21_55351_21_20261022"
+        "decision_date": "2026-11-05",
+        "docket": "38204/19_30379/21_30786/21_20261105",
+        "regeste_excerpt": "Remainder inadmissible (Art. 35) Admissibility criteria;(Art. 35-3-a) Ratione materiae;Violation of Article 11 - Freedom of assembly and ass",
+        "url": "https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_38204_19_30379_21_30786_21_20261105"
       }
     },
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 111581,
+        "citation_count": 111521,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 58508,
+        "citation_count": 58453,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
@@ -3980,13 +3993,13 @@
       },
       {
         "docket": "126 V 75",
-        "citation_count": 35937,
+        "citation_count": 35920,
         "regeste_excerpt": "Regeste\n Art. 28 Abs. 2 IVG: Kürzung von Tabellenlöhnen. - Für die Bestimmung des Invalideneinkommens ist primär von der beruflich-erwerblichen Situation auszug",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_126 V 75"
       },
       {
         "docket": "130 V 343",
-        "citation_count": 34806,
+        "citation_count": 34789,
         "regeste_excerpt": "Regeste\n Art. 1 Abs. 1 IVG (in der seit 1. Januar 2003 geltenden Fassung) in Verbindung mit Art. 6, 7, 8 Abs. 1, Art. 16 und 17 ATSG; Art. 4 Abs. 1, Art. 28 Abs",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_130 V 343"
       }
@@ -3995,27 +4008,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196828
+        "ref_count": 196126
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 121055
+        "ref_count": 120170
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 109403
+        "ref_count": 109412
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 98584
+        "ref_count": 98600
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61063
+        "ref_count": 61092
       }
     ],
     "materialien_coverage": {
@@ -4042,36 +4055,37 @@
     },
     "consultation_coverage": {
       "by_doc_type": {
-        "ergebnisbericht": 2010,
-        "erlaeuternder_bericht": 2643,
+        "ergebnisbericht": 2012,
+        "erlaeuternder_bericht": 2645,
         "stellungnahmen": 1362,
-        "synoptische_tabelle": 249,
+        "synoptische_tabelle": 250,
         "vernehmlassung_diverses": 936,
-        "vernehmlassungsvorlage": 3355
+        "vernehmlassungsvorlage": 3357
       },
-      "counted_at": "2026-11-02T22:52:13+00:00",
-      "documents": 10555,
-      "paragraphs": 11634187,
-      "procedures": 2694,
-      "procedures_fedlex": 2582,
+      "counted_at": "2026-11-04T22:49:36+00:00",
+      "documents": 10562,
+      "paragraphs": 11691545,
+      "procedures": 2695,
+      "procedures_fedlex": 2583,
       "year_range": {
         "from": 1993,
         "to": 2026
       }
     },
     "practice_coverage": {
-      "total_documents": 13568,
-      "sources": 17,
+      "total_documents": 14234,
+      "sources": 18,
       "by_source": {
         "bsv_weisungen": 6083,
         "un_uhri": 3354,
         "finma_rs": 1133,
         "seco_arg": 1102,
+        "bj_schkg": 666,
         "un_gc": 356,
         "bafu_vollzug": 298,
         "estv_ks": 285,
         "oak_bv": 253,
-        "bj_schkg": 174,
+        "schkg_kantone": 174,
         "estv_mwst": 153,
         "sem_handbuch_asyl": 92,
         "sem_weisungen": 92,
@@ -4086,6 +4100,7 @@
         "UN-UPR": 1449,
         "SECO": 1156,
         "FINMA": 1133,
+        "BJ": 666,
         "ESTV": 438,
         "UN-CRC": 359,
         "UN-CEDAW": 342,
@@ -4098,19 +4113,36 @@
         "UN-CAT": 205,
         "UN-SPECIAL PROCEDURES": 188,
         "SEM": 184,
-        "BJ": 174,
         "UN-CRPD": 155,
+        "BE": 74,
         "UN-CED": 74,
         "WEKO": 58,
         "BAG": 38,
+        "TI": 36,
         "UNHCR": 31,
-        "UN-CMW": 16
+        "UN-CMW": 16,
+        "SO": 12,
+        "KBKS": 9,
+        "JU": 7,
+        "OW": 6,
+        "AG": 5,
+        "NW": 5,
+        "ZH": 5,
+        "SG": 3,
+        "VD": 3,
+        "FR": 2,
+        "NE": 2,
+        "BS": 1,
+        "GE": 1,
+        "GL": 1,
+        "SZ": 1,
+        "ZG": 1
       },
       "by_language": {
-        "fr": 5267,
-        "de": 4048,
+        "fr": 5482,
+        "de": 4299,
         "en": 2349,
-        "it": 1904
+        "it": 2104
       }
     },
     "historical_depth": [
@@ -4133,7 +4165,7 @@
         "earliest": "1901-01-01",
         "latest": "2026-09-02",
         "span_years": 125,
-        "decision_count": 1232
+        "decision_count": 1233
       },
       {
         "court": "ar_gerichte",
@@ -4152,9 +4184,9 @@
       {
         "court": "ge_gerichte",
         "earliest": "1908-11-08",
-        "latest": "2026-10-16",
+        "latest": "2026-10-23",
         "span_years": 118,
-        "decision_count": 171799
+        "decision_count": 171838
       }
     ]
   },
@@ -4455,6 +4487,46 @@
   "recent": {
     "bge": [
       {
+        "decision_id": "bger_5A_1084_2026",
+        "docket": "5A_1084/2026",
+        "date": "2026-10-27",
+        "court": "bger",
+        "language": "de",
+        "summary": "Fürsorgerische Unterbringung,"
+      },
+      {
+        "decision_id": "bger_9C_544_2026",
+        "docket": "9C_544/2026",
+        "date": "2026-10-26",
+        "court": "bger",
+        "language": "de",
+        "summary": "Staats- und Gemeindesteuern des Kantons Schwyz und direkte Bundessteuer, Steuerperioden 2019-2024,"
+      },
+      {
+        "decision_id": "bger_7B_1322_2026",
+        "docket": "7B_1322/2026",
+        "date": "2026-10-26",
+        "court": "bger",
+        "language": "de",
+        "summary": "Amtliche Verteidigung; Nichteintreten,"
+      },
+      {
+        "decision_id": "bger_7B_1300_2026",
+        "docket": "7B_1300/2026",
+        "date": "2026-10-26",
+        "court": "bger",
+        "language": "de",
+        "summary": "Umtriebsentschädigung; Nichteintreten,"
+      },
+      {
+        "decision_id": "bger_7B_1297_2026",
+        "docket": "7B_1297/2026",
+        "date": "2026-10-26",
+        "court": "bger",
+        "language": "de",
+        "summary": "Rechtsverzögerung; Nichteintreten,"
+      },
+      {
         "decision_id": "bger_5A_1029_2026",
         "docket": "5A_1029/2026",
         "date": "2026-10-26",
@@ -4471,71 +4543,49 @@
         "summary": "rigetto definitivo dell'opposizione,"
       },
       {
-        "decision_id": "bger_5A_1067_2026",
-        "docket": "5A_1067/2026",
+        "decision_id": "bger_9C_685_2026",
+        "docket": "9C_685/2026",
         "date": "2026-10-23",
         "court": "bger",
         "language": "de",
-        "summary": "Aufschiebende Wirkung (Lohnpfändung),"
+        "summary": "Einfuhrabgaben,"
       },
       {
-        "decision_id": "bger_5A_1062_2026",
-        "docket": "5A_1062/2026",
+        "decision_id": "bger_5A_933_2026",
+        "docket": "5A_933/2026",
         "date": "2026-10-23",
         "court": "bger",
         "language": "de",
-        "summary": "Fürsorgerische Unterbringung / Beistandschaft,"
+        "summary": "Pfändungsankündigung,"
       },
       {
-        "decision_id": "bger_4A_595_2026",
-        "docket": "4A_595/2026",
+        "decision_id": "bger_5A_889_2026",
+        "docket": "5A_889/2026",
         "date": "2026-10-23",
         "court": "bger",
         "language": "de",
-        "summary": ""
-      },
-      {
-        "decision_id": "bger_9C_475_2026",
-        "docket": "9C_475/2026",
-        "date": "2026-10-22",
-        "court": "bger",
-        "language": "de",
-        "summary": "Invalidenversicherung (Prozessvoraussetzung),"
-      },
-      {
-        "decision_id": "bger_4A_517_2026",
-        "docket": "4A_517/2026",
-        "date": "2026-10-22",
-        "court": "bger",
-        "language": "de",
-        "summary": "Arbeitsvertrag; Rückzug,"
-      },
-      {
-        "decision_id": "bger_4A_507_2026",
-        "docket": "4A_507/2026",
-        "date": "2026-10-22",
-        "court": "bger",
-        "language": "de",
-        "summary": "Kaufvertrag; Ausstand; Rückzug,"
-      },
-      {
-        "decision_id": "bger_4A_428_2026",
-        "docket": "4A_428/2026",
-        "date": "2026-10-22",
-        "court": "bger",
-        "language": "de",
-        "summary": ""
-      },
-      {
-        "decision_id": "bger_1C_582_2026",
-        "docket": "1C_582/2026",
-        "date": "2026-10-22",
-        "court": "bger",
-        "language": "de",
-        "summary": ""
+        "summary": "Zahlungsbefehl,"
       }
     ],
     "cantonal": [
+      {
+        "decision_id": "ecthr_chamber_8122_24_20261105",
+        "docket": "8122/24_20261105",
+        "date": "2026-11-05",
+        "court": "ecthr_chamber",
+        "language": "en",
+        "summary": "No violation of Article 8 - Right to respect for private and family life (Article 8-1 - Respect for family life);No violation of Article 14+8 - Prohibition of discrimination (Article 14 - Discrimination) (Article 8 - Ri…",
+        "canton": "CE"
+      },
+      {
+        "decision_id": "ecthr_chamber_52380_21_20261105",
+        "docket": "52380/21_20261105",
+        "date": "2026-11-05",
+        "court": "ecthr_chamber",
+        "language": "en",
+        "summary": "Preliminary objection joined to merits and dismissed (Art. 35) Admissibility criteria;(Art. 35-1) Exhaustion of domestic remedies;Violation of Article 2 - Right to life (Article 2-1 - Life) (Substantive aspect);Violatio…",
+        "canton": "CE"
+      },
       {
         "decision_id": "ecthr_chamber_7870_25_20261103",
         "docket": "7870/25_20261103",
@@ -4607,24 +4657,6 @@
         "language": "de",
         "summary": "[Die im Januar 2013 geborene Tochter der Beschwerdeführerin besucht seit Anfang Februar 2026 die Schule nicht mehr; die Beschwerdeführerin und das vom Gericht angehörte Kind wünschen dessen Umteilung in eine Schule in e…",
         "canton": "ZH"
-      },
-      {
-        "decision_id": "ecthr_chamber_8683_14_20261022",
-        "docket": "8683/14_20261022",
-        "date": "2026-10-22",
-        "court": "ecthr_chamber",
-        "language": "fr",
-        "summary": "Partiellement irrecevable (Art. 35) Conditions de recevabilité;(Art 35-1) Délai de quatre mois (précédemment six mois);(Art. 35-3-a) Manifestement mal fondé;Non-violation de l'article 6 - Droit à un procès équitable (Ar…",
-        "canton": "CE"
-      },
-      {
-        "decision_id": "ecthr_chamber_12744_24_33586_24_20261022",
-        "docket": "12744/24_33586/24_20261022",
-        "date": "2026-10-22",
-        "court": "ecthr_chamber",
-        "language": "en",
-        "summary": "Violation of Article 6 - Right to a fair trial (Article 6 - Criminal proceedings;Article 6-1 - Tribunal established by law);Violation of Article 10 - Freedom of expression - {general} (Article 10-1 - Freedom of expressi…",
-        "canton": "CE"
       }
     ]
   },
@@ -4702,6 +4734,30 @@
       "url": "https://www.fedlex.admin.ch/eli/cc/1983/797_797_797"
     },
     {
+      "sr_number": "946.201",
+      "in_force_date": "2027-01-01",
+      "title_de": "Bundesgesetz vom 25. Juni 1982 über aussenwirtschaftliche Massnahmen",
+      "title_fr": "Loi fédérale du 25 juin 1982 sur les mesures économiques extérieures",
+      "title_it": "Legge federale del 25 giugno 1982 sulle misure economiche esterne",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1982/1923_1923_1923"
+    },
+    {
+      "sr_number": "946.202",
+      "in_force_date": "2027-01-01",
+      "title_de": "Bundesgesetz vom 13. Dezember 1996 über die Kontrolle zivil und militärisch verwendbarer Güter, besonderer militärischer Güter sowie strategischer Güter (Güterkontrollgesetz, GKG)",
+      "title_fr": "Loi fédérale du 13 décembre 1996 sur le contrôle des biens utilisables à des fins civiles et militaires, des biens militaires spécifiques et des biens stratégiques (Loi sur le contrôle des biens, LCB)",
+      "title_it": "Legge federale del 13 dicembre 1996 sul controllo dei beni utilizzabili a fini civili e militari, dei beni militari speciali e dei beni strategici (Legge sul controllo dei beni a duplice impiego, LBDI)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1997/1697_1697_1697"
+    },
+    {
+      "sr_number": "514.51",
+      "in_force_date": "2027-01-01",
+      "title_de": "Bundesgesetz vom 13. Dezember 1996 über das Kriegsmaterial (Kriegsmaterialgesetz, KMG)",
+      "title_fr": "Loi fédérale du 13 décembre 1996 sur le matériel de guerre (LFMG)",
+      "title_it": "Legge federale del 13 dicembre 1996 sul materiale bellico (LMB)",
+      "url": "https://www.fedlex.admin.ch/eli/cc/1998/794_794_794"
+    },
+    {
       "sr_number": "172.220.111.343.3",
       "in_force_date": "2027-01-01",
       "title_de": "Verordnung des EDA vom 20. September 2002 zur Bundespersonalverordnung (VBPV-EDA)",
@@ -4724,35 +4780,12 @@
       "title_fr": "Règlement du 28 septembre 2011 du Tribunal fédéral des brevets (RTFB)",
       "title_it": "Regolamento del 28 settembre 2011 del Tribunale federale dei brevetti (RTFB)",
       "url": "https://www.fedlex.admin.ch/eli/cc/2011/892"
-    },
-    {
-      "sr_number": "173.413.3",
-      "in_force_date": "2027-01-01",
-      "title_de": "Reglement vom 28. September 2011 über die Verwaltungsgebühren des Bundespatentgerichts (GebR-PatGer)",
-      "title_fr": "Règlement du 28 septembre 2011 sur les émoluments administratifs du Tribunal fédéral des brevets (REmol-TFB)",
-      "title_it": "Regolamento del 28 settembre 2011 sulle tasse amministrative del Tribunale federale dei brevetti (TA-TFB)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2011/894"
-    },
-    {
-      "sr_number": "173.413.4",
-      "in_force_date": "2027-01-01",
-      "title_de": "Informationsreglement vom 28. September 2011 für das Bundespatentgericht (IR-PatGer)",
-      "title_fr": "Règlement du 28 septembre 2011 du Tribunal fédéral des brevets relatif à l'information (RInfo-TFB)",
-      "title_it": "Regolamento del 28 settembre 2011 del Tribunale federale dei brevetti concernente l'informazione (RInfo-TFB)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2011/895"
-    },
-    {
-      "sr_number": "513.11",
-      "in_force_date": "2027-01-01",
-      "title_de": "Verordnung vom 29. März 2017 über die Strukturen der Armee (VSA)",
-      "title_fr": "Ordonnance du 29 mars 2017 sur les structures de l'armée (OStrA)",
-      "title_it": "Ordinanza del 29 marzo 2017 sulle strutture dell'esercito (OStrE)",
-      "url": "https://www.fedlex.admin.ch/eli/cc/2017/218"
     }
   ],
   "delta": {
-    "total": -5158,
+    "total": -5067,
     "by_court": {
+      "bger": 46,
       "ge_gerichte": 39,
       "bvger": 9,
       "vd_gerichte": 3,
@@ -4763,6 +4796,7 @@
       "ne_gerichte": 10,
       "bs_appellationsgericht": 1,
       "sg_versicherungsgericht": 2,
+      "ecthr_chamber": 3,
       "be_zivilstraf": 2,
       "zh_handelsgericht": 2,
       "bs_sozialversicherungsgericht": 1,
@@ -4791,13 +4825,17 @@
       "SG": 2,
       "NE": 10,
       "BS": 15,
+      "CE": 2,
       "SZ": 3,
       "UN": 2,
       "ZG": 2,
       "UR": 1,
       "JU": 3
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": -7131,
+      "statute_edges": -941
+    },
     "previous_generated_at": "2026-11-04T22:20:27.200022+00:00"
   }
 }
