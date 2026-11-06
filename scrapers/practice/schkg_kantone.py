@@ -101,8 +101,10 @@ _OW_PUBS = (
     ("29386", "Merkblatt für Schuldner im Konkursverfahren"),
 )
 
-# Surveyed 2026-11-05. No public SchKG publication of their own: UR, SH, AR,
-# AI, GR (guidelines applied in rulings but unpublished), VS (laws only), TG
+# Surveyed 2026-11-05, rechecked 2026-11-06. AR and GR publish on their court
+# sites (the BJ page only links there). No public SchKG publication of their
+# own: UR (BJ: "Keine Kreisschreiben vorhanden"; its courts apply the KBKS
+# text directly), SH, AI, VS (laws only; its courts apply the KBKS text), TG
 # (links the KBKS text, held under KBKS). LU's Weisungen are LGVE rulings,
 # already in the decision corpus (lu_gerichte). BL's page sits behind a
 # Cloudflare challenge. BS/SH/AI's last guideline texts are the 2009/2010 BJ
@@ -168,6 +170,39 @@ REGISTRY: tuple[Entry, ...] = (
     Entry("GL", "https://www.gl.ch/verwaltung/sicherheit-und-justiz/justiz/betreibungs-konkursamt/"
                 "richtlinien-zur-berechnung-des-existenzminimums.html/1250",
           "de", "Departement Sicherheit und Justiz", include=r"/public/upload/assets/.*\.pdf"),
+    Entry("AR", "https://www.ar.ch/gerichte/obergericht/weisungen/", "de",
+          "Obergericht, Aufsichtsbehörde für Schuldbetreibung und Konkurs",
+          include=r"/fileadmin/user_upload/Gerichte/Obergericht/.*\.pdf",
+          section=r"Aufsichtsbehörde für Schuldbetreibung",
+          titles=((r"Betreibungsausk", "Weisung des Obergerichts vom 14. Juli 1993 betreffend "
+                                       "Betreibungsauskünfte im Verwaltungsstrafverfahren"),
+                  (r"Rechtsvorschlag", "Weisung des Obergerichts vom 18. November 1998 betreffend "
+                                       "Vorgehen bei Rechtsvorschlag mangels neuen Vermögens"),
+                  (r"Existenzminimum", "Weisung des Obergerichts vom 26. August 2009 betreffend "
+                                       "Berechnung des Existenzminimums (Richtlinien der KBKS vom "
+                                       "1. Juli 2009, verbindlich ab 1. September 2009)"),
+                  (r"Zustellung", "Weisung des Obergerichts vom 25. November 2014 betreffend "
+                                  "Zustellung von Betreibungsurkunden"))),
+    Entry("GR", "https://www.justiz-gr.ch/gerichte/obergericht/dokumentation/kreisschreiben/", "de",
+          "Kantonsgericht, Schuldbetreibungs- und Konkurskammer als Aufsichtsbehörde",
+          include=r"/Kreisschreiben/Kreisschreiben_.*\.pdf",
+          titles=((r"2009-08-18", "Beschluss KSK 09 39 vom 18. August 2009: Änderung der Richtlinien "
+                                  "für die Berechnung des betreibungsrechtlichen Existenzminimums "
+                                  "(Notbedarf) nach Art. 93 SchKG"),
+                  (r"2011-02-08", "Kreisschreiben KSK 11 5 vom 8. Februar 2011 betreffend "
+                                  "Pfändungsvollzug/Distanzpfändung"))),
+    Entry("GR", "https://www.justiz-gr.ch/fileadmin/dateien/Kantonsgericht/Kreisschreiben/"
+                "Circolare_2009-08-18.pdf", "it",
+          "Tribunale cantonale, Camera delle esecuzioni e dei fallimenti quale autorità di vigilanza",
+          mode="pdf", date="2009-08-18", existenzminimum=r"2009-08-18",
+          title="Decisione KSK 09 39 del 18 agosto 2009: modifica delle direttive per il calcolo "
+                "del minimo d'esistenza (art. 93 LEF)"),
+    Entry("GR", "https://www.justiz-gr.ch/fileadmin/dateien/Kantonsgericht/Kreisschreiben/"
+                "Circolare_2011-02-08.pdf", "it",
+          "Tribunale cantonale, Camera delle esecuzioni e dei fallimenti quale autorità di vigilanza",
+          mode="pdf", date="2011-02-08", existenzminimum=r"(?!)",
+          title="Circolare KSK 11 5 dell'8 febbraio 2011 concernente esecuzione del "
+                "pignoramento/pignoramento a distanza"),
     Entry("NW", "https://www.nw.ch/_rte/publikation/17288", "de", "Obergericht",
           include=r"/_doc/\d+", text_include=r"Merkblatt|Richtlinien"),
     Entry("NW", "https://www.nw.ch/_doc/22444", "de", "Obergericht", mode="pdf",
@@ -282,9 +317,12 @@ def parse_listing(html: str | bytes, entry: Entry) -> list[dict]:
     exc = re.compile(entry.exclude, re.I) if entry.exclude else None
     exm = re.compile(entry.existenzminimum, re.I) if entry.existenzminimum else None
     titles = [(re.compile(rx, re.I), t) for rx, t in entry.titles]
+    # justiz-gr.ch writes relative hrefs ("fileadmin/…") against <base href>.
+    base = soup.find("base", href=True)
+    root = urljoin(entry.url, base["href"].strip()) if base else entry.url
     stubs, seen = [], set()
     for a in _anchors(soup, entry.section):
-        href = urljoin(entry.url, a["href"].strip())
+        href = urljoin(root, a["href"].strip())
         if href in seen or not inc.search(href):
             continue
         title = next((t for rx, t in titles if rx.search(href)), None) or _title_from(a, href)

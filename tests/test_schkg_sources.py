@@ -102,6 +102,23 @@ def test_sg_and_zh_guidelines():
     assert ex["date"] == "2009-09-16"
 
 
+def test_ar_keeps_only_the_supervisory_section():
+    ar = _parse("schkg_kantone_ar.html", "ar.ch/gerichte")
+    assert [s["date"] for s in ar] == ["1993-07-14", "1998-11-18", "2009-08-26", "2014-11-25"]
+    assert [s["doc_number"] for s in ar if s["doc_type"] == "richtlinie"] == ["AR Existenzminimum"]
+    assert not any("Aktenf" in s["pdf_url"] or "Archivwesen" in s["pdf_url"] for s in ar)
+
+
+def test_gr_relative_links_resolve_against_base_href():
+    gr = _parse("schkg_kantone_gr.html", "justiz-gr.ch/gerichte")
+    assert [s["pdf_url"] for s in gr] == [
+        "https://www.justiz-gr.ch/fileadmin/dateien/Kantonsgericht/Kreisschreiben/Kreisschreiben_2009-08-18.pdf",
+        "https://www.justiz-gr.ch/fileadmin/dateien/Kantonsgericht/Kreisschreiben/Kreisschreiben_2011-02-08.pdf",
+    ]
+    assert gr[0]["doc_number"] == "GR Existenzminimum" and gr[0]["date"] == "2009-08-18"
+    assert gr[1]["doc_type"] != "richtlinie" and gr[1]["date"] == "2011-02-08"
+
+
 def test_kbks_press_release_mentioning_existenzminimum_is_not_the_guideline():
     stubs = _parse("schkg_kantone_kbks_news_de.html", "ueber-uns/news")
     assert len(stubs) == 2
