@@ -33,6 +33,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Iterator
 from urllib.parse import urljoin, urlsplit, unquote
 
@@ -46,6 +47,10 @@ logger = logging.getLogger(__name__)
 # Same per-canton variables as the NE/JU/TI court scrapers' units; gl.ch
 # also times out from the server (found on the first VPS run, 2026-11-05).
 TUNNEL_ENV = {"ne.ch": "NE_PROXY", "jura.ch": "JU_PROXY", "ti.ch": "TI_PROXY", "gl.ch": "GL_PROXY"}
+
+# Texts a script cannot fetch (baselland.ch answers every non-browser request
+# with a Cloudflare challenge), copied by hand from the live page.
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 _EXISTENZMINIMUM = re.compile(
     r"Existenzminimum|Notbedarf|minimum vital|minimum d.existence|insaisissabilit"
@@ -73,7 +78,8 @@ class Entry:
     url: str
     lang: str
     issuer: str
-    mode: str = "listing"                  # listing | pdf | html
+    mode: str = "listing"                  # listing | pdf | html | static
+    static_file: str | None = None         # mode static: text file under ./static
     include: str = r"\.pdf(?:$|\?)"        # regex on the absolute href
     text_include: str | None = None        # regex on the anchor text
     exclude: str | None = None             # regex on href or anchor text
@@ -102,7 +108,7 @@ _OW_PUBS = (
 )
 
 # Surveyed 2026-11-05, rechecked 2026-11-06. AR and GR publish on their court
-# sites (the BJ page only links there). No public SchKG publication of their
+# sites (the BJ page only links there); BL as page text (static copy below). No public SchKG publication of their
 # own: UR (BJ: "Keine Kreisschreiben vorhanden"; its courts apply the KBKS
 # text directly), SH, AI, VS (laws only; its courts apply the KBKS text), TG
 # (links the KBKS text, held under KBKS). LU's Weisungen are LGVE rulings,
@@ -203,6 +209,16 @@ REGISTRY: tuple[Entry, ...] = (
           mode="pdf", date="2011-02-08", existenzminimum=r"(?!)",
           title="Circolare KSK 11 5 dell'8 febbraio 2011 concernente esecuzione del "
                 "pignoramento/pignoramento a distanza"),
+    # Published as text in the "Revision Betreibungsrechtliches Existenzminimum"
+    # section of the office's page: the KBKS 2009 guideline, adopted by the
+    # Regierungsrat on 18 August 2009 (RRB Nr. 1222). Copied 2026-11-06.
+    Entry("BL", "https://www.baselland.ch/politik-und-behorden/direktionen/sicherheitsdirektion/"
+                "zivilrechtsverwaltung/betreibungsamt/",
+          "de", "Betreibungsamt (Zivilrechtsverwaltung, Sicherheitsdirektion)", mode="static",
+          static_file="bl_existenzminimum.txt", date="2009-08-18", existenzminimum=r"betreibungsamt",
+          title="Richtlinien für die Berechnung des betreibungsrechtlichen Existenzminimums "
+                "(Richtlinien der KBKS vom 1. Juli 2009, Regierungsratsbeschluss Nr. 1222 vom "
+                "18. August 2009)"),
     Entry("NW", "https://www.nw.ch/_rte/publikation/17288", "de", "Obergericht",
           include=r"/_doc/\d+", text_include=r"Merkblatt|Richtlinien"),
     Entry("NW", "https://www.nw.ch/_doc/22444", "de", "Obergericht", mode="pdf",
@@ -451,6 +467,11 @@ class SchkgKantoneScraper(PracticeScraper):
         if entry.mode == "pdf":
             yield make_stub(entry, entry.title or entry.url, entry.url, entry.date,
                             existenzminimum=exm)
+            return
+        if entry.mode == "static":
+            body = (STATIC_DIR / entry.static_file).read_text(encoding="utf-8")
+            yield make_stub(entry, entry.title or entry.url, entry.url, entry.date,
+                            body_text=body, existenzminimum=exm)
             return
         r = self.get(entry.url)
         r.raise_for_status()

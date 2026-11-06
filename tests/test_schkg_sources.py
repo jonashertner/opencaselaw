@@ -119,6 +119,16 @@ def test_gr_relative_links_resolve_against_base_href():
     assert gr[1]["doc_type"] != "richtlinie" and gr[1]["date"] == "2011-02-08"
 
 
+def test_bl_guideline_comes_from_the_static_copy():
+    entry = next(e for e in sk.REGISTRY if e.canton == "BL")
+    s = sk.SchkgKantoneScraper(registry=(entry,))
+    (stub,) = list(s.discover_documents())
+    assert stub["doc_number"] == "BL Existenzminimum" and stub["date"] == "2009-08-18"
+    assert s._make_doc_id(stub) == "schkg_kantone_bl_existenzminimum_2009_de"
+    assert "Fr. 1'700.00" in stub["body_text"] and "115 Punkten" in stub["body_text"]
+    assert stub["revision"] == sk.sha256_hex(stub["body_text"])
+
+
 def test_kbks_press_release_mentioning_existenzminimum_is_not_the_guideline():
     stubs = _parse("schkg_kantone_kbks_news_de.html", "ueber-uns/news")
     assert len(stubs) == 2
