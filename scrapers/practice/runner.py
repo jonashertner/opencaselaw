@@ -36,6 +36,12 @@ from .un_uhri import UnUhriScraper
 from .un_gc import UnGeneralCommentsScraper
 from .un_ch_translations import UnChTranslationsScraper
 from .unhcr_country import UnhcrCountryGuidanceScraper
+from .uek_rs import UekRundschreibenScraper
+from .rab_rs import RabRundschreibenScraper
+from .ehra import EhraScraper
+from .finma_aufsicht import FinmaAufsichtScraper
+from .stiftungsaufsicht import StiftungsaufsichtScraper
+from .hr_kantone import HrKantoneScraper
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +81,17 @@ ENABLED_SCRAPERS = {
     # BSV crawl already holds). Small: ~60 + ~360 rows, minutes per run.
     "weko_bekanntmachungen": WekoBekanntmachungenScraper,
     "oak_bv":            OakBvScraper,
+    # Company law / corporate governance (2026-11-06): Takeover Board
+    # circulars + annual reports, RAB circulars, EHRA Praxismitteilungen and
+    # Weisungen, FINMA Aufsichtsmitteilungen + Bulletin extracts, foundation
+    # supervisors, cantonal commercial registers (GE/VD/BE). ~1,000 rows in
+    # all languages a document exists in; first run ~25 min, then minutes.
+    "uek_rs":            UekRundschreibenScraper,
+    "rab_rs":            RabRundschreibenScraper,
+    "ehra":              EhraScraper,
+    "finma_aufsicht":    FinmaAufsichtScraper,
+    "stiftungsaufsicht": StiftungsaufsichtScraper,
+    "hr_kantone":        HrKantoneScraper,
 }
 
 # Defensive scaffolds — need first-run validation before enabling

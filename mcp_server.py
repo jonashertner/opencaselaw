@@ -1832,6 +1832,8 @@ COURT_DISPLAY_NAMES: dict[str, str] = {
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherungsrecht",
     "weko": "WEKO", "edoeb": "EDÖB", "ubi": "UBI",
     "elcom": "ElCom", "postcom": "PostCom", "comcom": "ComCom",
+    "uek": "Übernahmekommission (UEK)",
+    "six_ser": "SIX Exchange Regulation",
     "ta_sst": "Schweizer Sportgericht",
     "ag_gerichte": "AG Gerichte", "ag_verwaltungsgericht": "AG Verwaltungsgericht",
     "ai_gerichte": "AI Gerichte", "ar_gerichte": "AR Gerichte",
@@ -1905,6 +1907,7 @@ COURT_LEVELS: dict[str, str] = {
     "finma": "regulatory", "finma_versicherungsrecht": "regulatory",
     "weko": "regulatory", "edoeb": "regulatory", "ubi": "regulatory",
     "elcom": "regulatory", "postcom": "regulatory", "comcom": "regulatory",
+    "uek": "regulatory", "six_ser": "regulatory",
 }
 # Default: cantonal courts → "cantonal"
 
@@ -15215,7 +15218,7 @@ server = Server(
         "2,694 Vernehmlassungen since 1993 with 10,296 documents (Erläuternde "
         "Berichte, Vorlagen, Ergebnisberichte, Stellungnahmen), via "
         "search_botschaft and get_materialien — "
-        "federal administrative practice — Verwaltungspraxis, 10,500+ documents: "
+        "federal administrative practice — Verwaltungspraxis, 11,700+ documents: "
         "BSV Wegleitungen, Kreisschreiben, Rundschreiben and Mitteilungen for "
         "AHV/IV/EL/EO/FamZ/BVG (every retained version, DE/FR/IT), "
         "OAK BV Weisungen and Mitteilungen for BVG supervision (every version, with Informationsschreiben and Anhörungsentwürfe, DE/FR/IT), "
@@ -15229,7 +15232,13 @@ server = Server(
         "Rundschreiben and the Handbuch Asyl und Rückkehr, BJ SchKG Weisungen, "
         "Informationen and model forms, the circulars and Existenzminimum "
         "guidelines of the cantonal SchKG supervisory authorities and the KBKS "
-        "(search_practice canton=), BAFU Vollzugshilfen, and "
+        "(search_practice canton=), BAFU Vollzugshilfen, "
+        "company-law practice — the Takeover Board's (UEK) circulars and annual "
+        "reports, the audit oversight authority's (RAB) circulars, the EHRA "
+        "Praxismitteilungen and Weisungen on the commercial register, FINMA "
+        "Aufsichtsmitteilungen and its Bulletin extracts of FINMA rulings, the "
+        "foundation supervisors (ESA FAQ and model statutes, BBSA, BSABB) and the "
+        "practice notes of the GE, VD and BE commercial registers — and "
         "the decisions and Views of the UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, "
         "CRPD, CESCR, CED) on individual communications against every State party "
         "and the opinions of the Working Group on Arbitrary Detention (2010-), "
@@ -30183,7 +30192,8 @@ def _format_get_practice_response(result: dict) -> str:
         f"**Document number**: {result['doc_number']}",
         f"**Date**: {result.get('date') or '(unknown)'}",
         f"**Language**: {result['language']}",
-        f"**PDF**: {_md_link(result.get('doc_number') or 'PDF', result['pdf_url'])}",
+        # ESA FAQ entries are HTML text with no PDF behind them.
+        f"**PDF**: {_md_link(result.get('doc_number') or 'PDF', result['pdf_url']) if result.get('pdf_url') else '(none: text taken from the source page)'}",
         f"**Source page**: {_md_link('Quelle', result['url']) if result.get('url') else '(n/a)'}",
     ]
     if result.get("topics"):
@@ -32428,7 +32438,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 10,500+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ + cantons (SchKG, Existenzminimum; canton=), FINMA, ESTV, BAFU. Also UN texts: recommendations to Switzerland (source='un_uhri': concluding observations, UPR with the Swiss position, SPT, special procedures) and treaty-body General Comments (source='un_gc'). Returns ranked excerpts: authority, number, date, link. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal Sozialhilfe/SKOS, Prämienverbilligung — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC 1987–2017: search_decisions(court='ch_vb')."
+                "Use this tool for federal ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben — agency guidance, not court decisions. 11,700+ documents: BSV (AHV/IV/EL/EO/FamZ/BVG Wegleitungen, Kreisschreiben, Mitteilungen, every version), OAK BV (BVG Weisungen, Mitteilungen), WEKO (Bekanntmachungen, Erläuterungen), SECO (ArG commentary, AVIG-Praxis), BAG (KVG), SEM (Weisungen, Handbuch Asyl), BJ + cantons (SchKG, Existenzminimum; canton=), FINMA, ESTV, BAFU; company law: UEK, RAB, EHRA, Stiftungsaufsicht. Also UN texts: recommendations to Switzerland (source='un_uhri': concluding observations, UPR, SPT, special procedures) and treaty-body General Comments (source='un_gc'). Returns ranked excerpts. Superseded versions collapse to the newest; for past conduct pass include_superseded=true. NOT covered: cantonal Sozialhilfe/SKOS, Prämienverbilligung — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC 1987–2017: search_decisions(court='ch_vb')."
             ),
             inputSchema={
                 "type": "object",
@@ -32444,7 +32454,9 @@ def _list_tools() -> list[Tool]:
                         "enum": ["finma_rs", "seco_arg", "bafu_vollzug", "estv_ks", "estv_mwst",
                                  "sem_weisungen", "bsv_weisungen", "seco_alv", "bag_kvg",
                                  "sem_handbuch_asyl", "bj_schkg", "schkg_kantone", "weko_bekanntmachungen",
-                                 "oak_bv", "un_uhri", "un_gc", "un_ch_translations", "unhcr_country"],
+                                 "oak_bv", "un_uhri", "un_gc", "un_ch_translations", "unhcr_country",
+                                 "uek_rs", "rab_rs", "ehra", "finma_aufsicht", "stiftungsaufsicht",
+                                 "hr_kantone"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -32479,7 +32491,23 @@ def _list_tools() -> list[Tool]:
                             "Considerations, Eligibility Guidelines, Guidance Notes, Positions on Returns — "
                             "every edition, EN plus UNHCR's DE/FR versions, for Afghanistan, Eritrea, Syria, "
                             "Iraq, Sudan, Sri Lanka, Venezuela, Libya, Myanmar, Nigeria; one doc_number per "
-                            "country, so include_superseded gives the edition in force at the time)."
+                            "country, so include_superseded gives the edition in force at the time), "
+                            "uek_rs (Übernahmekommission: UEK-Rundschreiben Nr. 1-5 with every revision, the "
+                            "repealed Rundschreiben and Mitteilungen, consultation drafts, the conflict-of-interest "
+                            "Richtlinie, Tätigkeitsberichte 2009-; DE/FR/IT/EN where translated; its rulings are "
+                            "search_decisions(court='uek')), rab_rs (Revisionsaufsichtsbehörde: RAB-RS 1/2007-1/2022, "
+                            "every version, Aufsichtsmitteilung 1-2022, Tätigkeits-/Geschäftsberichte; DE/FR/IT/EN), "
+                            "ehra (Eidg. Amt für das Handelsregister: Praxismitteilungen 1/2008- with Beilagen, "
+                            "Weisungen and Mitteilungen to the cantonal registers — Firmenrecht, FusG-Mustertexte, "
+                            "Sacheinlage; DE/FR/IT), finma_aufsicht (FINMA-Aufsichtsmitteilungen 2017- and the older "
+                            "FINMA-Mitteilungen incl. withdrawn ones, every language; plus doc_type rechtsprechung = "
+                            "the Bulletin 'Ausgewählte Verfügungen' 2010-2017, anonymised FINMA rulings in their "
+                            "original language), stiftungsaufsicht (foundation supervision: ESA FAQ — one row per "
+                            "question, DE/FR/IT — model statutes and compensation regulations, annual reviews; BBSA "
+                            "Rundschreiben 2013- and Merkblätter, DE/FR; BSABB Merkblätter, model deeds, checklists, "
+                            "a 2019 legal opinion), hr_kantone (cantonal commercial registers: GE Notes aux notaires "
+                            "2016-, VD note on its LFAIE practice, BE Merkblätter per legal form DE/FR; authority = "
+                            "canton code)."
                         ),
                     },
                     "issuing_authority": {
@@ -32487,13 +32515,16 @@ def _list_tools() -> list[Tool]:
                         "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV",
                                  "UN-UPR", "UN-CRC", "UN-CEDAW", "UN-SPT", "UN-CAT", "UN-CESCR",
                                  "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES",
-                                 "UNHCR"],
+                                 "UNHCR", "UEK", "RAB", "EHRA", "ESA", "BBSA", "BSABB"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
                             "BSV (6,083, social insurance practice), BAG (38), "
                             "BJ (debt enforcement), WEKO (Bekanntmachungen/Erläuterungen under the KG), "
                             "OAK BV (BVG supervision: Weisungen, Mitteilungen). "
+                            "UEK (Takeover Board), RAB (audit oversight), EHRA (federal commercial "
+                            "register office), ESA (federal foundation supervision), BBSA / BSABB "
+                            "(foundation supervisors of Bern and of both Basel). "
                             "UN-* = the UN body that addressed the recommendation to Switzerland: "
                             "UN-UPR (~1,450, Universal Periodic Review), UN-CAT (Committee against "
                             "Torture), UN-CCPR (Human Rights Committee), UN-CESCR, UN-CERD, UN-CEDAW, "
@@ -32507,10 +32538,10 @@ def _list_tools() -> list[Tool]:
                                  "BS", "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD",
                                  "VS", "NE", "GE", "JU", "KBKS"],
                         "description": (
-                            "Restrict to one canton's SchKG documents (its supervisory authority's "
-                            "circulars and Existenzminimum guideline, in schkg_kantone and the older "
-                            "copies in bj_schkg). KBKS = the national conference of enforcement "
-                            "officials."
+                            "Restrict to one canton's documents: its SchKG supervisory authority's "
+                            "circulars and Existenzminimum guideline (schkg_kantone, older copies in "
+                            "bj_schkg) and, for GE, VD and BE, its commercial register's practice notes "
+                            "(hr_kantone). KBKS = the national conference of enforcement officials."
                         ),
                     },
                     "doc_type": {
@@ -32523,7 +32554,7 @@ def _list_tools() -> list[Tool]:
                             "bekanntmachung", "erlaeuterung", "entwurf",
                             "concluding_observations", "upr_recommendation", "visit_report",
                             "general_comment", "general_recommendation", "country_guidance",
-                            "formular", "bericht",
+                            "formular", "bericht", "merkblatt", "faq",
                         ],
                         "description": (
                             "Filter by document type. wegleitung (SECO ArG 1,102 + BSV WEL/RWL…), "
@@ -32538,7 +32569,9 @@ def _list_tools() -> list[Tool]:
                             "concluding_observations (UN treaty bodies), upr_recommendation (UN UPR), "
                             "visit_report (UN SPT + special procedures), general_comment / "
                             "general_recommendation (UN treaty bodies, un_gc), country_guidance (UNHCR), "
-                            "formular (BJ SchKG model forms), bericht (BJ SchKG reports and studies)."
+                            "formular (BJ SchKG model forms; model statutes and deeds), bericht (BJ SchKG "
+                            "reports and studies; UEK/RAB/ESA annual reports), merkblatt (foundation "
+                            "supervisors, BE commercial register), faq (ESA FAQ)."
                         ),
                     },
                     "include_superseded": {

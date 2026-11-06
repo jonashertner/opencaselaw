@@ -126,14 +126,18 @@ def _search_practice_block() -> str:
 
 
 def test_schema_advertises_only_populated_values():
-    """SSK / ARE / EPA / merkblatt return zero rows — do not offer them.
-    (handbuch moved to the real list on 2026-09-02 with sem_handbuch_asyl.)"""
+    """SSK / ARE / EPA return zero rows — do not offer them.
+    (handbuch moved to the real list on 2026-09-02 with sem_handbuch_asyl;
+    merkblatt on 2026-11-06 with the foundation supervisors and the BE
+    commercial register.)"""
     block = _search_practice_block()
-    for phantom in ("ssk_ks", "are_vollzug", "epa_personalrecht", "merkblatt"):
+    for phantom in ("ssk_ks", "are_vollzug", "epa_personalrecht"):
         assert phantom not in block, f"{phantom!r} is advertised but returns nothing"
     for real in ("seco_arg", "estv_ks", "estv_mwst", "bafu_vollzug", "sem_weisungen",
                  "bsv_weisungen", "seco_alv", "bag_kvg", "sem_handbuch_asyl", "bj_schkg",
-                 "wegleitung", "kreisschreiben", "vollzugshilfe", "mwst_info", "handbuch"):
+                 "wegleitung", "kreisschreiben", "vollzugshilfe", "mwst_info", "handbuch",
+                 "uek_rs", "rab_rs", "ehra", "finma_aufsicht", "stiftungsaufsicht", "hr_kantone",
+                 "merkblatt", "faq"):
         assert real in block, f"{real!r} exists in the corpus but is not advertised"
 
 

@@ -142,6 +142,9 @@ SCRAPERS = {
     "rab": ("scrapers.rab", "RABScraper"),
     "eschk": ("scrapers.eschk", "ESchKScraper"),
     "preisueberwacher": ("scrapers.preisueberwacher", "PreisueberwacherScraper"),
+    "uek": ("scrapers.uek", "UEKScraper"),
+    "six_ser": ("scrapers.six_ser", "SIXSERScraper"),
+
     # Federal — customs and tax administration
     "bazg": ("scrapers.bazg", "BAZGScraper"),
     # NB: ESTV Kreisschreiben are scraped by scrapers/practice/estv_kreisschreiben.py

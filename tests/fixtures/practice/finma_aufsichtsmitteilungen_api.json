@@ -1,0 +1,711 @@
+{
+"Items": [
+{
+"Extension": "pdf",
+"WatchlistUrl": "/api/watchlist/PostWatchListDocument/{BFE04FA6-D91A-468D-9A4B-C7800C43DD52}",
+"DeleteOneWatchlistUrl": "/api/watchlist/DeleteDocument?id={BFE04FA6-D91A-468D-9A4B-C7800C43DD52}",
+"FileType": "application/pdf",
+"Size": "0.26",
+"OtherLanguageLinks": [
+{
+"Url": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260709-finma-aufsichtsmitteilung-05-2026.pdf?sc_lang=de&hash=59B9081AC61161D34364FEA2A69B3574",
+"Name": "DE"
+},
+{
+"Url": "/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260709-finma-aufsichtsmitteilung-05-2026.pdf?sc_lang=fr&hash=DDB4DB3686459A053640C3E33552E2FA",
+"Name": "FR"
+},
+{
+"Url": "/en/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260709-finma-aufsichtsmitteilung-05-2026.pdf?sc_lang=en&hash=0C6FDB12F5427E073560E67D88CCEB96",
+"Name": "EN"
+}
+],
+"IsBeingWatched": false,
+"Title": "FINMA-Aufsichtsmitteilung 05/2026",
+"Description": "Quantum Computing",
+"Link": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260709-finma-aufsichtsmitteilung-05-2026.pdf?sc_lang=de&hash=59B9081AC61161D34364FEA2A69B3574",
+"Category": null,
+"Type": "Doc",
+"Date": "09.07.2026",
+"DateMobile": "09.07.2026",
+"Timestamp": 0,
+"Tab": "tab1",
+"Panel": "panel1"
+},
+{
+"Extension": "pdf",
+"WatchlistUrl": "/api/watchlist/PostWatchListDocument/{573DA153-EF2B-40BC-91FC-507642E77F94}",
+"DeleteOneWatchlistUrl": "/api/watchlist/DeleteDocument?id={573DA153-EF2B-40BC-91FC-507642E77F94}",
+"FileType": "application/pdf",
+"Size": "0.33",
+"OtherLanguageLinks": [
+{
+"Url": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260604-finma-aufsichtsmitteilung-04-2026.pdf?sc_lang=de&hash=0D71187DD8430B023961431D1665542C",
+"Name": "DE"
+},
+{
+"Url": "/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260604-finma-aufsichtsmitteilung-04-2026.pdf?sc_lang=fr&hash=48EEDE6DF17A3F2FD71E0BBE405B000D",
+"Name": "FR"
+},
+{
+"Url": "/it/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260604-finma-aufsichtsmitteilung-04-2026.pdf?sc_lang=it&hash=E9D211F45B0A23D9140B851C891FD64E",
+"Name": "IT"
+},
+{
+"Url": "/en/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260604-finma-aufsichtsmitteilung-04-2026.pdf?sc_lang=en&hash=DC357BD566F8BABF8C3D8C54735EBB72",
+"Name": "EN"
+}
+],
+"IsBeingWatched": false,
+"Title": "FINMA-Aufsichtsmitteilung 04/2026",
+"Description": "Ergänzung zur Aufsichtsmitteilung 05/2023 hinsichtlich der Geldwäschereirisikoanalyse nach Art. 25 Abs. 2 GwV-FINMA",
+"Link": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260604-finma-aufsichtsmitteilung-04-2026.pdf?sc_lang=de&hash=0D71187DD8430B023961431D1665542C",
+"Category": null,
+"Type": "Doc",
+"Date": "04.06.2026",
+"DateMobile": "04.06.2026",
+"Timestamp": 0,
+"Tab": "tab1",
+"Panel": "panel1"
+},
+{
+"Extension": "pdf",
+"WatchlistUrl": "/api/watchlist/PostWatchListDocument/{8EAE8CE2-B6AE-498C-BD89-496F34CA6213}",
+"DeleteOneWatchlistUrl": "/api/watchlist/DeleteDocument?id={8EAE8CE2-B6AE-498C-BD89-496F34CA6213}",
+"FileType": "application/pdf",
+"Size": "0.3",
+"OtherLanguageLinks": [
+{
+"Url": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260603-finma-aufsichtsmitteilung-03-2026.pdf?sc_lang=de&hash=3E5258EF119E244ED0ED134ED327F795",
+"Name": "DE"
+},
+{
+"Url": "/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260603-finma-aufsichtsmitteilung-03-2026.pdf?sc_lang=fr&hash=4F660D275E39A248BA8F5EACB575E34E",
+"Name": "FR"
+},
+{
+"Url": "/it/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260603-finma-aufsichtsmitteilung-03-2026.pdf?sc_lang=it&hash=B7C126AA32F7D21F6557BD17FECBC314",
+"Name": "IT"
+},
+{
+"Url": "/en/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260603-finma-aufsichtsmitteilung-03-2026.pdf?sc_lang=en&hash=8CE405E0B009EF8B6E5E01BB15D13B34",
+"Name": "EN"
+}
+],
+"IsBeingWatched": false,
+"Title": "FINMA-Aufsichtsmitteilung 03/2026",
+"Description": "Risiken beim Einsatz von Produkten in der individuellen Vermögensverwaltung",
+"Link": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260603-finma-aufsichtsmitteilung-03-2026.pdf?sc_lang=de&hash=3E5258EF119E244ED0ED134ED327F795",
+"Category": null,
+"Type": "Doc",
+"Date": "03.06.2026",
+"DateMobile": "03.06.2026",
+"Timestamp": 0,
+"Tab": "tab1",
+"Panel": "panel1"
+},
+{
+"Extension": "pdf",
+"WatchlistUrl": "/api/watchlist/PostWatchListDocument/{16729DB4-6CA6-491A-B110-83B7742AB695}",
+"DeleteOneWatchlistUrl": "/api/watchlist/DeleteDocument?id={16729DB4-6CA6-491A-B110-83B7742AB695}",
+"FileType": "application/pdf",
+"Size": "0.31",
+"OtherLanguageLinks": [
+{
+"Url": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-02-2026.pdf?sc_lang=de&hash=303C1E8C17883319586B33582CEE8E3A",
+"Name": "DE"
+},
+{
+"Url": "/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-02-2026.pdf?sc_lang=fr&hash=B7C909643FCFC7E750E1DCBE99CBC5EE",
+"Name": "FR"
+},
+{
+"Url": "/en/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-02-2026.pdf?sc_lang=en&hash=756A9C493A822F0E01A0D1343FECEA8E",
+"Name": "EN"
+}
+],
+"IsBeingWatched": false,
+"Title": "FINMA-Aufsichtsmitteilung 02/2026",
+"Description": "Digitale Betrugsrisiken bei Banken und Personen nach Art. 1b BankG",
+"Link": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-02-2026.pdf?sc_lang=de&hash=303C1E8C17883319586B33582CEE8E3A",
+"Category": null,
+"Type": "Doc",
+"Date": "09.04.2026",
+"DateMobile": "09.04.2026",
+"Timestamp": 0,
+"Tab": "tab1",
+"Panel": "panel1"
+},
+{
+"Extension": "pdf",
+"WatchlistUrl": "/api/watchlist/PostWatchListDocument/{BA4A42F3-88C2-4687-BFFC-474A09F1F07E}",
+"DeleteOneWatchlistUrl": "/api/watchlist/DeleteDocument?id={BA4A42F3-88C2-4687-BFFC-474A09F1F07E}",
+"FileType": "application/pdf",
+"Size": "0.35",
+"OtherLanguageLinks": [
+{
+"Url": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-01-2026.pdf?sc_lang=de&hash=04A4D2F011A496ECDEDF21C618B6FDF4",
+"Name": "DE"
+},
+{
+"Url": "/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-01-2026.pdf?sc_lang=fr&hash=E5E124C0724E813A43506A2B59DF5C2C",
+"Name": "FR"
+},
+{
+"Url": "/it/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-01-2026.pdf?sc_lang=it&hash=EB15A10C060003FAD76B24E225F200A0",
+"Name": "IT"
+},
+{
+"Url": "/en/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-01-2026.pdf?sc_lang=en&hash=D9301598FF6F909630F88578731A50DE",
+"Name": "EN"
+}
+],
+"IsBeingWatched": false,
+"Title": "FINMA-Aufsichtsmitteilung  01/2026",
+"Description": "Verwahrung von kryptobasierten Vermögenswerten",
+"Link": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20260112-finma-aufsichtsmitteilung-01-2026.pdf?sc_lang=de&hash=04A4D2F011A496ECDEDF21C618B6FDF4",
+"Category": null,
+"Type": "Doc",
+"Date": "12.01.2026",
+"DateMobile": "12.01.2026",
+"Timestamp": 0,
+"Tab": "tab1",
+"Panel": "panel1"
+},
+{
+"Extension": "pdf",
+"WatchlistUrl": "/api/watchlist/PostWatchListDocument/{139E82BF-8024-4458-B7BA-9C36DB8880FB}",
+"DeleteOneWatchlistUrl": "/api/watchlist/DeleteDocument?id={139E82BF-8024-4458-B7BA-9C36DB8880FB}",
+"FileType": "application/pdf",
+"Size": "0.25",
+"OtherLanguageLinks": [
+{
+"Url": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20251110-finma-aufsichtsmitteilung-05-2025.pdf?sc_lang=de&hash=4E015E4173711F161B18C6DBE6498721",
+"Name": "DE"
+},
+{
+"Url": "/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20251110-finma-aufsichtsmitteilung-05-2025.pdf?sc_lang=fr&hash=04B2A43344616F83C663C632BA6E8C5F",
+"Name": "FR"
+},
+{
+"Url": "/en/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20251110-finma-aufsichtsmitteilung-05-2025.pdf?sc_lang=en&hash=FD26ED4215AEADD03F8D50B0BCCF66F0",
+"Name": "EN"
+}
+],
+"IsBeingWatched": false,
+"Title": "FINMA-Aufsichtsmitteilung 05/2025",
+"Description": "Operationelle Resilienz bei Banken, Personen nach Art.1b BankG, Wertpapierhäusern und Finanzmarktinfrastrukturen",
+"Link": "/de/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20251110-finma-aufsichtsmitteilung-05-2025.pdf?sc_lang=de&hash=4E015E4173711F161B18C6DBE6498721",
+"Category": null,
+"Type": "Doc",
+"Date": "10.11.2025",
+"DateMobile": "10.11.2025",
+"Timestamp": 0,
+"Tab": "tab1",
+"Panel": "panel1"
+}
+],
+"Groups": null,
+"Searchstring": "*",
+"Searchroot": "{1F9E947C-DDE3-4F99-BBFA-49114D0C4AC2}",
+"Facets": [
+{
+"Name": "Dokumentenart",
+"Values": [
+{
+"id": "{1C2D29B9-E600-4344-9170-786463D19135}",
+"Name": "{1C2D29B9-E600-4344-9170-786463D19135}",
+"category": "Dokumentenart",
+"AggregateCount": 59,
+"selected": false
+},
+{
+"id": "{A68B0504-951A-4586-A205-D4848250974D}",
+"Name": "{A68B0504-951A-4586-A205-D4848250974D}",
+"category": "Dokumentenart",
+"AggregateCount": 3,
+"selected": false
+}
+]
+},
+{
+"Name": "Publiziert für",
+"Values": [
+{
+"id": "{02C29037-9BE1-43B9-944D-BBF66ECDB795}",
+"Name": "{02C29037-9BE1-43B9-944D-BBF66ECDB795}",
+"category": "Publiziert für",
+"AggregateCount": 9,
+"selected": false
+},
+{
+"id": "{DBFEC228-3EDF-4F1B-92AA-E05ED35B2192}",
+"Name": "{DBFEC228-3EDF-4F1B-92AA-E05ED35B2192}",
+"category": "Publiziert für",
+"AggregateCount": 9,
+"selected": false
+},
+{
+"id": "{FE19290B-03A0-4D33-98F7-C1608368A71C}",
+"Name": "{FE19290B-03A0-4D33-98F7-C1608368A71C}",
+"category": "Publiziert für",
+"AggregateCount": 9,
+"selected": false
+},
+{
+"id": "{1AAFA260-7CB9-4353-A030-2A161FDDB439}",
+"Name": "{1AAFA260-7CB9-4353-A030-2A161FDDB439}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{37B8B89A-59A3-48C3-AF36-5CDC45EAA5F7}",
+"Name": "{37B8B89A-59A3-48C3-AF36-5CDC45EAA5F7}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{57C8C376-DD39-44AF-A4B2-6C5B3531AEA8}",
+"Name": "{57C8C376-DD39-44AF-A4B2-6C5B3531AEA8}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{B2F7D8D0-D2F9-4805-97A7-023E76FC106C}",
+"Name": "{B2F7D8D0-D2F9-4805-97A7-023E76FC106C}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{CB6BB3B7-9B55-483C-AAAC-268E03C4AB3F}",
+"Name": "{CB6BB3B7-9B55-483C-AAAC-268E03C4AB3F}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{DE5D1283-5E34-441F-A4C7-DCBFB3590665}",
+"Name": "{DE5D1283-5E34-441F-A4C7-DCBFB3590665}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{F43F25B6-4C24-4399-8F84-30D68A4679F4}",
+"Name": "{F43F25B6-4C24-4399-8F84-30D68A4679F4}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{FADD5D9B-2042-4EE6-98AB-82C36926B789}",
+"Name": "{FADD5D9B-2042-4EE6-98AB-82C36926B789}",
+"category": "Publiziert für",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{8D8FBA21-BE6C-4712-9562-751760447F69}",
+"Name": "{8D8FBA21-BE6C-4712-9562-751760447F69}",
+"category": "Publiziert für",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{0E423CD4-FBBF-4A0E-86E1-13600BB7AF53}",
+"Name": "{0E423CD4-FBBF-4A0E-86E1-13600BB7AF53}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{9B85EFB4-8EE5-4B1D-85F9-52BEDAEA1336}",
+"Name": "{9B85EFB4-8EE5-4B1D-85F9-52BEDAEA1336}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{B0B309C4-BF25-483D-AFBD-2802674BBE78}",
+"Name": "{B0B309C4-BF25-483D-AFBD-2802674BBE78}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{B5467858-8F73-4A3F-B205-3C43210FA8BF}",
+"Name": "{B5467858-8F73-4A3F-B205-3C43210FA8BF}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{BB9DFA88-367C-4347-B97E-11F718BAC3D3}",
+"Name": "{BB9DFA88-367C-4347-B97E-11F718BAC3D3}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{CE13F5E6-C5E1-4A09-BEB5-FC0B576A3D3F}",
+"Name": "{CE13F5E6-C5E1-4A09-BEB5-FC0B576A3D3F}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{E8028C0C-1D6D-4C7A-B304-DC35FFDB81B6}",
+"Name": "{E8028C0C-1D6D-4C7A-B304-DC35FFDB81B6}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{EDD15465-6444-4624-8103-00EA04F528EA}",
+"Name": "{EDD15465-6444-4624-8103-00EA04F528EA}",
+"category": "Publiziert für",
+"AggregateCount": 1,
+"selected": false
+}
+]
+},
+{
+"Name": "Jahr",
+"Values": [
+{
+"id": "{6136F708-E41A-44CB-BDA9-876491E589C0}",
+"Name": "{6136F708-E41A-44CB-BDA9-876491E589C0}",
+"category": "Jahr",
+"AggregateCount": 9,
+"selected": false
+},
+{
+"id": "{C6603128-AEA8-4712-B0C9-F590DC760DAE}",
+"Name": "{C6603128-AEA8-4712-B0C9-F590DC760DAE}",
+"category": "Jahr",
+"AggregateCount": 9,
+"selected": false
+},
+{
+"id": "{DA84AAEF-A0F0-4D3F-98A8-40FF511B94EA}",
+"Name": "{DA84AAEF-A0F0-4D3F-98A8-40FF511B94EA}",
+"category": "Jahr",
+"AggregateCount": 8,
+"selected": false
+},
+{
+"id": "{963D5DE6-2772-40A6-B111-17F881906CDD}",
+"Name": "{963D5DE6-2772-40A6-B111-17F881906CDD}",
+"category": "Jahr",
+"AggregateCount": 5,
+"selected": false
+},
+{
+"id": "{9E024A32-CF41-4AC0-AA9B-056AF4A75904}",
+"Name": "{9E024A32-CF41-4AC0-AA9B-056AF4A75904}",
+"category": "Jahr",
+"AggregateCount": 5,
+"selected": false
+},
+{
+"id": "{EF0C43D3-3B20-403D-BCD2-44A64D14C702}",
+"Name": "{EF0C43D3-3B20-403D-BCD2-44A64D14C702}",
+"category": "Jahr",
+"AggregateCount": 5,
+"selected": false
+},
+{
+"id": "{11927AA0-B857-4758-9165-95DD640471EE}",
+"Name": "{11927AA0-B857-4758-9165-95DD640471EE}",
+"category": "Jahr",
+"AggregateCount": 4,
+"selected": false
+},
+{
+"id": "{AD70F793-6F76-4331-9B02-F977C199731D}",
+"Name": "{AD70F793-6F76-4331-9B02-F977C199731D}",
+"category": "Jahr",
+"AggregateCount": 4,
+"selected": false
+},
+{
+"id": "{1B4327AE-9664-465A-A7D3-97055B2B80E7}",
+"Name": "{1B4327AE-9664-465A-A7D3-97055B2B80E7}",
+"category": "Jahr",
+"AggregateCount": 3,
+"selected": false
+},
+{
+"id": "{5D641577-5377-4304-ADE3-0FF60C5B7B3C}",
+"Name": "{5D641577-5377-4304-ADE3-0FF60C5B7B3C}",
+"category": "Jahr",
+"AggregateCount": 3,
+"selected": false
+},
+{
+"id": "{BF6E5761-796E-484B-B673-F8C735F1E408}",
+"Name": "{BF6E5761-796E-484B-B673-F8C735F1E408}",
+"category": "Jahr",
+"AggregateCount": 3,
+"selected": false
+},
+{
+"id": "{92D1AF79-03A6-45AA-A55A-554D5406D93A}",
+"Name": "{92D1AF79-03A6-45AA-A55A-554D5406D93A}",
+"category": "Jahr",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{2FEE13CC-155D-4FCA-8B3D-A9CD49DE2E40}",
+"Name": "{2FEE13CC-155D-4FCA-8B3D-A9CD49DE2E40}",
+"category": "Jahr",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{88562CFB-78AB-443B-8FFC-196A6A25F8D9}",
+"Name": "{88562CFB-78AB-443B-8FFC-196A6A25F8D9}",
+"category": "Jahr",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{C75EBDD9-926E-4D0B-974B-88258B948E2D}",
+"Name": "{C75EBDD9-926E-4D0B-974B-88258B948E2D}",
+"category": "Jahr",
+"AggregateCount": 1,
+"selected": false
+}
+]
+},
+{
+"Name": "Adressaten",
+"Values": [
+{
+"id": "{2C383DE0-169E-4A28-8ADD-C8A8F6FFC9ED}",
+"Name": "{2C383DE0-169E-4A28-8ADD-C8A8F6FFC9ED}",
+"category": "Adressaten",
+"AggregateCount": 6,
+"selected": false
+},
+{
+"id": "{812DD3F9-278E-4CBE-AFB2-1EB4D5294D29}",
+"Name": "{812DD3F9-278E-4CBE-AFB2-1EB4D5294D29}",
+"category": "Adressaten",
+"AggregateCount": 4,
+"selected": false
+},
+{
+"id": "{B7219A8B-19DA-4DCE-896B-8DFF31E38B74}",
+"Name": "{B7219A8B-19DA-4DCE-896B-8DFF31E38B74}",
+"category": "Adressaten",
+"AggregateCount": 4,
+"selected": false
+},
+{
+"id": "{C2D3EEF5-C2AB-4F8D-8B09-ACEC1D53FB98}",
+"Name": "{C2D3EEF5-C2AB-4F8D-8B09-ACEC1D53FB98}",
+"category": "Adressaten",
+"AggregateCount": 3,
+"selected": false
+},
+{
+"id": "{C77E5B2D-D6AA-4A6B-9CA3-22BE0B8E3942}",
+"Name": "{C77E5B2D-D6AA-4A6B-9CA3-22BE0B8E3942}",
+"category": "Adressaten",
+"AggregateCount": 3,
+"selected": false
+},
+{
+"id": "{14CD3381-B25C-443F-96DB-E4E29DEB010F}",
+"Name": "{14CD3381-B25C-443F-96DB-E4E29DEB010F}",
+"category": "Adressaten",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{24B4DCB8-E0FD-4069-B0C3-5A24D60026CF}",
+"Name": "{24B4DCB8-E0FD-4069-B0C3-5A24D60026CF}",
+"category": "Adressaten",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{3DF1C32D-EFD0-4E7D-9990-EC166F3CC246}",
+"Name": "{3DF1C32D-EFD0-4E7D-9990-EC166F3CC246}",
+"category": "Adressaten",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{4FB779A3-C5C8-4E95-A53D-6BC2641C41E4}",
+"Name": "{4FB779A3-C5C8-4E95-A53D-6BC2641C41E4}",
+"category": "Adressaten",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{6729258E-A1E5-4452-B4DA-1047F0CAF4CF}",
+"Name": "{6729258E-A1E5-4452-B4DA-1047F0CAF4CF}",
+"category": "Adressaten",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{D2062EFD-18A9-4109-9EF0-7C91284EE51A}",
+"Name": "{D2062EFD-18A9-4109-9EF0-7C91284EE51A}",
+"category": "Adressaten",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{F61C3FAF-7A40-4D34-A6AC-E8384D281C30}",
+"Name": "{F61C3FAF-7A40-4D34-A6AC-E8384D281C30}",
+"category": "Adressaten",
+"AggregateCount": 2,
+"selected": false
+},
+{
+"id": "{7185E810-2539-42C0-9741-CCD8654E7353}",
+"Name": "{7185E810-2539-42C0-9741-CCD8654E7353}",
+"category": "Adressaten",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{7C4CC30D-A732-4628-9BB1-D9D511ED8B3D}",
+"Name": "{7C4CC30D-A732-4628-9BB1-D9D511ED8B3D}",
+"category": "Adressaten",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{80C64378-B97B-4F7E-81D7-E49C7D05958D}",
+"Name": "{80C64378-B97B-4F7E-81D7-E49C7D05958D}",
+"category": "Adressaten",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{9ADEA2DA-8E8F-4FB1-ACDB-49D4400D3AB8}",
+"Name": "{9ADEA2DA-8E8F-4FB1-ACDB-49D4400D3AB8}",
+"category": "Adressaten",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{D8B64EE0-F401-4A86-A3A9-BE1866295BBB}",
+"Name": "{D8B64EE0-F401-4A86-A3A9-BE1866295BBB}",
+"category": "Adressaten",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{F8F8EA1A-21EF-4BFC-99BB-5F2DE8AD3598}",
+"Name": "{F8F8EA1A-21EF-4BFC-99BB-5F2DE8AD3598}",
+"category": "Adressaten",
+"AggregateCount": 1,
+"selected": false
+}
+]
+},
+{
+"Name": "Thema",
+"Values": [
+{
+"id": "{9296D0ED-E6DF-4A38-B5C6-C6C93A131B1F}",
+"Name": "{9296D0ED-E6DF-4A38-B5C6-C6C93A131B1F}",
+"category": "Thema",
+"AggregateCount": 5,
+"selected": false
+},
+{
+"id": "{30D5F5CF-15F1-42F9-B058-A3610CB47D0C}",
+"Name": "{30D5F5CF-15F1-42F9-B058-A3610CB47D0C}",
+"category": "Thema",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{3B87665E-AD28-4D96-A992-022CB267539B}",
+"Name": "{3B87665E-AD28-4D96-A992-022CB267539B}",
+"category": "Thema",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{5055E4CE-DD94-42AB-BC32-5E07D46CDC00}",
+"Name": "{5055E4CE-DD94-42AB-BC32-5E07D46CDC00}",
+"category": "Thema",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{84637D75-9D2E-48D3-B136-D9D770B3836A}",
+"Name": "{84637D75-9D2E-48D3-B136-D9D770B3836A}",
+"category": "Thema",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{9CA7BFBC-C910-4C3E-BD55-F1DBE35F2F56}",
+"Name": "{9CA7BFBC-C910-4C3E-BD55-F1DBE35F2F56}",
+"category": "Thema",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{AE470C48-CC95-43F3-BD83-66553E1ED7A1}",
+"Name": "{AE470C48-CC95-43F3-BD83-66553E1ED7A1}",
+"category": "Thema",
+"AggregateCount": 1,
+"selected": false
+},
+{
+"id": "{B58D5EE8-A7A2-45F3-8FD9-21558683D0D0}",
+"Name": "{B58D5EE8-A7A2-45F3-8FD9-21558683D0D0}",
+"category": "Thema",
+"AggregateCount": 1,
+"selected": false
+}
+]
+},
+{
+"Name": "Front_Dossiers",
+"Values": [
+{
+"id": "{24267F8C-5355-4849-BD49-E52B97CFFFE3}",
+"Name": "{24267F8C-5355-4849-BD49-E52B97CFFFE3}",
+"category": "Front_Dossiers",
+"AggregateCount": 1,
+"selected": false
+}
+]
+}
+],
+"SearchFacets": [],
+"SearchFacetGroups": [],
+"Count": 67,
+"Resultstring": null,
+"NextPageLink": "/api/search/getresult?Skip=25",
+"LastPageLink": null,
+"ResultsPerPage": 25,
+"Skip": 0,
+"SkipNext": 0,
+"SkipLast": 0,
+"MaxResultCount": 1000,
+"FixCount": 0,
+"Archive": false,
+"IsGrouped": false,
+"UseLanguageFallback": false,
+"IsExclusiveFacetSearch": false,
+"Bankruptcy": {
+"Finishedcount": 0,
+"Pendingcount": 0
+}
+}

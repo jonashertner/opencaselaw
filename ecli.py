@@ -68,6 +68,8 @@ _COURT_TO_ECLI: dict[str, str] = {
     "weko": "WEKO",
     "edoeb": "EDOEB",
     "ubi": "UBI",
+    "uek": "UEK",
+    "six_ser": "SIXSER",
     "elcom": "ELCOM",
     "postcom": "POSTCOM",
     "comcom": "COMCOM",

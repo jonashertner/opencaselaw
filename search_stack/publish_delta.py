@@ -84,7 +84,7 @@ def _prune_old_build_dirs(parent: _Path, keep: str,
 FEDERAL_COURTS = frozenset({
     "bger", "bge", "bvger", "bstger", "bpatger", "mkg",
     "finma", "finma_versicherungsrecht",
-    "weko", "edoeb", "ubi", "elcom", "postcom", "comcom",
+    "weko", "edoeb", "ubi", "elcom", "postcom", "comcom", "uek", "six_ser",
     "ch_bundesrat", "ch_vb",
     "ta_sst", "bge_egmr", "hudoc_ch", "emark", "bge_historical",
 })

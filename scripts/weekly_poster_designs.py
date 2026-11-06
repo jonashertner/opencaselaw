@@ -71,6 +71,7 @@ FEDERAL_DE = {"bger": "Bundesgericht", "bge": "BGE amtliche Sammlung", "bvger": 
               "bstger": "Bundesstrafgericht", "bpatger": "Bundespatentgericht", "ta_sst": "Schweizer Sportgericht",
               "edoeb": "EDÖB", "weko": "WEKO", "finma": "FINMA", "finma_versicherungsrecht": "FINMA Versicherung",
               "ubi": "UBI", "elcom": "ElCom", "postcom": "PostCom", "comcom": "ComCom", "esbk": "ESBK",
+              "uek": "Übernahmekommission", "six_ser": "SIX Exchange Regulation",
               "bazg": "BAZG", "emark": "EMARK", "hudoc_ch": "EGMR (Schweiz)", "bge_egmr": "EGMR in der BGE",
               "ch_bundesrat": "Bundesrat", "mkg": "Militärkassationsgericht"}
 WORDS = {"gerichte": "Gerichte", "zuerich": "Zürich", "buelach": "Bülach", "zivilstraf": "Zivil- und Strafgericht",

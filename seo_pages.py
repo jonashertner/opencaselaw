@@ -476,7 +476,7 @@ _COURT_SHORT = {
     "icj": "IGH",
     "finma": "FINMA", "finma_versicherungsrecht": "FINMA-VR", "weko": "WEKO",
     "edoeb": "EDÖB", "ubi": "UBI", "elcom": "ElCom", "postcom": "PostCom",
-    "comcom": "ComCom", "emark": "EMARK",
+    "comcom": "ComCom", "emark": "EMARK", "uek": "UEK", "six_ser": "SIX Exchange Regulation",
 }
 
 

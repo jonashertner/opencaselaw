@@ -86,6 +86,16 @@ COURT_BRANCH = {
     "weko": OEFF, "elcom": OEFF, "comcom": OEFF, "postcom": OEFF,
     "ubi": OEFF, "eschk": OEFF, "esbk": OEFF, "estv": OEFF,
     "bazg": OEFF, "rab": OEFF, "preisueberwacher": OEFF,
+    # uek: the Takeover Board rules on public-tender-offer transactions —
+    # substantively adjacent to company/securities law, but it acts as a
+    # public authority issuing administrative Verfügungen under the FinfraG,
+    # reviewable like any other regulator's ruling (Beschwerde to FINMA, then
+    # BVGer) — same procedural bucket as weko/finma/rab above.
+    "uek": OEFF,
+    # six_ser: SIX Exchange Regulation sanctions rest on the listing rules, a
+    # contract between issuer and exchange; they are reviewed by arbitration
+    # and then by the Federal Supreme Court's civil divisions (4A_).
+    "six_ser": ZIVIL,
     # human-rights (Konventionsrecht — public law)
     "ecthr_chamber": OEFF, "ecthr_committee": OEFF,
     "ecthr_grand_chamber": OEFF, "hudoc_ch": OEFF, "bge_egmr": OEFF,

@@ -438,7 +438,7 @@ def generate_stats(db_path: Path) -> dict:
 _FEDERAL_COURT_EXCLUDE = (
     'bger', 'bge', 'bvger', 'bstger', 'bpatger', 'bge_egmr', 'bge_historical',
     'finma', 'finma_versicherungsrecht', 'weko', 'edoeb', 'ubi', 'elcom',
-    'postcom', 'comcom', 'ta_sst', 'emark', 'hudoc_ch', 'ch_bundesrat',
+    'postcom', 'comcom', 'uek', 'six_ser', 'ta_sst', 'emark', 'hudoc_ch', 'ch_bundesrat',
     'ch_vb',
     # UN treaty bodies: canton is 'CH' or 'UN', never a Swiss canton
     'untb_ccpr',

@@ -86,6 +86,8 @@ _FEDERAL_COURTS: dict[str, str] = {
     "elcom": "elcom",
     "postcom": "postcom",
     "comcom": "comcom",
+    "uek": "uek",               # Übernahmekommission / Swiss Takeover Board
+    "six_ser": "six_ser",       # SIX Exchange Regulation sanction decisions
     # Legacy
     "emark": "emark",          # Eidg. Migrationskommission
 }

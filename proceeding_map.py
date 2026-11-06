@@ -172,6 +172,10 @@ COURT_PROCEEDING = {
     "bazg": ("zollverfuegung", "vwvg"),
     "rab": ("aufsichtsverfuegung", "vwvg"),
     "preisueberwacher": ("preisempfehlung", "pueg"),
+    # Übernahmekommission: public-tender-offer rulings under the FinfraG
+    # (Finanzmarktinfrastrukturgesetz); before the 2016 FinfraG revived the
+    # BEHG's takeover-law chapter, the same Board operated under the BEHG.
+    "uek": ("uebernahmeverfuegung", "finfrag"),
     # attorney supervision
     "be_anwaltsaufsicht": ("anwaltsaufsicht", "bgfa"),
     "ag_anwaltskommission": ("anwaltsaufsicht", "bgfa"),
