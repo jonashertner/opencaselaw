@@ -166,6 +166,11 @@ _MONTHS_ALL: dict[str, int] = {
     "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5,
     "giugno": 6, "luglio": 7, "agosto": 8, "settembre": 9, "ottobre": 10,
     "dicembre": 12,
+    # English — several federal offices (MROS, SIF, ESTV FATCA) publish
+    # English-only documents; "april", "august", "september" and
+    # "november" above already double as their English spellings.
+    "january": 1, "february": 2, "march": 3, "may": 5, "june": 6, "july": 7,
+    "october": 10, "december": 12,
 }
 _DATE_WORDS = re.compile(r"(\d{1,2})(?:\.|er|re|º)?\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})")
 _DATE_DMY = re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b")
@@ -200,6 +205,44 @@ def first_date_iso(text: str) -> str:
                 iso = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
             best = (m.start(), iso)
     return best[1] if best else ""
+
+
+_MONTH_YEAR = re.compile(r"\b([A-Za-zÀ-ÿ]+)\s+(\d{4})\b")
+
+
+def month_year_year(text: str) -> str:
+    """The year out of the FIRST "Month YYYY" mention in `text` (no day
+    given), or "" — e.g. a cover page reading "Bern, September 2026" or
+    "January 2024" with no day digit, which first_date_iso (it requires a
+    leading day) misses entirely. Month-precision is dropped on purpose:
+    base.py's own schema only documents "ISO YYYY-MM-DD or YYYY"."""
+    text = text or ""
+    for m in _MONTH_YEAR.finditer(text):
+        if _MONTHS_ALL.get(m.group(1).lower()):
+            return m.group(2)
+    return ""
+
+
+_DATELINE = re.compile(r"\b(?:Bern|Berne|Berna),\s*([^\n]{3,40})")
+
+
+def dateline_iso(text: str) -> str:
+    """ISO date out of a Swiss-federal "Bern(e)/Berna, <date>" dateline —
+    the letterhead nearly every admin.ch circular/report opens with ("Bern,
+    15. Januar 2026", "Berne, septembre 2026", "Berna, settembre 2026",
+    "Bern, 03.11.2023"). Looked
+    for explicitly, ahead of any in-document revision-history table, which
+    can otherwise hand first_date_iso's "first date in reading order" rule
+    an earlier, wrong date (seen with an ESTV Technical Wegleitung's
+    "Dokumentengeschichte" table: its PDF opens "Bern, September 2026" but
+    the very next page's changelog starts "19.09.2017 Initiale Version",
+    and a plain scan of the first few hundred characters picks that up
+    instead of the cover date)."""
+    m = _DATELINE.search(text or "")
+    if not m:
+        return ""
+    frag = m.group(1)
+    return first_date_iso(frag) or month_year_year(frag)
 
 
 _NO_TEXT_LAYER_SENTINEL = "\x00no-text-layer"

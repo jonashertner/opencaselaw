@@ -1623,6 +1623,12 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--title-filter", default=None,
+        help=("Historical path only: fetch only candidates whose Fedlex title matches "
+              "this case-insensitive regex (e.g. the parliamentary inquiry commission "
+              "reports), so a targeted run does not start the rest of the language."),
+    )
+    parser.add_argument(
         "--max-year", type=int, default=None,
         help="Highest BBl year to consider (historical path only; default 1999).",
     )
@@ -1780,6 +1786,7 @@ def main() -> int:
                 min_interval=args.bar_min_interval, dry_run=args.dry_run,
                 limit=args.limit,
                 lock_path=Path(args.lock_file) if args.lock_file else DEFAULT_LOCK_PATH,
+                title_filter=args.title_filter,
             )
         except BackfillLocked as e:
             log.error(f"another historical backfill is running: {e}")

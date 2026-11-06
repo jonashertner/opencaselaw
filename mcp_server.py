@@ -32458,7 +32458,7 @@ def _list_tools() -> list[Tool]:
                                  "sem_handbuch_asyl", "bj_schkg", "schkg_kantone", "weko_bekanntmachungen",
                                  "oak_bv", "un_uhri", "un_gc", "un_ch_translations", "unhcr_country",
                                  "uek_rs", "rab_rs", "ehra", "finma_aufsicht", "stiftungsaufsicht",
-                                 "hr_kantone"],
+                                 "hr_kantone", "mros", "estv_aia", "sif"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -32504,12 +32504,18 @@ def _list_tools() -> list[Tool]:
                             "Sacheinlage; DE/FR/IT), finma_aufsicht (FINMA-Aufsichtsmitteilungen 2017- and the older "
                             "FINMA-Mitteilungen incl. withdrawn ones, every language; plus doc_type rechtsprechung = "
                             "the Bulletin 'Ausgewählte Verfügungen' 2010-2017, anonymised FINMA rulings in their "
-                            "original language), stiftungsaufsicht (foundation supervision: ESA FAQ — one row per "
+                            "original language; the Enforcementberichte 2014-2018; the annual reports 2008- (with the "
+                            "2008 reports of EBK, BPV and Kst GwG); the licensing Wegleitungen, FAQ and Faktenblätter; "
+                            "DE/FR/IT/EN as published), stiftungsaufsicht (foundation supervision: ESA FAQ — one row per "
                             "question, DE/FR/IT — model statutes and compensation regulations, annual reviews; BBSA "
                             "Rundschreiben 2013- and Merkblätter, DE/FR; BSABB Merkblätter, model deeds, checklists, "
                             "a 2019 legal opinion), hr_kantone (cantonal commercial registers: GE Notes aux notaires "
                             "2016-, VD note on its LFAIE practice, BE Merkblätter per legal form DE/FR; authority = "
-                            "canton code)."
+                            "canton code), mros (MROS money-laundering reporting office: annual reports 2015-, "
+                            "typologies, guides, sanctions alerts, sectoral risk assessments; DE/FR/IT/EN), estv_aia "
+                            "(ESTV: AIA/CRS and CbCR Wegleitungen, AIA FAQ, FATCA guidance; DE/FR/IT, EN where "
+                            "published), sif (SIF: national risk assessment reports on money laundering and terrorist "
+                            "financing 2017-2024, AIA explanatory notes)."
                         ),
                     },
                     "issuing_authority": {
@@ -32517,7 +32523,7 @@ def _list_tools() -> list[Tool]:
                         "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV",
                                  "UN-UPR", "UN-CRC", "UN-CEDAW", "UN-SPT", "UN-CAT", "UN-CESCR",
                                  "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES",
-                                 "UNHCR", "UEK", "RAB", "EHRA", "ESA", "BBSA", "BSABB"],
+                                 "UNHCR", "UEK", "RAB", "EHRA", "ESA", "BBSA", "BSABB", "MROS", "SIF"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
@@ -32526,7 +32532,8 @@ def _list_tools() -> list[Tool]:
                             "OAK BV (BVG supervision: Weisungen, Mitteilungen). "
                             "UEK (Takeover Board), RAB (audit oversight), EHRA (federal commercial "
                             "register office), ESA (federal foundation supervision), BBSA / BSABB "
-                            "(foundation supervisors of Bern and of both Basel). "
+                            "(foundation supervisors of Bern and of both Basel), MROS (money-laundering reporting "
+                            "office), SIF (State Secretariat for International Finance). "
                             "UN-* = the UN body that addressed the recommendation to Switzerland: "
                             "UN-UPR (~1,450, Universal Periodic Review), UN-CAT (Committee against "
                             "Torture), UN-CCPR (Human Rights Committee), UN-CESCR, UN-CERD, UN-CEDAW, "

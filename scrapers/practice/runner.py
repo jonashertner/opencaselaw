@@ -42,6 +42,9 @@ from .ehra import EhraScraper
 from .finma_aufsicht import FinmaAufsichtScraper
 from .stiftungsaufsicht import StiftungsaufsichtScraper
 from .hr_kantone import HrKantoneScraper
+from .mros import MrosScraper
+from .estv_aia import EstvAiaScraper
+from .sif import SifScraper
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +95,11 @@ ENABLED_SCRAPERS = {
     "finma_aufsicht":    FinmaAufsichtScraper,
     "stiftungsaufsicht": StiftungsaufsichtScraper,
     "hr_kantone":        HrKantoneScraper,
+    # Banking (2026-11-06): MROS annual reports and typologies, ESTV AIA /
+    # CbCR / FATCA guidance, SIF national risk assessments.
+    "mros":              MrosScraper,
+    "estv_aia":          EstvAiaScraper,
+    "sif":               SifScraper,
 }
 
 # Defensive scaffolds — need first-run validation before enabling

@@ -688,14 +688,22 @@ def ingest_historical_one(
 def select_candidates(
     candidates: list, state: dict[str, tuple[str, int]], *,
     host_allow: set[str], min_year: int, max_year: int, max_attempts: int,
+    title_filter: str | None = None,
 ) -> tuple[list, dict[str, int]]:
-    """Filter the discovered list down to what this run may fetch."""
+    """Filter the discovered list down to what this run may fetch.
+    ``title_filter`` (a case-insensitive regex on the Fedlex title) narrows a
+    run to named documents — e.g. the inquiry-commission reports — without
+    starting the rest of a language's backfill."""
     skipped: dict[str, int] = {"terminal": 0, "attempts_exhausted": 0,
-                               "host": 0, "year": 0}
+                               "host": 0, "year": 0, "title": 0}
+    title_rx = re.compile(title_filter, re.IGNORECASE) if title_filter else None
     out = []
     for c in candidates:
         if not (min_year <= c.year <= max_year):
             skipped["year"] += 1
+            continue
+        if title_rx and not title_rx.search(c.title or ""):
+            skipped["title"] += 1
             continue
         if c.file_host not in host_allow:
             skipped["host"] += 1
@@ -764,6 +772,7 @@ def run_historical_backfill(
     min_interval: float, dry_run: bool = False, limit: int | None = None,
     discover=None, fetcher: PoliteFetcher | None = None,
     lock_path: Path | str | None = DEFAULT_LOCK_PATH,
+    title_filter: str | None = None,
 ) -> dict:
     """Discover, filter, fetch and store; returns a stats dict (also printed
     as JSON by the CLI). ``discover`` and ``fetcher`` are injectable for
@@ -775,14 +784,14 @@ def run_historical_backfill(
             conn, language=language, host_allow=host_allow, min_year=min_year,
             max_year=max_year, max_per_run=max_per_run, max_attempts=max_attempts,
             min_interval=min_interval, dry_run=dry_run, limit=limit,
-            discover=discover, fetcher=fetcher,
+            discover=discover, fetcher=fetcher, title_filter=title_filter,
         )
     with _RunLock(lock_path):
         return _run_historical_backfill(
             conn, language=language, host_allow=host_allow, min_year=min_year,
             max_year=max_year, max_per_run=max_per_run, max_attempts=max_attempts,
             min_interval=min_interval, dry_run=dry_run, limit=limit,
-            discover=discover, fetcher=fetcher,
+            discover=discover, fetcher=fetcher, title_filter=title_filter,
         )
 
 
@@ -790,7 +799,7 @@ def _run_historical_backfill(
     conn: sqlite3.Connection, *, language: str, host_allow: set[str],
     min_year: int, max_year: int, max_per_run: int | None, max_attempts: int,
     min_interval: float, dry_run: bool, limit: int | None,
-    discover, fetcher: PoliteFetcher | None,
+    discover, fetcher: PoliteFetcher | None, title_filter: str | None = None,
 ) -> dict:
     if discover is None:
         from scrapers.fedlex_materialien import discover_fga_botschaften_untyped
@@ -801,7 +810,7 @@ def _run_historical_backfill(
     state = load_state(conn, language)
     todo, skipped = select_candidates(
         found, state, host_allow=host_allow, min_year=min_year, max_year=max_year,
-        max_attempts=max_attempts,
+        max_attempts=max_attempts, title_filter=title_filter,
     )
     if limit:
         todo = todo[:limit]

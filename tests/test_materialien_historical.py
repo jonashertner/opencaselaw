@@ -861,3 +861,40 @@ def test_lock_is_taken_in_process_only_and_runbook_agrees(tmp_path, monkeypatch)
         bbc.main()
     parser_help = re.sub(r"\s+", " ", buf.getvalue())
     assert "do NOT wrap the command in an outer 'flock -n' on the same file" in parser_help
+
+
+# ── Parliamentary inquiry commission reports (2026-11-06) ─────────────
+
+@pytest.mark.parametrize("lang,title,want", [
+    ("de", "Bericht der Untersuchungskommission über die Sonderbundsrechnung Vom 30. Juli 1853.", "bericht_kommission"),
+    ("de", "Vorkommnisse im EJPD Bericht der Parlamentarischen Untersuchungskommission (PUK) vom 22. November 1989", "bericht_kommission"),
+    ("de", "Vorkommnisse im EJPD Ergänzungsbericht der Parlamentarischen Untersuchungskommission (PUK) vom 29. Mai 1990", "bericht_kommission"),
+    ("de", "VORKOMMNISSE IM EMD BERICHT DER PARLAMENTARISCHEN UNTERSUCHUNGSKOMMISSION (PUK EMD) VOM 17. NOVEMBER 1990", "bericht_kommission"),
+    ("de", "Vorkommnisse im EJPD Stellungnahme des Bundesrates zum Bericht der Parlamentarischen Untersuchungskommission (PUK) vom 4. Dezember 1989", "stellungnahme_bundesrat"),
+    ("de", "Nachkontrolle zur PUK EJPD; begleitende Prüfung zur Verwirklichung von Forderungen", "bericht_kommission"),
+    ("fr", "Evénements survenus au DFJP Rapport de la commission d'enquête parlementaire (CEP) du 22 novembre 1989", "bericht_kommission"),
+    ("fr", "Evénements de grande portée au Département militaire fédéral Avis du Conseil fédéral sur le rapport de la Commission d'enquête parlementaire DMF", "stellungnahme_bundesrat"),
+    ("fr", "Suivi relatif à la CEP DFJP; contrôle concomitant", "bericht_kommission"),
+    ("it", "AVVENIMENTI IN SENO AL DMF RAPPORTO DELLA COMMISSIONE PARLAMENTARE D'INCHIESTA (CPI DMF) DEL 17 NOVEMBRE 1990", "bericht_kommission"),
+    ("it", "Avvenimenti in seno al DFGP Parere del Consiglio federale in merito al rapporto della Commissione parlamentare d'inchiesta (CPI)", "stellungnahme_bundesrat"),
+    ("it", "Controllo a posteriori circa la CPI DFGP; esame concomitante", "bericht_kommission"),
+    # a message or initiative that only mentions a PUK keeps its own type
+    ("de", "Botschaft des Bundesrates betreffend Erlass eines Bundesbeschlusses (Untersuchungskommission)", "botschaft"),
+    ("de", "Parlamentarische Initiative Rechtsschutz der Betroffenen im PUK-Verfahren Stellungnahme des Bundesrates zum Bericht", "stellungnahme_bundesrat"),
+    # decrees setting a commission up, and an unrelated "CEP", are not Materialien
+    ("de", "Bundesbeschluss über die Einsetzung von parlamentarischen Untersuchungskommissionen", None),
+    ("it", "Decreto federale concernente L`acquisto degli aeroplani da combattimento Mirage III", None),
+    ("fr", "Décision de qualification. Tournoi de poker CEP Club", None),
+])
+def test_inquiry_commission_titles(lang, title, want) -> None:
+    assert fm.classify_historical_title(title, lang) == want
+
+
+def test_title_filter_narrows_a_run_without_starting_the_language(db, fake_pdf) -> None:
+    cands = [_cand(1990, 637, "1_637__", n=1,
+                   title="Vorkommnisse im EJPD Bericht der Parlamentarischen Untersuchungskommission (PUK)"),
+             _cand(1990, 700, "1_700__", n=2, title="Botschaft über etwas anderes")]
+    f, script, _ = _fetcher([(200, {}, PDF)] * 2)
+    stats = _run(db, cands, f, title_filter=r"untersuchungskommission|mirage")
+    assert stats["done"] == 1 and stats["skipped"]["title"] == 1
+    assert [c[0] for c in script.calls] == [BAR % 1]

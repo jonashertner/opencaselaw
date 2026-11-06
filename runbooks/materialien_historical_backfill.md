@@ -323,3 +323,46 @@ volume for `bbl_year < 1999` or restrict to `source_collection IS NULL`.
 4. **Other FGA types** (24 Bericht BR, 25 Stellungnahme BR, 30 Bericht Kommission, 38
    Erlassentwurf, 39 Vorentwurf, 40 Vernehmlassung) sit on Fedlex's own store and are a
    separate task; type 33 (Beschlüsse, 44,615) stays out.
+
+## Targeted run: parliamentary inquiry commission (PUK) reports (2026-11-06)
+
+Jonas asked for every PUK report ever published. The CS report (BBl/FF 2025 515, with the
+Federal Council's opinion 2025 516) is a typed work and already held in DE/FR/IT. The
+historical ones are untyped and were missed: their titles start with the affair
+("Vorkommnisse im EJPD Bericht der Parlamentarischen Untersuchungskommission (PUK) …"),
+which no title rule claimed. Since 2026-11-06 the rules in `_HISTORICAL_TITLE_RULES`
+classify them (reports as `bericht_kommission`, the Federal Council's opinions as
+`stellungnahme_bundesrat`), and `--title-filter` limits a run to them, so the FR/IT runs
+do not start the rest of those languages. Measured by discovery on 2026-11-06:
+
+| | DE | FR | IT |
+|---|---|---|---|
+| Sonderbund 1853 (Untersuchungskommission) | BBl 1853 III 244 | — | — |
+| Mirage 1964 (report of the two commissions) | held | FF 1964 II 289 | FF 1964 II 1477 |
+| PUK EJPD 1989 + Federal Council opinion | BBl 1990 I 637, I 879 | FF 1990 I 593, I 848 | FF 1990 I 473, I 623 |
+| PUK EJPD supplementary report 1990 | BBl 1990 II 1565 | FF 1990 II 1469 | FF 1990 II 1241 |
+| PUK EMD 1990 + Federal Council opinion | BBl 1990 III 1293, III 1585 | FF 1990 III 1229, III 1529 | FF 1990 III 1061, III 1357 |
+| GPK follow-up of PUK EJPD 1992 | BBl 1992 I 309 | FF 1992 I 289 | FF 1992 I 273 |
+| PUK PKB 1996 + Federal Council opinion 1997 | held, BBl 1997 III 98 | FF 1996 V 133, 1997 III 103 | FF 1996 V 121, 1997 III 100 |
+| GPK follow-up of PUK PKB 1998 (+ opinion) | BBl 1998 V 5345, 5372 | FF 1998 V 4704, 4730 | FF 1998 IV 4281 |
+
+Run it in the quiet window, after the checks above (publish, materialien and
+`ocl-mat-hist-*` all inactive), once the commit with the new rules is on the VPS. One
+unit, the three languages in sequence (the host lock allows one run at a time); about
+40 requests in all:
+
+```bash
+systemd-run --unit=ocl-mat-hist-puk-$(date +%m%d) \
+  --property=WorkingDirectory=/opt/caselaw/repo --property=CPUWeight=20 --property=IOWeight=20 \
+  --setenv=PYTHONPATH=/opt/caselaw/repo \
+  /bin/bash -c 'for L in de fr it; do python3 -m search_stack.build_botschaft_corpus --ingest-all \
+     --discover-untyped-by-title --host-allow bar --language $L --max-per-run 200 \
+     --title-filter "untersuchungskommission|zur puk|enqu[eê]te parlementaire|la cep|parlamentare d.inchiesta|la cpi|mirage-angelegenheit|affaire du mirage|affare dei mirage" \
+     --lock-file /opt/caselaw/repo/logs/bar_fetch.lock \
+     --db /opt/caselaw/repo/output/materialien.db \
+     >> /opt/caselaw/repo/logs/materialien_historical.log 2>&1; done'
+```
+
+Check afterwards: `journalctl -u ocl-mat-hist-puk-*` exit 0, and the JSON blocks in
+`logs/materialien_historical.log` (`done` ≈ the table above, `collision` and `error`
+named). The documents reach the served database with the next build's step 2f.

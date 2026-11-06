@@ -1008,11 +1008,24 @@ _BOTSCHAFT_TITLE_PREFIX = {"de": "botschaft", "fr": "message", "it": "messaggio"
 # (lower-cased, first match wins) into the doc_type slugs Fedlex uses for the
 # typed works; a title no rule claims (consular reports, cantonal returns,
 # notices) is not a candidate.
+#
+# Parliamentary inquiry commissions (PUK / CEP / CPI, 2026-11-06): their
+# reports are titled after the affair ("Vorkommnisse im EJPD Bericht der
+# Parlamentarischen Untersuchungskommission (PUK) …", "Evénements survenus au
+# DFJP Rapport de la commission d'enquête parlementaire (CEP) …"), so no
+# prefix rule claimed them. Their rules come after the Botschaft and
+# parliamentary-initiative rules (a message or initiative that only mentions a
+# PUK keeps its type); the bare abbreviations count only after an article
+# ("zur PUK", "la CEP", "circa la CPI") — "Tournoi de poker CEP Club" is not
+# a PUK. The decrees that set the commissions up are not Materialien and are
+# excluded (_HISTORICAL_TITLE_EXCLUDE).
 _HISTORICAL_TITLE_RULES: dict[str, tuple[tuple[str, str], ...]] = {
     "de": (
         (r"^(?:nachtrags|ergänzungs|zusatz)?botschaft", "botschaft"),
         (r"^parlamentarische initiative.*stellungnahme des bundesrates", "stellungnahme_bundesrat"),
         (r"^parlamentarische initiative", "bericht_kommission"),
+        (r"stellungnahme des bundesrates.{0,200}untersuchungskommission", "stellungnahme_bundesrat"),
+        (r"untersuchungskommission|\b(?:zur|der|die) puk\b", "bericht_kommission"),
         (r"^(?:ergänzungs|zusatz)?berichte? des bundesrates", "bericht_bundesrat"),
         (r"^(?:ergänzungs|zusatz)?berichte?\b.{0,160}kommission", "bericht_kommission"),
         (r"^kommissionalbericht", "bericht_kommission"),
@@ -1021,6 +1034,8 @@ _HISTORICAL_TITLE_RULES: dict[str, tuple[tuple[str, str], ...]] = {
         (r"^message", "botschaft"),
         (r"^initiative parlementaire.*avis du conseil fédéral", "stellungnahme_bundesrat"),
         (r"^initiative parlementaire", "bericht_kommission"),
+        (r"(?:prise de position|avis) du conseil fédéral.{0,200}commission d.enquête", "stellungnahme_bundesrat"),
+        (r"commission d.enquête parlementaire|\b(?:la|de la) cep\b", "bericht_kommission"),
         (r"^rapports? (?:complémentaires? )?du conseil fédéral", "bericht_bundesrat"),
         (r"^rapports?\b.{0,160}commission", "bericht_kommission"),
     ),
@@ -1028,6 +1043,8 @@ _HISTORICAL_TITLE_RULES: dict[str, tuple[tuple[str, str], ...]] = {
         (r"^messaggio", "botschaft"),
         (r"^iniziativa parlamentare.*parere del consiglio federale", "stellungnahme_bundesrat"),
         (r"^iniziativa parlamentare", "bericht_kommission"),
+        (r"parere del consiglio federale.{0,200}commissione parlamentare d.inchiesta", "stellungnahme_bundesrat"),
+        (r"commissione parlamentare d.inchiesta|\b(?:la|circa la) cpi\b", "bericht_kommission"),
         (r"^rapporti? (?:complementari? )?del consiglio federale", "bericht_bundesrat"),
         (r"^rapport[oi]\b.{0,160}commission", "bericht_kommission"),
     ),
@@ -1038,10 +1055,18 @@ _HISTORICAL_TITLE_RES = {
 }
 
 
+# Decrees ("Bundesbeschluss über die Einsetzung von parlamentarischen
+# Untersuchungskommissionen …") match the inquiry-commission rules by name
+# but are acts, not Materialien.
+_HISTORICAL_TITLE_EXCLUDE = re.compile(r"^(?:bundesbeschluss|arrêté fédéral|arrête fédéral|decreto federale)")
+
+
 def classify_historical_title(title: str | None, language: str) -> str | None:
     """doc_type slug of a historical untyped Bundesblatt title, or None when
     it is not a Materialien document."""
     t = re.sub(r"\s+", " ", (title or "")).strip().lower()
+    if _HISTORICAL_TITLE_EXCLUDE.match(t):
+        return None
     for rx, slug in _HISTORICAL_TITLE_RES.get(language, ()):
         if rx.search(t):
             return slug

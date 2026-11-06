@@ -221,3 +221,38 @@ def test_dedup_drops_a_copy_and_remembers_stored_rows(tmp_path, monkeypatch):
 def test_sources_registered():
     for key in ("uek_rs", "rab_rs", "ehra", "finma_aufsicht", "stiftungsaufsicht", "hr_kantone"):
         assert key in ENABLED_SCRAPERS
+
+
+# ── FINMA: Enforcementberichte, annual reports, licensing guidance ─────
+
+def test_finma_annual_reports_year_from_file_name_without_financial_statements():
+    assert fa.annual_year("20250408-finma_jb24.pdf") == "2024"
+    assert fa.annual_year("20220405-finma_jahresbericht_2021.pdf") == "2021"
+    assert fa.annual_year("20250408-finma_jr24.pdf") == ""            # Jahresrechnung
+    assert fa.annual_year("finma_jahresrechnung_2013_de.pdf") == ""
+    assert fa.file_date("20250408-finma_jb24.pdf") == "2025-04-08"
+    de = fa.parse_annual(_read("finma_geschaeftsberichte_de.html"))
+    years = sorted(x["year"] for x in de)
+    assert years[-1] == "2024" and "2013" in years
+    issuers_2008 = sorted(x["issuer"] for x in de if x["year"] == "2008")
+    assert issuers_2008 == ["BPV", "EBK", "Kst GwG"]                   # FINMA's predecessors
+    # the French page lists the 2021 file under 2022/2023; the file name decides
+    fr = fa.parse_annual(_read("finma_geschaeftsberichte_fr.html"))
+    assert {x["year"] for x in fr if "jahresbericht_2021" in x["url"]} == {"2021"}
+
+
+def test_finma_licensing_guidance_keeps_guidance_drops_forms_and_private_texts():
+    docs, subs = fa.parse_guidance(_read("finma_bewilligung_ico_de.html"), "/de/bewilligung/fintech/x/")
+    assert {d["title"] for d in docs} >= {"Wegleitung ICO"}
+    assert all(set(d["files"]) == {"de", "fr", "it", "en"} for d in docs)
+    assert any(p.startswith("/de/bewilligung/") for p in subs)
+    docs, _ = fa.parse_guidance(_read("finma_bewilligung_fintech_de.html"), "/de/bewilligung/fintech/")
+    titles = {d["title"] for d in docs}
+    assert "FAQ: Bewilligungspflicht" in titles and "Faktenblatt: Crowdfunding" in titles
+    assert not any("SBVg" in t or "Rundschreiben" in t or "Aufsichtsmitteilung" in t for t in titles)
+
+
+def test_finma_enforcement_reports_api():
+    items = json.loads((FIX / "finma_enforcementberichte_api.json").read_text(encoding="utf-8"))["Items"]
+    assert [i["Title"] for i in items][:1] == ["Enforcementbericht 2018"] and len(items) == 5
+    assert all({l["Name"] for l in i["OtherLanguageLinks"]} == {"DE", "FR", "IT", "EN"} for i in items)
