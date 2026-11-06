@@ -29,6 +29,24 @@ Rules, deliberately narrow:
      reorganisation also renamed divisions). If the text names nothing,
      chamber becomes NULL — an honest gap beats a wrong label.
 
+  3. Every BGG-era row (4A_594/2026, not 4P.253/1999) whose stored value
+     names a BGer division OTHER than the one its docket series belongs to,
+     and other than the one its own header names: re-derived. Since 2007
+     each series belongs to exactly one division, so such a value can only
+     have been lifted from the reasons — the pre-2026-11 text scan took the
+     longest division name found ANYWHERE in the ruling (bger_4A_594_2026,
+     suggestion 0003: header "I Corte di diritto civile", stored "II.
+     Zivilrechtliche Abteilung" because the reasons discuss a recusal
+     request against the President of the II Corte). A value that matches
+     the header is kept even when it is not the series' division: the
+     header is the court's own statement ("II. sozialrechtliche Abteilung
+     (als strafrechtliche Abteilung)", 6B_819/2010).
+
+Replacement, rules 2 and 3: the header's division (chamber_from_text) when
+it is the series' division; for a BGG-era docket otherwise the series'
+division under the name it carried on the decision date (division_for_
+docket — structural, not a guess); for older dockets NULL.
+
 Wired into build_fts5 as a defensive post-ingest phase (same pattern as the
 canonical date correction): it runs on the .tmp DB during the nightly
 rebuild and can never fail the build. The serving DB is immutable and is
@@ -43,6 +61,7 @@ import argparse
 import logging
 import re
 import sqlite3
+from datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +90,45 @@ def _is_broken(chamber: str | None, docket: str) -> bool:
     return any(mark in cl for mark in _FOREIGN_MARKERS)
 
 
+def _parse_date(value) -> date | None:
+    try:
+        return date.fromisoformat(str(value)[:10]) if value else None
+    except ValueError:
+        return None
+
+
+def _replacement(docket: str, decision_date, full_text: str) -> str | None:
+    """Header division if consistent with the docket series, else the
+    series' period-correct division (BGG dockets), else the header (older
+    dockets, the pre-existing rule-2 behaviour) or None."""
+    from scrapers.bger import (
+        chamber_from_text,
+        division_for_docket,
+        division_key,
+        docket_division_key,
+    )
+
+    header = chamber_from_text(full_text or "")
+    series = docket_division_key(docket)
+    if series is None:
+        return header
+    if header and division_key(header) == series:
+        return header
+    return division_for_docket(docket, _parse_date(decision_date))
+
+
 def apply_to_db(conn: sqlite3.Connection, dry_run: bool = False):
-    """Returns (n_7bf_forced, n_rederived, n_nulled). Commits unless dry_run."""
-    from scrapers.bger import PREFIX_TO_ABTEILUNG, chamber_from_text
+    """Returns (n_7bf_forced, n_rederived, n_nulled). Commits unless dry_run.
+
+    n_rederived counts rules 2 and 3 together (the build log line reads
+    the tuple); the rule-3 share is logged here.
+    """
+    from scrapers.bger import (
+        PREFIX_TO_ABTEILUNG,
+        chamber_from_text,
+        division_key,
+        docket_division_key,
+    )
 
     ii_straf = PREFIX_TO_ABTEILUNG["7B"][1]["de"]
 
@@ -94,34 +149,47 @@ def apply_to_db(conn: sqlite3.Connection, dry_run: bool = False):
             [(ii_straf, did) for did in force],
         )
 
-    # Rule 2 — everything else, only if provably broken. The SQL prefilter
-    # keeps the full_text fetch to the ~2k suspect rows; the Python check
-    # is authoritative (bare-prefix equality, exact markers), and new-series
-    # 7B/7F rows are rule 1's, never re-derived here.
-    n_rederived = n_nulled = 0
+    # Rules 2 and 3 — candidates from the cheap leading columns only (no
+    # full_text read), the authoritative checks in Python, full_text then
+    # fetched per suspect (~50k es rows carrying a docket code, a few hundred
+    # contradictions). New-series 7B/7F rows are rule
+    # 1's, never re-derived here.
+    broken: list[str] = []
+    contradicting: list[str] = []
+    for did, docket, chamber in conn.execute(
+            "SELECT decision_id, docket_number, chamber FROM decisions "
+            "WHERE court='bger'"):
+        docket = docket or ""
+        if _NEW_7BF.match(docket):
+            continue
+        if _is_broken(chamber, docket):
+            broken.append(did)
+            continue
+        series = docket_division_key(docket)
+        stored = division_key(chamber)
+        if series and stored and stored != series:
+            contradicting.append(did)
+
+    rule3 = set(contradicting)
+    n_rederived = n_nulled = n_rule3 = 0
     fixes: list[tuple[str | None, str]] = []
-    cur = conn.execute(
-        """SELECT decision_id, docket_number, chamber, full_text FROM decisions
-           WHERE court='bger'
-             AND (chamber IS NULL OR chamber=''
-                  OR length(chamber) <= 3
-                  OR chamber LIKE '%strafgericht%'
-                  OR chamber LIKE '%Beschwerdekammer%'
-                  OR chamber LIKE '%Berufungskammer%'
-                  OR chamber LIKE '%pénal fédéral%'
-                  OR chamber LIKE '%penale federale%')""",
-    )
-    for did, docket, chamber, full_text in cur:
-        if _NEW_7BF.match(docket or ""):
-            continue
-        if not _is_broken(chamber, docket or ""):
-            continue
-        new = chamber_from_text(full_text or "")
+    for did in broken + contradicting:
+        docket, chamber, decision_date, full_text = conn.execute(
+            "SELECT docket_number, chamber, decision_date, full_text "
+            "FROM decisions WHERE decision_id=?", (did,)).fetchone()
+        if did in rule3:
+            # Rule 3: the court's own header wins over the series.
+            header = chamber_from_text(full_text or "")
+            if header and division_key(header) == division_key(chamber):
+                continue
+        new = _replacement(docket or "", decision_date, full_text or "")
         if new == chamber:
             continue
         fixes.append((new, did))
         if new:
             n_rederived += 1
+            if did in rule3:
+                n_rule3 += 1
         else:
             n_nulled += 1
     if fixes and not dry_run:
@@ -129,6 +197,8 @@ def apply_to_db(conn: sqlite3.Connection, dry_run: bool = False):
             "UPDATE decisions SET chamber=? WHERE decision_id=?", fixes)
     if not dry_run:
         conn.commit()
+    logger.info("bger chambers: %d of the re-derived values contradicted "
+                "their docket series and their own header (rule 3)", n_rule3)
     return len(force), n_rederived, n_nulled
 
 

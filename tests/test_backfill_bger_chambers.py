@@ -39,8 +39,10 @@ FOREIGN = "Beschwerdekammer des Bundesstrafgerichts"
 def _db(rows):
     con = sqlite3.connect(":memory:")
     con.execute("""CREATE TABLE decisions (decision_id TEXT PRIMARY KEY,
-        court TEXT, docket_number TEXT, chamber TEXT, full_text TEXT)""")
-    con.executemany("INSERT INTO decisions VALUES (?,?,?,?,?)", rows)
+        court TEXT, docket_number TEXT, chamber TEXT, full_text TEXT,
+        decision_date TEXT)""")
+    con.executemany("INSERT INTO decisions (decision_id, court, docket_number,"
+                    " chamber, full_text) VALUES (?,?,?,?,?)", rows)
     con.commit()
     return con
 
@@ -98,13 +100,18 @@ def test_bare_prefix_and_null_chambers_rederive():
     con = _db([
         ("a", "bger", "1C_1/2019", "1C", f"Urteil der {DIV_DE} ..."),
         ("b", "bger", "1C_2/2019", None, f"Urteil der {DIV_DE} ..."),
-        ("c", "bger", "1C_3/2019", None, "nichts"),   # NULL stays NULL, no write
+        # A BGG-era docket series belongs to exactly one division, so a
+        # silent text no longer leaves a gap: the series names it (2026-11,
+        # suggestion 0003; see tests/test_bger_chamber_header_first.py).
+        ("c", "bger", "1C_3/2019", None, "nichts"),
+        ("d", "bger", "1A.3/2005", None, "nichts"),   # pre-BGG: NULL stays NULL
     ])
     n1, n2, n3 = bbc.apply_to_db(con)
-    assert (n1, n2, n3) == (0, 2, 0)
+    assert (n1, n2, n3) == (0, 3, 0)
     assert _chamber(con, "a") == DIV_DE
     assert _chamber(con, "b") == DIV_DE
-    assert _chamber(con, "c") is None
+    assert _chamber(con, "c") == DIV_DE
+    assert _chamber(con, "d") is None
 
 
 def test_other_courts_are_out_of_scope():

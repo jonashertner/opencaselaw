@@ -30,8 +30,8 @@ BGer Abteilungen (docket prefix mapping):
   CH_BGer_005  II. Zivilrechtl.:        5A, 5D, 5E, 5F, 5G, 5X, 5Y
   CH_BGer_006  I.  Strafrecht.:         6B, 6D, 6E, 6F, 6G, 6S, 6P, 6X, 6Y
   CH_BGer_007  II. Strafrecht.:         7B, 7D, 7E, 7F, 7G, 7X, 7Y
-  CH_BGer_008  III. Öffentl.-r. (Soz.): 8C, 8D, 8E, 8F, 8G, 8X, 8Y
-  CH_BGer_009  IV.  Öffentl.-r. (Soz.): 9C, 9D, 9E, 9F, 9G, 9X, 9Y
+  CH_BGer_008  IV.  Öffentl.-r. (Soz.): 8C, 8D, 8E, 8F, 8G, 8X, 8Y  (I. sozialrechtl. until 2022)
+  CH_BGer_009  III. Öffentl.-r. (Soz.): 9C, 9D, 9E, 9F, 9G, 9X, 9Y  (II. sozialrechtl. until 2022)
   CH_BGer_015  Verwaltungskommission:   12T
 
 Rate limiting: 2s delay, 1 concurrent request (Eurospider is sensitive).
@@ -282,16 +282,24 @@ ABTEILUNG_MAP: dict[str, dict] = {
         "it": "II Corte di diritto penale",
         "prefixes": ["7B", "7D", "7E", "7F", "7G", "7X", "7Y"],
     },
+    # The two social-insurance divisions were renamed on 2023-01-01 and the
+    # numerals CROSS: the former I. sozialrechtliche Abteilung (8C) is now
+    # the IV. öffentlich-rechtliche Abteilung, the former II. (9C) the III.
+    # The judgment headers say so (8C_467/2022 of 3 Jan 2023: "IV. öffentlich-
+    # rechtliche Abteilung"; 9C_595/2022 of 4 Jan 2023: "III."), and so do all
+    # 4,700+ 8C/9C headers since. This map had them the other way round,
+    # which the prefix fallback stamped onto any 8C/9C row whose text named
+    # no division. Pre-2023 names: see _PRE_REORGANISATION below.
     "CH_BGer_008": {
-        "de": "III. Öffentlich-rechtliche Abteilung",
-        "fr": "IIIe Cour de droit public",
-        "it": "III Corte di diritto pubblico",
-        "prefixes": ["8C", "8D", "8E", "8F", "8G", "8X", "8Y"],
-    },
-    "CH_BGer_009": {
         "de": "IV. Öffentlich-rechtliche Abteilung",
         "fr": "IVe Cour de droit public",
         "it": "IV Corte di diritto pubblico",
+        "prefixes": ["8C", "8D", "8E", "8F", "8G", "8X", "8Y"],
+    },
+    "CH_BGer_009": {
+        "de": "III. Öffentlich-rechtliche Abteilung",
+        "fr": "IIIe Cour de droit public",
+        "it": "III Corte di diritto pubblico",
         "prefixes": ["9C", "9D", "9E", "9F", "9G", "9X", "9Y"],
     },
     "CH_BGer_015": {
@@ -309,34 +317,179 @@ for _sig, _info in ABTEILUNG_MAP.items():
         PREFIX_TO_ABTEILUNG[_p] = (_sig, _info)
 
 
-# Division names to look for in page text, longest entry first so "II. …" is
-# tested before "I. …". The lookbehind is the real guard: plain substring
-# matching let "I. Strafrechtliche Abteilung" match *inside* "II. straf-
-# rechtliche Abteilung", which is why 7B decisions were filed under the I.
-# division (#57). Order alone is too fragile to rely on for that.
+# Division names in force before the 2023 reorganisation, by docket-series
+# digit. 8C/9C: the sozialrechtliche Abteilungen until 2022-12-31 (renamed
+# IV./III. öffentlich-rechtliche Abteilung from 2023-01-01). 6B: a single
+# "Strafrechtliche Abteilung" until 2023-06-30 (the II. strafrechtliche
+# Abteilung and the 7B/7F series start 2023-07-01). Boundaries read off the
+# judgment headers of every served 6B/8C/9C row: last "I. sozialrechtliche"
+# 8C header 2022-12, first "IV. öffentlich-rechtliche" 2023-01; last
+# "Strafrechtliche Abteilung" 6B header 2023-06, first "I. strafrechtliche"
+# 2023-07.
+_SOCIAL_RENAMED = date(2023, 1, 1)
+_CRIMINAL_SPLIT = date(2023, 7, 1)
+_PRE_REORGANISATION: dict[str, tuple[date, dict[str, str]]] = {
+    "8": (_SOCIAL_RENAMED, {"de": "I. sozialrechtliche Abteilung",
+                            "fr": "Ire Cour de droit social",
+                            "it": "I Corte di diritto sociale"}),
+    "9": (_SOCIAL_RENAMED, {"de": "II. sozialrechtliche Abteilung",
+                            "fr": "IIe Cour de droit social",
+                            "it": "II Corte di diritto sociale"}),
+    "6": (_CRIMINAL_SPLIT, {"de": "Strafrechtliche Abteilung",
+                            "fr": "Cour de droit pénal",
+                            "it": "Corte di diritto penale"}),
+}
+
+
+def _division_name_rx(name: str) -> re.Pattern:
+    """Header pattern for one division name.
+
+    The lookbehind is the real guard against reading "II. …" as "I. …":
+    plain substring matching let "I. Strafrechtliche Abteilung" match
+    *inside* "II. strafrechtliche Abteilung", which is why 7B decisions were
+    filed under the I. division (#57). Whitespace is elastic and the period
+    after a leading numeral optional: real headers read "II zivilrechtliche
+    Abteilung" (5A_177/2009) and "II.Strafrechtliche Abteilung" (7B_181/2022).
+    """
+    m = re.match(r"([IV]+)\.\s+(.*)", name)
+    if m:
+        body = re.escape(m.group(1)) + r"(?:\.\s*|\s+)" + r"\s+".join(
+            re.escape(w) for w in m.group(2).split())
+    else:
+        body = r"\s+".join(re.escape(w) for w in name.split())
+    return re.compile(r"(?<![0-9A-Za-zÀ-ÖØ-öø-ÿ])" + body, re.IGNORECASE)
+
+
+# (name as it appears in a header, German name stored). Today's divisions,
+# plus the pre-2023 names: without them a 2015 8C header ("I. sozialrechtliche
+# Abteilung") matches nothing and the first division the parties block names
+# (an Obergericht's Verwaltungskommission, say) wins. The FR/IT pre-2023
+# criminal names ("Cour de droit pénal", "Corte di diritto penale") are
+# ABTEILUNG_MAP's own I. strafrechtliche entries and keep that German name
+# (#57 pins it), so a name already in the map is never re-added here.
+# Longest first, so on a tie at one position the fuller name is kept.
+_name_to_de: dict[str, str] = {
+    info[lang]: info["de"]
+    for info in ABTEILUNG_MAP.values() for lang in ("de", "fr", "it")}
+for _since, _old in _PRE_REORGANISATION.values():
+    for _lang in ("de", "fr", "it"):
+        _name_to_de.setdefault(_old[_lang], _old["de"])
+_DIVISION_NAMES: list[tuple[str, str]] = sorted(
+    _name_to_de.items(), key=lambda nd: (-len(nd[0]), nd[0]))
 _ABTEILUNG_NAME_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"(?<![0-9A-Za-zÀ-ÖØ-öø-ÿ])" + re.escape(_info[_lang]),
-                re.IGNORECASE), _info["de"])
-    for _sig, _info in sorted(
-        ABTEILUNG_MAP.items(),
-        key=lambda kv: max(len(kv[1][lang]) for lang in ("de", "fr", "it")),
-        reverse=True,
-    )
-    for _lang in ("de", "fr", "it")
+    (_division_name_rx(name), de) for name, de in _DIVISION_NAMES
 ]
+
+# entscheidsuche prepends a synthetic Kopfzeile to every es_bger text, one
+# line per language: "Bundesgericht III. Öffentlich-rechtliche Abteilung
+# 12.08.2020 8C 38/2019 (8C_38/2019)". Its division names are entscheidsuche's
+# own and wrong for whole series (8C labelled III. and 9C IV., 9C_10/2023
+# "II. öffentlich-rechtliche", 7B_1008/2023 "Strafrechtliche Abteilung"); the
+# court's own Rubrum follows it. Skip it.
+_ES_KOPFZEILE = re.compile(
+    r"\A(?:[ \t]*(?:Bundesgericht|Tribunal fédéral|Tribunale federale)[ \t]"
+    r"[^\n]*?\b\d{2}\.\d{2}\.\d{4}\b[^\n]*(?:\n|\Z))+")
+
+# How far past any Kopfzeile the Rubrum can name the deciding division.
+# Direct AZA text: four-language court name, docket, date, then the division
+# (4A_594/2026: char 104). Past the Rubrum a division name is something the
+# reasons MENTION, not the division that decided.
+HEADER_WINDOW = 1500
 
 
 def chamber_from_text(text: str) -> str | None:
-    """First BGer division named in `text`, as its German name, or None.
+    """The BGer division the ruling's own header names (German name), or None.
 
-    Fallback for the ~53 % of BGer dockets the prefix map does not cover
-    (pre-2008 B/C/H/I/K/M/P/U series). Reads the whole document, so it can
-    still pick up a division named in a quoted lower-instance ruling.
+    Reads only the first HEADER_WINDOW characters of the DECISION TEXT (not
+    the page: AZA page chrome runs ~1,100 characters before the ruling), after
+    any entscheidsuche Kopfzeile, and returns the division named EARLIEST
+    there. The Rubrum states the deciding division before anything else; any
+    other division a judgment names comes later — a recusal request against
+    another division's president, a related case pending there, a quoted
+    earlier ruling.
+
+    The scan used to test names longest-first across the whole document, so
+    a longer name anywhere beat the header: bger_4A_594_2026 (header "I Corte
+    di diritto civile") was filed under the II. zivilrechtliche Abteilung
+    because its reasons discuss a recusal request against "il Presidente della
+    II Corte di diritto civile" (suggestion 0003, 2026-11-06). No division
+    in the window -> None: the caller falls back to the docket prefix, and a
+    gap beats a label lifted from the reasons.
     """
+    if not text:
+        return None
+    k = _ES_KOPFZEILE.match(text)
+    head = text[k.end() if k else 0:][:HEADER_WINDOW]
+    best: tuple[int, str] | None = None
     for rx, de_name in _ABTEILUNG_NAME_PATTERNS:
-        if rx.search(text):
-            return de_name
-    return None
+        m = rx.search(head)
+        # Strict '<': on a tie the longer name (tested first) keeps it.
+        if m and (best is None or m.start() < best[0]):
+            best = (m.start(), de_name)
+    return best[1] if best else None
+
+
+# BGG-era docket: 4A_594/2026, 7B 1008/2023. NOT the dotted pre-2007 series
+# (7B.64/2000 is the Schuldbetreibungs- und Konkurskammer, 8G.12/2002 the
+# Anklagekammer, 6S/6P the Kassationshof): the prefix map describes today's
+# divisions, which those dockets never belonged to.
+_BGG_DOCKET = re.compile(r"^(\d{1,2}[A-Z])[_ ]\d+/\d{4}$")
+
+
+def division_for_docket(docket: str, decision_date: date | None = None,
+                        lang: str = "de") -> str | None:
+    """Division a BGG-era docket belongs to, named as it was on `decision_date`.
+
+    None for dotted pre-2007 dockets, EVG letter dockets and unknown
+    prefixes. Without a date, today's name.
+    """
+    m = _BGG_DOCKET.match((docket or "").strip())
+    if not m:
+        return None
+    prefix = m.group(1)
+    hit = PREFIX_TO_ABTEILUNG.get(prefix)
+    if not hit:
+        return None
+    _sig, info = hit
+    old = _PRE_REORGANISATION.get(prefix[0]) if len(prefix) == 2 else None
+    if old and decision_date is not None and decision_date < old[0]:
+        info = old[1]
+    return info.get(lang, info["de"])
+
+
+def _norm_division(name: str) -> str:
+    n = re.sub(r"\s+", " ", (name or "").strip().lower())
+    return re.sub(r"^([iv]+)\.\s*", r"\1 ", n)
+
+
+# Stored-label spelling -> division signature, for every name a division has
+# carried (today's and pre-2023, de/fr/it) plus variants found in stored
+# rows ("Ie Cour de droit social", lower-case "zivilrechtliche").
+_DIVISION_KEY: dict[str, str] = {}
+for _sig, _info in ABTEILUNG_MAP.items():
+    for _lang in ("de", "fr", "it"):
+        _DIVISION_KEY.setdefault(_norm_division(_info[_lang]), _sig)
+for _digit, (_since, _old) in _PRE_REORGANISATION.items():
+    _sig = PREFIX_TO_ABTEILUNG[_digit + ("B" if _digit == "6" else "C")][0]
+    for _lang in ("de", "fr", "it"):
+        _DIVISION_KEY.setdefault(_norm_division(_old[_lang]), _sig)
+for _alias, _sig in (("Ie Cour de droit social", "CH_BGer_008"),
+                     ("Ire Cour de droit pénal", "CH_BGer_006"),
+                     ("I Corte di diritto penale", "CH_BGer_006")):
+    _DIVISION_KEY.setdefault(_norm_division(_alias), _sig)
+
+
+def division_key(name: str | None) -> str | None:
+    """Signature (CH_BGer_00x) of a division label in any language or era,
+    or None for anything that is not one BGer division."""
+    return _DIVISION_KEY.get(_norm_division(name or "")) if name else None
+
+
+def docket_division_key(docket: str) -> str | None:
+    """Signature of the division a BGG-era docket series belongs to."""
+    m = _BGG_DOCKET.match((docket or "").strip())
+    hit = PREFIX_TO_ABTEILUNG.get(m.group(1)) if m else None
+    return hit[0] if hit else None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1585,13 +1738,29 @@ class BgerScraper(BaseScraper):
         # ── Language ──
         language = self._detect_language(full_text)
 
-        # ── Chamber from docket prefix or page text ──
+        # ── Chamber: the ruling's header, else listing, else docket prefix ──
         docket = stub["docket_number"]
+        by_prefix = self._docket_to_abteilung(docket, language, decision_date)
         chamber = (
             meta.get("chamber")
             or stub.get("vkammer")
-            or self._docket_to_abteilung(docket, language)
+            or by_prefix
         )
+        # Any name the series' division has carried: headers do not always
+        # use the one in force (6B_7/2023 of 2024 still says "Strafrechtliche
+        # Abteilung"; FR/IT pre-2023 criminal headers read as today's I.).
+        series_names = {division_for_docket(docket, decision_date),
+                        division_for_docket(docket),
+                        division_for_docket(docket, date.min)} - {None}
+        if (meta.get("chamber") and series_names
+                and meta["chamber"] not in series_names):
+            # Since 2007 a BGG docket series belongs to exactly one division,
+            # so a header naming another one means the header parse (or the
+            # map) is wrong. Keep the header value, but say so: this warning
+            # would have flagged 4A_594/2026 before a user had to.
+            logger.warning(
+                "[bger] %s: header names %r, docket series belongs to %r",
+                docket, meta["chamber"], sorted(series_names))
 
         return Decision(
             decision_id=stub.get("decision_id") or make_decision_id("bger", docket),
@@ -1719,8 +1888,10 @@ class BgerScraper(BaseScraper):
         meta: dict = {}
         text = soup.get_text()
 
-        # ── Chamber/Abteilung from page text ──
-        _chamber = chamber_from_text(text)
+        # ── Chamber/Abteilung from the ruling's own header ──
+        # The decision text, not the page: chamber_from_text reads a header
+        # window, and the AZA page chrome would use up most of it.
+        _chamber = chamber_from_text(full_text or "")
         if _chamber:
             meta["chamber"] = _chamber
 
@@ -1855,17 +2026,10 @@ class BgerScraper(BaseScraper):
             f"&lang=de&type=show_document"
         )
 
-    def _docket_to_abteilung(self, docket: str, lang: str = "de") -> str | None:
-        """Map docket prefix to Abteilung name."""
-        m = re.match(r"(\d{1,2}[A-Z])", docket)
-        if not m:
-            return None
-        prefix = m.group(1)
-        result = PREFIX_TO_ABTEILUNG.get(prefix)
-        if not result:
-            return None
-        _, info = result
-        return info.get(lang, info["de"])
+    def _docket_to_abteilung(self, docket: str, lang: str = "de",
+                             decision_date: date | None = None) -> str | None:
+        """Map docket prefix to Abteilung name (see division_for_docket)."""
+        return division_for_docket(docket, decision_date, lang)
 
     def _detect_language(self, text: str) -> str:
         """

@@ -446,8 +446,8 @@ def test_abteilung_mapping():
         ("1C", "I. Öffentlich-rechtliche Abteilung"),
         ("4A", "I. Zivilrechtliche Abteilung"),
         ("6B", "I. Strafrechtliche Abteilung"),
-        ("8C", "III. Öffentlich-rechtliche Abteilung"),
-        ("9C", "IV. Öffentlich-rechtliche Abteilung"),
+        ("8C", "IV. Öffentlich-rechtliche Abteilung"),   # 2023 rename: numerals cross
+        ("9C", "III. Öffentlich-rechtliche Abteilung"),
     ]
     
     for prefix, expected_de in test_cases:
