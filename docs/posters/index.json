@@ -2,6 +2,45 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W45",
+   "from": "2026-10-30",
+   "to": "2026-11-05",
+   "added": 905,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "serielle",
+     "file": "2026-w45/de-serielle.webp",
+     "caption": "Woche 45 in der Schweizer Rechtsprechung: 905 neue Entscheide. Animierte Karte: opencaselaw.ch/posters/2026-w45/map/"
+    },
+    {
+     "lang": "fr",
+     "design": "averse",
+     "file": "2026-w45/fr-averse.webp",
+     "caption": "Semaine 45 de la jurisprudence suisse : 905 nouvelles décisions. Carte animée : opencaselaw.ch/posters/2026-w45/map/"
+    },
+    {
+     "lang": "it",
+     "design": "botta",
+     "file": "2026-w45/it-botta.webp",
+     "caption": "Settimana 45 della giurisprudenza svizzera: 905 nuove decisioni. Mappa animata: opencaselaw.ch/posters/2026-w45/map/"
+    },
+    {
+     "lang": "rm",
+     "design": "kreuzstich2",
+     "file": "2026-w45/rm-kreuzstich2.webp",
+     "caption": "Emna 45: 905 novas decisiuns. opencaselaw.ch/posters/2026-w45/map/"
+    },
+    {
+     "lang": "en",
+     "design": "roestigraben",
+     "file": "2026-w45/en-roestigraben.webp",
+     "caption": "Week 45 in Swiss case law: 905 new decisions. Animated map: opencaselaw.ch/posters/2026-w45/map/"
+    }
+   ],
+   "map": "2026-w45/map/"
+  },
+  {
    "week": "2026-W44",
    "from": "2026-10-23",
    "to": "2026-10-29",

@@ -1,0 +1,180 @@
+<title>Röstigraben</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<style>
+/* The English poster's look: paper, black for German, red for French, slate for Italian.
+   Layout as in week 44: the map edge to edge, the figure top left, the courts top right, the
+   cantons as a plain index of names and figures along the foot. */
+:root{--paper:#f2f0eb;--ink:#151515;--red:#d6281e;--mute:#8a877f;--g:max(28px,env(safe-area-inset-left,0px));--gr:max(28px,env(safe-area-inset-right,0px));
+  --display:'Archivo','Arial Narrow',Arial,sans-serif;--body:'Archivo','Helvetica Neue',Arial,sans-serif;color-scheme:light}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.35 var(--body)}
+.poster{display:grid;grid-template-rows:minmax(0,1fr) auto auto;height:100%;min-height:640px;overflow:hidden}
+.stage{position:relative;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation;cursor:crosshair}
+.lead{position:absolute;z-index:2;left:var(--g);top:20px;pointer-events:none;display:grid;justify-items:start;isolation:isolate}
+.lead{text-shadow:0 0 5px var(--paper),0 0 9px var(--paper)}
+#total{position:relative;isolation:isolate;text-shadow:none}
+#total::before{content:"";position:absolute;inset:-4px -24px -2px -40px;background:var(--paper);filter:blur(13px);z-index:-1}
+.tabs{pointer-events:auto;display:flex;gap:20px;margin-bottom:10px}
+.tabs button{all:unset;cursor:pointer;font:600 15px/1 var(--body);padding:3px 0 6px;border-bottom:2px solid transparent;color:var(--mute);transition:color .2s}
+.tabs button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs button:focus-visible,.row:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+#total{font-family:var(--display);font-weight:800;font-size:clamp(64px,min(8.6vw,13vh),122px);line-height:.9;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+#place{font:500 clamp(20px,min(2.3vw,3.2vh),28px)/1.15 var(--display);margin-top:12px;white-space:nowrap}
+#sub{font-size:15px;white-space:nowrap;margin-top:2px}
+.side{position:absolute;z-index:2;right:var(--gr);top:24px;width:clamp(210px,21vw,290px);pointer-events:none;background:var(--paper);box-shadow:0 0 18px 16px var(--paper)}
+#list{list-style:none;margin:0;padding:0;font-variant-numeric:tabular-nums;animation:in .22s ease-out}
+#list li{display:flex;justify-content:space-between;gap:14px;height:22px;white-space:nowrap}
+#list li span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#list b{font-weight:600}
+#list li.de b{color:#151515}#list li.fr b,#list li.fr span{color:var(--red)}#list li.it b,#list li.it span{color:#5f7383}
+#list li.t{display:block;height:auto;white-space:normal;margin-bottom:6px;color:#55514a}
+@keyframes in{from{opacity:0}to{opacity:1}}
+#tag{position:absolute;z-index:1;left:0;top:0;pointer-events:none;background:var(--ink);color:var(--paper);font:600 13px/1 var(--body);padding:5px 7px;white-space:nowrap;opacity:0;will-change:transform,opacity;transition:opacity .16s,transform .28s cubic-bezier(.2,.8,.2,1)}
+#index{position:relative;margin:6px var(--gr) 0 var(--g);transition:opacity .16s}#index.swap{opacity:0}
+.row{all:unset;position:absolute;left:0;top:0;width:calc(100%/var(--cols));height:23px;box-sizing:border-box;padding-right:26px;display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer;font-size:14.5px;font-variant-numeric:tabular-nums;transform:translate(calc(var(--c)*100%),calc(var(--r)*23px));transition:opacity .18s;white-space:nowrap}
+.row span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.row b{font-weight:600}
+.row.zero{color:var(--mute)}
+#index.sel .row{opacity:.32}#index.sel .row.on{opacity:1}
+.row.on{color:var(--red)}
+.foot{display:flex;justify-content:space-between;gap:6px 24px;flex-wrap:wrap;padding:10px var(--gr) 12px var(--g);font-size:12.5px;color:var(--mute)}
+.foot a{color:var(--ink)}.foot .note{display:none}
+@media (prefers-reduced-motion:reduce){.row,#tag,#index{transition:none}#list{animation:none}}
+@media (max-width:980px){
+  html,body{height:auto}.poster{display:block;height:auto;overflow:visible}.stage{display:grid}
+  .lead,.side{position:static;box-shadow:none;background:none}#total::before{display:none}.lead{padding:16px var(--gr) 0 var(--g)}.side{width:auto;padding:0 var(--gr) 0 var(--g);height:66px;overflow:hidden;font-size:14px}
+  #total{font-size:clamp(72px,18vw,120px)}#sub{white-space:normal}
+  canvas{position:static;height:auto;aspect-ratio:var(--ratio)}
+  #list{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,22px);grid-auto-columns:minmax(0,1fr);gap:0 18px}#list li.t:not(:first-child),#list li:nth-child(n+7){display:none}
+  .row{padding-right:16px}.foot .note{display:block}
+}
+</style>
+<div class="poster">
+  <div class="stage">
+    <div class="lead" role="status">
+      <div class="tabs" role="group" aria-label="Period"><button id="m-week" aria-pressed="true">This week</button><button id="m-year" aria-pressed="false">This year</button></div>
+      <div id="total"></div><div id="place"></div><div id="sub"></div>
+    </div>
+    <canvas id="map" role="img" aria-label="Switzerland split along its language border, one dot per decision in the area of its language."></canvas>
+    <div id="tag"></div>
+    <aside class="side"><ul id="list"></ul></aside>
+  </div>
+  <div id="index" role="group" aria-label="Cantons"></div>
+  <div class="foot"><span class="note" id="note"></span><a href="https://opencaselaw.ch">opencaselaw.ch</a><span>Lens: Sphere, by Textures · Borders © swisstopo</span></div>
+</div>
+<script id="vd" type="x-shader">
+attribute vec2 aA,aB;attribute vec4 aI;
+uniform vec2 uView,uOff,uBall,uSize;uniform float uMix,uRev,uPress,uR,uSeat,uAny;uniform float uTone[27];
+varying float vTone;varying float vS;varying float vL;
+const float HILL=.47;
+void main(){float wave=aI.w/255.;float m=clamp(uMix*1.45-wave*.45,0.,1.);m=m*m*(3.-2.*m);
+ vec2 p=mix(aA,aB,m);vec2 d=p-uBall;float l=length(d);float swell=1.;
+ if(l<uR&&l>.001){float r=l/uR,q=1.-r*r,lift=HILL*q*q;p+=d*lift*uPress;swell=1.+min(.3,lift)*uPress;}
+ float seat=step(127.5,aI.z);vL=aI.z-seat*128.;
+ float t=uTone[int(aI.x+.5)];t=max(t,uSeat*seat);t=mix(1.,t,uAny);
+ float size=mix(uSize.x*aI.y/255.,uSize.y,m)*swell*mix(.72,1.,t);
+ float rise=clamp(uRev*1.5-aA.x/8000.*.5,0.,1.);size*=rise*rise*(3.-2.*rise);
+ vTone=t;vS=max(size,1.);gl_PointSize=vS;gl_Position=vec4(p*uView+uOff,0.,1.);if(size<.05)gl_Position=vec4(2.,2.,0.,1.);}
+</script>
+<script id="fd" type="x-shader">
+precision mediump float;varying float vTone;varying float vS;varying float vL;uniform vec3 uDe,uFr,uIt,uDim;
+void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.5-1.4/vS,r);if(a<=0.)discard;
+ vec3 k=vL<.5?uDe:(vL<1.5?uFr:uIt);vec3 c=mix(uDim,k,vTone);gl_FragColor=vec4(c*a,a);}
+</script>
+<script id="vg" type="x-shader">
+attribute vec2 aP;attribute float aL;uniform vec2 uView,uOff,uBall;uniform float uPress,uR,uSize,uRev;varying float vL;
+void main(){vL=aL;vec2 p=aP;vec2 d=p-uBall;float l=length(d);
+ if(l<uR&&l>.001){float r=l/uR,q=1.-r*r;p+=d*.47*q*q*uPress;}
+ gl_PointSize=uSize*uRev;gl_Position=vec4(p*uView+uOff,0.,1.);}
+</script>
+<script id="fg" type="x-shader">
+precision mediump float;varying float vL;uniform vec3 uTd,uTf,uTi;
+void main(){vec3 c=vL<.5?uTd:(vL<1.5?uTf:uTi);gl_FragColor=vec4(c,1.);}
+</script>
+<script>
+document.documentElement.lang="en";
+const D=/*DATA*/null;
+const L={week:"Week 45, 30 October – 5 November 2026",year:"1 January to 5 November 2026",what:"new decisions",whatY:"decisions dated 2026",none:"no new decisions this week",noneY:"no decisions dated 2026",hint:"Point at a canton.",dec:"new decisions this week",decY:"decisions dated 2026",thisY:"this year",thisW:"this week",
+ legend:["Each dot is a decision, set in the area of its language; the French side stands apart across the Röstigraben.","Recent months are still being published. Cantons publish unevenly, so a low figure can mean few rulings online."],
+ langs:["In German","In French","In Italian"],lk:["de","fr","it"]};
+const $=id=>document.getElementById(id),same=(a,b)=>a&&b&&a===b;
+const fmt=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+$)/g,",");
+const bytes=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+const i16=s=>new Int16Array(bytes(s).buffer);
+const view={week:D.week,year:D.year},pickA=bytes(D.pa);
+const cv=$("map"),gl=cv.getContext("webgl",{antialias:true,alpha:false,powerPreference:"high-performance"});
+const BALL=112,OMEGA=30,TONE=.09;
+let mode="week",hot=null,pin=null,leave=0,frame=0,last=0;
+let mix=0,mixFrom=0,mixTo=0,mixT=1,rev=0;
+let scale=1,ox=0,oy=0,cw=1,ch=1,dpr=1;
+let bx=0,by=0,vx=0,vy=0,tx=0,ty=0,press=0,vp=0,tp=0,seatT=0,anyT=0,shown=0,rollFrom=0,rollTo=0,rollT=1;
+const tone=new Float32Array(27),toneTo=new Float32Array(27);
+const reduced=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+function program(v,f){const p=gl.createProgram();for(const[t,id]of[[gl.VERTEX_SHADER,v],[gl.FRAGMENT_SHADER,f]]){const s=gl.createShader(t);gl.shaderSource(s,$(id).textContent);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));gl.attachShader(p,s)}gl.linkProgram(p);return p}
+const uni=(p,n)=>gl.getUniformLocation(p,n);
+function buffer(d){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,d,gl.STATIC_DRAW);return b}
+let P,Q,buf={},U={},Vl={},segs=0;
+function setup(){P=program("vd","fd");Q=program("vg","fg");
+  buf.a=buffer(i16(D.a));buf.b=buffer(i16(D.b));buf.i=buffer(bytes(D.info));buf.gp=buffer(i16(D.gp));buf.gl=buffer(bytes(D.gl));
+  for(const u of["uView","uOff","uBall","uSize","uMix","uRev","uPress","uR","uSeat","uAny","uTone","uDe","uFr","uIt","uDim"])U[u]=uni(P,u);
+  for(const u of["uView","uOff","uBall","uPress","uR","uSize","uRev","uTd","uTf","uTi"])Vl[u]=uni(Q,u);
+  gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(.949,.941,.922,1)}
+function bind(p,name,b,size,type,norm){const a=gl.getAttribLocation(p,name);if(a<0)return;gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,size,type,!!norm,0,0)}
+function draw(){gl.viewport(0,0,cv.width,cv.height);gl.clear(gl.COLOR_BUFFER_BIT);
+  const sx=2*scale/cw/8,sy=-2*scale/ch/8,offx=2*ox/cw-1,offy=1-2*oy/ch;
+  /* the ground: the language areas as a fine field of tint, one draw call */
+  gl.useProgram(Q);gl.uniform2f(Vl.uView,sx,sy);gl.uniform2f(Vl.uOff,offx,offy);gl.uniform2f(Vl.uBall,bx*8,by*8);gl.uniform1f(Vl.uPress,press);gl.uniform1f(Vl.uR,BALL*8);
+  gl.uniform1f(Vl.uSize,(D.gs*scale+.9)*dpr);gl.uniform1f(Vl.uRev,Math.min(1,rev*2));gl.uniform3f(Vl.uTd,.886,.871,.835);gl.uniform3f(Vl.uTf,.945,.839,.812);gl.uniform3f(Vl.uTi,.863,.886,.902);
+  bind(Q,"aP",buf.gp,2,gl.SHORT);bind(Q,"aL",buf.gl,1,gl.UNSIGNED_BYTE);gl.drawArrays(gl.POINTS,0,D.gn);
+  gl.useProgram(P);gl.uniform2f(U.uView,sx,sy);gl.uniform2f(U.uOff,offx,offy);gl.uniform2f(U.uBall,bx*8,by*8);gl.uniform1f(U.uMix,mix);gl.uniform1f(U.uRev,rev);gl.uniform1f(U.uPress,press);gl.uniform1f(U.uR,BALL*8);gl.uniform1f(U.uSeat,seatT);gl.uniform1f(U.uAny,anyT);
+  gl.uniform2f(U.uSize,Math.max(7.4*scale,3)*dpr,Math.max(2.15*scale,1.1)*dpr);gl.uniform1fv(U.uTone,tone);
+  gl.uniform3f(U.uDe,.082,.082,.082);gl.uniform3f(U.uFr,.839,.157,.118);gl.uniform3f(U.uIt,.373,.451,.514);gl.uniform3f(U.uDim,.80,.78,.74);
+  bind(P,"aA",buf.a,2,gl.SHORT);bind(P,"aB",buf.b,2,gl.SHORT);bind(P,"aI",buf.i,4,gl.UNSIGNED_BYTE);gl.drawArrays(gl.POINTS,0,D.n)}
+function size(){const r=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);cw=r.width;ch=r.height;cv.width=cw*dpr;cv.height=ch*dpr;scale=Math.min(cw/D.w,ch/D.h);ox=(cw-D.w*scale)/2;oy=(ch-D.h*scale)/2+(cw>980?Math.min(26,ch*.03):0);place();wake()}
+/* every moving value is eased here, in one place, with the texture's critically damped spring */
+function step(now){const dt=Math.min(last?(now-last)/1e3:1/60,.05);last=now;let moving=false;const r=reduced();
+  if(rev<1){rev=r?1:Math.min(1,rev+dt/1.15);moving=true}
+  if(mixT<1){mixT=r?1:Math.min(1,mixT+dt/1.05);mix=mixFrom+(mixTo-mixFrom)*(mixT<.5?4*mixT**3:1-(-2*mixT+2)**3/2);moving=true}
+  if(r){bx=tx;by=ty;press=tp;vx=vy=vp=0}else for(let s=0;s<3;s++){const h=dt/3,w=OMEGA;vx+=(w*w*(tx-bx)-2*w*vx)*h;bx+=vx*h;vy+=(w*w*(ty-by)-2*w*vy)*h;by+=vy*h;vp+=(w*w*(tp-press)-2*w*vp)*h;press+=vp*h}
+  if(Math.abs(bx-tx)+Math.abs(by-ty)>.03||Math.abs(vx)+Math.abs(vy)>.3||Math.abs(press-tp)>.002||Math.abs(vp)>.02)moving=true;else{bx=tx;by=ty;press=tp;vx=vy=vp=0}
+  const k=r?1:1-Math.exp(-dt/TONE),sel=hot||pin;let tm=false;
+  for(let i=0;i<27;i++){const n=tone[i]+(toneTo[i]-tone[i])*k;if(Math.abs(n-toneTo[i])<.004)tone[i]=toneTo[i];else{tone[i]=n;tm=true}}
+  const sT=sel==="CH"?1:0,aT=sel?1:0;seatT+=(sT-seatT)*k;anyT+=(aT-anyT)*k;if(Math.abs(seatT-sT)<.004)seatT=sT;else tm=true;if(Math.abs(anyT-aT)<.004)anyT=aT;else tm=true;
+  if(tm)moving=true;
+  if(rollT<1){rollT=r?1:Math.min(1,rollT+dt/.34);const e=1-(1-rollT)**3,v=rollFrom+(rollTo-rollFrom)*e;if(Math.round(v)!==shown){shown=Math.round(v);$("total").textContent=fmt(shown)}moving=true}
+  draw();if(moving)frame=requestAnimationFrame(step);else{frame=0;last=0}}
+const wake=()=>{if(!frame)frame=requestAnimationFrame(step)};
+function roll(n){if(rollT>=1&&shown===n)return;rollFrom=shown;rollTo=n;rollT=reduced()?1:0;if(rollT===1){shown=n;$("total").textContent=fmt(n)}wake()}
+function where(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left-ox)/scale,(e.clientY-r.top-oy)/scale]}
+function pick(x,y){const c=Math.floor(x/D.pick),r=Math.floor(y/D.pick);if(c<0||r<0||c>=D.cols||r>=D.rows)return null;const i=pickA[r*D.cols+c];return i?D.codes[i-1]:null}
+function hover(code){clearTimeout(leave);if(hot!==code){hot=code;show()}}
+function unhover(){clearTimeout(leave);leave=setTimeout(()=>{hot=null;show()},110)}
+cv.addEventListener("pointermove",e=>{if(e.pointerType==="touch")return;const[x,y]=where(e);tx=x;ty=y;if(!tp){bx=x;by=y}tp=1;const c=pick(x,y);if(c)hover(c);else unhover();wake()});
+cv.addEventListener("pointerleave",()=>{tp=0;unhover();wake()});
+cv.addEventListener("click",e=>{const[x,y]=where(e),c=pick(x,y);if(!c){pin=null}else{pin=pin===c?null:c}show();wake()});
+function place(){const s=hot||pin,g=$("tag");if(!s||s==="CH"||!D.at[s]){g.style.opacity=0;return}const[x,y]=D.at[s];g.textContent=D.names[s]+"  "+fmt(view[mode].counts[s]||0);g.style.transform="translate("+Math.round(cv.offsetLeft+ox+x*scale+10)+"px,"+Math.round(cv.offsetTop+oy+y*scale-34)+"px)";g.style.opacity=1}
+function read(num,name,line,items){roll(num);$("place").textContent=name;$("sub").textContent=line;const l=$("list"),u=l.cloneNode(false);
+  u.append(...items.map(([a,n,k])=>{const li=document.createElement("li"),t=document.createElement("span");t.textContent=a;li.append(t);if(k)li.className=k;if(n==null)li.className="t";else{const b=document.createElement("b");b.textContent=fmt(n);li.append(b)}return li}));l.replaceWith(u)}
+function show(){const v=view[mode],y=mode==="year",o=y?view.week:view.year,s=hot||pin;
+  $("index").classList.toggle("sel",!!s);for(const b of $("index").children){b.classList.toggle("on",b.dataset.code===s);b.setAttribute("aria-pressed",String(pin===b.dataset.code))}
+  D.codes.forEach((c,i)=>toneTo[i]=c===s?1:0);place();wake();
+  if(!s)return read(v.total,y?L.whatY:L.what,y?L.year:L.week,[...v.langs.map((n,i)=>[L.langs[i],n,L.lk[i]]),[L.legend[0],null],...(y?[[L.legend[1],null]]:[]),[L.hint,null]]);
+  const other=n=>(y?L.thisW:L.thisY)+": "+fmt(n),what=y?L.decY:L.dec,n=v.counts[s]||0,m=o.counts[s]||0;
+  if(s==="CH")return read(n,D.names.CH,what+" · "+other(m),v.seats);
+  read(n,D.names[s],(n?what:(y?L.noneY:L.none))+" · "+other(m),(v.courts[s]||[]).slice(0,10))}
+const keys=Object.keys(D.names);
+function layout(){const wide=$("index").clientWidth,cols=wide<560?2:wide<920?3:wide<1120?5:6,rows=Math.ceil(keys.length/cols),v=view[mode],idx=$("index");idx.style.setProperty("--cols",cols);idx.style.height=rows*23+"px";
+  const sorted=[...keys].sort((a,b)=>(v.counts[b]||0)-(v.counts[a]||0)||D.names[a].localeCompare(D.names[b]));
+  for(const b of idx.children){const k=b.dataset.code,n=v.counts[k]||0,i=sorted.indexOf(k);b.style.setProperty("--c",Math.floor(i/rows));b.style.setProperty("--r",i%rows);b.lastChild.textContent=fmt(n);b.classList.toggle("zero",!n)}}
+keys.forEach(k=>{const b=document.createElement("button"),s=document.createElement("span"),n=document.createElement("b");b.className="row";b.dataset.code=k;s.textContent=D.names[k];b.append(s,n);
+  b.addEventListener("click",()=>{pin=pin===k?null:k;show()});b.addEventListener("pointerenter",e=>{if(e.pointerType!=="touch")hover(k)});b.addEventListener("focus",()=>hover(k));b.addEventListener("pointerleave",unhover);b.addEventListener("blur",unhover);$("index").append(b)});
+function setMode(m){if(m===mode)return;mode=m;$("m-week").setAttribute("aria-pressed",String(m==="week"));$("m-year").setAttribute("aria-pressed",String(m==="year"));mixFrom=mix;mixTo=m==="year"?1:0;mixT=0;const x=$("index");x.classList.add("swap");setTimeout(()=>{layout();x.classList.remove("swap")},170);show();wake()}
+$("m-week").onclick=()=>setMode("week");$("m-year").onclick=()=>setMode("year");$("note").textContent=L.legend[0];
+document.documentElement.style.setProperty("--ratio",D.w/D.h);
+if(gl){setup();layout();shown=view.week.total;$("total").textContent=fmt(shown);show();size();new ResizeObserver(()=>{size();layout()}).observe(cv);if(reduced())rev=1;wake()}
+else{cv.hidden=true;layout();show();$("total").textContent=fmt(view.week.total)}
+window.__stats={get frame(){return frame}};
+</script>
