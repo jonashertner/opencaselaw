@@ -30658,9 +30658,11 @@ def _list_tools() -> list[Tool]:
                             "the other two. Set ONLY when the user explicitly "
                             "asks for a single-language result; do NOT auto-"
                             "apply based on the conversation's language. "
-                            "'en' reaches only ECtHR judgments whose sole "
-                            "authoritative text is English — there is no "
-                            "English Swiss case law."
+                            "'en' reaches ECtHR, UN and ICJ texts whose only "
+                            "authoritative text is English, and SIX Exchange "
+                            "Regulation sanction decisions (court='six_ser'), "
+                            "many published only in English — no Swiss court "
+                            "publishes in English."
                         ),
                         "enum": ["de", "fr", "it", "rm", "en"],
                     },

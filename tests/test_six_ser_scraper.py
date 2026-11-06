@@ -51,3 +51,58 @@ def test_dates_regeste_and_title():
     assert s["regeste"].startswith("KR 53") or "|" in s["regeste"]
     assert s["title"].startswith("SB-AHP-III/24: ")
     assert s["decision_type"] == "Sanktionsbescheid"
+
+
+# ── languages: English originals and translations ─────────────────────
+
+from scrapers.six_ser import SIXSERScraper, detect_text_language, file_stem  # noqa: E402
+
+EN = ("Decision in the proceedings SaKo-II/2024. The Sanctions Commission has determined that "
+      "the issuer intentionally violated the applicable financial reporting standard and that it was ") * 5
+DE = ("Entscheid im Verfahren SaKo-026/13. Die Sanktionskommission hat festgestellt, dass der "
+      "Teilnehmer die Pflichten nicht eingehalten hat und eine Busse ist zu verhängen. ") * 5
+FR = ("Décision dans la procédure SaKo-026/13. La Commission des sanctions constate que le "
+      "participant n'a pas respecté les obligations et qu'une amende est prononcée. ") * 5
+
+
+def test_language_detection_knows_english():
+    assert detect_text_language(EN) == "en"
+    assert detect_text_language(DE) == "de"
+    assert detect_text_language(FR) == "fr"
+    assert file_stem("https://x/2016/decision_05_12_16_fr.pdf") == "https://x/2016/decision_05_12_16"
+
+
+def _scraper(tmp_path, texts, listings):
+    s = SIXSERScraper(state_dir=tmp_path)
+    s._listing = lambda lang: listings[lang]
+    s._text = lambda url, docket: (texts[url], detect_text_language(texts[url])) if url in texts else None
+    return s
+
+
+def _item(url, title="SaKo-026/13", marker="Sanktionskommission"):
+    return {"url": url, "title": title, "marker": marker, "description": "KR 1 | Busse | x",
+            "entryIntoForceDate": 1479081600000, "publicationDate": 1479081600000}
+
+
+def test_every_official_language_is_a_row_and_fallback_copies_are_not(tmp_path):
+    base = "https://www.ser-ag.com/dam/x/decision_05_12_16"
+    one = "https://www.ser-ag.com/dam/x/sako-ii"          # English-only decision
+    listings = {
+        "de": {"results": [_item(base + "_de.pdf"), _item(one + "-de.pdf", title="SaKo-II/2024")]},
+        "fr": {"results": [_item(base + "_fr.pdf"), _item(one + "-fr.pdf", title="SaKo-II/2024")]},
+        "en": {"results": [_item(base + "_en.pdf", title="SaKo-026/13 decision"),
+                           _item(one + "-en.pdf", title="SaKo-II/2024")]},
+    }
+    texts = {base + "_de.pdf": DE, base + "_fr.pdf": FR, base + "_en.pdf": EN,
+             one + "-de.pdf": EN, one + "-fr.pdf": EN, one + "-en.pdf": EN}
+    s = _scraper(tmp_path, texts, listings)
+    got = [d for d in (s.fetch_decision(st) for st in s.discover_new()) if d]
+    rows = {(d.docket_number, d.language) for d in got}
+    assert rows == {("SaKo-026/13", "de"), ("SaKo-026/13 (EN)", "en"), ("SaKo-026/13 (FR)", "fr"),
+                    ("SaKo-II/2024", "en")}
+    assert len({d.decision_id for d in got}) == 4
+    # a second run downloads nothing for the fallback copies of SaKo-II/2024
+    for d in got:
+        s.state.mark_scraped(d.decision_id)
+    s2 = _scraper(tmp_path, texts, listings)
+    assert list(s2.discover_new()) == []

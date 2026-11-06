@@ -39,6 +39,10 @@ UNTB_COURTS = {
 }
 # International Court of Justice: English where no French text layer exists.
 ICJ_COURTS = {"icj"}
+# Swiss bodies that publish official English texts: SIX Exchange Regulation
+# writes many sanction decisions in English only and publishes English
+# translations of others (scrapers/six_ser.py).
+OFFICIAL_EN_COURTS = {"six_ser"}
 NULL_LANGUAGE_FLOOR_PCT = 0.5  # WARNING if >0.5% of rows have no language
 
 
@@ -66,7 +70,7 @@ def check_unexpected_language_values(conn: sqlite3.Connection, **_) -> CheckResu
             suspect,
         ):
             if lang == "en" and (court in ECTHR_COURTS or court in UNTB_COURTS
-                                 or court in ICJ_COURTS):
+                                 or court in ICJ_COURTS or court in OFFICIAL_EN_COURTS):
                 continue
             bad.append((lang, court, n))
     return CheckResult(
@@ -76,13 +80,14 @@ def check_unexpected_language_values(conn: sqlite3.Connection, **_) -> CheckResu
         metric_value=sum(n for _, _, n in bad),
         threshold=0,
         message=f"{len(bad)} unexpected language/court combinations" if bad else
-                "all language codes ∈ {de, fr, it, rm} (+ en on ECtHR / UN treaty-body courts)",
+                "all language codes ∈ {de, fr, it, rm} (+ en on ECtHR / UN / ICJ / SIX Exchange Regulation)",
         sample_rows=[
             {"language": repr(l), "court": c, "count": n} for l, c, n in bad[:5]
         ],
         extra={"distribution": distribution},
         fix_advice="language must be a 2-letter ISO code, and `en` is reserved "
-                   "for English ECtHR judgments and UN treaty-body decisions. Investigate the "
+                   "for English ECtHR judgments, UN treaty-body and ICJ decisions, and SIX "
+                   "Exchange Regulation decisions published in English. Investigate the "
                    "scraper that wrote this row's language column.",
     )
 

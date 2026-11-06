@@ -99,6 +99,7 @@ from models import (
     parse_date,
 )
 from scrapers.weko import _extract_pdf_text  # same PyMuPDF/pdfplumber helper, used only as a fallback
+from scrapers import pdf_ocr
 
 logger = logging.getLogger(__name__)
 
@@ -382,7 +383,7 @@ class UEKScraper(BaseScraper):
                         continue
                     seen_hashes[digest] = v["url_lang"] or "?"
                     lang_suffix = v["url_lang"] or "x"
-                    decision_id = make_decision_id("uek", f"{docket}_{lang_suffix}")
+                    decision_id = make_decision_id("uek", f"{docket} ({lang_suffix.upper()})")
                     if self.state.is_known(decision_id):
                         continue
                     if since_date and v.get("listing_date"):
@@ -419,6 +420,21 @@ class UEKScraper(BaseScraper):
                 logger.error(f"[uek] failed to download PDF for {docket} ({lang_suffix}): {e}")
                 return None
             full_text = _extract_pdf_text(pdf_resp.content)
+        elif (not full_text or len(full_text.strip()) < 300) and stub.get("pdf_url"):
+            # A few document pages carry only the ruling's heading (331/01:
+            # "Beendigung des Aktienrückkaufprogramms"); the text is in the PDF.
+            # 331/01's PDF is itself a scan, hence the OCR step (Tesseract on the
+            # production host, same helper as elcom/postcom).
+            try:
+                pdf_bytes = self.get(stub["pdf_url"]).content
+                pdf_text = _extract_pdf_text(pdf_bytes)
+                if len((pdf_text or "").strip()) < pdf_ocr.MIN_TEXT_CHARS:
+                    pdf_text = pdf_ocr.ocr_pdf_bytes(pdf_bytes)
+            except Exception as e:
+                logger.warning(f"[uek] PDF fallback failed for {docket}: {e}")
+                pdf_text = ""
+            if pdf_text and len(pdf_text.strip()) > len((full_text or "").strip()):
+                full_text = pdf_text
 
         if not full_text or len(full_text.strip()) < 50:
             logger.warning(f"[uek] No usable text for {docket} (doc {doc_id})")
@@ -433,7 +449,12 @@ class UEKScraper(BaseScraper):
         if decision_type is None:
             decision_type = "Empfehlung" if (decision_date and decision_date < _VERFUEGUNG_ERA) else "Verfügung"
 
-        decision_id_docket = docket if not lang_suffix else f"{docket}_{lang_suffix}"
+        # A further language version needs its own docket: the build keeps one
+        # row per court + docket + date (build_fts5 dedup pass 1), so "956/01"
+        # twice would collapse. Same convention as six_ser: "956/01 (FR)".
+        if lang_suffix:
+            docket = f"{docket} ({lang_suffix.upper()})"
+        decision_id_docket = docket
 
         return Decision(
             decision_id=make_decision_id("uek", decision_id_docket),
