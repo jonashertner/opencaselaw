@@ -2,8 +2,8 @@
 """Append-only release manifest for each successful nightly publish.
 
 Writes ``releases/<YYYY-MM-DD>/manifest.json`` summarising what's in
-the corpus on this date — counts per court, content-hash totals, gate
-state, git commit, schema version. Lets anyone reconstruct exactly what
+the corpus on this date — counts per court, where the content-hash
+count is published, gate state, git commit, schema version. Lets anyone reconstruct exactly what
 was live on a given date for citation / reproducibility / forensic use.
 
 The manifest is small (a few KB) and committed to the repo by
@@ -50,39 +50,51 @@ def _git_commit(repo: Path) -> str:
         return "unknown"
 
 
-def _summarise(conn: sqlite3.Connection) -> dict:
-    out: dict = {}
-    out["total_decisions"] = conn.execute(
-        "SELECT COUNT(*) FROM decisions"
-    ).fetchone()[0]
-    out["distinct_courts"] = conn.execute(
-        "SELECT COUNT(DISTINCT court) FROM decisions"
-    ).fetchone()[0]
-    out["distinct_cantons"] = conn.execute(
+# Every query here must be answerable from an index. publish.py gives this
+# step 120 s, and it runs during the build while the same decisions.db is
+# serving searches. A query that touches a column stored after `full_text`
+# (ordinal 22) follows every row's overflow chain, about 70 GB on production
+# (see quality/checks/_late_columns.py). The two content_hash counts this
+# step used to run did exactly that: 2-20 s while the quality gate had just
+# left the table in the page cache, a 120 s timeout on 2026-11-06 when it
+# had not. tests/test_release_manifest.py checks the plans.
+SUMMARY_QUERIES = {
+    "total_decisions": "SELECT COUNT(*) FROM decisions",
+    "distinct_courts": "SELECT COUNT(DISTINCT court) FROM decisions",
+    "distinct_cantons": (
         "SELECT COUNT(DISTINCT canton) FROM decisions WHERE canton IS NOT NULL"
-    ).fetchone()[0]
-    out["per_language"] = dict(conn.execute(
-        "SELECT language, COUNT(*) FROM decisions GROUP BY language"
-    ).fetchall())
-    out["per_court"] = dict(conn.execute(
+    ),
+    "per_language": "SELECT language, COUNT(*) FROM decisions GROUP BY language",
+    "per_court": (
         "SELECT court, COUNT(*) FROM decisions GROUP BY court ORDER BY 2 DESC"
-    ).fetchall())
-    # Coverage of the new content_hash column (Week 2)
-    try:
-        out["content_hashes"] = {
-            "populated": conn.execute(
-                "SELECT COUNT(*) FROM decisions WHERE content_hash IS NOT NULL"
-            ).fetchone()[0],
-            "missing": conn.execute(
-                "SELECT COUNT(*) FROM decisions WHERE content_hash IS NULL"
-            ).fetchone()[0],
-        }
-    except sqlite3.OperationalError:
-        out["content_hashes"] = {"status": "column not present"}
-    out["date_range"] = list(conn.execute(
+    ),
+    "date_range": (
         "SELECT MIN(decision_date), MAX(decision_date) FROM decisions "
         "WHERE decision_date >= '1700-01-01'"
-    ).fetchone())
+    ),
+}
+
+# Content-hash coverage is not counted here. build_fts5 hashes every row at
+# the end of the build (_compute_content_hashes), and Step 5f, which reads
+# every content_hash anyway to build the Merkle root, publishes the count of
+# rows it had to skip for want of one.
+CONTENT_HASHES_NOTE = {
+    "counted_by": "integrity root (publish Step 5f)",
+    "where": "docs/integrity/latest.json of the same build: "
+             "decisions_count, skipped_no_content_hash",
+}
+
+
+def _summarise(conn: sqlite3.Connection) -> dict:
+    q = SUMMARY_QUERIES
+    out: dict = {}
+    out["total_decisions"] = conn.execute(q["total_decisions"]).fetchone()[0]
+    out["distinct_courts"] = conn.execute(q["distinct_courts"]).fetchone()[0]
+    out["distinct_cantons"] = conn.execute(q["distinct_cantons"]).fetchone()[0]
+    out["per_language"] = dict(conn.execute(q["per_language"]).fetchall())
+    out["per_court"] = dict(conn.execute(q["per_court"]).fetchall())
+    out["content_hashes"] = dict(CONTENT_HASHES_NOTE)
+    out["date_range"] = list(conn.execute(q["date_range"]).fetchone())
     return out
 
 
