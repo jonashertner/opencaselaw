@@ -5,9 +5,37 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Thu, 05 Nov 2026 11:08:47 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 06 Nov 2026 11:56:51 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 6B_476/2026 vom 2026-10-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_476_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+6B_476/2026
+
+Sentenza del 14 ottobre 2026
+
+I Corte di diritto penale
+
+Composizione
+
+Giudici federali Muschietti, Presidente,
+
+Glassey, Lötscher, Giudice supplente,
+
+Cancelliere Ga…</description>
+      <pubDate>Thu, 05 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_476.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesgericht 4A_594/2026 vom 2026-10-26</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_594_2026</link>
@@ -856,14 +884,6 @@ statuendo nella compos…</description>
       <description>Asilo (non entrata nel merito) ed allontanamento (paese terzo sicuro - art. 31a cpv. 1 lett. a LAsi)</description>
       <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-2427.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-455/2025 vom 2026-07-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-455_2025</link>
-      <description>Asilo ed allontanamento</description>
-      <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-455.2025</guid>
       <category>bvger</category>
     </item>
   </channel>
