@@ -366,3 +366,24 @@ systemd-run --unit=ocl-mat-hist-puk-$(date +%m%d) \
 Check afterwards: `journalctl -u ocl-mat-hist-puk-*` exit 0, and the JSON blocks in
 `logs/materialien_historical.log` (`done` ≈ the table above, `collision` and `error`
 named). The documents reach the served database with the next build's step 2f.
+
+## Through the tunnel (2026-11-07)
+
+From about 2026-10-26 `www.amtsdruckschriften.bar.admin.ch` dropped every connection from the
+production server (connect timeouts from the first request; Fedlex unaffected), after four nights of
+about 2,500 German scans each with rising HTTP 500s and read timeouts. Through the SOCKS tunnel the
+portal answers in 0.4 s. Jonas decided on 2026-11-07 to fetch through the tunnel:
+
+- `bar_fetcher.PoliteFetcher` reads `BAR_PROXY` (`socks5h://127.0.0.1:1080` in the unit); pacing,
+  backoff and hard stop are unchanged.
+- The unit runs slower: `--bar-min-interval 5`, `--max-per-run 1000` per language.
+- A second `ExecCondition` probes the portal's front page through the tunnel and skips the night
+  when the tunnel is down, so no attempts are spent on connection failures.
+- Each run first gives back the attempts that connection failures used up
+  (`requeue_connect_failures`; 39 documents, de/fr/it, were marked exhausted by the block).
+
+Left on 2026-11-07: de 948, fr 12,093, it 2,637. A one-off run outside the unit (the PUK run above)
+needs `--setenv=BAR_PROXY=socks5h://127.0.0.1:1080` too.
+
+If the portal also refuses the tunnel (403/429, soft blocks, or connect failures with the tunnel up),
+stop: disable the timer and write to the Bundesarchiv instead of finding another route.

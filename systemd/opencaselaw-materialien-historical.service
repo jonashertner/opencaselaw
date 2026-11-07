@@ -12,6 +12,12 @@ Environment=PYTHONPATH=/opt/caselaw/repo
 # "activating", not "active" — a guard testing for "active" alone let the
 # 2026-10-20 17:45 run start mid-build. Any non-idle state skips the run.
 ExecCondition=/bin/sh -c 'for u in opencaselaw-publish.service opencaselaw-materialien.service; do case "$$(systemctl is-active $$u)" in active|activating|deactivating|reloading|refreshing) exit 1;; esac; done; exit 0'
+# Since about 2026-10-26 the portal drops connections from this server; the
+# requests go through the SOCKS tunnel (Jonas's decision, 2026-11-07). No
+# tunnel, no run: a night without it is skipped rather than spent on
+# connection failures. One request to the portal's front page per night.
+Environment=BAR_PROXY=socks5h://127.0.0.1:1080
+ExecCondition=/bin/sh -c 'curl -s -o /dev/null --max-time 20 --socks5-hostname 127.0.0.1:1080 https://www.amtsdruckschriften.bar.admin.ch/ || exit 1'
 CPUWeight=20
 IOWeight=20
 # materialien_swap: the backfill writes a private copy (the workers read the
@@ -20,8 +26,10 @@ IOWeight=20
 # (00:20 → ~02:55 UTC, before the 03:30 build). The swap is refused if
 # anything else changed the live file meanwhile. DE, then FR, then IT, newest
 # first; a language with nothing left passes on at once. The polite fetcher
-# (one connection, >= 2.5 s, backoff, hard stop on 429/403/soft blocks) and
-# the per-host lock are build_botschaft_corpus's own.
+# (one connection, backoff, hard stop on 429/403/soft blocks) and the
+# per-host lock are build_botschaft_corpus's own. Pace 5 s, at most 1,000
+# documents per language (was 2.5 s / 3,000): the portal answered with 500s
+# and read timeouts on the last nights before it dropped this server.
 ExecStart=/usr/bin/python3 -m search_stack.materialien_swap \
     --db /opt/caselaw/repo/output/materialien.db \
     --deadline-seconds 9000 \
@@ -30,7 +38,7 @@ ExecStart=/usr/bin/python3 -m search_stack.materialien_swap \
       for lang in de fr it; do \
         /usr/bin/python3 -m search_stack.build_botschaft_corpus --ingest-all \
           --discover-untyped-by-title --host-allow bar,fedlex --language $$lang \
-          --max-per-run 3000 --lock-file /opt/caselaw/repo/logs/bar_fetch.lock \
+          --max-per-run 1000 --bar-min-interval 5 --lock-file /opt/caselaw/repo/logs/bar_fetch.lock \
           --db {db} || exit $$?; \
       done'
 TimeoutStartSec=3h

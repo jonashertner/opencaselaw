@@ -479,6 +479,41 @@ def record_state(
     )
 
 
+# A request that never reached the portal says nothing about the document:
+# the connection was refused, timed out before it opened, or the tunnel was
+# down. "run stopped: burst limit" is how runs before 2026-11-07 recorded the
+# document that hit the stop, whatever the cause.
+_CONNECT_FAILURE_RE = re.compile(
+    r"^(?:run stopped: .*last: )?(?:ConnectTimeout|ConnectionError|ProxyError)\b"
+    r"|^run stopped: burst limit$"
+)
+
+
+def requeue_connect_failures(conn: sqlite3.Connection, language: str) -> int:
+    """Give back the attempts that connection failures used up.
+
+    From about 2026-10-26 the portal dropped every connection from the
+    production server; each night the first three documents of each
+    language failed before a request was sent, and after three nights each
+    was skipped for good (``attempts_exhausted``). Such an attempt is the
+    host's, not the document's: it is reset to 0 here, before the run picks
+    its candidates. HTTP answers (500, 404, read timeouts) keep counting.
+    Returns the number of rows reset."""
+    rows = conn.execute(
+        "SELECT eli_uri, error FROM botschaft_fetch_state "
+        "WHERE language = ? AND status = 'error' AND http_status IS NULL AND attempts > 0",
+        (language,),
+    ).fetchall()
+    uris = [u for u, err in rows if err and _CONNECT_FAILURE_RE.search(err)]
+    if uris:
+        conn.executemany(
+            "UPDATE botschaft_fetch_state SET attempts = 0 WHERE eli_uri = ? AND language = ?",
+            [(u, language) for u in uris],
+        )
+        conn.commit()
+    return len(uris)
+
+
 def load_state(conn: sqlite3.Connection, language: str) -> dict[str, tuple[str, int]]:
     """{eli_uri: (status, attempts)} for one language."""
     return {
@@ -628,9 +663,9 @@ def ingest_historical_one(
 
     try:
         res = fetcher.fetch(cand.file_url)
-    except FetchStopped:
+    except FetchStopped as e:
         record_state(conn, cand.eli_uri, lang, "error", http_status=None,
-                     error="run stopped: burst limit", source_url=cand.file_url)
+                     error=f"run stopped: {e}", source_url=cand.file_url)
         conn.commit()
         raise
     if not res.ok:
@@ -807,6 +842,9 @@ def _run_historical_backfill(
     t0 = time.time()
     log.info("Discovering untyped Botschaften by title via Fedlex SPARQL (%s)…", language)
     found = discover(language)
+    requeued = 0 if dry_run else requeue_connect_failures(conn, language)
+    if requeued:
+        log.info("requeued %d document(s) whose attempts were connection failures", requeued)
     state = load_state(conn, language)
     todo, skipped = select_candidates(
         found, state, host_allow=host_allow, min_year=min_year, max_year=max_year,
@@ -818,7 +856,7 @@ def _run_historical_backfill(
     stats = {
         "language": language, "discovered": len(found), "skipped": skipped,
         "eligible": len(todo), "cap": cap, "host_allow": sorted(host_allow),
-        "done": 0, "exists": 0, "collision": 0, "not_found": 0, "no_text": 0,
+        "requeued": requeued, "done": 0, "exists": 0, "collision": 0, "not_found": 0, "no_text": 0,
         "no_citation": 0, "error": 0, "fetched": 0, "stopped": None,
         "started_at": datetime.now(timezone.utc).isoformat(),
     }

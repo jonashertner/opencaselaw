@@ -34,6 +34,7 @@ with a scripted fake (``tests/test_materialien_historical.py``).
 from __future__ import annotations
 
 import logging
+import os
 import time
 from dataclasses import dataclass
 from typing import Callable
@@ -45,6 +46,7 @@ USER_AGENT = (
     "contact: jonashertner@protonmail.ch; +https://opencaselaw.ch)"
 )
 BAR_HOST = "www.amtsdruckschriften.bar.admin.ch"
+PROXY_ENV = "BAR_PROXY"
 
 DEFAULT_MIN_INTERVAL = 2.5
 DEFAULT_MAX_CONSECUTIVE_FAILURES = 3
@@ -84,8 +86,9 @@ class FetchResult:
         return self.status == 200 and bool(self.content)
 
 
-def _requests_transport(session=None) -> Transport:
-    """One ``requests.Session`` with a pool of exactly one connection."""
+def _requests_transport(session=None, proxy: str | None = None) -> Transport:
+    """One ``requests.Session`` with a pool of exactly one connection,
+    through ``proxy`` (e.g. ``socks5h://127.0.0.1:1080``) when given."""
     import requests
     from requests.adapters import HTTPAdapter
 
@@ -93,6 +96,8 @@ def _requests_transport(session=None) -> Transport:
     adapter = HTTPAdapter(pool_connections=1, pool_maxsize=1, max_retries=0)
     s.mount("https://", adapter)
     s.mount("http://", adapter)
+    if proxy:
+        s.proxies = {"https": proxy, "http": proxy}
 
     def _do(url: str, headers: dict, timeout: float) -> tuple[int, dict, bytes]:
         r = s.get(url, headers=headers, timeout=timeout, allow_redirects=True)
@@ -116,6 +121,7 @@ class PoliteFetcher:
         transport: Transport | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        proxy: str | None = None,
     ) -> None:
         if min_interval < 2.0:
             # The brief's floor. Faster than this is not "exemplary".
@@ -130,7 +136,13 @@ class PoliteFetcher:
             "Accept": "application/pdf,*/*;q=0.5",
             "Accept-Language": "de-CH,de;q=0.9,fr;q=0.8,it;q=0.7",
         }
-        self._transport = transport or _requests_transport()
+        # The portal stopped accepting connections from the production
+        # server around 2026-10-26; BAR_PROXY (the SOCKS tunnel) routes the
+        # requests around that, at the same pace and with the same stops.
+        self.proxy = proxy if proxy is not None else (os.environ.get(PROXY_ENV) or None)
+        if self.proxy and transport is None:
+            log.info("BAR requests go through %s", self.proxy)
+        self._transport = transport or _requests_transport(proxy=self.proxy)
         self._sleep = sleep
         self._clock = clock
         self._last_end: float | None = None

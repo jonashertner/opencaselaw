@@ -494,6 +494,35 @@ def test_fetcher_404_is_per_document_not_a_burst() -> None:
     assert all(s == pytest.approx(2.5) for s in clock.sleeps)   # only pacing, no backoff
 
 
+def test_fetcher_proxy_from_env_reaches_the_session(monkeypatch) -> None:
+    """BAR_PROXY (the SOCKS tunnel, 2026-11-07) is set on the one session;
+    an explicit proxy wins and an empty variable means a direct connection."""
+    import requests
+
+    seen = {}
+
+    class _Resp:
+        status_code, headers, content = 200, {}, PDF
+
+    def _get(self, url, **kw):
+        seen["proxies"] = dict(self.proxies)
+        return _Resp()
+
+    monkeypatch.setattr(requests.Session, "get", _get)
+    monkeypatch.setenv("BAR_PROXY", "socks5h://127.0.0.1:1080")
+    f = bf.PoliteFetcher(sleep=lambda s: None)
+    assert f.proxy == "socks5h://127.0.0.1:1080"
+    assert f.fetch("https://example.invalid/x").ok
+    assert seen["proxies"] == {"https": "socks5h://127.0.0.1:1080",
+                               "http": "socks5h://127.0.0.1:1080"}
+    assert bf.PoliteFetcher(proxy="socks5h://h:1", sleep=lambda s: None).proxy == "socks5h://h:1"
+    monkeypatch.setenv("BAR_PROXY", "")
+    f2 = bf.PoliteFetcher(sleep=lambda s: None)
+    assert f2.proxy is None
+    f2.fetch("https://example.invalid/y")
+    assert not seen["proxies"].get("https")
+
+
 # ── Ingest + resume ───────────────────────────────────────────────────
 
 
@@ -643,6 +672,35 @@ def test_backfill_hard_stop_records_state_and_retries_next_run(db, fake_pdf) -> 
     f3, s3, _ = _fetcher([])
     st3 = _run(db, cands, f3)
     assert st3["skipped"]["attempts_exhausted"] == 4 and s3.calls == []
+
+
+def test_backfill_connect_failures_do_not_use_up_attempts(db, fake_pdf) -> None:
+    """2026-10-26..11-07: the portal dropped the server's connections and the
+    first documents of each night ran out of attempts without a request ever
+    reaching it. Such attempts are given back at the start of the next run;
+    an HTTP answer keeps counting."""
+    cands = [_cand(1975, 609, "1_609__", n=1), _cand(1955, 1077, "1_1077__", n=2),
+             _cand(1935, 350, "1_350__", n=3), _cand(1900, 1, "1_1__", n=4)]
+    for _ in range(3):           # three blocked nights
+        f, script, _ = _fetcher([ConnectionError("connect timed out")] * 3)
+        st = _run(db, cands, f)
+        assert "3 consecutive failures" in st["stopped"] and len(script.calls) == 3
+    errors = dict(db.execute("SELECT eli_uri, error FROM botschaft_fetch_state").fetchall())
+    assert errors[cands[2].eli_uri].startswith("run stopped: 3 consecutive failures")
+    assert "last: ConnectionError" in errors[cands[2].eli_uri]
+    # Legacy wording of the stopping document, and a document with its own 500.
+    db.execute("UPDATE botschaft_fetch_state SET error='run stopped: burst limit', attempts=3 "
+               "WHERE eli_uri=?", (cands[2].eli_uri,))
+    bh.record_state(db, cands[3].eli_uri, "de", "error", http_status=500, error="HTTP 500")
+    db.execute("UPDATE botschaft_fetch_state SET attempts=3 WHERE eli_uri=?", (cands[3].eli_uri,))
+    db.commit()
+    f, script, _ = _fetcher([(200, {}, PDF)] * 4)
+    st = _run(db, cands, f)
+    assert st["requeued"] == 3
+    assert st["skipped"]["attempts_exhausted"] == 1 and st["done"] == 3
+    assert [c[0] for c in script.calls] == [BAR % 1, BAR % 2, BAR % 3]
+    # Nothing left to give back.
+    assert bh.requeue_connect_failures(db, "de") == 0
 
 
 def test_backfill_not_a_pdf_and_no_text(db, monkeypatch) -> None:
