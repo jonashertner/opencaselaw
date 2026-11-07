@@ -933,6 +933,10 @@ def test_lock_is_taken_in_process_only_and_runbook_agrees(tmp_path, monkeypatch)
     ("fr", "Evénements survenus au DFJP Rapport de la commission d'enquête parlementaire (CEP) du 22 novembre 1989", "bericht_kommission"),
     ("fr", "Evénements de grande portée au Département militaire fédéral Avis du Conseil fédéral sur le rapport de la Commission d'enquête parlementaire DMF", "stellungnahme_bundesrat"),
     ("fr", "Suivi relatif à la CEP DFJP; contrôle concomitant", "bericht_kommission"),
+    # some French titles are in capitals without accents (FF 1990 III 1229)
+    ("fr", "EVENEMENTS SURVENUS AU DMF RAPPORT DE LA COMMISSION D'ENQUETE PARLEMENTAIRE (CEP DMF) DU 17 NOVEMBRE 1990", "bericht_kommission"),
+    ("fr", "RAPPORT DU CONSEIL FEDERAL SUR LES EVENEMENTS", "bericht_bundesrat"),
+    ("it", "Rapporto ai Consigli legislativi presentato dalle commissioni istituite dal Consiglio nazionale e dal Consiglio degli Stati per indagare sull`affare del Mirage (Del 1° settembre 1964)", "bericht_kommission"),
     ("it", "AVVENIMENTI IN SENO AL DMF RAPPORTO DELLA COMMISSIONE PARLAMENTARE D'INCHIESTA (CPI DMF) DEL 17 NOVEMBRE 1990", "bericht_kommission"),
     ("it", "Avvenimenti in seno al DFGP Parere del Consiglio federale in merito al rapporto della Commissione parlamentare d'inchiesta (CPI)", "stellungnahme_bundesrat"),
     ("it", "Controllo a posteriori circa la CPI DFGP; esame concomitante", "bericht_kommission"),

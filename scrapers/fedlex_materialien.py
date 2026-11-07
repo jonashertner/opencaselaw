@@ -1018,7 +1018,10 @@ _BOTSCHAFT_TITLE_PREFIX = {"de": "botschaft", "fr": "message", "it": "messaggio"
 # PUK keeps its type); the bare abbreviations count only after an article
 # ("zur PUK", "la CEP", "circa la CPI") — "Tournoi de poker CEP Club" is not
 # a PUK. The decrees that set the commissions up are not Materialien and are
-# excluded (_HISTORICAL_TITLE_EXCLUDE).
+# excluded (_HISTORICAL_TITLE_EXCLUDE). Some French titles are in capitals
+# without accents ("EVENEMENTS SURVENUS AU DMF RAPPORT DE LA COMMISSION
+# D'ENQUETE PARLEMENTAIRE (CEP DMF)", FF 1990 III 1229), so the French rules
+# accept e for é and ê.
 _HISTORICAL_TITLE_RULES: dict[str, tuple[tuple[str, str], ...]] = {
     "de": (
         (r"^(?:nachtrags|ergänzungs|zusatz)?botschaft", "botschaft"),
@@ -1032,11 +1035,11 @@ _HISTORICAL_TITLE_RULES: dict[str, tuple[tuple[str, str], ...]] = {
     ),
     "fr": (
         (r"^message", "botschaft"),
-        (r"^initiative parlementaire.*avis du conseil fédéral", "stellungnahme_bundesrat"),
+        (r"^initiative parlementaire.*avis du conseil f[eé]d[eé]ral", "stellungnahme_bundesrat"),
         (r"^initiative parlementaire", "bericht_kommission"),
-        (r"(?:prise de position|avis) du conseil fédéral.{0,200}commission d.enquête", "stellungnahme_bundesrat"),
-        (r"commission d.enquête parlementaire|\b(?:la|de la) cep\b", "bericht_kommission"),
-        (r"^rapports? (?:complémentaires? )?du conseil fédéral", "bericht_bundesrat"),
+        (r"(?:prise de position|avis) du conseil f[eé]d[eé]ral.{0,200}commission d.enqu[eê]te", "stellungnahme_bundesrat"),
+        (r"commission d.enqu[eê]te parlementaire|\b(?:la|de la) cep\b", "bericht_kommission"),
+        (r"^rapports? (?:compl[eé]mentaires? )?du conseil f[eé]d[eé]ral", "bericht_bundesrat"),
         (r"^rapports?\b.{0,160}commission", "bericht_kommission"),
     ),
     "it": (
