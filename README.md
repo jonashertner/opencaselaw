@@ -96,7 +96,7 @@ curl -sG https://mcp.opencaselaw.ch/api/decisions \
 
 | Resource | Coverage |
 |---|---|
-| Court decisions | 1,050,000+ records, 118 court and source collections, 1875–today |
+| Court decisions | 1,040,000+ records, 137 court and source collections, 1875–today |
 | Languages | German, French, Italian (plus English, for the ECtHR judgments whose only authoritative text is English) |
 | Legislation | 5,546 federal laws, 16,400 cantonal laws (all 26 cantons) |
 | Citation graph | ~10M resolved decision-to-decision edges, 12.4M statute references |
@@ -148,7 +148,7 @@ OpenCaseLaw fixes this. **Every published Swiss court decision, every federal an
 
 ## What you get
 
-**Case law** — 1,050,000+ decision records (~909,000 unique decisions; cross-identifier duplicates retained and linked, never deleted) from 1875 to today across **118 courts**, full text + structured metadata, covering:
+**Case law** — 1,040,000+ decision records (900,000+ unique decisions; cross-identifier duplicates retained and linked, never deleted) from 1875 to today across **137 courts**, full text + structured metadata, covering:
 - All 7 federal courts (BGer, BVGer, BStGer, BPatGer, BGE, BGE historical, BGE-EGMR)
 - Federal military court (Militärkassationsgericht / MKG, 1,244 decisions 1915–2025)
 - All 26 cantonal court systems (first, second, and third instance)
@@ -228,7 +228,7 @@ There are eight ways to use it, depending on what you need:
 | [**REST API / Download**](#2-download-the-dataset) | Developers, data scientists, NLP researchers | Research REST API, bulk Parquet download via HuggingFace (~7 GB) |
 | [**Web UI**](https://opencaselaw.ch) | Everyone | Live dashboard with corpus stats, daily delta, top movers, multilingual browsing |
 
-> **Not sure where to start?** Connect to the [remote MCP server](#option-a-remote-server-recommended) — works with Claude, ChatGPT, and Gemini CLI. Instant access to all 1,050,000+ decisions, citation analysis, statute lookup, legislation search, and education tools, no download needed.
+> **Not sure where to start?** Connect to the [remote MCP server](#option-a-remote-server-recommended) — works with Claude, ChatGPT, and Gemini CLI. Instant access to all 1,040,000+ decisions, citation analysis, statute lookup, legislation search, and education tools, no download needed.
 
 ---
 
@@ -251,7 +251,7 @@ The dataset comes with an [MCP server](https://modelcontextprotocol.io) whose ex
 
 ### Option A: Remote server (recommended)
 
-Connect directly to the hosted MCP server — no data download, no local database, instant access to 1,050,000+ decisions.
+Connect directly to the hosted MCP server — no data download, no local database, instant access to 1,040,000+ decisions.
 
 > **What the hosted server records.** Your queries are logged: tool, parameters **including the query text**, timestamp, client class and a rotating session identifier, and query text is kept indefinitely in an access-restricted private research archive used to improve search and train our own models. **No IP address is stored with a query**, there is no account or login, and the session identifier changes with every connection. Full details, in five languages: **[Privacy notice](https://opencaselaw.ch/datenschutz/)**. If your queries are confidential — or you are sending them on behalf of clients — use Option B below and run the corpus locally, where nothing leaves your machine.
 

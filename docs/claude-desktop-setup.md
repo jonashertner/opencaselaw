@@ -1,6 +1,6 @@
 # Swiss Case Law — MCP Setup Guide
 
-Search 1,050,000+ published Swiss decisions directly inside Claude, ChatGPT, or Gemini.
+Search 1,040,000+ published Swiss decisions directly inside Claude, ChatGPT, or Gemini.
 
 There are two options: **remote** (no download, instant access) or **local** (offline access, 65 GB disk). The hosted deployment exposes the tool surface available on that server; local installs can expose additional local-update tools.
 

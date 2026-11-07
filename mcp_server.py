@@ -15208,7 +15208,7 @@ server = Server(
     "swiss-caselaw",
     version=SERVER_VERSION,
     instructions=(
-        "Swiss legal research platform: 1,050,000+ published decisions from "
+        "Swiss legal research platform: 1,040,000+ published decisions from "
         "federal + cantonal courts, ~9,600 European Court of Human Rights "
         "judgments — the Swiss-respondent material (BGE-published EGMR "
         "translations, HUDOC.CH) plus every ECtHR Chamber and Grand Chamber "
@@ -30740,7 +30740,7 @@ def _list_tools() -> list[Tool]:
             outputSchema=_research_output_schema("search_decisions"),
             description=(
                 "Use this tool to find COURT DECISIONS (Rechtsprechung): "
-                "1,050,000+ Swiss federal and cantonal decisions plus "
+                "1,040,000+ Swiss federal and cantonal decisions plus "
                 "~2,800 ECtHR decisions concerning Switzerland. Full-text "
                 "search with keywords, phrases (in quotes), Boolean "
                 "operators (AND, OR, NOT), prefix matching (word*), docket "
@@ -35791,7 +35791,7 @@ setInterval(load, 30000);
         title="OpenCaseLaw API",
         description=(
             "Swiss court decisions, statutes, commentaries, scholarship, and citation graph. "
-            "1,050,000+ published decisions from Swiss federal, cantonal, and regulatory bodies, "
+            "1,040,000+ published decisions from Swiss federal, cantonal, and regulatory bodies, "
             "5,546 federal laws, 16,400 cantonal acts, 1,100+ commentaries, 51,000+ OA scholarship records."
         ),
         version="1.0.0",
@@ -36880,7 +36880,7 @@ setInterval(load, 30000);
 
     @rest_api.get("/decisions", tags=["Case Law"],
                   summary="Search court decisions",
-                  description="Full-text search across 1,050,000+ Swiss court decisions. "
+                  description="Full-text search across 1,040,000+ Swiss court decisions. "
                               "Supports keywords, phrases (in quotes), Boolean operators (AND, OR, NOT), "
                               "and prefix matching (word*). Each result carries citation_string_{de,fr,it} "
                               "+ canonical_url + rule_statement for copy-ready use in LLM responses. "

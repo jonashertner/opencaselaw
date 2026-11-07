@@ -15,7 +15,7 @@ update all listed consumers in the same commit.
 | Concept | Use when | Examples |
 |---|---|---|
 | **Paper snapshot** | Anything in the v3 paper or `docs/paper/v3/tables/*.json` | "971,992 decisions, snapshot 2026-05-13" |
-| **Live** | Dashboards / README / dataset card | "1,050,000+ records (~909,000 unique)" (rounded; grows daily) |
+| **Live** | Dashboards / README / dataset card | "1,040,000+ records (900,000+ unique)" (rounded down; grows daily) |
 
 ## The numbers
 
@@ -23,9 +23,9 @@ update all listed consumers in the same commit.
 
 | Quantity | Snapshot value (paper) | Live value | Source of truth | Consumers |
 |---|---:|---|---|---|
-| Decision records | **971,992** | **~1.05M** | `docs/paper/v3/tables/corpus_graph_stats.json::total_decisions` (live: `decisions.db` COUNT) | paper §3 abstract, dataset_card.md, README.md, methodology.html, index.html |
-| **Unique decisions** (live only) | — | **~909k** | `output/representation_manifest.db` (live: `stats.json::unique_decisions`) | dataset_card.md, README.md, index.html, llms.txt |
-| Courts | 108 | 118 | same JSON (live: `decisions.db`) | all |
+| Decision records | **971,992** | **~1.05M** (1,047,586 on 2026-11-07) | `docs/paper/v3/tables/corpus_graph_stats.json::total_decisions` (live: `decisions.db` COUNT) | paper §3 abstract, dataset_card.md, README.md, methodology.html, index.html |
+| **Unique decisions** (live only) | — | **900k+** (906,811 on 2026-11-07) | `output/representation_manifest.db` (live: `stats.json::unique_decisions`) | dataset_card.md, README.md, index.html, llms.txt |
+| Courts | 108 | 137 | same JSON (`stats.json::court_count`) (live: `decisions.db`) | all |
 | Cantons | 26 | 26 | constant | all |
 | Languages | DE 449,575 (46.3 %), FR 441,158 (45.4 %), IT 80,704 (8.3 %) | same | corpus_overview.tex | paper §3, methodology.html |
 | Date range | 1875–2026 | 1875–2026 | constant | all |
@@ -36,7 +36,7 @@ update all listed consumers in the same commit.
 count (`decisions.db` rows). Romandie portals (GE, VD) and a few smaller sources
 (ch_vb, nw, edoeb, ur) carry one document under two identifiers, so ~141k rows are
 duplicate representations that we retain and link (never delete). Live figures:
-**~1.05M records → ~909k unique decisions** (`stats.json::unique_decisions`,
+**1,040,000+ records → 900,000+ unique decisions** (`stats.json::unique_decisions`,
 generation-tracked via `representation_manifest.db`). Public surfaces state both;
 the paper snapshot predates this and reports the record count only. See
 `docs/superpowers/specs/2026-07-15-cross-identifier-representations-design.md`.
@@ -49,8 +49,10 @@ The restored pages are not rulings: dates unreliable, all tagged `language=de` t
 many are French or Italian, cited as `Bundesverwaltung <docket>`. Never write ~23k
 VPB, and never say this material is not in the corpus. The swap took the total
 from 1,053,732 to 1,074,228, and these pages count in records and unique decisions
-alike. Live 2026-11-01: 1,074,262 records, 933,478 unique; the ~1.05M / ~909k
-headline values above date from the 2026-07-24 sweep and were not re-swept here.
+alike. Live 2026-11-01: 1,074,262 records, 933,478 unique. The 2026-11-07 build folded
+22,618 entscheidsuche date twins and 517 cantonal copies of BGer rulings into their
+base rows (3b67068b; old ids answer through `decision_id_aliases`): 1,047,586 records,
+906,811 unique.
 
 ### Citation graph
 
@@ -197,7 +199,7 @@ Source: `analytics.db::weekly_reach` (after 2026-05-18 cohort-derivation upgrade
 3. Grep this doc + every consumer for the old number; update them.
 4. Bump the "Last verified" line below.
 
-**Last verified:** 2026-07-24 (live-figure sweep vs stats.json + reference_graph.db: **~1.05M records / ~909k unique decisions** (cross-identifier dual-count now live), courts 118, citation edges 9.65M resolved / ~10M extracted, statute 12.4M, federal laws 5,525, cantonal 15,600, Botschaft 5,900+/~410K, commentaries ~1,131, tools 43/41/2; paper-snapshot rows unchanged at 971,992). Consumers synced this sweep: README, dataset_card, dataset_card_legislation, methodology.html (6 langs), index.html, mcp_server.py (instructions + tool descriptions), llms.txt, claude-desktop-setup.md, entscheide/ + ueber/ pages, word-addin AppSource listing. Paper (docs/paper/*) intentionally left at its frozen snapshot.
+**Last verified:** 2026-11-07 (headline sweep after the duplicate fold, vs stats.json: 1,047,586 records -> "1,040,000+", 906,811 unique -> "900,000+", courts 137, languages DE 482,737 / FR 474,882 / IT 83,757 / EN 6,210; consumers: README, dataset_card, methodology.html, index.html, entscheide/ mcp/ standards/ ueber/ word/ pages + language copies, mcp_server.py, llms.txt, claude-desktop-setup.md, word-addin AppSource texts, Anthropic directory submission). Previous: 2026-07-24 (live-figure sweep vs stats.json + reference_graph.db: **~1.05M records / ~909k unique decisions** (cross-identifier dual-count now live), courts 118, citation edges 9.65M resolved / ~10M extracted, statute 12.4M, federal laws 5,525, cantonal 15,600, Botschaft 5,900+/~410K, commentaries ~1,131, tools 43/41/2; paper-snapshot rows unchanged at 971,992). Consumers synced this sweep: README, dataset_card, dataset_card_legislation, methodology.html (6 langs), index.html, mcp_server.py (instructions + tool descriptions), llms.txt, claude-desktop-setup.md, entscheide/ + ueber/ pages, word-addin AppSource listing. Paper (docs/paper/*) intentionally left at its frozen snapshot.
 
 **Materialien re-verified 2026-10-21** against production materialien.db / consultations.db: Bundesblatt 19,842 rows (9,727 works), 1,650,592 paragraphs, 26,587 article links / 770 acts; Vernehmlassungen 2,694 procedures, 10,296 searchable documents, 10,841,357 paragraphs. Consumers synced: README, dataset_card, index.html register (DE/FR/IT/EN), stats page, mcp/api pages, mcp_server.py instructions + tool descriptions.
 

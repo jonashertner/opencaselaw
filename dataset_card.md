@@ -35,7 +35,7 @@ configs:
 
 # Swiss Case Law Dataset
 
-**1,050,000+ published decision records (~909,000 unique decisions) from Swiss federal, cantonal, and regulatory bodies.**
+**1,040,000+ published decision records (900,000+ unique decisions) from Swiss federal, cantonal, and regulatory bodies.**
 
 *Figures as of 2026-07-24 — refreshed daily; live counts at [opencaselaw.ch](https://opencaselaw.ch).*
 
@@ -50,7 +50,7 @@ Full text, structured metadata, extracted case-citation references, and daily up
 
 ## Dataset Summary
 
-The largest open collection of Swiss court decisions: 1,050,000+ decision records from 118 federal, cantonal, regulatory, and international courts, scraped from official publication channels. These records represent ~909,000 unique decisions: the Romandie portals (GE, VD) and a few others publish one ruling under two identifiers (procedure number + decision number), so ~141,000 rows are cross-identifier duplicate representations, which we retain and link rather than delete. New decisions are added every night.
+The largest open collection of Swiss court decisions: 1,040,000+ decision records from 137 federal, cantonal, regulatory, and international courts, scraped from official publication channels. These records represent 900,000+ unique decisions: the Romandie portals (GE, VD) and a few others publish one ruling under two identifiers (procedure number + decision number), so ~141,000 rows are cross-identifier duplicate representations, which we retain and link rather than delete. New decisions are added every night.
 
 - **20+ federal courts and bodies**: BGer, BVGer, BStGer, BPatGer, BGE, FINMA, WEKO, EDÖB, MKG (Militärkassationsgericht), VPB/JAAC series (1987–2017), Sports Tribunal, and more
 - **~20,400 archived official pages under `ch_vb`**: Bundesblatt, Amtliches Bulletin 1982–1999 and Amtliche Sammlung pages, counted in the record totals above. They are not rulings and are a separate set from the 2,502 VPB/JAAC rows in the same file: their dates are unreliable, all are tagged `language=de` though many are French or Italian, and they cite as "Bundesverwaltung &lt;docket&gt;"
@@ -126,7 +126,7 @@ curl "https://datasets-server.huggingface.co/info?dataset=voilaj/swiss-caselaw"
 
 ### Full-text search via MCP
 
-Connect the dataset to Claude, ChatGPT, Cursor, Gemini, Grok, or any MCP client for natural-language search over all 1,050,000+ decisions, statute lookup, citation graph traversal, legislative history, and more. The MCP server exposes **44 tools total — 42 in remote (public) mode**; the 2 local-only `update_database` / `check_update_status` tools are hidden when REMOTE_MODE=True. Tools include verbatim head-note retrieval (`get_regeste`), structured Erwägung-paragraph access (`get_erwaegung`), full decision-structure decomposition (`get_decision_structure`), and a closed-corpus citation-integrity toolkit (`cite`, `check_claim_support`, `attest_response`) that audits every reference, statute, quotation, decision date, and — opt-in — proposition-grounding before an answer ships. The architecture defends against the two empirically-measured legal-LLM failure classes: **hallucination** (Dahl, Magesh, Suzgun & Ho, *Large Legal Fictions*, Journal of Legal Analysis 16(1) 2024 — 58–88 % of legal queries to general-purpose LLMs produced fabricated authority, range across ChatGPT-4 to Llama-2; the follow-up Magesh et al. *Hallucination-Free?* study, Journal of Empirical Legal Studies 22 (2025), measured 17–33 % on commercial legal-RAG tools) and **reasoning error** (Butler & Butler, *Legal RAG Bench*, arXiv:2603.01710, 2026 — citation real, source retrieved, proposition unsupported).
+Connect the dataset to Claude, ChatGPT, Cursor, Gemini, Grok, or any MCP client for natural-language search over all 1,040,000+ decisions, statute lookup, citation graph traversal, legislative history, and more. The MCP server exposes **44 tools total — 42 in remote (public) mode**; the 2 local-only `update_database` / `check_update_status` tools are hidden when REMOTE_MODE=True. Tools include verbatim head-note retrieval (`get_regeste`), structured Erwägung-paragraph access (`get_erwaegung`), full decision-structure decomposition (`get_decision_structure`), and a closed-corpus citation-integrity toolkit (`cite`, `check_claim_support`, `attest_response`) that audits every reference, statute, quotation, decision date, and — opt-in — proposition-grounding before an answer ships. The architecture defends against the two empirically-measured legal-LLM failure classes: **hallucination** (Dahl, Magesh, Suzgun & Ho, *Large Legal Fictions*, Journal of Legal Analysis 16(1) 2024 — 58–88 % of legal queries to general-purpose LLMs produced fabricated authority, range across ChatGPT-4 to Llama-2; the follow-up Magesh et al. *Hallucination-Free?* study, Journal of Empirical Legal Studies 22 (2025), measured 17–33 % on commercial legal-RAG tools) and **reasoning error** (Butler & Butler, *Legal RAG Bench*, arXiv:2603.01710, 2026 — citation real, source retrieved, proposition unsupported).
 
 **Remote (no download needed):**
 
@@ -169,9 +169,9 @@ This snapshot is intended for local MCP/server bootstrap tools that want to avoi
 
 | Metric | Value |
 |--------|-------|
-| Total decision records | 1,050,000+ (live count, updated daily) |
-| Unique decisions | ~909,000 (after cross-identifier linkage; ~141,000 records are duplicate representations, retained and linked) |
-| Courts | 118 |
+| Total decision records | 1,040,000+ (live count, updated daily) |
+| Unique decisions | 900,000+ (after cross-identifier linkage; ~141,000 records are duplicate representations, retained and linked) |
+| Courts | 137 |
 | Temporal range | 1875–present |
 | Average decision length | 22,775 characters |
 | Full text coverage | 100% |
@@ -359,11 +359,11 @@ See the governance policy for source withdrawals, re-anonymization, and verified
 
 ```bibtex
 @dataset{swiss_caselaw_2026,
-  title={Swiss Case Law Dataset: 1,050,000+ Court Decision Records (~909,000 Unique) with Reference Graph and ECtHR Coverage},
+  title={Swiss Case Law Dataset: 1,040,000+ Court Decision Records (900,000+ Unique) with Reference Graph and ECtHR Coverage},
   author={Jonas Hertner},
   year={2026},
   url={https://huggingface.co/datasets/voilaj/swiss-caselaw},
-  note={1,050,000+ Swiss federal, cantonal, and regulatory decision records (~909,000 unique) with full text,
+  note={1,040,000+ Swiss federal, cantonal, and regulatory decision records (900,000+ unique) with full text,
         structured metadata, 9.65M resolved citation edges, 12.4M statute links,
         5,546 federal laws, 16,400 cantonal laws,
         and legislative history (28,100+ verbatim Bundesblatt documents,

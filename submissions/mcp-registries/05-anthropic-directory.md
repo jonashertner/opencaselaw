@@ -82,7 +82,7 @@ each with a title. No prompts, no resources (verified live 2026-09-02:
 
 ## Step: Listing
 
-> Numbers below (1,050,000+ decisions, 51,000+ scholarship records from 27 sources, 9.6M edges) follow the pending `mcp_server.py` instructions update. Re-check against `https://mcp.opencaselaw.ch/health` and the live server instructions on submission day.
+> Numbers below (1,040,000+ decisions, 51,000+ scholarship records from 27 sources, 9.6M edges) follow the pending `mcp_server.py` instructions update. Re-check against `https://mcp.opencaselaw.ch/health` and the live server instructions on submission day.
 
 **Server name** (49/100):
 
@@ -99,7 +99,7 @@ Verified Swiss law: 1M+ decisions, statutes, doctrine
 **Description** (1,841/2,000):
 
 ```
-OpenCaseLaw is a free, open Swiss legal research server: 1,050,000+ published decisions of the Federal Supreme Court, the federal courts and all 26 cantons (1875 to today), ~9,600 European Court of Human Rights judgments, 5,500+ federal and 16,400+ cantonal statutes, 1,100+ scholarly commentaries, the verbatim Federal Council Botschaft corpus, federal administrative practice (FINMA, SECO, ESTV, SEM, BAFU) and 51,000+ open-access scholarship records, connected by a citation graph of 9.6 million resolved edges. Updated daily. Data is CC0, code is MIT, and no account or API key is needed.
+OpenCaseLaw is a free, open Swiss legal research server: 1,040,000+ published decisions of the Federal Supreme Court, the federal courts and all 26 cantons (1875 to today), ~9,600 European Court of Human Rights judgments, 5,500+ federal and 16,400+ cantonal statutes, 1,100+ scholarly commentaries, the verbatim Federal Council Botschaft corpus, federal administrative practice (FINMA, SECO, ESTV, SEM, BAFU) and 51,000+ open-access scholarship records, connected by a citation graph of 9.6 million resolved edges. Updated daily. Data is CC0, code is MIT, and no account or API key is needed.
 
 What Claude can do with it:
 • Search decisions, statutes, commentaries, legislative materials and scholarship in German, French or Italian, with cross-language matching handled server-side.
