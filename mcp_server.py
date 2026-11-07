@@ -9196,6 +9196,11 @@ def _resolve_decision_id(decision_id: str) -> str:
             ).fetchone()
             if row:
                 return row[0]
+        # 'UEK 500/01 vom ...', 'SIX SaKo-IV/2023', and the old 'Gericht CH ...'
+        # strings, before the parser can pick the bare docket at another court.
+        _reg = _lookup_regulator_reference(conn, decision_id)
+        if _reg:
+            return _reg
         # Robustness (#44): resolve a DECORATED citation form ("BGer 6B 1518/2021
         # vom ...", stray whitespace) by extracting the single docket and
         # retrying the exact lookup.
@@ -15965,6 +15970,13 @@ _COURT_CITATION_CODES = {
     "ecthr_chamber":       ("EGMR", "CourEDH", "CorteEDU", "§", "§", "§"),
     "ecthr_committee":     ("EGMR", "CourEDH", "CorteEDU", "§", "§", "§"),
     "ecthr_grand_chamber": ("EGMR", "CourEDH", "CorteEDU", "§", "§", "§"),
+    # Regulators with a decision series of their own. Without an entry they
+    # fell to the cantonal fallback and printed 'Gericht CH 500/01 vom ...':
+    # no body, and a court label for an authority that is not one. UEK is the
+    # Übernahmekommission (COPA in French and Italian); SIX dockets name the
+    # instance themselves ('SaKo-IV/2023', 'Schiedsgericht SaKo-IV/2023').
+    "uek":          ("UEK",     "COPA",   "COPA",   "E.",     "consid.", "consid."),
+    "six_ser":      ("SIX",     "SIX",    "SIX",    "E.",     "consid.", "consid."),
 }
 
 # Strasbourg judgments are cited by party name, not by application number
@@ -16256,6 +16268,61 @@ def _vpb_docket(reference: str | None) -> str | None:
     'JAAC <n>' docket; None for anything that does not open with the series."""
     m = _VPB_REF_RE.match((reference or "").strip())
     return f"JAAC {m.group(1)}" if m else None
+
+
+# Regulators cited by the body's own label ('UEK 500/01 vom 22. Dezember 2011',
+# 'COPA 500/01', 'SIX SaKo-IV/2023'), and the 'Gericht CH <docket> vom ...'
+# strings the server printed for them before they had one, which are already
+# in users' documents. The label is written first and the docket follows
+# whole; a date, where written, must be the ruling's own.
+_REGULATOR_LABEL_COURTS = {"uek": ("uek",), "copa": ("uek",), "six": ("six_ser",)}
+_REGULATOR_REF_RE = re.compile(
+    r"^(?P<label>UEK|COPA|SIX|Gericht CH|Tribunal CH|Tribunale CH)\s+(?P<docket>\S.*?)"
+    r"(?:\s+(?:vom|du|del)\s+(?P<date>\d{1,2}\.?\s+[A-Za-zÀ-ÿ]+\s+\d{4}))?"
+    r"(?:,\s*(?:E\.|consid\.)\s*\S.*)?\.?$", re.IGNORECASE)
+
+
+def _regulator_reference(reference: str | None):
+    """'UEK 500/01 vom 22. Dezember 2011' -> (('uek',), '500/01', '2011-12-22').
+    For 'Gericht/Tribunal/Tribunale CH ...' the courts are None: any federal-
+    level row (canton CH) under that docket. None when the reference does not
+    open with one of these labels."""
+    m = _REGULATOR_REF_RE.match((reference or "").strip())
+    if not m:
+        return None
+    date = None
+    if m.group("date"):
+        try:
+            date = reference_parser.parse_reference(m.group("date")).date
+        except Exception:  # noqa: BLE001
+            date = None
+        if not date:
+            return None
+    return _REGULATOR_LABEL_COURTS.get(m.group("label").lower()), m.group("docket").strip(), date
+
+
+def _regulator_reference_matches(parts, court, canton, decision_date) -> bool:
+    courts, _docket, date = parts
+    if courts is not None and court not in courts:
+        return False
+    if courts is None and str(canton or "").upper() != "CH":
+        return False
+    return not date or str(decision_date or "")[:10] == date
+
+
+def _lookup_regulator_reference(conn, reference: str) -> str | None:
+    """The ruling a regulator reference names (exact docket, indexed), or None."""
+    parts = _regulator_reference(reference)
+    if not parts:
+        return None
+    for r in conn.execute(
+        "SELECT decision_id, court, canton, decision_date FROM decisions "
+        "WHERE docket_number = ? ORDER BY decision_date DESC LIMIT 8", (parts[1],),
+    ).fetchall():
+        did, court, canton, decision_date = tuple(r)
+        if _regulator_reference_matches(parts, court, canton, decision_date):
+            return did
+    return None
 
 
 _FED_SPACE_DOCKET = re.compile(r"^([0-9A-Z]{1,3}) (\d+/\d{2,4})$")
@@ -19512,6 +19579,14 @@ def _cite_identity(reference: str, decision: dict) -> dict | None:
         vpb = _vpb_docket(reference)
         if vpb and vpb == decision.get("docket_number"):
             return {"method": "exact_docket", "label": vpb}
+    reg = _regulator_reference(reference)
+    if reg:
+        # The reference names the body: another court's ruling under the same
+        # docket, or another date, is not the ruling it means.
+        if reg[1] == decision.get("docket_number") and _regulator_reference_matches(
+                reg, decision.get("court"), decision.get("canton"), decision.get("decision_date")):
+            return {"method": "exact_docket", "label": reg[1]}
+        return None
     core_key = reference_parser.label_key(core)
     try:
         strings = _build_citation_strings(decision)
@@ -20287,6 +20362,10 @@ def _resolve_decision_id_strict(decision_id: str) -> str | None:
             ).fetchone()
             if row:
                 return row[0]
+        # 'UEK 500/01 vom ...' / 'Gericht CH 500/01 vom ...' (exact docket, indexed).
+        _reg = _lookup_regulator_reference(conn, decision_id)
+        if _reg:
+            return _reg
         # Joined-docket alias (#41): unique alias only. Indexed lookup, so it
         # keeps the strict resolver's no-LIKE performance contract — attest_response
         # must accept a valid joined docket instead of flagging it as fabricated.
