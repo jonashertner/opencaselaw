@@ -5,9 +5,47 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 06 Nov 2026 11:56:51 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 07 Nov 2026 11:36:41 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht C-6377/2024 vom 2026-10-26</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-6377_2024</link>
+      <description>Diritto alla rendita</description>
+      <pubDate>Fri, 06 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-6377.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 8C_496/2026 vom 2026-10-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_496_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+8C_496/2026
+
+Sentenza del 14 ottobre 2026
+
+IV Corte di diritto pubblico
+
+Composizione
+
+Giudice federale Viscione, Presidente,
+
+Cancelliere Colombi.
+
+Partecipanti al procedimento
+
+…</description>
+      <pubDate>Fri, 06 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_496.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesgericht 6B_476/2026 vom 2026-10-14</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_476_2026</link>
@@ -868,22 +906,6 @@ statuendo nella compos…</description>
       <description>Asilo (non entrata nel merito) ed allontanamento (nessuna domanda asilo - art. 31a cpv. 3 LAsi)</description>
       <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-3144.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-5336/2026 vom 2026-08-10</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5336_2026</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (paese terzo sicuro - art. 31a cpv. 1 lett. a LAsi)</description>
-      <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5336.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-2427/2026 vom 2026-08-05</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-2427_2026</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (paese terzo sicuro - art. 31a cpv. 1 lett. a LAsi)</description>
-      <pubDate>Wed, 28 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-2427.2026</guid>
       <category>bvger</category>
     </item>
   </channel>
