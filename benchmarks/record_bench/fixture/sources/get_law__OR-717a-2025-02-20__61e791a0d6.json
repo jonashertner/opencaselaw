@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "OR",
+  "article": "717a",
+  "as_of": "2025-02-20"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:07:01+00:00",
+ "result": {
+  "_markdown": "# OR — SR 220\n**Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2025-01-01, applicable on 2025-02-20\nAct in force: 1912-01-01 – (open)\nText source: Fedlex Akoma Ntoso XML — per-article, verbatim\nQuelle: [Fedlex (Fassung vom 2025-01-01)](https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20250101/de)\n\n### Art. 717a\n\n1 Die Mitglieder des Verwaltungsrats und der Geschäftsleitung informieren den Verwaltungsrat unverzüglich und vollständig über sie betreffende Interessenkonflikte.\n2 Der Verwaltungsrat ergreift die Massnahmen, die zur Wahrung der Interessen der Gesellschaft nötig sind.\n\n> Footnote: Eingefügt durch Ziff. I des BG vom 19. Juni 2020 (Aktienrecht), in Kraft seit 1. Jan. 2023 (AS 2020 4005; 2022 109; BBl 2017 399).\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

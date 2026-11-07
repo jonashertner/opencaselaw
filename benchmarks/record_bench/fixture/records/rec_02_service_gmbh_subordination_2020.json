@@ -1,0 +1,222 @@
+{
+ "id": "rec_02_service_gmbh_subordination_2020",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.capital_loss",
+  "text": "Subordination of the parent's CHF 6.0m loan to Sernfeld Service GmbH so that the GmbH, over-indebted by CHF 1.9m at going-concern values, need not notify the court; quarterly interim balance sheets."
+ },
+ "purpose": "Keep Sernfeld Service GmbH operating through the Covid-19 downturn without a bankruptcy filing while a restructuring is prepared.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG (as sole shareholder and creditor of Sernfeld Service GmbH)",
+ "decided_at": "2020-05-28",
+ "minutes": "dms://board/2020-05-28_minutes.md#3",
+ "owner": {
+  "person": "cfo",
+  "name": "Annika Zwahlen",
+  "role": "Chief Financial Officer"
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "The subordination stays in place as long as the GmbH is over-indebted"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Interim balance sheet of 30 April 2020: equity CHF -1.9m at going-concern values, CHF -3.4m at liquidation values",
+    "source": "dms://finance/service-gmbh/interim-balance-2020-04-30.md",
+    "as_of": "2020-04-30"
+   },
+   {
+    "id": "f2",
+    "text": "Subordinated parent loan of CHF 6.0m; interest of 2% not covered by the subordination",
+    "source": "dms://finance/service-gmbh/subordination-agreement-2020.md",
+    "as_of": "2020-05-29"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "725",
+    "article_label": "Art. 725",
+    "paragraph": "2",
+    "as_of": "2020-05-28",
+    "edition": "2020-04-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": null,
+    "text_status": "unstructured_not_quoted",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20200401/de",
+    "source_snapshot": "get_law__OR-725-2020-05-28__a262bb2a84",
+    "proposition": "If the company is over-indebted at going-concern and at liquidation values, the board must notify the court unless creditors subordinate their claims in the amount of the shortfall.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:47+00:00",
+     "snapshot": "attest_response__Art--725-Abs--2-OR__01961ed168",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:46+00:00",
+      "as_of": "2020-05-28",
+      "edition": "2020-04-01",
+      "snapshot": "get_law__OR-725-2020-05-28__a262bb2a84"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "820",
+    "article_label": "Art. 820",
+    "paragraph": null,
+    "as_of": "2020-05-28",
+    "edition": "2020-04-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": null,
+    "text_status": "unstructured_not_quoted",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20200401/de",
+    "source_snapshot": "get_law__OR-820-2020-05-28__bee415de5e",
+    "proposition": "The company-law rules on capital loss and over-indebtedness apply to a GmbH.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:13+00:00",
+     "snapshot": "attest_response__Art--820-OR__3373d4c6e9",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:47+00:00",
+      "as_of": "2020-05-28",
+      "edition": "2020-04-01",
+      "snapshot": "get_law__OR-820-2020-05-28__bee415de5e"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_136_III_322",
+    "citation": "BGE 136 III 322, E. 3",
+    "decision_date": "2010-03-16",
+    "pinpoint": "3",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_136_III_322#e-3",
+    "source_snapshot": "cite__bge-BGE-136-III-322-3__9d3e677981",
+    "proposition": "Damage caused by delaying a bankruptcy filing is measured at liquidation values; directors who delay are liable for it.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:47+00:00",
+     "snapshot": "attest_response__BGE-136-III-322--E--3__58c7e012c8"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Quarterly interim balance sheets of the GmbH to the board",
+    "source": "dms://board/2020-05-28_minutes.md#3",
+    "test_date": "2020-09-30"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Prof. Dr. Thomas Bärtschi (board member)",
+   "text": "A subordination may not suffice if earnings prospects remain uncertain.",
+   "answer": "The subordination removes the duty to notify; a restructuring is to be examined by mid-2021."
+  }
+ ],
+ "review": {
+  "date": "2021-06-30",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified",
+   "f1 shortfall exceeds the subordinated amount",
+   "f2 subordination amended or terminated"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/service-gmbh/interim-balance-2020-04-30.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://finance/service-gmbh/subordination-agreement-2020.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://board/2020-05-28_minutes.md#3",
+   "test_date": "2020-09-30",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "The subordination stays in place as long as the GmbH is over-indebted",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

@@ -1,0 +1,33 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_127_III_332",
+  "pinpoint": "2"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:52+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_127_III_332",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2001-05-02",
+  "citation_string": "BGE 127 III 332, E. 2",
+  "citation_string_de": "BGE 127 III 332, E. 2",
+  "citation_string_fr": "ATF 127 III 332, consid. 2",
+  "citation_string_it": "DTF 127 III 332, consid. 2",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_127_III_332#e-2",
+  "markdown_link": "[BGE 127 III 332, E. 2](https://mcp.opencaselaw.ch/entscheid/bge_BGE_127_III_332#e-2)",
+  "rule_statement": "In der Berufung macht die Klägerin im Wesentlichen geltend, dass die umstrittene Abtretung der A. AG an die klägerische Erbengemeinschaft gültig sei. Einerseits sei A.M. als geschäftsführendes Mitglied des Verwaltungsrates berechtigt gewesen, die Ansprüche der A. AG an die klägerische Erbengemeinschaft abzutreten; andrerseits liege keine verpönte Doppelvertretung vor, da eine Übervorteilung der A. […]",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "pinpoint": "2",
+  "pinpoint_status": "verified",
+  "pinpoint_valid": true,
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_127_III_332"
+  },
+  "canonical_decision_id": "bge_BGE_127_III_332",
+  "is_canonical": true
+ }
+}

@@ -1,0 +1,231 @@
+{
+ "id": "rec_06_kaelin_supply_2021",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.conflict_transaction",
+  "text": "Approval by the non-conflicted directors of a five-year castings supply framework agreement (about CHF 18m a year) with Kälin Giesserei AG, owned by director Peter Kälin, subject to an annual price benchmark."
+ },
+ "purpose": "Secure castings at market prices with short lead times while protecting the company from the director's conflict of interest.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG (members without conflict)",
+ "decided_at": "2021-06-24",
+ "minutes": "dms://board/2021-06-24_minutes.md#3",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "chair",
+  "name": "Dr. Regula Imhof",
+  "role": "Chair of the Board"
+ },
+ "restrictions": [
+  "Peter Kälin does not sign for the company",
+  "Annual price comparison with at least two independent suppliers"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Benchmark against three independent foundries: Kälin −2.0% to +3.0% of market mean, weighted +0.6%",
+    "source": "dms://contracts/kaelin-benchmark-2021.md",
+    "as_of": "2021-06-15"
+   },
+   {
+    "id": "f2",
+    "text": "Peter Kälin declared the conflict and left the meeting",
+    "source": "dms://board/2021-06-24_minutes.md#3",
+    "as_of": "2021-06-24"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717",
+    "article_label": "Art. 717",
+    "paragraph": "1",
+    "as_of": "2021-06-24",
+    "edition": "2021-05-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Die Mitglieder des Verwaltungsrates sowie Dritte, die mit der Geschäftsführung befasst sind, müssen ihre Aufgaben mit aller Sorgfalt erfüllen und die Interessen der Gesellschaft in guten Treuen wahren.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20210501/de",
+    "source_snapshot": "get_law__OR-717-2021-06-24__25dd5690be",
+    "proposition": "Directors must perform their duties with all due diligence and safeguard the company's interests in good faith.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:51+00:00",
+     "snapshot": "attest_response__Art--717-Abs--1-OR__9411282178",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:51+00:00",
+      "as_of": "2021-06-24",
+      "edition": "2021-05-01",
+      "snapshot": "get_law__OR-717-2021-06-24__25dd5690be"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "718b",
+    "article_label": "Art. 718b",
+    "paragraph": null,
+    "as_of": "2021-06-24",
+    "edition": "2021-05-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "Wird die Gesellschaft beim Abschluss eines Vertrages durch diejenige Person vertreten, mit der sie den Vertrag abschliesst, so muss der Vertrag schriftlich abgefasst werden. Dieses Erfordernis gilt nicht für Verträge des laufenden Geschäfts, bei denen die Leistung der Gesellschaft den Wert von 1000 Franken nicht übersteigt.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20210501/de",
+    "source_snapshot": "get_law__OR-718b-2021-06-24__9a4548b89c",
+    "proposition": "A contract between the company and the person representing it must be in writing, except for ordinary-course contracts of small value.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:52+00:00",
+     "snapshot": "attest_response__Art--718b-OR__635851d091",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:52+00:00",
+      "as_of": "2021-06-24",
+      "edition": "2021-05-01",
+      "snapshot": "get_law__OR-718b-2021-06-24__9a4548b89c"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_127_III_332",
+    "citation": "BGE 127 III 332, E. 2",
+    "decision_date": "2001-05-02",
+    "pinpoint": "2",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_127_III_332#e-2",
+    "source_snapshot": "cite__bge-BGE-127-III-332-2__0f56069d68",
+    "proposition": "A self-dealing transaction of a director can be approved by another director with signing authority.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:52+00:00",
+     "snapshot": "attest_response__BGE-127-III-332--E--2__7653842f89"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Annual price comparison with at least two independent suppliers (clause 7.2)",
+    "source": "dms://contracts/kaelin-supply-agreement-2021.md#7.2",
+    "test_date": "2022-06-30"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Prof. Dr. Thomas Bärtschi (board member)",
+   "text": "Prices must be compared again every year.",
+   "answer": "Accepted; annual benchmark made a condition of the approval."
+  }
+ ],
+ "review": {
+  "date": "2022-06-30",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified",
+   "c1 benchmark shows Kälin above market",
+   "f2 conflict not respected in execution"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://contracts/kaelin-benchmark-2021.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://board/2021-06-24_minutes.md#3",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://contracts/kaelin-supply-agreement-2021.md#7.2",
+   "test_date": "2022-06-30",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Peter Kälin does not sign for the company",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "Annual price comparison with at least two independent suppliers",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

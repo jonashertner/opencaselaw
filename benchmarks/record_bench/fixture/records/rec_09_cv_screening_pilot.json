@@ -1,0 +1,239 @@
+{
+ "id": "rec_09_cv_screening_pilot",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.ai_deployment",
+  "text": "Pilot from 1 August 2022 to 31 July 2023 of AI ranking of applications for apprenticeships and production jobs in Winterthur, with no automatic rejections."
+ },
+ "purpose": "Speed up the handling of about 1,800 applications a year without discriminating and with a person deciding on every application.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2022-06-16",
+ "minutes": "dms://board/2022-06-16_minutes.md#5",
+ "owner": {
+  "person": "dpo",
+  "name": "Corinne Steiner",
+  "role": "Data Protection Officer"
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "Winterthur site only",
+  "No automatic rejection; a person decides on each application",
+  "Sex, age, nationality and photo removed before scoring"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Provider TalentRank AG, data held in Switzerland; ranking is a recommendation only",
+    "source": "dms://ai/cv-screening-pilot-memo-2022.md",
+    "as_of": "2022-06-01"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "328b",
+    "article_label": "Art. 328b",
+    "paragraph": null,
+    "as_of": "2022-06-16",
+    "edition": "2022-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "Der Arbeitgeber darf Daten über den Arbeitnehmer nur bearbeiten, soweit sie dessen Eignung für das Arbeitsverhältnis betreffen oder zur Durchführung des Arbeitsvertrages erforderlich sind. Im Übrigen gelten die Bestimmungen des Bundesgesetzes vom 19. Juni 1992 über den Datenschutz.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20220101/de",
+    "source_snapshot": "get_law__OR-328b-2022-06-16__9ed3b5fc1c",
+    "proposition": "An employer may process data about an employee or applicant only insofar as it concerns suitability for the job or is necessary to perform the employment contract.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:52+00:00",
+     "snapshot": "attest_response__Art--328b-OR__37c62eabf0",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:52+00:00",
+      "as_of": "2022-06-16",
+      "edition": "2022-01-01",
+      "snapshot": "get_law__OR-328b-2022-06-16__9ed3b5fc1c"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "GlG",
+    "sr_number": "151.1",
+    "act_title": "Bundesgesetz vom 24. März 1995 über die Gleichstellung von Frau und Mann (Gleichstellungsgesetz, GlG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "3",
+    "article_label": "Art. 3 — Diskriminierungsverbot",
+    "paragraph": "2",
+    "as_of": "2022-06-16",
+    "edition": "2020-07-01",
+    "act_in_force": "1996-07-01 – (open)",
+    "text": "2 Das Verbot gilt insbesondere für die Anstellung, Aufgabenzuteilung, Gestaltung der Arbeitsbedingungen, Entlöhnung, Aus- und Weiterbildung, Beförderung und Entlassung.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/1996/1498_1498_1498/20200701/de",
+    "source_snapshot": "get_law__GlG-3-2022-06-16__8080431c22",
+    "proposition": "The prohibition of sex discrimination applies in particular to hiring.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:53+00:00",
+     "snapshot": "attest_response__Art--3-Abs--2-GlG__1aa6d1e22d",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:52+00:00",
+      "as_of": "2022-06-16",
+      "edition": "2020-07-01",
+      "snapshot": "get_law__GlG-3-2022-06-16__8080431c22"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "4",
+    "article_label": "Art. 4 — Grundsätze",
+    "paragraph": "4",
+    "as_of": "2022-06-16",
+    "edition": "2019-03-01",
+    "act_in_force": "1993-07-01 – 2023-09-01 (repealed)",
+    "text": "4 Die Beschaffung von Personendaten und insbesondere der Zweck ihrer Bearbeitung müssen für die betroffene Person erkennbar sein.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/1993/1945_1945_1945/20190301/de",
+    "source_snapshot": "get_law__DSG-4-2022-06-16__197aa5ea9b",
+    "proposition": "The collection of personal data and its purposes must be evident to the data subject.",
+    "verification": {
+     "tool": "get_law",
+     "ok": true,
+     "at": "2026-10-14T23:06:53+00:00",
+     "as_of": "2022-06-16",
+     "edition": "2019-03-01",
+     "snapshot": "get_law__DSG-4-2022-06-16__197aa5ea9b"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Quarterly control of acceptance rates by sex",
+    "source": "dms://ai/cv-screening-pilot-memo-2022.md",
+    "test_date": "2022-10-31"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Dr. Andreas Wyss (board member)",
+   "text": "Risk of discrimination.",
+   "answer": "Protected attributes removed before scoring; quarterly control of acceptance rates by sex."
+  },
+  {
+   "by": "Matteo Bianchi (General Counsel)",
+   "text": "The revised data protection act enters into force on 1 September 2023 with new information duties.",
+   "answer": "Pilot to be reviewed before then."
+  }
+ ],
+ "review": {
+  "date": "2023-06-30",
+  "reopen_if": [
+   "l1, l2 or l3 amended or repealed",
+   "automatic rejections introduced",
+   "use outside Winterthur"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://ai/cv-screening-pilot-memo-2022.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://ai/cv-screening-pilot-memo-2022.md",
+   "test_date": "2022-10-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Winterthur site only",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "No automatic rejection; a person decides on each application",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r3",
+   "kind": "restriction",
+   "text": "Sex, age, nationality and photo removed before scoring",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

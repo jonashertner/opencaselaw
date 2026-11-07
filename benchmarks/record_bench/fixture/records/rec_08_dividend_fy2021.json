@@ -1,0 +1,215 @@
+{
+ "id": "rec_08_dividend_fy2021",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.dividend",
+  "text": "Proposal to the AGM of an ordinary dividend of CHF 4.00 per share (CHF 8.0m) for financial year 2021."
+ },
+ "purpose": "Distribute part of the 2021 profit while staying well within the facility's distribution test.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2022-03-17",
+ "minutes": "dms://board/2022-03-17_minutes.md#4",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "acc",
+  "name": "Prof. Dr. Thomas Bärtschi",
+  "role": "Chair of the Audit Committee"
+ },
+ "restrictions": [
+  "Auditor confirms that the proposal complies with law and articles"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Balance-sheet profit of CHF 146.3m per audited 2021 accounts",
+    "source": "dms://finance/2021/audited-accounts-extract.md",
+    "as_of": "2021-12-31"
+   },
+   {
+    "id": "f2",
+    "text": "Leverage 1.6x at 31 December 2021",
+    "source": "dms://finance/2021/audited-accounts-extract.md",
+    "as_of": "2021-12-31"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "675",
+    "article_label": "Art. 675",
+    "paragraph": "2",
+    "as_of": "2022-03-17",
+    "edition": "2022-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Dividenden dürfen nur aus dem Bilanzgewinn und aus hierfür gebildeten Reserven ausgerichtet werden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20220101/de",
+    "source_snapshot": "get_law__OR-675-2022-03-17__8122be87f6",
+    "proposition": "Dividends may be paid only out of the balance-sheet profit and out of reserves created for this purpose.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:46+00:00",
+     "snapshot": "attest_response__Art--675-Abs--2-OR__0c9ebe1408",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:50+00:00",
+      "as_of": "2022-03-17",
+      "edition": "2022-01-01",
+      "snapshot": "get_law__OR-675-2022-03-17__8122be87f6"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "728a",
+    "article_label": "Art. 728a",
+    "paragraph": "1",
+    "as_of": "2022-03-17",
+    "edition": "2022-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Die Revisionsstelle prüft, ob: 1. die Jahresrechnung und gegebenenfalls die Konzernrechnung den gesetzlichen Vorschriften, den Statuten und dem gewählten Regelwerk entsprechen; 2. der Antrag des Verwaltungsrats an die Generalversammlung über die Verwendung des Bilanzgewinnes den gesetzlichen Vorschriften und den Statuten entspricht; 3. ein internes Kontrollsystem existiert.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20220101/de",
+    "source_snapshot": "get_law__OR-728a-2022-03-17__927d35112d",
+    "proposition": "The auditor examines whether the proposal on the appropriation of the balance-sheet profit complies with the law and the articles.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:51+00:00",
+     "snapshot": "attest_response__Art--728a-Abs--1-OR__b875570781",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:51+00:00",
+      "as_of": "2022-03-17",
+      "edition": "2022-01-01",
+      "snapshot": "get_law__OR-728a-2022-03-17__927d35112d"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_140_III_533",
+    "citation": "BGE 140 III 533, E. 3",
+    "decision_date": "2014-10-16",
+    "pinpoint": "3",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_140_III_533#e-3",
+    "source_snapshot": "cite__bge-BGE-140-III-533-3__314e4efe94",
+    "proposition": "Shareholders who receive an unjustified distribution can be required to return it, in addition to the directors' liability.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:47+00:00",
+     "snapshot": "attest_response__BGE-140-III-533--E--3__17aab6d544"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Distributions only if pro-forma leverage does not exceed 2.75x (clause 23.4)",
+    "source": "dms://treasury/facility-agreement-2019.md#23.4",
+    "test_date": "2022-05-12"
+   }
+  ]
+ },
+ "objections": [],
+ "review": {
+  "date": "2023-03-31",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified or overruled",
+   "c1 test failed"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/2021/audited-accounts-extract.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://finance/2021/audited-accounts-extract.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://treasury/facility-agreement-2019.md#23.4",
+   "test_date": "2022-05-12",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Auditor confirms that the proposal complies with law and articles",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

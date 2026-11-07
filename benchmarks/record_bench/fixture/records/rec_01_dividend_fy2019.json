@@ -1,0 +1,227 @@
+{
+ "id": "rec_01_dividend_fy2019",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.dividend",
+  "text": "Proposal to the AGM of a reduced ordinary dividend of CHF 2.00 per share (CHF 4.0m) for financial year 2019, payable only if the liquidity plan of 30 April 2020 holds the minimum liquidity in the base case."
+ },
+ "purpose": "Pay shareholders a dividend from the 2019 profit without endangering liquidity during the Covid-19 shutdown.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2020-03-26",
+ "minutes": "dms://board/2020-03-26_minutes.md#4",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "acc",
+  "name": "Prof. Dr. Thomas Bärtschi",
+  "role": "Chair of the Audit Committee"
+ },
+ "restrictions": [
+  "Payment only if the updated liquidity plan as of 30 April 2020 keeps the CHF 40m minimum liquidity in the base case"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Balance-sheet profit of CHF 96.5m per audited 2019 accounts",
+    "source": "dms://finance/2019/audited-accounts-extract.md",
+    "as_of": "2019-12-31"
+   },
+   {
+    "id": "f2",
+    "text": "Stress case of the liquidity plan falls to CHF 34m in October 2020 (CHF 38m without the dividend), below the CHF 40m minimum",
+    "source": "dms://finance/2020/liquidity-forecast-2020-03.md",
+    "as_of": "2020-03-24"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "675",
+    "article_label": "Art. 675",
+    "paragraph": "2",
+    "as_of": "2020-03-26",
+    "edition": "2020-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": null,
+    "text_status": "unstructured_not_quoted",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20200101/de",
+    "source_snapshot": "get_law__OR-675-2020-03-26__e7dd571e05",
+    "proposition": "Dividends may be paid only out of the balance-sheet profit and out of reserves created for this purpose.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:46+00:00",
+     "snapshot": "attest_response__Art--675-Abs--2-OR__0c9ebe1408",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:46+00:00",
+      "as_of": "2020-03-26",
+      "edition": "2020-01-01",
+      "snapshot": "get_law__OR-675-2020-03-26__e7dd571e05"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "698",
+    "article_label": "Art. 698",
+    "paragraph": "2",
+    "as_of": "2020-03-26",
+    "edition": "2020-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": null,
+    "text_status": "unstructured_not_quoted",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20200101/de",
+    "source_snapshot": "get_law__OR-698-2020-03-26__d0efb1f535",
+    "proposition": "The general meeting, not the board, resolves on the appropriation of the balance-sheet profit and the dividend.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:47+00:00",
+     "snapshot": "attest_response__Art--698-Abs--2-OR__9d783a49ce",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:47+00:00",
+      "as_of": "2020-03-26",
+      "edition": "2020-01-01",
+      "snapshot": "get_law__OR-698-2020-03-26__d0efb1f535"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_140_III_533",
+    "citation": "BGE 140 III 533, E. 3",
+    "decision_date": "2014-10-16",
+    "pinpoint": "3",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_140_III_533#e-3",
+    "source_snapshot": "cite__bge-BGE-140-III-533-3__314e4efe94",
+    "proposition": "Shareholders who receive an unjustified distribution can be required to return it, in addition to the directors' liability.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:47+00:00",
+     "snapshot": "attest_response__BGE-140-III-533--E--3__17aab6d544"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Distributions only if pro-forma leverage does not exceed 2.75x (clause 23.4)",
+    "source": "dms://treasury/facility-agreement-2019.md#23.4",
+    "test_date": "2020-05-14"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Sophie Marchand (board member)",
+   "text": "The full dividend of CHF 3.00 should be paid; the balance sheet is strong.",
+   "answer": "Reduced to CHF 2.00 because the stress case breaches the minimum liquidity; recorded as a statement in the minutes."
+  },
+  {
+   "by": "Prof. Dr. Thomas Bärtschi (board member)",
+   "text": "The dividend must not endanger the company as a going concern.",
+   "answer": "Payment made conditional on the 30 April 2020 liquidity plan."
+  }
+ ],
+ "review": {
+  "date": "2021-03-31",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified or overruled",
+   "f2 liquidity plan breaches the minimum in the base case",
+   "c1 test failed"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/2019/audited-accounts-extract.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://finance/2020/liquidity-forecast-2020-03.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://treasury/facility-agreement-2019.md#23.4",
+   "test_date": "2020-05-14",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Payment only if the updated liquidity plan as of 30 April 2020 keeps the CHF 40m minimum liquidity in the base case",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

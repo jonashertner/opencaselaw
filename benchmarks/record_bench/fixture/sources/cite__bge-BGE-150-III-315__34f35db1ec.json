@@ -1,0 +1,29 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_150_III_315"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T22:58:19+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_150_III_315",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2024-07-03",
+  "citation_string": "BGE 150 III 315",
+  "citation_string_de": "BGE 150 III 315",
+  "citation_string_fr": "ATF 150 III 315",
+  "citation_string_it": "DTF 150 III 315",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_150_III_315",
+  "markdown_link": "[BGE 150 III 315](https://mcp.opencaselaw.ch/entscheid/bge_BGE_150_III_315)",
+  "rule_statement": "Regeste\n Art. 192 SchKG i.V.m. Art. 725b Abs. 3 und Art. 729c OR; Konkurseröffnung über eine Aktiengesellschaft ohne vorgängige Betreibung; ersatzweise Überschuldungsanzeige durch die Revisionsstelle; Überschuldung; Rangrücktritt. Ohne Überschuldungsanzeige durch den Verwaltungsrat, die Revisionsstelle oder den zugelassenen Revisor kann der Konkurs nicht nach Art. 192 SchKG i.V.m. Art. 725b Abs. 3 OR eröffnet werden (E. 4.2). Die Überschuldungsanzeige ergeht kraft gesetzlicher Pflicht. […]",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_150_III_315"
+  },
+  "canonical_decision_id": "bge_BGE_150_III_315",
+  "is_canonical": true
+ }
+}

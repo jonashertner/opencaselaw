@@ -1,0 +1,293 @@
+{
+ "id": "rec_22_service_gmbh_overindebtedness_2025",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.capital_loss",
+  "text": "Confirmation and extension of the CHF 6.0m subordination to cover interest, audit of the interim accounts by 31 October 2025 and a restructuring plan, with a merger decision if no anchor customer signs by 31 January 2026."
+ },
+ "purpose": "Avoid notifying the court for Sernfeld Service GmbH (over-indebted by CHF 2.6m at going-concern values) while restructuring it.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG (as sole shareholder and creditor of Sernfeld Service GmbH)",
+ "decided_at": "2025-10-16",
+ "minutes": "dms://board/2025-10-16_minutes.md#2",
+ "owner": {
+  "person": "cfo",
+  "name": "Annika Zwahlen",
+  "role": "Chief Financial Officer"
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "Merger with the parent to be proposed if no anchor customer signs by 31 January 2026"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Interim accounts 31 August 2025: over-indebtedness CHF 2.6m at going-concern values, CHF 4.1m at liquidation values; accrued interest CHF 0.31m",
+    "source": "dms://finance/service-gmbh/interim-accounts-2025-08-31.md",
+    "as_of": "2025-08-31"
+   },
+   {
+    "id": "f2",
+    "text": "Subordination extended to the loan of CHF 6.0m and all interest for the duration of the over-indebtedness",
+    "source": "dms://finance/service-gmbh/subordination-amendment-2025.md",
+    "as_of": "2025-10-17"
+   },
+   {
+    "id": "f3",
+    "text": "Restructuring plan relies on an anchor customer signing by 31 January 2026",
+    "source": "dms://finance/service-gmbh/restructuring-plan-2025.md",
+    "as_of": "2025-10-10"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "725b",
+    "article_label": "Art. 725b",
+    "paragraph": "3",
+    "as_of": "2025-10-16",
+    "edition": "2025-10-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "3 Ist die Gesellschaft gemäss den beiden Zwischenabschlüssen überschuldet, so benachrichtigt der Verwaltungsrat das Gericht. Dieses eröffnet den Konkurs oder verfährt nach Artikel 173a des Bundesgesetzes vom 11. April 1889 über Schuldbetreibung und Konkurs.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20251001/de",
+    "source_snapshot": "get_law__OR-725b-2025-10-16__c6a4c4ea79",
+    "proposition": "If the interim accounts show over-indebtedness, the board must notify the court.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:03+00:00",
+     "snapshot": "attest_response__Art--725b-Abs--3-OR__9a1973692d",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:02+00:00",
+      "as_of": "2025-10-16",
+      "edition": "2025-10-01",
+      "snapshot": "get_law__OR-725b-2025-10-16__c6a4c4ea79"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "725b",
+    "article_label": "Art. 725b",
+    "paragraph": "4",
+    "as_of": "2025-10-16",
+    "edition": "2025-10-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "4 Die Benachrichtigung des Gerichts kann unterbleiben: 1. wenn Gesellschaftsgläubiger im Ausmass der Überschuldung im Rang hinter alle anderen Gläubiger zurücktreten und ihre Forderungen stunden, sofern der Rangrücktritt den geschuldeten Betrag und die Zinsforderungen während der Dauer der Überschuldung umfasst; oder 2. solange begründete Aussicht besteht, dass die Überschuldung innert angemessener Frist, spätestens aber 90 Tage nach Vorliegen der geprüften Zwischenabschlüsse, behoben werden kann und dass die Forderungen der Gläubiger nicht zusätzlich gefährdet werden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20251001/de",
+    "source_snapshot": "get_law__OR-725b-2025-10-16__c6a4c4ea79",
+    "proposition": "No notification is needed if creditors subordinate claims, including interest, in the amount of the over-indebtedness, or if there is a reasonable prospect of removing it within 90 days of the audited interim accounts.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:03+00:00",
+     "snapshot": "attest_response__Art--725b-Abs--4-OR__b5c5c5a43c",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:02+00:00",
+      "as_of": "2025-10-16",
+      "edition": "2025-10-01",
+      "snapshot": "get_law__OR-725b-2025-10-16__c6a4c4ea79"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "820",
+    "article_label": "Art. 820",
+    "paragraph": null,
+    "as_of": "2025-10-16",
+    "edition": "2025-10-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "Die Bestimmungen des Aktienrechts zur drohenden Zahlungsunfähigkeit, zum Kapitalverlust, zur Überschuldung sowie zur Aufwertung von Grundstücken und Beteiligungen sind entsprechend anwendbar.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20251001/de",
+    "source_snapshot": "get_law__OR-820-2025-10-16__bb099b4902",
+    "proposition": "The company-law rules on capital loss and over-indebtedness apply to a GmbH.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:13+00:00",
+     "snapshot": "attest_response__Art--820-OR__3373d4c6e9",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:03+00:00",
+      "as_of": "2025-10-16",
+      "edition": "2025-10-01",
+      "snapshot": "get_law__OR-820-2025-10-16__bb099b4902"
+     }
+    }
+   },
+   {
+    "id": "l4",
+    "kind": "decision",
+    "decision_id": "bge_BGE_150_III_315",
+    "citation": "BGE 150 III 315, E. 4.2",
+    "decision_date": "2024-07-03",
+    "pinpoint": "4.2",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_150_III_315#e-4-2",
+    "source_snapshot": "cite__bge-BGE-150-III-315-4-2__dade174434",
+    "proposition": "Without a notification of over-indebtedness by the board, the auditor or the licensed auditor, bankruptcy cannot be opened on that basis.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:13+00:00",
+     "snapshot": "attest_response__BGE-150-III-315--E--4-2__c335361d19"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Audit of the interim accounts by 31 October 2025",
+    "source": "dms://board/2025-10-16_minutes.md#2",
+    "test_date": "2025-10-31"
+   },
+   {
+    "id": "c2",
+    "text": "Anchor customer contract by 31 January 2026, otherwise merger proposal",
+    "source": "dms://finance/service-gmbh/restructuring-plan-2025.md",
+    "test_date": "2026-01-31"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Prof. Dr. Thomas Bärtschi (board member)",
+   "text": "The plan depends on a new anchor customer; without it the subordination alone is not a restructuring.",
+   "answer": "Merger with the parent will be proposed if no anchor customer signs by 31 January 2026."
+  }
+ ],
+ "review": {
+  "date": "2026-01-31",
+  "reopen_if": [
+   "l1, l2 or l3 amended",
+   "l4 qualified",
+   "f1 over-indebtedness exceeds the subordinated amount",
+   "c2 no anchor customer by 31 January 2026"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l4",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/service-gmbh/interim-accounts-2025-08-31.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://finance/service-gmbh/subordination-amendment-2025.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f3",
+   "kind": "fact",
+   "source": "dms://finance/service-gmbh/restructuring-plan-2025.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://board/2025-10-16_minutes.md#2",
+   "test_date": "2025-10-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "c2",
+   "kind": "commitment",
+   "source": "dms://finance/service-gmbh/restructuring-plan-2025.md",
+   "test_date": "2026-01-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Merger with the parent to be proposed if no anchor customer signs by 31 January 2026",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}
