@@ -23,7 +23,8 @@ entries are changed after the build has served the recovered text.
 
 Streaming, temp file + atomic replace, DRY RUN by default, idempotent (a row
 already holding the recovered text is left). --apply writes every replaced row,
-as it was, to <shard>.recovery-<UTC date>.jsonl beside the shard (undo file).
+as it was, to <shard>.undo-recovery-<UTC date>.jsonl.bak beside the shard (undo
+file; never named *.jsonl, which the build would ingest as a shard).
 Run outside the build window: after the full publish, before the 01:00 UTC
 nightly scrape. The next full build serves the result.
 
@@ -128,7 +129,7 @@ def run(path: Path, apply: bool, entries: dict[str, dict] | None = None) -> Coun
     entries = load() if entries is None else entries
     stats: Counter = Counter()
     now = datetime.now(timezone.utc)
-    undo_path = path.with_name(f"{path.name}.recovery-{now.date().isoformat()}.jsonl")
+    undo_path = path.with_name(f"{path.name}.undo-recovery-{now.date().isoformat()}.jsonl.bak")
     pending = dict(entries)
     fout = undo = None
     tmp_path = None
