@@ -2725,7 +2725,7 @@
     "2026-10": 1069,
     "2026-11": 14
   },
-  "generated_at": "2026-11-07T18:08:54.707983+00:00",
+  "generated_at": "2026-11-07T22:15:33.365080+00:00",
   "scraper_health": {
     "run_at": "2026-11-07T02:44:55.228874+00:00",
     "run_duration_s": 6234.3,
@@ -3323,7 +3323,7 @@
         "note": null,
         "state_count": 100207,
         "jsonl_size_mb": 1516.2,
-        "jsonl_mtime": "2026-11-07T01:15:29.385906+00:00"
+        "jsonl_mtime": "2026-11-07T20:58:07.794098+00:00"
       },
       "sh_gerichte": {
         "success": true,
@@ -4014,9 +4014,9 @@
       "total": 1047586
     },
     "graph_size": {
-      "decision_edges": 9196133,
+      "decision_edges": 9165623,
       "statute_edges": 12436485,
-      "total": 21632618
+      "total": 21602108
     },
     "echr_switzerland": {
       "total": 1538,
@@ -4131,12 +4131,12 @@
       }
     },
     "practice_coverage": {
-      "total_documents": 17556,
+      "total_documents": 17570,
       "sources": 29,
       "by_source": {
         "bsv_weisungen": 6182,
         "un_uhri": 3354,
-        "bankingombudsman": 1522,
+        "bankingombudsman": 1536,
         "finma_rs": 1137,
         "seco_arg": 1106,
         "bj_schkg": 666,
@@ -4167,7 +4167,7 @@
       "by_authority": {
         "BSV": 6182,
         "FINMA": 1689,
-        "Bankenombudsman": 1522,
+        "Bankenombudsman": 1536,
         "UN-UPR": 1449,
         "SECO": 1160,
         "BJ": 666,
@@ -4221,9 +4221,9 @@
         "ZG": 1
       },
       "by_language": {
-        "fr": 6560,
-        "de": 5489,
-        "en": 2790,
+        "fr": 6567,
+        "de": 5492,
+        "en": 2794,
         "it": 2717
       }
     },
