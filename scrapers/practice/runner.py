@@ -45,6 +45,8 @@ from .hr_kantone import HrKantoneScraper
 from .mros import MrosScraper
 from .estv_aia import EstvAiaScraper
 from .sif import SifScraper
+from .bankingombudsman import BankingOmbudsmanScraper
+from .sbvg import SbvgScraper
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +102,10 @@ ENABLED_SCRAPERS = {
     "mros":              MrosScraper,
     "estv_aia":          EstvAiaScraper,
     "sif":               SifScraper,
+    # Private bodies (2026-11-07): published while their permission is
+    # requested; see the licence note in each module before changing this.
+    "bankingombudsman":  BankingOmbudsmanScraper,
+    "sbvg":              SbvgScraper,
 }
 
 # Defensive scaffolds — need first-run validation before enabling

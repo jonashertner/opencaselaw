@@ -32458,7 +32458,7 @@ def _list_tools() -> list[Tool]:
                                  "sem_handbuch_asyl", "bj_schkg", "schkg_kantone", "weko_bekanntmachungen",
                                  "oak_bv", "un_uhri", "un_gc", "un_ch_translations", "unhcr_country",
                                  "uek_rs", "rab_rs", "ehra", "finma_aufsicht", "stiftungsaufsicht",
-                                 "hr_kantone", "mros", "estv_aia", "sif"],
+                                 "hr_kantone", "mros", "estv_aia", "sif", "bankingombudsman", "sbvg"],
                         "description": (
                             "Filter by source key. finma_rs (1,133), seco_arg (1,102), "
                             "bafu_vollzug (297), estv_ks (285), estv_mwst (153), sem_weisungen (92), "
@@ -32515,7 +32515,13 @@ def _list_tools() -> list[Tool]:
                             "typologies, guides, sanctions alerts, sectoral risk assessments; DE/FR/IT/EN), estv_aia "
                             "(ESTV: AIA/CRS and CbCR Wegleitungen, AIA FAQ, FATCA guidance; DE/FR/IT, EN where "
                             "published), sif (SIF: national risk assessment reports on money laundering and terrorist "
-                            "financing 2017-2024, AIA explanatory notes)."
+                            "financing 2017-2024, AIA explanatory notes), bankingombudsman (Swiss Banking "
+                            "Ombudsman: annual reports 2013-, case examples (doc_type rechtsprechung), position "
+                            "papers, press releases; DE/FR/IT/EN; private body, texts are the foundation's), sbvg "
+                            "(Swiss Bankers Association self-regulation: VSB/CDB 20 and 27 with commentaries, the "
+                            "VSB supervisory commission's Leading Cases, its activity reports, the mortgage and ESG "
+                            "Richtlinien, the list of all SBVg Richtlinien; private body; Richtlinien published only "
+                            "to members are not included)."
                         ),
                     },
                     "issuing_authority": {
@@ -32523,7 +32529,8 @@ def _list_tools() -> list[Tool]:
                         "enum": ["FINMA", "SECO", "ESTV", "BAFU", "SEM", "BSV", "BAG", "BJ", "WEKO", "OAK BV",
                                  "UN-UPR", "UN-CRC", "UN-CEDAW", "UN-SPT", "UN-CAT", "UN-CESCR",
                                  "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES",
-                                 "UNHCR", "UEK", "RAB", "EHRA", "ESA", "BBSA", "BSABB", "MROS", "SIF"],
+                                 "UNHCR", "UEK", "RAB", "EHRA", "ESA", "BBSA", "BSABB", "MROS", "SIF",
+                                 "Bankenombudsman", "SBVg"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
@@ -32533,7 +32540,8 @@ def _list_tools() -> list[Tool]:
                             "UEK (Takeover Board), RAB (audit oversight), EHRA (federal commercial "
                             "register office), ESA (federal foundation supervision), BBSA / BSABB "
                             "(foundation supervisors of Bern and of both Basel), MROS (money-laundering reporting "
-                            "office), SIF (State Secretariat for International Finance). "
+                            "office), SIF (State Secretariat for International Finance), Bankenombudsman (Swiss "
+                            "Banking Ombudsman), SBVg (Swiss Bankers Association). "
                             "UN-* = the UN body that addressed the recommendation to Switzerland: "
                             "UN-UPR (~1,450, Universal Periodic Review), UN-CAT (Committee against "
                             "Torture), UN-CCPR (Human Rights Committee), UN-CESCR, UN-CERD, UN-CEDAW, "
