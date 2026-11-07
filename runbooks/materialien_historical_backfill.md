@@ -357,7 +357,7 @@ systemd-run --unit=ocl-mat-hist-puk-$(date +%m%d) \
   --setenv=PYTHONPATH=/opt/caselaw/repo \
   /bin/bash -c 'for L in de fr it; do python3 -m search_stack.build_botschaft_corpus --ingest-all \
      --discover-untyped-by-title --host-allow bar --language $L --max-per-run 200 \
-     --title-filter "untersuchungskommission|zur puk|enqu[eê]te parlementaire|la cep|parlamentare d.inchiesta|la cpi|mirage-angelegenheit|affaire du mirage|affare dei mirage" \
+     --title-filter "untersuchungskommission|zur puk|enqu[eê]te parlementaire|la cep|parlamentare d.inchiesta|la cpi|mirage-angelegenheit|affaire du mirage|affare del mirage" \
      --lock-file /opt/caselaw/repo/logs/bar_fetch.lock \
      --db /opt/caselaw/repo/output/materialien.db \
      >> /opt/caselaw/repo/logs/materialien_historical.log 2>&1; done'

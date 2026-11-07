@@ -15977,7 +15977,29 @@ _COURT_CITATION_CODES = {
     # instance themselves ('SaKo-IV/2023', 'Schiedsgericht SaKo-IV/2023').
     "uek":          ("UEK",     "COPA",   "COPA",   "E.",     "consid.", "consid."),
     "six_ser":      ("SIX",     "SIX",    "SIX",    "E.",     "consid.", "consid."),
+    "finma":        ("FINMA",   "FINMA",  "FINMA",  "E.",     "consid.", "consid."),
+    "weko":         ("WEKO",    "COMCO",  "COMCO",  "E.",     "consid.", "consid."),
+    "edoeb":        ("EDÖB",    "PFPDT",  "IFPDT",  "E.",     "consid.", "consid."),
+    "ubi":          ("UBI",     "AIEP",   "AIRR",   "E.",     "consid.", "consid."),
+    "elcom":        ("ElCom",   "ElCom",  "ElCom",  "E.",     "consid.", "consid."),
+    "postcom":      ("PostCom", "PostCom","PostCom","E.",     "consid.", "consid."),
+    "comcom":       ("ComCom",  "ComCom", "ComCom", "E.",     "consid.", "consid."),
+    "eschk":        ("ESchK",   "CAF",    "CAF",    "E.",     "consid.", "consid."),
+    "esbk":         ("ESBK",    "CFMJ",   "CFCG",   "E.",     "consid.", "consid."),
+    "rab":          ("RAB",     "ASR",    "ASR",    "E.",     "consid.", "consid."),
+    "estv":         ("ESTV",    "AFC",    "AFC",    "E.",     "consid.", "consid."),
+    "bazg":         ("BAZG",    "OFDF",   "UDSC",   "E.",     "consid.", "consid."),
+    "ch_bundesrat": ("Bundesrat", "Conseil fédéral", "Consiglio federale", "E.", "consid.", "consid."),
+    "preisueberwacher": ("Preisüberwachung", "Surveillance des prix", "Sorveglianza dei prezzi",
+                         "E.", "consid.", "consid."),
 }
+
+# The authorities above that are not courts: references written with their
+# label resolve to their rows only (_regulator_reference).
+_REGULATOR_COURTS = (
+    "uek", "six_ser", "finma", "weko", "edoeb", "ubi", "elcom", "postcom", "comcom",
+    "eschk", "esbk", "rab", "estv", "bazg", "ch_bundesrat", "preisueberwacher",
+)
 
 # Strasbourg judgments are cited by party name, not by application number
 # alone: 'EGMR 30696/09 vom 21. Januar 2011' identifies nothing to a reader,
@@ -16275,11 +16297,27 @@ def _vpb_docket(reference: str | None) -> str | None:
 # strings the server printed for them before they had one, which are already
 # in users' documents. The label is written first and the docket follows
 # whole; a date, where written, must be the ruling's own.
-_REGULATOR_LABEL_COURTS = {"uek": ("uek",), "copa": ("uek",), "six": ("six_ser",)}
+_REGULATOR_LABEL_COURTS: dict[str, tuple] = {}
+for _court in _REGULATOR_COURTS:
+    for _label in _COURT_CITATION_CODES[_court][:3]:
+        _REGULATOR_LABEL_COURTS.setdefault(_label.lower(), ())
+        if _court not in _REGULATOR_LABEL_COURTS[_label.lower()]:
+            _REGULATOR_LABEL_COURTS[_label.lower()] += (_court,)
+_REGULATOR_LABEL_ALT = "|".join(
+    re.escape(label) for label in sorted(
+        {lab for c in _REGULATOR_COURTS for lab in _COURT_CITATION_CODES[c][:3]}, key=len, reverse=True))
 _REGULATOR_REF_RE = re.compile(
-    r"^(?P<label>UEK|COPA|SIX|Gericht CH|Tribunal CH|Tribunale CH)\s+(?P<docket>\S.*?)"
+    rf"^(?P<label>{_REGULATOR_LABEL_ALT}|Gericht CH|Tribunal CH|Tribunale CH)\s+(?P<docket>\S.*?)"
     r"(?:\s+(?:vom|du|del)\s+(?P<date>\d{1,2}\.?\s+[A-Za-zÀ-ÿ]+\s+\d{4}))?"
     r"(?:,\s*(?:E\.|consid\.)\s*\S.*)?\.?$", re.IGNORECASE)
+
+
+_EMARK_DOCKET_RE = re.compile(r"^EMARK-((?:19|20)\d{2})-(\d{1,3})$")
+_EMARK_SERIES = {"de": ("EMARK", "Nr."), "fr": ("JICRA", "n°"), "it": ("GICRA", "n.")}
+_EMARK_REF_RE = re.compile(
+    r"^(?:(?:Gericht|Tribunal|Tribunale) CH\s+)?(?:EMARK|JICRA|GICRA)[\s-]*((?:19|20)\d{2})"
+    r"\s*(?:Nr\.|n°|no\.?|n\.|/|-)\s*(\d{1,3})(?![\d/])"
+    r"(?:\s+(?:vom|du|del)\s+(?P<date>\d{1,2}\.?\s+[A-Za-zÀ-ÿ]+\s+\d{4}))?", re.IGNORECASE)
 
 
 def _regulator_reference(reference: str | None):
@@ -16287,6 +16325,17 @@ def _regulator_reference(reference: str | None):
     For 'Gericht/Tribunal/Tribunale CH ...' the courts are None: any federal-
     level row (canton CH) under that docket. None when the reference does not
     open with one of these labels."""
+    em = _EMARK_REF_RE.match((reference or "").strip())
+    if em:
+        date = None
+        if em.group("date"):
+            try:
+                date = reference_parser.parse_reference(em.group("date")).date
+            except Exception:  # noqa: BLE001
+                date = None
+            if not date:
+                return None
+        return ("emark",), f"EMARK-{em.group(1)}-{int(em.group(2))}", date
     m = _REGULATOR_REF_RE.match((reference or "").strip())
     if not m:
         return None
@@ -16671,6 +16720,20 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
             "canonical_url": url,
         }
 
+    # EMARK/JICRA/GICRA, the Asylrekurskommission's series 1993-2006: cited by
+    # series title, year and number ('EMARK 2006 Nr. 33'), the docket stored
+    # as 'EMARK-2006-33'.
+    em = _EMARK_DOCKET_RE.match(docket) if court == "emark" else None
+    if em:
+        reliable = _citation_date_reliable(decision_date)
+        out = {"canonical_url": url}
+        for lang, vom, pin_label in (("de", "vom", "E."), ("fr", "du", "consid."), ("it", "del", "consid.")):
+            head = f"{_EMARK_SERIES[lang][0]} {em.group(1)} {_EMARK_SERIES[lang][1]} {int(em.group(2))}"
+            date = _format_date_localized(decision_date, lang) if reliable else ""
+            out[f"citation_string_{lang}"] = (f"{head}{f' {vom} {date}' if date else ''}"
+                                              f"{f', {pin_label} {pin}' if pin else ''}")
+        return out
+
     # Cantonal + regulatory + anything else: readable court label per language,
     # never the raw collection code (M-3). Suppress an unreliable placeholder/
     # future date from the citation (M-3/M-1) — printing a wrong date in a
@@ -16831,6 +16894,25 @@ def _bge_volume_year_mismatch(citation_text: str,
     }
 
 
+# A line that is only a section heading or an enumerator: 'Sachverhalt:',
+# 'En fait :', 'A.', 'II.', '1.'. UEK rulings open with 'Sachverhalt:' as a
+# paragraph of its own, and the rule_statement served that heading.
+_BARE_HEADING_LINE = re.compile(r"^(?:[^.!?\n]{1,60}:|(?:[A-Z]|[IVXLC]{1,6}|\d{1,3})\.)$")
+
+
+def _first_substantive_paragraph(full_text: str, *, max_paragraphs: int = 6) -> str | None:
+    """The first paragraph of full_text that is more than headings: leading
+    heading lines are dropped, so the result is still a verbatim slice."""
+    for para in full_text.split("\n\n")[:max_paragraphs]:
+        lines = para.strip().split("\n")
+        while lines and _BARE_HEADING_LINE.match(lines[0].strip()):
+            lines.pop(0)
+        body = "\n".join(lines).strip()
+        if body:
+            return body
+    return None
+
+
 def _rule_statement(
     decision: dict | None,
     pinpoint_text: str | None = None,
@@ -16855,7 +16937,9 @@ def _rule_statement(
         if ft:
             # First paragraph only — anything longer risks the LLM pulling a
             # fragmented quote out of context.
-            candidates.append((ft.split("\n\n", 1)[0], True))
+            first = _first_substantive_paragraph(ft)
+            if first:
+                candidates.append((first, True))
     for c, screen in candidates:
         if not c:
             continue
