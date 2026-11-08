@@ -15956,6 +15956,9 @@ _MONTH_NAMES = {
            "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"],
 }
 
+# A bstger row of the official collection: docket "TPF 2004 12".
+_TPF_REF_RE = re.compile(r"^TPF\s+(\d{4})\s+(\d{1,4})$")
+
 # Swiss statutory citation conventions, by court_code → (code_de, code_fr, code_it,
 # pinpoint_label_de, pinpoint_label_fr, pinpoint_label_it)
 _COURT_CITATION_CODES = {
@@ -16606,6 +16609,21 @@ def _build_citation_strings(decision: dict, pinpoint: str | None = None) -> dict
                 "citation_string_de": f"MKGE {mkg['band']} Nr. {mkg['nr']}{pde}",
                 "citation_string_fr": f"ATMC {mkg['band']} n° {mkg['nr']}{pfr}",
                 "citation_string_it": f"STMC {mkg['band']} n. {mkg['nr']}{pit}",
+                "canonical_url": url,
+            }
+
+    # TPF — the Federal Criminal Court's official collection is cited by volume
+    # year and page in every language ("TPF 2011 25"); the docketed branch
+    # below printed "TPF TPF 2004 12 du 26 mai 2004".
+    if court == "bstger":
+        tpf = _TPF_REF_RE.match(docket or "")
+        if tpf:
+            ref = f"TPF {tpf.group(1)} {int(tpf.group(2))}"
+            pde, pfr, pit = _pin_suffix("E.", "consid.", "consid.")
+            return {
+                "citation_string_de": f"{ref}{pde}",
+                "citation_string_fr": f"{ref}{pfr}",
+                "citation_string_it": f"{ref}{pit}",
                 "canonical_url": url,
             }
 

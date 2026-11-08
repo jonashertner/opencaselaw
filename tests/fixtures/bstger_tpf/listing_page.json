@@ -1,0 +1,176 @@
+{
+ "status": "success",
+ "data": {
+  "totalNumberOfDocuments": 3,
+  "hasMoreResults": false,
+  "documents": [
+   {
+    "leid": "b1b26691-8398-3df0-94bb-aee17d08c8b0",
+    "content": "Gerichtsstandskonflikt; implizite oder informelle Erledigung des Strafverfahrens; gleichzeitige Strafverfolgung in mehreren Kantonen;;Conflit de fors; règlement implicite ou informel de la procédure pénale; poursuite simultanée dans plusieurs cantons;;Conflitto in materia di foro; evasione implicita o informale della procedura penale; contemporaneo perseguimento in più Cantoni;;Gerichtsstandskonflikt; implizite oder informelle Erledigung des Strafverfahrens; gleichzeitige Strafverfolgung in mehreren Kantonen",
+    "nestedMetadataMap": {
+     "bstgerDossier": [
+      {
+       "termMap": {
+        "de": "BG.2024.60",
+        "en": "BG.2024.60",
+        "it": "BG.2024.60",
+        "fr": "BG.2024.60"
+       },
+       "meta": [
+        {
+         "key": "linkString",
+         "value": {
+          "de": "de/BSTGER-BG.2024.60",
+          "en": "en/BSTGER-BG.2024.60",
+          "it": "it/BSTGER-BG.2024.60",
+          "fr": "fr/BSTGER-BG.2024.60"
+         }
+        }
+       ]
+      }
+     ]
+    },
+    "metadataKeywordTextMap": {
+     "sortTitle": [
+      "TPF 2024  194"
+     ],
+     "fileName": [
+      "TPF2024194.pdf"
+     ],
+     "rulingType": [
+      "Entscheide der Amtlichen Sammlung;;Décisions du Recueil officiel;;Decisioni della raccolta ufficiale;;Entscheide der Amtlichen Sammlung"
+     ],
+     "year": [
+      "2024"
+     ],
+     "leid": [
+      "b1b26691-8398-3df0-94bb-aee17d08c8b0"
+     ],
+     "language": [
+      "de"
+     ],
+     "title": [
+      "TPF 2024 194"
+     ],
+     "sortRulingDate": [
+      "2024-01-01 TPF 2024  194"
+     ],
+     "fileType": [
+      "pdf"
+     ],
+     "sortPublicationDate": [
+      "2024-01-01 TPF 2024  194"
+     ]
+    },
+    "metadataDateMap": {
+     "filterDate": "2025-07-15T13:15:25.000Z",
+     "timestamp": "2025-10-15T08:58:26.714Z"
+    }
+   },
+   {
+    "leid": "da48e3ee-14eb-3614-b528-4c91a87ccb2d",
+    "content": "Beschlagnahme; Beschwerdelegitimation.;;Séquestre; qualité pour recourir.;;Sequestro; legittimazione ricorsuale.;;Beschlagnahme; Beschwerdelegitimation.",
+    "nestedMetadataMap": {},
+    "metadataKeywordTextMap": {
+     "sortTitle": [
+      "TPF 2004   16"
+     ],
+     "fileName": [
+      "TPF-2004-16.pdf"
+     ],
+     "rulingType": [
+      "Entscheide der Amtlichen Sammlung;;Décisions du Recueil officiel;;Decisioni della raccolta ufficiale;;Entscheide der Amtlichen Sammlung"
+     ],
+     "year": [
+      "2004"
+     ],
+     "leid": [
+      "da48e3ee-14eb-3614-b528-4c91a87ccb2d"
+     ],
+     "language": [
+      "it"
+     ],
+     "title": [
+      "TPF 2004 16"
+     ],
+     "sortRulingDate": [
+      "2004-01-01 TPF 2004   16"
+     ],
+     "fileType": [
+      "pdf"
+     ],
+     "sortPublicationDate": [
+      "2004-01-01 TPF 2004   16"
+     ]
+    },
+    "metadataDateMap": {
+     "filterDate": "2025-01-30T09:47:26.000Z",
+     "timestamp": "2025-10-10T08:32:21.763Z"
+    }
+   },
+   {
+    "leid": "60f0dfcb-19ee-37e6-bece-bed37a2a6322",
+    "content": "Verfahrenssprache. Anspruch auf Übersetzung.;;Langue de la procédure. Droit à la traduction.;;Lingua della procedura. Diritto di traduzione.;;Verfahrenssprache. Anspruch auf Übersetzung.",
+    "nestedMetadataMap": {
+     "bstgerDossier": [
+      {
+       "termMap": {
+        "de": "BK_B 153/04",
+        "en": "BK_B 153/04",
+        "it": "BK_B 153/04",
+        "fr": "BK_B 153/04"
+       },
+       "meta": [
+        {
+         "key": "linkString",
+         "value": {
+          "de": "de/BSTGER-BK_B 153/04",
+          "en": "en/BSTGER-BK_B 153/04",
+          "it": "it/BSTGER-BK_B 153/04",
+          "fr": "fr/BSTGER-BK_B 153/04"
+         }
+        }
+       ]
+      }
+     ]
+    },
+    "metadataKeywordTextMap": {
+     "sortTitle": [
+      "TPF 2004   48"
+     ],
+     "fileName": [
+      "TPF-2004-48.pdf"
+     ],
+     "rulingType": [
+      "Entscheide der Amtlichen Sammlung;;Décisions du Recueil officiel;;Decisioni della raccolta ufficiale;;Entscheide der Amtlichen Sammlung"
+     ],
+     "year": [
+      "2004"
+     ],
+     "leid": [
+      "60f0dfcb-19ee-37e6-bece-bed37a2a6322"
+     ],
+     "language": [
+      "fr"
+     ],
+     "title": [
+      "TPF 2004 48"
+     ],
+     "sortRulingDate": [
+      "2004-01-01 TPF 2004   48"
+     ],
+     "fileType": [
+      "pdf"
+     ],
+     "sortPublicationDate": [
+      "2004-01-01 TPF 2004   48"
+     ]
+    },
+    "metadataDateMap": {
+     "filterDate": "2009-10-23T11:36:49.000Z",
+     "timestamp": "2025-10-15T08:55:49.712Z"
+    }
+   }
+  ]
+ }
+}
