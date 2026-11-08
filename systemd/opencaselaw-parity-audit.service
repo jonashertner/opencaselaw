@@ -1,0 +1,32 @@
+[Unit]
+Description=Weekly parity audit: every decision entscheidsuche.ch lists, matched against the HF mirror (alert-only)
+# entscheidsuche is an outside list only, never a feed (memory
+# no-entscheidsuche-dependency). A residual means fixing our direct scraper
+# against the court portal. The script writes logs/parity_audit.json and sends
+# one ntfy message only when residuals are newly confirmed (open in two runs).
+# Our side is the published HF mirror, read by HTTP range requests: production
+# decisions.db is never opened, so the build window does not bind it
+# (CLAUDE.md invariant 9). Their side: sitemaps, the daily snapshot and ID
+# enumeration through _searchV2.php, one request per second.
+After=network-online.target
+Wants=network-online.target
+OnFailure=ntfy-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+Environment=PYTHONPATH=/opt/caselaw/repo
+ExecStart=/usr/bin/python3 scripts/parity_audit.py
+Nice=19
+CPUWeight=10
+IOWeight=10
+IOSchedulingClass=idle
+# ~1M light rows from the mirror are held in memory while matching: peak
+# 2.7 GB on the first full run (2026-11-08, macOS footprint).
+MemoryHigh=4G
+MemoryMax=5G
+# ~320 enumeration pages + ~70 sitemaps at 1 req/s, the mirror read, and up to
+# 2,000 VD document lookups on a first run (cached afterwards).
+TimeoutStartSec=3h
+StandardOutput=append:/opt/caselaw/repo/logs/parity_audit.log
+StandardError=append:/opt/caselaw/repo/logs/parity_audit.log

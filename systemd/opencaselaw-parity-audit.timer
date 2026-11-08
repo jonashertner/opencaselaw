@@ -1,0 +1,16 @@
+[Unit]
+Description=Weekly entscheidsuche parity audit (Sunday 20:15 UTC, after the Sunday build)
+
+[Timer]
+# Sunday evening UTC, outside the build window: the full build starts 03:30
+# and usually exits by 17:00-20:00. The audit never touches decisions.db and
+# pins its mirror read to one HF commit, so a late build is harmless; the
+# evening slot just keeps the CPU and network quiet while the build runs.
+OnCalendar=Sun *-*-* 20:15:00 UTC
+RandomizedDelaySec=900
+# Persistent=false: a daemon-reload must never fire an unplanned run
+# (see opencaselaw-practice.timer, 2026-09-03).
+Persistent=false
+
+[Install]
+WantedBy=timers.target
