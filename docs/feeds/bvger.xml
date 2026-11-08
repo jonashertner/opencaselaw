@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/bvger.xml</link>
     <description>Latest published Bundesverwaltungsgericht decisions.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sat, 07 Nov 2026 22:23:47 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 08 Nov 2026 11:55:27 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/bvger.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht D-5490/2023 vom 2026-10-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5490_2023</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Sat, 07 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5490.2023</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesverwaltungsgericht F-7864/2026 vom 2026-10-30</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-7864_2026</link>
@@ -398,14 +406,6 @@
       <description>Öffentliches Beschaffungswesen</description>
       <pubDate>Tue, 03 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-3754.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht E-1327/2023 vom 2026-10-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-1327_2023</link>
-      <description>Asylwiderruf</description>
-      <pubDate>Tue, 03 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-1327.2023</guid>
       <category>bvger</category>
     </item>
   </channel>
