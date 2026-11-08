@@ -55,7 +55,7 @@ def test_candidates_membership():
     assert "ow_gerichte" in base
     assert "be_steuerrekurs" not in base   # live again since the StRK filter fix (2026-11-08)
     assert not ({"ta_sst", "ch_bundesrat", "comcom"} & base)            # rare-publication
-    assert not ({"ch_vb", "ag_baugesetzgebung", "ag_weitere"} & base)   # no scraper class
+    assert not ({"ch_vb", "ag_baugesetzgebung", "ag_weitere"} & base)   # no scraper class / closed collection
     assert "sg_publikationen" not in base
     assert "sg_publikationen" in rp.candidate_sources(probe_sg=True)
 

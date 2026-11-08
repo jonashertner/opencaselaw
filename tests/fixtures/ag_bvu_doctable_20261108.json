@@ -1,0 +1,195 @@
+{
+ "collectionName": "files",
+ "files": [
+  {
+   "documentDatetime": "2021-08-20T07:28:33Z",
+   "roles": [],
+   "language": "de",
+   "validFrom": "2021-10-01T07:29:17Z",
+   "title": "Anbaute",
+   "deactivated": false,
+   "objectType": "doctable_entry",
+   "indexTimestamp": 1793992566,
+   "score": 1.0,
+   "urls": [],
+   "targetUrls": [
+    {
+     "type": "primary",
+     "url": "/media/kanton-aargau/bvu/bauen/baurecht/entscheidsammlung-rechtsabteilung-bvu/2021-08-20-anbaute.pdf"
+    }
+   ],
+   "fileSize": 344311,
+   "documentId": "de:media:2021_08_20_anbaute",
+   "id": "cf18d494-099a-4547-95ce-04fb99a7a9d4",
+   "categories": [
+    "f46f0fe7-d92e-45a9-b5b7-0f3402debb21"
+   ],
+   "fileType": "pdf",
+   "validTo": null,
+   "teaser": "Anbaute und Hauptgebäude müssen namentlich auch konstruktiv unabhängig sein, so dass ein Abbruch der Anbaute ohne Auswirkungen auf die Konstruktion des Hauptgebäudes erfolgen könnte. Bei einer Verschachtelung von angebautem Garagenteil mit Garagenteil im Hauptgebäude ist diese Unabhängigkeit nicht gegeben (Erw. 3)."
+  },
+  {
+   "documentDatetime": "2012-08-23T07:34:56Z",
+   "roles": [],
+   "language": "de",
+   "validFrom": null,
+   "title": "Submission",
+   "deactivated": false,
+   "objectType": "doctable_entry",
+   "indexTimestamp": 1793992578,
+   "score": 1.0,
+   "urls": [],
+   "targetUrls": [
+    {
+     "type": "primary",
+     "url": "/media/kanton-aargau/bvu/bauen/baurecht/entscheidsammlung-rechtsabteilung-bvu/2012-07-26-stuetzmauer-ebvu.pdf"
+    }
+   ],
+   "fileSize": 26204,
+   "documentId": "de:media:2012_07_26_stuetzmauer_ebvu",
+   "id": "b0762f07-b10a-4ac3-b0f5-62bd7da29edf",
+   "categories": [
+    "110b2681-6e2a-4e11-9bfa-8e270b6cee24"
+   ],
+   "fileType": "pdf",
+   "validTo": null,
+   "teaser": "\nIst das Qualitätsmanagementsystem Teil der Bewertung, darf einer Anbieterin null Punkte vergeben werden, wenn sie nur über ein firmeneigenes Qualitätssicherungssystem verfügt und keine näheren Angaben dazu macht. Die Vergabestelle ist nicht verpflichtet, im Rahmen der Bereinigung der Angebote solche Angaben nachzuverlangen. Der Vergabestelle kommt ein grosser Ermessensspielraum zu, ob sie sich für eine Variante entscheiden will. Sie ist nicht verpflichtet, dabei irgendwelche Risiken in Kauf zu nehmen.\n"
+  },
+  {
+   "documentDatetime": "2012-07-26T07:44:33Z",
+   "roles": [],
+   "language": "de",
+   "validFrom": null,
+   "title": "Stützmauer; Schadenersatz",
+   "deactivated": false,
+   "objectType": "doctable_entry",
+   "indexTimestamp": 1793992578,
+   "score": 1.0,
+   "urls": [],
+   "targetUrls": [
+    {
+     "type": "primary",
+     "url": "/media/kanton-aargau/bvu/bauen/baurecht/entscheidsammlung-rechtsabteilung-bvu/2012-07-26-stuetzmauer-ebvu.pdf"
+    }
+   ],
+   "fileSize": 26204,
+   "documentId": "de:media:2012_07_26_stuetzmauer_ebvu",
+   "id": "4e438614-281c-47eb-8702-6d3ce6789f9f",
+   "categories": [
+    "f46f0fe7-d92e-45a9-b5b7-0f3402debb21"
+   ],
+   "fileType": "pdf",
+   "validTo": null,
+   "teaser": "\nStützmauern müssen bezüglich Höhe und Abstand als Ganzes beurteilt werden. Die Vorschrift über die Möglichkeit der Terrassierung und Staffelung von Gebäuden findet für Stützmauern keine Anwendung. – Feststellung der Rechtswidrigkeit der Mauer und Möglichkeit von Schadenersatzansprüchen gemäss Art. 679 ZGB\n"
+  },
+  {
+   "documentDatetime": "1997-03-04T07:13:09Z",
+   "roles": [],
+   "language": "de",
+   "validFrom": null,
+   "title": "Planbeschwerde",
+   "deactivated": false,
+   "objectType": "doctable_entry",
+   "indexTimestamp": 1793992576,
+   "score": 1.0,
+   "urls": [],
+   "targetUrls": [
+    {
+     "type": "primary",
+     "url": "/media/kanton-aargau/bvu/bauen/baurecht/entscheidsammlung-rechtsabteilung-bvu/1997-03-04-planbeschwerde.pdf"
+    }
+   ],
+   "fileSize": 10583,
+   "documentId": "de:media:1997_03_04_planbeschwerde",
+   "id": "fd234ef1-a43e-490c-9dd5-a56fd0257e21",
+   "categories": [
+    "110b2681-6e2a-4e11-9bfa-8e270b6cee24"
+   ],
+   "fileType": "pdf",
+   "validTo": null,
+   "teaser": "\nDie Mitglieder einer Erbengemeinschaft und Gesamteigentümer einer Liegenschaft bilden eine notwendige Streitgenossenschaft. Das einzelne Mitglied kann nur dann ein Rechtsmittel ergreifen, wenn es darum geht, belastende oder pflichtbegründende Anordnungen abzuwenden und die Anfechtung somit im Interesse aller Gesamteigentümer liegt.\n"
+  },
+  {
+   "documentDatetime": "1997-03-04T07:08:25Z",
+   "roles": [],
+   "language": "de",
+   "validFrom": null,
+   "title": "Planbeschwerde",
+   "deactivated": false,
+   "objectType": "doctable_entry",
+   "indexTimestamp": 1793992576,
+   "score": 1.0,
+   "urls": [],
+   "targetUrls": [
+    {
+     "type": "primary",
+     "url": "/media/kanton-aargau/bvu/bauen/baurecht/entscheidsammlung-rechtsabteilung-bvu/1997-03-04-planbeschwerde-i.pdf"
+    }
+   ],
+   "fileSize": 11745,
+   "documentId": "de:media:1997_03_04_planbeschwerde_i",
+   "id": "47cfe0b2-7167-471a-b4ff-9e1227b34849",
+   "categories": [
+    "110b2681-6e2a-4e11-9bfa-8e270b6cee24"
+   ],
+   "fileType": "pdf",
+   "validTo": null,
+   "teaser": "\nWer im verwaltungsgerichtlichen Verfahren auf eine Parteistellung verzichtet, begibt sich damit gleichzeitig der Möglichkeit, die Partei- und Mitwirkungsrechte einschliesslich des Anspruches auf rechtliches Gehör auszuüben. Eine Grundeigentümerin eines vom Planungsperimeter erfassten Grundstücks hat nicht zwingend Parteistellung; sie kann darauf verzichten.\n"
+  },
+  {
+   "documentDatetime": "1993-12-23T07:08:11Z",
+   "roles": [],
+   "language": "de",
+   "validFrom": null,
+   "title": "Parteientschädigung",
+   "deactivated": false,
+   "objectType": "doctable_entry",
+   "indexTimestamp": 1793992574,
+   "score": 1.0,
+   "urls": [],
+   "fileSize": -1,
+   "id": "df5f5078-9fec-4fe3-afe9-9ef23094ee88",
+   "categories": [
+    "110b2681-6e2a-4e11-9bfa-8e270b6cee24"
+   ],
+   "validTo": null,
+   "teaser": "\nBei formellen Fehlern, die das Verfahren ganz oder wesentlich veranlasst haben, trägt die Vorinstanz die Parteikosten - gleich wie die Verfahrenskosten - nach dem Verursacherprinzip\n"
+  },
+  {
+   "documentDatetime": "1993-12-03T07:40:33Z",
+   "roles": [],
+   "language": "de",
+   "validFrom": null,
+   "title": "Missbräuchliche Prozessführung",
+   "deactivated": false,
+   "objectType": "doctable_entry",
+   "indexTimestamp": 1793992574,
+   "score": 1.0,
+   "urls": [],
+   "targetUrls": [
+    {
+     "type": "primary",
+     "url": "/media/kanton-aargau/bvu/bauen/baurecht/entscheidsammlung-rechtsabteilung-bvu/1993-12-03-missbraeuchliche-prozessfuehrung.pdf"
+    }
+   ],
+   "fileSize": 7984,
+   "documentId": "de:media:1993_12_03_missbraeuchliche_prozessfuehrung",
+   "id": "50a0f1f1-7a26-4b89-bd4e-eca16b5d4e02",
+   "categories": [
+    "110b2681-6e2a-4e11-9bfa-8e270b6cee24"
+   ],
+   "fileType": "pdf",
+   "validTo": null,
+   "teaser": "\nEine missbräuchliche Prozessführung liegt vor, wenn die Möglichkeit der Ergreifung von Rechtsmitteln offensichtlich zu sachfremden Zwecken missbraucht wird.\n"
+  }
+ ],
+ "control": {
+  "firstPage": true,
+  "lastPage": true,
+  "numberOfElements": 7,
+  "pageNumber": 0,
+  "pageSize": 100,
+  "totalPages": 1,
+  "totalElements": 7
+ }
+}

@@ -62,8 +62,8 @@ COVERAGE_DB = Path(os.environ.get("OCL_COVERAGE_DB", str(REPO / "state" / "cover
 # Courts that are KNOWN-DEAD upstream — don't alert on them
 KNOWN_DEAD_SOURCES = {
     "ch_vb",                 # source dead since 2021
-    "ag_baugesetzgebung",    # source stagnant since Nov 2025
-    "ag_weitere",            # source dead since 2023
+    "ag_baugesetzgebung",    # closed collection (BVU page: not continued since 2022); direct scraper
+    "ag_weitere",            # closed: 10 DVI Grundbuch decisions (direct) + dead court PDFs (es)
     "sg_publikationen",      # entscheidsuche.ch path stale (we have direct scraper anyway)
     "ow_gerichte",           # portal offline since Dec 2022
     "ta_sst",                # rare publication
@@ -75,7 +75,6 @@ KNOWN_DEAD_SOURCES = {
 ENTSCHEIDSUCHE_ONLY = {
     "vd_findinfo", "ch_vb", "sg_gerichte", "tg_obergericht",
     "be_weitere", "sh_obergericht",
-    "ag_baugesetzgebung", "ag_weitere",
 }
 
 # Courts where partial-fetch failures are expected (upstream limitation,

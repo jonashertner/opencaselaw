@@ -47,7 +47,7 @@
       "since": "2025"
     },
     "ag_baugesetzgebung": {
-      "reason": "entscheidsuche mirror of the BVU Rechtsabteilung collection on ag.ch (198 rows to 2021-08-20). ag.ch (checked 2026-09-15): since January 2022 these decisions are published in the AGVE portal and the collection page is no longer continued. The direct ag_gerichte scraper files them under ag_departement_bvu (2022: 14, 2023: 20, 2024: 20, 2025: 16)",
+      "reason": "BVU Rechtsabteilung collection on ag.ch, read directly since 2026-11-08 (scrapers/cantonal/ag_entscheidsammlungen.py: 249 rulings 1991 to 2021-08-20; the entscheidsuche mirror held 198). ag.ch (checked 2026-09-15): since January 2022 these decisions are published in the AGVE portal and the collection page is no longer continued. The direct ag_gerichte scraper files them under ag_departement_bvu (2022: 14, 2023: 20, 2024: 20, 2025: 16)",
       "since": "2022"
     },
     "zg_datenschutzstelle": {

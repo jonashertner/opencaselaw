@@ -16,7 +16,8 @@ silently become a probe target or crash on a missing class:
   - REPROBE_DEAD_PORTALS   truly-dead portals WITH an instantiable scraper (the only probe-able ones)
   - OPTIONAL_REPROBE       sg_publikationen — its key is the LIVE direct scraper, so off by default
   - RARE_PUBLICATION_*     ch_bundesrat/comcom/ta_sst — empty is their NORMAL state (would false-positive)
-  - NO_SCRAPER_CLASS       ch_vb/ag_* — entscheidsuche-ingest keys only, nothing to instantiate
+  - NO_SCRAPER_CLASS       ch_vb — entscheidsuche-ingest key only, nothing to instantiate
+  - CLOSED_COLLECTIONS     ag_baugesetzgebung/ag_weitere — direct scraper, closed collections
 
 Alerts on GOOD news (a dead source has rows again) via ntfy (priority 'default'), deduped on the
 resumed-set digest with its OWN state file, always exit 0. PROTOCOL_BROKEN (//EX) is the one loud
@@ -57,7 +58,8 @@ REPROBE_DEAD_PORTALS = {"ow_gerichte"}
 OPTIONAL_REPROBE = {"sg_publikationen"}
 # Documented exclusions (NEVER probed):
 RARE_PUBLICATION_NO_REPROBE = {"ta_sst", "ch_bundesrat", "comcom"}  # empty is their normal state
-NO_SCRAPER_CLASS = {"ch_vb", "ag_baugesetzgebung", "ag_weitere"}     # entscheidsuche-ingest keys only
+NO_SCRAPER_CLASS = {"ch_vb"}                                         # entscheidsuche-ingest key only
+CLOSED_COLLECTIONS = {"ag_baugesetzgebung", "ag_weitere"}            # direct scraper, nothing new to find
 
 LOG_JSON = REPO / "logs" / "reprobe_dead_sources.json"
 LOG_TXT = REPO / "logs" / "reprobe_dead_sources.log"

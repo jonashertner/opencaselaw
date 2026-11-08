@@ -193,6 +193,11 @@ SCRAPERS = {
     # VD CDAP / Tribunal administratif / Cour constitutionnelle (jurisprudence.vd.ch);
     # same court code as the frozen es_vd_omni shard, whose ids it keeps.
     "vd_omni": ("scrapers.cantonal.vd_omni", "VDOmniScraper"),
+    # AG: the BVU Entscheidsammlung Baugesetzgebung and the DVI Grundbuch decisions
+    # on ag.ch (both closed collections); same court codes as the frozen es shards,
+    # folded by scripts/ag_entscheidsammlungen_es_fold.py.
+    "ag_baugesetzgebung": ("scrapers.cantonal.ag_entscheidsammlungen", "AGBaugesetzgebungScraper"),
+    "ag_weitere": ("scrapers.cantonal.ag_entscheidsammlungen", "AGWeitereScraper"),
     # Cantonal — Custom platforms
     "vd_gerichte": ("scrapers.cantonal.vd_gerichte", "VDGerichteScraper"),
     "so_gerichte": ("scrapers.cantonal.so_gerichte", "SOGerichteScraper"),

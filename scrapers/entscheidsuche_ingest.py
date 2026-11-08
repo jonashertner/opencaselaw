@@ -84,8 +84,12 @@ SPIDER_MAP = {
 
     # ── Aargau ──
     "AG_Gerichte":      ("ag_gerichte",  "AG", "AG Gerichte",   "cantonal"),
-    "AG_Baugesetzgebung": ("ag_baugesetzgebung", "AG", "AG Baugesetzgebung", "cantonal"),
-    "AG_Weitere":       ("ag_weitere",   "AG", "AG Weitere",    "cantonal"),
+    # AG_Baugesetzgebung and AG_Weitere retired 2026-11-08: direct scraper
+    # scrapers/cantonal/ag_entscheidsammlungen.py (ag.ch doctable API / Grundbuch
+    # page). The spider keyed entries on their title and dropped 51 of the 249
+    # BVU rulings; its rows are folded into the direct ones and quarantined
+    # (runbooks/ag_entscheidsammlungen_2026-11.md). A re-run must not bring
+    # them back.
 
     # ── Basel-Stadt ──
     # BS_Omni retired 2026-04-29 (Day 2 V3): direct scraper writes
