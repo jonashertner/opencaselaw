@@ -618,6 +618,7 @@ def run_with_persistence(
     neuheiten_only: bool = False,
     until: str | None = None,
     evg_only: bool = False,
+    reconcile: bool = False,
 ) -> int:
     """Run scraper and write each decision to JSONL incrementally.
 
@@ -671,6 +672,11 @@ def run_with_persistence(
         logger.info(f"[{scraper_key}] evg_only=True (EVG single-letter dockets only)")
     elif evg_only:
         logger.warning(f"[{scraper_key}] --evg-only ignored (scraper has no evg_only)")
+    if reconcile:
+        if not hasattr(scraper, "reconcile"):
+            raise SystemExit(f"[{scraper_key}] --reconcile: scraper has no reconcile mode")
+        scraper.reconcile = True
+        logger.info(f"[{scraper_key}] reconcile=True (count-reconciliation sweep)")
     run_id = f"{scraper_key}:{datetime.now().isoformat(timespec='seconds')}"
     event_writer = _RunEventWriter(
         output_dir=output_dir,
@@ -882,6 +888,11 @@ def main():
                         help="BGer recovery: fetch ONLY single-letter EVG chamber dockets "
                              "(I/U/C/H/K/B/P/M), skipping regular dockets. Used for the "
                              "pure-official pre-2007 EVG recovery backfill.")
+    parser.add_argument("--reconcile", action="store_true",
+                        help="BGer completeness sweep: with --since/--until, compare each "
+                             "AZA window's hit count with the rulings held in every bger "
+                             "shard (state/bger.held.tsv from scripts/build_bger_held_index.py) "
+                             "and fetch only what no shard holds. Report: state/bger.reconcile.jsonl.")
     parser.add_argument("--max", type=int, help="Max decisions to scrape")
     parser.add_argument("--output", type=str, default="output", help="Output directory")
     parser.add_argument("--state", type=str, default="state", help="State directory")
@@ -948,6 +959,7 @@ def main():
             neuheiten_only=args.neuheiten_only,
             until=args.until,
             evg_only=args.evg_only,
+            reconcile=args.reconcile,
         )
     except Exception:
         # Capture the traceback in the per-scraper log file (orchestrator

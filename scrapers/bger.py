@@ -40,6 +40,7 @@ Rate limiting: 2s delay, 1 concurrent request (Eurospider is sensitive).
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -611,6 +612,11 @@ class BgerScraper(BaseScraper):
         # dockets (the pre-2007 social-insurance recovery — pure-official).
         self.until_date: date | None = None
         self.evg_only: bool = False
+        # --reconcile (one-off completeness sweep, see "Count reconciliation"
+        # below): compare each AZA window's hit count with the rulings the
+        # corpus holds for those dates and page only through windows that are
+        # short; never refetch a ruling any shard already holds.
+        self.reconcile: bool = False
 
     @property
     def court_code(self) -> str:
@@ -779,6 +785,141 @@ class BgerScraper(BaseScraper):
             f"[bger] same-docket second ruling: {stub.get('docket_number')} "
             f"dated {d_iso} → {alt['decision_id']}")
         return alt
+
+    # ───────────────────────────────────────────────────────────────────────
+    # Count reconciliation — completeness sweep of old judgment years
+    # ───────────────────────────────────────────────────────────────────────
+    # Until 5f10adfe (2026-06-08) _follow_pagination fetched pages 2+ of a
+    # window's FIRST DAY, so every AZA backfill before it lost most results
+    # on a window's later days. The fixed code re-swept only 730 days; for
+    # judgment years 2000 to mid-2024 the corpus rests on that buggy backfill
+    # plus the frozen entscheidsuche intake (35-55 % of rows per year), and
+    # rulings both missed are missing (2C_1023/2018, 9C_806/2018,
+    # 1B_232/2010 found 2026-11-08).
+    #
+    # A plain re-sweep cannot be used: scraper state knows ~100k of the ~194k
+    # held rulings (the es rows and the EVG recovery are not in it), so it
+    # would refetch ~94k rulings, and the full pagination is ~25k requests
+    # through Incapsula. --reconcile instead reads a held index built from
+    # ALL bger shards (scripts/build_bger_held_index.py →
+    # state/bger.held.tsv, one "<normalised docket>\t<YYYY-MM-DD>" line per
+    # held ruling) and:
+    #   * skips a window (or day) whose AZA hit count the corpus already
+    #     matches — page 1 is the only request;
+    #   * pages through short windows, yielding only rulings whose
+    #     (docket, date) no shard holds;
+    #   * never fetches a ruling whose docket is held under ANOTHER date: that
+    #     is either a date defect on our side or a same-docket second ruling,
+    #     and fetching it could serve one ruling twice. Those are written to
+    #     the report for review instead.
+    # Every short window and every date conflict goes to
+    # state/bger.reconcile.jsonl.
+    reconcile: bool = False          # class default: __new__-built instances
+    _held_pairs: set = frozenset()
+    _held_dockets: dict = {}
+    _held_per_day: dict = {}
+
+    @staticmethod
+    def _norm_docket(docket: str | None) -> str:
+        """Separator- and case-insensitive docket key (4P.253/1999 → 4P2531999)."""
+        return re.sub(r"[^0-9A-Z]", "", (docket or "").upper())
+
+    def _held_index_path(self) -> Path:
+        return Path(self.state.state_file).with_name(f"{self.court_code}.held.tsv")
+
+    def _reconcile_report_path(self) -> Path:
+        return Path(self.state.state_file).with_name(f"{self.court_code}.reconcile.jsonl")
+
+    def _load_held_index(self, path: Path | None = None) -> None:
+        """Load the held index. Refuses to run without one: without it a
+        reconcile sweep would refetch every es-held ruling."""
+        p = Path(path) if path else self._held_index_path()
+        if not p.exists() or p.stat().st_size == 0:
+            raise RuntimeError(
+                f"--reconcile needs the held index {p}; build it first with "
+                "scripts/build_bger_held_index.py (outside the build window)")
+        pairs: set = set()
+        dockets: dict = {}
+        per_day: dict = {}
+        for line in p.read_text().splitlines():
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) != 2:
+                continue
+            norm, d_iso = parts
+            if not norm or not self._date_iso(d_iso):
+                continue
+            if (norm, d_iso) in pairs:
+                continue
+            pairs.add((norm, d_iso))
+            dockets.setdefault(norm, set()).add(d_iso)
+            per_day[d_iso] = per_day.get(d_iso, 0) + 1
+        if not pairs:
+            raise RuntimeError(f"held index {p} has no valid lines")
+        self._held_pairs = pairs
+        self._held_dockets = dockets
+        self._held_per_day = per_day
+        self._reconcile_stats = {"windows": 0, "complete": 0, "short": 0,
+                                 "days_complete": 0, "candidates": 0,
+                                 "date_conflicts": 0}
+        logger.info(f"[bger] reconcile: held index {len(pairs)} rulings "
+                    f"over {len(per_day)} days")
+
+    def _held_count(self, von: date, bis: date) -> int:
+        n = 0
+        d = von
+        while d <= bis:
+            n += self._held_per_day.get(d.isoformat(), 0)
+            d += timedelta(days=1)
+        return n
+
+    def _record_reconcile(self, event: dict) -> None:
+        try:
+            with open(self._reconcile_report_path(), "a") as f:
+                f.write(json.dumps(event, ensure_ascii=False, default=str) + "\n")
+        except OSError as e:
+            logger.error(f"[bger] reconcile report write failed: {e}")
+
+    def _reconcile_window_complete(self, treffer: int | None, von: date,
+                                   bis: date, *, day: bool = False) -> bool:
+        """True when the corpus already holds at least as many rulings for
+        [von, bis] as the AZA reports. Unknown hit count → not complete."""
+        if treffer is None:
+            return False
+        held = self._held_count(von, bis)
+        stats = self._reconcile_stats
+        if held >= treffer:
+            stats["days_complete" if day else "complete"] += 1
+            return True
+        if not day:
+            stats["short"] += 1
+        logger.info(f"[bger] reconcile: {von}–{bis} AZA {treffer}, held {held} "
+                    f"— short by {treffer - held}")
+        self._record_reconcile({"event": "short", "von": von.isoformat(),
+                                "bis": bis.isoformat(), "aza": treffer,
+                                "held": held, "day": day})
+        return False
+
+    def _reconcile_filter(self, stub: dict, date_parsed: bool) -> dict | None:
+        """None = already held (or held under another date: reported)."""
+        norm = self._norm_docket(stub.get("docket_number"))
+        d_iso = self._date_iso(stub.get("decision_date")) if date_parsed else None
+        held_dates = self._held_dockets.get(norm)
+        if not held_dates:
+            self._reconcile_stats["candidates"] += 1
+            # Claim it for the rest of the run: a ruling the AZA lists on two
+            # pages (or two overlapping queries) is yielded once.
+            self._held_dockets[norm] = {d_iso} if d_iso else {""}
+            if d_iso:
+                self._held_pairs.add((norm, d_iso))
+            return stub
+        if d_iso and d_iso in held_dates:
+            return None
+        self._reconcile_stats["date_conflicts"] += 1
+        self._record_reconcile({"event": "date_conflict",
+                                "docket": stub.get("docket_number"),
+                                "aza_date": d_iso, "held_dates": sorted(held_dates),
+                                "url": stub.get("url")})
+        return None
 
     # ───────────────────────────────────────────────────────────────────────
     # SESSION & POW
@@ -1036,6 +1177,18 @@ class BgerScraper(BaseScraper):
         """
         if isinstance(since_date, str):
             since_date = date.fromisoformat(since_date)
+
+        if self.reconcile:
+            # Completeness sweep of old judgment years only: load the held
+            # index BEFORE any request so a missing index fails fast.
+            if not since_date or since_date >= date.today() - timedelta(days=self.DAILY_LOOKBACK_DAYS):
+                raise RuntimeError(
+                    "--reconcile is a backfill sweep: pass --since older than "
+                    f"{self.DAILY_LOOKBACK_DAYS} days (and --until)")
+            if self.neuheiten_only or self.evg_only:
+                raise RuntimeError("--reconcile cannot be combined with "
+                                   "--neuheiten-only or --evg-only")
+            self._load_held_index()
 
         self._init_session()
         self._load_known_dates()
@@ -1356,7 +1509,15 @@ class BgerScraper(BaseScraper):
                     # Check hit count
                     treffer_count = self._get_hit_count(soup)
 
-                    if treffer_count is not None and treffer_count > 100:
+                    if self.reconcile:
+                        self._reconcile_stats["windows"] += 1
+                    if (self.reconcile and treffer_count is not None
+                            and self._reconcile_window_complete(
+                                treffer_count, current, end)):
+                        # The corpus already holds every ruling the AZA
+                        # lists for these dates: page 1 was the only request.
+                        pass
+                    elif treffer_count is not None and treffer_count > 100:
                         # Too many results — split into daily requests
 
                         logger.warning(
@@ -1370,6 +1531,11 @@ class BgerScraper(BaseScraper):
                             try:
                                 day_resp = self._get_with_pow(day_url)
                                 day_soup = BeautifulSoup(day_resp.text, "html.parser")
+                                if self.reconcile and self._reconcile_window_complete(
+                                        self._get_hit_count(day_soup), day, day,
+                                        day=True):
+                                    day += timedelta(days=1)
+                                    continue
                                 yield from self._parse_search_results(
                                     day_soup, "de", fallback_date=day
                                 )
@@ -1401,9 +1567,25 @@ class BgerScraper(BaseScraper):
                     f"on every host — stopping the AZA search for this run at "
                     f"{bis_str}; the next run tries again"
                 )
+                if self.reconcile:
+                    self._record_reconcile({"event": "stopped_refused",
+                                            "at_window": bis_str})
+                    self._log_reconcile_summary(since_date, end)
                 return
 
             current = end + timedelta(days=1)
+
+        if self.reconcile:
+            self._log_reconcile_summary(since_date, today)
+
+    def _log_reconcile_summary(self, since_date: date, until: date) -> None:
+        stats = getattr(self, "_reconcile_stats", None)
+        if not stats:
+            return
+        logger.info(f"[bger] reconcile {since_date}–{until}: {stats}")
+        self._record_reconcile({"event": "summary", "since": since_date.isoformat(),
+                                "until": until.isoformat(), **stats,
+                                "at": datetime.now().isoformat(timespec="seconds")})
 
     def _aza_host_sequence(self) -> list[str]:
         """Preferred AZA host first, then the alternative."""
@@ -1523,6 +1705,11 @@ class BgerScraper(BaseScraper):
                 "language": lang,
                 "decision_id": decision_id,
             }
+            if self.reconcile:
+                # Held in ANY shard (es and EVG rows are not in state) →
+                # skip; held under another date → reported, never fetched.
+                if self._reconcile_filter(stub, date_parsed) is None:
+                    continue
             if date_parsed:
                 # The row text carries the ruling's own date → date-aware
                 # identity (same-docket second rulings get a -D<date> id).

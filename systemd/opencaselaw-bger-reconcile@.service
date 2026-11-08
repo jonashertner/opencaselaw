@@ -1,0 +1,24 @@
+[Unit]
+Description=OpenCaseLaw BGer count-reconciliation sweep, judgment year %i (one-off, see runbooks/bger_reconcile_2026-11.md)
+After=network.target
+# Never alongside another writer of output/decisions/bger.jsonl (nightly
+# 01:00 scrape, 10:20 retry, weekday poller, Saturday 20:00 backfill): the
+# runbook's pre-checks gate each start. No Conflicts=: it would stop a
+# running writer mid-batch instead of refusing to start.
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+# Same CA chain fix as the weekly backfill (www.bger.ch serves a leaf-only chain).
+ExecStartPre=-/opt/caselaw/certs/build-ca-bundle.sh
+Environment=REQUESTS_CA_BUNDLE=/opt/caselaw/certs/ca-bundle.pem
+Environment=SSL_CERT_FILE=/opt/caselaw/certs/ca-bundle.pem
+# Year %i: 01-01..12-31. The sweep stops at 2024-06-30: the first fixed
+# --since-days 730 run (one-off timer, 2026-06-09) began at 2024-06-10, and
+# the weekly backfill has re-swept every later judgment date since.
+ExecStart=/bin/sh -c 'y=%i; u="$y-12-31"; [ "$y" = 2024 ] && u=2024-06-30; exec /usr/bin/python3 run_scraper.py bger --reconcile --since "$y-01-01" --until "$u"'
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=14400
+StandardOutput=append:/opt/caselaw/repo/logs/bger_reconcile.log
+StandardError=append:/opt/caselaw/repo/logs/bger_reconcile.log
