@@ -206,6 +206,8 @@ SCRAPERS = {
     "nw_gerichte": ("scrapers.cantonal.nw_gerichte", "NWGerichteScraper"),
     # Cantonal — TYPO3/DIAM
     "sg_publikationen": ("scrapers.cantonal.sg_publikationen", "SGPublikationenScraper"),
+    # Departmental rulings, same platform; rows are court=sg_publikationen.
+    "sg_departemente": ("scrapers.cantonal.sg_departemente", "SGDepartementeScraper"),
     # Cantonal — Swisslex
     "bl_gerichte": ("scrapers.cantonal.bl_gerichte", "BLGerichteScraper"),
     # Cantonal — Tribuna (JU)
