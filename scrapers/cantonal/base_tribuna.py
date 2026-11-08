@@ -72,6 +72,9 @@ _RE_ENC_PATH = re.compile(r"^[0-9a-f]{60,}$")
 # GR / ZG / BE still send hex, so both forms are recognised.
 _RE_B64_PATH = re.compile(r"^[A-Za-z0-9+/]{110,}={0,2}$")
 _RE_GWT_ESCAPE = re.compile(r"\\x([0-9A-Fa-f]{2})|\\u([0-9A-Fa-f]{4})|\\(.)")
+# One string-table entry: quotes, with \" and \\ escapes allowed inside.
+_RE_GWT_STRING = re.compile(r'"((?:[^"\\]|\\.)*)"')
+_RE_FILENAME = re.compile(r"\.(?:docx?|pdf|rtf|odt)$", re.IGNORECASE)
 
 
 def _gwt_unescape(s: str) -> str:
@@ -89,8 +92,8 @@ def _gwt_unescape(s: str) -> str:
     return _RE_GWT_ESCAPE.sub(_sub, s)
 
 
-def _row_dates_from_stream(text: str) -> dict[str, str]:
-    """Map docket -> decision date, read from each row's own record.
+def _row_records_from_stream(text: str) -> dict[str, tuple[str | None, str | None]]:
+    """Map docket -> (decision date, Betreff), read from each row's own record.
 
     The string table of a GWT-RPC response is DEDUPLICATED: a date shared by
     two rows is stored once, under the first. Rows point into the table from
@@ -101,6 +104,12 @@ def _row_dates_from_stream(text: str) -> dict[str, str]:
     18 right. The docket-span reading got 9 of those 18 NULL and 3 wrong
     (it took createDate or the Rechtskraft date, some in the future).
 
+    The reference immediately AFTER the dossierNumber is the row's Betreff
+    (dossierObject). The docket-span reading cannot see it where the table
+    stores the Betreff before the docket, as be_steuerrekurs does: there it
+    picked the next row's municipality ("4401 Affoltern") or the authority's
+    name (2026-11-08). None when that slot holds no subject-like string.
+
     A docket can also match inside the leading byte-array blocks, which are
     ASCII codes that collide with small table indices; the row records come
     after them, so the LAST match wins.
@@ -108,21 +117,41 @@ def _row_dates_from_stream(text: str) -> dict[str, str]:
     table_at = text.find('["')
     if not text.startswith("//OK[") or table_at < 0:
         return {}
-    table = [_gwt_unescape(s) for s in re.findall(r'"((?:[^"\\]|\\.)*)"', text[table_at:])]
-    dates: dict[str, str] = {}
-    prev = None
+    table = [_gwt_unescape(s) for s in _RE_GWT_STRING.findall(text[table_at:])]
+    refs: list[str | None] = []
     for tok in text[5:table_at].split(","):
         try:
             n = int(float(tok))
         except ValueError:
-            prev = None
+            refs.append(None)
             continue
-        s = table[n - 1] if 0 < n <= len(table) else None
+        refs.append(table[n - 1] if 0 < n <= len(table) else None)
+    records: dict[str, tuple[str | None, str | None]] = {}
+    for i in range(1, len(refs)):
+        s, prev = refs[i], refs[i - 1]
         if (s is not None and prev is not None and _RE_DOCKET.match(s)
                 and _RE_DATE.match(prev) and prev != "0000-00-00"):
-            dates[s] = prev
-        prev = s
-    return dates
+            nxt = refs[i + 1] if i + 1 < len(refs) else None
+            records[s] = (prev, nxt if _is_subject(nxt) else None)
+    return records
+
+
+def _is_subject(s: str | None) -> bool:
+    """A string that can be a Betreff: text, not an id, hash, date, docket or
+    the name of the uploaded file (be_steuerrekurs 100 2023 11:
+    "20240604_171528_ANOM.docx")."""
+    if not s or len(s) < 4 or s.isdigit() or _RE_FILENAME.search(s):
+        return False
+    return not (_RE_DOC_ID.match(s) or _RE_DATE.match(s) or _RE_DOCKET.match(s)
+                or _RE_ENC_PATH.match(s) or _RE_B64_PATH.match(s)
+                or s.startswith(("java.", "tribunavtplus.", "[B/", "[L")))
+
+
+def _row_dates_from_stream(text: str) -> dict[str, str]:
+    """Map docket -> decision date (see _row_records_from_stream)."""
+    return {d: date for d, (date, _) in _row_records_from_stream(text).items() if date}
+
+
 _RE_HEX = re.compile(r"^[0-9a-f]{60,}$")
 _RE_B64CRED = re.compile(r"^[A-Za-z0-9+/=]{60,140}$")
 
@@ -185,6 +214,29 @@ class TribunaBaseScraper(BaseScraper):
 
     # Overridable: the tribunavtplus subpath (usually "tribunavtplus")
     TRIBUNA_PATH: str = "tribunavtplus"
+
+    # Title source (opt-in, 2026-11-08). True: the row record's Betreff
+    # (dossierObject), read from the integer stream; see
+    # _row_records_from_stream. False: the first long string in the docket
+    # span, which on most portals is the court name, a legal area or a
+    # municipality rather than the subject. Off by default because it changes
+    # the titles of every portal it is switched on for: FR's Betreff is the
+    # chamber line ("Arrêt de la IIe Cour administrative ..."), which the span
+    # reading replaced with the more useful legal area.
+    TITLE_FROM_RECORD: bool = False
+
+    # decision_id shape (opt-in, 2026-11-08). make_decision_id keeps the
+    # docket's spaces ("be_verwaltungsgericht_100 2023 240"). The frozen
+    # entscheidsuche shards key the same rulings with underscores
+    # ("be_bvd_110_2002_108"), and those are the ids live today for courts
+    # whose only rows came from there. True keeps them: the direct row then
+    # takes over the live id on import (direct-first), and an es copy with
+    # another date becomes <id>_dYYYYMMDD, which build_fts5's federation twin
+    # fold merges into the direct row and aliases. With spaces the two ids
+    # never meet, and the content dedup keeps the longer copy, which is the es
+    # one with its date (wrong in 407 of 2,091 be_bvd rows, measured
+    # 2026-11-08), and drops the live id without an alias.
+    ID_SPACES_AS_UNDERSCORES: bool = False
 
     @property
     def court_code(self) -> str:
@@ -453,7 +505,13 @@ class TribunaBaseScraper(BaseScraper):
         # Extract all strings from the response, KEEPING their positions —
         # the row a value belongs to is determined by where it sits, not by
         # how many values of its kind came before it.
-        all_strings = [_gwt_unescape(x) for x in re.findall(r'"([^"]*)"', text)]
+        #
+        # The tokenizer must honour GWT's \" escape. The naive '"([^"]*)"'
+        # ended a string at the escaped quote inside a title (be_steuerrekurs,
+        # 2026-11-08: 'französischer \"valeur locative ...'), which flipped
+        # inside/outside for the rest of the page: 8 of the 20 rows on that
+        # page lost their docket and were never listed.
+        all_strings = [_gwt_unescape(x) for x in _RE_GWT_STRING.findall(text)]
 
         # Group fields into decisions.
         #
@@ -521,7 +579,7 @@ class TribunaBaseScraper(BaseScraper):
         # so a row whose date an earlier row already carried has no date in
         # its span and picks up createDate / the Rechtskraft date instead.
         # See _row_dates_from_stream.
-        row_dates = _row_dates_from_stream(text)
+        row_records = _row_records_from_stream(text)
         corrected = 0
 
         # One row per docket. Row i spans [its own index, next docket's index).
@@ -539,14 +597,15 @@ class TribunaBaseScraper(BaseScraper):
             docket = kinds[ki][2]
             # "0000-00-00" is the Rechtskraft sentinel, not a date.
             span_date = _first("date", {"0000-00-00"})
-            date = row_dates.get(docket) or span_date
+            rec_date, rec_title = row_records.get(docket, (None, None))
+            date = rec_date or span_date
             if date != span_date:
                 corrected += 1
             decisions.append({
                 "docket_number": docket,
                 "decision_date": date,
                 "enc_path": _first("enc_path"),
-                "title": _first("title"),
+                "title": (rec_title if self.TITLE_FROM_RECORD else None) or _first("title"),
             })
 
         if corrected:
@@ -568,6 +627,11 @@ class TribunaBaseScraper(BaseScraper):
 
         for court_filter in filters:
             yield from self._search_court(credential, court_filter, since_date)
+
+    def _decision_id(self, docket: str) -> str:
+        if self.ID_SPACES_AS_UNDERSCORES:
+            docket = re.sub(r"\s+", "_", docket.strip())
+        return make_decision_id(self.court_code, docket)
 
     def _search_court(self, credential: str, court_filter: str, since_date=None) -> Iterator[dict]:
         """Search a single court filter and yield decision stubs.
@@ -615,7 +679,7 @@ class TribunaBaseScraper(BaseScraper):
                     if d and d < since_date:
                         continue
 
-                did = make_decision_id(self.court_code, stub["docket_number"])
+                did = self._decision_id(stub["docket_number"])
                 if self.state.is_known(did):
                     continue
 
@@ -757,7 +821,7 @@ class TribunaBaseScraper(BaseScraper):
                 d = parse_date(stub["decision_date"])
                 if d and d < since_date:
                     continue
-            did = make_decision_id(self.court_code, docket)
+            did = self._decision_id(docket)
             if self.state.is_known(did):
                 continue
             stub["decision_id"] = did

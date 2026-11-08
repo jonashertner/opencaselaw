@@ -76,11 +76,14 @@ SLOW_SCRAPERS = {
     # kill — run_scraper appends and flushes per decision, marking state only
     # after the durable write — but the cap has to allow the drain.
     "be_verwaltungsgericht": 14400,
+    # 4h — be_bvd first direct run fetches the portal's ~2,255 PDFs at
+    # REQUEST_DELAY=4.0 (~2.5h; the frozen es_be_bvd copy is not state).
+    # Nightly runs after the backfill take minutes (113 listing pages).
+    "be_bvd": 14400,
 }
 
 # Scrapers to skip by default (broken, redundant, or handled separately)
 SKIP_BY_DEFAULT: set[str] = {
-    "be_steuerrekurs",  # Portal DB disconnected (Feb 2026), returns 0 results
     # ecthr has its own timer (opencaselaw-ecthr.timer, 14:00 UTC) which
     # chains quick_publish so fresh Strasbourg judgments are searchable within
     # minutes. Running it here too meant scraping HUDOC twice a day for the

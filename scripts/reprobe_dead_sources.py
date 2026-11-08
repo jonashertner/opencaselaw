@@ -48,7 +48,9 @@ from scripts.check_scraper_freshness import (  # reuse, don't fork
 
 # Truly-dead portals WITH an instantiable scraper whose discover_new filters via state.is_known —
 # the only KNOWN_DEAD sources the fresh-temp-state + bounded-discovery probe can meaningfully test.
-REPROBE_DEAD_PORTALS = {"be_steuerrekurs", "ow_gerichte"}
+# be_steuerrekurs left 2026-11-08: the portal never died, the scraper sent the
+# court filter "STRK" where the portal expects "StRK" (case-sensitive).
+REPROBE_DEAD_PORTALS = {"ow_gerichte"}
 # sg_publikationen: its registry key is the LIVE direct TYPO3/DIAM scraper, so a bounded discovery
 # would yield rows and flag RESUMED every week (noise). Off by default; --probe-sg detects the ES
 # feed reviving (operationally moot — direct coverage already exists).

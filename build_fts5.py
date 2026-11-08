@@ -808,6 +808,11 @@ _COURT_OVERLAP_GROUPS: list[set[str]] = [
      "bs_zivilgericht"},
     # BE: steuerrekurs overlaps with verwaltungsgericht
     {"be_steuerrekurs", "be_verwaltungsgericht"},
+    # BE directorates: entscheidsuche → be_weitere (frozen), direct scraper →
+    # be_direktionen. Same dockets (2025.GSI.2700, 2023.DIJ.92, 300.01-19,
+    # GEF.2012-0035): 182 rulings were served twice on 2026-11-08, and the BKD
+    # and DIJ sources added to be_direktionen that day bring 309 more.
+    {"be_weitere", "be_direktionen"},
 ]
 
 # Collection buckets inside an overlap group: a code that names no court.
@@ -818,7 +823,7 @@ _COURT_OVERLAP_GROUPS: list[set[str]] = [
 # (measured 2026-10-02 on the production shards; the direct row had a median
 # 98% of the copy's content). A copy that is substantially fuller still wins,
 # so a truncated direct row never displaces a complete one.
-_GENERIC_BUCKET_COURTS = frozenset({"zh_gerichte"})
+_GENERIC_BUCKET_COURTS = frozenset({"zh_gerichte", "be_weitere"})
 ATTRIBUTED_ROW_MIN_CONTENT = 0.9
 
 # Build a lookup: court_code → frozenset of group members
@@ -965,11 +970,17 @@ def _generic_bucket_twin_dedup(conn: sqlite3.Connection) -> int:
             continue
         pmarks = ",".join("?" * len(peers))
         twins = conn.execute(
-            f"SELECT full_text FROM decisions WHERE docket_number = ? AND court IN ({pmarks})",
+            f"SELECT decision_id, full_text FROM decisions WHERE docket_number = ? AND court IN ({pmarks})",
             [docket, *peers],
         ).fetchall()
-        if any(_same_ruling_text(norm, _norm_for_dedup(t[0])) for t in twins):
+        kept = next((tid for tid, ttext in twins
+                     if _same_ruling_text(norm, _norm_for_dedup(ttext))), None)
+        if kept:
             conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+            # The bucket id stays resolvable, and the per-court swap gate
+            # counts it as answered (_rows_answered_by_alias), as the
+            # date-keyed pass above already does.
+            _record_folded_id(conn, did, kept)
             deleted += 1
     if deleted:
         logger.info(f"  Generic-bucket twins (same docket, same text, other date): removed {deleted}")

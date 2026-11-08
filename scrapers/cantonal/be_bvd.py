@@ -3,27 +3,28 @@ Bern BVD (Bau-, Verkehrs- und Energiedirektion) Scraper
 =======================================================
 Scrapes BVD administrative-appeal decisions from the Tribuna VTPlus platform.
 
-Platform: Tribuna GWT-RPC. The GWT app at /tribunavtplus IS live (permutation
-auto-discovers, config loads, credential len=128), and nf=20 (classic) is the
-correct protocol — nf=21 raised a GWT IncompatibleRemoteServiceException.
+Platform: Tribuna GWT-RPC, classic 46-param search (SEARCH_FIELD_COUNT=20;
+nf=21 answers //EX IncompatibleRemoteServiceException).
 
-⚠️ STATUS (live-validated 2026-06-17, --max 3): loadTable for COURT_FILTER="BVD"
-returns **Total results: 0** with no error. The portal serves the app but
-returns NO data for BVD — consistent with the ORIGINAL registry note "DB
-disconnected" (same class as be_steuerrekurs/strk), NOT the es-independence
-workflow's "live to 2025-12-11" claim (its probe only confirmed the config
-loads, not that loadTable yields rows). So this scraper is protocol-correct but
-non-productive as-is. NEXT: enumerate the live DLAConfig's actual court-filter
-codes to confirm BVD-has-no-data vs a wrong filter value; if the backend data
-is genuinely gone, reclassify be_bvd as dead-upstream and recover the 2,094
-decisions from the FROZEN es_be_bvd archive (one-time), like ch_vb. NOT deployed
-pending that decision.
+Court filter: the portal's own search sends "TRI", NOT the "BVD" that the
+DLAConfig carries as its court name. Captured from the browser on 2026-11-08:
+"BVD" answers //OK[0] with no error (the reason this scraper was parked as
+"backend dead" on 2026-06-17); "TRI" answers //OK[2255]. The credential does
+not matter: all five config hex strings return the same total.
+
+Dossier numbers: "110 YYYY N" up to 2025, "120 YYYY N" from 2026, plus a few
+"195 YYYY N". decision_id = be_bvd_<docket with underscores>
+(ID_SPACES_AS_UNDERSCORES), the id the frozen entscheidsuche shard
+es_be_bvd.jsonl carries (2,094 rows, last 2026-03-12) and the one live today.
+The build's direct-first insert gives the direct row that id; an es copy with
+another date (407 of 2,091, the es date being wrong in every sampled case)
+becomes <id>_dYYYYMMDD and is folded into it by the federation twin fold. The
+frozen rows still fill what the portal no longer lists (3 dockets).
 
 Coverage: Bau-, Verkehrs- und Energiedirektion des Kantons Bern
-Volume: es archive es_be_bvd = ~2,094 (tail 2025-12-11) — the record of truth
-until/unless the live portal yields data.
-Language: de
-Source: https://www.bvd-entscheide.apps.be.ch/tribunavtplus/
+Volume: 2,255 listed on 2026-11-08 (decisions 2002-2026)
+Language: de (some fr)
+Source: https://www.bvd-entscheide.apps.be.ch/
 """
 from __future__ import annotations
 
@@ -35,10 +36,9 @@ class BEBvdScraper(TribunaBaseScraper):
     COURT_CODE_STR = "be_bvd"
     BASE_URL = "https://www.bvd-entscheide.apps.be.ch"
     TRIBUNA_PATH = "tribunavtplus"
-    COURT_FILTER = "BVD"            # read verbatim from the live DLAConfig
+    COURT_FILTER = "TRI"           # what the portal's own search sends (see above)
     LOCALE = "de"
     REQUEST_DELAY = 4.0            # match the BE siblings; avoid 503 rate-limit
-    # VERIFY_SSL removed 2026-08-26: www.bvd-entscheide.apps.be.ch verifies cleanly against
-    # the scraper CA bundle (deploy/certs). The old opt-out silently did
-    # nothing anyway once REQUESTS_CA_BUNDLE shipped — see base_scraper._build_session.
-    SEARCH_FIELD_COUNT = 20        # classic Tribuna (matches the WORKING be_zivilstraf/be_anwaltsaufsicht; nf=21 yielded a GWT IncompatibleRemoteServiceException on live validation 2026-06-17)
+    SEARCH_FIELD_COUNT = 20        # classic Tribuna; nf=21 answers //EX
+    TITLE_FROM_RECORD = True       # the row's Betreff, not the span's first long string
+    ID_SPACES_AS_UNDERSCORES = True  # = the live ids of the es_be_bvd rows (be_bvd_110_2002_108)

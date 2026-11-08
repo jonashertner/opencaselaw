@@ -49,8 +49,10 @@ def test_schedules_are_read_from_the_code_that_decides_them():
     assert _kinds("ti_gerichte") == ["nightly", "late"]
     assert _kinds("ecthr") == ["own_timer"]
     assert FACTS["schedule"]["ecthr"][0]["when"] == [{"cadence": "daily", "time": "14:00"}]
-    # Registered but in SKIP_BY_DEFAULT and without an own timer: never runs.
-    assert _kinds("be_steuerrekurs") == []
+    # be_steuerrekurs sat in SKIP_BY_DEFAULT (never ran) until its court-filter
+    # fix of 2026-11-08; it and be_bvd now run nightly.
+    assert _kinds("be_steuerrekurs") == ["nightly"]
+    assert _kinds("be_bvd") == ["nightly"]
     assert FACTS["schedule"]["vd_gerichte"][0]["when"] == [{"cadence": "daily", "time": "01:00"}]
 
 

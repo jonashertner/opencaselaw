@@ -5,14 +5,24 @@ Scrapes the administrative-appeal decisions (Beschwerdeentscheide) of Bernese
 cantonal directorates that publish their own decision tables — the executive
 administrative-recourse layer entscheidsuche does not aggregate.
 
-Covered directorates (chamber = directorate abbreviation):
-- GSI — Gesundheits-, Sozial- und Integrationsdirektion
-- KAIO — Beschaffungswesen / öffentliche Vergaben (public-procurement appeals)
+Covered directorates (chamber = the directorate named in the docket, else the
+listing's directorate):
+- GSI — Gesundheits-, Sozial- und Integrationsdirektion (static table)
+- BKD — Bildungs- und Kulturdirektion, Rechtsdienst (static table; dockets
+  "2024.BKD.4985" and, before 2020, "300.01-19")
+- DIJ — Direktion für Inneres und Justiz (formerly JGK): Grundbuch
+  Beschwerdeentscheide and Notariatsaufsicht Disziplinar-, Moderations- und
+  Administrativentscheide. Both pages render a JAXForms data pool in the
+  browser; the pool's JSON is read directly (DATA_POOLS)
+- KAIO — Beschaffungswesen (static table). Its PDFs carry no docket in link or
+  file name, so the docket filter matches none of them (0 rows to date).
 
-Each portal is a single static HTML table: Datum | Nummer (docket, links the PDF) |
-Gegenstand (subject). Pattern = static index → direct PDF (like scrapers/esbk.py).
-Our only pre-existing BE directorate is be_bvd (Bau- und Verkehrsdirektion); these
-are net-new. robots Crawl-delay:10 → REQUEST_DELAY 10s.
+Static tables: Datum | Nummer (docket, links the PDF) | Gegenstand (subject).
+Pattern = static index → direct PDF (like scrapers/esbk.py). The bvd has its own
+Tribuna portal (be_bvd). robots Crawl-delay:10 → REQUEST_DELAY 10s.
+
+The frozen entscheidsuche shard es_be_weitere (court be_weitere) holds earlier
+copies of GSI/GEF, BKD and DIJ/JGK rulings under that court code.
 """
 from __future__ import annotations
 
@@ -20,7 +30,7 @@ import logging
 import re
 from datetime import date, datetime, timezone
 from typing import Iterator
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 from bs4 import BeautifulSoup
 
@@ -34,15 +44,67 @@ logger = logging.getLogger(__name__)
 LISTINGS = [
     ("GSI", "https://www.gsi.be.ch/de/start/ueber-uns/generalsekretariat/rechtsabteilung/rechtsprechung.html"),
     ("KAIO", "https://www.kaio.fin.be.ch/de/start/themen/oeffentliches-beschaffungswesen/rechtliches/beschwerdeentscheide.html"),
+    ("BKD", "https://www.bkd.be.ch/de/start/ueber-uns/die-organisation/bkd-generalsekretariat/rechtsdienst-bkd/ausgewaehlte-beschwerdeentscheide.html"),
 ]
+
+# JAXForms data pools: (directorate, pool id, page that embeds it, PDF host).
+# The page calls createDataPool(..., 'KAIO', '<pool id>', 'standard', 'de',
+# 'paging=false'); its grid then GETs POOL_URL with the pool config as query
+# parameters and receives every entry at once (no session needed; checked
+# 2026-11-08: 202 Grundbuch and 150 Notariat entries).
+POOL_URL = "https://ktbe.jaxforms.com/formservice/services/rest/generic/json"
+DATA_POOLS = [
+    ("DIJ", "77e7438e-f9c8-4e73-9302-bbfec0ad04b3",
+     "https://www.gba.dij.be.ch/de/start/grundbuch/rechtliches/beschwerdeentscheide.html",
+     "https://www.gba.dij.be.ch/content"),
+    ("DIJ", "3a44138f-ec0b-4afb-bbe0-4daedb0eb2b0",
+     "https://www.gba.dij.be.ch/de/start/notariat/notariatsaufsicht/entscheide.html",
+     "https://www.gba.dij.be.ch/content"),
+]
+# The Notariat pool also lists the Verwaltungsgericht's and the Bundesgericht's
+# rulings on appeal from the directorate (11 on 2026-11-08). Those courts have
+# their own scrapers; only the directorate's own rulings are taken here.
+POOL_AUTHORITIES = ("Direktion für Inneres und Justiz", "Justiz-, Gemeinde- und Kirchendirektion")
 
 DATE_RE = re.compile(r"(\d{2})\.(\d{2})\.(\d{4})")
 # Directorate docket: 2025.GSI.2700, 2026.KAIO.12, …  (year.DIR.number)
 DOCKET_RE = re.compile(r"\b(\d{4}\.[A-Za-zÄÖÜ]{2,6}\.\d+)\b")
+# Older numbering, read from the link text (the table's Nummer cell):
+# BKD before 2020 "300.01-19" (Abteilung.Nummer-Jahr); GEF (now GSI) before
+# 2018 "GEF.2012-0035". 46 GEF rulings on the GSI page were skipped before.
+LEGACY_DOCKET_RE = re.compile(r"^(\d{3}\.\d{2}-\d{2}|GEF\.\d{4}-\d{4,5})(?![\d.-])")
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _pool_text(value) -> str | None:
+    """Pool HTML snippet ("...<br/>...") as plain text."""
+    if not value:
+        return None
+    text = _TAG_RE.sub("\n", str(value).replace("&nbsp;", " "))
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\s*\n\s*", "\n", text).strip()
+    return text or None
+
+
+def _pool_docket(number: str) -> str:
+    """'2019.JGK.6290  / 2019.JGK.6370' -> '2019.JGK.6290 / 2019.JGK.6370'.
+    Only whitespace runs collapse; '2022.DIJ.5528/5529' stays as published."""
+    return re.sub(r"\s+", " ", number.strip())
+
+
+def _chamber(docket: str, directorate: str) -> str:
+    """The directorate named in the docket (2025.DIJ.1 -> DIJ, GEF.2012-0035 ->
+    GEF), else the listing's."""
+    parts = docket.split(".")
+    if len(parts) >= 3 and parts[1].isalpha():
+        return parts[1].upper()
+    if len(parts) == 2 and parts[0].isalpha():
+        return parts[0].upper()
+    return directorate
 
 
 class BEDirektionenScraper(BaseScraper):
-    """Scraper for Bernese cantonal directorate Beschwerdeentscheide (GSI, KAIO)."""
+    """Scraper for Bernese cantonal directorate rulings (GSI, BKD, DIJ, KAIO)."""
 
     REQUEST_DELAY = 10.0  # robots Crawl-delay:10
     TIMEOUT = 120
@@ -52,8 +114,33 @@ class BEDirektionenScraper(BaseScraper):
         return "be_direktionen"
 
     def discover_new(self, since_date=None) -> Iterator[dict]:
-        seen_urls: set[str] = set()
+        listed: set[str] = set()
         found = 0
+        for stub in self._listing_stubs():
+            if stub["docket_number"] in listed:
+                continue
+            listed.add(stub["docket_number"])
+            decision_id = make_decision_id("be_direktionen", stub["docket_number"])
+            if self.state.is_known(decision_id):
+                continue
+            if since_date and stub.get("decision_date"):
+                parsed = parse_date(stub["decision_date"])
+                if parsed and parsed < since_date:
+                    continue
+            found += 1
+            yield stub
+        # Every ruling the listings name, so the nightly health gap compares
+        # the shard with what the directorates publish.
+        self.portal_count = len(listed)
+        logger.info(f"[be_direktionen] Found {found} new decisions ({len(listed)} listed)")
+
+    def _listing_stubs(self) -> Iterator[dict]:
+        yield from self._table_stubs()
+        yield from self._pool_stubs()
+
+    def _table_stubs(self) -> Iterator[dict]:
+        """Static tables: Datum | Nummer (links the PDF) | Gegenstand."""
+        seen_urls: set[str] = set()
         for directorate, listing_url in LISTINGS:
             try:
                 resp = self.get(listing_url)
@@ -66,7 +153,8 @@ class BEDirektionenScraper(BaseScraper):
                 if ".pdf" not in href.lower():
                     continue
                 link_text = a.get_text(" ", strip=True)
-                m = DOCKET_RE.search(link_text) or DOCKET_RE.search(href)
+                m = (DOCKET_RE.search(link_text) or DOCKET_RE.search(href)
+                     or LEGACY_DOCKET_RE.match(link_text))
                 if not m:
                     continue  # only docket-numbered decision PDFs (skips forms etc.)
                 docket = m.group(1)
@@ -90,28 +178,66 @@ class BEDirektionenScraper(BaseScraper):
                         if gegenstand and not DATE_RE.search(gegenstand) and docket not in gegenstand:
                             title = gegenstand
 
-                decision_id = make_decision_id("be_direktionen", docket)
-                if self.state.is_known(decision_id):
-                    continue
-                if since_date and decision_date_str:
-                    parsed = parse_date(decision_date_str)
-                    if parsed and parsed < since_date:
-                        continue
-
                 # The true issuing directorate is the docket prefix (YYYY.DIR.N), which can
                 # differ from the listing page (e.g. a BKD decision listed on the KAIO portal).
-                parts = docket.split(".")
-                chamber = parts[1] if len(parts) >= 3 and parts[1].isalpha() else directorate
-
-                found += 1
                 yield {
                     "docket_number": docket,
                     "decision_date": decision_date_str or "",
                     "pdf_url": pdf_url,
                     "title": title,
-                    "chamber": chamber,
+                    "chamber": _chamber(docket, directorate),
                 }
-        logger.info(f"[be_direktionen] Found {found} new decisions ({len(seen_urls)} PDFs)")
+
+    def _pool_stubs(self) -> Iterator[dict]:
+        """JAXForms data pools (DIJ Grundbuch and Notariatsaufsicht)."""
+        for directorate, pool_id, _page_url, pdf_host in DATA_POOLS:
+            try:
+                resp = self.get(POOL_URL, params={
+                    "handler": "jaxGenericDataPoolHandler", "language": "de",
+                    "paging": "false", "id": pool_id, "displayID": "standard",
+                })
+                entries = resp.json()["results"]
+            except Exception as e:
+                logger.error(f"[be_direktionen] {directorate} pool {pool_id} failed: {e}")
+                continue
+            if not entries:
+                logger.error(f"[be_direktionen] {directorate} pool {pool_id} returned no entries")
+                continue
+            # One ruling can be listed once per holding (Notariat 26.11-14.46:
+            # one PDF, a disciplinary and an administrative holding). Merge them.
+            merged: dict[str, dict] = {}
+            for e in entries:
+                authority = e.get("Behörde_de")
+                if authority and not authority.startswith(POOL_AUTHORITIES):
+                    continue
+                number, path = (e.get("EntscheidNr") or "").strip(), e.get("DateiName")
+                if not number or not path:
+                    continue
+                docket = _pool_docket(number)
+                regeste = _pool_text(e.get("Kurzbeschrieb_de") or e.get("Beschreibung_de"))
+                regeste_fr = _pool_text(e.get("Kurzbeschrieb_fr") or e.get("Beschreibung_fr"))
+                topic = _pool_text(e.get("Thema_de"))
+                if docket in merged:
+                    stub = merged[docket]
+                    for key, val in (("regeste", regeste), ("abstract_fr", regeste_fr), ("title", topic)):
+                        if val and val not in (stub.get(key) or ""):
+                            sep = " / " if key == "title" else "\n\n"
+                            stub[key] = f"{stub[key]}{sep}{val}" if stub.get(key) else val
+                    continue
+                tech = str(e.get("DatumTechnisch") or "")
+                merged[docket] = {
+                    "docket_number": docket,
+                    "decision_date": (f"{tech[:4]}-{tech[4:6]}-{tech[6:8]}" if len(tech) == 8
+                                      else e.get("Datum") or ""),
+                    "pdf_url": pdf_host + quote(path),
+                    "title": topic,
+                    "regeste": regeste,
+                    "abstract_fr": regeste_fr,
+                    "decision_type": _pool_text(e.get("Entscheidart_de")) or "Beschwerdeentscheid",
+                    "legal_area": _pool_text(e.get("Rubrik_de")),
+                    "chamber": _chamber(docket, directorate),
+                }
+            yield from merged.values()
 
     def fetch_decision(self, stub: dict) -> Decision | None:
         pdf_url = stub["pdf_url"]
@@ -126,6 +252,10 @@ class BEDirektionenScraper(BaseScraper):
             logger.warning(f"[be_direktionen] No text extracted from {docket}")
             return None
         full_text = self.clean_text(full_text)
+        language = detect_language(full_text)
+        regeste = stub.get("regeste")
+        if language == "fr" and stub.get("abstract_fr"):
+            regeste = stub["abstract_fr"]
         return Decision(
             decision_id=make_decision_id("be_direktionen", docket),
             court="be_direktionen",
@@ -133,9 +263,13 @@ class BEDirektionenScraper(BaseScraper):
             chamber=stub.get("chamber"),
             docket_number=docket,
             decision_date=parse_date(stub.get("decision_date", "")),
-            language=detect_language(full_text),
+            language=language,
             title=stub.get("title"),
-            decision_type="Beschwerdeentscheid",
+            regeste=regeste,
+            abstract_de=stub.get("regeste"),
+            abstract_fr=stub.get("abstract_fr"),
+            legal_area=stub.get("legal_area"),
+            decision_type=stub.get("decision_type") or "Beschwerdeentscheid",
             full_text=full_text,
             source_url=pdf_url,
             pdf_url=pdf_url,

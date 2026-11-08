@@ -65,7 +65,6 @@ KNOWN_DEAD_SOURCES = {
     "ag_baugesetzgebung",    # source stagnant since Nov 2025
     "ag_weitere",            # source dead since 2023
     "sg_publikationen",      # entscheidsuche.ch path stale (we have direct scraper anyway)
-    "be_steuerrekurs",       # portal DB disconnected (Feb 2026)
     "ow_gerichte",           # portal offline since Dec 2022
     "ta_sst",                # rare publication
     "ch_bundesrat",          # rare publication
@@ -75,7 +74,7 @@ KNOWN_DEAD_SOURCES = {
 # Courts that ONLY come from entscheidsuche.ch — use ES last-modified to grade them
 ENTSCHEIDSUCHE_ONLY = {
     "vd_findinfo", "ch_vb", "sg_gerichte", "tg_obergericht",
-    "be_bvd", "be_weitere", "sh_obergericht", "be_steuerrekurs",
+    "be_weitere", "sh_obergericht",
     "ag_baugesetzgebung", "ag_weitere",
 }
 

@@ -52,7 +52,8 @@ def test_candidates_subset_of_known_dead():
 
 def test_candidates_membership():
     base = set(rp.candidate_sources())
-    assert {"be_steuerrekurs", "ow_gerichte"} <= base
+    assert "ow_gerichte" in base
+    assert "be_steuerrekurs" not in base   # live again since the StRK filter fix (2026-11-08)
     assert not ({"ta_sst", "ch_bundesrat", "comcom"} & base)            # rare-publication
     assert not ({"ch_vb", "ag_baugesetzgebung", "ag_weitere"} & base)   # no scraper class
     assert "sg_publikationen" not in base
@@ -147,7 +148,7 @@ def test_run_resumed_does_not_mutate_known_dead(monkeypatch, tmp_path):
     monkeypatch.setattr(rp, "STATE_FILE", tmp_path / "s.json")
     out = rp.run(send_ntfy=False, scraper_factory=_factory(stubs=[{"docket_number": "x"}]))
     assert KNOWN_DEAD_SOURCES == before                              # never auto-undead
-    assert out["results"]["be_steuerrekurs"]["status"] == "RESUMED"
+    assert out["results"]["ow_gerichte"]["status"] == "RESUMED"
 
 
 def test_probe_with_timeout_hung_source_moves_on():

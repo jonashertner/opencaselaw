@@ -167,6 +167,7 @@ SCRAPERS = {
     "zh_steuerrekursgericht": ("scrapers.cantonal.zh_steuerrekursgericht", "ZHSteuerrekursgerichtScraper"),
     # Cantonal — Tribuna GWT-RPC
     "be_anwaltsaufsicht": ("scrapers.cantonal.be_anwaltsaufsicht", "BEAnwaltsaufsichtScraper"),
+    "be_bvd": ("scrapers.cantonal.be_bvd", "BEBvdScraper"),
     "be_direktionen": ("scrapers.cantonal.be_direktionen", "BEDirektionenScraper"),
     "be_steuerrekurs": ("scrapers.cantonal.be_steuerrekurs", "BESteuerrekursScraper"),
     "be_verwaltungsgericht": ("scrapers.cantonal.be_verwaltungsgericht", "BEVerwaltungsgerichtScraper"),
