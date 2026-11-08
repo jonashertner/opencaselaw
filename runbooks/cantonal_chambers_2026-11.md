@@ -125,7 +125,88 @@ branch; AR's "n. Abteilung" carries no keyword.
 
 ## 4. Rehearsal on shard copies
 
-PLACEHOLDER_REHEARSAL
+All 17 shards, copied read-only from the VPS on 2026-11-08 (small shards in the
+afternoon; FR, BE VG, BL and VD at 21:50 UTC, after the nightly build exited at
+21:44). Each one had a dry run (`--report`), then `--apply` on a copy, then
+four checks:
+
+- line by line against the original, only `chamber` differs (0 other-field
+  changes and 0 length mismatches on every shard);
+- the `.bak-chamber-<date>` hard link is byte-identical to the original;
+- a second run changes nothing;
+- the file mode is kept.
+
+The shard figures count every stored row. The build later folds duplicates
+across the direct and `es_` shards, so these totals are higher than the served
+rows in section 3. `vd_findinfo` shows 0 % before because its stored chamber is
+empty; the "HC/AI" values in section 3 are added only at build time.
+
+| Shard | Court | Rows | Filled before | Filled after | Newly filled | Refined | Conflicts |
+|---|---|---:|---:|---:|---:|---:|---:|
+| fr_gerichte | fr_gerichte | 14,826 | 0 (0.0%) | 14,816 (99.9%) | 14,816 | 0 | 5 |
+| es_fr_gerichte | fr_gerichte | 13,956 | 0 (0.0%) | 13,946 (99.9%) | 13,946 | 0 | 4 |
+| be_verwaltungsgericht | be_verwaltungsgericht | 11,780 | 0 (0.0%) | 11,776 (100.0%) | 11,776 | 0 | 4 |
+| es_be_verwaltungsgericht | be_verwaltungsgericht | 11,112 | 0 (0.0%) | 11,111 (100.0%) | 11,111 | 0 | 0 |
+| bl_gerichte | bl_gerichte | 9,431 | 9,431 (100.0%) | 9,431 (100.0%) | 0 | 8,214 | 0 |
+| es_bl_gerichte | bl_gerichte | 16,907 | 0 (0.0%) | 15,507 (91.7%) | 15,507 | 0 | 0 |
+| bl_wayback | bl_gerichte | 903 | 0 (0.0%) | 903 (100.0%) | 903 | 0 | 0 |
+| es_vd_findinfo | vd_findinfo | 74,866 | 0 (0.0%) | 74,210 (99.1%) | 74,210 | 0 | 0 |
+| nw_gerichte | nw_gerichte | 561 | 0 (0.0%) | 559 (99.6%) | 559 | 0 | 2 |
+| es_nw_gerichte | nw_gerichte | 508 | 0 (0.0%) | 495 (97.4%) | 495 | 0 | 0 |
+| ur_gerichte | ur_gerichte | 440 | 0 (0.0%) | 389 (88.4%) | 389 | 0 | 0 |
+| es_ur_gerichte | ur_gerichte | 1,104 | 0 (0.0%) | 571 (51.7%) | 571 | 0 | 0 |
+| ar_gerichte | ar_gerichte | 1,665 | 1,665 (100.0%) | 1,665 (100.0%) | 0 | 807 | 1 |
+| es_ar_gerichte | ar_gerichte | 4,322 | 0 (0.0%) | 2,300 (53.2%) | 2,300 | 0 | 1 |
+| zh_baurekursgericht | zh_baurekursgericht | 1,162 | 0 (0.0%) | 1,159 (99.7%) | 1,159 | 0 | 1 |
+| es_zh_baurekursgericht | zh_baurekursgericht | 1 | 0 (0.0%) | 1 (100.0%) | 1 | 0 | 0 |
+| es_be_weitere | be_weitere | 840 | 0 (0.0%) | 840 (100.0%) | 840 | 0 | 0 |
+| **total** | | **164,384** | **11,096 (6.8%)** | **159,679 (97.1%)** | **148,583** | **9,021** | **18** |
+
+"Refined" means the stored court-only value gains its division:
+`bl_gerichte` "Kantonsgericht" becomes "Kantonsgericht, Abteilung
+Sozialversicherungsrecht", and `ar_gerichte` "Obergericht" becomes
+"Obergericht, 4. Abteilung".
+
+VD values written (all from the header): Cour des assurances sociales 27,268;
+Chambre des recours pénale 10,573; Cour d'appel civile 9,272; Cour d'appel
+pénale 5,834; Cour des poursuites et faillites 5,659; Chambre des recours civile
+5,019; Chambre des curatelles 2,963; Cour civile 1,917; Chambre des recours
+1,673; Tribunal d'accusation 1,263; Chambre des tutelles 923; Cour de cassation
+pénale 921; Cour administrative 683; Chambre des avocats 218; Chambre des
+révisions civiles et pénales 24.
+
+**Conflicts (18 rows, left as they are).** The header names one chamber and the
+docket another, and the docket does not appear in the ruling's head. On the rows
+checked, the stored text is another ruling's:
+
+| Shard | Docket | Header says | Docket says |
+|---|---|---|---|
+| fr_gerichte | 102 2018 190 | 101 | 102 |
+| fr_gerichte | 608 2017 165 | 102 | 608 |
+| fr_gerichte | 106 2018 45 | 608 | 106 |
+| fr_gerichte | 102 2018 137 | 106 | 102 |
+| fr_gerichte | 605 2018 49 | 102 | 605 |
+| es_fr_gerichte | 602 2021 163 | 502 | 602 |
+| es_fr_gerichte | 502 2024 179 | 602 | 502 |
+| es_fr_gerichte | 602 2025 5 | 502 | 602 |
+| es_fr_gerichte | 608 2019 222 | 605 | 608 |
+| be_verwaltungsgericht | 200 2023 618 | VRA | SVA |
+| be_verwaltungsgericht | 100 2023 306 | SVA | VRA |
+| be_verwaltungsgericht | 200 2023 595 | VRA | SVA |
+| be_verwaltungsgericht | 100 2018 97 | SVA | VRA |
+| nw_gerichte | ZA 21 1 | SA | ZA |
+| nw_gerichte | SV 24 12 | SA | SV |
+| ar_gerichte, es_ar_gerichte | OG O4V-17-31 | 3. Abteilung | 4. Abteilung |
+| zh_baurekursgericht | BRGE I Nr. 0153/2014 | 4. Abteilung | 1. Abteilung |
+
+These are text-identity defects, not chamber defects. Refetching them from the
+portal is a follow-up (section 6).
+
+**Order on the VPS.** The source-dates repair
+(`runbooks/source_dates_repair_2026-11.md`) rewrites the nw/ur/ar/bl/be shards
+too. Run this backfill after it. Neither script changes the other's field, so
+the figures above should hold within the rows scraped in between. Both write
+their own backup names, so neither refuses because of the other's backup.
 
 ## 5. Apply (Jonas)
 
@@ -134,10 +215,11 @@ with no scrape of these courts running. Each command is a dry run first. Stop
 if the dry run's `fill_rate_after`, `conflict` count or values differ from
 section 4 by more than the rows scraped since 2026-11-08.
 
-1. Deploy the code (scraper change, pipeline-gated): merge
-   `claude/quirky-morse-c7e843`, push, then on the VPS
+1. Deploy the code (scraper change, pipeline-gated, approved by Jonas on
+   2026-11-08). The code is on `origin/main` as 974f8feb. On the VPS run
    `git fetch && git merge --ff-only origin/main`. The scrapers fill new rows
-   from the next run.
+   from the next run. Schedule: Monday 2026-11-09 evening, after the
+   source-dates repair. This is step 2.4 of `runbooks/night_2026-11-08_deploy.md`.
 2. Back up nothing by hand: the script hard-links
    `<shard>.bak-chamber-<UTC date>` itself, and that name does not match the
    build's `*.jsonl` glob.
