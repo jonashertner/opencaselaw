@@ -72,8 +72,8 @@ on a scratch output dir (`OCL_EARLY_STATS_PUSH=0`, HEAD unchanged afterwards):
 | direct shard rows | 25 | 19 (6 dropped, 4 re-keyed, all 19 refreshed) |
 | es shard rows | 14 | 14 (all re-keyed, skipped by the build) |
 | dates changed on kept rows | | 2 (2024-09-20 letter: 2024-01-15 → 2024-09-20; 2024-10-04 letter: 2007-12-07 → 2024-10-04); the other wrong dates sat on dropped rows |
-| `decision_id_aliases` | 0 | **18** (source `ch_bundesrat_rekey`), 0 dangling |
-| old ids not resolving | | **6** es ids (below) |
+| `decision_id_aliases` | 0 | **24** with the build commit (18 without it), source `ch_bundesrat_rekey`, 0 dangling |
+| old ids not resolving | | 0 (6 es ids without the build commit, below) |
 
 A fresh live `run_scraper.py ch_bundesrat` into scratch output/state dirs (2026-11-08 19:15
 CET, `+19 new, 19/19`, 0 errors, 0 warnings, 1.3 min) yields exactly the 19 ids of the repaired
@@ -82,13 +82,15 @@ shard, with the same docket, date, type, title, keywords, publication date and P
 All 19 kept rows: date = the decision's place-date line where OCR kept it (12), else the BJ's
 listed date (7), which equals the slug date in every case.
 
-**The 6 ids, and a proposed build change (pipeline-gated, not committed).** 24 old ids exist
+**The 6 ids, and the build change (commit "build: a skipped duplicate still records its former id" on this
+branch, pipeline-gated: Jonas takes or drops it).** 24 old ids exist
 (10 old-scheme + 14 es) and a row carries one `previous_decision_id`. Six decisions have both
 an old-scheme and an es id (2025-02-12, 2025-06-13 EDA, 2025-10-08 Aargau, and the letters
 2024-07-09, 2024-09-20, 2024-10-04 DFAE); their es ids ride on the re-keyed es copies, which
 the build skips without recording the alias. `insert_decision` records a row's
 `previous_decision_id` only when the row is inserted. Proposal: record it too when an
-incoming row is skipped as a true duplicate (same id, same canonical key):
+incoming row is skipped as a true duplicate (same id, same canonical key), test in
+`tests/test_decision_id_aliases.py`:
 
 ```diff
 --- build_fts5.py
@@ -103,10 +105,10 @@ incoming row is skipped as a true duplicate (same id, same canonical key):
              return False  # true duplicate, no richer text — skip as before
 ```
 
-Rehearsed with a patched scratch copy of `build_fts5.py`: 19 rows, **24 aliases**, 0
-dangling. It is generic: any skipped duplicate that names a former id keeps it resolving.
-`INSERT OR IGNORE` on the alias table, so a repeat is harmless. Without it, the repair is
-still correct; only those 6 es URLs stop resolving.
+Rehearsed with the branch's `build_fts5.py`: 19 rows, **24 aliases**, 0 dangling (AG fold
+rehearsal unchanged: 205). It is generic: any skipped duplicate that names a former id keeps
+it resolving; `INSERT OR IGNORE` on the alias table, so a repeat is harmless. Without it, the
+repair is still correct; only those 6 es URLs stop resolving.
 
 ## Production steps (Jonas)
 
@@ -127,7 +129,8 @@ both `inactive`), before 03:30 UTC.
    python3 scripts/ch_bundesrat_rekey.py --direct "$D"/ch_bundesrat.jsonl --es "$D"/es_ch_bundesrat.jsonl
    ```
 
-   Expect: `served before: 39 after: 19`, `decisions: 19`, `direct_rows_dropped: 6`,
+   Expect (the script counts aliases by mechanism; with the build commit deployed the 6
+   `es_skipped_duplicate` ones resolve too): `served before: 39 after: 19`, `decisions: 19`, `direct_rows_dropped: 6`,
    `es_rows_rekeyed: 14`, `aliases_previous_decision_id: 18`, `aliases_es_skipped_duplicate: 6`,
    `aliases_lost: 0`, `unmapped_direct: 0`, `unmapped_es: 0`.
    **Stop if** anything is unmapped, or the counts differ. (If the nightly scrape with the new
@@ -154,5 +157,6 @@ both `inactive`), before 03:30 UTC.
 
 ## Not in this change
 
-- The build proposal above (Jonas decides; it touches `build_fts5.py`).
+- Deploying the build commit is Jonas's call (it touches `build_fts5.py`); it must reach the VPS no
+  later than the build that first reads the re-keyed shards, or the 6 es ids miss one night.
 - Archiving the source PDFs (parity addendum §3: links rot, the BJ changed schemes twice).

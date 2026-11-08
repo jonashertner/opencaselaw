@@ -170,8 +170,35 @@ of 249) for a night.
 
 ## Follow-ups (not in this change)
 
-- The 17 `ag_weitere` court rulings without a source: check whether `ag_gerichte`
-  (decwork.ag.ch) holds them under their court codes; if so, fold them like the above.
+- The 17 `ag_weitere` court stubs without a source (title + headnote, ~300 characters, no
+  docket). Checked 2026-11-08 against the HF mirror (ag_* parquets): candidates of the same
+  date (or the date in the stub's PDF name), scored by the share of the headnote's content
+  words found in the candidate's text. Most have a full-text twin in the corpus, so the stub
+  is a second, headline-only copy of a held ruling. A fold (alias the stub to the twin,
+  carry its headnote into the twin's regeste where empty, quarantine the stub) touches the
+  twins' shards in other courts: verify each pair by hand first.
+
+  | stub (`ag_weitere_…`) | date | best candidate | score | read |
+  |---|---|---|---:|---|
+  | (empty id) and `unknown_AG_OGA_002` (same PDF) | 2019-02-19 | `ag_handelsgericht_HOR.2018.101` | 1.00 | strong |
+  | `unknown_AG_JG_001` | 2017-07-15 | `ag_justizgericht_JG_2016_02` | 0.83 | strong |
+  | `unknown_AG_OGA_001` | 2013-01-15 | `ag_verwaltungsgericht_WBE.2013.10` | 1.00 | strong |
+  | `unknown_AG_OGA_005` | 2017-04-03 | `ag_zivilgericht_ZSU.2016.307` | 1.00 | strong |
+  | `unknown_AG_OG_010` | 2019-03-04 | `ag_handelsgericht_HSU.2019.14` | 1.00 | strong (headnote verbatim in text) |
+  | `unknown_AG_OG_012` | 2019-03-29 | `ag_handelsgericht_HSU.2019.30` | 0.83 | strong |
+  | `unknown_AG_OG_999` | 2013-05-27 | `ag_gerichte_AGVE_2013_62` | 0.67 | likely (key terms present) |
+  | `unknown_AG_OG_014` | 2013-01-25 | `ag_gerichte_WBE.2013.21` | 0.62 | likely (key terms present) |
+  | `unknown_AG_OGA_006` | 2014-06-10 | `ag_zivilgericht_XBE.2014.2` | 0.67 | check |
+  | `unknown_AG_OGA_999` | 2019-10-24 | `ag_handelsgericht_HOR.2019.5` | 0.67 | check (generic terms) |
+  | `unknown_AG_VSG_002` | 2020-09-16 / PDF 2020-10-23 | `ag_gerichte_VBE.2020.588` | 0.79 | check ("Abs. 3bis" absent) |
+  | `unknown_AG_OGA_003` | 2020-05-31 / PDF 2020-10-16 | `ag_versicherungsgericht_VBE.2020.322` | 0.50 | check ("Art. 8b" absent) |
+  | `unknown_AG_VG_002` | 2013-01-29 | `ag_gerichte_WBE.2013.25` | 0.69 | doubtful ("Sucht" absent) |
+  | `unknown_AG_OGA_004` | 2018-02-28 | none (only candidate scores 0) | 0 | not found |
+  | `unknown_AG_OG_003` | 2017-05-10 | no ruling of that date held | | not found |
+  | `unknown_AG_OG_004` | 2013-01-20 (a Sunday) | no ruling of that date held | | not found |
+
+  Two stub dates contradict their own PDF names (OGA_003, VSG_002): the es date field is
+  unreliable here too.
 - `ag_baugesetzgebung` is in no `_COURT_OVERLAP_GROUPS` group: VG/RR rulings of 2009-2021
   can also be in AGVE (`ag_verwaltungsgericht`, `ag_regierungsrat`). The excerpts are not the
   full rulings, so they are not duplicates in content; worth a check before any grouping.

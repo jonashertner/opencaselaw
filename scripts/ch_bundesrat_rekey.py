@@ -31,9 +31,10 @@ Per decision this script
   * re-keys every es row of the decision to the same id, docket and date, with
     its own old id as ``previous_decision_id``. The build imports the direct
     shard first, so the es copy is skipped as the same decision and never
-    served twice. Its old id resolves only once the build records the alias of
-    a skipped duplicate too (proposal in the runbook): until then the es ids
-    of the six decisions that also had an old-scheme id stop resolving.
+    served twice. The build records the skipped copy's previous_decision_id
+    too (commit "build: a skipped duplicate still records its former id"),
+    so its old id resolves; without that commit the es ids of the six
+    decisions that also had an old-scheme id stop resolving.
 
 Rows whose PDF stem the table does not know are left alone and reported.
 DRY RUN by default; --apply rewrites both shards atomically (scripts/
