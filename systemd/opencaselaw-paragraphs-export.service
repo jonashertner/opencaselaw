@@ -1,0 +1,34 @@
+# Weekly structure/erwaegungen_paragraphs.parquet export, after the build
+# (2026-11-08). Started by OnSuccess= on opencaselaw-publish.service
+# (opencaselaw-publish.service.d/paragraphs-export.conf) after every build;
+# the script exports only after the Sunday build, or as a catch-up when the
+# file is more than 7.5 days old, and otherwise exits 0 at once. It refuses
+# while the publish unit is active and hard-stops at 03:00 UTC, so it never
+# scans the sidecar inside the build window. Publish step 4 of the next
+# build uploads the new file to HuggingFace.
+#
+# Why not in publish step 3 any more: the in-build probe projected 119.9
+# (11-01) and 252.4 min (11-08) against a 45 min budget and skipped; the same
+# call after the build on 11-08 took 48 min.
+#
+# Apply: cp to /etc/systemd/system/, together with the publish drop-in, then
+# `systemctl daemon-reload`. Do not enable it (no [Install]); OnSuccess= starts it.
+[Unit]
+Description=OpenCaseLaw weekly erwaegungen_paragraphs.parquet export (after the publish build)
+After=opencaselaw-publish.service
+OnFailure=ntfy-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/caselaw/repo
+ExecStart=/usr/bin/python3 scripts/export_paragraphs_weekly.py
+# Same fence as the 11-08 manual run (48 min): stay out of the serving
+# workers' way. The script's own deadline (03:00 UTC) is the real bound;
+# this is only a backstop.
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=20
+MemoryHigh=16G
+TimeoutStartSec=20h
+StandardOutput=append:/opt/caselaw/repo/logs/paragraphs_export.log
+StandardError=append:/opt/caselaw/repo/logs/paragraphs_export.log

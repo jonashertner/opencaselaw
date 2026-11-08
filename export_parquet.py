@@ -719,6 +719,7 @@ def _bounded_stream(conn, label: str, table: str, select_cols: str, where: str,
                     time_left_s: float | None = None,
                     index_only: str | None = None,
                     extra: tuple[tuple[str, str, str], ...] = (),
+                    probe_gates: bool = True,
                     ) -> tuple[int | None, str | None]:
     """Run one structure export under a budget. Returns (rows, None) on
     success, (None, reason) when skipped or interrupted; the previous
@@ -731,7 +732,13 @@ def _bounded_stream(conn, label: str, table: str, select_cols: str, where: str,
     the rowid-window probe, which reads the table, is skipped.
     ``extra`` holds further ``(table, select_cols, where)`` parts written
     after the main query into the same file; their probes add to the
-    projection."""
+    projection.
+
+    ``probe_gates=False`` keeps the probe for the log (projected vs. actual,
+    the calibration record) but never skips on it: the hard stop alone
+    bounds the run. The weekly paragraphs job uses this outside the build,
+    where it owns the box until a fixed deadline and the probe — which
+    over-projected 1.6-5x in 2026-09..11 — would only throw the work away."""
     if budget_s <= 0:
         return None, "disabled (budget 0)"
     hard_stop_s = budget_s * _HARD_STOP_FACTOR
@@ -747,25 +754,28 @@ def _bounded_stream(conn, label: str, table: str, select_cols: str, where: str,
         projected = 0.0 if empty else None
     else:
         projected = _projected_seconds(conn, table, select_cols, where)
-    if projected is not None and math.isinf(projected):
+    if projected is not None and math.isinf(projected) and probe_gates:
         return None, "probe inconclusive (no rows in any window); last good file kept"
     if projected == 0.0 and out_path.exists():
         return None, f"{table} is empty; last good file kept"
     for x_table, x_cols, x_where in extra:
         x = _projected_seconds(conn, x_table, x_cols, x_where)
-        if math.isinf(x):
+        if math.isinf(x) and probe_gates:
             return None, (f"probe of {x_table} inconclusive (no rows in any window); "
                           f"last good file kept")
         projected = (projected or 0.0) + x
-    if projected is not None and projected > budget_s:
+    if probe_gates and projected is not None and projected > budget_s:
         return None, (f"projected {projected / 60:.1f} min > budget "
                       f"{budget_s / 60:.0f} min (last good file kept)")
     if index_only:
         logger.info(f"  {label}: index-only via {index_only}, no table probe "
                     f"(hard stop {hard_stop_s / 60:.0f} min)")
-    else:
+    elif probe_gates:
         logger.info(f"  {label}: projected {projected / 60:.1f} min "
                     f"(budget {budget_s / 60:.0f} min, hard stop {hard_stop_s / 60:.0f} min)")
+    else:
+        logger.info(f"  {label}: projected {projected / 60:.1f} min (log only, not gating; "
+                    f"hard stop {hard_stop_s / 60:.0f} min)")
     deadline = time.monotonic() + hard_stop_s
     conn.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0,
                               _PROGRESS_EVERY_OPCODES)
@@ -782,6 +792,10 @@ def _bounded_stream(conn, label: str, table: str, select_cols: str, where: str,
                       f"last good file kept")
     finally:
         conn.set_progress_handler(None, 0)
+    took = time.monotonic() - t0
+    if projected:
+        logger.info(f"  {label}: {n} rows in {took / 60:.1f} min "
+                    f"(projected {projected / 60:.1f} min, {projected / max(took, 1e-9):.1f}x)")
     return n, None
 
 
@@ -840,7 +854,9 @@ def export_decision_structure(structure_db: Path, output_dir: Path,
                               include_paragraphs: bool = False,
                               budget_s: float | None = None,
                               paragraphs_budget_s: float | None = None,
-                              deadline_monotonic: float | None = None) -> dict:
+                              deadline_monotonic: float | None = None,
+                              include_meta: bool = True,
+                              paragraphs_probe_gates: bool = True) -> dict:
     """Export the structure sidecar. Clean skip if the DB is absent.
 
     structure.parquet holds per-decision metadata (~7 MB) and rides every
@@ -854,6 +870,11 @@ def export_decision_structure(structure_db: Path, output_dir: Path,
 
     ``deadline_monotonic`` (a ``time.monotonic()`` value) is the process
     wall-clock cap set by main(); each export only gets what is left of it.
+
+    ``include_meta=False`` skips structure.parquet (the weekly paragraphs
+    job, scripts/export_paragraphs_weekly.py, which also passes
+    ``paragraphs_probe_gates=False`` so the deadline, not the probe, bounds
+    it). export_status.json keeps the entries of exports not run this time.
 
     Returns the row counts of what was written, plus ``<name>_skipped``
     reasons for anything that was not."""
@@ -875,26 +896,30 @@ def export_decision_structure(structure_db: Path, output_dir: Path,
             return None
         return deadline_monotonic - time.monotonic()
 
+    ran: list[str] = []
     try:
-        meta_cols, meta_index = _structure_meta_source(conn)
-        n_meta, why = _bounded_stream(
-            conn, "structure/structure.parquet", "structure", meta_cols, "",
-            STRUCTURE_META_SCHEMA, out / "structure.parquet", budget_s, _time_left(),
-            index_only=meta_index)
-        if n_meta is None:
-            logger.warning(f"  structure/structure.parquet: SKIPPED — {why}")
-            counts["structure_skipped"] = why
-        else:
-            logger.info(f"  structure/structure.parquet: {n_meta} decisions")
-            counts["structure"] = n_meta
+        if include_meta:
+            ran.append("structure")
+            meta_cols, meta_index = _structure_meta_source(conn)
+            n_meta, why = _bounded_stream(
+                conn, "structure/structure.parquet", "structure", meta_cols, "",
+                STRUCTURE_META_SCHEMA, out / "structure.parquet", budget_s, _time_left(),
+                index_only=meta_index)
+            if n_meta is None:
+                logger.warning(f"  structure/structure.parquet: SKIPPED — {why}")
+                counts["structure_skipped"] = why
+            else:
+                logger.info(f"  structure/structure.parquet: {n_meta} decisions")
+                counts["structure"] = n_meta
         if include_paragraphs:
+            ran.append("erwaegungen_paragraphs")
             unnumbered = (((_UNNUMBERED_TABLE, _UNNUMBERED_COLS, _PARAGRAPH_WHERE),)
                           if _has_table(conn, _UNNUMBERED_TABLE) else ())
             n_para, why = _bounded_stream(
                 conn, "structure/erwaegungen_paragraphs.parquet", "erwaegungen_paragraph",
                 _PARAGRAPH_COLS, _PARAGRAPH_WHERE, PARAGRAPH_SCHEMA,
                 out / "erwaegungen_paragraphs.parquet", paragraphs_budget_s, _time_left(),
-                extra=unnumbered)
+                extra=unnumbered, probe_gates=paragraphs_probe_gates)
             if n_para is None:
                 logger.warning(f"  structure/erwaegungen_paragraphs.parquet: SKIPPED — {why}")
                 counts["erwaegungen_paragraphs_skipped"] = why
@@ -904,17 +929,39 @@ def export_decision_structure(structure_db: Path, output_dir: Path,
     finally:
         conn.set_progress_handler(None, 0)
         conn.close()
-    _write_structure_status(out, counts)
+    _write_structure_status(out, counts, ran)
     return counts
 
 
-def _write_structure_status(out: Path, counts: dict) -> None:
+_STATUS_KEYS = ("structure", "erwaegungen_paragraphs")
+
+
+def _write_structure_status(out: Path, counts: dict,
+                            ran: list[str] | tuple[str, ...] = _STATUS_KEYS) -> None:
     """structure/export_status.json: what the last run wrote or skipped and
     why, so a multi-week freeze is visible on disk, not only in the log.
-    Not uploaded (step 4 only takes *.parquet)."""
+    Not uploaded (step 4 only takes *.parquet).
+
+    The exports run on different schedules (structure.parquet in step 3
+    nightly, the paragraphs weekly after the build), so the entries of an
+    export that did not run this time are carried over from the previous
+    file; ``ran_at`` records when each one last ran."""
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    prev_counts: dict = {}
+    prev_ran_at: dict = {}
     try:
-        status = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                  "counts": counts}
+        prev = json.loads((out / "export_status.json").read_text())
+        prev_counts = prev.get("counts") or {}
+        prev_ran_at = prev.get("ran_at") or {}
+    except (OSError, ValueError, AttributeError):
+        pass
+    merged = {k: v for k, v in prev_counts.items()
+              if k.removesuffix("_skipped") not in ran}
+    merged.update(counts)
+    ran_at = {k: v for k, v in prev_ran_at.items() if k not in ran}
+    ran_at.update({k: now for k in ran})
+    try:
+        status = {"at": now, "counts": merged, "ran_at": ran_at}
         tmp = out / "export_status.json.tmp"
         tmp.write_text(json.dumps(status, indent=2, sort_keys=True))
         os.replace(tmp, out / "export_status.json")
@@ -936,10 +983,15 @@ def export_decision_structure_nonfatal(structure_db: Path, output_dir: Path,
         logger.error(f"  structure export failed (non-fatal, last good files kept): "
                      f"{type(e).__name__}: {e}")
         logger.debug(traceback.format_exc())
-        counts = {"structure_skipped": f"error: {type(e).__name__}: {e}"}
+        why = f"error: {type(e).__name__}: {e}"
+        counts = {"structure_skipped": why}
+        ran = ["structure"]
+        if include_paragraphs:
+            counts["erwaegungen_paragraphs_skipped"] = why
+            ran.append("erwaegungen_paragraphs")
         out = output_dir / "structure"
         if out.is_dir():
-            _write_structure_status(out, counts)
+            _write_structure_status(out, counts, ran)
         return counts
 
 

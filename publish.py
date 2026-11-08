@@ -1014,8 +1014,8 @@ def step_3_export_parquet(dry_run: bool = False) -> bool:
     # decisions + graph exports alone take ~49 min (2026-09-10). The structure
     # add-ons in export_parquet.py budget themselves against
     # OCL_EXPORT_WALLCLOCK_BUDGET_S, kept 5 min under the timeout here: 2 h
-    # gives the Sunday paragraphs export (4.8 GB, ~12 min) and the nightly
-    # structure metadata (~30-75 min on the served-text sidecar) room without
+    # gives the nightly structure metadata room (index-only since 2026-10-08;
+    # the Sunday paragraphs export moved out of this step 2026-11) without
     # ever letting the step itself time out and cascade-skip the HuggingFace
     # upload and the git pushes (2026-09-09 incident).
     step_timeout_s = 7200
@@ -1023,10 +1023,13 @@ def step_3_export_parquet(dry_run: bool = False) -> bool:
            sys.executable, str(script),
            "--input", str(OUTPUT_DIR / "decisions"),
            "--output", str(DATASET_DIR)]
-    # The erwaegungen-paragraphs artifact is 4.8 GB (P1.4) — weekly cadence
-    # only (Sunday, aligned with the full-snapshot rhythm); the lean
-    # structure.parquet + graph exports ride every run.
-    if datetime.now(timezone.utc).weekday() == 6:
+    # erwaegungen_paragraphs.parquet (4.9 GB, weekly) is no longer exported
+    # here: opencaselaw-paragraphs-export.service runs it after the Sunday
+    # build, bounded by a 03:00 UTC deadline instead of this step's probe
+    # (skipped 11-01 and 11-08 at 120/252 min projected; real run 48 min).
+    # OCL_PARAGRAPHS_IN_BUILD=1 restores the in-build Sunday export.
+    if (datetime.now(timezone.utc).weekday() == 6
+            and os.environ.get("OCL_PARAGRAPHS_IN_BUILD") == "1"):
         cmd.append("--structure-paragraphs")
     return run_cmd(cmd, "Export Parquet", dry_run, timeout=step_timeout_s)
 
