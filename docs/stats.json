@@ -2,9 +2,9 @@
   "total": 1047614,
   "source_representations": 1047614,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 906839,
-  "unique_decisions_lower_bound": 906787,
-  "duplicate_representations": 140775,
+  "unique_decisions": 917312,
+  "unique_decisions_lower_bound": 917260,
+  "duplicate_representations": 130302,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
     "ch_vb": 2315,
@@ -13,7 +13,7 @@
     "nw_gerichte": 485,
     "sh_obergericht": 689,
     "ur_gerichte": 193,
-    "vd_findinfo": 59905
+    "vd_findinfo": 49432
   },
   "by_court": [
     {
@@ -2724,7 +2724,7 @@
     "2026-10": 1070,
     "2026-11": 14
   },
-  "generated_at": "2026-11-08T11:48:25.286598+00:00",
+  "generated_at": "2026-11-08T21:33:40.214135+00:00",
   "scraper_health": {
     "run_at": "2026-11-08T01:52:07.750453+00:00",
     "run_duration_s": 3066.6,
@@ -3939,25 +3939,26 @@
       "ZH": 944
     },
     "commentaries": 1796,
-    "scholarship_publications": 51892,
+    "scholarship_publications": 52491,
     "scholarship_by_source": {
       "zora_law": 14097,
       "boris_law": 7627,
-      "unige_law": 6562,
-      "alexandria_law": 5672,
-      "zhaw_digitalcollection": 3128,
+      "unige_law": 6565,
+      "alexandria_law": 5675,
       "e_periodica_polsci": 3098,
+      "zhaw_digitalcollection": 3089,
       "e_periodica_law": 3041,
-      "libra_unine": 2028,
-      "eth_research_collection": 1817,
+      "libra_unine": 2030,
+      "eth_research_collection": 1826,
       "e_periodica_pubadmin": 857,
       "unifr_law": 794,
-      "fhnw_irf": 513,
-      "edoc_unibas_law": 466,
-      "onlinekommentar": 398,
-      "sui_generis": 296,
-      "medialex": 282,
-      "eizpublishing": 276,
+      "openlegalcommentary": 599,
+      "fhnw_irf": 514,
+      "edoc_unibas_law": 479,
+      "onlinekommentar": 399,
+      "sui_generis": 297,
+      "medialex": 285,
+      "eizpublishing": 278,
       "leges": 210,
       "ex_ante": 186,
       "thegoodboard": 140,
@@ -3965,29 +3966,29 @@
       "anci_ch": 100,
       "cognitio": 58,
       "cfs": 51,
-      "leoh": 46,
+      "leoh": 47,
       "repositorium_ch": 32,
       "usi_law": 8
     },
     "scholarship_by_type": {
-      "article": 35361,
-      "book": 12750,
-      "dissertation": 2257,
+      "article": 35353,
+      "book": 12754,
+      "dissertation": 2260,
+      "commentary": 1126,
       "report": 674,
-      "commentary": 526,
       "working_paper": 199,
       "guidance": 70,
       "reference_article": 40,
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 9827561,
-    "statute_edges": 12436485
+    "citation_edges": 9828124,
+    "statute_edges": 12436899
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 109055,
+      "citation_count": 109068,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
@@ -4005,17 +4006,17 @@
       "de_pct": 46.4,
       "fr_pct": 45.6,
       "it_pct": 8.0,
-      "total": 1041376
+      "total": 1041404
     },
     "regeste_coverage": {
       "pct": 36.8,
-      "with_regeste": 385700,
-      "total": 1047586
+      "with_regeste": 385701,
+      "total": 1047614
     },
     "graph_size": {
-      "decision_edges": 9165623,
-      "statute_edges": 12436485,
-      "total": 21602108
+      "decision_edges": 9197121,
+      "statute_edges": 12436899,
+      "total": 21634020
     },
     "echr_switzerland": {
       "total": 1538,
@@ -4032,19 +4033,19 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 109055,
+        "citation_count": 109068,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 57166,
+        "citation_count": 57171,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39102,
+        "citation_count": 39109,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
@@ -4080,7 +4081,7 @@
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97275
+        "ref_count": 97301
       },
       {
         "law_code": "BGG",
@@ -4091,7 +4092,7 @@
     "materialien_coverage": {
       "total_documents": 29601,
       "paragraphs": 3135173,
-      "article_links": 28213,
+      "article_links": 28843,
       "by_language": {
         "de": 17798,
         "fr": 6157,
@@ -4872,7 +4873,10 @@
       "AG": 11,
       "BS": 5
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 563,
+      "statute_edges": 414
+    },
     "previous_generated_at": "2026-11-07T22:15:33.365080+00:00"
   }
 }
