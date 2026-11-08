@@ -15,8 +15,13 @@ fastapi>=0.104
 uvicorn>=0.24
 python-dotenv>=1.2.2
 
-# MCP server
-mcp>=1.28.1,<2
+# MCP server. The floor is what production runs (VPS system python: mcp 1.27.0,
+# checked 2026-11-08), so the pin never claims more than prod proves. 1.27.0 has
+# advisories fixed in 1.27.2-1.30.0 (auth, WebSocket, experimental tasks, stateful
+# StreamableHTTP sessions); the server is stateless with no auth, WebSocket or
+# tasks. Raise the floor together with the VPS install. <2: mcp 2.x drops the
+# lowlevel decorator API mcp_server.py is built on.
+mcp>=1.27.0,<2
 
 # BGer PoW encryption (optional)
 pycryptodome>=3.20
