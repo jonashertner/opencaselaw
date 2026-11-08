@@ -138,13 +138,19 @@ def _norm_docket(docket) -> str:
 def _fold_dockets(court, docket, docket2) -> set:
     """The docket keys a row can be folded under: its normalised docket_number and
     the key _cross_court_dedup groups by (decision number for
-    DECISION_NUMBER_COURTS, TG without the "Nr." noise)."""
+    DECISION_NUMBER_COURTS, TG and SH without the "Nr." noise, TG yearbook
+    entries by series, volume and number)."""
     keys = {_norm_docket(docket)}
     key = _norm_docket(_dedup_docket({"court": court, "docket_number": docket,
                                       "docket_number_2": docket2}))
     keys.add(key)
+    if str(court or "").startswith("sh_"):
+        keys.add(re.sub(r"^NR(?=\d)", "", key))
     if str(court or "").startswith("tg_"):
         keys.add(re.sub(r"NR(?=\d)", "", key))
+        yb = _tg_yearbook_key(docket)
+        if yb:
+            keys.add(f"TGYB|{yb[0]}|{yb[1]}|{yb[2]}")
     keys.discard("")
     return keys
 
@@ -888,6 +894,11 @@ def _cross_court_dedup(conn: sqlite3.Connection) -> int:
         docket_norm = re.sub(r"[^A-Z0-9]", "", (docket or "").upper())
         if "tg_gerichte" in group:
             docket_norm = re.sub(r"NR(?=\d)", "", docket_norm)  # TG "Nr." noise
+        elif "sh_gerichte" in group:
+            # SH: the direct scraper keeps the portal's "Nr. 60/2018/18", the
+            # entscheidsuche copy "60/2018/18"; 613 rulings were served more than once
+            # (2026-11-08). Only a leading "Nr." goes: SH dockets are numeric.
+            docket_norm = re.sub(r"^NR(?=\d)", "", docket_norm)
         # Include date to avoid false matches across years
         date_compact = (date or "").replace("-", "")[:8]
         key = f"{id(group)}|{docket_norm}|{date_compact}"
@@ -1220,6 +1231,75 @@ def _fold_federation_date_twins(conn: sqlite3.Connection) -> dict:
         counts["folded"] += 1
         counts[f"folded_{verdict}"] += 1
     if counts:
+        conn.commit()
+    return dict(counts)
+
+
+# ── Thurgau yearbook twins ───────────────────────────────────────────────
+#
+# The Thurgau yearbooks (RBOG, Obergericht; TVR, Verwaltungsgericht) number
+# their entries per volume: "RBOG 2016 Nr. 8" names exactly one entry. The
+# direct scraper stores it as tg_gerichte "RBOG-2016-8", the frozen
+# entscheidsuche shard as tg_obergericht "RBOG 2016 Nr. 8", and the two
+# carry different dates (the direct copy used 1 January for 826 rows until
+# 2026-11; the es copy took the date of the decision under appeal for some),
+# so _cross_court_dedup, which keys on the date, kept 1,030 entries twice.
+
+_TG_YEARBOOK_RE = re.compile(r"^\s*(RBOG|TVR)[\s-]*(\d{4})[\s-]*(?:Nr\.?\s*)?0*(\d{1,3})\s*$", re.IGNORECASE)
+_TG_YEARBOOK_COURTS = ("tg_gerichte", "tg_obergericht")
+# Below this many characters a direct copy is a failed extraction, and a
+# fuller entscheidsuche copy of the same entry is kept instead.
+TG_YEARBOOK_MIN_TEXT = 300
+
+
+def _tg_yearbook_key(docket: str | None) -> tuple[str, int, int] | None:
+    """(series, volume, number) of a Thurgau yearbook docket in either
+    spelling, None for anything else ('RBOG 2012 Nr. 5 (1. Teil)' included:
+    an entry printed in parts is not one row)."""
+    m = _TG_YEARBOOK_RE.match(docket or "")
+    if not m:
+        return None
+    return m.group(1).upper(), int(m.group(2)), int(m.group(3))
+
+
+def _fold_tg_yearbook_twins(conn: sqlite3.Connection) -> dict:
+    """Fold the entscheidsuche copy of a Thurgau yearbook entry, and a second
+    direct row of the entry, into the direct copy of the same (series, volume,
+    number), whatever the dates say. The direct row under the yearbook id is
+    kept (the official source, re-read nightly) unless its
+    text is a failed extraction and the other copy's is not; the dropped id
+    becomes an alias of the kept row, so links resolve and the per-court swap
+    gate counts it as answered. Returns counts."""
+    counts: dict[str, int] = defaultdict(int)
+    groups: dict[tuple, list[tuple[str, str, int]]] = defaultdict(list)
+    for did, court, docket, tlen in conn.execute(
+            "SELECT decision_id, court, docket_number, LENGTH(COALESCE(full_text, '')) "
+            "FROM decisions WHERE court IN (?, ?)", _TG_YEARBOOK_COURTS):
+        key = _tg_yearbook_key(docket)
+        if key:
+            groups[key].append((did, court, tlen))
+    for key, rows in groups.items():
+        direct = [r for r in rows if r[1] == "tg_gerichte"]
+        es = [r for r in rows if r[1] == "tg_obergericht"]
+        if not direct or len(rows) < 2:
+            continue
+        # The row under the yearbook id (tg_gerichte_RBOG-2010-8) before one
+        # minted from a docket the old scraper read out of the text
+        # (tg_gerichte_ZR.2010.10, same entry page), then the longer text.
+        yb_id = f"tg_gerichte_{key[0]}-{key[1]}-{key[2]}"
+        kept = max(direct, key=lambda r: (r[0] == yb_id, r[2]))
+        best_es = max(es, key=lambda r: r[2]) if es else None
+        if best_es and kept[2] < TG_YEARBOOK_MIN_TEXT <= best_es[2]:
+            kept = best_es
+            counts["kept_es_copy"] += 1
+        for did, court, _ in rows:
+            if did == kept[0]:
+                continue
+            conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+            _record_folded_id(conn, did, kept[0], "tg_yearbook_twin")
+            counts["folded"] += 1
+            counts[f"folded_{court}"] += 1
+    if counts.get("folded"):
         conn.commit()
     return dict(counts)
 
@@ -2835,6 +2915,17 @@ def build_database(
                     fed.get("redated", 0), fed.get("text_upgraded", 0),
                     fed.get("kept_distinct", 0) + fed.get("kept_distinct_redated", 0),
                     fed.get("kept_distinct_redated", 0))
+
+        with _phase_timer("TG yearbook twins"):
+            tgy = _fold_tg_yearbook_twins(conn)
+            if tgy.get("folded"):
+                logger.info(
+                    "  TG yearbook twins: folded %d copies on (series, volume, number) "
+                    "(%s); kept the entscheidsuche copy for %d failed direct extractions",
+                    tgy["folded"],
+                    ", ".join(f"{k[7:]} {v}" for k, v in sorted(tgy.items())
+                              if k.startswith("folded_")),
+                    tgy.get("kept_es_copy", 0))
 
         with _phase_timer("cross-court dedup"):
             cross_deduped = _cross_court_dedup(conn)
