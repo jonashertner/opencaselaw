@@ -1,9 +1,9 @@
 # Runbook: decision dates from the source (comparison report 2026-11-08, item #5)
 
-**Status 2026-11-08: code and rehearsal done in worktree `exciting-wright-08f33e`
-(branch `claude/exciting-wright-08f33e`), uncommitted. Nothing deployed, no
-production shard touched. Commit, push, the VPS ff-merge, the optional build_fts5
-alias line (§6) and the repair window each need Jonas's OK.**
+**Status 2026-11-08: code on main (6b02f801); the Pass-1 alias line (§5.6) landed
+after Jonas's OK at 15:40 UTC ("go ahead with all steps … complete and accurate
+corpus"). Repairs run per court after the 11-08 publish exits, each `--apply` under
+`flock -w 3600 /var/lock/ocl-shard-repair.lock` (other repairs share the night).**
 
 A decision date is a legal fact. Every date below is read from what the court
 publishes (the docket it mints from the date, the ruling's own header or
@@ -188,7 +188,7 @@ That is duplicate removal, not loss: each fold pair is one docket and one date.
 5. **The next full build carries it** (step 2 rebuilds from the shards). The
    shards grow (the `date_repair` stamp), so a queued incremental seeks to its old
    offset, drops the torn line and re-reads the tail: known ids, skipped; harmless.
-6. **Optional, before the first build after the repair (pipeline gate):** dedup
+6. **Landed 2026-11-08 (before the first build after the repair):** dedup
    Pass 1 deletes without an alias, so the ~4,100 federation ids that fold in Pass 1 stop
    resolving (`bl_gerichte_100_04_732`, `gr_gerichte_PKG_1999_25` …). Two lines in
    `build_fts5._dedup_decisions` keep them resolving and let the swap gate count
@@ -199,7 +199,8 @@ That is duplicate removal, not loss: each fold pair is one docket and one date.
        _record_folded_id(conn, row[0], survivor_id, "dedup_pass1")
        deleted += 1
    ```
-   (both branches of Pass 1). Not written: build_fts5 needs Jonas's OK.
+   (both branches of Pass 1). Written with Jonas's OK; test in
+   `tests/test_decision_id_aliases.py`.
 7. **Verify after the swap** (MCP or `get_decision`): `bge_egmr_20160823_53377_11`
    2016-08-23, `bge_egmr_20260709_14652_22` 2026-07-09, `gr_gerichte_PKG 1999 25`
    1999-01-20, `be_zivilstraf_BK 2025 85` 2025-12-01, `nw_gerichte_VA 25 26`

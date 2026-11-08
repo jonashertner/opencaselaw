@@ -156,3 +156,19 @@ def test_lookup_is_guarded_without_the_table(tmp_path):
     c.execute("CREATE TABLE decisions (decision_id TEXT PRIMARY KEY)")
     assert m._lookup_previous_id(c, OLD) is None
     assert m._lookup_previous_id(c, "") is None
+
+
+def test_dedup_pass1_records_the_dropped_id(tmp_path):
+    # A federation copy whose date was repaired onto its direct twin's shares
+    # the canonical key; Pass 1 keeps the fuller row and the copy's id must
+    # still resolve to it (source-dates repair, 2026-11-08).
+    c = sqlite3.connect(str(tmp_path / "d.db"))
+    c.executescript(SCHEMA_SQL)
+    direct = _row(SIBLING, "SB.2013.5", "AG.2014.40", "2014-02-10", "voller Text " * 60)
+    stub = _row("bs_appellationsgericht_SB_2013_5", "SB.2013.5", "AG.2014.40", "2014-02-10", "kurz " * 12)
+    assert build_fts5.insert_decision(c, direct)
+    assert build_fts5.insert_decision(c, stub)
+    assert build_fts5._dedup_decisions(c) == 1
+    assert c.execute("SELECT decision_id FROM decisions").fetchall() == [(SIBLING,)]
+    assert c.execute("SELECT decision_id, source FROM decision_id_aliases WHERE previous_id = ?",
+                     ("bs_appellationsgericht_SB_2013_5",)).fetchone() == (SIBLING, "dedup_pass1")

@@ -652,6 +652,9 @@ def _dedup_decisions(conn: sqlite3.Connection) -> int:
                         break
             for row in rows[1:]:
                 conn.execute("DELETE FROM decisions WHERE decision_id = ?", (row[0],))
+                # The dropped id (often a federation copy whose date a repair
+                # corrected onto its direct twin's) keeps resolving.
+                _record_folded_id(conn, row[0], survivor_id, "dedup_pass1")
                 deleted += 1
     else:
         # Fallback: exact match on (court, docket_number, decision_date)
@@ -688,6 +691,9 @@ def _dedup_decisions(conn: sqlite3.Connection) -> int:
                         break
             for row in rows[1:]:
                 conn.execute("DELETE FROM decisions WHERE decision_id = ?", (row[0],))
+                # The dropped id (often a federation copy whose date a repair
+                # corrected onto its direct twin's) keeps resolving.
+                _record_folded_id(conn, row[0], survivor_id, "dedup_pass1")
                 deleted += 1
 
     # ── Pass 2: date-agnostic dedup — CONTENT-AWARE (2026-07-13, P0.1 fix) ──
