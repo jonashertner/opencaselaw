@@ -137,7 +137,10 @@ def test_schema_advertises_only_populated_values():
                  "bsv_weisungen", "seco_alv", "bag_kvg", "sem_handbuch_asyl", "bj_schkg",
                  "wegleitung", "kreisschreiben", "vollzugshilfe", "mwst_info", "handbuch",
                  "uek_rs", "rab_rs", "ehra", "finma_aufsicht", "stiftungsaufsicht", "hr_kantone",
-                 "merkblatt", "faq"):
+                 "merkblatt", "faq",
+                 # criminal law, land register and tenancy (2026-11-08)
+                 "strafverfolgung", "bj_rechtshilfe", "strafvollzug", "nkvf", "bwo_mietrecht",
+                 "egba", "grundbuch_kantone", "empfehlung", "stellungnahme"):
         assert real in block, f"{real!r} exists in the corpus but is not advertised"
 
 

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections import defaultdict
 
 from .base import _NO_TEXT_LAYER_SENTINEL, sha256_hex
@@ -69,3 +70,28 @@ class TextDedupMixin:
         if self._last_ocr:
             stub = {**stub, "topics": [*stub.get("topics", []), "OCR"]}
         return {**stub, "body_text": text}
+
+
+# Function words that are frequent in one language and rare in the other two
+# ("la"/"le"/"des" are shared by French and Italian or French and German and
+# are left out).
+_FUNCTION_WORDS = {
+    "de": {"der", "die", "das", "und", "nicht", "ist", "wird", "für", "mit", "von", "den", "dem", "eine", "werden"},
+    "fr": {"les", "du", "est", "pour", "dans", "une", "que", "au", "aux", "sont", "qui", "sur"},
+    "it": {"il", "gli", "della", "del", "che", "per", "nel", "sono", "dei", "alla", "delle", "di"},
+}
+
+
+def body_lang(text: str) -> str:
+    """The language the body is written in, or "" when it is not clear.
+
+    For sources whose listing does not say: the CLDJP's file names often carry
+    no language ("Vade mecum tri-PLESORR_V260101"), a BWO extract can close
+    with a German citation line under a French judgment, and the NKVF lists
+    French-only reports on its German page. The first 300 characters are
+    skipped: the CLDJP's Italian règlements open with a French letterhead."""
+    words = re.findall(r"[a-zàâäçéèêëîïôöùûüß]+", (text or "")[300:6000].lower())
+    scores = {lang: sum(w in fw for w in words) for lang, fw in _FUNCTION_WORDS.items()}
+    ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+    (best, top), (_, second) = ranked[0], ranked[1]
+    return best if top >= 20 and top >= 2 * second else ""

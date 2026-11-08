@@ -47,6 +47,13 @@ from .estv_aia import EstvAiaScraper
 from .sif import SifScraper
 from .bankingombudsman import BankingOmbudsmanScraper
 from .sbvg import SbvgScraper
+from .strafverfolgung import StrafverfolgungScraper
+from .bj_rechtshilfe import BjRechtshilfeScraper
+from .strafvollzug import StrafvollzugScraper
+from .nkvf import NkvfScraper
+from .bwo_mietrecht import BwoMietrechtScraper
+from .egba import EgbaScraper
+from .grundbuch_kantone import GrundbuchKantoneScraper
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +113,20 @@ ENABLED_SCRAPERS = {
     # requested; see the licence note in each module before changing this.
     "bankingombudsman":  BankingOmbudsmanScraper,
     "sbvg":              SbvgScraper,
+    # Criminal law (2026-11-08): prosecution guidance (ZH WOSTA by chapter +
+    # Strafmassempfehlungen, SSK-CPS Empfehlungen, VS and AG), BJ mutual legal
+    # assistance, the penal-enforcement concordats (CLDJP, NWI/OSK), NKVF
+    # visit reports. Property and tenancy: BWO Mitteilungen zum Mietrecht
+    # (one row per decision extract), EGBA (federal land-register office),
+    # cantonal land-register practice (ZH, BS, BE, AG). First run ~30 min
+    # in all (BWO: 64 PDFs, NKVF: a few hundred), then minutes.
+    "strafverfolgung":   StrafverfolgungScraper,
+    "bj_rechtshilfe":    BjRechtshilfeScraper,
+    "strafvollzug":      StrafvollzugScraper,
+    "nkvf":              NkvfScraper,
+    "bwo_mietrecht":     BwoMietrechtScraper,
+    "egba":              EgbaScraper,
+    "grundbuch_kantone": GrundbuchKantoneScraper,
 }
 
 # Defensive scaffolds — need first-run validation before enabling
