@@ -6,6 +6,32 @@ apply remedial migrations without re-deriving them.
 
 ---
 
+## 2026-11-08 — Tribunal cantonal VD: case numbers in `docket_number`
+
+**Affected court:** `vd_gerichte`. **Took effect:** with the build of 2026-11-08
+(the parquet export of that day; nightly deltas do not carry it, see below).
+
+- Since 2026-09-04 the prestations.vd.ch portal no longer returns the case
+  number in its listing. Until this repair, 13,130 of 67,575 rows carried the
+  portal's ruling number (`344`, `111/I`) or the PDF's uuid as `docket_number`.
+- `docket_number` now holds the case number printed in the ruling's header
+  (`DA21.000826`, 9,557 rows) or, where the header has none, the chamber, year
+  and ruling number (`CREP 2021/344`, 3,562 rows). 11 rows keep their uuid
+  because neither source has a number. The previous value moved to
+  `docket_number_2`.
+- `decision_id`, `decision_date`, `full_text` and `canonical_key` are unchanged,
+  so no row was added, merged or dropped (`vd_gerichte` held 66,426 rows before
+  and after). Citation strings and `cli_ch` follow the new `docket_number`.
+- The repaired rows kept their `scraped_at`, so they appear in the full
+  `data/` parquet from the 2026-11-08 export on, but in no nightly delta. Consumers who build
+  from deltas should re-read the `vd_gerichte` rows from the full file, or
+  join on `decision_id` and take `docket_number` / `docket_number_2` from it.
+- New rows have carried the header case number since 2026-11-07
+  (`scrapers/cantonal/vd_gerichte.py`); the repair is
+  `scripts/vd_docket_repair.py`, runbook `runbooks/vd_docket_repair_2026-10.md`.
+
+---
+
 ## 2026-10 — `structure/`: nightly metadata again, paragraph count = paragraph rows, unnumbered Erwägungen
 
 **Affected files:** `structure/structure.parquet`, `structure/erwaegungen_paragraphs.parquet`.
