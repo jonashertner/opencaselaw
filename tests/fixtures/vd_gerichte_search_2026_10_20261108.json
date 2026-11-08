@@ -1,0 +1,180 @@
+{
+ "errors": [],
+ "response": {
+  "content": [
+   {
+    "decisionHit": {
+     "id": "975eed5c-854c-4273-843a-f7963382477d",
+     "numero": "861",
+     "modele": "CREP - Arrêt - 12J060_Vu attendu Cour",
+     "natureAffaire": null,
+     "resume": null,
+     "dateDecision": "22 octobre 2026",
+     "datePublication": "6 novembre 2026",
+     "articlesDeLoi": {
+      "CPP (CH)": [
+       "art. 58"
+      ]
+     },
+     "conceptsJurivoc": [
+      "RÉCUSATION",
+      "MOTIVATION DE LA DEMANDE"
+     ],
+     "resultats": [
+      "IRR - Irrecevable"
+     ],
+     "type": null,
+     "affaireHit": {
+      "numero": null,
+      "cause": null,
+      "autoriteDirectrice": "CREP",
+      "autoritePremiereInstance": "MPCEN",
+      "compositionCour": "3",
+      "recoursHit": {
+       "resultatsTC": [],
+       "resultatsTF": [],
+       "resultatsTPF": [],
+       "resultatsTAF": []
+      },
+      "jugesAbreviation": [
+       "C. MAILLARD",
+       "G. PERROT",
+       "K. ELKAIM"
+      ],
+      "greffiersAbreviation": [
+       "S. JAUNIN"
+      ]
+     }
+    },
+    "snippets": [],
+    "pertinence": "NaN"
+   },
+   {
+    "decisionHit": {
+     "id": "df0c7c66-e8e5-43ca-b568-28f5f29b33a1",
+     "numero": "834",
+     "modele": "CASSO - Arrêt - 10J001_Standard JU",
+     "natureAffaire": "Assurance chômage",
+     "resume": null,
+     "dateDecision": "20 octobre 2026",
+     "datePublication": "5 novembre 2026",
+     "articlesDeLoi": {
+      "LACI": [
+       "art. 30 al. 1 let. c",
+       "art. 17 al. 1"
+      ],
+      "OACI": [
+       "art. 26 al. 2"
+      ]
+     },
+     "conceptsJurivoc": [
+      "OBSERVATION DU DÉLAI",
+      "FAUTE LÉGÈRE",
+      "SUSPENSION DU DROIT À L'INDEMNITÉ",
+      "DÉLAI LÉGAL"
+     ],
+     "resultats": [
+      "REJ - Rejeté"
+     ],
+     "type": null,
+     "affaireHit": {
+      "numero": null,
+      "cause": null,
+      "autoriteDirectrice": "CASSO",
+      "autoritePremiereInstance": "Non disponible",
+      "compositionCour": "1",
+      "recoursHit": {
+       "resultatsTC": [],
+       "resultatsTF": [],
+       "resultatsTPF": [],
+       "resultatsTAF": []
+      },
+      "jugesAbreviation": [
+       "J.-F. NEU"
+      ],
+      "greffiersAbreviation": [
+       "A. GERMOND"
+      ]
+     }
+    },
+    "snippets": [],
+    "pertinence": "NaN"
+   },
+   {
+    "decisionHit": {
+     "id": "e9adb4b6-adbc-4d83-a19e-2abc3b189436",
+     "numero": "783",
+     "modele": "CASSO - Arrêt - 10J010_Standard Cour",
+     "natureAffaire": "Assurance invalidité",
+     "resume": null,
+     "dateDecision": "20 octobre 2026",
+     "datePublication": "5 novembre 2026",
+     "articlesDeLoi": {
+      "LAI": [
+       "art. 4 al. 1",
+       "art. 28"
+      ],
+      "LPGA": [
+       "art. 43 al. 1"
+      ]
+     },
+     "conceptsJurivoc": [
+      "ÉVALUATION DE L'ATTEINTE À LA SANTÉ",
+      "ATTEINTE À LA SANTÉ PSYCHIQUE",
+      "EXPERTISE"
+     ],
+     "resultats": [
+      "ADV - Admis (annulée / renvoyée)"
+     ],
+     "type": null,
+     "affaireHit": {
+      "numero": null,
+      "cause": null,
+      "autoriteDirectrice": "CASSO",
+      "autoritePremiereInstance": "Non disponible",
+      "compositionCour": "1",
+      "recoursHit": {
+       "resultatsTC": [],
+       "resultatsTF": [],
+       "resultatsTPF": [],
+       "resultatsTAF": []
+      },
+      "jugesAbreviation": [
+       "A. WIEDLER"
+      ],
+      "greffiersAbreviation": [
+       "A. GERMOND"
+      ]
+     }
+    },
+    "snippets": [],
+    "pertinence": "NaN"
+   }
+  ],
+  "number": 0,
+  "size": 3,
+  "totalElements": 131,
+  "pageable": {
+   "pageNumber": 0,
+   "pageSize": 3,
+   "sort": {
+    "empty": true,
+    "sorted": false,
+    "unsorted": true
+   },
+   "offset": 0,
+   "paged": true,
+   "unpaged": false
+  },
+  "last": false,
+  "totalPages": 44,
+  "sort": {
+   "empty": true,
+   "sorted": false,
+   "unsorted": true
+  },
+  "first": true,
+  "numberOfElements": 3,
+  "empty": false
+ }
+}

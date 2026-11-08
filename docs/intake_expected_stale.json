@@ -26,10 +26,6 @@
       "reason": "umbrella code holding only the frozen entscheidsuche mirror rows; the direct ag_gerichte scraper files rows under the sub-court codes",
       "since": "2026"
     },
-    "vd_omni": {
-      "reason": "entscheidsuche mirror shard superseded by the direct vd_gerichte scraper (at parity since 2026-09)",
-      "since": "2026"
-    },
     "sh_obergericht": {
       "reason": "redundant entscheidsuche feed; the direct sh_gerichte scraper is at parity (retirement per the 2026-04-29 procedure pending)",
       "since": "2026"

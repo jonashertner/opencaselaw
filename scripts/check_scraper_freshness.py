@@ -74,7 +74,7 @@ KNOWN_DEAD_SOURCES = {
 
 # Courts that ONLY come from entscheidsuche.ch — use ES last-modified to grade them
 ENTSCHEIDSUCHE_ONLY = {
-    "vd_findinfo", "vd_omni", "ch_vb", "sg_gerichte", "tg_obergericht",
+    "vd_findinfo", "ch_vb", "sg_gerichte", "tg_obergericht",
     "be_bvd", "be_weitere", "sh_obergericht", "be_steuerrekurs",
     "ag_baugesetzgebung", "ag_weitere",
 }

@@ -189,6 +189,9 @@ SCRAPERS = {
     "gl_gerichte": ("scrapers.cantonal.gl_gerichte", "GLGerichteScraper"),
     "ne_gerichte": ("scrapers.cantonal.ne_gerichte", "NEGerichteScraper"),
     "ne_jurisprudence_adm": ("scrapers.cantonal.ne_jurisprudence_adm", "NEJurisprudenceAdmScraper"),
+    # VD CDAP / Tribunal administratif / Cour constitutionnelle (jurisprudence.vd.ch);
+    # same court code as the frozen es_vd_omni shard, whose ids it keeps.
+    "vd_omni": ("scrapers.cantonal.vd_omni", "VDOmniScraper"),
     # Cantonal — Custom platforms
     "vd_gerichte": ("scrapers.cantonal.vd_gerichte", "VDGerichteScraper"),
     "so_gerichte": ("scrapers.cantonal.so_gerichte", "SOGerichteScraper"),
