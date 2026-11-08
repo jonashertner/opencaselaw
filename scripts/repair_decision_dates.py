@@ -67,7 +67,6 @@ COURTS_PUBLICATION_DATE_AS_DECISION = {
     "bge_egmr",
     # Other courts with confirmed issues
     "ow_gerichte",           # all dated 2015-11-26 (import date)
-    "lu_gerichte",
     "zh_sozialversicherungsgericht",
     "zh_steuerrekursgericht",
     "zh_verwaltungsgericht",
@@ -117,9 +116,15 @@ COURTS_PUBLICATION_DATE_AS_DECISION = {
 # ow_gerichte: "Entscheid der Obergerichtskommission vom" is not "Entscheid
 # vom", so the pass took a Sachverhalt date ("Beschluss vom 8. Februar 1999")
 # for 646 yearbook entries (restore_ow_rulings.py, report 2026-10-26).
+# lu_gerichte / es_lu_gerichte: decision_date is the portal's own Entscheiddatum
+# (the entscheidsuche header repeats it); the 03-12 run took it for a
+# publication date and gave 1,554 direct and 391 es rows the date of the
+# decision under appeal (11092: 14.01.2025 became 2024-02-22;
+# restore_lu_dates.py, found 2026-11-08).
 NEVER_REPAIR_SHARDS = frozenset({
     "bge", "es_bge", "bge_historical", "sg_publikationen", "es_sg_gerichte",
     "bger", "ai_gerichte", "ow_gerichte", "es_ow_gerichte",
+    "lu_gerichte", "es_lu_gerichte",
 })
 
 
