@@ -5887,6 +5887,132 @@ def _full_decision_for_bge(result: dict, docket: str | None) -> dict | None:
             "canonical_url": cs["canonical_url"]}
 
 
+# ── BStGer official collection (TPF) <-> the ruling it publishes ──────────
+# A TPF entry is a bstger row with docket "TPF 2024 194" whose docket_number_2
+# is the underlying ruling's docket as the volume prints it ("BG.2024.60";
+# joined rulings "SK.2004.14 und SK.2004.15"). The ruling's own row did not
+# name its TPF entry, nor the entry its ruling. docket_number_2 has no index,
+# so the TPF rows are read once per decisions.db file through the docket
+# index (a range scan over "TPF ..." dockets, ~700 rows, 15 ms on production
+# 2026-11-08) and kept in memory, keyed by the normalised underlying docket.
+# No court term in SQL (see _full_decision_for_bge): court is checked here.
+_tpf_by_docket: dict[str, list[dict]] = {}
+_tpf_by_docket_sig: tuple | None = None
+_tpf_by_docket_lock = threading.Lock()
+_TPF_SQL = ("SELECT decision_id, court, docket_number, docket_number_2, decision_date "
+            "FROM decisions INDEXED BY idx_decisions_docket "
+            "WHERE docket_number >= 'TPF ' AND docket_number < 'TPF!'")
+_TPF_RULING_SQL = ("SELECT decision_id, court, docket_number, decision_date FROM decisions "
+                   "INDEXED BY idx_decisions_docket WHERE docket_number IN ({})")
+
+
+def _tpf_underlying_dockets(docket_2: str | None) -> list[str]:
+    """The ruling docket(s) a TPF entry names: "SK.2004.14 und SK.2004.15" ->
+    both; "BK_B 023/04" stays whole (its slash is followed by digits)."""
+    parts = re.split(r"\s*[,;+]\s*|\s*/\s*(?=[A-Z])|\s+(?:und|et|e|bzw\.)\s+",
+                     (docket_2 or "").strip())
+    return [p.strip() for p in parts if p and p.strip() and re.search(r"\d", p)]
+
+
+def _tpf_index() -> dict[str, list[dict]]:
+    global _tpf_by_docket, _tpf_by_docket_sig
+    try:
+        st = DB_PATH.stat()
+    except OSError:
+        return {}
+    sig = (st.st_ino, st.st_mtime_ns, st.st_size)
+    if sig != _tpf_by_docket_sig:
+        with _tpf_by_docket_lock:
+            if sig != _tpf_by_docket_sig:
+                m: dict[str, list[dict]] = {}
+                conn = get_db()
+                try:
+                    for r in conn.execute(_TPF_SQL):
+                        r = dict(r)
+                        if r["court"] != "bstger" or not _TPF_REF_RE.match(r["docket_number"] or ""):
+                            continue
+                        parts = _tpf_underlying_dockets(r.get("docket_number_2"))
+                        r["joined"] = len(parts) > 1
+                        for part in parts:
+                            m.setdefault(_normalize_docket(part), []).append(r)
+                except sqlite3.Error:
+                    return {}
+                finally:
+                    conn.close()
+                _tpf_by_docket, _tpf_by_docket_sig = m, sig
+    return _tpf_by_docket
+
+
+def _decision_link(row: dict) -> dict:
+    cs = _build_citation_strings(row)
+    return {"decision_id": row["decision_id"],
+            "citation_string_de": cs["citation_string_de"],
+            "citation_string_fr": cs["citation_string_fr"],
+            "citation_string_it": cs["citation_string_it"],
+            "canonical_url": cs["canonical_url"]}
+
+
+def _published_as_tpf(result: dict) -> list[dict]:
+    """The TPF entry (entries) publishing this BStGer ruling: an entry naming
+    the ruling's docket (or a joined one), with the ruling's date. A joined
+    entry prints the first ruling's date only (TPF 2005 123 "vom 2. und
+    14. Juni 2005"), so for an entry naming several rulings the docket alone
+    decides. [] when there is none."""
+    if (result.get("court") or "").lower() != "bstger":
+        return []
+    docket = (result.get("docket_number") or "").strip()
+    if not docket or _TPF_REF_RE.match(docket):
+        return []
+    date = str(result.get("decision_date") or "")[:10]
+    idx = _tpf_index()
+    out: list[dict] = []
+    seen: set[str] = set()
+    for d in (docket, *(result.get("joined_dockets") or [])):
+        for e in idx.get(_normalize_docket(d), []):
+            if e["decision_id"] in seen:
+                continue
+            if not e["joined"] and (not date or str(e.get("decision_date") or "")[:10] != date):
+                continue
+            seen.add(e["decision_id"])
+            out.append(_decision_link(e))
+    return out
+
+
+def _full_ruling_for_tpf(result: dict) -> dict | None:
+    """The BStGer ruling a TPF entry publishes: a bstger row under the docket
+    the entry prints, with the entry's date (indexed docket lookup). For a
+    joined entry, whose heading prints the first ruling's date, the first
+    docket with that date, else the only ruling held under the first
+    docket. None when not held or ambiguous."""
+    if (result.get("court") or "").lower() != "bstger" \
+            or not _TPF_REF_RE.match((result.get("docket_number") or "").strip()):
+        return None
+    parts = _tpf_underlying_dockets(result.get("docket_number_2"))
+    date = str(result.get("decision_date") or "")[:10]
+    if not parts:
+        return None
+    conn = get_db()
+    try:
+        rows = [dict(r) for r in conn.execute(_TPF_RULING_SQL.format(",".join("?" * len(parts))), parts)]
+    except sqlite3.Error:
+        return None
+    finally:
+        conn.close()
+    rows = [r for r in rows if r["court"] == "bstger" and not _TPF_REF_RE.match(r["docket_number"] or "")]
+    for part in parts:
+        hits = [r for r in rows if r["docket_number"] == part]
+        dated = [r for r in hits if date and str(r["decision_date"] or "")[:10] == date]
+        if len(dated) == 1:
+            return _decision_link(dated[0])
+        if len(dated) > 1:
+            return None
+    if len(parts) > 1:
+        first = [r for r in rows if r["docket_number"] == parts[0]]
+        if len(first) == 1:
+            return _decision_link(first[0])
+    return None
+
+
 _manifest_warned = False
 
 
@@ -12219,6 +12345,27 @@ def get_decision_by_id(decision_id: str) -> dict | None:
                         result["full_decision"] = full
             except Exception:
                 pass
+    # BStGer: a TPF entry names the ruling it publishes, and the ruling its
+    # TPF entry, which is what a brief cites.
+    if (result.get("court") or "").lower() == "bstger":
+        try:
+            if _TPF_REF_RE.match((result.get("docket_number") or "").strip()):
+                _full = _full_ruling_for_tpf(result)
+                if _full:
+                    result["full_decision"] = _full
+            else:
+                _tpf = _published_as_tpf(result)
+                if _tpf:
+                    result["published_as_tpf"] = _tpf
+                    result["published_as_tpf_note"] = (
+                        "This ruling is published in the Federal Criminal Court's official "
+                        "collection as " + " and ".join(t["citation_string_de"] for t in _tpf)
+                        + ". Cite the TPF reference (copy its citation_string verbatim); the "
+                        "TPF entry is an excerpt with its own regeste, so quote from the "
+                        "version you read."
+                    )
+        except Exception:
+            pass
     # The other direction: a BGer judgment published in the official
     # collection names its BGE, which is what a brief cites.
     try:
@@ -20029,7 +20176,8 @@ def _handle_cite(
     # duplicated ruling from an unrecognised one. Additive: decision_id and
     # the citation strings are exactly what the pipeline built above.
     for _key in ("joined_dockets", "canonical_decision_id", "is_canonical",
-                 "published_as_bge", "published_as_bge_note", "full_decision"):
+                 "published_as_bge", "published_as_bge_note", "full_decision",
+                 "published_as_tpf", "published_as_tpf_note"):
         if decision.get(_key) is not None:
             result[_key] = decision[_key]
     if rule is None and (decision.get("full_text") or decision.get("regeste")):
@@ -34352,6 +34500,13 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                    + ", ".join(f"`{b['citation_string_de']}`" for b in result["published_as_bge"])
                    + " — cite the BGE\n"
                    if result.get("published_as_bge") else "")
+                + ("**Published in the official collection as:** "
+                   + ", ".join(f"`{t['citation_string_de']}`" for t in result["published_as_tpf"])
+                   + " — cite the TPF reference\n"
+                   if result.get("published_as_tpf") else "")
+                + (f"**Full ruling:** `{result['full_decision']['citation_string_de']}`\n"
+                   if result.get("full_decision") and (result.get("court") or "").lower() == "bstger"
+                   else "")
                 + "\n"
                 f"## Citation — copy verbatim (do NOT reconstruct)\n"
                 f"- DE: `{citation['citation_string_de']}`\n"
