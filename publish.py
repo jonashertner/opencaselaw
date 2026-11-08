@@ -1585,7 +1585,12 @@ def step_6_git_push(dry_run: bool = False) -> bool:
              "docs/integrity",
              # docs/stats/history.json = the daily growth series behind the
              # public /stats/ page, appended by _append_stats_history above.
-             "docs/stats/history.json"]
+             "docs/stats/history.json",
+             # docs/coverage.json + docs/sources/status.json = Step 5g's
+             # denominators table and the per-source status behind the public
+             # /coverage/ page. coverage.json was regenerated nightly but never
+             # committed, so the public copy froze at 2026-08-19.
+             "docs/coverage.json", "docs/sources/status.json"]
 
     # Check if any of these have unstaged changes
     result = subprocess.run(

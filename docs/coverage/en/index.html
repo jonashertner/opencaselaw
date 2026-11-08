@@ -4,8 +4,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coverage — OpenCaseLaw</title>
-<meta name="description" content="Per-source scraper health for the OpenCaseLaw Swiss legal corpus, refreshed nightly by the publish pipeline (03:00 UTC).">
+<title>Sources and coverage — OpenCaseLaw</title>
+<meta name="description" content="Every source in the corpus with its official portal, how and when we collect it, how much we hold, its newest decision, and a status recomputed every night from the data.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://opencaselaw.ch/coverage/en/">
@@ -22,63 +22,124 @@
 <script>document.documentElement.classList.add('js');</script>
 <link rel="stylesheet" href="/static/css/site.css?v=3">
 <style>
-  /* Status palette — derived from the shared tokens. ok = green, warn = amber,
-     err = red accent. Used by pills + summary stat values. */
-  :root{
-    --st-ok:var(--green);
-    --st-warn:#b45309;
-    --st-err:var(--red);
-  }
-  @media(prefers-color-scheme:dark){
-    :root{ --st-warn:#fcd34d; }
-  }
+  /* Status palette from the shared tokens: ok green, warn amber, err red, mute grey. */
+  :root{--st-ok:var(--green);--st-warn:#b45309;--st-err:var(--red);--st-mute:var(--t3)}
+  @media(prefers-color-scheme:dark){:root{--st-warn:#fcd34d}}
 
-  /* Summary stats — reuse .stats/.stat shell from site.css; tint the value. */
-  .stat-n.ok{color:var(--st-ok)}
-  .stat-n.warn{color:var(--st-warn)}
-  .stat-n.err{color:var(--st-err)}
-  .stat-n.runat{font-size:clamp(16px,1.9vw,21px);font-family:var(--f-mono);font-weight:500;letter-spacing:-.01em}
+  .stats .stat{cursor:default}
+  .stats button.stat{font:inherit;text-align:left;border:0;cursor:pointer;color:inherit;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
+  @media(max-width:560px){#summary .stat:last-child{grid-column:1/-1}}
+  .stats button.stat:hover{background:var(--paper-2)}
+  .stats button.stat:focus-visible{outline:2px solid var(--red);outline-offset:-2px}
+  .stat-n.ok{color:var(--st-ok)}.stat-n.warn{color:var(--st-warn)}.stat-n.err{color:var(--st-err)}
+  .stat-n.small{font-size:clamp(16px,1.9vw,21px);font-family:var(--f-mono);font-weight:500;letter-spacing:-.01em}
 
-  /* Controls */
-  .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;margin:40px 0 8px}
+  .att{margin-top:28px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .att-l{font-family:var(--f-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-right:4px}
+  .att a{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;
+    font-size:12.5px;color:var(--t1);text-decoration:none;background:var(--paper)}
+  .att a:hover{border-color:var(--t3)}
+  .att a code{font-size:11.5px;color:var(--t3)}
+
+  .sec{margin-top:clamp(56px,8vw,88px);border-top:1px solid var(--line);padding-top:clamp(40px,6vw,64px)}
+  .sec-p{font-size:15px;color:var(--t2);line-height:1.6;max-width:72ch;margin:14px 0 0}
+
+  .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch;margin:32px 0 4px}
   .filter{flex:1 1 240px;min-width:200px;padding:11px 14px;font:inherit;font-size:15px;
     background:var(--paper);border:1px solid var(--line);border-radius:9px;color:var(--t1)}
   .filter:focus{outline:2px solid var(--red);outline-offset:1px}
   .tabs{display:inline-flex;gap:3px;background:var(--paper-2);border:1px solid var(--line);border-radius:9px;padding:4px;flex-wrap:wrap}
-  .tabs button{padding:7px 14px;font:inherit;font-size:13px;background:transparent;color:var(--t2);
-    border:none;border-radius:6px;cursor:pointer;transition:color .15s,background .15s;white-space:nowrap}
+  .tabs button{padding:7px 13px;font:inherit;font-size:13px;background:transparent;color:var(--t2);
+    border:none;border-radius:6px;cursor:pointer;white-space:nowrap}
   .tabs button:hover{color:var(--t1)}
   .tabs button.on{background:var(--paper);color:var(--t1);box-shadow:0 1px 2px var(--line-2);font-weight:500}
+  .count-line{font-family:var(--f-mono);font-size:12px;color:var(--t3);margin:14px 0 0}
 
-  /* Table — built on .tbl from site.css, with status extras. */
-  .tbl{margin-top:24px}
-  .tbl thead th{position:sticky;top:62px;background:var(--paper);z-index:1}
-  .src-key{font-family:var(--f-mono);font-size:13px;color:var(--t1);font-weight:500}
-  .src-label{font-size:12px;color:var(--t3);margin-top:2px}
-  .new-badge{color:var(--st-ok);font-weight:600}
-  .tbl td.n.new-badge{color:var(--st-ok)}
+  .grp-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:40px 0 0;
+    padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .grp-h h3{font-size:clamp(17px,2.2vw,20px);font-weight:600;letter-spacing:-.01em;margin:0}
+  .grp-h .meta{font-family:var(--f-mono);font-size:12px;color:var(--t3);white-space:nowrap}
+
+  .src{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:4px;table-layout:fixed}
+  .src col.c1{width:25%}.src col.c2{width:10.5%}.src col.c3{width:14%}.src col.c4{width:8.5%}
+  .src col.c5{width:11%}.src col.c6{width:11%}.src col.c7{width:9%}.src col.c8{width:11%}
+  .src td.nw{white-space:nowrap}
+  .src td:first-child{overflow-wrap:anywhere}
+  .src th{text-align:left;font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);
+    font-weight:600;padding:12px 10px 8px;border-bottom:1px solid var(--line-2);vertical-align:bottom;line-height:1.35}
+  .src td{padding:11px 10px;border-bottom:1px solid var(--line-2);color:var(--t2);vertical-align:top}
+  .src td.n,.src th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+  .src tr.row{cursor:pointer}
+  .src tr.row:hover td{background:var(--paper-2)}
+  .src tr.row:focus-visible td{outline:2px solid var(--red);outline-offset:-2px}
+  .src tr.row.open td{background:var(--paper-2);border-bottom-color:transparent}
+  .nm{color:var(--t1);font-weight:500;line-height:1.35}
+  .cd{font-family:var(--f-mono);font-size:11.5px;color:var(--t3);margin-top:2px}
+  .sub{display:block;font-size:11.5px;color:var(--t3);font-family:var(--f-mono);margin-top:2px}
+  .chev{display:inline-block;width:10px;color:var(--t3);transition:transform .15s;margin-right:4px}
+  tr.open .chev{transform:rotate(90deg)}
 
   .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 8px;border-radius:999px;
     font-size:11.5px;font-weight:500;border:1px solid;white-space:nowrap;font-family:var(--f-sans)}
   .pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
   .pill.ok{color:var(--st-ok);border-color:color-mix(in srgb,var(--st-ok) 40%,transparent)}
-  .pill.warn{color:var(--st-warn);border-color:color-mix(in srgb,var(--st-warn) 40%,transparent)}
+  .pill.warn{color:var(--st-warn);border-color:color-mix(in srgb,var(--st-warn) 45%,transparent)}
   .pill.err{color:var(--st-err);border-color:color-mix(in srgb,var(--st-err) 45%,transparent)}
-  .pill.sm{font-size:10.5px;padding:2px 7px 2px 6px}
+  .pill.mute{color:var(--st-mute);border-color:var(--line)}
+  .chip{display:inline-block;font-family:var(--f-mono);font-size:11px;color:var(--t2);background:var(--paper-2);
+    border:1px solid var(--line-2);border-radius:5px;padding:1px 6px;margin:0 4px 4px 0;white-space:nowrap}
+  .chip.off{color:var(--st-err);border-color:color-mix(in srgb,var(--st-err) 30%,transparent);background:transparent}
+  .nm-sm{color:var(--t3);font-size:12px}
 
-  .skel{display:inline-block;height:.85em;width:4em;background:var(--line-2);border-radius:4px;
-    animation:skel 1.4s ease-in-out infinite}
+  tr.det td{padding:4px 10px 20px;background:var(--paper-2)}
+  .det-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 28px;font-size:13px;line-height:1.55}
+  .det-grid dt{font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin:0 0 3px}
+  .det-grid dd{margin:0;color:var(--t2)}
+  .det-grid dd a{word-break:break-all}
+  .det-why{grid-column:1/-1;color:var(--t1);font-size:13.5px}
+  .det-note{grid-column:1/-1}
+  .run{margin:0 0 6px}
+  .run b{color:var(--t1);font-weight:500}
+  .ok-t{color:var(--st-ok)}.err-t{color:var(--st-err)}
+
+  .coll{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:28px}
+  .cc{border:1px solid var(--line);border-radius:12px;padding:20px 22px;background:var(--paper);display:flex;flex-direction:column;gap:10px}
+  .cc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .cc-kind{font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3)}
+  .cc-name{font-size:15.5px;font-weight:600;line-height:1.3;color:var(--t1);margin-top:4px}
+  .cc-num{font-family:var(--f-mono);font-weight:600;font-size:22px;color:var(--t1);font-variant-numeric:tabular-nums;line-height:1}
+  .cc-num .u{font-family:var(--f-sans);font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-left:7px}
+  .cc dl{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px;margin:0}
+  .cc dt{color:var(--t3)}
+  .cc dd{margin:0;color:var(--t2)}
+  .cc details{font-size:13px;color:var(--t2)}
+  .cc summary{cursor:pointer;color:var(--t1)}
+  .mini{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+  .mini td{padding:5px 6px;border-bottom:1px solid var(--line-2)}
+  .mini td.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+  .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 28px;margin-top:24px;font-size:13.5px;line-height:1.55;color:var(--t2)}
+  .legend div{display:flex;gap:10px;align-items:flex-start}
+  .legend .pill{flex:none;margin-top:1px}
+  .data-links{margin-top:24px;font-size:13.5px;line-height:1.9;color:var(--t2)}
+  .data-links code{font-size:12.5px}
+
+  .skel{display:inline-block;height:.85em;width:4em;background:var(--line-2);border-radius:4px;animation:skel 1.4s ease-in-out infinite}
   @keyframes skel{0%,100%{opacity:.4}50%{opacity:.75}}
-  @media(prefers-reduced-motion:reduce){.skel{animation:none;opacity:.5}}
-  .empty{padding:48px 16px;text-align:center;color:var(--t2)}
+  @media(prefers-reduced-motion:reduce){.skel{animation:none;opacity:.5}.chev{transition:none}}
+  .empty{padding:40px 16px;text-align:center;color:var(--t2)}
+  .err-box{color:var(--st-err)}
 
+  @media(max-width:900px){.c-cad,.c-portal{display:none}.src{table-layout:auto}}
   @media(max-width:720px){
-    .tbl th,.tbl td{padding:9px 8px}
-    .col-portal,.col-duration{display:none}
+    .c-intake,.c-added{display:none}
     .controls{flex-direction:column}
-    .tabs{width:100%;justify-content:space-between}
+    .tabs{width:100%}
     .tabs button{flex:1 1 auto;text-align:center;padding:7px 8px}
+    .src td,.src th{padding:10px 6px}
+    .coll{grid-template-columns:1fr}
   }
+  @media(max-width:480px){.c-newest{display:none}.src{font-size:13px}.pill{padding:3px 7px 3px 6px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -88,107 +149,61 @@
 <main id="main">
   <section class="page-head first">
     <div class="wrap">
-      <p class="page-kicker"><b data-t="kicker">Operational</b> · <span data-t="kicker_sub">scrapers</span></p>
-      <h1 class="page-h1" data-t="h1">Coverage</h1>
-      <p class="page-lead" data-t="lead">Per-source scraper health for the OpenCaseLaw Swiss legal corpus, refreshed nightly by the publish pipeline (03:00 UTC). The table below shows every active scraper, the decisions it added in the last run, the total it holds, and — where the source portal exposes it — a comparison against the portal's published count so any gap is visible.</p>
+      <p class="page-kicker"><b data-t="kicker">Transparency</b> · <span data-t="kicker_sub">Sources</span></p>
+      <h1 class="page-h1" data-t="h1">Sources and coverage</h1>
+      <p class="page-lead" data-t="lead">Every source in the corpus with its official portal, how and when we collect it, how much we hold, its newest decision, and a status recomputed every night from the data. Nothing on this page is set by hand: if a source stops, it shows here.</p>
     </div>
   </section>
 
   <section class="wrap" style="padding-bottom:clamp(64px,9vw,112px)">
 
     <div class="stats" id="summary">
-      <div class="stat"><div class="stat-n runat" id="stat-runat"><span class="skel"></span></div><div class="stat-l" data-t="stat_lastRun">Last run</div></div>
-      <div class="stat"><div class="stat-n ok" id="stat-ok"><span class="skel"></span></div><div class="stat-l" data-t="stat_healthy">Healthy</div></div>
-      <div class="stat"><div class="stat-n warn" id="stat-zero"><span class="skel"></span></div><div class="stat-l" data-t="stat_noNew">No new docs</div></div>
-      <div class="stat"><div class="stat-n err" id="stat-err"><span class="skel"></span></div><div class="stat-l" data-t="stat_failing">Failing</div></div>
-      <div class="stat"><div class="stat-n" id="stat-total"><span class="skel"></span></div><div class="stat-l" data-t="stat_totalDecisions">Total decisions</div></div>
+      <div class="stat"><div class="stat-n" id="st-codes"><span class="skel"></span></div><div class="stat-l" data-t="st_codes">Courts and authorities</div></div>
+      <button class="stat" type="button" data-jump="fresh"><div class="stat-n ok" id="st-fresh"><span class="skel"></span></div><div class="stat-l" data-t="st_fresh">up to date</div></button>
+      <button class="stat" type="button" data-jump="att"><div class="stat-n warn" id="st-stale"><span class="skel"></span></div><div class="stat-l" data-t="st_stale">stale or failing</div></button>
+      <button class="stat" type="button" data-jump="att"><div class="stat-n err" id="st-nointake"><span class="skel"></span></div><div class="stat-l" data-t="st_nointake">without live intake</div></button>
+      <div class="stat"><div class="stat-n small" id="st-asof"><span class="skel"></span></div><div class="stat-l" data-t="st_asof">Evaluated</div></div>
     </div>
+    <div class="att" id="att" hidden></div>
 
-    <div class="controls">
-      <input class="filter" type="search" id="filter" autocomplete="off" aria-label="Filter by source key" placeholder="Filter — bger, zh, ti…" data-t-ph="filter_ph">
-      <div class="tabs" role="group" aria-label="Filter by status">
-        <button data-filter="all" class="on" type="button" data-t="f_all">All</button>
-        <button data-filter="ok" type="button" data-t="f_healthy">Healthy</button>
-        <button data-filter="zero" type="button" data-t="f_noNew">No new</button>
-        <button data-filter="err" type="button" data-t="f_failing">Failing</button>
+    <!-- ───────────── Court decisions ───────────── -->
+    <section class="sec" id="courts" aria-labelledby="courts-h">
+      <p class="sec-tag"><span class="n">§</span> <span data-t="sc_tag">Case law</span></p>
+      <h2 class="sec-h" id="courts-h" data-t="sc_h">Courts and authorities</h2>
+      <p class="sec-p" data-t="sc_p">Every court and authority code in the corpus appears here exactly once, with the route by which new decisions arrive. A row opens the details: portal, terms of use, the last run of each scraper, and the rule the status was computed by.</p>
+
+      <div class="controls">
+        <input class="filter" type="search" id="filter" autocomplete="off" placeholder="Filtern — bger, Zürich, Steuer…" data-t-ph="filter_ph" aria-label="Filter">
+        <div class="tabs" role="group" aria-label="Status">
+          <button type="button" data-f="all" class="on" data-t="f_all">All</button>
+          <button type="button" data-f="att" data-t="f_att">Needs attention</button>
+          <button type="button" data-f="fresh" data-t="f_fresh">Up to date</button>
+          <button type="button" data-f="quiet" data-t="f_quiet">Quiet</button>
+          <button type="button" data-f="arch" data-t="f_arch">Archive</button>
+        </div>
       </div>
-    </div>
+      <p class="count-line" id="count-line" aria-live="polite"></p>
+      <div id="groups"><p class="empty"><span class="skel" style="width:60%"></span></p></div>
+    </section>
 
-    <table class="tbl" id="scrapers">
-      <thead>
-        <tr>
-          <th data-t="th_source">Source</th>
-          <th data-t="th_status">Status</th>
-          <th class="n" data-t="th_lastRun">+ last run</th>
-          <th class="n" data-t="th_totalOurs">Total ours</th>
-          <th class="n col-portal" data-t="th_portal">Portal</th>
-          <th class="n" data-t="th_gap">Gap</th>
-          <th class="n col-duration" data-t="th_duration">Duration</th>
-        </tr>
-      </thead>
-      <tbody id="rows">
-        <tr><td colspan="7"><span class="skel" style="width:60%"></span></td></tr>
-        <tr><td colspan="7"><span class="skel" style="width:80%"></span></td></tr>
-        <tr><td colspan="7"><span class="skel" style="width:40%"></span></td></tr>
-      </tbody>
-    </table>
+    <!-- ───────────── Other collections ───────────── -->
+    <section class="sec" id="collections" aria-labelledby="coll-h">
+      <p class="sec-tag"><span class="n">§</span> <span data-t="co_tag">Other sources</span></p>
+      <h2 class="sec-h" id="coll-h" data-t="co_h">Laws, legislative materials, practice, commentaries, scholarship</h2>
+      <p class="sec-p" data-t="co_p">These collections are refreshed by their own runs. Shown: holdings, years, schedule, and the last successful refresh according to the system log.</p>
+      <div class="coll" id="coll"><p class="empty"><span class="skel" style="width:60%"></span></p></div>
+    </section>
 
-    <p class="note" id="meta" data-t-html="meta">Data source: <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (<a href="https://github.com/jonashertner/opencaselaw/blob/main/run_scraper.py">run_scraper.py</a>). A non-zero gap usually means a publication delay at the source portal, not a missed scrape. Persistent failures are tracked in the <a href="https://github.com/jonashertner/opencaselaw/issues">issue tracker</a>. For institutional collaboration on coverage gaps, write to <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>.</p>
-
-    <!-- ───────────────── Supplementary frozen archives ───────────────── -->
-    <section style="margin-top:clamp(56px,8vw,88px);border-top:1px solid var(--line);padding-top:clamp(40px,6vw,64px)">
-      <p class="sec-tag"><span class="n">§</span> <span data-t="arch_tag">Frozen archives</span></p>
-      <h2 class="sec-h" data-t="arch_h">Supplementary frozen archives</h2>
-      <p class="page-lead" data-t-html="arch_lead" style="margin-top:14px">Beyond the live scrapers above, the corpus also incorporates seven <strong>frozen archives</strong> sourced via <a href="https://entscheidsuche.ch/" rel="noopener">entscheidsuche.ch</a> — an independent open-access aggregator that mirrors many Swiss court portals. We re-ingest entscheidsuche's JSON archives once a week (Sunday 22:00 UTC) as a completeness backstop; the last six runs added <strong>zero new decisions</strong> because the upstream portals these shards reflect are no longer producing new content or have been replaced. The records are preserved as historical snapshots inside our corpus.</p>
-
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th data-t="arch_th_shard">Shard</th>
-            <th class="n" data-t="arch_th_records">Records</th>
-            <th data-t="arch_th_upstream">Upstream status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="name"><code>vd_findinfo</code></td>
-            <td class="n">74,866</td>
-            <td data-t-html="arch_vd_findinfo">Historical VD jurisprudence portal (<code>jurisprudence.findinfo.ch</code>) retired; current decisions covered by direct <code>vd_gerichte</code> scraper.</td>
-          </tr>
-          <tr>
-            <td class="name"><code>vd_omni</code></td>
-            <td class="n">28,033</td>
-            <td data-t-html="arch_vd_omni">Historical VD aggregation; superseded by current portals.</td>
-          </tr>
-          <tr>
-            <td class="name"><code>ch_vb</code></td>
-            <td class="n">22,916</td>
-            <td data-t-html="arch_ch_vb">Frozen archive from <code>amtsdruckschriften.bar.admin.ch</code>, two distinct parts. (1) The VPB/JAAC series: 2,502 PDFs, 1987–2017, rulings and legal opinions, cited as VPB &lt;number&gt; (vols. 51–70 complete but 70.32, 2007–2017 complete but 2014.3; the series ended on 1 Jan 2018). (2) About 20,400 Bundesblatt, Amtliches Bulletin and Amtliche Sammlung pages from the same entscheidsuche feed, removed in October 2026 and restored on 31 Oct 2026: not rulings, dates unreliable, all tagged <code>language=de</code> though many are French or Italian, cited as “Bundesverwaltung &lt;docket&gt;”.</td>
-          </tr>
-          <tr>
-            <td class="name"><code>sg_gerichte</code></td>
-            <td class="n">12,572</td>
-            <td data-t-html="arch_sg_gerichte">Predecessor of <code>sg_publikationen</code> (live, 12,690 records direct-scraped).</td>
-          </tr>
-          <tr>
-            <td class="name"><code>be_bvd</code></td>
-            <td class="n">2,094</td>
-            <td data-t="arch_be_bvd">BE Behörden-Verwaltungs-Direktion. Administrative tribunal; no live portal endpoint.</td>
-          </tr>
-          <tr>
-            <td class="name"><code>be_weitere</code></td>
-            <td class="n">840</td>
-            <td data-t="arch_be_weitere">BE miscellaneous administrative bodies.</td>
-          </tr>
-          <tr>
-            <td class="name"><code>be_steuerrekurs</code></td>
-            <td class="n">343</td>
-            <td data-t="arch_be_steuerrekurs">Steuerrekurskommission BE. Direct scraper exists; upstream portal database disconnected since February 2026, returns 0 results. We are tracking the issue with the canton.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p class="note" data-t-html="arch_footnote">All other entscheidsuche shards (~40 of 51) are <strong>shadowed by an independent direct scraper</strong> against the source portal. Where both exist, dedup at build-time uses our direct data as the source of record. Entscheidsuche.ch is acknowledged in the dataset card as a contributing upstream for the frozen-archive set; their re-aggregation work has CC&nbsp;BY-style attribution.</p>
+    <!-- ───────────── Method ───────────── -->
+    <section class="sec" id="method" aria-labelledby="m-h">
+      <p class="sec-tag"><span class="n">§</span> <span data-t="m_tag">Method</span></p>
+      <h2 class="sec-h" id="m-h" data-t="m_h">How the statuses are computed</h2>
+      <p class="sec-p" data-t="m_p1">A successful scraper run does not mean a source is complete: a run can end without error and still find nothing new while the court keeps publishing. So this page measures whether new decisions actually arrive.</p>
+      <div class="legend" id="legend"></div>
+      <p class="sec-p" data-t="m_p2">A source’s cadence is the mean number of dated decisions over the last two full years. A source is stale when its newest decision is older than four times the usual interval (at least 60 days, at most 18 months, plus a series’ known publication lag) and no row was added in that time, or when the current year holds markedly fewer decisions than the previous years predict.</p>
+      <p class="sec-p" data-t="m_p3">Until March 2026 a few codes were filled only by the feed of the independent aggregator entscheidsuche.ch. That feed is retired; every source is collected directly from its official portal. Codes that still depended on it show “no intake” until a direct scraper takes over. Rows already taken over stay in the corpus; entscheidsuche.ch is credited as a source in the dataset card.</p>
+      <p class="sec-p" data-t="m_p4">The portal count is the number of results the court’s portal itself reports. Not every portal states one; where none is measured, the page says “not measured”.</p>
+      <p class="data-links" data-t="m_data">Data: <a href="/sources/status.json"><code>/sources/status.json</code></a> (this page, recomputed nightly) · <a href="/sources/registry.json"><code>/sources/registry.json</code></a> (portals, licences, mapping) · <a href="/coverage.json"><code>/coverage.json</code></a> (holdings by year) · <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (last nightly run). Errors and gaps: <a href="https://github.com/jonashertner/opencaselaw/issues">issue tracker</a>.</p>
     </section>
 
   </section>
@@ -201,292 +216,632 @@ OCL.init({
   active:'',
   i18n:{
     de:{
-      skip:'Zum Inhalt springen',
-      kicker:'Operativ',kicker_sub:'Scraper',h1:'Abdeckung',
-      lead:'Scraper-Gesundheit pro Quelle für den Schweizer Rechtskorpus von OpenCaseLaw, nächtlich aktualisiert durch die Publikations-Pipeline (03:00 UTC). Die Tabelle unten zeigt jeden aktiven Scraper, die im letzten Lauf hinzugefügten Entscheide, den von uns gehaltenen Gesamtbestand und — sofern das Quellportal sie ausweist — einen Vergleich mit der publizierten Anzahl des Portals, damit jede Lücke sichtbar ist.',
-      stat_lastRun:'Letzter Lauf',stat_healthy:'Gesund',stat_noNew:'Keine neuen Dok.',stat_failing:'Fehlerhaft',stat_totalDecisions:'Entscheide total',
-      filter_ph:'Filtern — bger, zh, ti…',f_all:'Alle',f_healthy:'Gesund',f_noNew:'Keine neuen',f_failing:'Fehlerhaft',
-      th_source:'Quelle',th_status:'Status',th_lastRun:'+ letzter Lauf',th_totalOurs:'Total bei uns',th_portal:'Portal',th_gap:'Lücke',th_duration:'Dauer',
-      noSources:'Keine Quellen entsprechen.',
-      p_healthy:'gesund',p_noNew:'keine neuen Dok.',p_timedOut:'Zeitüberschreitung',p_error:'Fehler',p_noData:'keine Daten',
-      gap_complete:'vollständig',
-      loadErr:'Scraper-Gesundheit konnte nicht geladen werden: {msg}',
-      meta:'Datenquelle: <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (<a href="https://github.com/jonashertner/opencaselaw/blob/main/run_scraper.py">run_scraper.py</a>). Eine Lücke ungleich null bedeutet in der Regel eine Publikationsverzögerung beim Quellportal, keinen verpassten Scrape. Anhaltende Fehler werden im <a href="https://github.com/jonashertner/opencaselaw/issues">Issue-Tracker</a> verfolgt. Für institutionelle Zusammenarbeit bei Abdeckungslücken schreiben Sie an <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>.',
-      arch_tag:'Eingefrorene Archive',arch_h:'Ergänzende eingefrorene Archive',
-      arch_lead:'Über die oben aufgeführten Live-Scraper hinaus enthält der Korpus auch sieben <strong>eingefrorene Archive</strong>, bezogen über <a href="https://entscheidsuche.ch/" rel="noopener">entscheidsuche.ch</a> — einen unabhängigen Open-Access-Aggregator, der viele Schweizer Gerichtsportale spiegelt. Wir re-ingestieren die JSON-Archive von entscheidsuche einmal pro Woche (Sonntag 22:00 UTC) als Vollständigkeits-Absicherung; die letzten sechs Läufe fügten <strong>null neue Entscheide</strong> hinzu, weil die diesen Shards zugrunde liegenden Quellportale keine neuen Inhalte mehr produzieren oder ersetzt wurden. Die Datensätze bleiben als historische Momentaufnahmen in unserem Korpus erhalten.',
-      arch_th_shard:'Shard',arch_th_records:'Datensätze',arch_th_upstream:'Status der Quelle',
-      arch_vd_findinfo:'Historisches VD-Jurisprudenzportal (<code>jurisprudence.findinfo.ch</code>) stillgelegt; aktuelle Entscheide werden vom direkten <code>vd_gerichte</code>-Scraper abgedeckt.',
-      arch_vd_omni:'Historische VD-Aggregation; durch aktuelle Portale abgelöst.',
-      arch_ch_vb:'Eingefrorenes Archiv von <code>amtsdruckschriften.bar.admin.ch</code> aus zwei getrennten Teilen. (1) Die VPB/JAAC-Reihe: 2’502 PDF, 1987–2017, Entscheide und Gutachten, zitiert als VPB &lt;Nummer&gt; (Bände 51–70 vollständig bis auf 70.32, 2007–2017 vollständig bis auf 2014.3; die Reihe endete am 1. Januar 2018). (2) Rund 20’400 Seiten aus Bundesblatt, Amtlichem Bulletin und Amtlicher Sammlung aus demselben entscheidsuche-Feed, im Oktober 2026 entfernt und am 31. Oktober 2026 wiederhergestellt: keine Entscheide, Daten unzuverlässig, alle als <code>language=de</code> erfasst, obwohl viele französisch oder italienisch sind, zitiert als «Bundesverwaltung &lt;Aktenzeichen&gt;».',
-      arch_sg_gerichte:'Vorgänger von <code>sg_publikationen</code> (live, 12’690 Datensätze direkt gescrapt).',
-      arch_be_bvd:'BE Behörden-Verwaltungs-Direktion. Verwaltungsgericht; kein Live-Portal-Endpunkt.',
-      arch_be_weitere:'BE verschiedene Verwaltungsstellen.',
-      arch_be_steuerrekurs:'Steuerrekurskommission BE. Direkter Scraper vorhanden; die Datenbank des Quellportals ist seit Februar 2026 getrennt und liefert 0 Ergebnisse. Wir verfolgen das Problem mit dem Kanton.',
-      arch_footnote:'Alle anderen entscheidsuche-Shards (~40 von 51) werden durch einen <strong>unabhängigen direkten Scraper</strong> gegen das Quellportal abgeschattet. Wo beide existieren, verwendet die Dedup beim Build unsere direkten Daten als Quelle der Wahrheit. Entscheidsuche.ch wird in der Datensatzkarte als beitragende Quelle für den Satz eingefrorener Archive anerkannt; ihre Re-Aggregationsarbeit hat eine CC BY-ähnliche Attribution.'
+      skip:'Zum Inhalt springen',kicker:'Transparenz',kicker_sub:'Quellen',h1:'Quellen und Abdeckung',
+      lead:'Jede Quelle des Korpus mit offiziellem Portal, Erfassungsweg und -zeitplan, Bestand, neuestem Entscheid und einem jede Nacht aus den Daten berechneten Status. Nichts auf dieser Seite ist von Hand gesetzt: Bricht eine Quelle ab, steht es hier.',
+      st_codes:'Gerichte und Behörden',st_fresh:'aktuell',st_stale:'veraltet oder fehlerhaft',st_nointake:'ohne laufende Erfassung',st_asof:'Stand der Auswertung',
+      att_l:'Braucht Aufmerksamkeit',
+      sc_tag:'Rechtsprechung',sc_h:'Gerichte und Behörden',
+      sc_p:'Jeder Gerichts- und Behördencode im Korpus erscheint hier genau einmal, mit dem Weg, auf dem neue Entscheide hereinkommen. Eine Zeile öffnet die Einzelheiten: Portal, Nutzungsgrundlage, letzter Lauf jedes Scrapers und die Regel, nach der der Status berechnet wurde.',
+      filter_ph:'Filtern — bger, Zürich, Steuer…',f_all:'Alle',f_att:'Aufmerksamkeit',f_fresh:'Aktuell',f_quiet:'Ruhig',f_arch:'Archiv',
+      count_line:'{n} von {t} Codes · {d} Entscheide',no_rows:'Keine Quelle entspricht dem Filter.',
+      g_federal:'Bund',g_authority:'Bundesbehörden, Kommissionen und weitere Stellen',g_international:'International',g_cantonal:'Kantone',g_unmapped:'Noch nicht erfasst',
+      grp_meta:'{n} Codes · {d} Entscheide',grp_meta1:'1 Code · {d} Entscheide',
+      th_source:'Quelle',th_status:'Status',th_intake:'Erfassung',th_count:'Bestand',th_newest:'Neuester Entscheid',th_added:'Zuletzt ergänzt',th_cadence:'Takt',th_portal:'Portal',
+      s_fresh:'aktuell',s_stale:'veraltet',s_failing:'fehlerhaft',s_quiet:'ruhig',s_no_intake:'keine Erfassung',s_superseded:'abgelöst',s_closed:'abgeschlossen',s_unknown:'unbekannt',
+      k_nightly:'Nachtlauf',k_federal:'Bundeslauf',k_late:'Nachlauf',k_poller:'Poller',k_own_timer:'eigener Lauf',
+      i_retired:'Feed eingestellt',i_import:'Einmalimport',i_unsched:'nicht eingeplant',i_none:'kein Scraper',
+      sch_daily:'{t}',sch_weekly:'{d} {t}',sch_monthly:'am {n}., {t}',sch_hourly:'{days} {f}–{u} h',utc:'UTC',
+      dow_Mon:'Mo',dow_Tue:'Di',dow_Wed:'Mi',dow_Thu:'Do',dow_Fri:'Fr',dow_Sat:'Sa',dow_Sun:'So',
+      ago:'vor {n} T.',today:'heute',
+      cad_every:'≈ alle {n} T.',cad_year:'≈ {n}/Jahr',cad_rare:'selten',
+      p_nm:'nicht gemessen',p_scraper:'scraperweit',p_complete:'vollständig',
+      undated:'{n} ohne Datum',
+      d_code:'Code',d_portal:'Offizielles Portal',d_noportal:'kein öffentliches Portal bekannt',d_licence:'Nutzung',d_intake:'Erfassung und letzter Lauf',
+      d_years:'Zeitraum',d_ok:'erfolgreich',d_failed:'fehlgeschlagen',d_norun:'kein Lauf protokolliert',
+      d_new:'+{n} neu',d_ours:'bei uns {n}',d_portalc:'Portal {n}',d_gap:'Lücke {n}',d_whole:'Zahlen gelten für den ganzen Scraper {s}.',
+      rs_OK:'im erwarteten Rahmen',rs_LOW:'unter der Erwartung',rs_STALE:'weit unter der Erwartung',rs_WAIT:'noch nicht beurteilbar',rs_SMALL:'zu wenige Daten',rs_NEW:'neu',
+      d_rate:'Jahresvergleich',d_note:'Hinweis (englisch)',d_succ:'Aktuelle Entscheide unter',d_succ_practice:'Heute in der Verwaltungspraxis (unten).',
+      why_no_new_decision:'Seit {d} Tagen kein neuer Entscheid. Beim üblichen Takt dieser Quelle (≈ alle {e} Tage) gilt sie nach {w} Tagen ohne neuen Entscheid als veraltet.',
+      why_rate_stale:'Im laufenden Jahr deutlich weniger Entscheide, als die zwei Vorjahre erwarten lassen ({r}).',
+      why_rate_detail:'{c} von {x} erwarteten',
+      why_run_failed:'Der letzte Lauf eines Scrapers für diesen Code ist fehlgeschlagen.',
+      why_silent_by_design:'Die Quelle publiziert planmässig nichts Neues mehr; sie wird nicht nach Takt beurteilt.',
+      why_publication_lag:'Die Quelle publiziert gesammelt mit rund {l} Tagen Verzug; das Beurteilungsfenster für dieses Jahr ist noch nicht offen.',
+      why_rare:'Zu wenige datierte Entscheide in den letzten zwei Jahren, um einen Takt abzuleiten; beurteilt nach 18 Monaten.',
+      why_feed_retired:'Dieser Code wurde nur über den Feed von entscheidsuche.ch befüllt, der im März 2026 eingestellt wurde. Ein direkter Scraper fehlt noch; neue Entscheide der Quelle fehlen im Korpus.',
+      why_scraper_not_scheduled:'Ein direkter Scraper ist registriert, läuft aber nicht im Nachtlauf; neue Entscheide der Quelle fehlen im Korpus.',
+      why_import_retired:'Einmaliger Import; die Quelle wird nicht laufend erfasst.',
+      why_no_scraper:'Kein Scraper erfasst diesen Code.',
+      why_superseded:'Eingefrorene Datensätze einer früheren Zulieferung. Die aktuellen Entscheide derselben Stelle laufen unter anderen Codes.',
+      why_ended:'Das Gericht oder die Reihe besteht nicht mehr (seit {y}).',
+      why_fresh:'Neue Entscheide treffen im erwarteten Takt ein. Veraltet nach {w} Tagen ohne neuen Entscheid.',
+      co_tag:'Weitere Quellen',co_h:'Gesetze, Materialien, Praxis, Kommentare, Literatur',
+      co_p:'Diese Sammlungen werden von eigenen Läufen aktualisiert. Angegeben sind Bestand, Zeitraum, Zeitplan und die letzte erfolgreiche Aktualisierung laut Systemprotokoll.',
+      ck_laws:'Gesetze',ck_materialien:'Materialien',ck_practice:'Praxis',ck_commentaries:'Kommentare',ck_scholarship:'Literatur',
+      cn_federal_laws:'Bundesrecht (Systematische Rechtssammlung)',cn_cantonal_laws:'Kantonales Recht, 26 Kantone',cn_materialien:'Bundesblatt: Botschaften, Berichte, Kommissionsberichte, Erlassentwürfe',cn_vernehmlassungen:'Vernehmlassungen',cn_practice:'Verwaltungspraxis von Bund, Kantonen und UNO',cn_commentaries:'Offene Kommentare',cn_scholarship:'Open-Access-Rechtswissenschaft',
+      cu_federal_laws:'Erlasse',cu_cantonal_laws:'Erlasse',cu_materialien:'Dokumente',cu_vernehmlassungen:'Verfahren',cu_practice:'Dokumente',cu_commentaries:'Kommentare',cu_scholarship:'Publikationen',
+      c_authority:'Herausgeber',c_portal:'Portal',c_years:'Zeitraum',c_docs:'Dokumente',c_schedule:'Zeitplan',c_last:'Zuletzt erfolgreich',c_licence:'Nutzung',
+      c_bycanton:'Erlasse nach Kanton',c_bysource:'Publikationen nach Quelle',c_sources:'{n} Quellen',c_src_last:'zuletzt',
+      sn_cantonal_laws:'Direkt aus 23 kantonalen Gesetzessammlungen; LexFind für JU, SZ, VD und Lücken in ZH.',
+      ca_scholarship:'Universitäts-Repositorien und Fachzeitschriften',ca_practice:'BSV, OAK BV, WEKO, FINMA, SECO, BAG, ESTV, SEM, BJ, BAFU, UEK, RAB, EHRA, kantonale Behörden, UNO',
+      m_tag:'Methode',m_h:'Wie die Status entstehen',
+      m_p1:'Ein erfolgreicher Scraper-Lauf allein heisst nicht, dass eine Quelle vollständig ist: Ein Lauf kann fehlerfrei enden und trotzdem nichts Neues finden, während das Gericht weiter publiziert. Deshalb misst diese Seite, ob tatsächlich neue Entscheide ankommen.',
+      m_p2:'Der Takt einer Quelle ist die mittlere Zahl datierter Entscheide der beiden letzten vollen Jahre. Eine Quelle gilt als veraltet, wenn ihr neuester Entscheid älter ist als das Vierfache des üblichen Abstands (mindestens 60 Tage, höchstens 18 Monate, plus der bekannte Publikationsverzug einer Reihe) und zugleich in diesem Zeitraum keine Zeile hinzugekommen ist, oder wenn im laufenden Jahr deutlich weniger Entscheide eingegangen sind, als die Vorjahre erwarten lassen.',
+      m_p3:'Bis März 2026 wurden einige Codes nur über den Feed des unabhängigen Aggregators entscheidsuche.ch befüllt. Dieser Feed ist eingestellt; jede Quelle wird direkt beim offiziellen Portal erfasst. Codes, die noch von ihm abhingen, stehen auf «keine Erfassung», bis ein direkter Scraper sie übernimmt. Die bereits übernommenen Datensätze bleiben im Korpus; entscheidsuche.ch ist in der Datensatzbeschreibung als Quelle genannt.',
+      m_p4:'Die Portalzahl ist die Trefferzahl, die das Gerichtsportal selbst ausweist. Nicht jedes Portal nennt eine; wo keine gemessen wird, steht «nicht gemessen».',
+      m_data:'Daten: <a href="/sources/status.json"><code>/sources/status.json</code></a> (diese Seite, jede Nacht neu) · <a href="/sources/registry.json"><code>/sources/registry.json</code></a> (Portale, Lizenzen, Zuordnung) · <a href="/coverage.json"><code>/coverage.json</code></a> (Bestand pro Jahr) · <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (letzter Nachtlauf). Fehler und Lücken: <a href="https://github.com/jonashertner/opencaselaw/issues">Issue-Tracker</a>.',
+      lg_fresh:'Laufende Erfassung, neue Entscheide treffen im erwarteten Takt ein.',
+      lg_stale:'Laufende Erfassung, aber seit längerer Zeit als üblich nichts Neues.',
+      lg_failing:'Der letzte Lauf eines zuständigen Scrapers ist fehlgeschlagen.',
+      lg_no_intake:'Kein Scraper läuft für diesen Code; neue Entscheide der Quelle fehlen.',
+      lg_quiet:'Laufende Erfassung; die Quelle publiziert planmässig nichts mehr oder gesammelt mit Verzug.',
+      lg_superseded:'Frühere Zulieferung; aktuelle Entscheide stehen unter anderen Codes.',
+      lg_closed:'Gericht oder Reihe besteht nicht mehr.',
+      load_err:'Die Statusdaten konnten nicht geladen werden ({m}).'
     },
     fr:{
-      skip:'Aller au contenu',
-      kicker:'Opérationnel',kicker_sub:'scrapers',h1:'Couverture',
-      lead:"Santé des scrapers par source pour le corpus juridique suisse d'OpenCaseLaw, actualisée chaque nuit par le pipeline de publication (03:00 UTC). Le tableau ci-dessous affiche chaque scraper actif, les décisions qu'il a ajoutées lors de la dernière exécution, le total qu'il détient et — lorsque le portail source l'expose — une comparaison avec le nombre publié par le portail afin que tout écart soit visible.",
-      stat_lastRun:'Dernière exécution',stat_healthy:'En bonne santé',stat_noNew:'Aucun nouveau doc.',stat_failing:'En échec',stat_totalDecisions:'Total des décisions',
-      filter_ph:'Filtrer — bger, zh, ti…',f_all:'Tous',f_healthy:'En bonne santé',f_noNew:'Aucun nouveau',f_failing:'En échec',
-      th_source:'Source',th_status:'Statut',th_lastRun:'+ dernière exécution',th_totalOurs:'Total chez nous',th_portal:'Portail',th_gap:'Écart',th_duration:'Durée',
-      noSources:'Aucune source ne correspond.',
-      p_healthy:'en bonne santé',p_noNew:'aucun nouveau doc.',p_timedOut:'délai dépassé',p_error:'erreur',p_noData:'aucune donnée',
-      gap_complete:'complet',
-      loadErr:'Impossible de charger la santé des scrapers : {msg}',
-      meta:'Source des données : <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (<a href="https://github.com/jonashertner/opencaselaw/blob/main/run_scraper.py">run_scraper.py</a>). Un écart non nul signifie généralement un retard de publication au portail source, et non un scrape manqué. Les échecs persistants sont suivis dans le <a href="https://github.com/jonashertner/opencaselaw/issues">gestionnaire de tickets</a>. Pour une collaboration institutionnelle sur les lacunes de couverture, écrivez à <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>.',
-      arch_tag:'Archives figées',arch_h:'Archives figées complémentaires',
-      arch_lead:"Au-delà des scrapers en direct ci-dessus, le corpus intègre aussi sept <strong>archives figées</strong> obtenues via <a href=\"https://entscheidsuche.ch/\" rel=\"noopener\">entscheidsuche.ch</a> — un agrégateur indépendant en libre accès qui reflète de nombreux portails judiciaires suisses. Nous réintégrons les archives JSON d'entscheidsuche une fois par semaine (dimanche 22:00 UTC) comme garde-fou d'exhaustivité ; les six dernières exécutions ont ajouté <strong>zéro nouvelle décision</strong> car les portails amont reflétés par ces shards ne produisent plus de nouveau contenu ou ont été remplacés. Les enregistrements sont conservés comme instantanés historiques dans notre corpus.",
-      arch_th_shard:'Shard',arch_th_records:'Enregistrements',arch_th_upstream:'Statut amont',
-      arch_vd_findinfo:'Portail historique de jurisprudence VD (<code>jurisprudence.findinfo.ch</code>) retiré ; les décisions actuelles sont couvertes par le scraper direct <code>vd_gerichte</code>.',
-      arch_vd_omni:'Agrégation historique VD ; remplacée par les portails actuels.',
-      arch_ch_vb:'Archive figée issue de <code>amtsdruckschriften.bar.admin.ch</code>, en deux parties distinctes. (1) La série JAAC : 2’502 PDF, 1987–2017, décisions et avis de droit, cités JAAC &lt;numéro&gt; (vol. 51–70 complets sauf 70.32, 2007–2017 complets sauf 2014.3 ; la série a pris fin le 1er janvier 2018). (2) Environ 20’400 pages de la Feuille fédérale, du Bulletin officiel et du Recueil officiel du même flux entscheidsuche, retirées en octobre 2026 et rétablies le 31 octobre 2026 : ce ne sont pas des décisions, leurs dates ne sont pas fiables, toutes sont marquées <code>language=de</code> alors que beaucoup sont en français ou en italien, et elles sont citées « Administration fédérale &lt;numéro&gt; ».',
-      arch_sg_gerichte:'Prédécesseur de <code>sg_publikationen</code> (en direct, 12’690 enregistrements scrapés directement).',
-      arch_be_bvd:"BE Behörden-Verwaltungs-Direktion. Tribunal administratif ; pas de point d'accès portail en direct.",
-      arch_be_weitere:'BE organes administratifs divers.',
-      arch_be_steuerrekurs:'Steuerrekurskommission BE. Scraper direct existant ; la base de données du portail source est déconnectée depuis février 2026 et renvoie 0 résultat. Nous suivons le problème avec le canton.',
-      arch_footnote:"Tous les autres shards d'entscheidsuche (~40 sur 51) sont <strong>doublés par un scraper direct indépendant</strong> contre le portail source. Lorsque les deux existent, la déduplication au moment du build utilise nos données directes comme source de référence. Entscheidsuche.ch est reconnu dans la fiche du jeu de données comme une source amont contributrice pour l'ensemble des archives figées ; leur travail de réagrégation bénéficie d'une attribution de type CC BY."
+      skip:'Aller au contenu',kicker:'Transparence',kicker_sub:'Sources',h1:'Sources et couverture',
+      lead:'Chaque source du corpus avec son portail officiel, son mode et son calendrier de collecte, son volume, sa décision la plus récente et un statut recalculé chaque nuit à partir des données. Rien sur cette page n’est saisi à la main : si une source s’interrompt, cela apparaît ici.',
+      st_codes:'Tribunaux et autorités',st_fresh:'à jour',st_stale:'en retard ou en échec',st_nointake:'sans collecte en cours',st_asof:'Date de l’évaluation',
+      att_l:'À surveiller',
+      sc_tag:'Jurisprudence',sc_h:'Tribunaux et autorités',
+      sc_p:'Chaque code de tribunal ou d’autorité du corpus figure ici une seule fois, avec la voie par laquelle arrivent les nouvelles décisions. Une ligne s’ouvre sur le détail : portail, base d’utilisation, dernière exécution de chaque scraper et règle de calcul du statut.',
+      filter_ph:'Filtrer — bger, Genève, fiscal…',f_all:'Tous',f_att:'À surveiller',f_fresh:'À jour',f_quiet:'Calme',f_arch:'Archive',
+      count_line:'{n} codes sur {t} · {d} décisions',no_rows:'Aucune source ne correspond au filtre.',
+      g_federal:'Confédération',g_authority:'Autorités fédérales, commissions et autres organes',g_international:'International',g_cantonal:'Cantons',g_unmapped:'Pas encore répertorié',
+      grp_meta:'{n} codes · {d} décisions',grp_meta1:'1 code · {d} décisions',
+      th_source:'Source',th_status:'Statut',th_intake:'Collecte',th_count:'Volume',th_newest:'Décision la plus récente',th_added:'Dernier ajout',th_cadence:'Rythme',th_portal:'Portail',
+      s_fresh:'à jour',s_stale:'en retard',s_failing:'en échec',s_quiet:'calme',s_no_intake:'pas de collecte',s_superseded:'remplacé',s_closed:'clos',s_unknown:'inconnu',
+      k_nightly:'nocturne',k_federal:'fédéral',k_late:'rattrapage',k_poller:'sondage',k_own_timer:'propre exécution',
+      i_retired:'flux arrêté',i_import:'import unique',i_unsched:'non planifié',i_none:'aucun scraper',
+      sch_daily:'{t}',sch_weekly:'{d} {t}',sch_monthly:'le {n}, {t}',sch_hourly:'{days} {f}–{u} h',utc:'UTC',
+      dow_Mon:'lu',dow_Tue:'ma',dow_Wed:'me',dow_Thu:'je',dow_Fri:'ve',dow_Sat:'sa',dow_Sun:'di',
+      ago:'il y a {n} j',today:'aujourd’hui',
+      cad_every:'≈ tous les {n} j',cad_year:'≈ {n}/an',cad_rare:'rare',
+      p_nm:'non mesuré',p_scraper:'pour tout le scraper',p_complete:'complet',
+      undated:'{n} sans date',
+      d_code:'Code',d_portal:'Portail officiel',d_noportal:'aucun portail public connu',d_licence:'Utilisation',d_intake:'Collecte et dernière exécution',
+      d_years:'Période',d_ok:'réussie',d_failed:'en échec',d_norun:'aucune exécution enregistrée',
+      d_new:'+{n} nouvelles',d_ours:'chez nous {n}',d_portalc:'portail {n}',d_gap:'écart {n}',d_whole:'Chiffres valables pour tout le scraper {s}.',
+      rs_OK:'dans la norme',rs_LOW:'en dessous des attentes',rs_STALE:'très en dessous des attentes',rs_WAIT:'pas encore évaluable',rs_SMALL:'trop peu de données',rs_NEW:'nouveau',
+      d_rate:'Comparaison annuelle',d_note:'Remarque (en anglais)',d_succ:'Décisions actuelles sous',d_succ_practice:'Désormais dans la pratique administrative (plus bas).',
+      why_no_new_decision:'Aucune nouvelle décision depuis {d} jours. Au rythme habituel de cette source (≈ tous les {e} jours), elle est considérée en retard après {w} jours sans nouvelle décision.',
+      why_rate_stale:'Nettement moins de décisions cette année que ne le laissent attendre les deux années précédentes ({r}).',
+      why_rate_detail:'{c} sur {x} attendues',
+      why_run_failed:'La dernière exécution d’un scraper pour ce code a échoué.',
+      why_silent_by_design:'La source ne publie plus rien de nouveau, par nature ; elle n’est pas évaluée selon un rythme.',
+      why_publication_lag:'La source publie par lots avec environ {l} jours de retard ; la fenêtre d’évaluation de cette année n’est pas encore ouverte.',
+      why_rare:'Trop peu de décisions datées ces deux dernières années pour en déduire un rythme ; évaluée après 18 mois.',
+      why_feed_retired:'Ce code n’était alimenté que par le flux d’entscheidsuche.ch, arrêté en mars 2026. Aucun scraper direct ne le reprend encore ; les nouvelles décisions de la source manquent dans le corpus.',
+      why_scraper_not_scheduled:'Un scraper direct est enregistré mais ne tourne pas dans l’exécution nocturne ; les nouvelles décisions de la source manquent dans le corpus.',
+      why_import_retired:'Import unique ; la source n’est pas collectée en continu.',
+      why_no_scraper:'Aucun scraper ne collecte ce code.',
+      why_superseded:'Enregistrements figés d’un ancien apport. Les décisions actuelles du même organe figurent sous d’autres codes.',
+      why_ended:'Le tribunal ou la série n’existe plus (depuis {y}).',
+      why_fresh:'Les nouvelles décisions arrivent au rythme attendu. En retard après {w} jours sans nouvelle décision.',
+      co_tag:'Autres sources',co_h:'Lois, travaux préparatoires, pratique, commentaires, doctrine',
+      co_p:'Ces collections sont actualisées par leurs propres exécutions. Sont indiqués le volume, la période, le calendrier et la dernière actualisation réussie selon le journal système.',
+      ck_laws:'Lois',ck_materialien:'Travaux préparatoires',ck_practice:'Pratique',ck_commentaries:'Commentaires',ck_scholarship:'Doctrine',
+      cn_federal_laws:'Droit fédéral (Recueil systématique)',cn_cantonal_laws:'Droit cantonal, 26 cantons',cn_materialien:'Feuille fédérale : messages, rapports, rapports de commission, projets d’actes',cn_vernehmlassungen:'Procédures de consultation',cn_practice:'Pratique administrative de la Confédération, des cantons et de l’ONU',cn_commentaries:'Commentaires ouverts',cn_scholarship:'Doctrine juridique en libre accès',
+      cu_federal_laws:'actes',cu_cantonal_laws:'actes',cu_materialien:'documents',cu_vernehmlassungen:'procédures',cu_practice:'documents',cu_commentaries:'commentaires',cu_scholarship:'publications',
+      c_authority:'Éditeur',c_portal:'Portail',c_years:'Période',c_docs:'Documents',c_schedule:'Calendrier',c_last:'Dernière réussite',c_licence:'Utilisation',
+      c_bycanton:'Actes par canton',c_bysource:'Publications par source',c_sources:'{n} sources',c_src_last:'dernière',
+      sn_cantonal_laws:'Directement depuis 23 recueils cantonaux ; LexFind pour JU, SZ, VD et les lacunes de ZH.',
+      ca_scholarship:'Dépôts universitaires et revues spécialisées',ca_practice:'OFAS, CHS PP, COMCO, FINMA, SECO, OFSP, AFC, SEM, OFJ, OFEV, COPA, ASR, OFRC, autorités cantonales, ONU',
+      m_tag:'Méthode',m_h:'Comment les statuts sont calculés',
+      m_p1:'Une exécution de scraper réussie ne signifie pas qu’une source est complète : une exécution peut se terminer sans erreur et ne rien trouver de nouveau alors que le tribunal continue de publier. Cette page mesure donc si de nouvelles décisions arrivent réellement.',
+      m_p2:'Le rythme d’une source est le nombre moyen de décisions datées des deux dernières années complètes. Une source est en retard lorsque sa décision la plus récente est plus ancienne que quatre fois l’intervalle habituel (au moins 60 jours, au plus 18 mois, plus le retard de publication connu d’une série) et qu’aucune ligne n’a été ajoutée pendant cette période, ou lorsque l’année en cours compte nettement moins de décisions que ne le laissent attendre les années précédentes.',
+      m_p3:'Jusqu’en mars 2026, quelques codes n’étaient alimentés que par le flux de l’agrégateur indépendant entscheidsuche.ch. Ce flux est arrêté ; chaque source est collectée directement sur le portail officiel. Les codes qui en dépendaient encore figurent comme « pas de collecte » jusqu’à ce qu’un scraper direct les reprenne. Les enregistrements déjà repris restent dans le corpus ; entscheidsuche.ch est cité comme source dans la description du jeu de données.',
+      m_p4:'Le chiffre du portail est le nombre de résultats que le portail du tribunal affiche lui-même. Tous les portails n’en indiquent pas ; à défaut de mesure, la mention « non mesuré » s’affiche.',
+      m_data:'Données : <a href="/sources/status.json"><code>/sources/status.json</code></a> (cette page, recalculée chaque nuit) · <a href="/sources/registry.json"><code>/sources/registry.json</code></a> (portails, licences, rattachement) · <a href="/coverage.json"><code>/coverage.json</code></a> (volume par année) · <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (dernière exécution nocturne). Erreurs et lacunes : <a href="https://github.com/jonashertner/opencaselaw/issues">gestionnaire de tickets</a>.',
+      lg_fresh:'Collecte en cours, les nouvelles décisions arrivent au rythme attendu.',
+      lg_stale:'Collecte en cours, mais rien de nouveau depuis plus longtemps que d’habitude.',
+      lg_failing:'La dernière exécution d’un scraper compétent a échoué.',
+      lg_no_intake:'Aucun scraper ne tourne pour ce code ; les nouvelles décisions de la source manquent.',
+      lg_quiet:'Collecte en cours ; la source ne publie plus rien par nature, ou publie par lots avec retard.',
+      lg_superseded:'Ancien apport ; les décisions actuelles figurent sous d’autres codes.',
+      lg_closed:'Le tribunal ou la série n’existe plus.',
+      load_err:'Impossible de charger les données de statut ({m}).'
     },
     it:{
-      skip:'Vai al contenuto',
-      kicker:'Operativo',kicker_sub:'scraper',h1:'Copertura',
-      lead:"Stato degli scraper per fonte per il corpus giuridico svizzero di OpenCaseLaw, aggiornato ogni notte dalla pipeline di pubblicazione (03:00 UTC). La tabella seguente mostra ogni scraper attivo, le decisioni aggiunte nell'ultima esecuzione, il totale che detiene e — dove il portale della fonte lo espone — un confronto con il numero pubblicato dal portale, così che ogni lacuna sia visibile.",
-      stat_lastRun:'Ultima esecuzione',stat_healthy:'In salute',stat_noNew:'Nessun nuovo doc.',stat_failing:'In errore',stat_totalDecisions:'Decisioni totali',
-      filter_ph:'Filtra — bger, zh, ti…',f_all:'Tutti',f_healthy:'In salute',f_noNew:'Nessun nuovo',f_failing:'In errore',
-      th_source:'Fonte',th_status:'Stato',th_lastRun:'+ ultima esecuzione',th_totalOurs:'Totale nostro',th_portal:'Portale',th_gap:'Lacuna',th_duration:'Durata',
-      noSources:'Nessuna fonte corrisponde.',
-      p_healthy:'in salute',p_noNew:'nessun nuovo doc.',p_timedOut:'tempo scaduto',p_error:'errore',p_noData:'nessun dato',
-      gap_complete:'completo',
-      loadErr:'Impossibile caricare lo stato degli scraper: {msg}',
-      meta:"Fonte dei dati: <a href=\"https://mcp.opencaselaw.ch/api/scraper-health\"><code>/api/scraper-health</code></a> (<a href=\"https://github.com/jonashertner/opencaselaw/blob/main/run_scraper.py\">run_scraper.py</a>). Un divario diverso da zero indica di solito un ritardo di pubblicazione al portale della fonte, non uno scrape mancato. Gli errori persistenti sono tracciati nell'<a href=\"https://github.com/jonashertner/opencaselaw/issues\">issue tracker</a>. Per una collaborazione istituzionale sulle lacune di copertura, scrivete a <a href=\"mailto:team@jonashertner.com\">team@jonashertner.com</a>.",
-      arch_tag:'Archivi congelati',arch_h:'Archivi congelati supplementari',
-      arch_lead:'Oltre agli scraper attivi sopra, il corpus incorpora anche sette <strong>archivi congelati</strong> ottenuti tramite <a href="https://entscheidsuche.ch/" rel="noopener">entscheidsuche.ch</a> — un aggregatore indipendente ad accesso aperto che rispecchia molti portali giudiziari svizzeri. Reincorporiamo gli archivi JSON di entscheidsuche una volta a settimana (domenica 22:00 UTC) come salvaguardia di completezza; le ultime sei esecuzioni hanno aggiunto <strong>zero nuove decisioni</strong> perché i portali a monte riflessi da questi shard non producono più nuovi contenuti o sono stati sostituiti. I record sono conservati come istantanee storiche nel nostro corpus.',
-      arch_th_shard:'Shard',arch_th_records:'Record',arch_th_upstream:'Stato a monte',
-      arch_vd_findinfo:'Portale storico della giurisprudenza VD (<code>jurisprudence.findinfo.ch</code>) ritirato; le decisioni attuali sono coperte dallo scraper diretto <code>vd_gerichte</code>.',
-      arch_vd_omni:'Aggregazione storica VD; sostituita dai portali attuali.',
-      arch_ch_vb:'Archivio congelato da <code>amtsdruckschriften.bar.admin.ch</code>, in due parti distinte. (1) La serie GAAC: 2’502 PDF, 1987–2017, decisioni e pareri, citati GAAC &lt;numero&gt; (vol. 51–70 completi salvo 70.32, 2007–2017 completi salvo 2014.3; la serie è terminata il 1° gennaio 2018). (2) Circa 20’400 pagine del Foglio federale, del Bollettino ufficiale e della Raccolta ufficiale dello stesso flusso entscheidsuche, rimosse nell’ottobre 2026 e ripristinate il 31 ottobre 2026: non sono decisioni, le date non sono affidabili, sono tutte marcate <code>language=de</code> benché molte siano in francese o in italiano, e sono citate «Amministrazione federale &lt;numero&gt;».',
-      arch_sg_gerichte:'Predecessore di <code>sg_publikationen</code> (in diretta, 12’690 record raccolti direttamente).',
-      arch_be_bvd:'BE Behörden-Verwaltungs-Direktion. Tribunale amministrativo; nessun endpoint di portale in diretta.',
-      arch_be_weitere:'BE organi amministrativi vari.',
-      arch_be_steuerrekurs:'Steuerrekurskommission BE. Scraper diretto esistente; il database del portale della fonte è disconnesso da febbraio 2026 e restituisce 0 risultati. Stiamo seguendo il problema con il cantone.',
-      arch_footnote:"Tutti gli altri shard di entscheidsuche (~40 su 51) sono <strong>affiancati da uno scraper diretto indipendente</strong> contro il portale della fonte. Dove entrambi esistono, la deduplicazione in fase di build usa i nostri dati diretti come fonte di riferimento. Entscheidsuche.ch è riconosciuto nella scheda del dataset come fonte a monte che contribuisce all'insieme degli archivi congelati; il loro lavoro di riaggregazione ha un'attribuzione di tipo CC BY."
+      skip:'Vai al contenuto',kicker:'Trasparenza',kicker_sub:'Fonti',h1:'Fonti e copertura',
+      lead:'Ogni fonte del corpus con portale ufficiale, modalità e calendario di raccolta, consistenza, decisione più recente e uno stato ricalcolato ogni notte dai dati. Nulla in questa pagina è inserito a mano: se una fonte si interrompe, appare qui.',
+      st_codes:'Tribunali e autorità',st_fresh:'aggiornate',st_stale:'in ritardo o in errore',st_nointake:'senza raccolta in corso',st_asof:'Data della valutazione',
+      att_l:'Da verificare',
+      sc_tag:'Giurisprudenza',sc_h:'Tribunali e autorità',
+      sc_p:'Ogni codice di tribunale o autorità del corpus compare qui una sola volta, con la via da cui arrivano le nuove decisioni. Una riga apre i dettagli: portale, base d’uso, ultima esecuzione di ogni scraper e regola con cui è stato calcolato lo stato.',
+      filter_ph:'Filtra — bger, Ticino, fiscale…',f_all:'Tutti',f_att:'Da verificare',f_fresh:'Aggiornate',f_quiet:'Quiete',f_arch:'Archivio',
+      count_line:'{n} codici su {t} · {d} decisioni',no_rows:'Nessuna fonte corrisponde al filtro.',
+      g_federal:'Confederazione',g_authority:'Autorità federali, commissioni e altri organi',g_international:'Internazionale',g_cantonal:'Cantoni',g_unmapped:'Non ancora censito',
+      grp_meta:'{n} codici · {d} decisioni',grp_meta1:'1 codice · {d} decisioni',
+      th_source:'Fonte',th_status:'Stato',th_intake:'Raccolta',th_count:'Consistenza',th_newest:'Decisione più recente',th_added:'Ultima aggiunta',th_cadence:'Ritmo',th_portal:'Portale',
+      s_fresh:'aggiornata',s_stale:'in ritardo',s_failing:'in errore',s_quiet:'quieta',s_no_intake:'nessuna raccolta',s_superseded:'sostituita',s_closed:'chiusa',s_unknown:'sconosciuto',
+      k_nightly:'notturna',k_federal:'federale',k_late:'recupero',k_poller:'sondaggio',k_own_timer:'esecuzione propria',
+      i_retired:'flusso cessato',i_import:'importazione unica',i_unsched:'non pianificato',i_none:'nessuno scraper',
+      sch_daily:'{t}',sch_weekly:'{d} {t}',sch_monthly:'il {n}, {t}',sch_hourly:'{days} {f}–{u}',utc:'UTC',
+      dow_Mon:'lu',dow_Tue:'ma',dow_Wed:'me',dow_Thu:'gi',dow_Fri:'ve',dow_Sat:'sa',dow_Sun:'do',
+      ago:'{n} g fa',today:'oggi',
+      cad_every:'≈ ogni {n} g',cad_year:'≈ {n}/anno',cad_rare:'rara',
+      p_nm:'non misurato',p_scraper:'per tutto lo scraper',p_complete:'completo',
+      undated:'{n} senza data',
+      d_code:'Codice',d_portal:'Portale ufficiale',d_noportal:'nessun portale pubblico noto',d_licence:'Utilizzo',d_intake:'Raccolta e ultima esecuzione',
+      d_years:'Periodo',d_ok:'riuscita',d_failed:'fallita',d_norun:'nessuna esecuzione registrata',
+      d_new:'+{n} nuove',d_ours:'da noi {n}',d_portalc:'portale {n}',d_gap:'differenza {n}',d_whole:'Cifre valide per tutto lo scraper {s}.',
+      rs_OK:'nella norma',rs_LOW:'sotto le attese',rs_STALE:'molto sotto le attese',rs_WAIT:'non ancora valutabile',rs_SMALL:'troppo pochi dati',rs_NEW:'nuovo',
+      d_rate:'Confronto annuale',d_note:'Nota (in inglese)',d_succ:'Decisioni attuali sotto',d_succ_practice:'Ora nella prassi amministrativa (sotto).',
+      why_no_new_decision:'Nessuna nuova decisione da {d} giorni. Al ritmo abituale di questa fonte (≈ ogni {e} giorni) è considerata in ritardo dopo {w} giorni senza nuove decisioni.',
+      why_rate_stale:'Quest’anno molte meno decisioni di quante lascino prevedere i due anni precedenti ({r}).',
+      why_rate_detail:'{c} su {x} attese',
+      why_run_failed:'L’ultima esecuzione di uno scraper per questo codice è fallita.',
+      why_silent_by_design:'La fonte non pubblica più nulla di nuovo, per sua natura; non è valutata secondo un ritmo.',
+      why_publication_lag:'La fonte pubblica a blocchi con circa {l} giorni di ritardo; la finestra di valutazione di quest’anno non è ancora aperta.',
+      why_rare:'Troppo poche decisioni datate negli ultimi due anni per ricavarne un ritmo; valutata dopo 18 mesi.',
+      why_feed_retired:'Questo codice era alimentato solo dal flusso di entscheidsuche.ch, cessato nel marzo 2026. Nessuno scraper diretto lo riprende ancora; le nuove decisioni della fonte mancano nel corpus.',
+      why_scraper_not_scheduled:'Uno scraper diretto è registrato ma non gira nell’esecuzione notturna; le nuove decisioni della fonte mancano nel corpus.',
+      why_import_retired:'Importazione unica; la fonte non è raccolta in modo continuo.',
+      why_no_scraper:'Nessuno scraper raccoglie questo codice.',
+      why_superseded:'Record congelati di un apporto precedente. Le decisioni attuali dello stesso organo figurano sotto altri codici.',
+      why_ended:'Il tribunale o la serie non esiste più (dal {y}).',
+      why_fresh:'Le nuove decisioni arrivano al ritmo atteso. In ritardo dopo {w} giorni senza nuove decisioni.',
+      co_tag:'Altre fonti',co_h:'Leggi, materiali, prassi, commentari, dottrina',
+      co_p:'Queste raccolte sono aggiornate da esecuzioni proprie. Sono indicati consistenza, periodo, calendario e ultimo aggiornamento riuscito secondo il registro di sistema.',
+      ck_laws:'Leggi',ck_materialien:'Materiali',ck_practice:'Prassi',ck_commentaries:'Commentari',ck_scholarship:'Dottrina',
+      cn_federal_laws:'Diritto federale (Raccolta sistematica)',cn_cantonal_laws:'Diritto cantonale, 26 cantoni',cn_materialien:'Foglio federale: messaggi, rapporti, rapporti commissionali, progetti di atti',cn_vernehmlassungen:'Procedure di consultazione',cn_practice:'Prassi amministrativa della Confederazione, dei Cantoni e dell’ONU',cn_commentaries:'Commentari aperti',cn_scholarship:'Dottrina giuridica ad accesso aperto',
+      cu_federal_laws:'atti',cu_cantonal_laws:'atti',cu_materialien:'documenti',cu_vernehmlassungen:'procedure',cu_practice:'documenti',cu_commentaries:'commentari',cu_scholarship:'pubblicazioni',
+      c_authority:'Editore',c_portal:'Portale',c_years:'Periodo',c_docs:'Documenti',c_schedule:'Calendario',c_last:'Ultimo riuscito',c_licence:'Utilizzo',
+      c_bycanton:'Atti per cantone',c_bysource:'Pubblicazioni per fonte',c_sources:'{n} fonti',c_src_last:'ultimo',
+      sn_cantonal_laws:'Direttamente da 23 raccolte cantonali; LexFind per JU, SZ, VD e le lacune di ZH.',
+      ca_scholarship:'Archivi universitari e riviste specializzate',ca_practice:'UFAS, CAV PP, COMCO, FINMA, SECO, UFSP, AFC, SEM, UFG, UFAM, COPA, ASR, UFRC, autorità cantonali, ONU',
+      m_tag:'Metodo',m_h:'Come nascono gli stati',
+      m_p1:'Un’esecuzione riuscita dello scraper non significa che una fonte sia completa: un’esecuzione può concludersi senza errori e non trovare nulla di nuovo mentre il tribunale continua a pubblicare. Questa pagina misura quindi se arrivano davvero nuove decisioni.',
+      m_p2:'Il ritmo di una fonte è il numero medio di decisioni datate degli ultimi due anni completi. Una fonte è in ritardo quando la sua decisione più recente è più vecchia di quattro volte l’intervallo abituale (almeno 60 giorni, al massimo 18 mesi, più il ritardo di pubblicazione noto di una serie) e in quel periodo non è stata aggiunta alcuna riga, oppure quando nell’anno in corso sono arrivate molte meno decisioni di quanto lascino prevedere gli anni precedenti.',
+      m_p3:'Fino a marzo 2026 alcuni codici erano alimentati solo dal flusso dell’aggregatore indipendente entscheidsuche.ch. Questo flusso è cessato; ogni fonte è raccolta direttamente dal portale ufficiale. I codici che ne dipendevano ancora figurano come «nessuna raccolta» finché uno scraper diretto non li riprende. I record già ripresi restano nel corpus; entscheidsuche.ch è citato come fonte nella descrizione del dataset.',
+      m_p4:'Il numero del portale è il numero di risultati che il portale del tribunale indica esso stesso. Non tutti i portali lo indicano; dove non viene misurato appare «non misurato».',
+      m_data:'Dati: <a href="/sources/status.json"><code>/sources/status.json</code></a> (questa pagina, ricalcolata ogni notte) · <a href="/sources/registry.json"><code>/sources/registry.json</code></a> (portali, licenze, attribuzione) · <a href="/coverage.json"><code>/coverage.json</code></a> (consistenza per anno) · <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (ultima esecuzione notturna). Errori e lacune: <a href="https://github.com/jonashertner/opencaselaw/issues">issue tracker</a>.',
+      lg_fresh:'Raccolta in corso, le nuove decisioni arrivano al ritmo atteso.',
+      lg_stale:'Raccolta in corso, ma nulla di nuovo da più tempo del solito.',
+      lg_failing:'L’ultima esecuzione di uno scraper competente è fallita.',
+      lg_no_intake:'Nessuno scraper gira per questo codice; mancano le nuove decisioni della fonte.',
+      lg_quiet:'Raccolta in corso; la fonte non pubblica più nulla per natura, o pubblica a blocchi con ritardo.',
+      lg_superseded:'Apporto precedente; le decisioni attuali figurano sotto altri codici.',
+      lg_closed:'Il tribunale o la serie non esiste più.',
+      load_err:'Impossibile caricare i dati di stato ({m}).'
     },
     rm:{
-      skip:'Ir al cuntegn',
-      kicker:'Operativ',kicker_sub:'scrapers',h1:'Cuvrida',
-      lead:"Sanadad dals scrapers per funtauna per il corpus giuridic svizzer da OpenCaseLaw, actualisada mintga notg da la pipeline da publicaziun (03:00 UTC). La tabella sutvart mussa mintga scraper activ, las decisiuns ch'el ha agiuntà en l'ultima execuziun, il total ch'el tegna e — nua ch'il portal da la funtauna al exponescha — ina cumparegliaziun cun il dumber publitgà dal portal, per ch'i mintga largezza saja visibla.",
-      stat_lastRun:'Ultima execuziun',stat_healthy:'Saun',stat_noNew:'Nagins docs novs',stat_failing:'Cun errurs',stat_totalDecisions:'Decisiuns en total',
-      filter_ph:'Filtrar — bger, zh, ti…',f_all:'Tuts',f_healthy:'Saun',f_noNew:'Nagins novs',f_failing:'Cun errurs',
-      th_source:'Funtauna',th_status:'Status',th_lastRun:'+ ultima execuziun',th_totalOurs:'Total tar nus',th_portal:'Portal',th_gap:'Largezza',th_duration:'Durada',
-      noSources:'Naginas funtaunas correspundan.',
-      p_healthy:'saun',p_noNew:'nagins docs novs',p_timedOut:'temp surpassà',p_error:'errur',p_noData:'naginas datas',
-      gap_complete:'cumplet',
-      loadErr:'Betg pussaivel da chargiar la sanadad dals scrapers: {msg}',
-      meta:'Funtauna da las datas: <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (<a href="https://github.com/jonashertner/opencaselaw/blob/main/run_scraper.py">run_scraper.py</a>). Ina largezza betg nulla munta per ordinari in retard da publicaziun tar il portal da la funtauna, betg in scrape mancà. Errurs persistentas vegnan suandadas en l\'<a href="https://github.com/jonashertner/opencaselaw/issues">issue tracker</a>. Per ina collavuraziun instituziunala davart largezzas da cuvertura, scrivai a <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>.',
-      arch_tag:'Archivs zueglals',arch_h:'Archivs zueglals supplementars',
-      arch_lead:'Ultra ils scrapers en direct survart cuntegna il corpus era set <strong>archivs zueglals</strong> obtegnids via <a href="https://entscheidsuche.ch/" rel="noopener">entscheidsuche.ch</a> — in agregatur independent en access avert che spievla blers portals giudizials svizzers. Nus reincorporain ils archivs JSON d\'entscheidsuche ina giada l\'emna (dumengia 22:00 UTC) sco garanzia da cumplettadad; las ultimas sis execuziuns han agiuntà <strong>nagina nova decisiun</strong>, perquai ch\'ils portals a la funtauna reflectids da quels shards na produceschan betg pli cuntegn nov u èn vegnids remplazzads. Las datas restan sco maletgs istorics en noss corpus.',
-      arch_th_shard:'Shard',arch_th_records:'Datas',arch_th_upstream:'Status da la funtauna',
-      arch_vd_findinfo:'Portal istoric da giurisprudenza VD (<code>jurisprudence.findinfo.ch</code>) serrà; las decisiuns actualas vegnan cuvridas dal scraper direct <code>vd_gerichte</code>.',
-      arch_vd_omni:'Agregaziun istorica VD; remplazzada dals portals actuals.',
-      arch_ch_vb:'Archiv congelà da <code>amtsdruckschriften.bar.admin.ch</code> en duas parts separadas. (1) La seria VPB/JAAC: 2’502 PDF, 1987–2017, decisiuns e cussegls giuridics, citads VPB &lt;numer&gt; (toms 51–70 cumplets ultra 70.32, 2007–2017 cumplets ultra 2014.3; la seria è finida il 1. da schaner 2018). (2) Circa 20’400 paginas dal Fegl federal, dal Bulletin uffizial e da la Collecziun uffiziala dal medem flux entscheidsuche, allontanadas en october 2026 e restituidas ils 31 d’october 2026: naginas decisiuns, datas betg fidablas, tuttas marcadas <code>language=de</code>, schebain che bleras èn en franzos u talian, citadas «Bundesverwaltung &lt;numer&gt;».',
-      arch_sg_gerichte:'Anteceder da <code>sg_publikationen</code> (en direct, 12’690 datas scrapadas directamain).',
-      arch_be_bvd:'BE Behörden-Verwaltungs-Direktion. Dretgira administrativa; nagin endpunct da portal en direct.',
-      arch_be_weitere:'BE organs administrativs differents.',
-      arch_be_steuerrekurs:'Steuerrekurskommission BE. Scraper direct existent; la banca da datas dal portal da la funtauna è disconnectada dapi favrer 2026 e returna 0 resultats. Nus suandain il problem cun il chantun.',
-      arch_footnote:'Tut ils auters shards d\'entscheidsuche (~40 da 51) vegnan <strong>cumpletads dad in scraper direct independent</strong> cunter il portal da la funtauna. Nua che omadus existan, dovra la deduplicaziun durant il build nossas datas directas sco funtauna da referenza. Entscheidsuche.ch vegn renconuschì en la carta dal set da datas sco funtauna contribuenta per il set d\'archivs zueglals; lur lavur da reagregaziun ha in\'attribuziun da tip CC BY.'
+      skip:'Ir al cuntegn',kicker:'Transparenza',kicker_sub:'Funtaunas',h1:'Funtaunas e cuvrida',
+      lead:'Mintga funtauna dal corpus cun portal uffizial, moda e plan da rimnar, stgalim, la decisiun la pli nova ed in status calculà mintga notg a basa da las datas. Nagut sin questa pagina n’è endatà a maun: sch’ina funtauna s’interrumpa, stat quai qua.',
+      st_codes:'Dretgiras ed autoritads',st_fresh:'actualas',st_stale:'en retard u cun errur',st_nointake:'senza rimnar current',st_asof:'Data da l’evaluaziun',
+      att_l:'Basegna attenziun',
+      sc_tag:'Giurisprudenza',sc_h:'Dretgiras ed autoritads',
+      sc_p:'Mintga code da dretgira u d’autoritad dal corpus cumpara qua precis ina giada, cun la via sin la quala arrivan novas decisiuns. Ina lingia avra ils detagls: portal, basa d’utilisaziun, ultima execuziun da mintga scraper e la regla tenor la quala il status è vegnì calculà.',
+      filter_ph:'Filtrar — bger, Grischun, taglia…',f_all:'Tuts',f_att:'Attenziun',f_fresh:'Actualas',f_quiet:'Quietas',f_arch:'Archiv',
+      count_line:'{n} da {t} codes · {d} decisiuns',no_rows:'Nagina funtauna correspunda al filter.',
+      g_federal:'Confederaziun',g_authority:'Autoritads federalas, cumissiuns ed auters posts',g_international:'Internaziunal',g_cantonal:'Chantuns',g_unmapped:'Anc betg registrà',
+      grp_meta:'{n} codes · {d} decisiuns',grp_meta1:'1 code · {d} decisiuns',
+      th_source:'Funtauna',th_status:'Status',th_intake:'Rimnar',th_count:'Stgalim',th_newest:'Decisiun la pli nova',th_added:'Ultima agiunta',th_cadence:'Ritem',th_portal:'Portal',
+      s_fresh:'actual',s_stale:'en retard',s_failing:'cun errur',s_quiet:'quiet',s_no_intake:'nagin rimnar',s_superseded:'remplazzà',s_closed:'serrà',s_unknown:'nunenconuschent',
+      k_nightly:'notg',k_federal:'federal',k_late:'suenter',k_poller:'sondadi',k_own_timer:'agen curs',
+      i_retired:'flux terminà',i_import:'import unic',i_unsched:'betg planisà',i_none:'nagin scraper',
+      sch_daily:'{t}',sch_weekly:'{d} {t}',sch_monthly:'ils {n}, {t}',sch_hourly:'{days} {f}–{u}',utc:'UTC',
+      dow_Mon:'gli',dow_Tue:'ma',dow_Wed:'me',dow_Thu:'gie',dow_Fri:'ve',dow_Sat:'so',dow_Sun:'du',
+      ago:'avant {n} d',today:'oz',
+      cad_every:'≈ mintga {n} d',cad_year:'≈ {n}/onn',cad_rare:'rar',
+      p_nm:'betg mesirà',p_scraper:'per l’entir scraper',p_complete:'cumplet',
+      undated:'{n} senza data',
+      d_code:'Code',d_portal:'Portal uffizial',d_noportal:'nagin portal public enconuschent',d_licence:'Utilisaziun',d_intake:'Rimnar ed ultima execuziun',
+      d_years:'Perioda',d_ok:'cun success',d_failed:'fallida',d_norun:'nagina execuziun protocollada',
+      d_new:'+{n} novas',d_ours:'tar nus {n}',d_portalc:'portal {n}',d_gap:'differenza {n}',d_whole:'Las cifras valan per l’entir scraper {s}.',
+      rs_OK:'en la norma',rs_LOW:'sut las spetgas',rs_STALE:'lunsch sut las spetgas',rs_WAIT:'anc betg giuditgabel',rs_SMALL:'memia paucas datas',rs_NEW:'nov',
+      d_rate:'Cumparegliaziun annuala',d_note:'Remartga (englais)',d_succ:'Decisiuns actualas sut',d_succ_practice:'Ussa en la pratica administrativa (sutvart).',
+      why_no_new_decision:'Dapi {d} dis nagina nova decisiun. Tenor il ritem usità da questa funtauna (≈ mintga {e} dis) vala ella sco en retard suenter {w} dis senza nova decisiun.',
+      why_rate_stale:'Quest onn bler damain decisiuns che quai che ils dus onns precedents laschan spetgar ({r}).',
+      why_rate_detail:'{c} da {x} spetgadas',
+      why_run_failed:'L’ultima execuziun d’in scraper per quest code è fallida.',
+      why_silent_by_design:'La funtauna na publitgescha tenor plan nagut nov pli; ella na vegn betg giuditgada tenor ritem.',
+      why_publication_lag:'La funtauna publitgescha en blocs cun var {l} dis retard; la fanestra d’evaluaziun da quest onn n’è anc betg averta.',
+      why_rare:'Memia paucas decisiuns datadas ils ultims dus onns per deducir in ritem; giuditgada suenter 18 mais.',
+      why_feed_retired:'Quest code è vegnì emplenì mo tras il flux d’entscheidsuche.ch, terminà il mars 2026. In scraper direct manca anc; novas decisiuns da la funtauna mancan en il corpus.',
+      why_scraper_not_scheduled:'In scraper direct è registrà, ma na curra betg en l’execuziun da notg; novas decisiuns da la funtauna mancan en il corpus.',
+      why_import_retired:'Import unic; la funtauna na vegn betg rimnada cuntinuadamain.',
+      why_no_scraper:'Nagin scraper na rimna quest code.',
+      why_superseded:'Datas congeladas d’ina furniziun pli veglia. Las decisiuns actualas dal medem post stattan sut auters codes.',
+      why_ended:'La dretgira u la seria n’exista betg pli (dapi {y}).',
+      why_fresh:'Novas decisiuns arrivan en il ritem spetgà. En retard suenter {w} dis senza nova decisiun.',
+      co_tag:'Ulteriuras funtaunas',co_h:'Leschas, materialias, pratica, commentaris, litteratura',
+      co_p:'Questas collecziuns vegnan actualisadas cun agens curs. Indicà èn stgalim, perioda, plan ed ultima actualisaziun reussida tenor il protocol dal sistem.',
+      ck_laws:'Leschas',ck_materialien:'Materialias',ck_practice:'Pratica',ck_commentaries:'Commentaris',ck_scholarship:'Litteratura',
+      cn_federal_laws:'Dretg federal (Collecziun sistematica)',cn_cantonal_laws:'Dretg chantunal, 26 chantuns',cn_materialien:'Fegl federal: messadis, rapports, rapports da cumissiun, projects da relaschs',cn_vernehmlassungen:'Consultaziuns',cn_practice:'Pratica administrativa da la Confederaziun, dals chantuns e da l’ONU',cn_commentaries:'Commentaris averts',cn_scholarship:'Scienza giuridica en access avert',
+      cu_federal_laws:'relaschs',cu_cantonal_laws:'relaschs',cu_materialien:'documents',cu_vernehmlassungen:'procedimentas',cu_practice:'documents',cu_commentaries:'commentaris',cu_scholarship:'publicaziuns',
+      c_authority:'Editur',c_portal:'Portal',c_years:'Perioda',c_docs:'Documents',c_schedule:'Plan',c_last:'Ultima giada cun success',c_licence:'Utilisaziun',
+      c_bycanton:'Relaschs per chantun',c_bysource:'Publicaziuns per funtauna',c_sources:'{n} funtaunas',c_src_last:'ultima giada',
+      sn_cantonal_laws:'Directamain da 23 collecziuns chantunalas; LexFind per JU, SZ, VD e las largias da ZH.',
+      ca_scholarship:'Repositoris universitars e revistas spezialisadas',ca_practice:'UFAS, CAP PP, COMCO, FINMA, SECO, UFSP, AFC, SEM, UFG, UFAM, CUL, ASR, UFRC, autoritads chantunalas, ONU',
+      m_tag:'Metoda',m_h:'Co ch’ils status naschan',
+      m_p1:'Ina execuziun reussida d’in scraper na vul anc betg dir che la funtauna saja cumpletta: ina execuziun po finir senza errur e tuttina betg chattar nagut nov, entant che la dretgira cuntinuescha a publitgar. Perquai mesira questa pagina, sche novas decisiuns arrivan propi.',
+      m_p2:'Il ritem d’ina funtauna è il dumber mesaun da decisiuns datadas dals dus ultims onns cumplets. Ina funtauna vala sco en retard, sche sia decisiun la pli nova è pli veglia che il quadrupel da l’interval usità (almain 60 dis, maximalmain 18 mais, plus il retard da publicaziun enconuschent d’ina seria) e sch’i n’è entant vegnida agiuntada nagina lingia, u sch’i èn entradas quest onn bler damain decisiuns che quai ch’ils onns precedents laschan spetgar.',
+      m_p3:'Fin il mars 2026 èn intgins codes vegnids emplenids mo tras il flux da l’agregatur independent entscheidsuche.ch. Quest flux è terminà; mintga funtauna vegn rimnada directamain tar il portal uffizial. Codes ch’èn anc dependids dad el stattan sin «nagin rimnar», fin ch’in scraper direct als surpiglia. Las datas gia surpigliadas restan en il corpus; entscheidsuche.ch è numnà sco funtauna en la descripziun dal set da datas.',
+      m_p4:'La cifra dal portal è il dumber da resultats che il portal da la dretgira sez indica. Betg mintga portal indica in; nua ch’i na vegn mesirà nagut, stat «betg mesirà».',
+      m_data:'Datas: <a href="/sources/status.json"><code>/sources/status.json</code></a> (questa pagina, mintga notg da nov) · <a href="/sources/registry.json"><code>/sources/registry.json</code></a> (portals, licenzas, attribuziun) · <a href="/coverage.json"><code>/coverage.json</code></a> (stgalim per onn) · <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (ultima execuziun da notg). Errurs e largias: <a href="https://github.com/jonashertner/opencaselaw/issues">issue tracker</a>.',
+      lg_fresh:'Rimnar current, novas decisiuns arrivan en il ritem spetgà.',
+      lg_stale:'Rimnar current, ma dapi pli ditg ch’usità nagut nov.',
+      lg_failing:'L’ultima execuziun d’in scraper cumpetent è fallida.',
+      lg_no_intake:'Nagin scraper na curra per quest code; novas decisiuns da la funtauna mancan.',
+      lg_quiet:'Rimnar current; la funtauna na publitgescha tenor plan nagut pli u en blocs cun retard.',
+      lg_superseded:'Furniziun pli veglia; decisiuns actualas stattan sut auters codes.',
+      lg_closed:'La dretgira u la seria n’exista betg pli.',
+      load_err:'Las datas da status n’han betg pudì vegnir chargiadas ({m}).'
     },
     en:{
-      skip:'Skip to content',
-      kicker:'Operational',kicker_sub:'scrapers',h1:'Coverage',
-      lead:"Per-source scraper health for the OpenCaseLaw Swiss legal corpus, refreshed nightly by the publish pipeline (03:00 UTC). The table below shows every active scraper, the decisions it added in the last run, the total it holds, and — where the source portal exposes it — a comparison against the portal's published count so any gap is visible.",
-      stat_lastRun:'Last run',stat_healthy:'Healthy',stat_noNew:'No new docs',stat_failing:'Failing',stat_totalDecisions:'Total decisions',
-      filter_ph:'Filter — bger, zh, ti…',f_all:'All',f_healthy:'Healthy',f_noNew:'No new',f_failing:'Failing',
-      th_source:'Source',th_status:'Status',th_lastRun:'+ last run',th_totalOurs:'Total ours',th_portal:'Portal',th_gap:'Gap',th_duration:'Duration',
-      noSources:'No sources match.',
-      p_healthy:'healthy',p_noNew:'no new docs',p_timedOut:'timed out',p_error:'error',p_noData:'no data',
-      gap_complete:'complete',
-      loadErr:'Could not load scraper health: {msg}',
-      meta:'Data source: <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (<a href="https://github.com/jonashertner/opencaselaw/blob/main/run_scraper.py">run_scraper.py</a>). A non-zero gap usually means a publication delay at the source portal, not a missed scrape. Persistent failures are tracked in the <a href="https://github.com/jonashertner/opencaselaw/issues">issue tracker</a>. For institutional collaboration on coverage gaps, write to <a href="mailto:team@jonashertner.com">team@jonashertner.com</a>.',
-      arch_tag:'Frozen archives',arch_h:'Supplementary frozen archives',
-      arch_lead:"Beyond the live scrapers above, the corpus also incorporates seven <strong>frozen archives</strong> sourced via <a href=\"https://entscheidsuche.ch/\" rel=\"noopener\">entscheidsuche.ch</a> — an independent open-access aggregator that mirrors many Swiss court portals. We re-ingest entscheidsuche's JSON archives once a week (Sunday 22:00 UTC) as a completeness backstop; the last six runs added <strong>zero new decisions</strong> because the upstream portals these shards reflect are no longer producing new content or have been replaced. The records are preserved as historical snapshots inside our corpus.",
-      arch_th_shard:'Shard',arch_th_records:'Records',arch_th_upstream:'Upstream status',
-      arch_vd_findinfo:'Historical VD jurisprudence portal (<code>jurisprudence.findinfo.ch</code>) retired; current decisions covered by direct <code>vd_gerichte</code> scraper.',
-      arch_vd_omni:'Historical VD aggregation; superseded by current portals.',
-      arch_ch_vb:'Frozen archive from <code>amtsdruckschriften.bar.admin.ch</code>, two distinct parts. (1) The VPB/JAAC series: 2,502 PDFs, 1987–2017, rulings and legal opinions, cited as VPB &lt;number&gt; (vols. 51–70 complete but 70.32, 2007–2017 complete but 2014.3; the series ended on 1 Jan 2018). (2) About 20,400 Bundesblatt, Amtliches Bulletin and Amtliche Sammlung pages from the same entscheidsuche feed, removed in October 2026 and restored on 31 Oct 2026: not rulings, dates unreliable, all tagged <code>language=de</code> though many are French or Italian, cited as “Bundesverwaltung &lt;docket&gt;”.',
-      arch_sg_gerichte:'Predecessor of <code>sg_publikationen</code> (live, 12,690 records direct-scraped).',
-      arch_be_bvd:'BE Behörden-Verwaltungs-Direktion. Administrative tribunal; no live portal endpoint.',
-      arch_be_weitere:'BE miscellaneous administrative bodies.',
-      arch_be_steuerrekurs:'Steuerrekurskommission BE. Direct scraper exists; upstream portal database disconnected since February 2026, returns 0 results. We are tracking the issue with the canton.',
-      arch_footnote:'All other entscheidsuche shards (~40 of 51) are <strong>shadowed by an independent direct scraper</strong> against the source portal. Where both exist, dedup at build-time uses our direct data as the source of record. Entscheidsuche.ch is acknowledged in the dataset card as a contributing upstream for the frozen-archive set; their re-aggregation work has CC BY-style attribution.'
+      skip:'Skip to content',kicker:'Transparency',kicker_sub:'Sources',h1:'Sources and coverage',
+      lead:'Every source in the corpus with its official portal, how and when we collect it, how much we hold, its newest decision, and a status recomputed every night from the data. Nothing on this page is set by hand: if a source stops, it shows here.',
+      st_codes:'Courts and authorities',st_fresh:'up to date',st_stale:'stale or failing',st_nointake:'without live intake',st_asof:'Evaluated',
+      att_l:'Needs attention',
+      sc_tag:'Case law',sc_h:'Courts and authorities',
+      sc_p:'Every court and authority code in the corpus appears here exactly once, with the route by which new decisions arrive. A row opens the details: portal, terms of use, the last run of each scraper, and the rule the status was computed by.',
+      filter_ph:'Filter — bger, Zürich, tax…',f_all:'All',f_att:'Needs attention',f_fresh:'Up to date',f_quiet:'Quiet',f_arch:'Archive',
+      count_line:'{n} of {t} codes · {d} decisions',no_rows:'No source matches the filter.',
+      g_federal:'Federal',g_authority:'Federal authorities, commissions and other bodies',g_international:'International',g_cantonal:'Cantons',g_unmapped:'Not yet catalogued',
+      grp_meta:'{n} codes · {d} decisions',grp_meta1:'1 code · {d} decisions',
+      th_source:'Source',th_status:'Status',th_intake:'Intake',th_count:'Held',th_newest:'Newest decision',th_added:'Last added',th_cadence:'Cadence',th_portal:'Portal',
+      s_fresh:'up to date',s_stale:'stale',s_failing:'failing',s_quiet:'quiet',s_no_intake:'no intake',s_superseded:'superseded',s_closed:'closed',s_unknown:'unknown',
+      k_nightly:'nightly',k_federal:'federal',k_late:'late retry',k_poller:'poller',k_own_timer:'own run',
+      i_retired:'feed retired',i_import:'one-off import',i_unsched:'not scheduled',i_none:'no scraper',
+      sch_daily:'{t}',sch_weekly:'{d} {t}',sch_monthly:'day {n}, {t}',sch_hourly:'{days} {f}–{u}',utc:'UTC',
+      dow_Mon:'Mon',dow_Tue:'Tue',dow_Wed:'Wed',dow_Thu:'Thu',dow_Fri:'Fri',dow_Sat:'Sat',dow_Sun:'Sun',
+      ago:'{n} d ago',today:'today',
+      cad_every:'≈ every {n} d',cad_year:'≈ {n}/yr',cad_rare:'rare',
+      p_nm:'not measured',p_scraper:'scraper-wide',p_complete:'complete',
+      undated:'{n} undated',
+      d_code:'Code',d_portal:'Official portal',d_noportal:'no public portal known',d_licence:'Terms of use',d_intake:'Intake and last run',
+      d_years:'Years',d_ok:'succeeded',d_failed:'failed',d_norun:'no run recorded',
+      d_new:'+{n} new',d_ours:'ours {n}',d_portalc:'portal {n}',d_gap:'gap {n}',d_whole:'Counts cover the whole scraper {s}.',
+      rs_OK:'as expected',rs_LOW:'below expectation',rs_STALE:'far below expectation',rs_WAIT:'not judgeable yet',rs_SMALL:'too little data',rs_NEW:'new',
+      d_rate:'Year comparison',d_note:'Note',d_succ:'Current decisions under',d_succ_practice:'Now in administrative practice (below).',
+      why_no_new_decision:'No new decision for {d} days. At this source’s usual cadence (≈ every {e} days) it counts as stale after {w} days without a new decision.',
+      why_rate_stale:'Markedly fewer decisions this year than the two previous years predict ({r}).',
+      why_rate_detail:'{c} of {x} expected',
+      why_run_failed:'The latest run of a scraper for this code failed.',
+      why_silent_by_design:'The source no longer publishes anything new, by design; it is not judged by cadence.',
+      why_publication_lag:'The source publishes in batches about {l} days after deciding; this year’s judging window has not opened yet.',
+      why_rare:'Too few dated decisions in the last two years to derive a cadence; judged after 18 months.',
+      why_feed_retired:'This code was filled only by the entscheidsuche.ch feed, retired in March 2026. No direct scraper replaces it yet; the source’s new decisions are missing from the corpus.',
+      why_scraper_not_scheduled:'A direct scraper is registered but does not run in the nightly; the source’s new decisions are missing from the corpus.',
+      why_import_retired:'One-off import; the source is not collected continuously.',
+      why_no_scraper:'No scraper collects this code.',
+      why_superseded:'Frozen rows of an earlier feed. Current decisions of the same body arrive under other codes.',
+      why_ended:'The court or series no longer exists (since {y}).',
+      why_fresh:'New decisions arrive at the expected cadence. Stale after {w} days without a new decision.',
+      co_tag:'Other sources',co_h:'Laws, legislative materials, practice, commentaries, scholarship',
+      co_p:'These collections are refreshed by their own runs. Shown: holdings, years, schedule, and the last successful refresh according to the system log.',
+      ck_laws:'Laws',ck_materialien:'Legislative materials',ck_practice:'Practice',ck_commentaries:'Commentaries',ck_scholarship:'Scholarship',
+      cn_federal_laws:'Federal law (Classified Compilation)',cn_cantonal_laws:'Cantonal law, 26 cantons',cn_materialien:'Federal Gazette: dispatches, reports, committee reports, draft acts',cn_vernehmlassungen:'Consultation procedures',cn_practice:'Administrative practice of the Confederation, the cantons and the UN',cn_commentaries:'Open commentaries',cn_scholarship:'Open-access legal scholarship',
+      cu_federal_laws:'acts',cu_cantonal_laws:'acts',cu_materialien:'documents',cu_vernehmlassungen:'procedures',cu_practice:'documents',cu_commentaries:'commentaries',cu_scholarship:'publications',
+      c_authority:'Publisher',c_portal:'Portal',c_years:'Years',c_docs:'Documents',c_schedule:'Schedule',c_last:'Last success',c_licence:'Terms of use',
+      c_bycanton:'Acts by canton',c_bysource:'Publications by source',c_sources:'{n} sources',c_src_last:'last',
+      sn_cantonal_laws:'Directly from 23 cantonal law collections; LexFind for JU, SZ, VD and gaps in ZH.',
+      ca_scholarship:'University repositories and law journals',ca_practice:'FSIO, OAK BV, COMCO, FINMA, SECO, FOPH, FTA, SEM, FOJ, FOEN, TOB, FAOA, FCRO, cantonal authorities, UN',
+      m_tag:'Method',m_h:'How the statuses are computed',
+      m_p1:'A successful scraper run does not mean a source is complete: a run can end without error and still find nothing new while the court keeps publishing. So this page measures whether new decisions actually arrive.',
+      m_p2:'A source’s cadence is the mean number of dated decisions over the last two full years. A source is stale when its newest decision is older than four times the usual interval (at least 60 days, at most 18 months, plus a series’ known publication lag) and no row was added in that time, or when the current year holds markedly fewer decisions than the previous years predict.',
+      m_p3:'Until March 2026 a few codes were filled only by the feed of the independent aggregator entscheidsuche.ch. That feed is retired; every source is collected directly from its official portal. Codes that still depended on it show “no intake” until a direct scraper takes over. Rows already taken over stay in the corpus; entscheidsuche.ch is credited as a source in the dataset card.',
+      m_p4:'The portal count is the number of results the court’s portal itself reports. Not every portal states one; where none is measured, the page says “not measured”.',
+      m_data:'Data: <a href="/sources/status.json"><code>/sources/status.json</code></a> (this page, recomputed nightly) · <a href="/sources/registry.json"><code>/sources/registry.json</code></a> (portals, licences, mapping) · <a href="/coverage.json"><code>/coverage.json</code></a> (holdings by year) · <a href="https://mcp.opencaselaw.ch/api/scraper-health"><code>/api/scraper-health</code></a> (last nightly run). Errors and gaps: <a href="https://github.com/jonashertner/opencaselaw/issues">issue tracker</a>.',
+      lg_fresh:'Live intake, new decisions arrive at the expected cadence.',
+      lg_stale:'Live intake, but nothing new for longer than usual.',
+      lg_failing:'The latest run of a responsible scraper failed.',
+      lg_no_intake:'No scraper runs for this code; the source’s new decisions are missing.',
+      lg_quiet:'Live intake; the source has stopped publishing by design, or publishes in delayed batches.',
+      lg_superseded:'Earlier feed; current decisions are under other codes.',
+      lg_closed:'The court or series no longer exists.',
+      load_err:'Could not load the status data ({m}).'
     }
   },
   onReady:function(O){
-    // Translate placeholder + data-t-html nodes (site.js applyI18n handles
-    // data-t and inline-HTML data-t already; data-t-ph + data-t-html are
-    // page-specific attributes we resolve here on init and on every lang swap).
-    function applyExtra(){
-      document.querySelectorAll('[data-t-ph]').forEach(function(el){ el.placeholder=O.t(el.dataset.tPh); });
-      document.querySelectorAll('[data-t-html]').forEach(function(el){ el.innerHTML=O.t(el.dataset.tHtml); });
-    }
-    applyExtra();
-
+    document.querySelectorAll('[data-t-ph]').forEach(function(el){ el.placeholder=O.t(el.dataset.tPh); });
     function T(k,v){var s=O.t(k); if(v)for(var x in v)s=s.split('{'+x+'}').join(v[x]); return s;}
+    var LOC={de:'de-CH',fr:'fr-CH',it:'it-CH',rm:'de-CH',en:'en-GB'}[O.lang]||'de-CH';
+    var CN={AG:'Aargau',AI:'Appenzell Innerrhoden',AR:'Appenzell Ausserrhoden',BE:'Bern',BL:'Basel-Landschaft',BS:'Basel-Stadt',FR:'Fribourg',GE:'Genève',GL:'Glarus',GR:'Graubünden',JU:'Jura',LU:'Luzern',NE:'Neuchâtel',NW:'Nidwalden',OW:'Obwalden',SG:'St. Gallen',SH:'Schaffhausen',SO:'Solothurn',SZ:'Schwyz',TG:'Thurgau',TI:'Ticino',UR:'Uri',VD:'Vaud',VS:'Valais',ZG:'Zug',ZH:'Zürich'};
+    var SEV={failing:0,no_intake:1,stale:2,quiet:3,fresh:4,superseded:5,closed:6};
+    var PILL={fresh:'ok',stale:'warn',failing:'err',no_intake:'err',quiet:'mute',superseded:'mute',closed:'mute'};
+    var ATT={failing:1,no_intake:1,stale:1};
+    var ARCH={superseded:1,closed:1};
 
-    var SCRAPER_LABELS={
-      bger:'Bundesgericht',bge:'BGE (amtl. Sammlung)',bge_historical:'BGE 1875–1953',
-      bvger:'Bundesverwaltungsgericht',bstger:'Bundesstrafgericht',bpatger:'Bundespatentgericht',
-      bge_egmr:'EGMR (CH)',hudoc:'EGMR / HUDOC',emark:'EMARK (asyl)',ch_bundesrat:'Bundesrat',
-      finma:'FINMA',finma_versicherungsrecht:'FINMA (Versicherung)',weko:'WEKO',edoeb:'EDÖB',
-      ubi:'UBI',elcom:'ElCom',postcom:'PostCom',comcom:'ComCom',ta_sst:'TA-SST',
-      mkg:'Militärkassationsgericht',sav_international:'SAV international',sav_kantone:'SAV Kantone',
-      untb:'UNO-Vertragsorgane + WGAD',cjeu:'EuGH',icj:'IGH'
-    };
-    function scraperLabel(key){
-      if(SCRAPER_LABELS[key])return SCRAPER_LABELS[key];
-      var m=key.match(/^([a-z]{2})_(.+)$/);
-      if(m)return m[1].toUpperCase()+' · '+m[2].replace(/_/g,' ');
-      return key;
-    }
-
-    function classify(s){
-      if(!s)return'err';
-      if(s.error||s.timed_out||s.success===false)return'err';
-      if((s.new_count||0)===0&&(s.our_count||0)===0)return'err';
-      if((s.new_count||0)===0)return'zero';
-      return'ok';
-    }
-    function fmtDate(iso){
-      if(!iso)return'—';
-      var d=new Date(iso);
-      if(isNaN(d))return iso;
-      return d.toISOString().slice(0,16).replace('T',' ')+' UTC';
-    }
-    function fmtDuration(s){
-      if(s==null)return'—';
-      if(s<60)return s.toFixed(1)+'s';
-      return(s/60).toFixed(1)+'m';
-    }
-
-    // DOM builder — never innerHTML with row data.
     function el(tag,p,kids){
       var n=document.createElement(tag);
-      if(p)for(var k in p){if(k==='class')n.className=p[k];else if(k==='text')n.textContent=p[k];else n.setAttribute(k,p[k]);}
-      if(kids)kids.forEach(function(c){if(c==null)return;n.appendChild(typeof c==='string'?document.createTextNode(c):c);});
+      if(p)for(var k in p){var v=p[k];if(v==null)continue;if(k==='class')n.className=v;else if(k==='text')n.textContent=v;else n.setAttribute(k,v);}
+      if(kids)kids.forEach(function(c){if(c==null||c===false)return;n.appendChild(typeof c==='string'?document.createTextNode(c):c);});
       return n;
     }
-    function pill(cls,text,small){
-      return el('span',{class:'pill '+cls+(small?' sm':''),text:text});
+    function pill(status){return el('span',{class:'pill '+(PILL[status]||'mute'),text:O.t('s_'+status)});}
+    function fdate(iso){
+      if(!iso)return'—';
+      var d=new Date(iso.length<=10?iso+'T00:00:00Z':iso);
+      if(isNaN(d))return iso;
+      try{return d.toLocaleDateString(LOC,{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});}catch(e){return iso.slice(0,10);}
     }
-
-    var STATE={rows:[],filter:'all',q:''};
-
-    function applyFilters(){
-      var q=STATE.q.toLowerCase().trim(),f=STATE.filter;
-      return STATE.rows.filter(function(r){
-        if(f!=='all'&&classify(r)!==f)return false;
-        if(q&&r._key.toLowerCase().indexOf(q)<0&&scraperLabel(r._key).toLowerCase().indexOf(q)<0)return false;
-        return true;
-      });
+    function ftime(iso){
+      if(!iso)return'—';
+      var d=new Date(iso); if(isNaN(d))return iso;
+      return fdate(iso)+' '+d.toISOString().slice(11,16)+' '+O.t('utc');
     }
-
-    function render(){
-      var rows=applyFilters();
-      var tbody=document.getElementById('rows');
-      tbody.replaceChildren();
-
-      if(!rows.length){
-        var tr=el('tr',null,[el('td',{class:'empty',colspan:'7',text:O.t('noSources')})]);
-        tbody.appendChild(tr);
-        return;
+    function ago(n){return n==null?'':(n<=0?O.t('today'):T('ago',{n:O.fmt(n)}));}
+    function when(w){
+      if(!w)return'';
+      if(w.cadence==='daily')return T('sch_daily',{t:w.time});
+      if(w.cadence==='weekly')return T('sch_weekly',{d:O.t('dow_'+w.day),t:w.time});
+      if(w.cadence==='monthly')return T('sch_monthly',{n:w.day,t:w.time});
+      if(w.cadence==='hourly'){var days=w.days?w.days.split('-').map(function(d){return O.t('dow_'+d);}).join('–'):'';return T('sch_hourly',{days:days,f:w.from,u:w.to});}
+      return w.raw||'';
+    }
+    function runChip(r){
+      var w=(r.when||[]).map(when).filter(Boolean).join(', ');
+      return el('span',{class:'chip',title:r.unit},[O.t('k_'+r.kind)+(w?' '+w:'')]);
+    }
+    function intakeChips(c){
+      var box=el('div');
+      var runs=[];
+      c.intake.feeders.forEach(function(f){f.runs.forEach(function(r){runs.push(r);});});
+      if(runs.length){
+        var seen={};
+        runs.forEach(function(r){var k=r.kind+'|'+JSON.stringify(r.when);if(seen[k])return;seen[k]=1;box.appendChild(runChip(r));});
+      }else if(c.why==='scraper_not_scheduled'){box.appendChild(el('span',{class:'chip off',text:O.t('i_unsched')}));}
+      else if(c.intake.feed==='entscheidsuche'){box.appendChild(el('span',{class:'chip off',text:O.t('i_retired')}));}
+      else if(c.intake.feed==='import'){box.appendChild(el('span',{class:'chip off',text:O.t('i_import')}));}
+      else{box.appendChild(el('span',{class:'chip off',text:O.t('i_none')}));}
+      return box;
+    }
+    function years(c){return c.first_year?(c.first_year===c.last_year?c.first_year:c.first_year+'–'+c.last_year):'';}
+    function cadence(c){
+      var k=c.cadence||{};
+      if(k.every_days)return k.every_days<=60?T('cad_every',{n:k.every_days}):T('cad_year',{n:String(k.per_year).replace('.',O.lang==='en'?'.':',')});
+      return O.t('cad_rare');
+    }
+    function portalCell(c){
+      var fs=c.intake.feeders.filter(function(f){return f.last_run&&f.last_run.portal_count!=null;});
+      if(!fs.length)return el('span',{class:'nm-sm',text:O.t('p_nm')});
+      var own=fs.filter(function(f){return f.scraper===c.code;})[0];
+      if(!own)return el('span',{class:'nm-sm',text:O.t('p_scraper')});
+      var r=own.last_run, box=el('span',null,[O.fmt(r.portal_count)]);
+      if(r.gap===0)box.appendChild(el('span',{class:'sub',text:O.t('p_complete')}));
+      else if(r.gap!=null)box.appendChild(el('span',{class:'sub',text:(r.gap>0?'−':'+')+O.fmt(Math.abs(r.gap))}));
+      return box;
+    }
+    function rateDetail(c){
+      var r=c.rate_check&&c.rate_check.reason, m=r&&/(\d+) of (\d+) expected/.exec(r);
+      return m?T('why_rate_detail',{c:O.fmt(+m[1]),x:O.fmt(+m[2])}):'';
+    }
+    function whyText(c){
+      var k=c.cadence||{};
+      switch(c.why){
+        case'no_new_decision':return T('why_no_new_decision',{d:O.fmt(c.days_since_newest),e:k.every_days||'—',w:k.stale_after_days});
+        case'rate_stale':return T('why_rate_stale',{r:rateDetail(c)});
+        case'publication_lag':return T('why_publication_lag',{l:k.lag_days});
+        case'ended':return T('why_ended',{y:(c.ended||'').slice(0,4)});
+        case null:case undefined:return c.status==='fresh'?T('why_fresh',{w:k.stale_after_days}):'';
+        default:return O.t('why_'+c.why);
       }
-
-      rows.sort(function(a,b){
-        var order={err:0,zero:1,ok:2};
-        var oc=order[classify(a)]-order[classify(b)];
-        if(oc!==0)return oc;
-        return a._key.localeCompare(b._key);
+    }
+    function dl(pairs){
+      var g=el('dl',{class:'det-grid'});
+      pairs.forEach(function(p){if(!p)return;var d=el('div',{class:p[2]||null},[el('dt',{text:p[0]}),el('dd',null,[p[1]])]);g.appendChild(d);});
+      return g;
+    }
+    function feederBlock(c){
+      var box=el('div');
+      if(!c.intake.feeders.length){box.appendChild(intakeChips(c));return box;}
+      var multi=c.intake.feeders.length>1||c.intake.feeders[0].scraper!==c.code;
+      c.intake.feeders.forEach(function(f){
+        var r=f.last_run, line=el('p',{class:'run'},[el('b',null,[el('code',{text:f.scraper})]),' ']);
+        if(f.runs.length)f.runs.forEach(function(x){line.appendChild(runChip(x));});
+        else line.appendChild(el('span',{class:'chip off',text:O.t('i_unsched')}));
+        box.appendChild(line);
+        var p=el('p',{class:'run'});
+        if(r){
+          p.appendChild(el('span',{class:r.ok?'ok-t':'err-t',text:O.t(r.ok?'d_ok':'d_failed')}));
+          p.appendChild(document.createTextNode(' · '+ftime(r.at)));
+          if(r.new!=null)p.appendChild(document.createTextNode(' · '+T('d_new',{n:O.fmt(r.new)})));
+          if(r.our_count!=null)p.appendChild(document.createTextNode(' · '+T('d_ours',{n:O.fmt(r.our_count)})));
+          p.appendChild(document.createTextNode(' · '+(r.portal_count!=null?T('d_portalc',{n:O.fmt(r.portal_count)})+(r.gap!=null?' · '+T('d_gap',{n:O.fmt(r.gap)}):''):O.t('th_portal')+' '+O.t('p_nm'))));
+          if(r.error)p.appendChild(el('span',{class:'sub',text:r.error}));
+          else if(r.note)p.appendChild(el('span',{class:'sub',text:r.note}));
+          if(multi&&(r.our_count!=null||r.portal_count!=null))p.appendChild(el('span',{class:'sub',text:T('d_whole',{s:f.scraper})}));
+        }else{p.textContent=O.t('d_norun');}
+        box.appendChild(p);
       });
+      return box;
+    }
+    function details(c,LIC){
+      var portal=c.portal?el('a',{href:c.portal,rel:'noopener',text:c.portal.replace(/^https:\/\//,'')}):el('span',{text:O.t('d_noportal')});
+      var lic=LIC[c.licence]?(LIC[c.licence][O.lang]||LIC[c.licence].en):'';
+      var succ=null;
+      if(c.superseded_by&&c.superseded_by.length){
+        var s=el('span');c.superseded_by.forEach(function(x,i){if(i)s.appendChild(document.createTextNode(', '));s.appendChild(el('a',{href:'#src-'+x},[el('code',{text:x})]));});
+        succ=[O.t('d_succ'),s];
+      }else if(c.superseded_by_collection){succ=[O.t('d_succ'),el('a',{href:'#collections',text:O.t('d_succ_practice')})];}
+      var yr=years(c)+(c.undated?' · '+T('undated',{n:O.fmt(c.undated)}):'');
+      var noteEl=null;
+      if(c.note){noteEl=el('span',{text:c.note});if(O.lang!=='en')noteEl.setAttribute('lang','en');}
+      return dl([
+        [O.t('th_status'),el('span',{text:whyText(c)}),'det-why'],
+        [O.t('d_code'),el('code',{text:c.code})],
+        [O.t('d_portal'),portal],
+        [O.t('d_years'),el('span',{text:yr||'—'})],
+        [O.t('th_newest'),el('span',{text:fdate(c.newest_decision)+(c.days_since_newest!=null?' · '+ago(c.days_since_newest):'')})],
+        [O.t('th_added'),el('span',{text:fdate(c.last_added)+(c.days_since_added!=null?' · '+ago(c.days_since_added):'')})],
+        [O.t('th_cadence'),el('span',{text:cadence(c)})],
+        [O.t('d_licence'),el('span',{text:lic})],
+        succ,
+        [O.t('d_intake'),feederBlock(c),'det-note'],
+        c.rate_check&&c.rate_check.status&&c.rate_check.status!=='EXPECTED'?[O.t('d_rate'),el('span',{text:O.t('rs_'+c.rate_check.status)+(rateDetail(c)?' · '+rateDetail(c):'')})]:null,
+        noteEl?[O.t('d_note'),noteEl,'det-note']:null
+      ]);
+    }
 
-      rows.forEach(function(r){
-        var cls=classify(r);
-
-        var tdSrc=el('td',null,[
-          el('div',{class:'src-key',text:r._key}),
-          el('div',{class:'src-label',text:scraperLabel(r._key)})
+    var STATE={data:null,f:'all',q:''};
+    function matches(c){
+      var f=STATE.f,s=c.status;
+      if(f==='att'&&!ATT[s])return false;
+      if(f==='fresh'&&s!=='fresh')return false;
+      if(f==='quiet'&&s!=='quiet')return false;
+      if(f==='arch'&&!ARCH[s])return false;
+      var q=STATE.q.trim().toLowerCase();
+      if(q){var hay=(c.code+' '+c.name+' '+(c.canton?(c.canton+' '+(CN[c.canton]||'')):'')).toLowerCase();if(hay.indexOf(q)<0)return false;}
+      return true;
+    }
+    function table(rows,LIC){
+      var t=el('table',{class:'src'});
+      t.appendChild(el('colgroup',null,['c1','c2','c3','c4','c5','c6','c7','c8'].map(function(k){
+        var c=el('col',{class:k});if(k==='c3')c.className+=' c-intake';if(k==='c5')c.className+=' c-newest';if(k==='c6')c.className+=' c-added';if(k==='c7')c.className+=' c-cad';if(k==='c8')c.className+=' c-portal';return c;})));
+      t.appendChild(el('thead',null,[el('tr',null,[
+        el('th',{text:O.t('th_source')}),el('th',{text:O.t('th_status')}),el('th',{class:'c-intake',text:O.t('th_intake')}),
+        el('th',{class:'n',text:O.t('th_count')}),el('th',{class:'c-newest',text:O.t('th_newest')}),el('th',{class:'c-added',text:O.t('th_added')}),
+        el('th',{class:'c-cad',text:O.t('th_cadence')}),el('th',{class:'n c-portal',text:O.t('th_portal')})])]));
+      var tb=el('tbody');
+      rows.forEach(function(c){
+        var tr=el('tr',{class:'row',id:'src-'+c.code,tabindex:'0','aria-expanded':'false'},[
+          el('td',null,[el('div',{class:'nm'},[el('span',{class:'chev','aria-hidden':'true',text:'›'}),c.name]),el('div',{class:'cd',text:c.code})]),
+          el('td',null,[pill(c.status)]),
+          el('td',{class:'c-intake'},[intakeChips(c)]),
+          el('td',{class:'n'},[O.fmt(c.count),el('span',{class:'sub',text:years(c)})]),
+          el('td',{class:'c-newest'},[fdate(c.newest_decision),el('span',{class:'sub',text:ago(c.days_since_newest)})]),
+          el('td',{class:'c-added'},[fdate(c.last_added),el('span',{class:'sub',text:ago(c.days_since_added)})]),
+          el('td',{class:'c-cad nw'},[cadence(c)]),
+          el('td',{class:'n c-portal'},[portalCell(c)])
         ]);
-
-        var pillText=(cls==='ok')?O.t('p_healthy')
-                    :(cls==='zero')?O.t('p_noNew')
-                    :(r.timed_out?O.t('p_timedOut'):r.error?O.t('p_error'):O.t('p_noData'));
-        var tdStatus=el('td',null,[pill(cls,pillText)]);
-
-        var newCount=r.new_count||0;
-        var tdNew=el('td',{class:'n'});
-        if(newCount>0){tdNew.appendChild(el('span',{class:'new-badge',text:'+'+O.fmt(newCount)}));}
-        else{tdNew.textContent='0';}
-
-        var tdOurs=el('td',{class:'n',text:O.fmt(r.our_count)});
-        var tdPortal=el('td',{class:'n col-portal',text:r.portal_count!=null?O.fmt(r.portal_count):'—'});
-
-        var tdGap=el('td',{class:'n'});
-        if(r.gap==null){tdGap.textContent='—';}
-        else if(r.gap===0){tdGap.appendChild(pill('ok',O.t('gap_complete'),true));}
-        else{tdGap.appendChild(pill('warn','−'+O.fmt(r.gap),true));}
-
-        var tdDur=el('td',{class:'n col-duration',text:fmtDuration(r.duration_s)});
-
-        tbody.appendChild(el('tr',null,[tdSrc,tdStatus,tdNew,tdOurs,tdPortal,tdGap,tdDur]));
+        var det=null;
+        function toggle(){
+          var open=tr.classList.toggle('open');tr.setAttribute('aria-expanded',open?'true':'false');
+          if(open){det=el('tr',{class:'det'},[el('td',{colspan:'8'},[details(c,LIC)])]);tr.after(det);}
+          else if(det){det.remove();det=null;}
+        }
+        tr.addEventListener('click',function(e){if(e.target.closest('a'))return;toggle();});
+        tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});
+        tr._open=function(){if(!tr.classList.contains('open'))toggle();};
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb);
+      return t;
+    }
+    function groupBlock(title,rows,LIC){
+      var d=rows.reduce(function(a,c){return a+c.count;},0);
+      return el('div',{class:'grp'},[
+        el('div',{class:'grp-h'},[el('h3',{text:title}),el('span',{class:'meta',text:T(rows.length===1?'grp_meta1':'grp_meta',{n:rows.length,d:O.fmt(d)})})]),
+        table(rows,LIC)]);
+    }
+    function render(){
+      var data=STATE.data, LIC=data.licences||{};
+      var box=document.getElementById('groups');box.replaceChildren();
+      var rows=data.courts.filter(matches);
+      var tot=rows.reduce(function(a,c){return a+c.count;},0);
+      document.getElementById('count-line').textContent=T('count_line',{n:rows.length,t:data.courts.length,d:O.fmt(tot)});
+      if(!rows.length){box.appendChild(el('p',{class:'empty',text:O.t('no_rows')}));return;}
+      function byName(a,b){return STATE.f==='all'?a.name.localeCompare(b.name,LOC):(SEV[a.status]-SEV[b.status])||a.name.localeCompare(b.name,LOC);}
+      ['federal','authority','international','unmapped'].forEach(function(g){
+        var r=rows.filter(function(c){return c.group===g;}).sort(byName);
+        if(r.length)box.appendChild(groupBlock(O.t('g_'+g),r,LIC));
+      });
+      var cant=rows.filter(function(c){return c.group==='cantonal';});
+      var codes={};cant.forEach(function(c){codes[c.canton]=1;});
+      Object.keys(codes).sort().forEach(function(k){
+        var r=cant.filter(function(c){return c.canton===k;}).sort(byName);
+        box.appendChild(groupBlock(k+' · '+(CN[k]||k),r,LIC));
       });
     }
-
+    function setFilter(f){
+      STATE.f=f;
+      document.querySelectorAll('.tabs button').forEach(function(b){b.classList.toggle('on',b.dataset.f===f);});
+      render();
+    }
     function renderSummary(data){
-      function setText(id,val){var node=document.getElementById(id);if(node)node.textContent=String(val);}
-      setText('stat-runat',fmtDate(data.run_at));
-      var scrapers=Object.values(data.scrapers||{});
-      var ok=0,zero=0,errC=0,total=0;
-      scrapers.forEach(function(s){
-        var c=classify(s);
-        if(c==='ok')ok++;else if(c==='zero')zero++;else errC++;
-        total+=(s.our_count||0);
-      });
-      setText('stat-ok',ok);
-      setText('stat-zero',zero);
-      setText('stat-err',errC);
-      setText('stat-total',O.fmt(total));
-    }
-
-    function loadHealth(){
-      fetch('https://mcp.opencaselaw.ch/api/scraper-health',{cache:'no-store'})
-        .then(function(r){return r.json();})
-        .then(function(data){
-          if(!data||!data.scrapers)throw new Error('malformed payload');
-          STATE.rows=Object.entries(data.scrapers).map(function(e){return Object.assign({_key:e[0]},e[1]);});
-          renderSummary(data);
-          render();
-        })
-        .catch(function(err){
-          var tbody=document.getElementById('rows');
-          tbody.replaceChildren();
-          var td=el('td',{class:'empty',colspan:'7',text:T('loadErr',{msg:err.message})});
-          td.style.color='var(--st-err)';
-          tbody.appendChild(el('tr',null,[td]));
+      var s=data.summary.by_status||{};
+      function set(id,v){var n=document.getElementById(id);if(n)n.textContent=v;}
+      set('st-codes',O.fmt(data.summary.courts));
+      set('st-fresh',O.fmt(s.fresh||0));
+      set('st-stale',O.fmt((s.stale||0)+(s.failing||0)));
+      set('st-nointake',O.fmt(s.no_intake||0));
+      set('st-asof',ftime(data.generated_at));
+      var att=document.getElementById('att');att.replaceChildren();
+      var bad=data.courts.filter(function(c){return ATT[c.status];}).sort(function(a,b){return(SEV[a.status]-SEV[b.status])||a.code.localeCompare(b.code);});
+      if(bad.length){
+        att.appendChild(el('span',{class:'att-l',text:O.t('att_l')}));
+        bad.forEach(function(c){
+          var a=el('a',{href:'#src-'+c.code},[pill(c.status),c.name.length>38?c.name.slice(0,36)+'…':c.name,el('code',{text:c.code})]);
+          a.addEventListener('click',function(e){
+            e.preventDefault();STATE.q='';document.getElementById('filter').value='';setFilter('all');
+            var tr=document.getElementById('src-'+c.code);if(tr){tr._open();tr.scrollIntoView({block:'center'});tr.focus({preventScroll:true});}
+          });
+          att.appendChild(a);
         });
+        att.hidden=false;
+      }
     }
-
-    document.getElementById('filter').addEventListener('input',function(e){STATE.q=e.target.value;render();});
-    document.querySelectorAll('.tabs button').forEach(function(b){
-      b.addEventListener('click',function(){
-        document.querySelectorAll('.tabs button').forEach(function(x){x.classList.toggle('on',x===b);});
-        STATE.filter=b.dataset.filter;render();
+    function renderLegend(){
+      var lg=document.getElementById('legend');lg.replaceChildren();
+      ['fresh','stale','failing','no_intake','quiet','superseded','closed'].forEach(function(s){
+        lg.appendChild(el('div',null,[pill(s),el('span',{text:O.t('lg_'+s)})]));
       });
-    });
+    }
+    function collCard(c,LIC){
+      var unit=O.t('cu_'+c.id), name=O.t('cn_'+c.id); if(name==='cn_'+c.id)name=c.name;
+      var auth=O.t('ca_'+c.id); if(auth==='ca_'+c.id)auth=c.authority||'—';
+      var sched=(c.runs||[]).map(function(r){return(r.when||[]).map(when).join(', ');}).filter(Boolean).join(' · ');
+      var top=el('div',{class:'cc-top'},[el('div',null,[el('div',{class:'cc-kind',text:O.t('ck_'+c.kind)}),el('div',{class:'cc-name',text:name})]),pill(c.status==='unknown'?'unknown':c.status)]);
+      var yrs=c.first_year?(c.first_year+'–'+c.last_year):null;
+      var rows=[[O.t('c_authority'),auth]];
+      if(c.portal)rows.push([O.t('c_portal'),el('a',{href:c.portal,rel:'noopener',text:c.portal.replace(/^https:\/\//,'')})]);
+      if(yrs)rows.push([O.t('c_years'),yrs]);
+      if(c.documents)rows.push([O.t('c_docs'),O.fmt(c.documents)]);
+      if(sched)rows.push([O.t('c_schedule'),sched+' '+O.t('utc')]);
+      rows.push([O.t('c_last'),c.last_success?fdate(c.last_success)+' ('+ago(Math.round((Date.parse(data.as_of)-Date.parse(c.last_success))/864e5))+')':'—']);
+      rows.push([O.t('c_licence'),LIC[c.licence]?(LIC[c.licence][O.lang]||LIC[c.licence].en):'']);
+      var d=el('dl');rows.forEach(function(r){d.appendChild(el('dt',{text:r[0]}));d.appendChild(el('dd',null,[r[1]]));});
+      var card=el('article',{class:'cc'},[top,el('div',{class:'cc-num'},[O.fmt(c.count),el('span',{class:'u',text:unit})]),d]);
+      if(c.sources_note){card.appendChild(el('p',{class:'nm-sm',text:O.t('sn_'+c.sources_note)}));}
+      if(c.breakdown){
+        var det=el('details',null,[el('summary',{text:O.t(c.id==='cantonal_laws'?'c_bycanton':'c_bysource')})]);
+        var t=el('table',{class:'mini'});
+        Object.keys(c.breakdown).sort(function(a,b){return c.id==='cantonal_laws'?a.localeCompare(b):c.breakdown[b]-c.breakdown[a];}).forEach(function(k){
+          t.appendChild(el('tr',null,[el('td',{text:c.id==='cantonal_laws'?k+' · '+(CN[k]||k):k}),el('td',{class:'n',text:O.fmt(c.breakdown[k])})]));
+        });
+        det.appendChild(t);card.appendChild(det);
+      }
+      if(c.sources&&c.sources.length){
+        var det2=el('details',null,[el('summary',{text:T('c_sources',{n:c.sources.length})})]);
+        var t2=el('table',{class:'mini'});
+        c.sources.forEach(function(s){
+          t2.appendChild(el('tr',null,[el('td',null,[el('code',{text:s.source}),el('span',{class:'sub',text:s.authority||''})]),
+            el('td',{class:'n'},[O.fmt(s.count),el('span',{class:'sub',text:(s.first_year?s.first_year+'–'+s.last_year:'')})]),
+            el('td',{class:'n'},[el('span',{class:'sub',text:O.t('c_src_last')}),fdate(s.last_scraped)])]));
+        });
+        det2.appendChild(t2);card.appendChild(det2);
+      }
+      return card;
+    }
+    var data;
+    function renderCollections(){
+      var box=document.getElementById('coll');box.replaceChildren();
+      (data.collections||[]).forEach(function(c){box.appendChild(collCard(c,data.licences||{}));});
+    }
+    function fail(msg){
+      ['groups','coll'].forEach(function(id){var b=document.getElementById(id);b.replaceChildren(el('p',{class:'empty err-box',text:T('load_err',{m:msg})}));});
+      ['st-codes','st-fresh','st-stale','st-nointake','st-asof'].forEach(function(id){var n=document.getElementById(id);if(n)n.textContent='—';});
+    }
+    renderLegend();
+    fetch('/sources/status.json?v='+Math.floor(Date.now()/600000),{cache:'no-cache'})
+      .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+      .then(function(d){
+        if(!d||!Array.isArray(d.courts))throw new Error('malformed payload');
+        data=STATE.data=d;
+        renderSummary(d);render();renderCollections();
+        if(location.hash&&location.hash.indexOf('#src-')===0){var tr=document.getElementById(location.hash.slice(1));if(tr){tr._open();tr.scrollIntoView({block:'center'});}}
+      })
+      .catch(function(e){fail(e.message);});
 
-    // Language switch in the shared chrome is a real ?lang= link (full reload),
-    // so OCL.init — and applyExtra() + the table render below — re-run with the
-    // new locale on load. No in-place re-render hook needed.
-
-    loadHealth();
+    document.getElementById('filter').addEventListener('input',function(e){STATE.q=e.target.value;if(STATE.data)render();});
+    document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){if(STATE.data)setFilter(b.dataset.f);});});
+    document.querySelectorAll('[data-jump]').forEach(function(b){b.addEventListener('click',function(){
+      if(!STATE.data)return;setFilter(b.dataset.jump);document.getElementById('courts').scrollIntoView({behavior:'smooth'});
+    });});
   }
 });
 </script>

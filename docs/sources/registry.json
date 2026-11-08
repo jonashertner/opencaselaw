@@ -1,0 +1,1338 @@
+{
+ "schema": "source-registry/v1",
+ "_doc": "Curated FACTS per source for the public /coverage/ page: name, official portal, licence key, which scraper writes the court code (fed_by; default = the scraper of the same key in run_scraper.SCRAPERS), the retired feed a frozen code came from (feed: entscheidsuche | import), an ended series (ended), and the codes or collection that carry its current rulings (superseded_by). NO statuses here: scripts/source_status.py derives every status nightly from coverage.json, stats.json and the scraper health files. tests/test_source_status.py fails when a court code in the corpus or a registered scraper is missing here.",
+ "licences": {
+  "ch_official": {
+   "de": "Amtliche Entscheide und Berichte von Behörden sind urheberrechtlich nicht geschützt (Art. 5 Abs. 1 Bst. c URG).",
+   "fr": "Les décisions et rapports officiels des autorités ne sont pas protégés par le droit d’auteur (art. 5, al. 1, let. c, LDA).",
+   "it": "Le decisioni e i rapporti ufficiali delle autorità non sono protetti dal diritto d’autore (art. 5 cpv. 1 lett. c LDA).",
+   "rm": "Decisiuns e rapports uffizials d’autoritads n’èn betg protegids dal dretg d’autur (art. 5 al. 1 lit. c LDA).",
+   "en": "Official decisions and reports of authorities are not protected by copyright (Art. 5(1)(c) Swiss Copyright Act)."
+  },
+  "ch_enactments": {
+   "de": "Erlasse sind urheberrechtlich nicht geschützt (Art. 5 Abs. 1 Bst. a URG).",
+   "fr": "Les actes normatifs ne sont pas protégés par le droit d’auteur (art. 5, al. 1, let. a, LDA).",
+   "it": "Gli atti normativi non sono protetti dal diritto d’autore (art. 5 cpv. 1 lett. a LDA).",
+   "rm": "Relaschs n’èn betg protegids dal dretg d’autur (art. 5 al. 1 lit. a LDA).",
+   "en": "Enactments are not protected by copyright (Art. 5(1)(a) Swiss Copyright Act)."
+  },
+  "official_publication": {
+   "de": "Veröffentlichungen der jeweiligen Behörde; wiedergegeben mit Link auf die Originalquelle.",
+   "fr": "Publications de l’autorité concernée ; reproduites avec un lien vers la source originale.",
+   "it": "Pubblicazioni dell’autorità competente; riprodotte con un link alla fonte originale.",
+   "rm": "Publicaziuns da l’autoritad respectiva; reproducidas cun colliaziun a la funtauna originala.",
+   "en": "Publications of the issuing authority; reproduced with a link to the original source."
+  },
+  "private_body": {
+   "de": "Veröffentlichung einer privatrechtlichen Stelle; wiedergegeben aus deren offizieller Publikation mit Quellenangabe.",
+   "fr": "Publication d’un organisme de droit privé ; reproduite depuis sa publication officielle avec indication de la source.",
+   "it": "Pubblicazione di un ente di diritto privato; riprodotta dalla sua pubblicazione ufficiale con indicazione della fonte.",
+   "rm": "Publicaziun d’in post da dretg privat; reproducida da sia publicaziun uffiziala cun indicaziun da la funtauna.",
+   "en": "Publication of a private-law body; reproduced from its official publication with source attribution."
+  },
+  "coe": {
+   "de": "Urteile des EGMR aus HUDOC; Wiedergabe mit Quellenangabe nach den Nutzungsbedingungen des Gerichtshofs.",
+   "fr": "Arrêts de la CEDH issus de HUDOC ; reproduits avec indication de la source selon les conditions d’utilisation de la Cour.",
+   "it": "Sentenze della CEDU da HUDOC; riprodotte con indicazione della fonte secondo le condizioni d’uso della Corte.",
+   "rm": "Sentenzas da la DCDU da HUDOC; reproducidas cun indicaziun da la funtauna tenor las cundiziuns d’utilisaziun da la Dretgira.",
+   "en": "ECtHR judgments from HUDOC; reproduced with source attribution under the Court’s terms of use."
+  },
+  "un": {
+   "de": "UNO-Dokumente (OHCHR-Rechtsprechungsdatenbank, UN Digital Library); Wiedergabe mit Quellenangabe nach den Nutzungsbedingungen der UNO.",
+   "fr": "Documents de l’ONU (base de jurisprudence du HCDH, UN Digital Library) ; reproduits avec indication de la source selon les conditions d’utilisation de l’ONU.",
+   "it": "Documenti dell’ONU (banca dati giurisprudenziale dell’OHCHR, UN Digital Library); riprodotti con indicazione della fonte secondo le condizioni d’uso dell’ONU.",
+   "rm": "Documents da l’ONU (banca da datas da giurisprudenza da l’OHCHR, UN Digital Library); reproducids cun indicaziun da la funtauna tenor las cundiziuns d’utilisaziun da l’ONU.",
+   "en": "UN documents (OHCHR jurisprudence database, UN Digital Library); reproduced with source attribution under the UN terms of use."
+  },
+  "eu": {
+   "de": "Urteile des EuGH über EUR-Lex/CELLAR; Weiterverwendung mit Quellenangabe gestattet (Beschluss 2011/833/EU).",
+   "fr": "Arrêts de la CJUE via EUR-Lex/CELLAR ; réutilisation autorisée moyennant mention de la source (décision 2011/833/UE).",
+   "it": "Sentenze della CGUE tramite EUR-Lex/CELLAR; riutilizzo autorizzato con menzione della fonte (decisione 2011/833/UE).",
+   "rm": "Sentenzas da la DCUE via EUR-Lex/CELLAR; reutilisaziun permessa cun indicaziun da la funtauna (decisiun 2011/833/UE).",
+   "en": "CJEU judgments via EUR-Lex/CELLAR; reuse authorised with acknowledgement of the source (Decision 2011/833/EU)."
+  },
+  "icj": {
+   "de": "Dokumente des IGH von icj-cij.org; Wiedergabe mit Quellenangabe.",
+   "fr": "Documents de la CIJ issus de icj-cij.org ; reproduits avec indication de la source.",
+   "it": "Documenti della CIG da icj-cij.org; riprodotti con indicazione della fonte.",
+   "rm": "Documents da la DCI da icj-cij.org; reproducids cun indicaziun da la funtauna.",
+   "en": "ICJ documents from icj-cij.org; reproduced with source attribution."
+  },
+  "open_commentary": {
+   "de": "Offen lizenzierte Kommentare; die Lizenz steht bei jedem Kommentar (Onlinekommentar.ch: CC BY 4.0).",
+   "fr": "Commentaires sous licence ouverte ; la licence figure sur chaque commentaire (Onlinekommentar.ch : CC BY 4.0).",
+   "it": "Commentari con licenza aperta; la licenza è indicata per ogni commentario (Onlinekommentar.ch: CC BY 4.0).",
+   "rm": "Commentaris cun licenza averta; la licenza stat tar mintga commentari (Onlinekommentar.ch: CC BY 4.0).",
+   "en": "Openly licensed commentaries; the licence is stated on each commentary (Onlinekommentar.ch: CC BY 4.0)."
+  },
+  "per_record": {
+   "de": "Open-Access-Publikationen; die Lizenz steht bei jedem Datensatz. Volltext nur, wo die Lizenz es erlaubt.",
+   "fr": "Publications en libre accès ; la licence figure sur chaque notice. Texte intégral seulement si la licence le permet.",
+   "it": "Pubblicazioni ad accesso aperto; la licenza è indicata per ogni record. Testo integrale solo se la licenza lo consente.",
+   "rm": "Publicaziuns en access avert; la licenza stat tar mintga register. Text cumplet mo nua che la licenza al permetta.",
+   "en": "Open-access publications; the licence is stated on each record. Full text only where the licence permits."
+  }
+ },
+ "courts": {
+  "ag_anwaltskommission": {
+   "name": "AG Anwaltskommission",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_aufsichtskommission": {
+   "name": "AG Aufsichtskommission",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_baugesetzgebung": {
+   "name": "AG Departement BVU, Rechtsabteilung (Sammlung bis 2021)",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch",
+   "licence": "ch_official",
+   "feed": "entscheidsuche",
+   "superseded_by": [
+    "ag_departement_bvu"
+   ]
+  },
+  "ag_departement_bks": {
+   "name": "AG Departement Bildung, Kultur und Sport",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_departement_bvu": {
+   "name": "AG Departement Bau, Verkehr und Umwelt",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_departement_gs": {
+   "name": "AG Departement Gesundheit und Soziales",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_departement_vi": {
+   "name": "AG Departement Volkswirtschaft und Inneres",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_gerichte": {
+   "name": "AG Gerichte (Sammelcode, frühere Zulieferung)",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [],
+   "feed": "entscheidsuche",
+   "superseded_by": {
+    "prefix": "ag_"
+   }
+  },
+  "ag_handelsgericht": {
+   "name": "AG Handelsgericht",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_justizgericht": {
+   "name": "AG Justizgericht",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_regierungsrat": {
+   "name": "AG Regierungsrat",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_spezialverwaltungsgericht": {
+   "name": "AG Spezialverwaltungsgericht",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_strafgericht": {
+   "name": "AG Obergericht, Strafgericht",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_versicherungsgericht": {
+   "name": "AG Versicherungsgericht",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_verwaltungsgericht": {
+   "name": "AG Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ag_weitere": {
+   "name": "AG weitere Behörden",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": null,
+   "licence": "ch_official",
+   "feed": "entscheidsuche"
+  },
+  "ag_zivilgericht": {
+   "name": "AG Obergericht, Zivilgericht",
+   "group": "cantonal",
+   "canton": "AG",
+   "portal": "https://www.ag.ch/de/gerichte",
+   "licence": "ch_official",
+   "fed_by": [
+    "ag_gerichte"
+   ]
+  },
+  "ai_gerichte": {
+   "name": "AI Kantons- und Bezirksgericht",
+   "group": "cantonal",
+   "canton": "AI",
+   "portal": "https://www.ai.ch/gerichte/rechtsprechung",
+   "licence": "ch_official"
+  },
+  "ar_gerichte": {
+   "name": "AR Obergericht und Verwaltungsbehörden",
+   "group": "cantonal",
+   "canton": "AR",
+   "portal": "https://rechtsprechung.ar.ch",
+   "licence": "ch_official"
+  },
+  "bazg": {
+   "name": "Bundesamt für Zoll und Grenzsicherheit (BAZG)",
+   "group": "authority",
+   "portal": "https://www.bazg.admin.ch",
+   "licence": "ch_official"
+  },
+  "be_anwaltsaufsicht": {
+   "name": "BE Anwaltsaufsichtsbehörde",
+   "group": "cantonal",
+   "canton": "BE",
+   "portal": "https://www.aa-entscheide.apps.be.ch/tribunapublikation",
+   "licence": "ch_official"
+  },
+  "be_bvd": {
+   "name": "BE Bau- und Verkehrsdirektion (BVD)",
+   "group": "cantonal",
+   "canton": "BE",
+   "portal": "https://www.bvd-entscheide.apps.be.ch/tribunapublikation",
+   "licence": "ch_official",
+   "feed": "entscheidsuche"
+  },
+  "be_direktionen": {
+   "name": "BE Direktionen (Rechtsabteilungen)",
+   "group": "cantonal",
+   "canton": "BE",
+   "portal": "https://www.gsi.be.ch/de/start/ueber-uns/generalsekretariat/rechtsabteilung/rechtsprechung.html",
+   "licence": "ch_official"
+  },
+  "be_steuerrekurs": {
+   "name": "BE Steuerrekurskommission",
+   "group": "cantonal",
+   "canton": "BE",
+   "portal": "https://www.strk-entscheide.apps.be.ch/tribunapublikation",
+   "licence": "ch_official",
+   "feed": "entscheidsuche"
+  },
+  "be_verwaltungsgericht": {
+   "name": "BE Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "BE",
+   "portal": "https://www.vg-urteile.apps.be.ch/tribunapublikation",
+   "licence": "ch_official"
+  },
+  "be_weitere": {
+   "name": "BE weitere Behörden",
+   "group": "cantonal",
+   "canton": "BE",
+   "portal": null,
+   "licence": "ch_official",
+   "feed": "entscheidsuche"
+  },
+  "be_zivilstraf": {
+   "name": "BE Obergericht (Zivil und Straf)",
+   "group": "cantonal",
+   "canton": "BE",
+   "portal": "https://www.zsg-entscheide.apps.be.ch/tribunapublikation",
+   "licence": "ch_official"
+  },
+  "bge": {
+   "name": "Bundesgericht, Leitentscheide (BGE)",
+   "group": "federal",
+   "portal": "https://www.bger.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "bge",
+    "bge_historical"
+   ]
+  },
+  "bge_egmr": {
+   "name": "EGMR, Urteile gegen die Schweiz (BGE-Übersetzungen)",
+   "group": "international",
+   "portal": "https://www.bger.ch",
+   "licence": "ch_official"
+  },
+  "bger": {
+   "name": "Bundesgericht",
+   "group": "federal",
+   "portal": "https://www.bger.ch",
+   "licence": "ch_official"
+  },
+  "bl_gerichte": {
+   "name": "BL Kantonsgericht",
+   "group": "cantonal",
+   "canton": "BL",
+   "portal": "https://bl.swisslex.ch",
+   "licence": "ch_official"
+  },
+  "bpatger": {
+   "name": "Bundespatentgericht",
+   "group": "federal",
+   "portal": "https://www.bundespatentgericht.ch",
+   "licence": "ch_official"
+  },
+  "bs_appellationsgericht": {
+   "name": "BS Appellationsgericht",
+   "group": "cantonal",
+   "canton": "BS",
+   "portal": "https://rechtsprechung.gerichte.bs.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "bs_gerichte"
+   ]
+  },
+  "bs_gerichte": {
+   "name": "BS Gerichte (Sammelcode)",
+   "group": "cantonal",
+   "canton": "BS",
+   "portal": "https://rechtsprechung.gerichte.bs.ch",
+   "licence": "ch_official",
+   "fed_by": [],
+   "feed": "entscheidsuche",
+   "superseded_by": {
+    "prefix": "bs_"
+   }
+  },
+  "bs_personalrekurskommission": {
+   "name": "BS Personalrekurskommission",
+   "group": "cantonal",
+   "canton": "BS",
+   "portal": "https://www.bs.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "bs_rekurskommissionen"
+   ]
+  },
+  "bs_sozialversicherungsgericht": {
+   "name": "BS Sozialversicherungsgericht",
+   "group": "cantonal",
+   "canton": "BS",
+   "portal": "https://rechtsprechung.gerichte.bs.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "bs_gerichte"
+   ]
+  },
+  "bs_steuerrekurskommission": {
+   "name": "BS Steuerrekurskommission",
+   "group": "cantonal",
+   "canton": "BS",
+   "portal": "https://www.bs.ch/organisation/rechtsprechung-der-steuerrekurskommission",
+   "licence": "ch_official",
+   "fed_by": [
+    "bs_rekurskommissionen"
+   ]
+  },
+  "bs_zivilgericht": {
+   "name": "BS Zivilgericht",
+   "group": "cantonal",
+   "canton": "BS",
+   "portal": "https://rechtsprechung.gerichte.bs.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "bs_gerichte"
+   ]
+  },
+  "bstger": {
+   "name": "Bundesstrafgericht",
+   "group": "federal",
+   "portal": "https://www.bstger.ch",
+   "licence": "ch_official"
+  },
+  "bvger": {
+   "name": "Bundesverwaltungsgericht",
+   "group": "federal",
+   "portal": "https://www.bvger.ch",
+   "licence": "ch_official"
+  },
+  "ch_bundesrat": {
+   "name": "Bundesrat (Beschwerdeentscheide)",
+   "group": "federal",
+   "portal": "https://www.bj.admin.ch",
+   "licence": "ch_official"
+  },
+  "ch_vb": {
+   "name": "Bundesverwaltung (VPB/JAAC und Amtsdruckschriften)",
+   "group": "federal",
+   "portal": "https://www.amtsdruckschriften.bar.admin.ch",
+   "licence": "ch_official",
+   "feed": "entscheidsuche",
+   "ended": "2018-01-01"
+  },
+  "cjeu": {
+   "name": "Gerichtshof der Europäischen Union (EuGH)",
+   "group": "international",
+   "portal": "https://curia.europa.eu",
+   "licence": "eu"
+  },
+  "comcom": {
+   "name": "Eidg. Kommunikationskommission (ComCom)",
+   "group": "authority",
+   "portal": "https://www.comcom.admin.ch",
+   "licence": "ch_official"
+  },
+  "ecthr_chamber": {
+   "name": "EGMR, Kammerurteile",
+   "group": "international",
+   "portal": "https://hudoc.echr.coe.int",
+   "licence": "coe",
+   "fed_by": [
+    "ecthr",
+    "hudoc_ch"
+   ]
+  },
+  "ecthr_committee": {
+   "name": "EGMR, Ausschussurteile",
+   "group": "international",
+   "portal": "https://hudoc.echr.coe.int",
+   "licence": "coe",
+   "fed_by": [
+    "ecthr",
+    "hudoc_ch"
+   ]
+  },
+  "ecthr_grand_chamber": {
+   "name": "EGMR, Grosse Kammer",
+   "group": "international",
+   "portal": "https://hudoc.echr.coe.int",
+   "licence": "coe",
+   "fed_by": [
+    "ecthr",
+    "hudoc_ch"
+   ]
+  },
+  "edoeb": {
+   "name": "Eidg. Datenschutz- und Öffentlichkeitsbeauftragter (EDÖB)",
+   "group": "authority",
+   "portal": "https://www.edoeb.admin.ch",
+   "licence": "ch_official"
+  },
+  "elcom": {
+   "name": "Eidg. Elektrizitätskommission (ElCom)",
+   "group": "authority",
+   "portal": "https://www.elcom.admin.ch/de/verfuegungen",
+   "licence": "ch_official"
+  },
+  "emark": {
+   "name": "Schweizerische Asylrekurskommission (EMARK)",
+   "group": "federal",
+   "portal": "https://ark-cra.rekurskommissionen.ch",
+   "licence": "ch_official",
+   "ended": "2007-01-01"
+  },
+  "esbk": {
+   "name": "Eidg. Spielbankenkommission (ESBK)",
+   "group": "authority",
+   "portal": "https://www.esbk.admin.ch",
+   "licence": "ch_official"
+  },
+  "eschk": {
+   "name": "Eidg. Schätzungskommission (ESchK)",
+   "group": "authority",
+   "portal": "https://www.eschk.admin.ch",
+   "licence": "ch_official"
+  },
+  "estv": {
+   "name": "Eidg. Steuerverwaltung (ESTV), Kreisschreiben",
+   "group": "authority",
+   "portal": "https://www.estv.admin.ch",
+   "licence": "ch_official",
+   "feed": "import",
+   "superseded_by": {
+    "collection": "practice"
+   }
+  },
+  "finma": {
+   "name": "FINMA, Kasuistik",
+   "group": "authority",
+   "portal": "https://www.finma.ch",
+   "licence": "ch_official"
+  },
+  "finma_versicherungsrecht": {
+   "name": "FINMA, Versicherungsrecht",
+   "group": "authority",
+   "portal": "https://www.finma.ch",
+   "licence": "ch_official"
+  },
+  "fr_anwaltsaufsicht": {
+   "name": "FR Commission du barreau",
+   "group": "cantonal",
+   "canton": "FR",
+   "portal": "https://www.fr.ch/etat-et-droit/justice/commission-du-barreau",
+   "licence": "ch_official"
+  },
+  "fr_gerichte": {
+   "name": "FR Tribunal cantonal",
+   "group": "cantonal",
+   "canton": "FR",
+   "portal": "https://publicationtc.fr.ch",
+   "licence": "ch_official"
+  },
+  "ge_gerichte": {
+   "name": "GE Pouvoir judiciaire",
+   "group": "cantonal",
+   "canton": "GE",
+   "portal": "https://justice.ge.ch",
+   "licence": "ch_official"
+  },
+  "gl_gerichte": {
+   "name": "GL Gerichte",
+   "group": "cantonal",
+   "canton": "GL",
+   "portal": "https://findinfo.gl.ch",
+   "licence": "ch_official"
+  },
+  "gr_gerichte": {
+   "name": "GR Obergericht und Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "GR",
+   "portal": "https://entscheidsuche.gr.ch",
+   "licence": "ch_official"
+  },
+  "hudoc_ch": {
+   "name": "EGMR, Urteile gegen die Schweiz (HUDOC)",
+   "group": "international",
+   "portal": "https://hudoc.echr.coe.int",
+   "licence": "coe"
+  },
+  "icj": {
+   "name": "Internationaler Gerichtshof (IGH)",
+   "group": "international",
+   "portal": "https://www.icj-cij.org",
+   "licence": "icj"
+  },
+  "ju_gerichte": {
+   "name": "JU Tribunal cantonal",
+   "group": "cantonal",
+   "canton": "JU",
+   "portal": "https://jurisprudence.jura.ch",
+   "licence": "ch_official"
+  },
+  "lu_gerichte": {
+   "name": "LU Kantonsgericht",
+   "group": "cantonal",
+   "canton": "LU",
+   "portal": "https://gerichte.lu.ch",
+   "licence": "ch_official"
+  },
+  "mkg": {
+   "name": "Militärkassationsgericht",
+   "group": "federal",
+   "portal": "https://www.oa.admin.ch/de/urteile-militarkassationsgericht",
+   "licence": "ch_official"
+  },
+  "ne_gerichte": {
+   "name": "NE Tribunal cantonal",
+   "group": "cantonal",
+   "canton": "NE",
+   "portal": "https://jurisprudence.ne.ch",
+   "licence": "ch_official"
+  },
+  "ne_jurisprudence_adm": {
+   "name": "NE autorités administratives",
+   "group": "cantonal",
+   "canton": "NE",
+   "portal": "https://jurisprudenceadm.ne.ch",
+   "licence": "ch_official"
+  },
+  "nw_gerichte": {
+   "name": "NW Obergericht und Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "NW",
+   "portal": "https://www.nw.ch",
+   "licence": "ch_official"
+  },
+  "ow_gerichte": {
+   "name": "OW Obergericht und Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "OW",
+   "portal": "https://rechtsprechung.ow.ch",
+   "licence": "ch_official"
+  },
+  "postcom": {
+   "name": "Eidg. Postkommission (PostCom)",
+   "group": "authority",
+   "portal": "https://www.postcom.admin.ch",
+   "licence": "ch_official"
+  },
+  "preisueberwacher": {
+   "name": "Preisüberwachung",
+   "group": "authority",
+   "portal": "https://www.preisueberwacher.admin.ch",
+   "licence": "ch_official"
+  },
+  "rab": {
+   "name": "Eidg. Revisionsaufsichtsbehörde (RAB)",
+   "group": "authority",
+   "portal": "https://www.rab-asr.ch/de/verfuegungen-der-rab",
+   "licence": "ch_official"
+  },
+  "sav_international": {
+   "name": "Schweizerischer Anwaltsverband, internationale Entscheide",
+   "group": "authority",
+   "portal": "https://www.sav-fsa.ch",
+   "licence": "private_body",
+   "feed": "import"
+  },
+  "sav_kantone": {
+   "name": "Schweizerischer Anwaltsverband, kantonale Aufsichtsentscheide",
+   "group": "authority",
+   "portal": "https://www.sav-fsa.ch",
+   "licence": "private_body",
+   "feed": "import"
+  },
+  "sg_gerichte": {
+   "name": "SG Gerichte und Departemente (frühere Zulieferung)",
+   "group": "cantonal",
+   "canton": "SG",
+   "portal": "https://publikationen.sg.ch",
+   "licence": "ch_official",
+   "feed": "entscheidsuche"
+  },
+  "sg_handelsgericht": {
+   "name": "SG Handelsgericht",
+   "group": "cantonal",
+   "canton": "SG",
+   "portal": "https://publikationen.sg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "sg_publikationen"
+   ]
+  },
+  "sg_kantonsgericht": {
+   "name": "SG Kantonsgericht",
+   "group": "cantonal",
+   "canton": "SG",
+   "portal": "https://publikationen.sg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "sg_publikationen"
+   ]
+  },
+  "sg_publikationen": {
+   "name": "SG Publikationen (Sammelcode, frühere Zulieferung)",
+   "group": "cantonal",
+   "canton": "SG",
+   "portal": "https://publikationen.sg.ch",
+   "licence": "ch_official",
+   "fed_by": [],
+   "feed": "entscheidsuche",
+   "superseded_by": {
+    "prefix": "sg_"
+   }
+  },
+  "sg_versicherungsgericht": {
+   "name": "SG Versicherungsgericht",
+   "group": "cantonal",
+   "canton": "SG",
+   "portal": "https://publikationen.sg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "sg_publikationen"
+   ]
+  },
+  "sg_verwaltungsgericht": {
+   "name": "SG Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "SG",
+   "portal": "https://publikationen.sg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "sg_publikationen"
+   ]
+  },
+  "sg_verwaltungsrekurskommission": {
+   "name": "SG Verwaltungsrekurskommission",
+   "group": "cantonal",
+   "canton": "SG",
+   "portal": "https://publikationen.sg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "sg_publikationen"
+   ]
+  },
+  "sh_gerichte": {
+   "name": "SH Obergericht",
+   "group": "cantonal",
+   "canton": "SH",
+   "portal": "https://obergerichtsentscheide.sh.ch",
+   "licence": "ch_official"
+  },
+  "sh_obergericht": {
+   "name": "SH Obergericht (frühere Zulieferung)",
+   "group": "cantonal",
+   "canton": "SH",
+   "portal": "https://obergerichtsentscheide.sh.ch",
+   "licence": "ch_official",
+   "feed": "entscheidsuche",
+   "superseded_by": [
+    "sh_gerichte"
+   ]
+  },
+  "six_ser": {
+   "name": "SIX Exchange Regulation",
+   "group": "authority",
+   "portal": "https://www.ser-ag.com",
+   "licence": "private_body"
+  },
+  "so_gerichte": {
+   "name": "SO Obergericht und Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "SO",
+   "portal": "https://gerichtsentscheide.so.ch",
+   "licence": "ch_official"
+  },
+  "sz_gerichte": {
+   "name": "SZ Kantonsgericht",
+   "group": "cantonal",
+   "canton": "SZ",
+   "portal": "https://gerichte.sz.ch",
+   "licence": "ch_official"
+  },
+  "sz_verwaltungsgericht": {
+   "name": "SZ Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "SZ",
+   "portal": "https://gerichte.sz.ch",
+   "licence": "ch_official"
+  },
+  "ta_sst": {
+   "name": "Schweizer Sportgericht (TA-SST)",
+   "group": "authority",
+   "portal": "https://www.sportstribunal.ch",
+   "licence": "private_body"
+  },
+  "tg_anwaltskommission": {
+   "name": "TG Anwaltskommission",
+   "group": "cantonal",
+   "canton": "TG",
+   "portal": "https://register.tg.ch/anwaltskommission/entscheide.html/10330",
+   "licence": "ch_official"
+  },
+  "tg_gerichte": {
+   "name": "TG Obergericht und Verwaltungsgericht (RBOG, TVR)",
+   "group": "cantonal",
+   "canton": "TG",
+   "portal": "https://rechtsprechung.tg.ch",
+   "licence": "ch_official"
+  },
+  "tg_obergericht": {
+   "name": "TG Obergericht (frühere Zulieferung)",
+   "group": "cantonal",
+   "canton": "TG",
+   "portal": "https://rechtsprechung.tg.ch",
+   "licence": "ch_official",
+   "feed": "entscheidsuche",
+   "superseded_by": [
+    "tg_gerichte"
+   ]
+  },
+  "ti_gerichte": {
+   "name": "TI Tribunale d'appello",
+   "group": "cantonal",
+   "canton": "TI",
+   "portal": "https://www.sentenze.ti.ch",
+   "licence": "ch_official"
+  },
+  "ubi": {
+   "name": "Unabhängige Beschwerdeinstanz für Radio und Fernsehen (UBI)",
+   "group": "authority",
+   "portal": "https://www.ubi.admin.ch",
+   "licence": "ch_official"
+  },
+  "uek": {
+   "name": "Übernahmekommission (UEK)",
+   "group": "authority",
+   "portal": "https://www.takeover.ch",
+   "licence": "ch_official"
+  },
+  "untb_cat": {
+   "name": "UNO-Ausschuss gegen Folter (CAT)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "untb_ccpr": {
+   "name": "UNO-Menschenrechtsausschuss (CCPR)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "untb_ced": {
+   "name": "UNO-Ausschuss gegen das Verschwindenlassen (CED)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "untb_cedaw": {
+   "name": "UNO-Frauenrechtsausschuss (CEDAW)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "untb_cerd": {
+   "name": "UNO-Ausschuss gegen Rassendiskriminierung (CERD)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "untb_cescr": {
+   "name": "UNO-Ausschuss für wirtschaftliche, soziale und kulturelle Rechte (CESCR)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "untb_crc": {
+   "name": "UNO-Kinderrechtsausschuss (CRC)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "untb_crpd": {
+   "name": "UNO-Behindertenrechtsausschuss (CRPD)",
+   "group": "international",
+   "portal": "https://juris.ohchr.org",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "unwgad": {
+   "name": "UNO-Arbeitsgruppe über willkürliche Inhaftierung (WGAD)",
+   "group": "international",
+   "portal": "https://www.ohchr.org/en/special-procedures/wg-arbitrary-detention",
+   "licence": "un",
+   "fed_by": [
+    "untb"
+   ]
+  },
+  "ur_gerichte": {
+   "name": "UR Obergericht",
+   "group": "cantonal",
+   "canton": "UR",
+   "portal": "https://www.ur.ch",
+   "licence": "ch_official"
+  },
+  "vd_findinfo": {
+   "name": "VD Tribunal cantonal (FindInfo, frühere Zulieferung)",
+   "group": "cantonal",
+   "canton": "VD",
+   "portal": "https://prestations.vd.ch/pub/101623",
+   "licence": "ch_official",
+   "feed": "entscheidsuche",
+   "superseded_by": [
+    "vd_gerichte"
+   ]
+  },
+  "vd_gerichte": {
+   "name": "VD Tribunal cantonal",
+   "group": "cantonal",
+   "canton": "VD",
+   "portal": "https://prestations.vd.ch/pub/101623",
+   "licence": "ch_official"
+  },
+  "vd_omni": {
+   "name": "VD Tribunal cantonal, CDAP und Cour constitutionnelle (jurisprudence.vd.ch)",
+   "group": "cantonal",
+   "canton": "VD",
+   "portal": "https://jurisprudence.vd.ch",
+   "licence": "ch_official",
+   "feed": "entscheidsuche"
+  },
+  "vs_gerichte": {
+   "name": "VS Kantonsgericht",
+   "group": "cantonal",
+   "canton": "VS",
+   "portal": "https://justsearche.vs.ch",
+   "licence": "ch_official"
+  },
+  "weko": {
+   "name": "Wettbewerbskommission (WEKO)",
+   "group": "authority",
+   "portal": "https://www.weko.admin.ch/de/entscheide",
+   "licence": "ch_official"
+  },
+  "zg_anwaltsaufsicht": {
+   "name": "ZG Aufsichtskommission über die Anwältinnen und Anwälte",
+   "group": "cantonal",
+   "canton": "ZG",
+   "portal": "https://decwork.zg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zg_gvp"
+   ]
+  },
+  "zg_datenschutzstelle": {
+   "name": "ZG Datenschutzstelle",
+   "group": "cantonal",
+   "canton": "ZG",
+   "portal": "https://decwork.zg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zg_gvp"
+   ]
+  },
+  "zg_kantonsgericht": {
+   "name": "ZG Kantonsgericht",
+   "group": "cantonal",
+   "canton": "ZG",
+   "portal": "https://decwork.zg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zg_gvp"
+   ]
+  },
+  "zg_obergericht": {
+   "name": "ZG Obergericht",
+   "group": "cantonal",
+   "canton": "ZG",
+   "portal": "https://obergericht.zg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zg_obergericht",
+    "zg_gvp"
+   ]
+  },
+  "zg_regierungsrat": {
+   "name": "ZG Regierungsrat",
+   "group": "cantonal",
+   "canton": "ZG",
+   "portal": "https://decwork.zg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zg_gvp"
+   ]
+  },
+  "zg_strafgericht": {
+   "name": "ZG Strafgericht",
+   "group": "cantonal",
+   "canton": "ZG",
+   "portal": "https://decwork.zg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zg_gvp"
+   ]
+  },
+  "zg_verwaltungsgericht": {
+   "name": "ZG Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "ZG",
+   "portal": "https://verwaltungsgericht.zg.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zg_verwaltungsgericht",
+    "zg_gvp"
+   ]
+  },
+  "zh_arbeitsgericht": {
+   "name": "ZH Arbeitsgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte",
+    "zh_arbeitsgericht_sammlung"
+   ]
+  },
+  "zh_baurekursgericht": {
+   "name": "ZH Baurekursgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.baurekursgericht-zh.ch",
+   "licence": "ch_official"
+  },
+  "zh_bezirksgericht_affoltern": {
+   "name": "ZH Bezirksgericht Affoltern",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_andelfingen": {
+   "name": "ZH Bezirksgericht Andelfingen",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_buelach": {
+   "name": "ZH Bezirksgericht Bülach",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_dielsdorf": {
+   "name": "ZH Bezirksgericht Dielsdorf",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_dietikon": {
+   "name": "ZH Bezirksgericht Dietikon",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_hinwil": {
+   "name": "ZH Bezirksgericht Hinwil",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_horgen": {
+   "name": "ZH Bezirksgericht Horgen",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_meilen": {
+   "name": "ZH Bezirksgericht Meilen",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_pfaeffikon": {
+   "name": "ZH Bezirksgericht Pfäffikon",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_uster": {
+   "name": "ZH Bezirksgericht Uster",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_winterthur": {
+   "name": "ZH Bezirksgericht Winterthur",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_bezirksgericht_zuerich": {
+   "name": "ZH Bezirksgericht Zürich",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_gerichte": {
+   "name": "ZH Gerichte (Sammelcode, frühere Zulieferung)",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [],
+   "feed": "entscheidsuche",
+   "superseded_by": {
+    "prefix": "zh_"
+   }
+  },
+  "zh_handelsgericht": {
+   "name": "ZH Handelsgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_kassationsgericht": {
+   "name": "ZH Kassationsgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "ended": "2011-01-01"
+  },
+  "zh_mietgericht": {
+   "name": "ZH Mietgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_obergericht": {
+   "name": "ZH Obergericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.gerichte-zh.ch",
+   "licence": "ch_official",
+   "fed_by": [
+    "zh_gerichte"
+   ]
+  },
+  "zh_sozialversicherungsgericht": {
+   "name": "ZH Sozialversicherungsgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.sozialversicherungsgericht.zh.ch",
+   "licence": "ch_official"
+  },
+  "zh_steuerrekursgericht": {
+   "name": "ZH Steuerrekursgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://www.strgzh.ch",
+   "licence": "ch_official"
+  },
+  "zh_verwaltungsgericht": {
+   "name": "ZH Verwaltungsgericht",
+   "group": "cantonal",
+   "canton": "ZH",
+   "portal": "https://vgrzh.djiktzh.ch",
+   "licence": "ch_official"
+  }
+ },
+ "collections": [
+  {
+   "id": "federal_laws",
+   "kind": "laws",
+   "name": "Bundesrecht (Systematische Rechtssammlung)",
+   "authority": "Bundeskanzlei (Fedlex)",
+   "portal": "https://www.fedlex.admin.ch",
+   "licence": "ch_enactments",
+   "count_from_stats": "federal_laws",
+   "units": [
+    "opencaselaw-fedlex"
+   ],
+   "expected_every_days": 31
+  },
+  {
+   "id": "cantonal_laws",
+   "kind": "laws",
+   "name": "Kantonales Recht (26 Kantone)",
+   "authority": "Staatskanzleien der Kantone",
+   "portal": "https://www.lexfind.ch",
+   "sources_note": "cantonal_laws",
+   "licence": "ch_enactments",
+   "count_from_stats": "cantonal_laws",
+   "breakdown_from_stats": "cantonal_laws_by_canton",
+   "units": [
+    "opencaselaw-cantonal"
+   ],
+   "expected_every_days": 31
+  },
+  {
+   "id": "materialien",
+   "kind": "materialien",
+   "name": "Bundesblatt: Botschaften, Berichte, Kommissionsberichte, Erlassentwürfe",
+   "authority": "Bundeskanzlei; Bundesarchiv (1850–1999)",
+   "portal": "https://www.fedlex.admin.ch",
+   "licence": "ch_official",
+   "units": [
+    "opencaselaw-materialien",
+    "opencaselaw-materialien-historical"
+   ],
+   "db": "materialien.db",
+   "expected_every_days": 1
+  },
+  {
+   "id": "vernehmlassungen",
+   "kind": "materialien",
+   "name": "Vernehmlassungen",
+   "authority": "Bundeskanzlei (Fedlex)",
+   "portal": "https://www.fedlex.admin.ch/de/consultation-procedures",
+   "licence": "ch_official",
+   "units": [
+    "opencaselaw-vernehmlassungen"
+   ],
+   "db": "consultations.db",
+   "expected_every_days": 1
+  },
+  {
+   "id": "practice",
+   "kind": "practice",
+   "name": "Verwaltungspraxis von Bund, Kantonen und UNO",
+   "authority": "BSV, OAK BV, WEKO, FINMA, SECO, BAG, ESTV, SEM, BJ, BAFU, UEK, RAB, EHRA, kantonale Behörden, UNO",
+   "portal": null,
+   "licence": "official_publication",
+   "units": [
+    "opencaselaw-practice"
+   ],
+   "db": "practice.db",
+   "expected_every_days": 7
+  },
+  {
+   "id": "commentaries",
+   "kind": "commentaries",
+   "name": "Offene Kommentare",
+   "authority": "Onlinekommentar.ch; Open Legal Commentary",
+   "portal": "https://onlinekommentar.ch",
+   "licence": "open_commentary",
+   "count_from_stats": "commentaries",
+   "units": [
+    "opencaselaw-commentaries"
+   ],
+   "db": "ok_commentaries.db",
+   "expected_every_days": 7
+  },
+  {
+   "id": "scholarship",
+   "kind": "scholarship",
+   "name": "Open-Access-Rechtswissenschaft",
+   "authority": "Universitäts-Repositorien und Fachzeitschriften",
+   "portal": null,
+   "licence": "per_record",
+   "count_from_stats": "scholarship_publications",
+   "breakdown_from_stats": "scholarship_by_source",
+   "units": [
+    "opencaselaw-publish"
+   ],
+   "db": "legal_scholarship.db",
+   "expected_every_days": 7
+  }
+ ]
+}

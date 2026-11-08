@@ -47,10 +47,11 @@ def repos(tmp_path, monkeypatch):
     write_stats(seed, 100)
     (seed / "README.md").write_text("readme\n")
     # Step 6 adds every published path; production always has them all.
-    for d in ("feeds", "integrity", "stats"):
+    for d in ("feeds", "integrity", "stats", "sources"):
         (seed / "docs" / d).mkdir()
     for f in ("feed.xml", "feeds/de.xml", "quality.json", "quality.html",
-              "integrity/root", "stats/history.json"):
+              "integrity/root", "stats/history.json", "coverage.json",
+              "sources/status.json"):
         (seed / "docs" / f).write_text("x\n")
     git(seed, "add", "-A")
     git(seed, "commit", "-q", "-m", "seed")

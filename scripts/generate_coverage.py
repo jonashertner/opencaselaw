@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 
 def build_coverage(db_path: Path, health_path: Path, notes_path: Path) -> dict:
@@ -97,6 +98,9 @@ def main() -> int:
     ap.add_argument("--health", default=str(REPO / "logs" / "scraper_health.json"))
     ap.add_argument("--notes", default=str(REPO / "docs" / "coverage_notes.json"))
     ap.add_argument("--output", default=str(REPO / "docs" / "coverage.json"))
+    ap.add_argument("--stats", default=str(REPO / "docs" / "stats.json"))
+    ap.add_argument("--status-output", default=str(REPO / "docs" / "sources" / "status.json"),
+                    help="per-source status for /coverage/ ('' to skip)")
     args = ap.parse_args()
     try:
         payload = build_coverage(Path(args.db), Path(args.health), Path(args.notes))
@@ -107,10 +111,25 @@ def main() -> int:
         print(f"coverage.json: {payload['totals']['courts']} courts, "
               f"{payload['totals']['courts_with_portal_total']} with portal totals, "
               f"{payload['totals']['courts_with_note']} with notes")
-        return 0
     except Exception as e:  # noqa: BLE001 — never fail a publish over coverage
         print(f"generate_coverage failed (non-fatal): {e}", file=sys.stderr)
         return 0
+    if args.status_output:
+        # Per-source status for the public /coverage/ page (scripts/source_status.py):
+        # freshness, cadence and intake per court code, derived from this payload,
+        # docs/stats.json (step 5a) and the scraper health files. Reads no
+        # decisions.db. Isolated: its failure leaves coverage.json untouched.
+        try:
+            import source_status
+            sp = source_status.generate(
+                REPO, payload, Path(args.stats), Path(args.health).parent,
+                REPO / "docs" / "sources" / "registry.json",
+                REPO / "docs" / "intake_expected_stale.json",
+                Path(args.notes), Path(args.status_output), Path(args.db).parent)
+            print(source_status.summary_line(sp))
+        except Exception as e:  # noqa: BLE001
+            print(f"source_status failed (non-fatal): {e}", file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":
