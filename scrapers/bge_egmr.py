@@ -15,19 +15,19 @@ Coverage: ~500 decisions, all in French (the ECHR's working language).
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+import source_dates
 from base_scraper import BaseScraper
 from models import (
     Decision,
     detect_language,
     extract_citations,
     make_decision_id,
-    parse_date,
 )
 from incapsula_bypass import IncapsulaCookieManager
 
@@ -205,7 +205,9 @@ class BGEEGMRScraper(BaseScraper):
                 continue
 
             if since_date:
-                d = parse_date(stub.get("decision_date", ""))
+                dd = (source_dates.egmr_docket_date(stub["docket_number"])
+                      or source_dates.egmr_listing_date(stub.get("decision_date"), stub["docket_number"]))
+                d = date.fromisoformat(dd) if dd else None
                 if d and d < since_date:
                     continue
 
@@ -233,7 +235,11 @@ class BGEEGMRScraper(BaseScraper):
             # Keep None when the portal provides no parsable date — fabricating
             # date.today() as fallback poisons the corpus with fake dates and
             # inflates "today's new decisions" in downstream stats.
-            decision_date = parse_date(stub.get("decision_date", ""))
+            # The docket is the judgment date (20160823_53377_11); the listing
+            # prints it as "23.08.16", which parse_date cannot read.
+            egmr_date = (source_dates.egmr_docket_date(docket)
+                         or source_dates.egmr_listing_date(stub.get("decision_date"), docket))
+            decision_date = date.fromisoformat(egmr_date) if egmr_date else None
             lang = detect_language(full_text)
 
             return Decision(

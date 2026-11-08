@@ -21,6 +21,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+import source_dates
 from base_scraper import BaseScraper
 from models import (
     Decision,
@@ -192,6 +193,15 @@ class ARGerichteScraper(BaseScraper):
         pdf_url = orig_list[0] if orig_list else None
         if pdf_url and not pdf_url.startswith("http"):
             pdf_url = f"{HOST}{pdf_url}"
+
+        # AR GVP yearbook entries: decisionDate is sometimes a date the entry
+        # only cites (ARGVP 2002 3410: 1995-04-30, the Landsgemeinde decision
+        # it applies); the PDF's file name carries the entry's own, the one its
+        # trailer prints ("JuAK 14.11.02" -> OG-20021114-...-ARGVP-2002-3410.pdf).
+        if pdf_url and source_dates.is_ar_gvp(pdf_url):
+            from_name = source_dates.ar_filename_date(pdf_url)
+            if from_name:
+                decision_date = date.fromisoformat(from_name)
 
         # Content snippet
         content_html = doc.get("content", "")

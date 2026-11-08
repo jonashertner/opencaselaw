@@ -113,6 +113,7 @@ py-modules = [
     "run_scraper",
     "scrape_cantonal_laws",
     "seo_pages",
+    "source_dates",
     "source_defects",
     "stripe_billing",
     "suggestions",

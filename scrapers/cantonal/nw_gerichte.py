@@ -22,6 +22,7 @@ from datetime import date
 from html import unescape
 from typing import Iterator
 
+import source_dates
 from base_scraper import BaseScraper
 from models import (
     Decision,
@@ -131,7 +132,14 @@ class NWGerichteScraper(BaseScraper):
             logger.warning(f"NW: no text for {stub['docket_number']}")
             return None
 
+        # The listing's datum is the reliable source; on 2026-06-24 it came
+        # back empty for 15 rulings. Their PDF heads state the date ("VA 25 26 /
+        # Entscheid vom 23. Februar 2026"), read before the bench and parties.
         decision_date = stub.get("decision_date")
+        if not decision_date:
+            head = source_dates.head_vom_date(full_text)
+            if head and source_dates.plausible(head, stub["docket_number"], None):
+                decision_date = date.fromisoformat(head)
         if not decision_date:
             logger.warning(f"NW: no date for {stub['docket_number']}")
         language = detect_language(full_text) if len(full_text) > 100 else "de"

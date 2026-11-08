@@ -22,6 +22,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+import source_dates
 from base_scraper import BaseScraper
 from models import (
     Decision,
@@ -264,9 +265,15 @@ class URGerichteScraper(BaseScraper):
             full_text = stub.get("title", "") or f"[Text extraction failed for {stub['docket_number']}]"
 
         # Prefer the valid portal date (reliable for most rows); rescue the
-        # sentinel/missing cases from the PDF header. Never fabricate from the
-        # docket year (a year is not a date).
-        decision_date = stub.get("decision_date") or _parse_head_date(full_text)
+        # sentinel/missing cases from the document. The Rechenschaftsbericht
+        # excerpts cite the ruling as "Obergericht, 11. Februar 2020, OG V 19
+        # 63" and name the reviewed decision "vom …" in their first lines, so
+        # that citation line goes before the header rule. Never fabricate
+        # from the docket year (a year is not a date).
+        cited = source_dates.ur_citation_line(full_text, stub["docket_number"])
+        decision_date = (stub.get("decision_date")
+                         or (date.fromisoformat(cited) if cited else None)
+                         or _parse_head_date(full_text))
         if not decision_date:
             logger.warning(f"[ur_gerichte] No date for {stub['docket_number']}")
 

@@ -42,6 +42,7 @@ from typing import Iterator
 import requests
 from bs4 import BeautifulSoup
 
+import source_dates
 from base_scraper import BaseScraper
 from models import (
     Decision,
@@ -823,7 +824,14 @@ class BGELeitentscheideScraper(BaseScraper):
             if is_egmr:
                 meta = self._parse_egmr_document(response.text)
                 court_code = "bge_egmr"
-                decision_date = parse_date(stub.get("decision_date", "")) or date(year, 1, 1)
+                # The docket is the judgment date (20160823_53377_11); the
+                # listing prints it as "23.08.16", which parse_date cannot
+                # read, so this used to fall back to 1 January of the current
+                # year (78 of 79 rows since 2024 dated 2026-01-01). No
+                # placeholder: None when neither states a date.
+                egmr_date = (source_dates.egmr_docket_date(docket)
+                             or source_dates.egmr_listing_date(stub.get("decision_date"), docket))
+                decision_date = date.fromisoformat(egmr_date) if egmr_date else None
             else:
                 meta = self._parse_document_metadata(response.text, year)
                 court_code = "bge"
