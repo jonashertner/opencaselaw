@@ -4090,24 +4090,24 @@
       }
     ],
     "materialien_coverage": {
-      "total_documents": 28150,
-      "paragraphs": 2896007,
+      "total_documents": 29601,
+      "paragraphs": 3135173,
       "article_links": 28213,
       "by_language": {
-        "de": 16853,
-        "fr": 5651,
+        "de": 17798,
+        "fr": 6157,
         "it": 5646
       },
       "by_doc_type": {
-        "bericht_bundesrat": 2605,
-        "bericht_kommission": 2976,
-        "botschaft": 14644,
+        "bericht_bundesrat": 2700,
+        "bericht_kommission": 3559,
+        "botschaft": 15370,
         "erlassentwurf": 1932,
-        "stellungnahme_bundesrat": 1693,
+        "stellungnahme_bundesrat": 1740,
         "vernehmlassung_eroeffnung": 4300
       },
       "year_range": {
-        "from": 1853,
+        "from": 1850,
         "to": 2026
       }
     },
