@@ -146,3 +146,76 @@ New, not in either report (stricter matching, or not compared before):
   …); no court portal behind them.
 - ZH OG FE250140 (2026-01-19), index-only.
 - CH_UNIBE BGE 42 II 81 and 66 II 99 (Teil II, not in the held-back set).
+
+## 7. Baseline gaps diagnosed, 2026-11-08
+
+### BStGer, 35 rulings of January to early March 2005
+
+Root cause: the state says known, but no shard holds a row. The first 35 lines
+of `state/bstger.jsonl` are exactly these rulings (BA.2004.11, BB.2004.36, …,
+the first window of the February 2026 backfill, when `START_DATE` was still
+2005-01-01). `output/decisions/bstger.jsonl` has no row for any of them.
+Checked read-only on the VPS: state 11,212 IDs, shard 11,177, and the
+difference is these 35 and nothing else. The scraper skips them as known on
+every run. The portal serves all of them, and its paging works (January 2005:
+22 rulings over three pages of 10). Today's `run_scraper` writes the row
+before it marks the state, so this is a historical leftover. No scraper
+change is needed.
+
+Repair (Jonas, VPS). It edits `state/`, so first check that no bstger run is
+active:
+
+```bash
+pgrep -af "run_scraper.py bstger" || echo "no bstger writer"
+```
+
+```bash
+cd /opt/caselaw/repo && python3 scripts/state_orphans.py bstger
+```
+
+Check that it prints `orphans 35`, then:
+
+```bash
+cd /opt/caselaw/repo && python3 scripts/state_orphans.py bstger --apply
+```
+
+```bash
+cd /opt/caselaw/repo && nice -n 10 python3 run_scraper.py bstger --since 2005-01-01
+```
+
+The last command walks the rulingDate windows from 2005 to today (a few hundred
+requests, known rulings skipped) and the TPF volumes from 2005. Expect about
+35 new rows. Verify with
+`grep -c '"docket_number": "BB.2004.36"' output/decisions/bstger.jsonl`
+(should print 1); they go live with the next nightly build.
+
+### BVGer C-5904/2013
+
+Root cause: decided 2015-11-27, **published 2026-10-20**. The Weblaw
+discovery walks back from today by ruling date and stops after 730 days with
+nothing new, so a daily run never reaches 2015. A late-published old ruling
+stays invisible. Fix in `scrapers/bvger.py`: daily runs first list everything
+published in the last 45 days (`publicationDate` window, the same adaptive
+split), whatever the ruling date. Checked live 2026-11-08: 735 published in
+45 days, 6 of them decided before 2024; 5 are held, and C-5904/2013 is the one
+missing. If the pass fails, the ruling-date scan still runs.
+
+Backfill: none needed beyond the deploy. The first nightly bvger run after the
+merge picks it up (it lies within the 45 days until 2026-12-04). By hand:
+`python3 run_scraper.py bvger`.
+
+### BGer 2C_170/2009 and 8C_243/2012
+
+The count-reconciliation sweep (branch `claude/bger-count-reconcile`,
+`runbooks/bger_reconcile_2026-11.md`) should fetch both. Their windows (with
+`--since Y-01-01` and 4-day steps: 2009-05-13..16 and 2012-08-24..27) hold
+77 and 50 rulings. entscheidsuche lists 78 and 51 for the same days. Our
+held rulings there are a strict subset of their list (no extra held row that
+could mask the shortfall), and neither docket is held under another date
+(that would be reported as a date conflict instead). So if the AZA count
+matches, the window is short by one and gets paged. To verify after those
+year runs:
+`grep -c -e '2C_170/2009' -e '8C_243/2012' output/decisions/bger.jsonl`
+(should print 2). Not covered: 8C_7/2008. entscheidsuche dates it
+2008-02-10, a Sunday the AZA does not know, so its true date is unknown and
+no window will come up short for it.
