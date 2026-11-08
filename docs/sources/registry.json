@@ -691,16 +691,15 @@
    ]
   },
   "sg_publikationen": {
-   "name": "SG Publikationen (Sammelcode, frühere Zulieferung)",
+   "name": "SG Departemente (Rekursentscheide; Sammelcode der früheren Zulieferung)",
    "group": "cantonal",
    "canton": "SG",
    "portal": "https://publikationen.sg.ch",
    "licence": "ch_official",
-   "fed_by": [],
-   "feed": "entscheidsuche",
-   "superseded_by": {
-    "prefix": "sg_"
-   }
+   "fed_by": [
+    "sg_departemente"
+   ],
+   "feed": "entscheidsuche"
   },
   "sg_versicherungsgericht": {
    "name": "SG Versicherungsgericht",
