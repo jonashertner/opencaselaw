@@ -172,3 +172,32 @@ def test_dedup_pass1_records_the_dropped_id(tmp_path):
     assert c.execute("SELECT decision_id FROM decisions").fetchall() == [(SIBLING,)]
     assert c.execute("SELECT decision_id, source FROM decision_id_aliases WHERE previous_id = ?",
                      ("bs_appellationsgericht_SB_2013_5",)).fetchone() == (SIBLING, "dedup_pass1")
+
+
+def _bundesrat_row(decision_id, text, previous=None):
+    r = {"decision_id": decision_id, "court": "ch_bundesrat", "canton": "CH",
+         "docket_number": "2025-10-08-kanton-aargau", "decision_date": "2025-10-08",
+         "language": "de", "title": "Entscheid des Bundesrates", "regeste": None,
+         "full_text": text, "source_url": "https://www.bj.admin.ch/de/x"}
+    if previous:
+        r["previous_decision_id"] = previous
+    return r
+
+
+def test_skipped_duplicate_still_records_its_former_id():
+    """ch_bundesrat re-key (2026-11): the direct row carries the old-scheme id,
+    the re-keyed es copy (same id, same canonical key) carries the es id. The
+    copy is skipped as a duplicate; its former id must still resolve."""
+    c = sqlite3.connect(":memory:")
+    c.executescript(SCHEMA_SQL)
+    cid = "ch_bundesrat_2025-10-08-kanton-aargau"
+    text = "Der Bundesrat hat in der Beschwerdesache befunden und erwogen " * 5
+    assert build_fts5.insert_decision(c, _bundesrat_row(cid, text, previous="ch_bundesrat_2025-10-08"))
+    es_id = "ch_bundesrat__bj_de_home_publiservice_publikationen_beschwerdeentscheide_2025-10-08.html"
+    assert not build_fts5.insert_decision(c, _bundesrat_row(cid, text + " ", previous=es_id))
+    assert c.execute("SELECT COUNT(*) FROM decisions").fetchone()[0] == 1
+    aliases = dict(c.execute("SELECT previous_id, decision_id FROM decision_id_aliases"))
+    assert aliases == {"ch_bundesrat_2025-10-08": cid, es_id: cid}
+    # a skipped copy without a former id records nothing
+    assert not build_fts5.insert_decision(c, _bundesrat_row(cid, text))
+    assert c.execute("SELECT COUNT(*) FROM decision_id_aliases").fetchone()[0] == 2

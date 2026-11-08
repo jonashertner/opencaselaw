@@ -2583,6 +2583,11 @@ def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
                     existing_len, len(incoming_ft),
                 )
                 return True
+            # The skipped copy can name a former id of this decision
+            # (previous_decision_id): keep that id resolving. A re-keyed
+            # es copy of a decision whose direct row already carries another
+            # alias (ch_bundesrat re-key, 2026-11) has no other way in.
+            _record_previous_id(conn, row)
             return False  # true duplicate, no richer text — skip as before
         # case (ii): same id but different (court, docket, date) tuple
         date_str = str(row.get("decision_date") or "").replace("-", "")
