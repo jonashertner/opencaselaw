@@ -23,6 +23,35 @@ Four unrelated sites, one practice area (Strafverfolgung / poursuite pénale):
   * AG Staatsanwaltschaft: Strafbefehlsempfehlungen + 3 Weisungen linked from
     the cantonal "Strafverfahren" hub page (DE only).
 
+Added 2026-11-08 (Tier 2 of docs/claude/proposal-property-criminal-sources-
+2026-11-08.md):
+
+  * BE Generalstaatsanwaltschaft: Weisungen and Richtlinien, ordered by
+    StPO-Titel, on staw.justice.be.ch/<lang>/start/dienstleistungen/
+    weisungen-richtlinien.html (DE + FR, 26 each). The number in the file
+    name ("2.02 Aktenführung ...pdf") is shared by both languages. robots.txt
+    asks for a 10 s crawl delay on that host, which get() honours.
+  * VD Ministère public: the Procureur général's directives (n° 1.2 - 4.8,
+    ~30, FR) on vd.ch/.../ministere-public/bases-legales/; the date is the
+    last YYYYMMDD in the file name (a revised file appends its new date).
+  * FR Ministère public: the Procureur général's Règlement, directives 1.1 -
+    2.8 and the general delegation under Art. 265 StPO on
+    fr.ch/etat-et-droit/justice/directives (FR) and its DE twin; each link is
+    a /document/<id> node that redirects to the PDF. Where the DE node serves
+    the French file, the text dedupe keeps one row.
+  * GE Ministère public: the Procureur général's directives A.1 - E.2 with
+    their annexes on justice.ge.ch/justice/fr/contenu/directives-du-
+    procureur-general (FR).
+  * Bundesanwaltschaft (BA): Tätigkeitsberichte 2006- (DE/FR/IT, admin.ch
+    download-item markup), and its supervisory authority (AB-BA):
+    Tätigkeitsberichte 2011- and inspection reports (DE/FR/IT pages of a
+    WordPress site; a file linked from several language pages is taken
+    once, its language read from the text). The BA publishes no Weisungen.
+
+Surveyed 2026-11-08 and not found online: Weisungen/directives of the TI,
+SG, LU, BS, BL, TG, GR, JU, NE, ZG, SZ and SO prosecutors (ZG, SZ and NE
+name such Weisungen in their own law; no public collection was located).
+
 doc_number / versioning
 ------------------------
 WOSTA chapters: "WOSTA Ziff. <n>", shared across editions; doc_id embeds the
@@ -37,7 +66,7 @@ key); REVISION_FIELD="pdf_url" since AG/VS/SSK and the ZH Strafmassempfeh-
 lungen all re-upload under a new dated filename on revision.
 
 issuing_authority: "ZH" (WOSTA + Strafmassempfehlungen), "SSK-CPS", "VS",
-"AG". doc_type: "weisung" (WOSTA chapters, AG/VS Weisungen/Directives),
+"AG", "BE", "VD", "FR", "GE", "BA", "AB-BA". doc_type: "weisung" (WOSTA chapters, AG/VS Weisungen/Directives),
 "empfehlung" (Strafmassempfehlungen, SSK, AG Strafbefehlsempfehlungen),
 "erlass" (VS Reglemente/Règlements — internal organisational rules, not
 case-handling instructions).
@@ -46,13 +75,15 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import Iterator
 from urllib.parse import unquote, urljoin
 
 from bs4 import BeautifulSoup
 
 from .base import PracticeScraper, first_date_iso, slugify
-from .langdedup import TextDedupMixin
+from .langdedup import TextDedupMixin, body_lang
+from .bj_rechtshilfe import _dam_items
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +102,34 @@ _VS_PAGES = (
 )
 
 _AG_PAGE = "https://www.ag.ch/de/themen/recht-justiz/strafverfolgung/strafverfahren"
+
+_BE_STAW = "https://www.staw.justice.be.ch"
+_BE_PAGES = (
+    ("de", _BE_STAW + "/de/start/dienstleistungen/weisungen-richtlinien.html"),
+    ("fr", _BE_STAW + "/fr/start/dienstleistungen/weisungen-richtlinien.html"),
+)
+_VD_PAGE = "https://www.vd.ch/toutes-les-autorites/ministere-public/bases-legales/"
+_FR_PAGES = (
+    ("fr", "https://www.fr.ch/etat-et-droit/justice/directives"),
+    ("de", "https://www.fr.ch/de/staat-und-recht/justiz/richtlinien"),
+)
+_GE_PAGE = "https://justice.ge.ch/justice/fr/contenu/directives-du-procureur-general"
+_BA_PAGES = (
+    ("de", "https://www.bundesanwaltschaft.ch/de/taetigkeitsberichte"),
+    ("fr", "https://www.bundesanwaltschaft.ch/fr/rapports-de-gestion"),
+    ("it", "https://www.bundesanwaltschaft.ch/it/rapporti-di-gestione"),
+)
+_ABBA = "https://ab-ba.admin.ch"
+_ABBA_PAGES = (
+    ("de", "bericht", _ABBA + "/berichte/"),
+    ("fr", "bericht", _ABBA + "/fr/rapport/"),
+    ("it", "bericht", _ABBA + "/it/rapporto/"),
+    ("de", "inspektion", _ABBA + "/inspektionsberichte/"),
+    ("fr", "inspektion", _ABBA + "/fr/rapports-dinspection/"),
+    ("it", "inspektion", _ABBA + "/it/rapporti-dispezione/"),
+)
+# robots.txt Crawl-delay per host (seconds), on top of REQUEST_DELAY.
+_CRAWL_DELAY = {"www.staw.justice.be.ch": 10.0}
 
 
 def _clean(s: str) -> str:
@@ -295,6 +354,184 @@ def parse_ag(html: str, page_url: str) -> list[dict]:
     return out
 
 
+# ──────────────────────────────────────────────────────────────────────
+# BE Generalstaatsanwaltschaft
+# ──────────────────────────────────────────────────────────────────────
+
+_BE_FILE_NUMBER = re.compile(r"/(\d{1,2}\.\d{2})[ _]")
+
+
+def parse_be(html: str, lang: str, page_url: str) -> list[dict]:
+    """One stub per Weisung/Richtlinie PDF: title (link text), number from
+    the file name ("2.02"; "" for the unnumbered VBRS-Richtlinien), section
+    (the StPO-Titel heading) and doc_type (Richtlinien/Directives (plural)
+    -> richtlinie, Weisung/Directive -> weisung)."""
+    soup = BeautifulSoup(html, "html.parser")
+    out, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if "/weisungen/" not in href or not href.lower().endswith(".pdf"):
+            continue
+        url = urljoin(page_url, href)
+        if url in seen:
+            continue
+        seen.add(url)
+        title = _clean(a.get_text(" ", strip=True))
+        m = _BE_FILE_NUMBER.search(unquote(href))
+        heading = a.find_previous("h3")
+        is_rl = bool(re.match(r"(Richtlinien|Directives)\b", title) or "Richtlinien" in title)
+        out.append({"title": title, "pdf_url": url, "number": m.group(1) if m else "",
+                    "section": _clean(heading.get_text(" ", strip=True)) if heading else "",
+                    "language": lang, "doc_type": "richtlinie" if is_rl else "weisung"})
+    return out
+
+
+# ──────────────────────────────────────────────────────────────────────
+# VD Ministère public
+# ──────────────────────────────────────────────────────────────────────
+
+_VD_NUMBER = re.compile(r"Directive\s+n[°o]\s*(\d+\.\d+(?:\s*(?:bis|ter|quater))?)", re.I)
+_VD_FILE_DATE = re.compile(r"_(20\d{6})(?=[_.])")
+
+
+def parse_vd(html: str, page_url: str) -> list[dict]:
+    """One stub per directive PDF (fichiers_pdf/D_<n>_...pdf); the table of
+    contents (D_0_...) is skipped. date = the last YYYYMMDD in the file
+    name."""
+    soup = BeautifulSoup(html, "html.parser")
+    out, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        name = unquote(href.rsplit("/", 1)[-1])
+        if "/ministere_public/" not in href or not re.match(r"D_[1-9]", name) \
+                or not name.lower().endswith(".pdf"):
+            continue
+        url = urljoin(page_url, href)
+        if url in seen:
+            continue
+        seen.add(url)
+        title = _clean(a.get_text(" ", strip=True))
+        m = _VD_NUMBER.search(title)
+        dates = _VD_FILE_DATE.findall(name)
+        d = dates[-1] if dates else ""
+        out.append({"title": title, "pdf_url": url,
+                    "number": re.sub(r"\s+", "", m.group(1)) if m else "",
+                    "date": f"{d[:4]}-{d[4:6]}-{d[6:]}" if d else ""})
+    return out
+
+
+# ──────────────────────────────────────────────────────────────────────
+# FR Ministère public
+# ──────────────────────────────────────────────────────────────────────
+
+_FR_NUMBER = re.compile(r"(?:Directive|Richtlinie)\s+(?:no|Nr)\.?\s*(\d+\.\d+)", re.I)
+_FR_SIZE_TAIL = re.compile(r"\s*PDF,\s*[\d.,]+\s*[kKmM]\s*$")
+
+
+def parse_fr(html: str, lang: str, page_url: str) -> list[dict]:
+    """One stub per /document/<id> link: title without the "PDF, 134.26k"
+    tail, a language-neutral key (Directive/Richtlinie number, the Règlement,
+    the Art. 265 delegation) and doc_type."""
+    soup = BeautifulSoup(html, "html.parser")
+    out, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        if not re.search(r"/document/\d+$", a["href"]):
+            continue
+        url = urljoin(page_url, a["href"])
+        if url in seen:
+            continue
+        seen.add(url)
+        title = _FR_SIZE_TAIL.sub("", _clean(a.get_text(" ", strip=True)))
+        m = _FR_NUMBER.search(title)
+        if m:
+            key, doc_type = f"Richtlinie {m.group(1)}", "weisung"
+        elif re.match(r"R[èe]glement", title):
+            key, doc_type = "Reglement 2011", "erlass"
+        elif re.search(r"265", title):
+            key, doc_type = "Delegation Art. 265 StPO", "weisung"
+        else:
+            key, doc_type = slugify(title)[:40], "weisung"
+        out.append({"title": title, "pdf_url": url, "key": key, "doc_type": doc_type,
+                    "language": lang, "date": first_date_iso(title)})
+    return out
+
+
+# ──────────────────────────────────────────────────────────────────────
+# GE Ministère public
+# ──────────────────────────────────────────────────────────────────────
+
+_GE_NUMBER = re.compile(r"^([A-E])\.?\s?(\d{1,2})(\s+Annexe(?:\s+\d)?)?", re.I)
+
+
+def parse_ge(html: str, page_url: str) -> list[dict]:
+    """One stub per directive / annex PDF ("A.1 Forme et rédaction ...",
+    "C.11 Annexe 1: ..."); the table of contents is skipped."""
+    soup = BeautifulSoup(html, "html.parser")
+    out, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if "/media/" not in href or not href.lower().endswith(".pdf"):
+            continue
+        url = urljoin(page_url, href)
+        title = _clean(a.get_text(" ", strip=True))
+        m = _GE_NUMBER.match(title)
+        if not m or url in seen:
+            continue                      # table of contents, or a repeat
+        seen.add(url)
+        number = f"{m.group(1).upper()}.{int(m.group(2))}"
+        if m.group(3):
+            # D.7 has two annexes both called "Annexe": the words after the
+            # colon tell them apart
+            rest = title.split(":", 1)[1] if ":" in title else ""
+            number += " " + _clean(m.group(3)) + (f": {_clean(rest)}" if rest else "")
+        heading = a.find_previous(["h2", "h3"])
+        out.append({"title": title, "pdf_url": url, "number": number,
+                    "section": _clean(heading.get_text(" ", strip=True)) if heading else "",
+                    "doc_type": "weisung_anhang" if m.group(3) else "weisung"})
+    return out
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Bundesanwaltschaft + AB-BA
+# ──────────────────────────────────────────────────────────────────────
+
+# not \b: "Taetigkeitsbericht_2025" has a word character before the year
+_YEAR = re.compile(r"(?<!\d)(20\d{2})(?!\d)")
+
+
+def parse_ba(html: str, page_url: str) -> list[dict]:
+    """[{"year", "title", "pdf_url", "file_date"}] for the BA's annual
+    reports (download-item markup)."""
+    out = []
+    for it in _dam_items(html, page_url):
+        m = _YEAR.search(it["title"]) or _YEAR.search(it["pdf_url"].rsplit("/", 1)[-1])
+        if m:
+            out.append({"year": m.group(1), "title": it["title"], "pdf_url": it["pdf_url"],
+                        "file_date": it["file_date"]})
+    return out
+
+
+def parse_abba(html: str, page_url: str) -> list[dict]:
+    """[{"title", "pdf_url", "year"}] for every wp-content PDF on an AB-BA
+    report page (soft hyphens removed from the titles)."""
+    soup = BeautifulSoup(html, "html.parser")
+    out, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if "/wp-content/uploads/" not in href or not href.lower().endswith(".pdf"):
+            continue
+        url = urljoin(page_url, href)
+        if url.startswith("http://"):
+            url = "https://" + url[len("http://"):]
+        if url in seen:
+            continue
+        seen.add(url)
+        title = _clean(a.get_text(" ", strip=True).replace("\u00ad", ""))
+        m = _YEAR.search(title)
+        out.append({"title": title, "pdf_url": url, "year": m.group(1) if m else ""})
+    return out
+
+
 def _doc_type(title: str, section: str) -> str:
     if re.search(r"Strafbefehlsempfehlung", title, re.I):
         return "empfehlung"
@@ -312,6 +549,18 @@ class StrafverfolgungScraper(TextDedupMixin, PracticeScraper):
 
     def _make_doc_id(self, stub: dict) -> str:
         return f"{self.SOURCE_KEY}_{stub['sv_id']}"
+
+    def get(self, url: str, **kw):
+        delay = _CRAWL_DELAY.get(re.sub(r"^https?://([^/]+).*$", r"\1", url))
+        if delay:
+            last = getattr(self, "_host_last", {})
+            host = re.sub(r"^https?://([^/]+).*$", r"\1", url)
+            wait = delay - (time.time() - last.get(host, 0.0))
+            if wait > 0:
+                time.sleep(wait)
+            last[host] = time.time()
+            self._host_last = last
+        return super().get(url, **kw)
 
     def _normalize(self, stub: dict, body_text: str) -> dict:
         doc = super()._normalize(stub, body_text)
@@ -464,7 +713,146 @@ class StrafverfolgungScraper(TextDedupMixin, PracticeScraper):
             out = self.with_body(stub, stub["doc_number"])
             if out:
                 yield out
-        for stub in self._ag_stubs():
+        for gen in (self._ag_stubs, self._be_stubs, self._vd_stubs, self._fr_stubs,
+                    self._ge_stubs, self._ba_stubs):
+            for stub in gen():
+                out = self.with_body(stub, stub["doc_number"])
+                if out:
+                    yield out
+        for stub in self._abba_stubs():
             out = self.with_body(stub, stub["doc_number"])
             if out:
+                # several language pages link the German file; the text decides
+                lang = body_lang(out.get("body_text", ""))
+                if lang and lang != out["language"]:
+                    out = {**out, "language": lang}
                 yield out
+
+    # ── Tier 2 (2026-11-08) ──
+
+    def _page(self, url: str, label: str) -> str | None:
+        try:
+            r = self.get(url)
+            r.raise_for_status()
+            return r.text
+        except Exception as e:
+            logger.warning("[%s] %s fetch failed: %s", self.SOURCE_KEY, label, e)
+            return None
+
+    def _be_stubs(self) -> Iterator[dict]:
+        for lang, url in _BE_PAGES:
+            html = self._page(url, f"BE {lang}")
+            if html is None:
+                continue
+            items = parse_be(html, lang, url)
+            logger.info("[%s] BE %s: %d items", self.SOURCE_KEY, lang, len(items))
+            for it in items:
+                key = it["number"] or slugify(it["title"])[:40]
+                yield {
+                    "pdf_url": it["pdf_url"], "url": url, "title": it["title"],
+                    "doc_number": f"BE StA Weisung {key}" if it["number"] else f"BE StA {it['title']}",
+                    "language": lang, "doc_type": it["doc_type"],
+                    "topics": ["BE", "Generalstaatsanwaltschaft", it["section"]],
+                    "authority": "BE",
+                    "sv_id": f"be_{slugify(key)}_{lang}",
+                }
+
+    def _vd_stubs(self) -> Iterator[dict]:
+        html = self._page(_VD_PAGE, "VD")
+        if html is None:
+            return
+        items = parse_vd(html, _VD_PAGE)
+        logger.info("[%s] VD: %d items", self.SOURCE_KEY, len(items))
+        for it in items:
+            key = it["number"] or slugify(it["title"])[:40]
+            yield {
+                "pdf_url": it["pdf_url"], "url": _VD_PAGE, "title": it["title"],
+                "doc_number": f"VD MP Directive {key}", "date": it["date"],
+                "language": "fr", "doc_type": "weisung",
+                "topics": ["VD", "Ministère public", "Procureur général"],
+                "authority": "VD",
+                "sv_id": f"vd_{slugify(key)}",
+            }
+
+    def _fr_stubs(self) -> Iterator[dict]:
+        for lang, url in _FR_PAGES:
+            html = self._page(url, f"FR {lang}")
+            if html is None:
+                continue
+            items = parse_fr(html, lang, url)
+            logger.info("[%s] FR %s: %d items", self.SOURCE_KEY, lang, len(items))
+            for it in items:
+                yield {
+                    "pdf_url": it["pdf_url"], "url": url, "title": it["title"],
+                    "doc_number": f"FR StA {it['key']}", "date": it["date"],
+                    "language": lang, "doc_type": it["doc_type"],
+                    "topics": ["FR", "Ministère public / Staatsanwaltschaft"],
+                    "authority": "FR",
+                    "sv_id": f"fr_{slugify(it['key'])}_{lang}",
+                }
+
+    def _ge_stubs(self) -> Iterator[dict]:
+        html = self._page(_GE_PAGE, "GE")
+        if html is None:
+            return
+        items = parse_ge(html, _GE_PAGE)
+        logger.info("[%s] GE: %d items", self.SOURCE_KEY, len(items))
+        for it in items:
+            yield {
+                "pdf_url": it["pdf_url"], "url": _GE_PAGE, "title": it["title"],
+                "doc_number": f"GE MP Directive {it['number']}",
+                "language": "fr", "doc_type": it["doc_type"],
+                "topics": ["GE", "Ministère public", it["section"]],
+                "authority": "GE",
+                "sv_id": f"ge_{slugify(it['number'])[:60]}",
+            }
+
+    def _ba_stubs(self) -> Iterator[dict]:
+        for lang, url in _BA_PAGES:
+            html = self._page(url, f"BA {lang}")
+            if html is None:
+                continue
+            items = parse_ba(html, url)
+            logger.info("[%s] BA %s: %d reports", self.SOURCE_KEY, lang, len(items))
+            for it in items:
+                yield {
+                    "pdf_url": it["pdf_url"], "url": url, "title": it["title"],
+                    "doc_number": f"BA Tätigkeitsbericht {it['year']}", "date": it["year"],
+                    "language": lang, "doc_type": "bericht",
+                    "topics": ["Bundesanwaltschaft", "Tätigkeitsbericht"],
+                    "authority": "BA",
+                    "sv_id": f"ba_tb_{it['year']}_{lang}",
+                }
+
+    def _abba_stubs(self) -> Iterator[dict]:
+        taken: set[str] = set()
+        for lang, kind, url in _ABBA_PAGES:
+            html = self._page(url, f"AB-BA {kind} {lang}")
+            if html is None:
+                continue
+            items = parse_abba(html, url)
+            logger.info("[%s] AB-BA %s %s: %d PDFs", self.SOURCE_KEY, kind, lang, len(items))
+            for it in items:
+                if it["pdf_url"] in taken:
+                    continue
+                taken.add(it["pdf_url"])
+                if kind == "bericht":
+                    if not it["year"]:
+                        continue
+                    number = f"AB-BA Tätigkeitsbericht {it['year']}"
+                    key = f"tb_{it['year']}_{lang}"
+                    date, doc_type = it["year"], "bericht"
+                else:
+                    stem = it["pdf_url"].rsplit("/", 1)[-1][:-4]
+                    number = f"AB-BA Inspektionsbericht {it['title']}"
+                    key = f"insp_{slugify(stem)[:50]}"
+                    date, doc_type = "", "bericht"
+                yield {
+                    "pdf_url": it["pdf_url"], "url": url, "title": it["title"],
+                    "doc_number": number, "date": date,
+                    "language": lang, "doc_type": doc_type,
+                    "topics": ["AB-BA", "Aufsicht über die Bundesanwaltschaft",
+                               "Inspektionsbericht" if kind == "inspektion" else "Tätigkeitsbericht"],
+                    "authority": "AB-BA",
+                    "sv_id": f"abba_{key}",
+                }

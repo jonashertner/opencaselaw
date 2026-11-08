@@ -107,3 +107,21 @@ protocol and no REST API, so it was not built.
 
 Scans fall back to a title placeholder where tesseract lacks deu/fra/ita (dev machine). The
 practice service runs `Sat 21:30 UTC` once the code is deployed.
+
+## Tier 2 build status (2026-11-08, branch `claude/beautiful-williamson-b9d638`, not pushed)
+Live dry-runs (2 s between requests, generic UA; the BE prosecutor host at its 10 s crawl delay), 0 failed:
+
+| Tier 2 item | source | rows |
+|---|---|---:|
+| 1. NWI/OSK Richtlinien (erlasse.konkordate.ch) | strafvollzug | 72 (all Erlasse: Vereinbarungen, Reglemente, Tarife, 26 Richtlinien, Merkblätter, Standards) |
+| 2. BE Generalstaatsanwaltschaft | strafverfolgung | 52 (26 DE + 26 FR) |
+| 3. Other Ministères publics | strafverfolgung | VD 29, FR 58 (FR + DE), GE 49 |
+| 4. Cantonal land-register Weisungen | grundbuch_kantone | 36 (GE 11, VS 19, AR 3, GR 1, LU 2) |
+| 7. BA + AB-BA reports | strafverfolgung | BA 60 (2006-2025, DE/FR/IT), AB-BA 65 (annual + inspection) |
+| rhf.admin.ch checklists etc. | bj_rechtshilfe | 78 (DE/FR/IT pages; 75 new) |
+| 5. Notariatsaufsicht decisions, 6. BGBB | — | nothing official published; see the runbook |
+
+erlasse.konkordate.ch turned out to be readable without the WebSocket: the app's `/ajax` "home" call returns
+the whole tree as gzipped JSON with a direct PDF link per Erlass (see `strafvollzug.py`). Findings, skipped
+items and the deploy steps: `runbooks/practice_tier2_and_tpf_link_2026-11.md`. Open question for Jonas:
+vs.ch's robots.txt disallows the PDFs the Tier 1 VS prosecutor part downloads.

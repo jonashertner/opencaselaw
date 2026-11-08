@@ -41,7 +41,40 @@ guidance:
       the second because they are training-event material, not issued
       agency guidance.
 
-Surveyed 2026-11-08 for a clean public listing of their OWN land-register
+Added 2026-11-08 (Tier 2, second survey):
+
+  GE  Office du registre foncier, "Espace partenaires" (ge.ch/consulter-
+      registre-foncier/acceder-espace-partenaires): its directives
+      (novation des créances cédulaires, mises en communication, clauses
+      accessoires des cédules, registre des bateaux, signatures métier),
+      the AGG servitude instructions and models, the principles on
+      servitudes and the emoluments guide. Each /document/<slug> page links
+      its PDF as /document/<nid>/telecharger. The numbered réquisition
+      models ("00 - Réquisition standard" ... "28 - Gage dégradation"),
+      the Capitastra code lists, the statistics and the list of public-
+      utility institutions are left out (forms and reference tables).
+  VS  Service du registre foncier, "Informations aux notaires" (vs.ch/fr/
+      web/srf/informations-aux-notaires): practice notes to notaries, one
+      Liferay news article each, read as HTML from /web/communication/
+      detail. vs.ch's robots.txt disallows /documents/ and every *.pdf, so
+      PDFs attached to an article are not fetched.
+  AR  Grundbuch- und Beurkundungsinspektorat: its three Kreisschreiben
+      (Register-Schuldbrief 2012, Erwachsenenschutz 2012, Beglaubigung von
+      Unterschriften 2011); the .doc model deeds beside them are left out.
+  GR  GIHA: the Richtlinie Datenaustausch AVGBS; the Register-Schuldbrief
+      .docx models on the same page are left out.
+  LU  grundbuch.lu.ch "Weisungen und Entscheide": the page itself (the
+      Grundbuchamt's own notes on its Weisungen and the LGVE rulings it
+      follows; one row) and the "Unterlagen Dienstbarkeitspläne" PDF it
+      links. The LGVE PDFs linked there are court rulings, already in the
+      decision corpus, and are not taken.
+
+Surveyed 2026-11-08 and nothing public found: SG (its Kreisschreiben go to
+the Grundbuchämter through the cantonal intranet), TG, SO, ZG, FR, VD, NE
+(survey directives only), SZ; BL answers every request with a Cloudflare
+challenge; TI, SH, AI, GL, NW, OW, UR, JU not reached.
+
+Surveyed 2026-11-08 (first pass) for a clean public listing of their OWN land-register
 Weisungen/Kreisschreiben/Merkblätter (not forms, not copies of federal
 texts): GR (GIHA says by statute it "erlässt Weisungen", no public list
 found), LU, SG (same: Kreisschreiben/Weisungen are named in the cantonal
@@ -61,7 +94,7 @@ from __future__ import annotations
 import logging
 import re
 from typing import Iterator
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
@@ -122,6 +155,31 @@ _AG_PRAXISHILFEN_EXCLUDE = re.compile(
     r"^Grundbuchanmeldung$|^Nachtrag zur Grundbuchanmeldung$|Verzichtserklärung|"
     r"Erklärung über die erleichterte Umwandlung|Erklärung betr\. Gläubigerwechsel|"
     r"Austausch zwischen Urkundspersonen|Veranstaltung der ANG")
+
+
+_GE_ORF_PAGE = "https://www.ge.ch/consulter-registre-foncier/acceder-espace-partenaires"
+_GE_ISSUER = "Office du registre foncier (ORF) Genève"
+# guidance on the partners' page; numbered réquisition models, code lists,
+# statistics and the list of institutions are not
+_GE_INCLUDE = re.compile(r"^(Directive|Instructions|Principes|Guide|Représentation|Modifications du modèle"
+                         r"|AGG\s*-\s*modèles)", re.I)
+
+_VS_NOTAIRES_PAGE = "https://www.vs.ch/fr/web/srf/informations-aux-notaires"
+_VS_ISSUER = "Service du registre foncier du Valais"
+_VS_DETAIL = "https://www.vs.ch/web/communication/detail?groupId={group}&articleId={article}"
+_VS_MAX_PAGES = 12
+
+_AR_PAGE = ("https://ar.ch/verwaltung/departement-inneres-und-sicherheit/departementssekretariat/"
+            "grundbuch-und-beurkundungsinspektorat/")
+_AR_ISSUER = "Grundbuch- und Beurkundungsinspektorat Appenzell Ausserrhoden"
+
+_GR_PAGE = "https://www.gr.ch/DE/institutionen/verwaltung/dvs/giha/grundbuch/Seiten/Mustervorlagen.aspx"
+_GR_ISSUER = "Grundbuchinspektorat und Handelsregister Graubünden (GIHA)"
+
+# the other "Grundlagen" pages (Grundpfandrechte, Dienstbarkeiten) explain
+# the law to the public; only this one is practice
+_LU_PAGES = ("https://grundbuch.lu.ch/grundlagen/weisungen_und_entscheide",)
+_LU_ISSUER = "Grundbuchamt Luzern"
 
 
 def _clean(s: str) -> str:
@@ -279,6 +337,117 @@ def ag_doc_type(title: str) -> str:
     if title.lower().startswith("kreisschreiben"):
         return "kreisschreiben"
     return "merkblatt"
+
+
+# ── GE: ORF partners' page ────────────────────────────────────────────
+
+def ge_orf_rows(html: str, base_url: str) -> list[dict]:
+    """[{"title", "doc_url"}] for the guidance documents linked from the ORF
+    partners' page (one /document/<slug> page each; empty-text duplicate
+    anchors are dropped)."""
+    soup = BeautifulSoup(html, "html.parser")
+    out, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if not href.startswith("/document/") and "ge.ch/document/" not in href:
+            continue
+        title = _clean(a.get_text(" ", strip=True))
+        url = urljoin(base_url, href)
+        if not title or url in seen or not _GE_INCLUDE.match(title):
+            continue
+        seen.add(url)
+        out.append({"title": title, "doc_url": url})
+    return out
+
+
+def ge_download_url(html: str, base_url: str) -> str:
+    """The /document/<nid>/telecharger link on a ge.ch document page, or ""."""
+    m = re.search(r'href="(/document/\d+/telecharger)"', html or "")
+    return urljoin(base_url, m.group(1)) if m else ""
+
+
+def ge_doc_type(title: str) -> str:
+    return "weisung" if re.match(r"(Directive|Instructions)", title, re.I) else "merkblatt"
+
+
+# ── VS: notes to notaries (Liferay news articles) ─────────────────────
+
+def vs_article_refs(html: str) -> list[dict]:
+    """[{"group", "article"}] for each news article linked from a listing page."""
+    out, seen = [], set()
+    for m in re.finditer(r"groupId=(\d+)&(?:amp;)?articleId=(\d+)", html or ""):
+        if m.group(2) not in seen:
+            seen.add(m.group(2))
+            out.append({"group": m.group(1), "article": m.group(2)})
+    return out
+
+
+def vs_page_links(html: str, base_url: str) -> list[str]:
+    """The listing's pagination URLs ("..._cur=N"), in page order."""
+    soup = BeautifulSoup(html, "html.parser")
+    out: dict[int, str] = {}
+    for a in soup.find_all("a", href=True):
+        m = re.search(r"_cur=(\d+)", a["href"])
+        if m and int(m.group(1)) > 1:
+            out.setdefault(int(m.group(1)), urljoin(base_url, a["href"]))
+    return [out[k] for k in sorted(out)]
+
+
+def parse_vs_article(html: str) -> dict | None:
+    """{"title", "date", "body_text"} of one vs.ch news article: the
+    section.single block without its "News" label, title, date line and
+    issuing-service line."""
+    soup = BeautifulSoup(html, "html.parser")
+    sec = soup.select_one("section.single")
+    h1 = soup.select_one("h1.page-title")
+    if not sec or not h1:
+        return None
+    title = _clean(h1.get_text(" ", strip=True))
+    lines = [ln.strip() for ln in sec.get_text("\n", strip=True).split("\n") if ln.strip()]
+    date = ""
+    body: list[str] = []
+    for ln in lines:
+        m = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", ln)
+        if m and not date:
+            date = f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+            continue
+        if ln in ("News", "|", title, "Service du registre foncier") and not body:
+            continue
+        body.append(ln)
+    return {"title": title, "date": date, "body_text": _clean(" ".join(body))}
+
+
+# ── AR / GR: PDFs on a canton page ────────────────────────────────────
+
+def pdf_links(html: str, base_url: str, title_re: re.Pattern) -> list[dict]:
+    """[{"title", "pdf_url"}] for PDF links whose text matches title_re
+    (a trailing "(pdf)" dropped)."""
+    soup = BeautifulSoup(html, "html.parser")
+    out, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        if not urlparse(a["href"]).path.lower().endswith(".pdf"):
+            continue
+        title = re.sub(r"\s*\(pdf\)\s*$", "", _clean(a.get_text(" ", strip=True)), flags=re.I)
+        url = urljoin(base_url, a["href"])
+        if url in seen or not title_re.search(title):
+            continue
+        seen.add(url)
+        out.append({"title": title, "pdf_url": url})
+    return out
+
+
+# ── LU: practice-note pages ───────────────────────────────────────────
+
+def parse_lu_page(html: str) -> dict | None:
+    soup = BeautifulSoup(html, "html.parser")
+    main = soup.select_one("main#mainContent") or soup.find("main")
+    h1 = soup.find("h1")
+    if not main or not h1:
+        return None
+    # the text after the page heading: main also holds the breadcrumb
+    parts = [str(t) for t in h1.find_all_next(string=True)
+             if t.find_parent("main") is main and not t.find_parent(["script", "style"])]
+    return {"title": _clean(h1.get_text(" ", strip=True)), "body_text": _clean(" ".join(parts))}
 
 
 class GrundbuchKantoneScraper(TextDedupMixin, PracticeScraper):
@@ -514,9 +683,125 @@ class GrundbuchKantoneScraper(TextDedupMixin, PracticeScraper):
 
     # ── entry point ──────────────────────────────────────────────────
 
+    # ── Tier 2 (2026-11-08): GE, VS, AR, GR, LU ──────────────────────
+
+    def _page(self, url: str, label: str) -> str | None:
+        try:
+            r = self.get(url)
+            r.raise_for_status()
+            return r.text
+        except Exception as e:
+            logger.warning("[%s] %s fetch failed: %s", self.SOURCE_KEY, label, e)
+            return None
+
+    def _discover_ge(self) -> Iterator[dict]:
+        html = self._page(_GE_ORF_PAGE, "GE ORF partners' page")
+        if html is None:
+            return
+        rows = ge_orf_rows(html, _GE_ORF_PAGE)
+        logger.info("[%s] GE: %d documents", self.SOURCE_KEY, len(rows))
+        for row in rows:
+            slug = row["doc_url"].rstrip("/").rsplit("/", 1)[-1]
+            gbk_id = f"ge_{slugify(slug)[:60]}_fr"
+            stub = {
+                "gbk_id": gbk_id, "canton": "GE", "url": row["doc_url"],
+                "title": row["title"], "doc_number": f"GE ORF {row['title']}",
+                "date": "", "language": "fr", "doc_type": ge_doc_type(row["title"]),
+                "topics": ["GE", _GE_ISSUER, "Registre foncier"],
+            }
+            # the detail page is fetched every run: a revised directive gets a
+            # new /document/<nid>/telecharger, which REVISION_FIELD picks up
+            detail = self._page(row["doc_url"], f"GE {slug}")
+            pdf_url = ge_download_url(detail or "", row["doc_url"])
+            if not pdf_url:
+                logger.warning("[%s] GE %s: no download link", self.SOURCE_KEY, slug)
+                continue
+            stub.update({"pdf_url": pdf_url, "revision": pdf_url})
+            out = self.with_body(stub, stub["gbk_id"])
+            if out:
+                if not out.get("date"):
+                    out["date"] = first_date_iso(out["body_text"][:2000])
+                yield out
+
+    def _discover_vs(self) -> Iterator[dict]:
+        html = self._page(_VS_NOTAIRES_PAGE, "VS notaires")
+        if html is None:
+            return
+        refs = vs_article_refs(html)
+        for url in vs_page_links(html, _VS_NOTAIRES_PAGE)[: _VS_MAX_PAGES - 1]:
+            more = self._page(url, "VS notaires page")
+            if more:
+                refs += [r for r in vs_article_refs(more) if r not in refs]
+        logger.info("[%s] VS: %d articles", self.SOURCE_KEY, len(refs))
+        for ref in refs:
+            gbk_id = f"vs_notaires_{ref['article']}_fr"
+            url = _VS_DETAIL.format(**ref)
+            stub = {"gbk_id": gbk_id, "canton": "VS", "url": url, "title": "", "doc_number": "",
+                    "language": "fr", "doc_type": "mitteilung"}
+            if self._make_doc_id(stub) in self._seen_ids:
+                continue                  # one article id = one note; known ones need no request
+            art = parse_vs_article(self._page(url, f"VS article {ref['article']}") or "")
+            # an article whose content is only its attached PDF (robots.txt
+            # forbids fetching it) leaves the file name: skipped
+            if not art or len(art["body_text"]) < 200:
+                logger.info("[%s] VS article %s: no text of its own (PDF only?), skipped",
+                            self.SOURCE_KEY, ref["article"])
+                continue
+            yield {
+                **stub, "title": art["title"], "doc_number": f"VS SRF {art['title']}",
+                "date": art["date"], "topics": ["VS", _VS_ISSUER, "Registre foncier", "Notariat"],
+                "body_text": art["body_text"], "revision": sha256_hex(art["body_text"])[:16],
+            }
+
+    def _discover_pdf_page(self, canton: str, page: str, issuer: str, title_re: re.Pattern,
+                           doc_type: str) -> Iterator[dict]:
+        html = self._page(page, f"{canton} page")
+        if html is None:
+            return
+        rows = pdf_links(html, page, title_re)
+        logger.info("[%s] %s: %d PDFs", self.SOURCE_KEY, canton, len(rows))
+        for row in rows:
+            stub = {
+                "gbk_id": f"{canton.lower()}_{slugify(row['title'])[:60]}_de",
+                "canton": canton, "pdf_url": row["pdf_url"], "url": page,
+                "title": row["title"], "doc_number": f"{canton} {row['title']}",
+                "date": "", "language": "de", "doc_type": doc_type,
+                "topics": [canton, issuer, "Grundbuch"], "revision": row["pdf_url"],
+            }
+            out = self.with_body(stub, stub["gbk_id"])
+            if out:
+                if not out.get("date"):
+                    out["date"] = first_date_iso(out["body_text"][:2000])
+                yield out
+
+    def _discover_lu(self) -> Iterator[dict]:
+        for url in _LU_PAGES:
+            parsed = parse_lu_page(self._page(url, f"LU {url}") or "")
+            if not parsed or len(parsed["body_text"]) < 300:
+                continue
+            path = url.rstrip("/").rsplit("/", 1)[-1]
+            yield {
+                "gbk_id": f"lu_{slugify(path)}_de", "canton": "LU", "url": url,
+                "title": parsed["title"], "doc_number": f"LU Grundbuch {parsed['title']}",
+                "date": "", "language": "de", "doc_type": "merkblatt",
+                "topics": ["LU", _LU_ISSUER, "Grundbuch"],
+                "body_text": parsed["body_text"], "revision": sha256_hex(parsed["body_text"])[:16],
+            }
+
     def discover_documents(self) -> Iterator[dict]:
         yield from self._discover_zh_navtree()
         yield from self._discover_zh_downloads()
         yield from self._discover_bs()
         yield from self._discover_be()
         yield from self._discover_ag()
+        yield from self._discover_ge()
+        yield from self._discover_vs()
+        yield from self._discover_pdf_page("AR", _AR_PAGE, _AR_ISSUER,
+                                           re.compile(r"^Kreisschreiben\b"), "kreisschreiben")
+        yield from self._discover_pdf_page("GR", _GR_PAGE, _GR_ISSUER,
+                                           re.compile(r"Richtlinie|Weisung|Kreisschreiben|Merkblatt"),
+                                           "richtlinie")
+        yield from self._discover_lu()
+        yield from self._discover_pdf_page("LU", _LU_PAGES[0], _LU_ISSUER,
+                                           re.compile(r"^Unterlagen|Weisung|Merkblatt|Kreisschreiben"),
+                                           "merkblatt")

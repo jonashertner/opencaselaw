@@ -20,9 +20,10 @@ decisions and guidance beside the federal StGB/StPO/JStPO:
          Arbeitsdokumente" page (Vollzugsplan/-bericht templates, RIPOL
          annexes, assessment catalogues) and a "Jahresberichte" page
          (annual/Tätigkeitsberichte, both concordats, 2010-). Their own
-         Richtlinien live on a separate ExtJS app, erlasse.konkordate.ch,
-         which turned out not to expose a discoverable JSON API (see
-         _ERLASSE_KONKORDATE_NOTE below) — not scraped.
+         Richtlinien, Reglemente, Merkblätter, Tarife and Standards live on
+         a separate ExtJS app, erlasse.konkordate.ch (the "Erlasssammlung";
+         read since 2026-11-08 through the app's own /ajax tree call, see
+         the erlasse.konkordate.ch section below).
          /konkordate/rechtsprechung-bundesgericht is Federal Supreme Court
          rulings already in the decision corpus and is not scraped here.
          issuing_authority "NWI-OSK".
@@ -76,18 +77,144 @@ from .langdedup import TextDedupMixin, body_lang
 
 logger = logging.getLogger(__name__)
 
-# ── erlasse.konkordate.ch: not crackable within the time budget ──
-# Scala.js (Scala-GWT style, idparc AG's platform — same stack serves
-# erlasse.unisg.ch and rechtsbuch.ur.ch) running behind akka-http. The
-# bundle (main.js, 5.6 MB across two files) opens exactly two app-level
-# endpoints, both opaque: "/ws" (a WebSocket) and "/ajax", whose request
-# body is built by a dedicated serializer function (not JSON.stringify) —
-# there is no "/api/..." path, no Ext.Direct REMOTING_API descriptor, and
-# no plain query-string listing endpoint anywhere in either bundle. Probed
-# ~20 common REST guesses (/api, /api/v1, /svc, /rest, /dgn/api, ...), all
-# 404. Session is a JWT in a cookie named "dingsessiontoken". Concluded
-# not worth reverse-engineering a bespoke binary/WS protocol in the time
-# available; the NWI/OSK Richtlinien are therefore NOT in this scraper.
+# ════════════════════════════════════════════════════════════════════
+# NWI/OSK Erlasssammlung (erlasse.konkordate.ch — idparc "ding" platform)
+# ════════════════════════════════════════════════════════════════════
+#
+# An ExtJS front end on idparc AG's platform (same stack as erlasse.unisg.ch
+# and rechtsbuch.ur.ch) behind akka-http. robots.txt allows everything and
+# the sitemap lists every Erlass, but each page is an empty shell filled by
+# POSTs to /ajax with a binary (boopickle-style) body. One of those calls,
+# the "home" tree, returns the whole Erlasssammlung (I. Grundlagen to VI.
+# Standards) as gzipped JSON: per Erlass its number, title, type, issuing
+# body, decision and in-force dates and a "document-url"
+# (/blb-<name>_pdf.downloadpayload) that downloads the official PDF without
+# a login. The request body below was captured from the app on 2026-11-08:
+# a fixed header, the call name "home", and the session JWT that the site
+# hands every visitor as the "dingsessiontoken" cookie on a plain GET. If
+# the platform changes its wire format, konk_tree_from_ajax returns None
+# and the run logs a warning instead of writing anything.
+
+_KONK_BASE = "https://erlasse.konkordate.ch"
+_KONK_TOKEN_COOKIE = "dingsessiontoken"
+
+# overviewType -> doc_type
+_KONK_DOC_TYPES = {
+    "Vereinbarung": "konkordat",
+    "Reglement": "erlass",
+    "Tarife, Gebühren": "erlass",
+    "Richtlinie": "richtlinie",
+    "Merkblatt": "merkblatt",
+    "Standards": "richtlinie",
+}
+
+
+def _boopickle_len(n: int) -> bytes:
+    """A string length the way the app's serializer writes it: one byte
+    below 128, else two bytes with the high bit set (up to 4095)."""
+    if n < 128:
+        return bytes([n])
+    if n >= 4096:
+        raise ValueError(f"token too long for the captured wire format: {n}")
+    return bytes([0x80 | (n >> 8), n & 0xFF])
+
+
+def konk_tree_request(token: str) -> bytes:
+    """The /ajax body of the app's "home" tree call for a session token."""
+    t = token.encode("ascii")
+    return (bytes([135, 255, 3, 0, 11, 0, 4]) + b"home" + bytes([1, 1, 0])
+            + _boopickle_len(len(t)) + t + bytes([0, 1, 0, 0, 1, 1, 0, 1, 1, 1]))
+
+
+def konk_tree_from_ajax(content: bytes) -> dict | None:
+    """The tree JSON out of an /ajax response: a short binary frame header
+    followed by a gzip stream. None when there is no gzip stream or it does
+    not hold the expected JSON object."""
+    import gzip
+    import json
+    i = content.find(b"\x1f\x8b")
+    if i < 0:
+        return None
+    try:
+        tree = json.loads(gzip.decompress(content[i:]))
+    except Exception:
+        return None
+    return tree if isinstance(tree, dict) and "children" in tree else None
+
+
+def _konk_date(yyyymmdd: str) -> str:
+    v = (yyyymmdd or "").strip()
+    return f"{v[:4]}-{v[4:6]}-{v[6:8]}" if re.fullmatch(r"\d{8}", v) else ""
+
+
+def konk_erlasse(tree: dict) -> list[dict]:
+    """One dict per Erlass (tree leaf) in document order:
+    number ("IV.16"), title, type, prefix (NWI / OSK / NWI & OSK), entity
+    (the issuing body), category ("IV. Richtlinien"), beschluss and inkraft
+    (ISO dates), terminated (ISO or ""), lex_path ("lex-IV_16"), effective
+    (the version's "effective-from" YYYYMMDD) and pdf_path ("" when the
+    Erlass has no document)."""
+    out: list[dict] = []
+
+    def walk(node: dict, category: str) -> None:
+        for ch in node.get("children") or []:
+            cat = category or _clean(ch.get("text", ""))
+            if ch.get("leaf"):
+                v = ch.get("syncableVals") or {}
+                entity_id = ch.get("entityId") or ""
+                m = re.match(r"(lex-[^?]+)(?:\?effective-from=(\d{8}))?", entity_id)
+                out.append({
+                    "number": _clean(ch.get("srid", "")),
+                    # lex-title drops the type word ("betreffend die
+                    # Ausgangs- ..." for "Richtlinie betreffend ..."); the
+                    # overview title keeps it
+                    "title": _clean(v.get("overviewTitle") or v.get("lex-title")
+                                    or re.sub(r"^\S+\s+", "", ch.get("text", ""))),
+                    "type": _clean(v.get("overviewType", "")),
+                    "prefix": _clean(v.get("overviewAuthority", "")),
+                    "entity": _clean(v.get("overviewEntity", "")),
+                    "category": cat,
+                    "beschluss": _konk_date(v.get("lex-date-create", "")),
+                    "inkraft": _konk_date(v.get("lex-date-effective-last", "")),
+                    "terminated": _konk_date(v.get("lex-date-terminated", "")
+                                             or v.get("lex-date-effective-terminated", "")),
+                    "lex_path": m.group(1) if m else "",
+                    "effective": (m.group(2) or "") if m else "",
+                    "pdf_path": v.get("document-url") or "",
+                })
+            else:
+                walk(ch, cat)
+
+    walk(tree, "")
+    return out
+
+
+def konk_stub(e: dict) -> dict | None:
+    """A practice stub for one Erlass, or None when it has no PDF. Each
+    in-force version gets its own row (the id carries the version's
+    effective-from date), so a revised Richtlinie is a new row and
+    search_practice's newest-per-doc_number collapse shows the current one."""
+    if not e["pdf_path"] or not e["number"]:
+        return None
+    doc_type = _KONK_DOC_TYPES.get(e["type"], "richtlinie" if "richtlinie" in e["type"].lower() else "erlass")
+    number = f"NWI-OSK Erlass {e['number']}"
+    topics = ["NWI-OSK", e["prefix"], e["entity"], e["category"], e["type"]]
+    if e["terminated"]:
+        topics.append("aufgehoben")
+    version = e["effective"] or e["inkraft"].replace("-", "")
+    return {
+        "pdf_url": urljoin(_KONK_BASE + "/", e["pdf_path"].lstrip("/")),
+        "url": f"{_KONK_BASE}/{e['lex_path']}" if e["lex_path"] else _KONK_BASE,
+        "title": e["title"],
+        "doc_number": number,
+        "date": e["beschluss"] or e["inkraft"],
+        "language": "de",
+        "doc_type": doc_type,
+        "topics": [t for t in topics if t],
+        "issuing_authority": "NWI-OSK",
+        "sv_id": f"konk_{slugify(e['number'])}_{version or 'undated'}",
+    }
+
 
 # ════════════════════════════════════════════════════════════════════
 # CLDJP (cldjp.ch — WordPress)
@@ -497,6 +624,7 @@ class StrafvollzugScraper(TextDedupMixin, PracticeScraper):
         yield from self._cldjp()
         yield from self._nwiosk_vorlagen()
         yield from self._nwiosk_jahresberichte()
+        yield from self._nwiosk_erlasse()
 
     # ── CLDJP ──
     def _cldjp(self) -> Iterator[dict]:
@@ -582,5 +710,37 @@ class StrafvollzugScraper(TextDedupMixin, PracticeScraper):
                 "sv_id": f"nwiosk_jb_{slugify(card['pdf_url'].rsplit('/', 1)[-1])[:60]}",
             }
             out = self.with_body(stub, number)
+            if out:
+                yield out
+
+    def _nwiosk_erlasse(self) -> Iterator[dict]:
+        try:
+            r = self.get(_KONK_BASE + "/")
+            r.raise_for_status()
+            token = self.session.cookies.get(_KONK_TOKEN_COOKIE)
+            if not token:
+                logger.warning("[strafvollzug] erlasse.konkordate.ch set no %s cookie; "
+                               "Erlasssammlung skipped", _KONK_TOKEN_COOKIE)
+                return
+            self._rate_limit()
+            r = self.session.post(_KONK_BASE + "/ajax", data=konk_tree_request(token),
+                                  timeout=self.PDF_TIMEOUT)
+            r.raise_for_status()
+        except Exception as e:
+            logger.warning("[strafvollzug] erlasse.konkordate.ch tree call failed: %s", e)
+            return
+        tree = konk_tree_from_ajax(r.content)
+        if tree is None:
+            logger.warning("[strafvollzug] erlasse.konkordate.ch: the /ajax answer holds no tree "
+                           "(%d bytes); the wire format may have changed", len(r.content))
+            return
+        erlasse = konk_erlasse(tree)
+        logger.info("[strafvollzug] nwiosk Erlasssammlung: %d Erlasse", len(erlasse))
+        for e in erlasse:
+            stub = konk_stub(e)
+            if stub is None:
+                logger.info("[strafvollzug] Erlass %s has no document, skipped", e["number"])
+                continue
+            out = self.with_body(stub, stub["doc_number"])
             if out:
                 yield out

@@ -36,14 +36,25 @@ Pages
       law — HBewUe70/HUE54, the Hague evidence/service conventions — and
       are left out).
 
-  rhf.admin.ch/de/wegleitungen-checklisten-und-rundschreiben (DE only; no
-      FR/IT equivalent found) -> the Wegleitung "Die internationale
-      Rechtshilfe in Strafsachen" (current edition, 15.10.2025; its old
-      English translation is the 2009 edition — rhf.admin.ch keeps no
-      newer English edition) and the bilateral Wegleitung Schweiz-Italien.
-      This page also carries ~30 further checklists, Rundschreiben Nr. 1-7,
-      asset-recovery and prisoner-transfer Merkblätter not picked up here —
-      left for a follow-up pass (see the build report).
+  rhf.admin.ch/de/wegleitungen-checklisten-und-rundschreiben, with its
+      FR (/fr/directives-aide-memoire-et-circulaires) and IT
+      (/it/direttive-promemoria-e-circolari) twins (both in the site's own
+      sitemap; found 2026-11-08 after the first pass had missed them) ->
+      the Wegleitung "Die internationale Rechtshilfe in Strafsachen"
+      (current edition, 15.10.2025; FR "Directives en matière pénale";
+      its old English translation is the 2009 edition — rhf.admin.ch keeps
+      no newer English edition), the bilateral Wegleitung Schweiz-Italien,
+      and (since 2026-11-08) everything else on the page: the BJ/fedpol
+      Aufgabenabgrenzung, Rundschreiben Nr. 1-7, the two Infomails (EPPO,
+      Russia), the checklists for foreign requests and for the Swiss
+      authorities' review, the asset-recovery brochure, the Merkblatt and
+      Checkliste on stellvertretende Strafverfolgung, the prisoner-transfer
+      Merkblätter and Länderliste and the Musterprotokoll for the transfer
+      hearing (see RHF_FAMILIES). Files whose name carries a language
+      suffix (-e, -es, -uk, -ar) are the same file on all three pages and
+      are taken once, from the first page that lists them. The
+      Personenfahndung checklist on this page is the one the Auslieferung
+      family already takes from bj.admin.ch, so it is skipped here.
 
 NOTE: the old rhf.admin.ch/dam/rhf/... URL pattern and the
 backend.bj.admin.ch/fileservice/... host named when this scraper was
@@ -63,7 +74,7 @@ from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
-from .base import PracticeScraper, first_date_iso, slugify
+from .base import PracticeScraper, dateline_iso, first_date_iso, slugify
 from .langdedup import TextDedupMixin
 
 logger = logging.getLogger(__name__)
@@ -89,7 +100,85 @@ MUSTER_PAGES = (
     ("it", _RHF + "/it/modelli-e-formulari"),
 )
 
-WEGLEITUNGEN_PAGE = ("de", _RHF + "/de/wegleitungen-checklisten-und-rundschreiben")
+WEGLEITUNGEN_PAGES = (
+    ("de", _RHF + "/de/wegleitungen-checklisten-und-rundschreiben"),
+    ("fr", _RHF + "/fr/directives-aide-memoire-et-circulaires"),
+    ("it", _RHF + "/it/direttive-promemoria-e-circolari"),
+)
+
+# filename stem (language suffix removed) on the rhf.admin.ch Wegleitungen
+# page -> (id key, doc_number, doc_type). The two Wegleitungen keep the id
+# keys the first build gave them ("strafsachen", "italien"), so rows already
+# in bj_rechtshilfe.jsonl are recognised and not fetched again.
+RHF_FAMILIES: dict[str, tuple[str, str, str]] = {
+    "wegleitung-strafsachen": ("wegleitung_strafsachen",
+                               "BJ Wegleitung Internationale Rechtshilfe Strafsachen", "wegleitung"),
+    "wegleitung-rechtshilfe-italien": ("wegleitung_italien",
+                                       "BJ Wegleitung Rechtshilfe Schweiz-Italien", "wegleitung"),
+    "aufgabenabgrenzung-bj-fedpol": ("rhf_aufgabenabgrenzung",
+                                     "BJ Aufgabenabgrenzung Rechtshilfe und Polizeikooperation (BJ/fedpol)",
+                                     "merkblatt"),
+    "rundschreiben-datendiebstahl": ("rhf_rs_1", "BJ Rechtshilfe Rundschreiben Nr. 1", "rundschreiben"),
+    "rundschreiben-cyber-crime-convention": ("rhf_rs_2", "BJ Rechtshilfe Rundschreiben Nr. 2", "rundschreiben"),
+    "rundschreiben-videokonferenz": ("rhf_rs_3", "BJ Rechtshilfe Rundschreiben Nr. 3", "rundschreiben"),
+    "rundschreiben-anzeigenweiterleitung": ("rhf_rs_4", "BJ Rechtshilfe Rundschreiben Nr. 4", "rundschreiben"),
+    "rundschreiben-mitteilungsverbot": ("rhf_rs_5", "BJ Rechtshilfe Rundschreiben Nr. 5", "rundschreiben"),
+    "rundschreiben-statistikdaten": ("rhf_rs_6", "BJ Rechtshilfe Rundschreiben Nr. 6", "rundschreiben"),
+    "rundschreiben-sharing": ("rhf_rs_7", "BJ Rechtshilfe Rundschreiben Nr. 7", "rundschreiben"),
+    "infomail-2023-02-10": ("rhf_infomail_1", "BJ Rechtshilfe Infomail Nr. 1", "mitteilung"),
+    "infomail-2023-03-21": ("rhf_infomail_2", "BJ Rechtshilfe Infomail Nr. 2", "mitteilung"),
+    "checkliste-ersuchen-ausland": ("rhf_checkliste_ersuchen_ausland",
+                                    "BJ Checkliste ausländische Rechtshilfeersuchen in Strafsachen", "merkblatt"),
+    "checkliste-justizbehoerden": ("rhf_checkliste_justizbehoerden",
+                                   "BJ Checkliste Prüfung ausländischer Rechtshilfeersuchen", "merkblatt"),
+    "asset-recovery": ("rhf_asset_recovery",
+                       "BJ Rückführung unrechtmässig erworbener Vermögenswerte (Asset Recovery)", "merkblatt"),
+    "mb-strafuebernahmebegehren": ("rhf_mb_strafuebernahme",
+                                   "BJ Merkblatt stellvertretende Strafverfolgung", "merkblatt"),
+    "checkliste-strafuebernahmebegehren": ("rhf_checkliste_strafuebernahme",
+                                           "BJ Checkliste Strafübernahmebegehren", "merkblatt"),
+    "mb-schweizer-im-ausland-verurteilt": ("rhf_mb_ueberstellung_ch_im_ausland",
+                                           "BJ Merkblatt Überstellung: im Ausland verurteilte Schweizer",
+                                           "merkblatt"),
+    "mb-auslaender-in-ch-verurteilt": ("rhf_mb_ueberstellung_auslaender_in_ch",
+                                       "BJ Merkblatt Überstellung: in der Schweiz verurteilte Ausländer",
+                                       "merkblatt"),
+    "mb-laenderliste-ueberstellungen": ("rhf_laenderliste_ueberstellungen",
+                                        "BJ Überstellung Länderliste", "merkblatt"),
+    "mb-zp-schweizer-im-ausland-verurteilt": ("rhf_mb_zp_ueberstellung",
+                                              "BJ Merkblatt Überstellung nach dem Zusatzprotokoll",
+                                              "merkblatt"),
+    "mb-zp-auslaender-in-ch-verurteilt": ("rhf_mb_zp_ausweisung",
+                                          "BJ Merkblatt Überstellung bei Ausweisung (Zusatzprotokoll)",
+                                          "merkblatt"),
+    "musterprotokoll-ueberstellung-zp": ("rhf_musterprotokoll_ueberstellung",
+                                         "BJ Musterprotokoll Einvernahme vor Überstellung", "formular"),
+}
+# On the page, but taken elsewhere: the Auslieferung family reads the same
+# Personenfahndung checklist from bj.admin.ch.
+RHF_SKIP = {"checkliste-personenfahndung"}
+
+# rhf.admin.ch re-stamped files it migrated with this date; it is not the
+# document's date.
+_RHF_MIGRATION_DATE = "2020-07-13"
+
+
+def classify_rhf_item(pdf_url: str, page_lang: str) -> dict | None:
+    """{"key", "doc_number", "doc_type", "language", "suffixed"} for one PDF
+    on an rhf.admin.ch Wegleitungen page, or None for a file this source
+    skips. An unknown stem is logged by the caller and skipped, so a new
+    file on the page shows up in the log instead of under a made-up
+    doc_number."""
+    base, suffix_lang = split_lang_suffix(_filename_stem(pdf_url))
+    if base in RHF_SKIP:
+        return None
+    family = RHF_FAMILIES.get(base)
+    if family is None:
+        return None
+    key, number, doc_type = family
+    return {"key": key, "doc_number": number, "doc_type": doc_type,
+            "language": suffix_lang or page_lang, "suffixed": suffix_lang is not None,
+            "base": base}
 
 _AUSLIEFERUNG_TITLES = {
     "auslieferung": "BJ Merkblatt Auslieferung",
@@ -174,7 +263,8 @@ _YEAR = re.compile(r"\b(20\d{2})\b")
 
 # "10. Auflage 2025", "9th edition 2009", "1re édition 2003", "1a edizione 2003"
 _EDITION = re.compile(
-    r"\b\d{1,2}(?:\.|st|nd|rd|th|e|re|ème|a)?\s+(?:Auflage|edition|édition|edizione)\s+((?:19|20)\d{2})\b",
+    r"\b(?:\d{1,2}(?:\.|st|nd|rd|th|e|re|ème|a)?|prima|seconda|terza|quarta|quinta|sesta|settima"
+    r"|ottava|nona|decima)\s+(?:Auflage|edition|édition|edizione)\s+((?:19|20)\d{2})\b",
     re.I)
 
 
@@ -206,7 +296,10 @@ class BjRechtshilfeScraper(TextDedupMixin, PracticeScraper):
             if year and not doc["date"].startswith(year):
                 doc["date"] = year
         if not doc["date"]:
-            doc["date"] = first_date_iso(body_text[:2500])
+            # rows whose listing date was rhf.admin.ch's migration stamp
+            # read the letterhead date first ("Bern, 15. Januar 2014")
+            doc["date"] = ((dateline_iso(body_text[:3000]) if stub.get("date_from_text") else "")
+                           or first_date_iso(body_text[:2500]))
         return doc
 
     # ── annual reports + statistics ──
@@ -295,46 +388,44 @@ class BjRechtshilfeScraper(TextDedupMixin, PracticeScraper):
                     "bj_id": f"muster_ersuchen_strafrecht_{lang}",
                 }
 
-    # ── Wegleitungen (DE only) ──
+    # ── rhf.admin.ch: Wegleitungen, Rundschreiben, Checklisten, Merkblätter ──
 
     def _wegleitung_stubs(self) -> Iterator[dict]:
-        lang, url = WEGLEITUNGEN_PAGE
-        try:
-            r = self.get(url)
-            r.raise_for_status()
-        except Exception as e:
-            logger.warning("[%s] Wegleitungen page fetch failed: %s", self.SOURCE_KEY, e)
-            return
-        items = _dam_items(r.text, url)
-        logger.info("[%s] Wegleitungen page: %d PDFs", self.SOURCE_KEY, len(items))
-        for it in items:
-            stem = _filename_stem(it["pdf_url"])
-            if stem == "wegleitung-strafsachen":
+        taken: set[str] = set()
+        for page_lang, url in WEGLEITUNGEN_PAGES:
+            try:
+                r = self.get(url)
+                r.raise_for_status()
+            except Exception as e:
+                logger.warning("[%s] rhf %s page fetch failed: %s", self.SOURCE_KEY, page_lang, e)
+                continue
+            items = _dam_items(r.text, url)
+            logger.info("[%s] rhf %s page: %d PDFs", self.SOURCE_KEY, page_lang, len(items))
+            for it in items:
+                c = classify_rhf_item(it["pdf_url"], page_lang)
+                if c is None:
+                    base = split_lang_suffix(_filename_stem(it["pdf_url"]))[0]
+                    if base not in RHF_SKIP:
+                        logger.warning("[%s] rhf: unknown file %s (%s), skipped",
+                                       self.SOURCE_KEY, it["pdf_url"], it["title"])
+                    continue
+                bj_id = f"{c['key']}_{c['language']}"
+                if bj_id in taken:
+                    continue          # a suffixed file again, from the next language's page
+                taken.add(bj_id)
+                date = it["file_date"]
+                if date == _RHF_MIGRATION_DATE:
+                    date = ""
+                if c["base"].startswith("infomail-"):
+                    date = c["base"][len("infomail-"):]
                 yield {
                     "pdf_url": it["pdf_url"], "url": url, "title": it["title"],
-                    "doc_number": "BJ Wegleitung Internationale Rechtshilfe Strafsachen",
-                    "date": it["file_date"],
-                    "language": "de", "doc_type": "wegleitung",
-                    "topics": ["Wegleitung", "Internationale Rechtshilfe"],
-                    "bj_id": "wegleitung_strafsachen_de",
-                }
-            elif stem == "wegleitung-strafsachen-e":
-                yield {
-                    "pdf_url": it["pdf_url"], "url": url, "title": it["title"],
-                    "doc_number": "BJ Wegleitung Internationale Rechtshilfe Strafsachen",
-                    "date": it["file_date"],
-                    "language": "en", "doc_type": "wegleitung",
-                    "topics": ["Wegleitung", "Internationale Rechtshilfe"],
-                    "bj_id": "wegleitung_strafsachen_en",
-                }
-            elif stem == "wegleitung-rechtshilfe-italien":
-                yield {
-                    "pdf_url": it["pdf_url"], "url": url, "title": it["title"],
-                    "doc_number": "BJ Wegleitung Rechtshilfe Schweiz-Italien",
-                    "date": it["file_date"],
-                    "language": "de", "doc_type": "wegleitung",
-                    "topics": ["Wegleitung", "Internationale Rechtshilfe", "Italien"],
-                    "bj_id": "wegleitung_italien_de",
+                    "doc_number": c["doc_number"],
+                    "date": date, "date_from_text": not date,
+                    "language": c["language"], "doc_type": c["doc_type"],
+                    "topics": ["Internationale Rechtshilfe", it["section"]] if it["section"]
+                              else ["Internationale Rechtshilfe"],
+                    "bj_id": bj_id,
                 }
 
     def discover_documents(self) -> Iterator[dict]:

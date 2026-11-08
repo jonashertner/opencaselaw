@@ -15246,12 +15246,13 @@ server = Server(
         "practice notes of the GE, VD and BE commercial registers — "
         "criminal-law practice — the ZH Oberstaatsanwaltschaft's WOSTA and "
         "Strafmassempfehlungen, the Swiss prosecutors' conference (SSK-CPS) "
-        "Empfehlungen, the VS and AG prosecutors' directives, the BJ's guide and "
-        "materials on international legal assistance and extradition, the "
-        "penal-enforcement concordats (Concordat latin, NWI/OSK) and the NKVF's "
+        "Empfehlungen, the BE, VS, VD, FR, GE and AG prosecutors' directives, the "
+        "Bundesanwaltschaft's and its supervisory authority's reports, the BJ's guide, "
+        "circulars and checklists on international legal assistance and extradition, the "
+        "penal-enforcement concordats (Concordat latin; NWI/OSK incl. their Richtlinien) and the NKVF's "
         "visit reports — land-register and tenancy "
         "practice — the federal land-register office (EGBA: GBV, Lex Koller, BGBB), "
-        "the ZH, BS, BE and AG land registers' handbooks and Weisungen, and the "
+        "the cantonal land registers' handbooks, Weisungen and directives (ZH, BS, BE, AG, GE, VS, AR, GR, LU), and the "
         "Federal Housing Office's tenancy-court decision extracts (BWO "
         "Mitteilungen zum Mietrecht, Bände 1-64) — and "
         "the decisions and Views of the UN treaty bodies (CCPR, CAT, CERD, CEDAW, CRC, "
@@ -32631,7 +32632,7 @@ def _list_tools() -> list[Tool]:
             name="search_practice",
             title="Search administrative practice",
             description=(
-                "Use this tool for ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben, Empfehlungen — agency guidance, not court decisions. 13,000+ documents. Social insurance: BSV, OAK BV, BAG, SECO (ArG, AVIG). Tax and finance: ESTV, FINMA, MROS, SIF. Company law and competition: WEKO, UEK, RAB, EHRA, Stiftungsaufsicht. Asylum: SEM. Environment: BAFU. SchKG: BJ + cantons. Criminal law: ZH WOSTA, SSK-CPS, VS/AG prosecutors, BJ Rechtshilfe, concordats, NKVF. Land register and tenancy: EGBA, ZH/BS/BE/AG land registers, BWO tenancy decisions. Cantonal documents: canton=. UN: recommendations to Switzerland (un_uhri), General Comments (un_gc). Returns ranked excerpts; superseded versions collapse to the newest, for past conduct pass include_superseded=true. NOT covered: cantonal Sozialhilfe/SKOS, Prämienverbilligung — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC 1987–2017: search_decisions(court='ch_vb')."
+                "Use this tool for ADMINISTRATIVE PRACTICE (Verwaltungspraxis): Wegleitungen, Kreisschreiben, Weisungen, Rundschreiben, Empfehlungen — agency guidance, not court decisions. 13,000+ documents. Social insurance: BSV, OAK BV, BAG, SECO (ArG, AVIG). Tax and finance: ESTV, FINMA, MROS, SIF. Company law and competition: WEKO, UEK, RAB, EHRA, Stiftungsaufsicht. Asylum: SEM. Environment: BAFU. SchKG: BJ + cantons. Criminal law: WOSTA, SSK-CPS, cantonal prosecutors, BA, BJ Rechtshilfe, concordats, NKVF. Land register and tenancy: EGBA, cantonal land registers, BWO tenancy decisions. Cantonal documents: canton=. UN: recommendations to Switzerland (un_uhri), General Comments (un_gc). Returns ranked excerpts; superseded versions collapse to the newest, for past conduct pass include_superseded=true. NOT covered: cantonal Sozialhilfe/SKOS, Prämienverbilligung — say so. UN complaint decisions: search_decisions(court='untb_*'). VPB/JAAC 1987–2017: search_decisions(court='ch_vb')."
             ),
             inputSchema={
                 "type": "object",
@@ -32721,17 +32722,25 @@ def _list_tools() -> list[Tool]:
                             "Staatsanwälte-Konferenz) Empfehlungen on sentencing for SVG and BetmG offences, "
                             "Landesverweisung, Rechtshilfe, VOSTRA, häusliche Gewalt and more, DE/FR; the VS Ministère "
                             "public's directives and Reglemente, DE/FR; the AG Staatsanwaltschaft's Weisungen and "
-                            "Strafbefehlsempfehlungen; authority = ZH / SSK-CPS / VS / AG), bj_rechtshilfe (BJ, "
+                            "Strafbefehlsempfehlungen; the BE Generalstaatsanwaltschaft's Weisungen and Richtlinien (DE/FR); "
+                            "the Procureur général's directives of VD, FR (FR/DE) and GE incl. annexes; the "
+                            "Bundesanwaltschaft's Tätigkeitsberichte 2006- and its supervisory authority AB-BA's "
+                            "Tätigkeitsberichte 2011- and inspection reports (DE/FR/IT); authority = ZH / SSK-CPS / "
+                            "VS / AG / BE / VD / FR / GE / BA / AB-BA), bj_rechtshilfe (BJ, "
                             "international mutual legal assistance in criminal matters: the Wegleitung 'Die internationale "
                             "Rechtshilfe in Strafsachen' (10th ed. 2025; English 9th ed. 2009) and the Wegleitung "
-                            "Schweiz-Italien, Auslieferung fact sheets and procedure explainers in DE/FR/IT and seven "
-                            "further languages, the Muster-Ersuchen, Tätigkeitsberichte 2015-2024 and the yearly "
+                            "Schweiz-Italien, Rundschreiben Nr. 1-7, Infomails, the checklists for foreign requests "
+                            "and for their review, the Merkblätter on stellvertretende Strafverfolgung, prisoner "
+                            "transfer and asset recovery, Auslieferung fact sheets and procedure explainers in DE/FR/IT "
+                            "and seven further languages, the Muster-Ersuchen, Tätigkeitsberichte 2015-2024 and the yearly "
                             "statistics, DE/FR/IT), strafvollzug (penal-enforcement concordats: the Concordat latin's "
                             "concordat texts, règlements, décisions, directives and recommandations for its adult, "
                             "juvenile, police and other sub-concordats (CLDJP, FR/DE/IT) and the Nordwest- und "
                             "Innerschweizer and Ostschweizer concordats' Vollzugsplan/-bericht templates, RIPOL "
-                            "annexes, Merkblätter and annual reports 2010- (NWI-OSK, DE; their Richtlinien proper sit "
-                            "in a web application not yet indexed); authority = CLDJP / NWI-OSK), nkvf (National "
+                            "annexes, Merkblätter and annual reports 2010- (NWI-OSK, DE), and the NWI/OSK Erlasssammlung: "
+                            "Konkordatsvereinbarungen, Reglemente, Tarife, Richtlinien (Ausgang/Urlaub, AEX/WAEX, "
+                            "Arbeitsentgelt, Vollzugsplanung, bedingte Entlassung ...), Merkblätter and Standards, "
+                            "doc_number 'NWI-OSK Erlass IV.16'; authority = CLDJP / NWI-OSK), nkvf (National "
                             "Commission for the Prevention of Torture: visit reports on prisons, police custody, "
                             "psychiatric and care institutions and federal asylum centres, 2010-, nearly always with the "
                             "visited authority's response in the same document (doc_type visit_report); the "
@@ -32752,7 +32761,10 @@ def _list_tools() -> list[Tool]:
                             "Lex Koller), Merkblätter and the Dienstanweisung zur Notariatsgebührenverordnung; the BS "
                             "Grundbuch-Newsletter für Notariate Nr. 1-17 (2013-); the BE Handbuch für die Grundbuchämter "
                             "incl. Weisungen, one row per chapter, DE/FR; the AG Weisung betreffend die "
-                            "Grundbuchführung, Kreisschreiben and Merkblätter; authority = canton code)."
+                            "Grundbuchführung, Kreisschreiben and Merkblätter; the GE Office du registre foncier's directives "
+                            "(cédules hypothécaires, servitudes, mises en communication) and guides; the VS Service du "
+                            "registre foncier's notes to notaries; the AR Kreisschreiben, the GR Richtlinie on AVGBS data "
+                            "exchange and the LU Grundbuchamt's Weisungen page; authority = canton code)."
                         ),
                     },
                     "issuing_authority": {
@@ -32762,7 +32774,7 @@ def _list_tools() -> list[Tool]:
                                  "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES",
                                  "UNHCR", "UEK", "RAB", "EHRA", "ESA", "BBSA", "BSABB", "MROS", "SIF",
                                  "Bankenombudsman", "SBVg", "SSK-CPS", "CLDJP", "NWI-OSK", "NKVF",
-                                 "BWO", "EGBA"],
+                                 "BWO", "EGBA", "BA", "AB-BA"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
                             "AVIG-Praxis), ESTV (438), BAFU (297), SEM (Weisungen 92 + Handbuch), "
@@ -32776,7 +32788,9 @@ def _list_tools() -> list[Tool]:
                             "Banking Ombudsman), SBVg (Swiss Bankers Association). SSK-CPS (Swiss conference of public "
                             "prosecutors), CLDJP / NWI-OSK (penal-enforcement concordats: Concordat latin; Nordwest- und "
                             "Innerschweiz + Ostschweiz), NKVF (National Commission for the Prevention of Torture), BWO "
-                            "(Federal Housing Office, tenancy decisions), EGBA (federal land-register office). Cantonal "
+                            "(Federal Housing Office, tenancy decisions), EGBA (federal land-register office), BA (Office of "
+                            "the Attorney General, annual reports), AB-BA (its supervisory authority: annual and inspection "
+                            "reports). Cantonal "
                             "prosecutors and land registers are filed under their canton code: use canton=. "
                             "UN-* = the UN body that addressed the recommendation to Switzerland: "
                             "UN-UPR (~1,450, Universal Periodic Review), UN-CAT (Committee against "
@@ -32794,8 +32808,8 @@ def _list_tools() -> list[Tool]:
                             "Restrict to one canton's documents: its SchKG supervisory authority's "
                             "circulars and Existenzminimum guideline (schkg_kantone, older copies in "
                             "bj_schkg); for GE, VD and BE, its commercial register's practice notes "
-                            "(hr_kantone); for ZH, VS and AG, its public prosecutor's Weisungen and "
-                            "Empfehlungen (strafverfolgung); for ZH, BS, BE and AG, its land-register "
+                            "(hr_kantone); for ZH, BE, VS, VD, FR, GE and AG, its public prosecutor's Weisungen and "
+                            "Empfehlungen (strafverfolgung); for ZH, BS, BE, AG, GE, VS, AR, GR and LU, its land-register "
                             "practice (grundbuch_kantone). KBKS = the national conference of enforcement officials."
                         ),
                     },

@@ -120,6 +120,11 @@ ENABLED_SCRAPERS = {
     # (one row per decision extract), EGBA (federal land-register office),
     # cantonal land-register practice (ZH, BS, BE, AG). First run ~30 min
     # in all (BWO: 64 PDFs, NKVF: a few hundred), then minutes.
+    # Tier 2 (2026-11-08): the NWI/OSK Erlasssammlung (strafvollzug), the
+    # rhf.admin.ch circulars and checklists in DE/FR/IT (bj_rechtshilfe), the
+    # BE/VD/FR/GE prosecutors and the BA / AB-BA reports (strafverfolgung;
+    # first run ~20 min, the BE host asks for a 10 s crawl delay), the GE,
+    # VS, AR, GR and LU land registers (grundbuch_kantone).
     "strafverfolgung":   StrafverfolgungScraper,
     "bj_rechtshilfe":    BjRechtshilfeScraper,
     "strafvollzug":      StrafvollzugScraper,
