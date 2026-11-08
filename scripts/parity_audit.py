@@ -195,6 +195,15 @@ def keys(s: str | None) -> list[str]:
     return list(dict.fromkeys(out))
 
 
+def loose_date_ok(e: dict, canton: str) -> bool:
+    """Same-date fallback for an unkeyable docket, where a day's pool is small
+    enough to mean something. Never for uploads (no court to compare with)
+    and never for CH, which has dozens of federal rows a day: 2026-11-08 a
+    SECO upload without a number "matched" an unrelated federal row."""
+    return (unkeyable(e["docket"]) and not e["spider"].startswith("XX")
+            and canton != "CH")
+
+
 def unkeyable(docket: str) -> bool:
     """Hash IDs (VD, TI) and slugs without a number cannot be compared."""
     return bool(HASH_DOCKET_RX.match(docket or "")) or not re.search(r"\d", "".join(tokens(docket)))
@@ -209,6 +218,19 @@ def url_stem(url: str | None) -> str | None:
     if len(stem) < 5 or not re.search(r"\d", stem) or UUID_RX.fullmatch(stem.lower()):
         return None
     return stem
+
+
+def num_variants(nums: list[str]) -> list[str]:
+    """Num as listed, then cut at a spaced slash or a semicolon: the BE
+    Direktionen append the clerks ("2020.GSI.415 / kr, stm, pz"), TG lists two
+    numbers ("DG 61 / 2021; S5.2021.10"). An unspaced slash is docket syntax
+    ("AB 18/013/SKE") and stays."""
+    out: list[str] = []
+    for n in nums:
+        out.append(n)
+        # A part of a single token ("2021") would key too loosely.
+        out += [p.strip() for p in re.split(r"\s+/\s+|;", n) if len(tokens(p)) >= 2]
+    return list(dict.fromkeys(x for x in out if x))
 
 
 def norm_url(url: str | None) -> str | None:
@@ -669,7 +691,7 @@ class OurIndex:
 
     def resolve(self, cantons, info: dict) -> int | None:
         """Match on what their document JSON names: dockets, then URLs / uuid."""
-        hit = self.exact(cantons, info.get("num") or [])
+        hit = self.exact(cantons, num_variants(info.get("num") or []))
         if hit is not None:
             return hit
         urls = self.url_index()
@@ -735,7 +757,7 @@ def match(listing: dict[str, dict], idx: OurIndex) -> tuple[dict, list[dict]]:
     for e in pending:
         cant = es_canton(e["spider"], e.get("sig"))
         dt = e.get("date")
-        if dt and (e["spider"] in DATE_FALLBACK_SPIDERS or unkeyable(e["docket"])):
+        if dt and (e["spider"] in DATE_FALLBACK_SPIDERS or loose_date_ok(e, cant)):
             free = len([i for i in idx.by_date[cant].get(dt, ()) if i not in claimed[cant]])
             if free - used[(cant, dt)] > 0:
                 used[(cant, dt)] += 1

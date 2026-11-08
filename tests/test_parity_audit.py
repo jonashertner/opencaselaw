@@ -139,6 +139,11 @@ def test_keys_cover_the_per_court_quirks():
     zh = pa.their_dockets("ZH_Baurekurs", "BRGE-I-0165-0167-2012-664")[0]
     assert set(pa.keys(zh)) & set(pa.keys("BRGE I Nrn. 0165-0167/2012"))
     assert pa.es_canton("XX_Upload", "ZG_UPL_001") == "ZG" and pa.es_canton("TA_SST") == "CH"
+    assert pa.num_variants(["2020.GSI.415 / kr, stm, pz"])[1] == "2020.GSI.415"
+    assert pa.num_variants(["DG 61 / 2021; S5.2021.10"])[1:] == ["DG 61", "S5.2021.10"]
+    assert pa.num_variants(["AB 18/013/SKE"]) == ["AB 18/013/SKE"]
+    idx = pa.OurIndex([{"court": "be_direktionen", "canton": "BE", "docket_number": "2020.GSI.415"}])
+    assert idx.resolve(("BE",), {"num": ["2020.GSI.415 / kr, stm, pz"], "urls": []}) == 0
     assert pa.unkeyable("765a98dd7955fc96f5cc") and pa.unkeyable("-div--span-style--co")
     assert not pa.unkeyable("2C-1023-2018")
     assert set(pa.keys("-div-Nr--50-2020-2--")) & set(pa.keys("<div>Nr. 50/2020/2</div>"))
@@ -324,6 +329,18 @@ def test_date_fallback_only_for_listed_spiders(env):
                         "docket_number": "ACJC/1/2026", "decision_date": "2026-01-05"}])
     stats, unmatched = pa.match(listing, idx)
     assert stats["GE_Gerichte"]["date"] == 1 and unmatched == []
+    # Unkeyable uploads and federal hash IDs never match on a date alone.
+    listing = pa.build_listing({"XX_Upload_1.xml": sitemap(
+        "CH_UPL_001_2f11b1502896e639ef67_2017-01-03", "TI_UPL_001_-_2017-01-03"),
+        "TI_Gerichte_1.xml": sitemap("TI_TCA_001_765a98dd7955fc96f5cc_2017-01-03")})
+    idx = pa.OurIndex([
+        {"court": "bger", "canton": "CH", "docket_number": "2C_1/2017", "decision_date": "2017-01-03"},
+        {"court": "ti_gerichte", "canton": "TI", "docket_number": "52.2016.1", "decision_date": "2017-01-03"},
+        {"court": "ti_gerichte", "canton": "TI", "docket_number": "52.2016.2", "decision_date": "2017-01-03"}])
+    stats, unmatched = pa.match(listing, idx)
+    assert {e["id"] for e in unmatched} == {"CH_UPL_001_2f11b1502896e639ef67_2017-01-03",
+                                            "TI_UPL_001_-_2017-01-03"}
+    assert stats["TI_Gerichte"]["date"] == 1
 
 
 def test_first_run_is_a_baseline_then_two_run_confirmation(env):
