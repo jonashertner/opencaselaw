@@ -90,6 +90,12 @@ RE_DECISION_ID = re.compile(r"decisionId=([0-9a-f-]+)")
 START_YEAR = 2007
 WINDOW_DAYS = 64
 MAX_PER_WINDOW = 100
+# Daily runs also list what the court PUBLISHED in this many days, whatever the
+# ruling date. The ruling-date scan below walks back from today and stops after
+# two years without anything new, so an old ruling published late never came
+# into view: C-5904/2013, decided 2015-11-27, published 2026-10-20 (found by
+# the entscheidsuche parity audit, 2026-11-08).
+PUBLISHED_LOOKBACK_DAYS = 45
 
 BVGER_ABTEILUNGEN = {
     "I": "Abteilung I (Infrastruktur, Umwelt, Abgaben, Personal)",
@@ -171,6 +177,10 @@ class BVGerScraper(BaseScraper):
 
     # ── Main entry ────────────────────────────────────────────
     def discover_new(self, since_date=None) -> Iterator[dict]:
+        try:
+            yield from self._discover_weblaw_published()
+        except Exception as e:  # noqa: BLE001 — the ruling-date scan still runs
+            logger.warning(f"BVGer Weblaw publication-date pass failed: {e}")
         try:
             yield from self._discover_weblaw(since_date)
             return
@@ -349,13 +359,43 @@ class BVGerScraper(BaseScraper):
 
         logger.info(f"BVGer Weblaw discovery complete: {total_found} new stubs")
 
+    def _discover_weblaw_published(
+        self, lookback_days: int = PUBLISHED_LOOKBACK_DAYS
+    ) -> Iterator[dict]:
+        """Unknown decisions published in the last ``lookback_days``, any
+        ruling date. Same adaptive windows as the ruling-date scan; a window
+        still over the cap at one day is split by language."""
+        today = date.today()
+        floor = today - timedelta(days=lookback_days)
+        field = "publicationDate"
+        wd = 8
+        cur_end = today
+        yielded: set[str] = set()
+        while cur_end >= floor:
+            cur_start = max(cur_end - timedelta(days=wd - 1), floor)
+            _, total, _ = self._wl_search(cur_start, cur_end, date_field=field)
+            if total > MAX_PER_WINDOW and wd > 1:
+                wd = max(1, wd // 2)
+                continue
+            langs = ("de", "fr", "it") if total > MAX_PER_WINDOW else (None,)
+            for lang in langs:
+                for stub in self._yield_window(cur_start, cur_end, 0, 0,
+                                               language=lang, date_field=field):
+                    if stub["docket_number"] not in yielded:
+                        yielded.add(stub["docket_number"])
+                        yield stub
+            cur_end = cur_start - timedelta(days=1)
+        logger.info(f"BVGer Weblaw published since {floor}: {len(yielded)} new stubs")
+
     def _yield_window(
         self, ab: date, bis: date,
         total_found: int, new_in_window: int,
         language: str | None = None,
+        date_field: str = "rulingDate",
     ) -> Iterator[dict]:
         """Yield all stubs from a search window, handling pagination."""
-        docs, total, more = self._wl_search(ab, bis, language=language)
+        docs, total, more = self._wl_search(ab, bis, language=language,
+                                            date_field=date_field)
         if total == 0:
             return
 
@@ -373,7 +413,8 @@ class BVGerScraper(BaseScraper):
 
         offset = len(docs)
         while more and offset < total:
-            docs, _, more = self._wl_search(ab, bis, offset, language=language)
+            docs, _, more = self._wl_search(ab, bis, offset, language=language,
+                                            date_field=date_field)
             for doc in docs:
                 stub = self._wl_parse(doc)
                 if stub and not self.state.is_known(
@@ -385,8 +426,10 @@ class BVGerScraper(BaseScraper):
     def _wl_search(
         self, ab: date, bis: date, offset: int = 0,
         language: str | None = None,
+        date_field: str = "rulingDate",
     ) -> tuple[list[dict], int, bool]:
-        """Execute a Weblaw search query. Returns (documents, total, has_more)."""
+        """Execute a Weblaw search query. Returns (documents, total, has_more).
+        ``date_field`` is rulingDate or publicationDate."""
         body = {
             "guiLanguage": "de",
             "userID": _rand_uid(),
@@ -394,7 +437,7 @@ class BVGerScraper(BaseScraper):
             "size": 100,
             "aggs": {"fields": WEBLAW_AGGS_FIELDS, "size": "10"},
             "metadataDateMap": {
-                "rulingDate": {
+                date_field: {
                     "from": ab.strftime("%Y-%m-%dT00:00:00.000Z"),
                     "to": bis.strftime("%Y-%m-%dT23:59:59.999Z"),
                 }
