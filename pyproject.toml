@@ -84,6 +84,7 @@ py-modules = [
     "bge_historical_segment",
     "branch_map",
     "build_fts5",
+    "chamber_rules",
     "cli_ch",
     "coverage_report",
     "db_schema",

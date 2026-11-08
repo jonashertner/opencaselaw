@@ -20,6 +20,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+import chamber_rules
 from base_scraper import BaseScraper
 from models import (
     Decision,
@@ -379,7 +380,10 @@ class ZHBaurekursgerichtScraper(BaseScraper):
             decision_id=stub["decision_id"],
             court="zh_baurekursgericht",
             canton="ZH",
-            chamber=None,
+            # "Baurekursgericht des Kantons Zürich / 1. Abteilung"; else the
+            # numeral of the BRGE number (chamber_rules.zh_baurekursgericht).
+            chamber=chamber_rules.chamber_or(
+                None, "zh_baurekursgericht", docket=num, text=full_text, language=language),
             docket_number=num,
             decision_date=stub["decision_date"],
             language=language,

@@ -36,6 +36,7 @@ import re
 from urllib.parse import quote
 from typing import Iterator
 
+import chamber_rules
 from base_scraper import BaseScraper
 from models import Decision, detect_language, extract_citations, make_decision_id, parse_date
 
@@ -873,13 +874,22 @@ class TribunaBaseScraper(BaseScraper):
             dd = parse_date(stub.get("decision_date", ""))
             if not dd:
                 logger.warning(f"[{self.court_code}] No date for {stub['docket_number']}")
+            language = detect_language(text)
             return Decision(
                 decision_id=stub["decision_id"],
                 court=self.court_code,
                 canton=self.CANTON,
+                # The Cour / Abteilung the ruling's header names (FR "Arrêt du
+                # ... / IIe Cour administrative", BE VG "Verwaltungsgericht des
+                # Kantons Bern / Sozialversicherungsrechtliche Abteilung"), else
+                # the docket series. None for portals chamber_rules has no rule
+                # for (unchanged behaviour there).
+                chamber=chamber_rules.chamber_for(
+                    self.court_code, docket=stub["docket_number"], text=text,
+                    language=language),
                 docket_number=stub["docket_number"],
                 decision_date=dd,
-                language=detect_language(text),
+                language=language,
                 title=stub.get("title"),
                 full_text=text,
                 source_url=url,

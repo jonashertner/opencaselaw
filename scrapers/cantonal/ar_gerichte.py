@@ -21,6 +21,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+import chamber_rules
 import source_dates
 from base_scraper import BaseScraper
 from models import (
@@ -256,6 +257,12 @@ class ARGerichteScraper(BaseScraper):
             "KG": "Kantonsgericht",
         }
         chamber = behoerde_map.get(stub.get("behoerde", ""), stub.get("behoerde"))
+        # The Abteilung, from the ruling's head ("Obergericht Appenzell
+        # Ausserrhoden / 3. Abteilung") or the docket ("O3V-19-40"); it
+        # completes a bare "Obergericht" and fills an empty behoerde.
+        chamber = chamber_rules.chamber_or(
+            chamber or None, "ar_gerichte", docket=stub["docket_number"],
+            text=full_text, language=language)
 
         return Decision(
             decision_id=stub["decision_id"],

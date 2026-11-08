@@ -22,6 +22,7 @@ from datetime import date
 from html import unescape
 from typing import Iterator
 
+import chamber_rules
 import source_dates
 from base_scraper import BaseScraper
 from models import (
@@ -148,6 +149,11 @@ class NWGerichteScraper(BaseScraper):
             decision_id=stub["decision_id"],
             court="nw_gerichte",
             canton="NW",
+            # The PDF head: "OBERGERICHT / ... / ZA 24 19 / Urteil vom ... /
+            # Zivilabteilung" (chamber_rules.nw_gerichte).
+            chamber=chamber_rules.chamber_or(
+                None, "nw_gerichte", docket=stub["docket_number"], text=full_text,
+                language=language),
             docket_number=stub["docket_number"],
             decision_date=decision_date,
             language=language,

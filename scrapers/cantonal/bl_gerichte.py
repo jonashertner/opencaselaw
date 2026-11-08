@@ -27,6 +27,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+import chamber_rules
 from base_scraper import BaseScraper
 from models import (
     Decision,
@@ -431,8 +432,14 @@ class BLGerichteScraper(BaseScraper):
         # Regeste: use description from search hit
         regeste = stub.get("description")
 
-        # Chamber from court description
-        chamber = stub.get("court_description")
+        # Chamber: the court description ("Kantonsgericht"), completed with
+        # the Abteilung the ruling's header names ("Entscheid des
+        # Kantonsgerichts Basel-Landschaft, Abteilung Strafrecht vom ...") or
+        # its docket series states (chamber_rules.bl_gerichte).
+        chamber = chamber_rules.chamber_or(
+            stub.get("court_description") or None, "bl_gerichte",
+            docket=stub["docket_number"], text=full_text, language=language,
+            source_url=stub.get("url", ""))
 
         return Decision(
             decision_id=stub["decision_id"],

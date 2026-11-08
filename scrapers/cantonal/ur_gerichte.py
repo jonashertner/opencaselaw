@@ -22,6 +22,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+import chamber_rules
 import source_dates
 from base_scraper import BaseScraper
 from models import (
@@ -283,7 +284,12 @@ class URGerichteScraper(BaseScraper):
             decision_id=stub["decision_id"],
             court="ur_gerichte",
             canton="UR",
-            chamber=stub.get("herausgeber") or None,
+            # The listing's herausgeber is empty on every held row; the
+            # ruling's head names the Abteilung ("OBERGERICHT / Zivilrechtliche
+            # Abteilung"), the OG V/Z/S docket letter where it does not.
+            chamber=chamber_rules.chamber_or(
+                stub.get("herausgeber") or None, "ur_gerichte",
+                docket=stub["docket_number"], text=full_text, language=language),
             docket_number=stub["docket_number"],
             decision_date=decision_date,
             language=language,
