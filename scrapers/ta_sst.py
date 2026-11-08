@@ -60,6 +60,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from base_scraper import BaseScraper
+from scrapers import pdf_ocr
 from models import Decision, detect_language, extract_citations, make_decision_id, parse_date
 from scrapers.elcom import _extract_pdf_text
 
@@ -242,7 +243,15 @@ class TaSSTScraper(BaseScraper):
             return None
         text = _extract_pdf_text(resp.content) or ""
         if len(text.strip()) < MIN_TEXT_CHARS:
-            # Scan without a text layer (or an empty file): not re-probed nightly.
+            # A scan without a text layer: every predecessor ruling of the
+            # Disziplinarkammer (DK/CD 2016-2024) but a few is one, and 29 of them
+            # sat in the gap cache, re-probed weekly and never stored (2026-11-08).
+            ocr = pdf_ocr.ocr_pdf_bytes(resp.content)
+            if len(ocr.strip()) >= MIN_TEXT_CHARS:
+                logger.info(f"[ta_sst] {docket}: no text layer, OCR gave {len(ocr)} chars")
+                text = ocr
+        if len(text.strip()) < MIN_TEXT_CHARS:
+            # No text layer and no OCR (or an empty file): not re-probed nightly.
             logger.warning(
                 f"[ta_sst] no text layer in PDF for {docket} ({len(text)} chars) — "
                 f"cached as gap for {self.state.GAP_TTL_DAYS} days"

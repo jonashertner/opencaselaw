@@ -64,11 +64,28 @@ SECTIONS = {
     "dcba": "GE_DCBA_001",   # Commission du barreau (attorney discipline)
 }
 
+# The case (procedure) number printed in the result block's flag: C/16444/2023
+# (civil), A/3880/2025 (public law), P/11247/2025 (criminal), AC/1811/2025,
+# CAPJ/4/2024. It is what the Federal Supreme Court and the other Geneva
+# courts cite, while the title link carries the ruling number (ACJC/1978/2026).
+RE_CASE_NUMBER = re.compile(r"\b[A-Z]{1,5}/\d{1,6}/\d{4}\b")
+
 RE_TOTAL = re.compile(r"<strong>(\d+)</strong>\s*(?:enregistrement|resultats?)")
 RE_DATE_FR = re.compile(r"du\s+(\d{1,2})\.(\d{1,2})\.(\d{4})")
 
 PAGE_SIZE = 500
 START_YEAR = 1995
+
+
+def parse_case_number(flag_text: str, ruling_number: str | None = None) -> str | None:
+    """The case number(s) of a result block's flag, as printed ("C/16444/2023";
+    several joined by ", "), None when the flag carries none. A number equal to
+    the ruling number is not a case number."""
+    found = []
+    for n in RE_CASE_NUMBER.findall(flag_text or ""):
+        if n != (ruling_number or "").strip() and n not in found:
+            found.append(n)
+    return ", ".join(found) or None
 
 
 class GEGerichteScraper(BaseScraper):
@@ -176,14 +193,13 @@ class GEGerichteScraper(BaseScraper):
 
     def _parse_block(self, block, section: str) -> dict | None:
         """Parse a single decision block from search results."""
-        # Fiche ID from flag div
+        # The flag div carries the case number (it once carried "Fiche N")
         flag_div = block.find("div", class_="decis-block__flag")
         fiche_id = None
-        if flag_div:
-            text = flag_div.get_text(strip=True)
-            m = re.search(r"Fiche\s+(\d+)", text)
-            if m:
-                fiche_id = m.group(1)
+        flag_text = flag_div.get_text(" ", strip=True) if flag_div else ""
+        m = re.search(r"Fiche\s+(\d+)", flag_text)
+        if m:
+            fiche_id = m.group(1)
 
         # Docket number from h3 link
         h3 = block.find("h3", class_="list-block__title")
@@ -235,10 +251,12 @@ class GEGerichteScraper(BaseScraper):
                 resume = text.replace("Résumé :", "").replace("Resume :", "").strip()
 
         decision_id = make_decision_id("ge_gerichte", docket)
+        case_number = parse_case_number(flag_text, docket)
 
         return {
             "decision_id": decision_id,
             "docket_number": docket,
+            "case_number": case_number,
             "fiche_id": fiche_id,
             "decision_date": decision_date,
             "chamber": chamber,
@@ -316,6 +334,7 @@ class GEGerichteScraper(BaseScraper):
             canton="GE",
             chamber=stub.get("chamber"),
             docket_number=docket,
+            docket_number_2=stub.get("case_number"),
             decision_date=decision_date,
             language=language,
             regeste=stub.get("resume") or None,

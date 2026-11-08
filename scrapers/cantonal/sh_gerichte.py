@@ -20,6 +20,8 @@ import re
 from datetime import date
 from typing import Iterator
 
+from bs4 import BeautifulSoup
+
 from base_scraper import BaseScraper
 from models import (
     Decision,
@@ -57,6 +59,19 @@ RE_HEAD_LONG = re.compile(
     + _MONTH_NAMES + r")\s+(\d{4})")
 RE_HEAD_NUM = re.compile(
     r"(?:Entscheid|Urteil|Beschluss|Verf[üu]gung)?\s*vom\s+(\d{1,2})\.(\d{1,2})\.(\d{4})")
+
+
+def clean_html_text(value) -> str:
+    """Text of a CMS field that may carry markup: the portal's kachellabel and
+    headline sometimes hold the editor's HTML ("<div><span style=...>Nr.
+    63/2020/6</span><br></div>", "Nr. 60/2020/31 – <br>Wahl ..."). Tags become
+    spaces, entities are decoded, whitespace collapses."""
+    if not value:
+        return ""
+    text = str(value)
+    if "<" in text or "&" in text:
+        text = BeautifulSoup(text, "html.parser").get_text(" ")
+    return re.sub(r"\s+", " ", text.replace("\xa0", " ")).strip()
 
 
 def _parse_swiss_date(text):
@@ -144,7 +159,9 @@ class SHGerichteScraper(BaseScraper):
                 if not stub:
                     continue
 
-                if self.state.is_known(stub["decision_id"]):
+                if self.state.is_known(stub["decision_id"]) or (
+                        stub.get("legacy_decision_id")
+                        and self.state.is_known(stub["legacy_decision_id"])):
                     continue
 
                 # decision_date is not known until the PDF is fetched, so gate the
@@ -170,13 +187,18 @@ class SHGerichteScraper(BaseScraper):
             return None
 
         # Docket number from kachellabel (e.g., "Nr. 60/2017/43")
-        kachellabel = item.get("kachellabel", "")
-        docket = kachellabel.strip()
+        kachellabel = item.get("kachellabel", "") or ""
+        docket = clean_html_text(kachellabel)
         if not docket:
             docket = f"SH-{content_id}"
+        # Rows scraped before 2026-11 hold the label as served, markup included,
+        # in their decision_id; discovery treats that id as known too.
+        raw_docket = kachellabel.strip()
+        legacy_id = (make_decision_id("sh_gerichte", raw_docket)
+                     if raw_docket and raw_docket != docket else None)
 
         # Title/summary
-        headline = item.get("articleHeadline", "")
+        headline = clean_html_text(item.get("articleHeadline", ""))
         listlabel = item.get("listlabel", "")
 
         # Publication date. custom_publication_date_date is the PORTAL publication
@@ -199,6 +221,7 @@ class SHGerichteScraper(BaseScraper):
 
         return {
             "decision_id": decision_id,
+            "legacy_decision_id": legacy_id,
             "content_id": content_id,
             "docket_number": docket,
             # decision_date is deliberately omitted here: it is extracted from the
