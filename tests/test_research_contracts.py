@@ -421,3 +421,44 @@ def test_table_of_contents_and_historical_statute_metadata_are_preserved():
     validate_payload("get_law", payload)
     jsonschema.validate(payload, output_schema("get_law"))
     assert payload["unknown_provenance"] == {"keep": True}
+
+
+@pytest.mark.parametrize("is_canonical", [True, False])
+def test_decision_with_representations_matches_contract(monkeypatch, is_canonical):
+    """A record stored under two ids (GE DAS/C pairs) must not turn into
+    response_contract_error: `representations` is a list, the canonical pair
+    has its own fields (Mnemosyne report 2026-11-09, ge_gerichte_DAS_192_2020)."""
+    import sqlite3
+    monkeypatch.setattr(m, "get_decision_by_id", lambda *a: decision())
+    other = "ge_member" if is_canonical else "ge_canonical"
+    monkeypatch.setattr(m, "_representation_info", lambda *a: {
+        "canonical_decision_id": "test_record" if is_canonical else other,
+        "is_canonical": is_canonical,
+        "members": ([{"decision_id": other, "relation_type": "alt_representation",
+                      "evidence_method": "shared_source_url", "confidence": 1.0}]
+                    if is_canonical else []),
+    })
+
+    def fake_db():
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute("CREATE TABLE decisions (decision_id TEXT, docket_number TEXT, source_url TEXT)")
+        conn.execute("INSERT INTO decisions VALUES (?, 'C/1/2020', 'https://example.invalid/m')", (other,))
+        return conn
+    monkeypatch.setattr(m, "get_db", fake_db)
+
+    wire = asyncio.run(wire_call("get_decision", {"decision_id": "test_record", "full_text": False}))
+    assert not wire.isError, wire.content[-1].text
+    payload = wire.structuredContent
+    jsonschema.validate(payload, output_schema("get_decision"))
+    assert "## Representations" in wire.content[0].text
+    assert payload["is_canonical"] is is_canonical
+    if is_canonical:
+        assert payload["canonical_decision_id"] == "test_record"
+        assert payload["representations"] == [{
+            "decision_id": "ge_member", "relation_type": "alt_representation",
+            "evidence_method": "shared_source_url", "confidence": 1.0,
+            "source_url": "https://example.invalid/m"}]
+    else:
+        assert payload["canonical_decision_id"] == "ge_canonical"
+        assert "representations" not in payload

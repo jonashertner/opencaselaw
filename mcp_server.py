@@ -34556,7 +34556,14 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
             # additive metadata — the requested row is served either way.
             _repr = _representation_info(result.get("decision_id"))
             if _repr:
-                result["representations"] = _repr
+                # The published contract types `representations` as a list of
+                # {decision_id, relation_type, evidence_method, confidence,
+                # source_url} (the search-collapse shape); the canonical pair
+                # has its own fields. A dict here failed validation and turned
+                # every linked record into response_contract_error.
+                result.setdefault("canonical_decision_id", _repr["canonical_decision_id"])
+                result.setdefault("is_canonical", _repr["is_canonical"])
+                _repr_members: list[dict] = []
                 text += "\n## Representations\n"
                 if _repr["is_canonical"]:
                     text += (
@@ -34574,6 +34581,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                                 (_m["decision_id"],)).fetchone()
                             _mdocket = (_mrow["docket_number"] if _mrow else None) or "?"
                             _msrc = (_mrow["source_url"] if _mrow else None) or ""
+                            _repr_members.append({**_m, "source_url": _msrc or None})
                             text += (
                                 f"- `{_m['decision_id']}` (docket {_mdocket}, "
                                 f"evidence: {_m['evidence_method']}, "
@@ -34582,6 +34590,8 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                                 + "\n")
                     finally:
                         _mconn.close()
+                    if _repr_members:
+                        result["representations"] = _repr_members
                 else:
                     text += (
                         f"⚠ This record is an alternative representation of the "
