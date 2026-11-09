@@ -723,14 +723,18 @@ def _dedup_decisions(conn: sqlite3.Connection) -> int:
     if _da_mode != "off":
         all_rows = conn.execute(
             "SELECT decision_id, canonical_key, LENGTH(COALESCE(full_text, '')), "
-            "LENGTH(COALESCE(regeste, '')) FROM decisions "
-            "WHERE canonical_key IS NOT NULL AND canonical_key <> ''"
+            "LENGTH(COALESCE(regeste, '')), source = ? FROM decisions "
+            "WHERE canonical_key IS NOT NULL AND canonical_key <> ''",
+            (FEDERATION_SOURCE,),
         ).fetchall()
         groups2 = defaultdict(list)
-        for did, ckey, tlen, rlen in all_rows:
+        federation_ids = set()   # rows _fold_federation_date_twins may take
+        for did, ckey, tlen, rlen, is_fed in all_rows:
             parts = ckey.split("|")
             if len(parts) == 3 and parts[1]:
                 groups2[f"{parts[0]}|{parts[1]}"].append((did, tlen, rlen))
+                if is_fed:
+                    federation_ids.add(did)
         multi = {k: v for k, v in groups2.items() if len(v) > 1}
 
         if _da_mode == "legacy":
@@ -753,9 +757,26 @@ def _dedup_decisions(conn: sqlite3.Connection) -> int:
                 ):
                     norm[did] = _norm_for_dedup(ft)
             kept_distinct = 0
+            left_to_fold = 0
             for entries in multi.values():
+                # An entscheidsuche <id>_dYYYYMMDD import copy of a row in the
+                # group is left to _fold_federation_date_twins, which keeps the
+                # base id (the public URL), decides the date from the ruling's
+                # text and aliases the copy. Here the longer copy would win: an
+                # entscheidsuche copy is longer by its page furniture, so the
+                # direct row went and its id stopped resolving (be_bvd 407,
+                # be_steuerrekurs 10, build of 2026-11-09).
+                ids = {e[0] for e in entries}
+                twins = {e[0] for e in entries if e[0] in federation_ids
+                         and (m := _DATE_SUFFIX_ID_RE.match(e[0])) and m.group("base") in ids}
+                if twins:
+                    left_to_fold += len(twins)
+                    entries = [e for e in entries if e[0] not in twins]
+                    if len(entries) < 2:
+                        continue
                 entries.sort(key=lambda x: -(x[1] + x[2]))
-                sn = norm.get(entries[0][0], "")
+                survivor = entries[0][0]
+                sn = norm.get(survivor, "")
                 for did, _, _ in entries[1:]:
                     mn = norm.get(did, "")
                     short, longn = (mn, sn) if len(mn) <= len(sn) else (sn, mn)
@@ -764,9 +785,13 @@ def _dedup_decisions(conn: sqlite3.Connection) -> int:
                     # re-rendered); otherwise it is a distinct decision — KEEP it.
                     if len(short) >= 200 and longn.startswith(short):
                         conn.execute("DELETE FROM decisions WHERE decision_id = ?", (did,))
+                        # The dropped id stays resolvable (links, citations).
+                        _record_folded_id(conn, did, survivor, "dedup_pass2")
                         deleted2 += 1
                     else:
                         kept_distinct += 1
+            if left_to_fold:
+                logger.info(f"  Pass 2: left {left_to_fold} import date-twins to the federation fold")
             logger.info(
                 f"  Pass 2 (content-aware): kept {kept_distinct} distinct "
                 f"same-docket decisions that the legacy pass would have deleted"
