@@ -12,8 +12,9 @@ permission to index this material for OpenCaseLaw. Jonas decided on
 unchanged, attributed to the foundation and linked to its site, outside the
 corpus's CC0 licence. If the foundation sets conditions or asks for removal,
 drop the source from ENABLED_SCRAPERS, delete output/practice/
-bankingombudsman.jsonl and rebuild practice.db. Together with sbvg.py this is
-the first PRIVATE-body source in the practice pipeline;
+bankingombudsman.jsonl and rebuild practice.db. This is the first
+PRIVATE-body source in the practice pipeline (the SBVg self-regulation
+source added with it was withdrawn on 2026-11-09 after the SBVg declined);
 every other source here (estv_ks, finma_rs, bsv_weisungen, ...) is a federal
 or cantonal authority whose publications are official and carry no
 copyright restriction on reuse of this kind.

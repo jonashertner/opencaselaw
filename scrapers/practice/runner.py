@@ -46,7 +46,6 @@ from .mros import MrosScraper
 from .estv_aia import EstvAiaScraper
 from .sif import SifScraper
 from .bankingombudsman import BankingOmbudsmanScraper
-from .sbvg import SbvgScraper
 from .strafverfolgung import StrafverfolgungScraper
 from .bj_rechtshilfe import BjRechtshilfeScraper
 from .strafvollzug import StrafvollzugScraper
@@ -109,10 +108,11 @@ ENABLED_SCRAPERS = {
     "mros":              MrosScraper,
     "estv_aia":          EstvAiaScraper,
     "sif":               SifScraper,
-    # Private bodies (2026-11-07): published while their permission is
-    # requested; see the licence note in each module before changing this.
+    # Private body (2026-11-07): published while its permission is requested;
+    # see the licence note in the module before changing this. The SBVg
+    # self-regulation source (sbvg) was withdrawn on 2026-11-09 after the
+    # SBVg declined; do not re-add it without the association's consent.
     "bankingombudsman":  BankingOmbudsmanScraper,
-    "sbvg":              SbvgScraper,
     # Criminal law (2026-11-08): prosecution guidance (ZH WOSTA by chapter +
     # Strafmassempfehlungen, SSK-CPS Empfehlungen, VS and AG), BJ mutual legal
     # assistance, the penal-enforcement concordats (CLDJP, NWI/OSK), NKVF

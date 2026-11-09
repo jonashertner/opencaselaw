@@ -32798,7 +32798,7 @@ def _list_tools() -> list[Tool]:
                                  "sem_handbuch_asyl", "bj_schkg", "schkg_kantone", "weko_bekanntmachungen",
                                  "oak_bv", "un_uhri", "un_gc", "un_ch_translations", "unhcr_country",
                                  "uek_rs", "rab_rs", "ehra", "finma_aufsicht", "stiftungsaufsicht",
-                                 "hr_kantone", "mros", "estv_aia", "sif", "bankingombudsman", "sbvg",
+                                 "hr_kantone", "mros", "estv_aia", "sif", "bankingombudsman",
                                  "strafverfolgung", "bj_rechtshilfe", "strafvollzug", "nkvf",
                                  "bwo_mietrecht", "egba", "grundbuch_kantone"],
                         "description": (
@@ -32859,11 +32859,7 @@ def _list_tools() -> list[Tool]:
                             "published), sif (SIF: national risk assessment reports on money laundering and terrorist "
                             "financing 2017-2024, AIA explanatory notes), bankingombudsman (Swiss Banking "
                             "Ombudsman: annual reports 2013-, case examples (doc_type rechtsprechung), position "
-                            "papers, press releases; DE/FR/IT/EN; private body, texts are the foundation's), sbvg "
-                            "(Swiss Bankers Association self-regulation: VSB/CDB 20 and 27 with commentaries, the "
-                            "VSB supervisory commission's Leading Cases, its activity reports, the mortgage and ESG "
-                            "Richtlinien, the list of all SBVg Richtlinien; private body; Richtlinien published only "
-                            "to members are not included), "
+                            "papers, press releases; DE/FR/IT/EN; private body, texts are the foundation's), "
                             "strafverfolgung (prosecution guidance: the ZH Oberstaatsanwaltschaft's WOSTA, Weisungen "
                             "für das Vorverfahren, one row per chapter 'WOSTA Ziff. 1-17', every edition kept, and its "
                             "Strafmassempfehlungen incl. Umweltkriminalität; the SSK-CPS (Schweizerische "
@@ -32921,7 +32917,7 @@ def _list_tools() -> list[Tool]:
                                  "UN-UPR", "UN-CRC", "UN-CEDAW", "UN-SPT", "UN-CAT", "UN-CESCR",
                                  "UN-CERD", "UN-CCPR", "UN-CRPD", "UN-CED", "UN-CMW", "UN-SPECIAL PROCEDURES",
                                  "UNHCR", "UEK", "RAB", "EHRA", "ESA", "BBSA", "BSABB", "MROS", "SIF",
-                                 "Bankenombudsman", "SBVg", "SSK-CPS", "CLDJP", "NWI-OSK", "NKVF",
+                                 "Bankenombudsman", "SSK-CPS", "CLDJP", "NWI-OSK", "NKVF",
                                  "BWO", "EGBA", "BA", "AB-BA"],
                         "description": (
                             "Filter by authority. FINMA (1,133), SECO (Arbeitsgesetz 1,102 + "
@@ -32933,7 +32929,7 @@ def _list_tools() -> list[Tool]:
                             "register office), ESA (federal foundation supervision), BBSA / BSABB "
                             "(foundation supervisors of Bern and of both Basel), MROS (money-laundering reporting "
                             "office), SIF (State Secretariat for International Finance), Bankenombudsman (Swiss "
-                            "Banking Ombudsman), SBVg (Swiss Bankers Association). SSK-CPS (Swiss conference of public "
+                            "Banking Ombudsman). SSK-CPS (Swiss conference of public "
                             "prosecutors), CLDJP / NWI-OSK (penal-enforcement concordats: Concordat latin; Nordwest- und "
                             "Innerschweiz + Ostschweiz), NKVF (National Commission for the Prevention of Torture), BWO "
                             "(Federal Housing Office, tenancy decisions), EGBA (federal land-register office), BA (Office of "
