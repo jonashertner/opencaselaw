@@ -1,14 +1,14 @@
 {
  "schema": "source-status/v1",
- "generated_at": "2026-11-08T11:55:31+00:00",
- "as_of": "2026-11-08",
+ "generated_at": "2026-11-09T12:14:09+00:00",
+ "as_of": "2026-11-09",
  "inputs": {
-  "coverage_generated_at": "2026-11-08T11:55:30+00:00",
-  "stats_generated_at": "2026-11-08T11:48:25.286598+00:00",
+  "coverage_generated_at": "2026-11-09T12:14:04+00:00",
+  "stats_generated_at": "2026-11-09T12:05:19.100694+00:00",
   "health_runs": {
-   "cron": "2026-11-08T01:52:07.750453+00:00",
-   "federal": "2026-11-08T09:16:56.171818+00:00",
-   "manual": "2026-11-08T10:52:05.984374+00:00"
+   "cron": "2026-11-09T03:13:13.944443+00:00",
+   "federal": "2026-11-09T09:18:29.583869+00:00",
+   "manual": "2026-11-09T10:52:36.816064+00:00"
   }
  },
  "method": {
@@ -20,17 +20,17 @@
  },
  "summary": {
   "courts": 137,
-  "decisions": 1047614,
+  "decisions": 1043034,
   "by_status": {
    "failing": 0,
-   "stale": 7,
-   "no_intake": 8,
-   "fresh": 104,
-   "quiet": 6,
-   "superseded": 9,
+   "stale": 6,
+   "no_intake": 4,
+   "fresh": 109,
+   "quiet": 7,
+   "superseded": 8,
    "closed": 3
   },
-  "portal_measured": 38,
+  "portal_measured": 45,
   "unmapped": [],
   "registered_without_rows": [
    "ecthr_committee"
@@ -122,9 +122,9 @@
    "last_year": "2020",
    "undated": 0,
    "newest_decision": "2020-06-30",
-   "days_since_newest": 2322,
+   "days_since_newest": 2323,
    "last_added": "2026-02-10",
-   "days_since_added": 271,
+   "days_since_added": 272,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 2.5,
@@ -156,10 +156,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -191,9 +191,9 @@
    "last_year": "2008",
    "undated": 0,
    "newest_decision": "2008-07-08",
-   "days_since_newest": 6697,
+   "days_since_newest": 6698,
    "last_added": "2026-02-10",
-   "days_since_added": 271,
+   "days_since_added": 272,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.5,
@@ -225,10 +225,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -255,17 +255,17 @@
    "canton": "AG",
    "portal": "https://www.ag.ch",
    "licence": "ch_official",
-   "count": 198,
-   "first_year": "1968",
+   "count": 249,
+   "first_year": "1991",
    "last_year": "2021",
    "undated": 0,
    "newest_decision": "2021-08-20",
-   "days_since_newest": 1906,
-   "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "days_since_newest": 1907,
+   "last_added": "2026-11-08",
+   "days_since_added": 1,
    "cadence": {
     "per_year": 0.0,
-    "per_year_last_active": 5.5,
+    "per_year_last_active": 6.0,
     "every_days": null,
     "lag_days": 0,
     "stale_after_days": null
@@ -275,9 +275,39 @@
     "reason": null
    },
    "intake": {
-    "live": false,
+    "live": true,
     "feed": "entscheidsuche",
-    "feeders": []
+    "feeders": [
+     {
+      "scraper": "ag_baugesetzgebung",
+      "registered": true,
+      "runs": [
+       {
+        "kind": "nightly",
+        "unit": "opencaselaw-scrape",
+        "when": [
+         {
+          "cadence": "daily",
+          "time": "01:00"
+         }
+        ]
+       }
+      ],
+      "last_run": {
+       "at": "2026-11-09T03:13:13.944443+00:00",
+       "run": "cron",
+       "ok": true,
+       "new": 0,
+       "errors": 0,
+       "timed_out": false,
+       "error": null,
+       "note": null,
+       "our_count": 249,
+       "portal_count": 255,
+       "gap": 6
+      }
+     }
+    ]
    },
    "status": "superseded",
    "why": "superseded",
@@ -301,9 +331,9 @@
    "last_year": "2023",
    "undated": 0,
    "newest_decision": "2023-06-21",
-   "days_since_newest": 1236,
+   "days_since_newest": 1237,
    "last_added": "2026-02-10",
-   "days_since_added": 271,
+   "days_since_added": 272,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.0,
@@ -335,10 +365,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -370,9 +400,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-14",
-   "days_since_newest": 86,
+   "days_since_newest": 87,
    "last_added": "2026-10-31",
-   "days_since_added": 8,
+   "days_since_added": 9,
    "cadence": {
     "per_year": 18.0,
     "per_year_last_active": 18.0,
@@ -404,10 +434,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -439,9 +469,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-01-08",
-   "days_since_newest": 669,
+   "days_since_newest": 670,
    "last_added": "2026-02-10",
-   "days_since_added": 271,
+   "days_since_added": 272,
    "cadence": {
     "per_year": 5.0,
     "per_year_last_active": 5.0,
@@ -473,10 +503,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -508,9 +538,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-10",
-   "days_since_newest": 121,
+   "days_since_newest": 122,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 3.0,
@@ -542,10 +572,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -577,9 +607,9 @@
    "last_year": "2025",
    "undated": 1,
    "newest_decision": "2025-12-12",
-   "days_since_newest": 331,
+   "days_since_newest": 332,
    "last_added": "2026-03-16",
-   "days_since_added": 237,
+   "days_since_added": 238,
    "cadence": {
     "per_year": 30.0,
     "per_year_last_active": 30.0,
@@ -633,9 +663,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-21",
-   "days_since_newest": 18,
+   "days_since_newest": 19,
    "last_added": "2026-10-31",
-   "days_since_added": 8,
+   "days_since_added": 9,
    "cadence": {
     "per_year": 54.0,
     "per_year_last_active": 54.0,
@@ -667,10 +697,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -702,9 +732,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-11-06",
-   "days_since_newest": 367,
+   "days_since_newest": 368,
    "last_added": "2026-06-26",
-   "days_since_added": 135,
+   "days_since_added": 136,
    "cadence": {
     "per_year": 1.0,
     "per_year_last_active": 1.0,
@@ -736,10 +766,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -771,9 +801,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-26",
-   "days_since_newest": 74,
+   "days_since_newest": 75,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 23.0,
     "per_year_last_active": 23.0,
@@ -805,10 +835,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -840,9 +870,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-21",
-   "days_since_newest": 48,
+   "days_since_newest": 49,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 161.0,
     "per_year_last_active": 161.0,
@@ -874,10 +904,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -909,9 +939,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-27",
-   "days_since_newest": 12,
+   "days_since_newest": 13,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 425.5,
     "per_year_last_active": 425.5,
@@ -943,10 +973,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -978,9 +1008,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-09",
-   "days_since_newest": 30,
+   "days_since_newest": 31,
    "last_added": "2026-11-08",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 463.0,
     "per_year_last_active": 463.0,
@@ -1012,10 +1042,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -1047,9 +1077,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-12",
-   "days_since_newest": 27,
+   "days_since_newest": 28,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 286.5,
     "per_year_last_active": 286.5,
@@ -1081,10 +1111,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -1111,32 +1141,62 @@
    "canton": "AG",
    "portal": null,
    "licence": "ch_official",
-   "count": 24,
+   "count": 27,
    "first_year": "2001",
    "last_year": "2020",
    "undated": 0,
    "newest_decision": "2020-09-16",
-   "days_since_newest": 2244,
-   "last_added": "2026-02-17",
-   "days_since_added": 264,
+   "days_since_newest": 2245,
+   "last_added": "2026-11-08",
+   "days_since_added": 1,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 3.5,
     "every_days": null,
     "lag_days": 0,
-    "stale_after_days": null
+    "stale_after_days": 548
    },
    "rate_check": {
     "status": "SMALL",
-    "reason": "24 rows < 100"
+    "reason": "27 rows < 100"
    },
    "intake": {
-    "live": false,
+    "live": true,
     "feed": "entscheidsuche",
-    "feeders": []
+    "feeders": [
+     {
+      "scraper": "ag_weitere",
+      "registered": true,
+      "runs": [
+       {
+        "kind": "nightly",
+        "unit": "opencaselaw-scrape",
+        "when": [
+         {
+          "cadence": "daily",
+          "time": "01:00"
+         }
+        ]
+       }
+      ],
+      "last_run": {
+       "at": "2026-11-09T03:13:13.944443+00:00",
+       "run": "cron",
+       "ok": true,
+       "new": 0,
+       "errors": 0,
+       "timed_out": false,
+       "error": null,
+       "note": null,
+       "our_count": 10,
+       "portal_count": 10,
+       "gap": 0
+      }
+     }
+    ]
    },
-   "status": "no_intake",
-   "why": "feed_retired",
+   "status": "fresh",
+   "why": "rare",
    "ended": null,
    "superseded_by": null,
    "superseded_by_collection": null,
@@ -1155,9 +1215,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-19",
-   "days_since_newest": 20,
+   "days_since_newest": 21,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 363.5,
     "per_year_last_active": 363.5,
@@ -1189,10 +1249,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 11,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -1219,24 +1279,24 @@
    "canton": "AI",
    "portal": "https://www.ai.ch/gerichte/rechtsprechung",
    "licence": "ch_official",
-   "count": 190,
+   "count": 211,
    "first_year": "1995",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-05-12",
-   "days_since_newest": 180,
-   "last_added": "2026-08-18",
-   "days_since_added": 82,
+   "newest_decision": "2026-05-19",
+   "days_since_newest": 174,
+   "last_added": "2026-11-08",
+   "days_since_added": 1,
    "cadence": {
-    "per_year": 22.5,
-    "per_year_last_active": 22.5,
+    "per_year": 23.0,
+    "per_year_last_active": 23.0,
     "every_days": 16,
     "lag_days": 0,
-    "stale_after_days": 65
+    "stale_after_days": 63
    },
    "rate_check": {
-    "status": "LOW",
-    "reason": "9 of 19 expected"
+    "status": "OK",
+    "reason": null
    },
    "intake": {
     "live": true,
@@ -1258,7 +1318,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -1266,15 +1326,15 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 90,
+       "our_count": 172,
        "portal_count": null,
        "gap": null
       }
      }
     ]
    },
-   "status": "stale",
-   "why": "no_new_decision",
+   "status": "fresh",
+   "why": null,
    "ended": null,
    "superseded_by": null,
    "superseded_by_collection": null,
@@ -1288,24 +1348,24 @@
    "canton": "AR",
    "portal": "https://rechtsprechung.ar.ch",
    "licence": "ch_official",
-   "count": 4615,
+   "count": 4476,
    "first_year": "1901",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-05-19",
-   "days_since_newest": 173,
+   "days_since_newest": 174,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
-    "per_year": 80.5,
-    "per_year_last_active": 80.5,
-    "every_days": 5,
+    "per_year": 85.0,
+    "per_year_last_active": 85.0,
+    "every_days": 4,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
     "status": "STALE",
-    "reason": "3 of 69 expected"
+    "reason": "3 of 73 expected"
    },
    "intake": {
     "live": true,
@@ -1327,7 +1387,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -1362,9 +1422,9 @@
    "last_year": "2026",
    "undated": 2,
    "newest_decision": "2026-10-19",
-   "days_since_newest": 20,
+   "days_since_newest": 21,
    "last_added": "2026-10-20",
-   "days_since_added": 19,
+   "days_since_added": 20,
    "cadence": {
     "per_year": 17.0,
     "per_year_last_active": 17.0,
@@ -1406,7 +1466,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T09:16:56.171818+00:00",
+       "at": "2026-11-09T09:18:29.583869+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -1441,9 +1501,9 @@
    "last_year": "2026",
    "undated": 2,
    "newest_decision": "2026-10-20",
-   "days_since_newest": 19,
+   "days_since_newest": 20,
    "last_added": "2026-10-31",
-   "days_since_added": 8,
+   "days_since_added": 9,
    "cadence": {
     "per_year": 7.0,
     "per_year_last_active": 7.0,
@@ -1475,7 +1535,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -1503,34 +1563,64 @@
    "name": "BE Bau- und Verkehrsdirektion (BVD)",
    "group": "cantonal",
    "canton": "BE",
-   "portal": "https://www.bvd-entscheide.apps.be.ch/tribunapublikation",
+   "portal": "https://www.bvd-entscheide.apps.be.ch/",
    "licence": "ch_official",
-   "count": 2094,
+   "count": 2242,
    "first_year": "1998",
-   "last_year": "2025",
+   "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2025-12-11",
-   "days_since_newest": 332,
-   "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "newest_decision": "2026-08-12",
+   "days_since_newest": 89,
+   "last_added": "2026-11-09",
+   "days_since_added": 0,
    "cadence": {
-    "per_year": 140.5,
-    "per_year_last_active": 140.5,
-    "every_days": 3,
+    "per_year": 162.0,
+    "per_year_last_active": 162.0,
+    "every_days": 2,
     "lag_days": 0,
-    "stale_after_days": null
+    "stale_after_days": 60
    },
    "rate_check": {
-    "status": "EXPECTED",
+    "status": "OK",
     "reason": null
    },
    "intake": {
-    "live": false,
+    "live": true,
     "feed": "entscheidsuche",
-    "feeders": []
+    "feeders": [
+     {
+      "scraper": "be_bvd",
+      "registered": true,
+      "runs": [
+       {
+        "kind": "nightly",
+        "unit": "opencaselaw-scrape",
+        "when": [
+         {
+          "cadence": "daily",
+          "time": "01:00"
+         }
+        ]
+       }
+      ],
+      "last_run": {
+       "at": "2026-11-09T03:13:13.944443+00:00",
+       "run": "cron",
+       "ok": true,
+       "new": 1852,
+       "errors": 0,
+       "timed_out": false,
+       "error": null,
+       "note": "15 listed on portal but content not downloadable (empty page or missing PDF)",
+       "our_count": 2235,
+       "portal_count": 2254,
+       "gap": 19
+      }
+     }
+    ]
    },
-   "status": "no_intake",
-   "why": "feed_retired",
+   "status": "fresh",
+   "why": null,
    "ended": null,
    "superseded_by": null,
    "superseded_by_collection": null,
@@ -1544,18 +1634,18 @@
    "canton": "BE",
    "portal": "https://www.gsi.be.ch/de/start/ueber-uns/generalsekretariat/rechtsabteilung/rechtsprechung.html",
    "licence": "ch_official",
-   "count": 221,
-   "first_year": "2018",
+   "count": 634,
+   "first_year": "2002",
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-08-20",
-   "days_since_newest": 80,
-   "last_added": "2026-10-27",
-   "days_since_added": 12,
+   "days_since_newest": 81,
+   "last_added": "2026-11-09",
+   "days_since_added": 0,
    "cadence": {
-    "per_year": 44.0,
-    "per_year_last_active": 44.0,
-    "every_days": 8,
+    "per_year": 62.0,
+    "per_year_last_active": 62.0,
+    "every_days": 6,
     "lag_days": 0,
     "stale_after_days": 60
    },
@@ -1583,17 +1673,17 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": null,
-       "our_count": 222,
-       "portal_count": null,
-       "gap": null
+       "note": "33 listed on portal but content not downloadable (empty page or missing PDF)",
+       "our_count": 635,
+       "portal_count": 668,
+       "gap": 33
       }
      }
     ]
@@ -1613,43 +1703,66 @@
    "canton": "BE",
    "portal": "https://www.strk-entscheide.apps.be.ch/tribunapublikation",
    "licence": "ch_official",
-   "count": 343,
+   "count": 376,
    "first_year": "2013",
-   "last_year": "2025",
+   "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2025-12-16",
-   "days_since_newest": 327,
-   "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "newest_decision": "2026-08-25",
+   "days_since_newest": 76,
+   "last_added": "2026-11-08",
+   "days_since_added": 1,
    "cadence": {
-    "per_year": 49.5,
-    "per_year_last_active": 49.5,
+    "per_year": 54.5,
+    "per_year_last_active": 54.5,
     "every_days": 7,
     "lag_days": 0,
-    "stale_after_days": null
+    "stale_after_days": 60
    },
    "rate_check": {
-    "status": "STALE",
-    "reason": "0 of 42 expected"
+    "status": "LOW",
+    "reason": "23 of 47 expected"
    },
    "intake": {
-    "live": false,
+    "live": true,
     "feed": "entscheidsuche",
     "feeders": [
      {
       "scraper": "be_steuerrekurs",
       "registered": true,
-      "runs": [],
-      "last_run": null
+      "runs": [
+       {
+        "kind": "nightly",
+        "unit": "opencaselaw-scrape",
+        "when": [
+         {
+          "cadence": "daily",
+          "time": "01:00"
+         }
+        ]
+       }
+      ],
+      "last_run": {
+       "at": "2026-11-09T03:13:13.944443+00:00",
+       "run": "cron",
+       "ok": true,
+       "new": 0,
+       "errors": 0,
+       "timed_out": false,
+       "error": null,
+       "note": null,
+       "our_count": 367,
+       "portal_count": 367,
+       "gap": 0
+      }
      }
     ]
    },
-   "status": "no_intake",
-   "why": "scraper_not_scheduled",
+   "status": "fresh",
+   "why": null,
    "ended": null,
    "superseded_by": null,
    "superseded_by_collection": null,
-   "note": "343 decisions held, newest dated 2025-12-16. The direct scraper was taken out of the nightly run in February 2026 when its queries returned zero rows, but the portal does publish 2026 rulings (e.g. 100_2025_392 of 2026-08-25, checked 2026-11-08); the scraper is being repaired.",
+   "note": "The portal was never down: from Feb 2026 the scraper sent the court filter STRK where the portal expects StRK (case-sensitive), and every query answered zero rows. Fixed 2026-11-08; the portal lists 367 decisions (2015-2026).",
    "unmapped": false
   },
   {
@@ -1659,17 +1772,17 @@
    "canton": "BE",
    "portal": "https://www.vg-urteile.apps.be.ch/tribunapublikation",
    "licence": "ch_official",
-   "count": 12254,
+   "count": 12255,
    "first_year": "1962",
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-10-15",
-   "days_since_newest": 24,
-   "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_newest": 25,
+   "last_added": "2026-11-09",
+   "days_since_added": 0,
    "cadence": {
-    "per_year": 792.0,
-    "per_year_last_active": 792.0,
+    "per_year": 792.5,
+    "per_year_last_active": 792.5,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
@@ -1698,17 +1811,17 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11780,
+       "our_count": 11781,
        "portal_count": 11783,
-       "gap": 3
+       "gap": 2
       }
      }
     ]
@@ -1728,24 +1841,24 @@
    "canton": "BE",
    "portal": null,
    "licence": "ch_official",
-   "count": 840,
+   "count": 368,
    "first_year": "2002",
    "last_year": "2025",
    "undated": 0,
-   "newest_decision": "2025-12-18",
-   "days_since_newest": 325,
+   "newest_decision": "2025-02-19",
+   "days_since_newest": 628,
    "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "days_since_added": 269,
    "cadence": {
-    "per_year": 46.5,
-    "per_year_last_active": 46.5,
-    "every_days": 8,
+    "per_year": 1.0,
+    "per_year_last_active": 1.0,
+    "every_days": 365,
     "lag_days": 0,
     "stale_after_days": null
    },
    "rate_check": {
-    "status": "EXPECTED",
-    "reason": null
+    "status": "SMALL",
+    "reason": "expected 0.9 < 5"
    },
    "intake": {
     "live": false,
@@ -1767,17 +1880,17 @@
    "canton": "BE",
    "portal": "https://www.zsg-entscheide.apps.be.ch/tribunapublikation",
    "licence": "ch_official",
-   "count": 6139,
+   "count": 6102,
    "first_year": "1979",
    "last_year": "2026",
-   "undated": 52,
+   "undated": 4,
    "newest_decision": "2026-09-29",
-   "days_since_newest": 40,
+   "days_since_newest": 41,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
-    "per_year": 479.0,
-    "per_year_last_active": 479.0,
+    "per_year": 511.5,
+    "per_year_last_active": 511.5,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
@@ -1806,17 +1919,17 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": "1 listed on portal but content not downloadable (empty page or missing PDF)",
-       "our_count": 6057,
+       "note": null,
+       "our_count": 6058,
        "portal_count": 6058,
-       "gap": 1
+       "gap": 0
       }
      }
     ]
@@ -1841,9 +1954,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-04",
-   "days_since_newest": 157,
+   "days_since_newest": 158,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 226.5,
     "per_year_last_active": 226.5,
@@ -1895,7 +2008,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T09:16:56.171818+00:00",
+       "at": "2026-11-09T09:18:29.583869+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -1924,7 +2037,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -1955,19 +2068,19 @@
    "portal": "https://www.bger.ch",
    "licence": "ch_official",
    "count": 493,
-   "first_year": "1969",
+   "first_year": "1979",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-02-19",
-   "days_since_newest": 262,
+   "newest_decision": "2026-11-05",
+   "days_since_newest": 4,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
-    "per_year": 15.0,
-    "per_year_last_active": 15.0,
-    "every_days": 24,
+    "per_year": 16.5,
+    "per_year_last_active": 16.5,
+    "every_days": 22,
     "lag_days": 0,
-    "stale_after_days": 97
+    "stale_after_days": 88
    },
    "rate_check": {
     "status": "OK",
@@ -1993,7 +2106,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2028,9 +2141,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-28",
-   "days_since_newest": 11,
+   "days_since_newest": 12,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 7272.0,
     "per_year_last_active": 7272.0,
@@ -2084,7 +2197,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2114,24 +2227,24 @@
    "canton": "BL",
    "portal": "https://bl.swisslex.ch",
    "licence": "ch_official",
-   "count": 19485,
-   "first_year": "1962",
+   "count": 17661,
+   "first_year": "1980",
    "last_year": "2026",
-   "undated": 30,
+   "undated": 0,
    "newest_decision": "2026-09-18",
-   "days_since_newest": 51,
+   "days_since_newest": 52,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
-    "per_year": 522.0,
-    "per_year_last_active": 522.0,
+    "per_year": 494.0,
+    "per_year_last_active": 494.0,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "126 of 446 expected"
+    "reason": "126 of 424 expected"
    },
    "intake": {
     "live": true,
@@ -2153,7 +2266,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2188,9 +2301,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-21",
-   "days_since_newest": 18,
+   "days_since_newest": 19,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 10.5,
     "per_year_last_active": 10.5,
@@ -2232,7 +2345,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T09:16:56.171818+00:00",
+       "at": "2026-11-09T09:18:29.583869+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -2267,9 +2380,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-30",
-   "days_since_newest": 9,
+   "days_since_newest": 10,
    "last_added": "2026-11-08",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 623.0,
     "per_year_last_active": 623.0,
@@ -2279,7 +2392,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "273 of 533 expected"
+    "reason": "273 of 534 expected"
    },
    "intake": {
     "live": true,
@@ -2301,10 +2414,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 5,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -2336,9 +2449,9 @@
    "last_year": "2017",
    "undated": 0,
    "newest_decision": "2017-12-04",
-   "days_since_newest": 3261,
+   "days_since_newest": 3262,
    "last_added": "2026-03-02",
-   "days_since_added": 251,
+   "days_since_added": 252,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.0,
@@ -2381,9 +2494,9 @@
    "last_year": "2014",
    "undated": 0,
    "newest_decision": "2014-09-22",
-   "days_since_newest": 4430,
+   "days_since_newest": 4431,
    "last_added": "2026-06-22",
-   "days_since_added": 139,
+   "days_since_added": 140,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 2.0,
@@ -2415,7 +2528,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2450,9 +2563,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-07",
-   "days_since_newest": 62,
+   "days_since_newest": 63,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 159.5,
     "per_year_last_active": 159.5,
@@ -2484,10 +2597,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 5,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -2519,9 +2632,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-04-25",
-   "days_since_newest": 927,
+   "days_since_newest": 928,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 3.5,
     "per_year_last_active": 3.5,
@@ -2553,7 +2666,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2588,9 +2701,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-18",
-   "days_since_newest": 82,
+   "days_since_newest": 83,
    "last_added": "2026-10-04",
-   "days_since_added": 35,
+   "days_since_added": 36,
    "cadence": {
     "per_year": 1.0,
     "per_year_last_active": 1.0,
@@ -2622,10 +2735,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 5,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -2652,17 +2765,17 @@
    "canton": null,
    "portal": "https://www.bstger.ch",
    "licence": "ch_official",
-   "count": 11761,
-   "first_year": "1969",
+   "count": 11907,
+   "first_year": "2004",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-14",
-   "days_since_newest": 25,
+   "days_since_newest": 26,
    "last_added": "2026-11-08",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
-    "per_year": 543.0,
-    "per_year_last_active": 543.0,
+    "per_year": 572.0,
+    "per_year_last_active": 572.0,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
@@ -2701,15 +2814,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T09:16:56.171818+00:00",
+       "at": "2026-11-09T09:18:29.583869+00:00",
        "run": "federal",
        "ok": true,
-       "new": 0,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11177,
+       "our_count": 11907,
        "portal_count": null,
        "gap": null
       }
@@ -2731,13 +2844,13 @@
    "canton": null,
    "portal": "https://www.bvger.ch",
    "licence": "ch_official",
-   "count": 95073,
+   "count": 95074,
    "first_year": "1951",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-30",
-   "days_since_newest": 9,
-   "last_added": "2026-11-08",
+   "days_since_newest": 10,
+   "last_added": "2026-11-09",
    "days_since_added": 0,
    "cadence": {
     "per_year": 4671.0,
@@ -2780,7 +2893,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T09:16:56.171818+00:00",
+       "at": "2026-11-09T09:18:29.583869+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -2788,7 +2901,7 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 95341,
+       "our_count": 95342,
        "portal_count": null,
        "gap": null
       }
@@ -2810,24 +2923,24 @@
    "canton": null,
    "portal": "https://www.bj.admin.ch",
    "licence": "ch_official",
-   "count": 39,
-   "first_year": "2007",
+   "count": 19,
+   "first_year": "2012",
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-10-08",
-   "days_since_newest": 396,
+   "days_since_newest": 397,
    "last_added": "2026-06-19",
-   "days_since_added": 142,
+   "days_since_added": 143,
    "cadence": {
-    "per_year": 9.5,
-    "per_year_last_active": 9.5,
-    "every_days": 38,
+    "per_year": 5.0,
+    "per_year_last_active": 5.0,
+    "every_days": 73,
     "lag_days": 0,
-    "stale_after_days": 154
+    "stale_after_days": 292
    },
    "rate_check": {
     "status": "SMALL",
-    "reason": "39 rows < 100"
+    "reason": "19 rows < 100"
    },
    "intake": {
     "live": true,
@@ -2849,7 +2962,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2857,9 +2970,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 25,
-       "portal_count": null,
-       "gap": null
+       "our_count": 19,
+       "portal_count": 19,
+       "gap": 0
       }
      }
     ]
@@ -2884,9 +2997,9 @@
    "last_year": "2016",
    "undated": 0,
    "newest_decision": "2016-12-29",
-   "days_since_newest": 3601,
+   "days_since_newest": 3602,
    "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "days_since_added": 269,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 5.0,
@@ -2923,9 +3036,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-11",
-   "days_since_newest": 150,
+   "days_since_newest": 151,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 108.5,
     "per_year_last_active": 108.5,
@@ -2957,7 +3070,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T22:30:03+00:00",
+       "at": "2026-11-08T22:30:03+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -2992,9 +3105,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-12-19",
-   "days_since_newest": 689,
+   "days_since_newest": 690,
    "last_added": "2026-03-02",
-   "days_since_added": 251,
+   "days_since_added": 252,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -3026,7 +3139,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3061,9 +3174,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-05",
-   "days_since_newest": 3,
+   "days_since_newest": 4,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 221.5,
     "per_year_last_active": 221.5,
@@ -3095,7 +3208,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T14:15:42+00:00",
+       "at": "2026-11-08T14:21:15+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -3124,14 +3237,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": null,
+       "note": "32 listed on portal but content not downloadable (empty page or missing PDF)",
        "our_count": 859,
        "portal_count": null,
        "gap": null
@@ -3159,9 +3272,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-25",
-   "days_since_newest": 75,
+   "days_since_newest": 76,
    "last_added": "2026-08-27",
-   "days_since_added": 73,
+   "days_since_added": 74,
    "cadence": {
     "per_year": 5.5,
     "per_year_last_active": 5.5,
@@ -3193,7 +3306,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T14:15:42+00:00",
+       "at": "2026-11-08T14:21:15+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -3222,14 +3335,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": null,
+       "note": "32 listed on portal but content not downloadable (empty page or missing PDF)",
        "our_count": 859,
        "portal_count": null,
        "gap": null
@@ -3257,9 +3370,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-26",
-   "days_since_newest": 13,
+   "days_since_newest": 14,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 97.5,
     "per_year_last_active": 97.5,
@@ -3269,7 +3382,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "34 of 83 expected"
+    "reason": "34 of 84 expected"
    },
    "intake": {
     "live": true,
@@ -3291,7 +3404,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3326,9 +3439,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-02",
-   "days_since_newest": 37,
+   "days_since_newest": 38,
    "last_added": "2026-10-20",
-   "days_since_added": 19,
+   "days_since_added": 20,
    "cadence": {
     "per_year": 13.5,
     "per_year_last_active": 13.5,
@@ -3370,7 +3483,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T09:16:56.171818+00:00",
+       "at": "2026-11-09T09:18:29.583869+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -3405,9 +3518,9 @@
    "last_year": "2006",
    "undated": 0,
    "newest_decision": "2006-11-03",
-   "days_since_newest": 7310,
+   "days_since_newest": 7311,
    "last_added": "2026-09-10",
-   "days_since_added": 59,
+   "days_since_added": 60,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 25.5,
@@ -3439,7 +3552,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3474,9 +3587,9 @@
    "last_year": "2026",
    "undated": 4,
    "newest_decision": "2026-06-10",
-   "days_since_newest": 151,
+   "days_since_newest": 152,
    "last_added": "2026-10-14",
-   "days_since_added": 25,
+   "days_since_added": 26,
    "cadence": {
     "per_year": 13.5,
     "per_year_last_active": 13.5,
@@ -3508,7 +3621,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3543,9 +3656,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-11",
-   "days_since_newest": 89,
+   "days_since_newest": 90,
    "last_added": "2026-10-08",
-   "days_since_added": 31,
+   "days_since_added": 32,
    "cadence": {
     "per_year": 1.5,
     "per_year_last_active": 1.5,
@@ -3577,7 +3690,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3612,9 +3725,9 @@
    "last_year": "2023",
    "undated": 0,
    "newest_decision": "2023-12-05",
-   "days_since_newest": 1069,
+   "days_since_newest": 1070,
    "last_added": "2026-06-20",
-   "days_since_added": 141,
+   "days_since_added": 142,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.5,
@@ -3651,9 +3764,9 @@
    "last_year": "2025",
    "undated": 1,
    "newest_decision": "2025-12-19",
-   "days_since_newest": 324,
+   "days_since_newest": 325,
    "last_added": "2026-04-22",
-   "days_since_added": 200,
+   "days_since_added": 201,
    "cadence": {
     "per_year": 44.0,
     "per_year_last_active": 44.0,
@@ -3685,7 +3798,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3720,9 +3833,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-10-21",
-   "days_since_newest": 748,
+   "days_since_newest": 749,
    "last_added": "2026-09-25",
-   "days_since_added": 44,
+   "days_since_added": 45,
    "cadence": {
     "per_year": 4.0,
     "per_year_last_active": 4.0,
@@ -3754,7 +3867,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3791,7 +3904,7 @@
    "newest_decision": null,
    "days_since_newest": null,
    "last_added": "2026-08-27",
-   "days_since_added": 73,
+   "days_since_added": 74,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 0.0,
@@ -3823,7 +3936,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3858,9 +3971,9 @@
    "last_year": "2027",
    "undated": 3,
    "newest_decision": "2026-11-05",
-   "days_since_newest": 3,
+   "days_since_newest": 4,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 1091.5,
     "per_year_last_active": 1091.5,
@@ -3892,7 +4005,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3927,9 +4040,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-23",
-   "days_since_newest": 16,
+   "days_since_newest": 17,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 11418.0,
     "per_year_last_active": 11418.0,
@@ -3939,7 +4052,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "4765 of 9760 expected"
+    "reason": "4765 of 9791 expected"
    },
    "intake": {
     "live": true,
@@ -3961,7 +4074,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3996,9 +4109,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-13",
-   "days_since_newest": 87,
+   "days_since_newest": 88,
    "last_added": "2026-10-29",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 92.5,
     "per_year_last_active": 92.5,
@@ -4030,7 +4143,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4060,17 +4173,17 @@
    "canton": "GR",
    "portal": "https://entscheidsuche.gr.ch",
    "licence": "ch_official",
-   "count": 15930,
+   "count": 15267,
    "first_year": "1992",
    "last_year": "2026",
-   "undated": 805,
+   "undated": 92,
    "newest_decision": "2026-10-30",
-   "days_since_newest": 9,
+   "days_since_newest": 10,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
-    "per_year": 739.0,
-    "per_year_last_active": 739.0,
+    "per_year": 728.0,
+    "per_year_last_active": 728.0,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
@@ -4099,7 +4212,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4134,9 +4247,9 @@
    "last_year": "2026",
    "undated": 252,
    "newest_decision": "2026-11-05",
-   "days_since_newest": 3,
+   "days_since_newest": 4,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 15.5,
     "per_year_last_active": 15.5,
@@ -4168,14 +4281,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": null,
+       "note": "32 listed on portal but content not downloadable (empty page or missing PDF)",
        "our_count": 859,
        "portal_count": null,
        "gap": null
@@ -4203,9 +4316,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-12-05",
-   "days_since_newest": 338,
+   "days_since_newest": 339,
    "last_added": "2026-11-01",
-   "days_since_added": 7,
+   "days_since_added": 8,
    "cadence": {
     "per_year": 2.5,
     "per_year_last_active": 2.5,
@@ -4237,7 +4350,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T21:33:53+00:00",
+       "at": "2026-11-08T21:33:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -4272,9 +4385,9 @@
    "last_year": "2026",
    "undated": 6,
    "newest_decision": "2026-10-22",
-   "days_since_newest": 17,
+   "days_since_newest": 18,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 91.5,
     "per_year_last_active": 91.5,
@@ -4316,14 +4429,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T10:52:05.984374+00:00",
+       "at": "2026-11-09T10:52:36.816064+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": "1 listed on portal but content not downloadable (empty page or missing PDF)",
+       "note": null,
        "our_count": 1206,
        "portal_count": 1222,
        "gap": 16
@@ -4346,14 +4459,14 @@
    "canton": "LU",
    "portal": "https://gerichte.lu.ch",
    "licence": "ch_official",
-   "count": 5186,
-   "first_year": "1930",
+   "count": 3996,
+   "first_year": "1990",
    "last_year": "2026",
-   "undated": 0,
+   "undated": 1,
    "newest_decision": "2026-06-08",
-   "days_since_newest": 153,
+   "days_since_newest": 154,
    "last_added": "2026-10-22",
-   "days_since_added": 17,
+   "days_since_added": 18,
    "cadence": {
     "per_year": 36.5,
     "per_year_last_active": 36.5,
@@ -4385,7 +4498,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4420,9 +4533,9 @@
    "last_year": "2026",
    "undated": 542,
    "newest_decision": "2026-06-25",
-   "days_since_newest": 136,
+   "days_since_newest": 137,
    "last_added": "2026-10-28",
-   "days_since_added": 11,
+   "days_since_added": 12,
    "cadence": {
     "per_year": 8.0,
     "per_year_last_active": 8.0,
@@ -4454,7 +4567,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4489,9 +4602,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-29",
-   "days_since_newest": 10,
+   "days_since_newest": 11,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 331.0,
     "per_year_last_active": 331.0,
@@ -4533,7 +4646,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T10:52:05.984374+00:00",
+       "at": "2026-11-09T10:52:36.816064+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
@@ -4568,9 +4681,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-02-05",
-   "days_since_newest": 276,
+   "days_since_newest": 277,
    "last_added": "2026-09-02",
-   "days_since_added": 67,
+   "days_since_added": 68,
    "cadence": {
     "per_year": 10.0,
     "per_year_last_active": 10.0,
@@ -4612,7 +4725,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T10:52:05.984374+00:00",
+       "at": "2026-11-09T10:52:36.816064+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
@@ -4645,21 +4758,21 @@
    "count": 1069,
    "first_year": "2014",
    "last_year": "2026",
-   "undated": 15,
+   "undated": 0,
    "newest_decision": "2026-10-07",
-   "days_since_newest": 32,
+   "days_since_newest": 33,
    "last_added": "2026-10-21",
-   "days_since_added": 18,
+   "days_since_added": 19,
    "cadence": {
-    "per_year": 136.0,
-    "per_year_last_active": 136.0,
+    "per_year": 138.5,
+    "per_year_last_active": 138.5,
     "every_days": 3,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "60 of 116 expected"
+    "reason": "70 of 119 expected"
    },
    "intake": {
     "live": true,
@@ -4681,7 +4794,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4716,9 +4829,9 @@
    "last_year": "2022",
    "undated": 0,
    "newest_decision": "2022-12-19",
-   "days_since_newest": 1420,
+   "days_since_newest": 1421,
    "last_added": "2026-02-16",
-   "days_since_added": 265,
+   "days_since_added": 266,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 4.0,
@@ -4750,7 +4863,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4785,9 +4898,9 @@
    "last_year": "2026",
    "undated": 4,
    "newest_decision": "2026-08-28",
-   "days_since_newest": 72,
+   "days_since_newest": 73,
    "last_added": "2026-10-13",
-   "days_since_added": 26,
+   "days_since_added": 27,
    "cadence": {
     "per_year": 18.5,
     "per_year_last_active": 18.5,
@@ -4819,7 +4932,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4854,9 +4967,9 @@
    "last_year": "2026",
    "undated": 28,
    "newest_decision": "2026-08-03",
-   "days_since_newest": 97,
+   "days_since_newest": 98,
    "last_added": "2026-10-09",
-   "days_since_added": 30,
+   "days_since_added": 31,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -4888,7 +5001,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4923,9 +5036,9 @@
    "last_year": "2020",
    "undated": 0,
    "newest_decision": "2020-09-28",
-   "days_since_newest": 2232,
+   "days_since_newest": 2233,
    "last_added": "2026-06-22",
-   "days_since_added": 139,
+   "days_since_added": 140,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.5,
@@ -4957,7 +5070,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4994,7 +5107,7 @@
    "newest_decision": null,
    "days_since_newest": null,
    "last_added": "2026-04-06",
-   "days_since_added": 216,
+   "days_since_added": 217,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 0.0,
@@ -5031,9 +5144,9 @@
    "last_year": "2004",
    "undated": 32,
    "newest_decision": "2004-05-27",
-   "days_since_newest": 8200,
+   "days_since_newest": 8201,
    "last_added": "2026-04-06",
-   "days_since_added": 216,
+   "days_since_added": 217,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.0,
@@ -5065,17 +5178,17 @@
    "canton": "SG",
    "portal": "https://publikationen.sg.ch",
    "licence": "ch_official",
-   "count": 1989,
+   "count": 1988,
    "first_year": "1969",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-01-14",
-   "days_since_newest": 298,
-   "last_added": "2026-05-18",
-   "days_since_added": 174,
+   "days_since_newest": 299,
+   "last_added": "2026-02-13",
+   "days_since_added": 269,
    "cadence": {
-    "per_year": 34.0,
-    "per_year_last_active": 34.0,
+    "per_year": 33.5,
+    "per_year_last_active": 33.5,
     "every_days": 11,
     "lag_days": 0,
     "stale_after_days": null
@@ -5109,9 +5222,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-07-02",
-   "days_since_newest": 859,
+   "days_since_newest": 860,
    "last_added": "2026-02-15",
-   "days_since_added": 266,
+   "days_since_added": 267,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -5143,7 +5256,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5178,9 +5291,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-27",
-   "days_since_newest": 104,
+   "days_since_newest": 105,
    "last_added": "2026-11-04",
-   "days_since_added": 4,
+   "days_since_added": 5,
    "cadence": {
     "per_year": 49.5,
     "per_year_last_active": 49.5,
@@ -5212,7 +5325,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5237,23 +5350,23 @@
   },
   {
    "code": "sg_publikationen",
-   "name": "SG Publikationen (Sammelcode, frühere Zulieferung)",
+   "name": "SG Departemente (Rekursentscheide; Sammelcode der früheren Zulieferung)",
    "group": "cantonal",
    "canton": "SG",
    "portal": "https://publikationen.sg.ch",
    "licence": "ch_official",
-   "count": 611,
-   "first_year": "1996",
-   "last_year": "2024",
+   "count": 873,
+   "first_year": "2004",
+   "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2024-04-29",
-   "days_since_newest": 923,
-   "last_added": "2026-02-17",
-   "days_since_added": 264,
+   "newest_decision": "2026-09-08",
+   "days_since_newest": 62,
+   "last_added": "2026-11-08",
+   "days_since_added": 1,
    "cadence": {
-    "per_year": 8.5,
-    "per_year_last_active": 8.5,
-    "every_days": 43,
+    "per_year": 112.5,
+    "per_year_last_active": 112.5,
+    "every_days": 3,
     "lag_days": 0,
     "stale_after_days": null
    },
@@ -5262,21 +5375,44 @@
     "reason": null
    },
    "intake": {
-    "live": false,
+    "live": true,
     "feed": "entscheidsuche",
-    "feeders": []
+    "feeders": [
+     {
+      "scraper": "sg_departemente",
+      "registered": true,
+      "runs": [
+       {
+        "kind": "nightly",
+        "unit": "opencaselaw-scrape",
+        "when": [
+         {
+          "cadence": "daily",
+          "time": "01:00"
+         }
+        ]
+       }
+      ],
+      "last_run": {
+       "at": "2026-11-09T03:13:13.944443+00:00",
+       "run": "cron",
+       "ok": true,
+       "new": 0,
+       "errors": 0,
+       "timed_out": false,
+       "error": null,
+       "note": null,
+       "our_count": 779,
+       "portal_count": 779,
+       "gap": 0
+      }
+     }
+    ]
    },
-   "status": "superseded",
-   "why": "superseded",
+   "status": "quiet",
+   "why": "silent_by_design",
    "ended": null,
-   "superseded_by": [
-    "sg_gerichte",
-    "sg_handelsgericht",
-    "sg_kantonsgericht",
-    "sg_versicherungsgericht",
-    "sg_verwaltungsgericht",
-    "sg_verwaltungsrekurskommission"
-   ],
+   "superseded_by": null,
    "superseded_by_collection": null,
    "note": "Publication practice example: St. Gallen published 5 of 272 employment rulings 2002-2017. Low counts here reflect court publication policy, not capture failure.",
    "unmapped": false
@@ -5293,9 +5429,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-28",
-   "days_since_newest": 41,
+   "days_since_newest": 42,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 293.5,
     "per_year_last_active": 293.5,
@@ -5327,7 +5463,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5362,9 +5498,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-24",
-   "days_since_newest": 45,
+   "days_since_newest": 46,
    "last_added": "2026-11-04",
-   "days_since_added": 4,
+   "days_since_added": 5,
    "cadence": {
     "per_year": 135.5,
     "per_year_last_active": 135.5,
@@ -5396,7 +5532,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5431,9 +5567,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-02",
-   "days_since_newest": 129,
+   "days_since_newest": 130,
    "last_added": "2026-10-29",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 22.0,
     "per_year_last_active": 22.0,
@@ -5465,7 +5601,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5495,24 +5631,24 @@
    "canton": "SH",
    "portal": "https://obergerichtsentscheide.sh.ch",
    "licence": "ch_official",
-   "count": 717,
+   "count": 105,
    "first_year": "2000",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-01",
-   "days_since_newest": 68,
+   "days_since_newest": 69,
    "last_added": "2026-10-21",
-   "days_since_added": 18,
+   "days_since_added": 19,
    "cadence": {
-    "per_year": 47.5,
-    "per_year_last_active": 47.5,
-    "every_days": 8,
+    "per_year": 29.0,
+    "per_year_last_active": 29.0,
+    "every_days": 13,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
-    "status": "LOW",
-    "reason": "23 of 41 expected"
+    "status": "OK",
+    "reason": null
    },
    "intake": {
     "live": true,
@@ -5534,7 +5670,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5564,17 +5700,17 @@
    "canton": "SH",
    "portal": "https://obergerichtsentscheide.sh.ch",
    "licence": "ch_official",
-   "count": 718,
+   "count": 712,
    "first_year": "2000",
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-12-16",
-   "days_since_newest": 327,
+   "days_since_newest": 328,
    "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "days_since_added": 269,
    "cadence": {
-    "per_year": 44.5,
-    "per_year_last_active": 44.5,
+    "per_year": 44.0,
+    "per_year_last_active": 44.0,
     "every_days": 8,
     "lag_days": 0,
     "stale_after_days": null
@@ -5610,9 +5746,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-02-27",
-   "days_since_newest": 619,
+   "days_since_newest": 620,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 5.0,
     "per_year_last_active": 5.0,
@@ -5644,7 +5780,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5679,9 +5815,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-02",
-   "days_since_newest": 6,
+   "days_since_newest": 7,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 751.0,
     "per_year_last_active": 751.0,
@@ -5713,7 +5849,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5748,9 +5884,9 @@
    "last_year": "2026",
    "undated": 3,
    "newest_decision": "2026-09-03",
-   "days_since_newest": 66,
+   "days_since_newest": 67,
    "last_added": "2026-10-31",
-   "days_since_added": 8,
+   "days_since_added": 9,
    "cadence": {
     "per_year": 337.0,
     "per_year_last_active": 337.0,
@@ -5782,7 +5918,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5817,9 +5953,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-21",
-   "days_since_newest": 18,
+   "days_since_newest": 19,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 203.0,
     "per_year_last_active": 203.0,
@@ -5851,7 +5987,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5886,9 +6022,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-25",
-   "days_since_newest": 44,
+   "days_since_newest": 45,
    "last_added": "2026-10-27",
-   "days_since_added": 12,
+   "days_since_added": 13,
    "cadence": {
     "per_year": 32.0,
     "per_year_last_active": 32.0,
@@ -5920,7 +6056,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5957,7 +6093,7 @@
    "newest_decision": null,
    "days_since_newest": null,
    "last_added": "2026-04-06",
-   "days_since_added": 216,
+   "days_since_added": 217,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 0.0,
@@ -5989,7 +6125,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6019,18 +6155,18 @@
    "canton": "TG",
    "portal": "https://rechtsprechung.tg.ch",
    "licence": "ch_official",
-   "count": 1162,
-   "first_year": "1907",
-   "last_year": "2025",
-   "undated": 0,
-   "newest_decision": "2025-12-17",
-   "days_since_newest": 326,
+   "count": 2279,
+   "first_year": "1994",
+   "last_year": "2026",
+   "undated": 26,
+   "newest_decision": "2026-05-27",
+   "days_since_newest": 166,
    "last_added": "2026-07-22",
-   "days_since_added": 109,
+   "days_since_added": 110,
    "cadence": {
-    "per_year": 63.0,
-    "per_year_last_active": 63.0,
-    "every_days": 6,
+    "per_year": 78.5,
+    "per_year_last_active": 78.5,
+    "every_days": 5,
     "lag_days": 400,
     "stale_after_days": null
    },
@@ -6058,7 +6194,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6088,24 +6224,24 @@
    "canton": "TG",
    "portal": "https://rechtsprechung.tg.ch",
    "licence": "ch_official",
-   "count": 2443,
-   "first_year": "1957",
-   "last_year": "2025",
+   "count": 2,
+   "first_year": "2018",
+   "last_year": "2020",
    "undated": 0,
-   "newest_decision": "2025-01-29",
-   "days_since_newest": 648,
+   "newest_decision": "2020-01-01",
+   "days_since_newest": 2504,
    "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "days_since_added": 269,
    "cadence": {
-    "per_year": 34.5,
-    "per_year_last_active": 34.5,
-    "every_days": 11,
+    "per_year": 0.0,
+    "per_year_last_active": 1.0,
+    "every_days": null,
     "lag_days": 0,
     "stale_after_days": null
    },
    "rate_check": {
-    "status": "EXPECTED",
-    "reason": null
+    "status": "SMALL",
+    "reason": "2 rows < 100"
    },
    "intake": {
     "live": false,
@@ -6129,24 +6265,24 @@
    "canton": "TI",
    "portal": "https://www.sentenze.ti.ch",
    "licence": "ch_official",
-   "count": 60978,
+   "count": 60737,
    "first_year": "1922",
    "last_year": "2026",
-   "undated": 233,
+   "undated": 0,
    "newest_decision": "2026-09-16",
-   "days_since_newest": 53,
+   "days_since_newest": 54,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
-    "per_year": 983.0,
-    "per_year_last_active": 983.0,
+    "per_year": 1008.5,
+    "per_year_last_active": 1008.5,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "380 of 840 expected"
+    "reason": "318 of 865 expected"
    },
    "intake": {
     "live": true,
@@ -6178,7 +6314,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T10:52:05.984374+00:00",
+       "at": "2026-11-09T10:52:36.816064+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
@@ -6213,9 +6349,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-18",
-   "days_since_newest": 51,
+   "days_since_newest": 52,
    "last_added": "2026-10-29",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 42.0,
     "per_year_last_active": 42.0,
@@ -6247,7 +6383,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6282,9 +6418,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-03",
-   "days_since_newest": 5,
+   "days_since_newest": 6,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 18.5,
     "per_year_last_active": 18.5,
@@ -6316,7 +6452,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6351,9 +6487,9 @@
    "last_year": "2026",
    "undated": 51,
    "newest_decision": "2026-04-24",
-   "days_since_newest": 198,
+   "days_since_newest": 199,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 60.5,
     "per_year_last_active": 60.5,
@@ -6385,7 +6521,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6420,9 +6556,9 @@
    "last_year": "2026",
    "undated": 68,
    "newest_decision": "2026-03-16",
-   "days_since_newest": 237,
+   "days_since_newest": 238,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 82.5,
     "per_year_last_active": 82.5,
@@ -6454,7 +6590,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6489,9 +6625,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-04-01",
-   "days_since_newest": 586,
+   "days_since_newest": 587,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -6523,7 +6659,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6558,9 +6694,9 @@
    "last_year": "2025",
    "undated": 22,
    "newest_decision": "2025-08-05",
-   "days_since_newest": 460,
+   "days_since_newest": 461,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 4.0,
     "per_year_last_active": 4.0,
@@ -6592,7 +6728,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6627,9 +6763,9 @@
    "last_year": "2026",
    "undated": 7,
    "newest_decision": "2026-08-18",
-   "days_since_newest": 82,
+   "days_since_newest": 83,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 2.5,
     "per_year_last_active": 2.5,
@@ -6661,7 +6797,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6696,9 +6832,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-02-20",
-   "days_since_newest": 261,
+   "days_since_newest": 262,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 12.0,
     "per_year_last_active": 12.0,
@@ -6730,7 +6866,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6765,9 +6901,9 @@
    "last_year": "2026",
    "undated": 2,
    "newest_decision": "2026-09-25",
-   "days_since_newest": 44,
+   "days_since_newest": 45,
    "last_added": "2026-11-04",
-   "days_since_added": 4,
+   "days_since_added": 5,
    "cadence": {
     "per_year": 20.5,
     "per_year_last_active": 20.5,
@@ -6799,7 +6935,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6834,9 +6970,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-03-26",
-   "days_since_newest": 227,
+   "days_since_newest": 228,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 8.0,
     "per_year_last_active": 8.0,
@@ -6868,7 +7004,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6903,9 +7039,9 @@
    "last_year": "2026",
    "undated": 8,
    "newest_decision": "2026-04-01",
-   "days_since_newest": 221,
+   "days_since_newest": 222,
    "last_added": "2026-10-25",
-   "days_since_added": 14,
+   "days_since_added": 15,
    "cadence": {
     "per_year": 73.5,
     "per_year_last_active": 73.5,
@@ -6937,7 +7073,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-07T18:04:53+00:00",
+       "at": "2026-11-08T18:04:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6970,21 +7106,21 @@
    "count": 1254,
    "first_year": "1901",
    "last_year": "2026",
-   "undated": 14,
+   "undated": 3,
    "newest_decision": "2026-09-30",
-   "days_since_newest": 39,
+   "days_since_newest": 40,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
-    "per_year": 73.0,
-    "per_year_last_active": 73.0,
+    "per_year": 74.0,
+    "per_year_last_active": 74.0,
     "every_days": 5,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
-    "status": "LOW",
-    "reason": "31 of 62 expected"
+    "status": "OK",
+    "reason": null
    },
    "intake": {
     "live": true,
@@ -7006,7 +7142,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7041,9 +7177,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-12-20",
-   "days_since_newest": 323,
+   "days_since_newest": 324,
    "last_added": "2026-02-13",
-   "days_since_added": 268,
+   "days_since_added": 269,
    "cadence": {
     "per_year": 3030.0,
     "per_year_last_active": 3030.0,
@@ -7053,7 +7189,7 @@
    },
    "rate_check": {
     "status": "STALE",
-    "reason": "0 of 2590 expected"
+    "reason": "0 of 2598 expected"
    },
    "intake": {
     "live": false,
@@ -7082,9 +7218,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-22",
-   "days_since_newest": 17,
+   "days_since_newest": 18,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 3705.0,
     "per_year_last_active": 3705.0,
@@ -7116,7 +7252,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7146,32 +7282,62 @@
    "canton": "VD",
    "portal": "https://jurisprudence.vd.ch",
    "licence": "ch_official",
-   "count": 28033,
-   "first_year": "1958",
+   "count": 28894,
+   "first_year": "1984",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-02-09",
-   "days_since_newest": 272,
-   "last_added": "2026-03-10",
-   "days_since_added": 243,
+   "newest_decision": "2026-11-03",
+   "days_since_newest": 6,
+   "last_added": "2026-11-09",
+   "days_since_added": 0,
    "cadence": {
-    "per_year": 946.0,
-    "per_year_last_active": 946.0,
+    "per_year": 983.5,
+    "per_year_last_active": 983.5,
     "every_days": 1,
     "lag_days": 0,
-    "stale_after_days": null
+    "stale_after_days": 60
    },
    "rate_check": {
-    "status": "EXPECTED",
+    "status": "OK",
     "reason": null
    },
    "intake": {
-    "live": false,
+    "live": true,
     "feed": "entscheidsuche",
-    "feeders": []
+    "feeders": [
+     {
+      "scraper": "vd_omni",
+      "registered": true,
+      "runs": [
+       {
+        "kind": "nightly",
+        "unit": "opencaselaw-scrape",
+        "when": [
+         {
+          "cadence": "daily",
+          "time": "01:00"
+         }
+        ]
+       }
+      ],
+      "last_run": {
+       "at": "2026-11-09T03:13:13.944443+00:00",
+       "run": "cron",
+       "ok": true,
+       "new": 861,
+       "errors": 0,
+       "timed_out": false,
+       "error": null,
+       "note": null,
+       "our_count": 861,
+       "portal_count": null,
+       "gap": null
+      }
+     }
+    ]
    },
-   "status": "no_intake",
-   "why": "feed_retired",
+   "status": "fresh",
+   "why": null,
    "ended": null,
    "superseded_by": null,
    "superseded_by_collection": null,
@@ -7190,9 +7356,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-01",
-   "days_since_newest": 38,
+   "days_since_newest": 39,
    "last_added": "2026-11-06",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 636.5,
     "per_year_last_active": 636.5,
@@ -7202,7 +7368,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "286 of 544 expected"
+    "reason": "286 of 546 expected"
    },
    "intake": {
     "live": true,
@@ -7224,7 +7390,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7259,9 +7425,9 @@
    "last_year": "2025",
    "undated": 6,
    "newest_decision": "2025-10-21",
-   "days_since_newest": 383,
+   "days_since_newest": 384,
    "last_added": "2026-09-08",
-   "days_since_added": 61,
+   "days_since_added": 62,
    "cadence": {
     "per_year": 27.0,
     "per_year_last_active": 27.0,
@@ -7271,7 +7437,7 @@
    },
    "rate_check": {
     "status": "WAIT",
-    "reason": "lag 300d leaves a 12d window (< 30d)"
+    "reason": "lag 300d leaves a 13d window (< 30d)"
    },
    "intake": {
     "live": true,
@@ -7293,7 +7459,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7328,9 +7494,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-12",
-   "days_since_newest": 88,
+   "days_since_newest": 89,
    "last_added": "2026-10-14",
-   "days_since_added": 25,
+   "days_since_added": 26,
    "cadence": {
     "per_year": 2.0,
     "per_year_last_active": 2.0,
@@ -7362,7 +7528,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7397,9 +7563,9 @@
    "last_year": "2016",
    "undated": 0,
    "newest_decision": "2016-12-31",
-   "days_since_newest": 3599,
+   "days_since_newest": 3600,
    "last_added": "2026-09-10",
-   "days_since_added": 59,
+   "days_since_added": 60,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 4.0,
@@ -7431,7 +7597,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7466,9 +7632,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-12-18",
-   "days_since_newest": 690,
+   "days_since_newest": 691,
    "last_added": "2026-09-10",
-   "days_since_added": 59,
+   "days_since_added": 60,
    "cadence": {
     "per_year": 1.0,
     "per_year_last_active": 1.0,
@@ -7500,7 +7666,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7535,9 +7701,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-10",
-   "days_since_newest": 59,
+   "days_since_newest": 60,
    "last_added": "2026-10-31",
-   "days_since_added": 8,
+   "days_since_added": 9,
    "cadence": {
     "per_year": 298.0,
     "per_year_last_active": 298.0,
@@ -7569,7 +7735,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7598,7 +7764,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7633,9 +7799,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-18",
-   "days_since_newest": 82,
+   "days_since_newest": 83,
    "last_added": "2026-10-02",
-   "days_since_added": 37,
+   "days_since_added": 38,
    "cadence": {
     "per_year": 6.0,
     "per_year_last_active": 6.0,
@@ -7667,7 +7833,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7702,9 +7868,9 @@
    "last_year": "2005",
    "undated": 0,
    "newest_decision": "2005-11-23",
-   "days_since_newest": 7655,
+   "days_since_newest": 7656,
    "last_added": "2026-09-10",
-   "days_since_added": 59,
+   "days_since_added": 60,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 3.0,
@@ -7736,7 +7902,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7771,9 +7937,9 @@
    "last_year": "2026",
    "undated": 10,
    "newest_decision": "2026-09-21",
-   "days_since_newest": 48,
+   "days_since_newest": 49,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 241.5,
     "per_year_last_active": 241.5,
@@ -7805,7 +7971,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7834,7 +8000,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7869,9 +8035,9 @@
    "last_year": "2026",
    "undated": 23,
    "newest_decision": "2026-06-23",
-   "days_since_newest": 138,
+   "days_since_newest": 139,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 18.0,
     "per_year_last_active": 18.0,
@@ -7903,7 +8069,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7932,7 +8098,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7967,9 +8133,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-26",
-   "days_since_newest": 135,
+   "days_since_newest": 136,
    "last_added": "2026-10-20",
-   "days_since_added": 19,
+   "days_since_added": 20,
    "cadence": {
     "per_year": 26.5,
     "per_year_last_active": 26.5,
@@ -8001,7 +8167,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8036,9 +8202,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-01-21",
-   "days_since_newest": 291,
+   "days_since_newest": 292,
    "last_added": "2026-10-02",
-   "days_since_added": 37,
+   "days_since_added": 38,
    "cadence": {
     "per_year": 4.0,
     "per_year_last_active": 4.0,
@@ -8070,7 +8236,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8105,9 +8271,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-09",
-   "days_since_newest": 152,
+   "days_since_newest": 153,
    "last_added": "2026-10-02",
-   "days_since_added": 37,
+   "days_since_added": 38,
    "cadence": {
     "per_year": 5.0,
     "per_year_last_active": 5.0,
@@ -8139,7 +8305,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8174,9 +8340,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-14",
-   "days_since_newest": 117,
+   "days_since_newest": 118,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 24.5,
     "per_year_last_active": 24.5,
@@ -8208,7 +8374,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8243,9 +8409,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-20",
-   "days_since_newest": 80,
+   "days_since_newest": 81,
    "last_added": "2026-10-29",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 26.0,
     "per_year_last_active": 26.0,
@@ -8277,7 +8443,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8312,9 +8478,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-05-12",
-   "days_since_newest": 180,
+   "days_since_newest": 181,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 25.5,
     "per_year_last_active": 25.5,
@@ -8346,7 +8512,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8381,9 +8547,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-07",
-   "days_since_newest": 124,
+   "days_since_newest": 125,
    "last_added": "2026-10-29",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 23.5,
     "per_year_last_active": 23.5,
@@ -8415,7 +8581,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8450,9 +8616,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-04-02",
-   "days_since_newest": 220,
+   "days_since_newest": 221,
    "last_added": "2026-10-29",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 19.5,
     "per_year_last_active": 19.5,
@@ -8484,7 +8650,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8519,9 +8685,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-27",
-   "days_since_newest": 73,
+   "days_since_newest": 74,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 14.5,
     "per_year_last_active": 14.5,
@@ -8553,7 +8719,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8588,9 +8754,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-03-16",
-   "days_since_newest": 237,
+   "days_since_newest": 238,
    "last_added": "2026-10-15",
-   "days_since_added": 24,
+   "days_since_added": 25,
    "cadence": {
     "per_year": 14.5,
     "per_year_last_active": 14.5,
@@ -8622,7 +8788,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8657,9 +8823,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-13",
-   "days_since_newest": 87,
+   "days_since_newest": 88,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 19.0,
     "per_year_last_active": 19.0,
@@ -8691,7 +8857,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8726,9 +8892,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-23",
-   "days_since_newest": 138,
+   "days_since_newest": 139,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 31.0,
     "per_year_last_active": 31.0,
@@ -8760,7 +8926,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8795,9 +8961,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-29",
-   "days_since_newest": 102,
+   "days_since_newest": 103,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 97.0,
     "per_year_last_active": 97.0,
@@ -8829,7 +8995,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8864,9 +9030,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-05-05",
-   "days_since_newest": 552,
+   "days_since_newest": 553,
    "last_added": "2026-02-17",
-   "days_since_added": 264,
+   "days_since_added": 265,
    "cadence": {
     "per_year": 1.5,
     "per_year_last_active": 1.5,
@@ -8925,9 +9091,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-16",
-   "days_since_newest": 53,
+   "days_since_newest": 54,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 142.5,
     "per_year_last_active": 142.5,
@@ -8959,7 +9125,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8994,9 +9160,9 @@
    "last_year": "2012",
    "undated": 1,
    "newest_decision": "2012-06-25",
-   "days_since_newest": 5249,
+   "days_since_newest": 5250,
    "last_added": "2026-10-03",
-   "days_since_added": 36,
+   "days_since_added": 37,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 68.0,
@@ -9033,9 +9199,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-22",
-   "days_since_newest": 47,
+   "days_since_newest": 48,
    "last_added": "2026-10-02",
-   "days_since_added": 37,
+   "days_since_added": 38,
    "cadence": {
     "per_year": 16.5,
     "per_year_last_active": 16.5,
@@ -9067,7 +9233,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9102,9 +9268,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-09-18",
-   "days_since_newest": 51,
+   "days_since_newest": 52,
    "last_added": "2026-11-05",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 2102.0,
     "per_year_last_active": 2102.0,
@@ -9136,7 +9302,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9166,13 +9332,13 @@
    "canton": "ZH",
    "portal": "https://www.sozialversicherungsgericht.zh.ch",
    "licence": "ch_official",
-   "count": 35004,
+   "count": 35013,
    "first_year": "1981",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-24",
-   "days_since_newest": 45,
-   "last_added": "2026-11-08",
+   "days_since_newest": 46,
+   "last_added": "2026-11-09",
    "days_since_added": 0,
    "cadence": {
     "per_year": 1081.0,
@@ -9205,15 +9371,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
-       "new": 10,
+       "new": 9,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 34974,
+       "our_count": 34983,
        "portal_count": null,
        "gap": null
       }
@@ -9240,9 +9406,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-30",
-   "days_since_newest": 131,
+   "days_since_newest": 132,
    "last_added": "2026-09-26",
-   "days_since_added": 43,
+   "days_since_added": 44,
    "cadence": {
     "per_year": 20.5,
     "per_year_last_active": 20.5,
@@ -9274,7 +9440,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9309,9 +9475,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-22",
-   "days_since_newest": 17,
+   "days_since_newest": 18,
    "last_added": "2026-11-07",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 628.0,
     "per_year_last_active": 628.0,
@@ -9343,7 +9509,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-08T01:52:07.750453+00:00",
+       "at": "2026-11-09T03:13:13.944443+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9460,7 +9626,7 @@
    "portal": "https://www.fedlex.admin.ch",
    "licence": "ch_official",
    "sources_note": null,
-   "count": 29601,
+   "count": 30886,
    "first_year": 1850,
    "last_year": 2026,
    "runs": [
@@ -9473,7 +9639,7 @@
       }
      ],
      "result": "success",
-     "finished": "2026-11-08T04:39:33+00:00",
+     "finished": "2026-11-09T04:36:16+00:00",
      "active": "inactive"
     },
     {
@@ -9485,12 +9651,12 @@
       }
      ],
      "result": "success",
-     "finished": "2026-11-08T02:54:20+00:00",
+     "finished": "2026-11-09T02:50:46+00:00",
      "active": "inactive"
     }
    ],
-   "db_updated": "2026-11-08",
-   "last_success": "2026-11-08",
+   "db_updated": "2026-11-09",
+   "last_success": "2026-11-09",
    "status": "fresh"
   },
   {
@@ -9519,12 +9685,12 @@
       }
      ],
      "result": "success",
-     "finished": "2026-11-07T22:48:14+00:00",
+     "finished": "2026-11-08T22:50:27+00:00",
      "active": "inactive"
     }
    ],
    "db_updated": "2026-11-05",
-   "last_success": "2026-11-07",
+   "last_success": "2026-11-08",
    "status": "fresh"
   },
   {
@@ -9535,7 +9701,7 @@
    "portal": null,
    "licence": "official_publication",
    "sources_note": null,
-   "count": 17570,
+   "count": 19449,
    "sources": [
     {
      "source": "bsv_weisungen",
@@ -9594,6 +9760,30 @@
      "last_year": "2026"
     },
     {
+     "source": "strafvollzug",
+     "authority": "CLDJP",
+     "count": 422,
+     "last_scraped": "2026-11-08T23:40:16.283072+00:00",
+     "first_year": null,
+     "last_year": "2026"
+    },
+    {
+     "source": "bwo_mietrecht",
+     "authority": "BWO",
+     "count": 419,
+     "last_scraped": "2026-11-08T23:49:55.042717+00:00",
+     "first_year": "1975",
+     "last_year": "2025"
+    },
+    {
+     "source": "strafverfolgung",
+     "authority": "ZH",
+     "count": 415,
+     "last_scraped": "2026-11-08T23:19:27.057360+00:00",
+     "first_year": null,
+     "last_year": "2026"
+    },
+    {
      "source": "stiftungsaufsicht",
      "authority": "ESA",
      "count": 385,
@@ -9634,12 +9824,28 @@
      "last_year": "2026"
     },
     {
+     "source": "nkvf",
+     "authority": "NKVF",
+     "count": 258,
+     "last_scraped": "2026-11-08T23:44:55.597105+00:00",
+     "first_year": null,
+     "last_year": "2025"
+    },
+    {
      "source": "rab_rs",
      "authority": "RAB",
      "count": 210,
      "last_scraped": "2026-11-07T07:52:37.697846+00:00",
      "first_year": "2006",
      "last_year": "2025"
+    },
+    {
+     "source": "grundbuch_kantone",
+     "authority": "ZH",
+     "count": 196,
+     "last_scraped": "2026-11-09T00:04:15.870993+00:00",
+     "first_year": null,
+     "last_year": "2026"
     },
     {
      "source": "schkg_kantone",
@@ -9664,6 +9870,14 @@
      "last_scraped": "2026-06-20T19:44:50.483233+00:00",
      "first_year": null,
      "last_year": "2025"
+    },
+    {
+     "source": "bj_rechtshilfe",
+     "authority": "BJ",
+     "count": 131,
+     "last_scraped": "2026-11-08T23:23:38.065665+00:00",
+     "first_year": null,
+     "last_year": "2026"
     },
     {
      "source": "uek_rs",
@@ -9730,6 +9944,14 @@
      "last_year": "2026"
     },
     {
+     "source": "egba",
+     "authority": "EGBA",
+     "count": 38,
+     "last_scraped": "2026-11-08T23:50:48.099465+00:00",
+     "first_year": null,
+     "last_year": "2024"
+    },
+    {
      "source": "hr_kantone",
      "authority": "GE",
      "count": 36,
@@ -9785,8 +10007,8 @@
      "active": "inactive"
     }
    ],
-   "db_updated": "2026-11-07",
-   "last_success": "2026-11-07",
+   "db_updated": "2026-11-09",
+   "last_success": "2026-11-09",
    "status": "fresh"
   },
   {
@@ -9825,27 +10047,28 @@
    "portal": null,
    "licence": "per_record",
    "sources_note": null,
-   "count": 51892,
+   "count": 52491,
    "first_year": 1708,
    "last_year": 2026,
    "breakdown": {
     "zora_law": 14097,
     "boris_law": 7627,
-    "unige_law": 6562,
-    "alexandria_law": 5672,
-    "zhaw_digitalcollection": 3128,
+    "unige_law": 6565,
+    "alexandria_law": 5675,
     "e_periodica_polsci": 3098,
+    "zhaw_digitalcollection": 3089,
     "e_periodica_law": 3041,
-    "libra_unine": 2028,
-    "eth_research_collection": 1817,
+    "libra_unine": 2030,
+    "eth_research_collection": 1826,
     "e_periodica_pubadmin": 857,
     "unifr_law": 794,
-    "fhnw_irf": 513,
-    "edoc_unibas_law": 466,
-    "onlinekommentar": 398,
-    "sui_generis": 296,
-    "medialex": 282,
-    "eizpublishing": 276,
+    "openlegalcommentary": 599,
+    "fhnw_irf": 514,
+    "edoc_unibas_law": 479,
+    "onlinekommentar": 399,
+    "sui_generis": 297,
+    "medialex": 285,
+    "eizpublishing": 278,
     "leges": 210,
     "ex_ante": 186,
     "thegoodboard": 140,
@@ -9853,7 +10076,7 @@
     "anci_ch": 100,
     "cognitio": 58,
     "cfs": 51,
-    "leoh": 46,
+    "leoh": 47,
     "repositorium_ch": 32,
     "usi_law": 8
    },
@@ -9871,8 +10094,8 @@
      "active": "activating"
     }
    ],
-   "db_updated": "2026-11-01",
-   "last_success": "2026-11-01",
+   "db_updated": "2026-11-08",
+   "last_success": "2026-11-08",
    "status": "fresh"
   }
  ]
