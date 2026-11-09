@@ -77,7 +77,8 @@ FILL, CORRECT = "fill", "correct"
 # volume collects rulings decades older than its number: ARGVP 1988 1018 is
 # a Regierungsrat decision of 28.11.1960).
 IDENTIFIER_RULES = {"egmr_docket", "ar_gvp_filename", "gr_yearbook_trailer",
-                    "gr_yearbook_twin_pdf", "ti_portal_data_decisione", "bl_slug"}
+                    "gr_yearbook_twin_pdf", "ti_portal_data_decisione", "bl_slug",
+                    "bl_slug_and_head"}
 
 
 def _stored(rec: dict) -> str | None:
@@ -185,8 +186,16 @@ def rule(rec: dict, ctx: Context) -> tuple[str | None, str, str]:
     if court == "bl_gerichte":
         d = sd.bl_slug_date(docket, today)
         if d:
+            # The ruling's own head names the same date as its file name: two
+            # independent statements of the court, so they correct a stored
+            # date (bl_wayback.jsonl: 2015-01-25 for "vom 25. Januar 2018",
+            # 2018-01-03 for "vom 1. März 2018", 1995-02-15 recovered from a
+            # cited date).
+            if d == (sd.bl_kg_head(text, today) or sd.head_vom_date(text, 400, today)):
+                return d, "bl_slug_and_head", CORRECT
             # Agrees with the stored date on 6,055 rows; where they differ
-            # nothing says which is right, so the slug only fills.
+            # and the head is silent or disagrees, nothing says which is
+            # right, so the slug only fills.
             return d, "bl_slug", FILL
         d = sd.bl_steuergericht_trailer(text, docket, today)
         if d:
@@ -262,9 +271,19 @@ def prepare_twins(ctx: Context, shards: list[Path]) -> None:
 def decide(rec: dict, ctx: Context) -> tuple[str | None, str]:
     """(new date or None, outcome class)."""
     new, outcome = _decide_own(rec, ctx)
-    if new or not ctx.twin_moves or not outcome.split(":")[-1].startswith("no_source"):
+    if new or not ctx.twin_moves:
         return new, outcome
     follow = ctx.twin_moves.get((twin_key(rec), _stored(rec)))
+    if ctx.court == "bl_gerichte" and outcome.endswith(":differs_left_alone"):
+        # The row's own source names a date it may only fill with; its twin
+        # was corrected to that same date on a stronger source (the BL
+        # federation stub's slug, confirmed by the Wayback copy's head).
+        own = rule(rec, ctx)[0]
+        if follow and own == follow and not ctx.fill_only:
+            return follow, "twin_follow:corrected"
+        return new, outcome
+    if not outcome.split(":")[-1].startswith("no_source"):
+        return new, outcome
     if follow and not ctx.fill_only:
         return follow, "twin_follow:corrected"
     if follow and sd.is_placeholder(_stored(rec), rec.get("scraped_at")):

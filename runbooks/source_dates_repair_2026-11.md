@@ -220,6 +220,55 @@ nightly delta.
 if Jonas wants the corrections staged separately; the corrections are where most
 of the wrong dates are (BE ~3,000, BL ~5,900, GR ~2,700).
 
+### 5.8 Result 2026-11-09 and the BL Wayback shard
+
+The night deploy (runbooks/night_2026-11-08_deploy.md step 1.8) applied all eight
+courts on 11-08 before midnight UTC; the backups are `<shard>.bak-dates-20261108`
+(16 files). Verified on the live DB after the 11-09 swap (11:37 UTC, per-court
+gate OK for 137 courts, no warning for any of the eight):
+
+| court | repaired rows | resolve with the repaired date | served 11-08 → 11-09 |
+|---|---|---|---|
+| bge_egmr | 143 | 143 | 493 → 493 |
+| gr_gerichte | 5,923 | 5,923 | 15,930 → 15,267 |
+| ti_gerichte | 459 | 459 | 60,978 → 60,737 |
+| ar_gerichte | 1,860 | 1,860 | 4,615 → 4,476 |
+| ur_gerichte | 147 | 147 | 1,254 → 1,254 |
+| nw_gerichte | 17 | 17 | 1,069 → 1,069 |
+| bl_gerichte | 6,204 | 6,191 | 19,485 → 17,661 |
+| be_zivilstraf | 3,062 | 3,062 | 6,139 → 6,102 |
+
+Every drop is a fold with an alias (dedup_pass1: GR 13,540, BL 8,450, BE 5,574,
+AR 1,511, UR 284; federation_twin: TI 661, BL 42); no repaired id is missing. The
+§5.7 ids all carry their source date, `gr_gerichte_PKG 1999 25` and
+`be_zivilstraf_BK 2025 85` through their new dedup_pass1 alias.
+
+The 13 BL rows are served from a third shard the repair did not cover:
+`bl_wayback.jsonl` (903 rows recovered from the Internet Archive, 2026-04-17,
+imported as a direct shard ahead of `es_bl_gerichte`). Its dates were wrong in
+the same ways (2015-01-25 for "vom 25. Januar 2018", 2018-01-03 for "vom 1. März
+2018", Jan-1 placeholders), and 133 undated rows were filled by the build from a
+cited date (`2018-11-02-stger-1` served 1995-02-15, its head says "Entscheid vom
+2. November 2018"). Rule `bl_slug_and_head`: the slug's date corrects when the
+ruling's own head names the same date (two statements of the court); the stub of
+the same id follows (`twin_follow`, BL only, only when its own slug names that
+date). Rehearsal on copies of the 11-09 shards: bl_wayback 143 (133 filled, 4
+placeholders, 6 corrected), es_bl_gerichte 5, bl_gerichte 0; served 17,701 →
+17,690 (11 `_d` twins fold back), twins_split 0, second run 0. One row stays:
+`2018-05-18-sv-2` (head 8 May, slug 18 May, stored 2018-02-08).
+
+Production step (same window rules as §5.3, under the shared flock):
+```bash
+ssh -i ~/.ssh/caselaw root@46.225.212.40 'cd /opt/caselaw/repo; D=/mnt/HC_Volume_104655575/output/decisions; python3 scripts/repair_source_dates.py --court bl_gerichte $D/bl_gerichte.jsonl $D/bl_wayback.jsonl $D/es_bl_gerichte.jsonl --simulate'
+```
+Expect rows_changed bl_wayback 143, es_bl_gerichte 5, bl_gerichte 0, twins_split 0. Then:
+```bash
+ssh -i ~/.ssh/caselaw root@46.225.212.40 'cd /opt/caselaw/repo; D=/mnt/HC_Volume_104655575/output/decisions; flock -w 3600 /var/lock/ocl-shard-repair.lock systemd-run --unit=source-dates-bl-wayback --collect --wait --pipe --working-directory=/opt/caselaw/repo python3 scripts/repair_source_dates.py --court bl_gerichte $D/bl_gerichte.jsonl $D/bl_wayback.jsonl $D/es_bl_gerichte.jsonl --apply'
+```
+The es backup of this run is `es_bl_gerichte.jsonl.bak-dates-<UTC date>`; if it is
+still 20261108 (same day as the first run) the script refuses: move the 11-08
+backup aside first or run on another UTC day.
+
 ## 6. Scraper fixes (new rows)
 
 | Scraper | Change |

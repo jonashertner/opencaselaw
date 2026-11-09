@@ -163,3 +163,31 @@ def test_rejects_non_shard_paths(tmp_path, capsys):
     p = tmp_path / "x.txt"
     p.write_text("")
     assert R.main(["--court", "nw_gerichte", str(p)]) == 2
+
+
+def test_bl_slug_confirmed_by_head_corrects_and_its_stub_follows(tmp_path):
+    # bl_wayback.jsonl: the recovered PDF says "vom 25. Januar 2018", the file
+    # is 2018-01-25-sv-7, the stored date is 2015-01-25 (copied into the
+    # federation stub too). Both move; a row whose head names another day
+    # than its slug stays as it is.
+    def wb(did, d, head):
+        return {"decision_id": did, "court": "bl_gerichte", "docket_number": did[len("bl_gerichte_"):],
+                "decision_date": d, "scraped_at": "2026-04-17T14:37:06+00:00",
+                "full_text": head + " Invalidenversicherung …" * 50}
+    head = ("Entscheid des Kantonsgerichts Basel-Landschaft, Abteilung Sozialversiche- rungsrecht\n"
+            "vom 25. Januar 2018 (720 17 220 / 86)\n")
+    rows = [wb("bl_gerichte_2018-01-25-sv-7", "2015-01-25", head),
+            wb("bl_gerichte_2018-05-18-sv-2", "2018-02-08", head.replace("25. Januar", "8. Mai"))]
+    stub = {"decision_id": "bl_gerichte_2018-01-25-sv-7", "court": "bl_gerichte",
+            "docket_number": "2018-01-25-sv-7", "decision_date": "2015-01-25",
+            "scraped_at": "2026-02-13T09:37:26Z", "full_text": "Basel-Landschaft Kantonsgericht 2018-01-25-sv-7 | stub"}
+    w = _write(tmp_path / "bl_wayback.jsonl", rows)
+    e = _write(tmp_path / "es_bl_gerichte.jsonl", [stub])
+    rep = _run("bl_gerichte", [w, e], "--simulate")
+    assert rep["bl_wayback.jsonl"]["outcome:bl_slug_and_head:corrected"] == 1
+    assert rep["bl_wayback.jsonl"]["outcome:bl_slug:differs_left_alone"] == 1
+    assert rep["es_bl_gerichte.jsonl"]["outcome:twin_follow:corrected"] == 1
+    assert rep["simulation"]["twins_split"] == 0
+    _run("bl_gerichte", [w, e], "--apply")
+    assert [r["decision_date"] for r in _rows(w)] == ["2018-01-25", "2018-02-08"]
+    assert _rows(e)[0]["decision_date"] == "2018-01-25"
