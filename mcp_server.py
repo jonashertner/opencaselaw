@@ -9015,16 +9015,42 @@ def _lookup_previous_id(conn: sqlite3.Connection, reference: str | None) -> str 
     ref = (reference or "").strip()
     if not ref:
         return None
+    return _follow_alias_chain(conn, ref)
+
+
+# A repair can re-key a row (old -> new, recorded from previous_decision_id)
+# and the build can then fold `new` into a twin (new -> kept, recorded by the
+# dedup pass). Each hop is its own alias row, so the old id reaches the served
+# decision only by following the chain: 30 such chains on 2026-11-09, 16 of
+# them the SH ids whose dockets carried editor markup.
+_ALIAS_MAX_HOPS = 4
+
+
+def _follow_alias_chain(conn: sqlite3.Connection, ref: str) -> str | None:
+    """The served decision_id an alias chain starting at ``ref`` ends on, or
+    None. Each hop is an indexed lookup; the walk stops at the first id that is
+    a stored decision, at a cycle, or after _ALIAS_MAX_HOPS hops."""
+    seen = {ref}
+    current = ref
     try:
-        row = conn.execute(
-            "SELECT a.decision_id FROM decision_id_aliases a "
-            "JOIN decisions d ON d.decision_id = a.decision_id "
-            "WHERE a.previous_id = ?",
-            (ref,),
-        ).fetchone()
+        for _ in range(_ALIAS_MAX_HOPS):
+            row = conn.execute(
+                "SELECT a.decision_id, d.decision_id FROM decision_id_aliases a "
+                "LEFT JOIN decisions d ON d.decision_id = a.decision_id "
+                "WHERE a.previous_id = ?",
+                (current,),
+            ).fetchone()
+            if not row:
+                return None
+            if row[1] is not None:
+                return row[1]
+            current = row[0]
+            if current in seen:
+                return None
+            seen.add(current)
     except sqlite3.OperationalError:
         return None
-    return row[0] if row else None
+    return None
 
 
 def _lookup_padded_id(conn: sqlite3.Connection, reference: str | None) -> str | None:

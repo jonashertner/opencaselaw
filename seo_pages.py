@@ -625,13 +625,27 @@ def render_decision_page(
         # BS Gerichte case-number ids of before 2026-09-17): exact, one target,
         # so indexed links and bookmarks 301 to the same decision. Joined on
         # decisions and guarded against a DB without the table.
+        # A chain (re-key, then a dedup fold of the re-keyed row) is followed
+        # to the served decision, as mcp_server._follow_alias_chain does.
+        prev = None
+        current, seen = decision_id, {decision_id}
         try:
-            prev = conn.execute(
-                "SELECT a.decision_id FROM decision_id_aliases a "
-                "JOIN decisions d ON d.decision_id = a.decision_id "
-                "WHERE a.previous_id = ?",
-                (decision_id,),
-            ).fetchone()
+            for _ in range(4):
+                hop = conn.execute(
+                    "SELECT a.decision_id, d.decision_id FROM decision_id_aliases a "
+                    "LEFT JOIN decisions d ON d.decision_id = a.decision_id "
+                    "WHERE a.previous_id = ?",
+                    (current,),
+                ).fetchone()
+                if not hop:
+                    break
+                if hop[1] is not None:
+                    prev = (hop[1],)
+                    break
+                current = hop[0]
+                if current in seen:
+                    break
+                seen.add(current)
         except sqlite3.OperationalError:
             prev = None
         if prev:

@@ -201,3 +201,32 @@ def test_skipped_duplicate_still_records_its_former_id():
     # a skipped copy without a former id records nothing
     assert not build_fts5.insert_decision(c, _bundesrat_row(cid, text))
     assert c.execute("SELECT COUNT(*) FROM decision_id_aliases").fetchone()[0] == 2
+
+
+def _chain(dbp, *hops):
+    c = sqlite3.connect(str(dbp))
+    for prev, did in hops:
+        c.execute("INSERT INTO decision_id_aliases (previous_id, decision_id, source) "
+                  "VALUES (?, ?, 'test')", (prev, did))
+    c.commit()
+    c.close()
+
+
+def test_two_hop_chain_resolves(tmp_path, monkeypatch):
+    """A repair re-keys a row (markup id -> clean id), the build then folds the
+    clean id into its twin: the markup id must reach the served decision
+    (SH 2026-11-09: 'sh_gerichte_Nr. 63_2018_43<br>' -> ... -> sh_obergericht)."""
+    dbp = _serve(tmp_path, monkeypatch)
+    _chain(dbp, ("sh_markup<br>", "sh_clean"), ("sh_clean", NEW))
+    assert m._resolve_decision_id_strict("sh_markup<br>") == NEW
+    assert m.get_decision_by_id("sh_markup<br>")["decision_id"] == NEW
+    html, status, location = seo_pages.render_decision_page("sh_markup<br>")
+    assert status == 301 and location == "/entscheid/" + NEW
+
+
+def test_alias_cycle_and_dead_end_fall_through(tmp_path, monkeypatch):
+    dbp = _serve(tmp_path, monkeypatch)
+    _chain(dbp, ("loop_a", "loop_b"), ("loop_b", "loop_a"), ("dead_a", "dead_b"))
+    for ref in ("loop_a", "dead_a"):
+        assert m._resolve_decision_id_strict(ref) is None
+        assert seo_pages.render_decision_page(ref)[1] == 404
