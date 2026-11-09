@@ -383,6 +383,26 @@ KNOWN_GAP_REMEDIES: dict[str, str] = {
         "Fix = per-Fiche-Identitaet + Backfill, pipeline-gated. RESCAN_ALL "
         "2026-09-02 (83 Seiten, 5.4 min, 0 Fehler): +0."
     ),
+    "be_direktionen": (
+        "KLASSIFIZIERT 2026-11-09: 33 DIJ-PDFs antworteten 404, weil der Dateiname im "
+        "JAXForms-Pool nicht der Datei entspricht (doppelter Leerraum/Zeilenumbruch; "
+        "Ablage im anderen Sprachordner unter dessen Praefix). Seit dem "
+        "_pool_paths-Fallback laden 24 (Live-Lauf 2026-11-09, GET). 9 sind tote "
+        "Links unter jedem Namen (auch die kantonale Seite verlinkt sie so, keiner "
+        "im Wayback): 2018.JGK.3146/3984/4905, 2019.JGK.3921/8138/8471 (als "
+        "entscheidsuche-Kopie in es_be_weitere), 2018.JGK.4030, 2021.DIJ.3254, "
+        "25.60-15.104 (nur ueber die DIJ). Als Gap gecacht, woechentlicher "
+        "Nachtest. Erwartete Restluecke 9; mehr waere neu."
+    ),
+    "be_bvd": (
+        "KLASSIFIZIERT 2026-11-09 (erster Direktlauf, 132 min): 2255 Zeilen, 2250 "
+        "Dossiers, 4 Zeilen ohne Dossiernummer. 12 Downloads antworten Tribuna "
+        "'HTTP 403 - Not Authorized', auch von einer Schweizer Privat-IP, also nicht "
+        "oeffentlich (110 2004 159, 110 2005 52/80/96/130/136/153/178/181, 110 2009 "
+        "142, 110 2016 76, 110 2019 124). 3 liefern application/pdf ohne %PDF-Kopf "
+        "(110 2019 200, 110 2020 88, 110 2021 1); diese 3 und 110 2019 124 kommen "
+        "aus es_be_bvd. Kein Nachlauf; erwartete Restluecke 19."
+    ),
     "ju_gerichte": (
         "KLASSIFIZIERT 2026-09-26 (alle 1192 Portalzeilen, 53 PDFs, Textvergleich): "
         "keine Duplikat-Zeilen. 12 echte Entscheide lagen unter bereits gehaltenen "
