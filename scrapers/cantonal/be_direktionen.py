@@ -66,6 +66,50 @@ DATA_POOLS = [
 # their own scrapers; only the directorate's own rulings are taken here.
 POOL_AUTHORITIES = ("Direktion für Inneres und Justiz", "Justiz-, Gemeinde- und Kirchendirektion")
 
+# The pools' DateiName does not always match the file on gba.dij.be.ch
+# (checked 2026-11-09, all 33 rulings that answered 404 the night before):
+# - a double space or a line break in the name where the stored file has one
+#   space ("Beschwerdeentscheid 2022.DIJ.295  15.11.2022.pdf");
+# - a ruling filed in the other language's folder under that folder's prefix:
+#   the pool says de/notariat/.../Entscheid 26.11-15.64, the file is
+#   fr/notariat/.../Decision 26.11-15.64; the pool says fr/.../Décision sur
+#   recours 2024.DIJ.8653, the file is de/.../Beschwerdeentscheid 2024.DIJ.8653.
+# Live run 2026-11-09 with these candidates: 24 of the 33 download (15 not
+# held before, 9 replacing entscheidsuche copies). 9 answer 404 under every
+# name, as the canton's own page links them; those are cached as gaps and
+# re-probed weekly.
+_FOLDER_PREFIX = {
+    ("de", "notariat"): "Entscheid ",
+    ("fr", "notariat"): "Decision ",
+    ("de", "entscheide"): "Beschwerdeentscheid ",
+    ("fr", "entscheide"): "Decision sur recours ",
+}
+_POOL_PATH_RE = re.compile(
+    r"^(?P<head>.*/dokumente/)(?P<lang>de|fr)/(?P<sub>(?:notariat/)?)entscheide/"
+    r"(?P<prefix>Decision sur recours |Décision sur recours |Beschwerdeentscheid |"
+    r"Entscheid |Decision |Décision )?(?P<rest>.+)$")   # longest prefixes first
+
+
+def _pool_paths(path: str) -> list[str]:
+    """Candidate DAM paths for a pool DateiName, most likely first: the name
+    with whitespace runs collapsed, then the other language's folder under its
+    prefix, then the same folder under its usual prefix. At most three."""
+    first = re.sub(r"\s+", " ", path.strip())
+    out = [first]
+    m = _POOL_PATH_RE.match(first)
+    if m:
+        kind = "notariat" if m.group("sub") else "entscheide"
+        lang = m.group("lang")
+        other = "fr" if lang == "de" else "de"
+        for alt in (other, lang):
+            out.append(f"{m.group('head')}{alt}/{m.group('sub')}entscheide/"
+                       f"{_FOLDER_PREFIX[(alt, kind)]}{m.group('rest')}")
+    seen: list[str] = []
+    for p in out:
+        if p not in seen:
+            seen.append(p)
+    return seen[:3]
+
 DATE_RE = re.compile(r"(\d{2})\.(\d{2})\.(\d{4})")
 # Directorate docket: 2025.GSI.2700, 2026.KAIO.12, …  (year.DIR.number)
 DOCKET_RE = re.compile(r"\b(\d{4}\.[A-Za-zÄÖÜ]{2,6}\.\d+)\b")
@@ -225,11 +269,13 @@ class BEDirektionenScraper(BaseScraper):
                             stub[key] = f"{stub[key]}{sep}{val}" if stub.get(key) else val
                     continue
                 tech = str(e.get("DatumTechnisch") or "")
+                pdf_urls = [pdf_host + quote(p) for p in _pool_paths(path)]
                 merged[docket] = {
                     "docket_number": docket,
                     "decision_date": (f"{tech[:4]}-{tech[4:6]}-{tech[6:8]}" if len(tech) == 8
                                       else e.get("Datum") or ""),
-                    "pdf_url": pdf_host + quote(path),
+                    "pdf_url": pdf_urls[0],
+                    "pdf_urls": pdf_urls,
                     "title": topic,
                     "regeste": regeste,
                     "abstract_fr": regeste_fr,
@@ -240,12 +286,25 @@ class BEDirektionenScraper(BaseScraper):
             yield from merged.values()
 
     def fetch_decision(self, stub: dict) -> Decision | None:
-        pdf_url = stub["pdf_url"]
         docket = stub["docket_number"]
-        try:
-            resp = self.get(pdf_url)
-        except Exception as e:
-            logger.error(f"[be_direktionen] Failed to download PDF for {docket}: {e}")
+        candidates = stub.get("pdf_urls") or [stub["pdf_url"]]
+        resp, pdf_url = None, candidates[0]
+        for url in candidates:
+            try:
+                resp, pdf_url = self.get(url), url
+                break
+            except Exception as e:
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                if status == 404:
+                    continue                      # try the next file name
+                logger.error(f"[be_direktionen] Failed to download PDF for {docket}: {e}")
+                return None                       # transient: retry tomorrow, no gap
+        if resp is None:
+            # 404 under every name: the published link is dead. Cache it as a
+            # gap (re-probed after GAP_TTL_DAYS) instead of 10 s per name nightly.
+            logger.error(f"[be_direktionen] PDF not found under {len(candidates)} "
+                         f"name(s) for {docket}: {candidates[0]}")
+            self.state.mark_gap(make_decision_id("be_direktionen", docket))
             return None
         full_text = _extract_pdf_text(resp.content)
         if not full_text or len(full_text.strip()) < 50:
