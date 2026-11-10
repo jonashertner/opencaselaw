@@ -166,8 +166,14 @@ class VDGerichteScraper(BaseScraper):
         logger.info("VD: session initialized, XSRF token acquired")
         return True
 
-    def _search(self, date_from: list[int], date_to: list[int], page: int = 0) -> dict | None:
-        """Execute a search API call. Returns parsed JSON or None."""
+    def _search(self, date_from: list[int], date_to: list[int], page: int = 0,
+                by: str = "decision") -> dict | None:
+        """Execute a search API call. Returns parsed JSON or None.
+
+        by="decision" windows on dateDecision (the normal walk); by="publication"
+        windows on datePublication instead, for the second pass that catches
+        decisions whose dateDecision the portal has not set (see
+        _is_date_unavailable)."""
         body = {
             "page": page,
             "pageSize": 100,
@@ -184,8 +190,10 @@ class VDGerichteScraper(BaseScraper):
             "resultatsRecours": [],
             "jurivoc": {"inclusions": [], "exclusions": []},
             "articlesDeLoi": {"inclusions": [], "exclusions": []},
-            "datePublication": {"from": None, "to": None},
-            "dateDecision": {"from": date_from, "to": date_to},
+            "datePublication": {"from": date_from, "to": date_to} if by == "publication"
+                                else {"from": None, "to": None},
+            "dateDecision": {"from": date_from, "to": date_to} if by == "decision"
+                             else {"from": None, "to": None},
         }
 
         self._rate_limit()
@@ -341,7 +349,34 @@ class VDGerichteScraper(BaseScraper):
 
         total_yielded = 0
 
-        # Iterate month by month, newest first
+        # Pass 1: the normal walk, windowed on dateDecision.
+        for stub in self._walk_months(start_year, start_month, today, by="decision"):
+            if self._is_new(stub):
+                total_yielded += 1
+                yield stub
+
+        # Pass 2: a decision whose own dateDecision the portal has not set
+        # ("Non disponible" — confirmed live 2026-11-09, e.g. several CASSO
+        # assurances-sociales rulings, old and recent) never falls in any
+        # dateDecision window above, at any --since depth: the server
+        # range-filters on that field, and an unset field matches no range,
+        # ever. Walk datePublication instead, kept to hits pass 1 could not
+        # have reached (require_missing_decision_date), so a decision with a
+        # real dateDecision is never fetched twice.
+        for stub in self._walk_months(start_year, start_month, today, by="publication",
+                                       require_missing_decision_date=True):
+            if self._is_new(stub):
+                total_yielded += 1
+                yield stub
+
+        logger.info(f"VD: discovery complete: {total_yielded} new stubs")
+
+    def _walk_months(self, start_year: int, start_month: int, today: date, by: str = "decision",
+                      require_missing_decision_date: bool = False) -> Iterator[dict]:
+        """Stubs from every month window in [start_year/start_month, today],
+        newest first, searched by dateDecision or datePublication (_search).
+        require_missing_decision_date keeps only hits whose own dateDecision
+        is missing or unparseable (see discover_new's pass 2)."""
         for year in range(today.year, start_year - 1, -1):
             end_month = today.month if year == today.year else 12
             begin_month = start_month if year == start_year else 1
@@ -357,9 +392,9 @@ class VDGerichteScraper(BaseScraper):
                 date_from = [year, month, 1]
                 date_to = [year, month, last_day]
 
-                logger.info(f"VD: searching {year}-{month:02d}")
+                logger.info(f"VD: searching {year}-{month:02d} (by {by})")
 
-                data = self._search(date_from, date_to, page=0)
+                data = self._search(date_from, date_to, page=0, by=by)
                 if not data:
                     continue
 
@@ -368,34 +403,32 @@ class VDGerichteScraper(BaseScraper):
                 total_pages = response.get("totalPages", 0)
 
                 if total_elements == 0:
-                    logger.debug(f"VD: {year}-{month:02d}: no results")
+                    logger.debug(f"VD: {year}-{month:02d} (by {by}): no results")
                     continue
 
-                logger.info(f"VD: {year}-{month:02d}: {total_elements} decisions, {total_pages} pages")
+                logger.info(f"VD: {year}-{month:02d} (by {by}): "
+                            f"{total_elements} decisions, {total_pages} pages")
 
-                # Process page 0
-                for stub in self._parse_search_page(response):
-                    if self._is_new(stub):
-                        total_yielded += 1
-                        yield stub
+                yield from self._parse_search_page(response, require_missing_decision_date)
 
-                # Process remaining pages
                 for page in range(1, total_pages):
-                    data = self._search(date_from, date_to, page=page)
+                    data = self._search(date_from, date_to, page=page, by=by)
                     if not data:
                         break
                     response = data.get("response", {})
-                    for stub in self._parse_search_page(response):
-                        if self._is_new(stub):
-                            total_yielded += 1
-                            yield stub
+                    yield from self._parse_search_page(response, require_missing_decision_date)
 
-        logger.info(f"VD: discovery complete: {total_yielded} new stubs")
-
-    def _parse_search_page(self, response: dict) -> Iterator[dict]:
-        """Parse decisions from a search response page."""
+    def _parse_search_page(self, response: dict,
+                            require_missing_decision_date: bool = False) -> Iterator[dict]:
+        """Parse decisions from a search response page. With
+        require_missing_decision_date, skip any hit whose own dateDecision
+        parses to a real date (the dateDecision pass already covers it)."""
         content = response.get("content", [])
         for item in content:
+            if require_missing_decision_date:
+                hit = item.get("decisionHit") or {}
+                if parse_date(hit.get("dateDecision", "")):
+                    continue
             try:
                 stub = self._parse_search_item(item)
                 if stub:

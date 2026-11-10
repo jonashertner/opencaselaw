@@ -195,6 +195,23 @@
    "ids": [
     "NW_OG_001_43048_2026-10-07"
    ]
+  },
+  {
+   "spider": "VD_Omni",
+   "added": "2026-11-10",
+   "reason": "One physical fiche (nF30_KEY 154747, authority CE / Conseil d'Etat, \"Bouwmeester et crts c/ Commugny\", decided 1988-03-04) that the portal itself gives no case number for, confirmed by fetching the document directly: 'N° affaire:' is blank, matching entscheidsuche's own Num [\"\"]. vd_omni.py's discover_new drops any listed fiche without a docket by design (\"hit ... has no docket, skipped\"), the same behaviour the 2026-11 dry run already documented as '1 row without a docket' (runbooks/vd_omni_cdap_2026-11.md). entscheidsuche indexed the same fiche under two different hashed ids (same nF30_KEY, different W10_KEY session), hence two residual ids for one ruling.",
+   "ids": [
+    "VD_SR_001_643cbca0db8ec2695ba1_1988-03-04",
+    "VD_SR_001_fd4f585bc2d2ae60f9e5_1988-03-04"
+   ]
+  },
+  {
+   "spider": "VD_Omni",
+   "added": "2026-11-10",
+   "reason": "MPU.2025.0046 (decided 2026-05-12 per entscheidsuche) is no longer on the court's own portal: an exact-docket search returns '0 de 0 fiche(s)', and the cached nF30_KEY (186309) in entscheidsuche's document JSON serves an empty document (no authority, date or parties), both checked 2026-11-10. Same pattern as the dry run's already-accepted delisted dockets (AC.2023.0305, GE.2014.0095, PE.2017.0501, PE.2018.0121, runbooks/vd_omni_cdap_2026-11.md): a ruling the portal has since withdrawn. Nothing to scrape.",
+   "ids": [
+    "VD_TC_031_MPU-2025-0046_2026-05-12"
+   ]
   }
  ]
 }

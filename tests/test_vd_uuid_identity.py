@@ -143,7 +143,7 @@ def test_discover_skips_held_uuids_and_yields_the_rest(tmp_path, monkeypatch):
         hit(U3, affaire_no="ZD26.000001", hit_no="7"),             # new, old scheme
     ]}}
     calls = []
-    sc._search = lambda df, dt, page=0: (calls.append((df, dt, page)) or page_for(df))
+    sc._search = lambda df, dt, page=0, by="decision": (calls.append((df, dt, page, by)) or page_for(df))
 
     def page_for(df):
         return page if df[:2] == [date.today().year, date.today().month] else None
