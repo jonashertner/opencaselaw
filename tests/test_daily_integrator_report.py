@@ -160,7 +160,8 @@ def test_report_shape_is_unchanged_and_candidates_appear():
     assert "2026-09-05 00:00" in report["hourly_volume"]
 
     alert = dir_mod.generate_alert(report)
-    assert alert and HTTPX_IP in alert and "sustained access" in alert
+    assert alert and "sustained access" in alert
+    assert HTTPX_IP not in alert and SCANNER_IP not in alert
 
 
 def test_empty_input_yields_error_report():
@@ -194,7 +195,8 @@ def test_main_writes_json_report_and_sends_alert_when_asked(tmp_path, monkeypatc
     reports = tmp_path / "reports"
     monkeypatch.setattr(dir_mod, "OUTPUT_DIR", reports)
     calls = []
-    monkeypatch.setattr(dir_mod, "notify", lambda title, message, **k: calls.append((title, message)))
+    monkeypatch.setattr(dir_mod, "notify",
+                        lambda title, message, **k: calls.append((title, message)) or True)
     out_path = tmp_path / "out" / "report.json"
 
     dir_mod.main(["--log-dir", str(d), "--days", "36500", "--output", str(out_path), "--notify"])
@@ -206,8 +208,8 @@ def test_main_writes_json_report_and_sends_alert_when_asked(tmp_path, monkeypatc
     assert len(calls) == 1
     title, message = calls[0]
     assert title == "OpenCaseLaw Integrator Alert"
-    assert HTTPX_IP in message
-    assert "Alert sent via ntfy.sh" in capsys.readouterr().out
+    assert HTTPX_IP not in message
+    assert "Alert sent via ntfy" in capsys.readouterr().out
 
 
 def test_main_without_log_files_writes_error_report(tmp_path, monkeypatch, capsys):
@@ -231,3 +233,46 @@ def test_print_summary_caps_the_flag_list(capsys):
     assert f"Commercial integrator candidates (25, top {dir_mod.PRINT_FLAGS_MAX} by volume)" in out
     assert "10.0.0.19" in out and "10.0.0.20" not in out
     assert "... and 5 more in the JSON report" in out
+
+
+# ── 2026-11-10: the alert leaked IPs to a public ntfy.sh topic ───────────────
+
+_IP_RE = __import__("re").compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b|\b[0-9a-f]{1,4}(?::[0-9a-f]{0,4}){2,7}\b")
+
+
+def test_alert_never_carries_an_address():
+    """Every flagged entry, IPv4 and IPv6, stays out of the alert text."""
+    flags = [{"ip": ip, "requests": 500, "client_type": "python-bot",
+              "flags": ["high volume (500 requests)"]}
+             for ip in ("203.0.113.7", "198.51.100.23", "2001:db8::1",
+                        "2001:db8:85a3::8a2e:370:7334", "192.0.2.1", "192.0.2.2")]
+    alert = dir_mod.generate_alert({"commercial_flags": flags})
+    assert alert and "#1" in alert and "high volume" in alert
+    assert not _IP_RE.search(alert), alert
+
+
+def test_notify_sends_nothing_without_an_operator_topic(monkeypatch):
+    """No topic in the code: unset NTFY_TOPIC means no request at all."""
+    import urllib.request
+    monkeypatch.delenv("NTFY_TOPIC", raising=False)
+    sent = []
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: sent.append(a))
+    assert dir_mod.notify("t", "m") is False
+    assert sent == []
+
+
+def test_notify_posts_to_the_topic_from_the_environment(monkeypatch):
+    import urllib.request
+    monkeypatch.setenv("NTFY_TOPIC", "operator-secret-topic")
+    monkeypatch.delenv("NTFY_URL", raising=False)
+    sent = []
+    monkeypatch.setattr(urllib.request, "urlopen",
+                        lambda req, **k: sent.append(req.full_url))
+    assert dir_mod.notify("t", "m") is True
+    assert sent == ["https://ntfy.sh/operator-secret-topic"]
+
+
+def test_no_public_topic_is_hardcoded():
+    src = Path(dir_mod.__file__).read_text(encoding="utf-8")
+    assert 'topic: str = "opencaselaw"' not in src
+    assert "ntfy.sh/opencaselaw" not in src

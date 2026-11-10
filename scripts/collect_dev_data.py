@@ -9,19 +9,16 @@ provenance, not a log dump — every dataset directory carries a CARD.md
 with the schema, the generating code path, and whether the data may ever
 leave the private repo.
 
-What it deliberately does NOT collect (yet): search_traces_*.jsonl.
-Those files carry rerank query text under a published 30-day-deletion
-promise; exporting them — even stripped — waits until the /datenschutz/
-amendment (Phase 0c) ships. Nothing is lost by waiting: the server keeps
-30 days, so the collector can backfill the window the day the amendment
-lands. `--include-traces` exists for exactly that day and refuses to run
-while the guard file is absent.
+What it does NOT collect, by owner decision 2026-11-10:
+  * search_traces_*.jsonl — they carry rerank query text and stay on the
+    server for their 30 days, then are deleted there. (An export path
+    existed from 2026-08-23; it was removed, not just switched off.)
+  * the per-IP LLM cost ledger (logs/llm_cost_by_ip.jsonl) — it stays on
+    the server for its 90-day logrotate window and is never archived.
 
 Privacy is enforced structurally, not by care: every record written is
 scanned for identifier keys (IP, user agent, session id, cohort) and the
-run ABORTS on the first hit. ONE dataset is exempt by explicit decision
-(2026-08-23): the per-IP LLM cost ledger, archived raw — see
-IDENTIFIER_EXEMPT_DATASETS for the disclosure trail. The collector only
+run ABORTS on the first hit. No dataset is exempt. The collector only
 reads; it never deletes or modifies a source.
 
 Usage (VPS, via systemd timer; also runnable by hand):
@@ -35,7 +32,6 @@ import datetime as _dt
 import gzip
 import json
 import logging
-import re
 import shutil
 import sqlite3
 import subprocess
@@ -54,28 +50,6 @@ from metric_tools import UNKNOWN_TOOL, metric_tool_name  # noqa: E402
 FORBIDDEN_KEYS = {"ip", "client_ip", "remote_addr", "user_id", "session_id",
                   "sid", "ua", "user_agent", "cohort", "install_cohort",
                   "email", "stripe_customer"}
-
-# The ONE dataset exempt from the identifier scan: the per-IP LLM cost
-# ledger, archived RAW (incl. IP addresses) into the private repo by
-# explicit owner decision, 2026-08-23. Disclosed at /datenschutz/
-# ("Kosten- und Missbrauchskontrolle": 90 days on the serving systems
-# plus an access-restricted private archive for the lifetime of the
-# service). Everything else stays structurally identifier-free — adding
-# a name here is a privacy-notice amendment, not a code change, and the
-# test suite pins this set to exactly one member.
-IDENTIFIER_EXEMPT_DATASETS = {"llm_cost_by_ip"}
-
-# Ledger records written BEFORE the /datenschutz/ amendment was live were
-# collected under the plain 90-day promise and are never archived — they
-# age off the VPS as promised. The amendment ships during 2026-08-23, so
-# the archive starts at the first full post-amendment day; the boundary
-# is a day, not a push-moment, precisely so it cannot be argued about.
-LEDGER_ARCHIVE_SINCE = "2026-08-24"
-
-# The 0c guard: trace export stays off until the amendment is live. The
-# deploy step that publishes the amended /datenschutz/ creates this file;
-# its content is the amendment's publication date.
-TRACES_ALLOWED_MARKER = "TRACES_EXPORT_APPROVED"
 
 
 def _scan(obj, path="$"):
@@ -163,13 +137,12 @@ class Collector:
         if not records:
             log.info("[%s] nothing to collect", dataset)
             return
-        if dataset not in IDENTIFIER_EXEMPT_DATASETS:
-            for rec in records:
-                bad = _scan(rec)
-                if bad:
-                    raise SystemExit(
-                        f"PRIVACY ABORT: identifier key(s) {bad} in dataset "
-                        f"'{dataset}' — nothing was written")
+        for rec in records:
+            bad = _scan(rec)
+            if bad:
+                raise SystemExit(
+                    f"PRIVACY ABORT: identifier key(s) {bad} in dataset "
+                    f"'{dataset}' — nothing was written")
         d = self.dest / "datasets" / dataset
         out = d / f"{self.today}.jsonl.gz"
         if self.dry:
@@ -300,26 +273,6 @@ class Collector:
             "One record per LLM call: model, feature, token counts, "
             "cost_usd, ok. No prompt or completion text.")
 
-        # Per-IP LLM cost ledger: the sole RAW identifier-bearing archive
-        # (see IDENTIFIER_EXEMPT_DATASETS). The serving copy rotates out at
-        # 90 days (logrotate maxage); these shards are the permanent record.
-        # First run bootstraps from LEDGER_ARCHIVE_SINCE, then daily
-        # increments (consumer dedups on ts — µs-precision ISO — + ip,
-        # like every other overlapping stream).
-        ledger_dir = self.dest / "datasets" / "llm_cost_by_ip"
-        self._write_jsonl_gz(
-            "llm_cost_by_ip",
-            self._read_jsonl(
-                REPO / "logs" / "llm_cost_by_ip.jsonl",
-                since=yesterday if ledger_dir.exists() else LEDGER_ARCHIVE_SINCE),
-            "RAW per-IP LLM cost ledger: ts, ip, feature, source (mcp|rest), "
-            "cost_usd — one record per edge-originated LLM call. CONTAINS IP "
-            "ADDRESSES: the single dataset exempt from the identifier scan, "
-            "by owner decision 2026-08-23, disclosed at /datenschutz/ "
-            "('Kosten- und Missbrauchskontrolle': 90 days on serving "
-            "systems + this access-restricted private archive). NEVER "
-            "leaves the private repo.")
-
         # Scraper health: today's snapshot, kept per-day (the source file
         # is overwritten every run, so history exists only here).
         for name in ("scraper_health.json", "scraper_health_federal.json",
@@ -439,54 +392,6 @@ class Collector:
                               "records": None})
         log.info("[%s] built", dataset)
 
-    # ── traces: 0c-gated ─────────────────────────────────────────────
-
-    def collect_traces(self) -> None:
-        """Search-trace export — EXACTLY ONCE per source day.
-
-        Runs only once the amendment marker exists. Two skips make the
-        export idempotent so it can run on the daily timer (2026-08-24):
-
-        * **today's file** is still being appended to by the workers, so
-          exporting it would capture a partial day and then never revisit
-          it — the source day is exported the day AFTER it closes;
-        * **an already-exported source day** is skipped. Shards are named
-          by COLLECTION date inside a per-SOURCE-day directory, so without
-          this the 30-day retention window would be re-exported nightly:
-          ~280k records × 30 copies a month, all duplicates.
-
-        Net effect: each source day lands in the archive once, the day
-        after it closes, and the archive grows by one day per day.
-        """
-        marker = self.dest / TRACES_ALLOWED_MARKER
-        if not marker.exists():
-            raise SystemExit(
-                f"traces export refused: {marker} absent. Create it (content: "
-                "the /datenschutz/ amendment publication date) only after the "
-                "amendment is live in all five languages.")
-        src_dir = REPO / "output" / "research_logs"
-        exported = skipped_open = skipped_done = 0
-        for p in sorted(src_dir.glob("search_traces_*.jsonl")):
-            mt = re.match(r"search_traces_(\d{4}-\d{2}-\d{2})", p.name)
-            if mt and mt.group(1) >= self.today:
-                skipped_open += 1
-                continue
-            dest_dir = self.dest / "datasets" / "search_traces" / p.stem
-            if any(dest_dir.glob("*.jsonl.gz")):
-                skipped_done += 1
-                continue
-            self._write_jsonl_gz(
-                f"search_traces/{p.stem}",
-                self._read_jsonl(p),
-                "Search traces incl. rerank labels (query ≤200 chars, "
-                "candidate_ids, llm_order), CE scores, structured parse, "
-                "per-signal contributions. One shard per source day, "
-                "exported once, the day after that day closes. Collected "
-                "under the amended notice; never leaves the private repo.")
-            exported += 1
-        log.info("[search_traces] %d exported, %d already archived, "
-                 "%d still open", exported, skipped_done, skipped_open)
-
 
 def _git_commit_push(dest: Path, today: str, dry: bool) -> None:
     if dry:
@@ -520,9 +425,6 @@ def main() -> int:
     ap.add_argument("--dest", required=True, type=Path,
                     help="clone of the private opencaselaw-data repo")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--include-traces", action="store_true",
-                    help="also export search traces (refuses without the "
-                         "amendment marker file)")
     ap.add_argument("--no-push", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
@@ -533,8 +435,6 @@ def main() -> int:
         return 1
     c = Collector(args.dest, dry_run=args.dry_run)
     c.collect()
-    if args.include_traces:
-        c.collect_traces()
     if not args.no_push:
         _git_commit_push(args.dest, c.today, args.dry_run)
     return 0

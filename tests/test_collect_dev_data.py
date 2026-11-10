@@ -2,11 +2,10 @@
 
 1. Privacy is structural: a record carrying an identifier key anywhere in
    its tree aborts the run before a byte is written.
-2. Trace export is gated on the /datenschutz/ amendment marker — the
-   collector must refuse, not warn, while the marker is absent.
-3. The identifier-scan exemption is exactly ONE dataset — the per-IP cost
-   ledger archived by the 2026-08-23 decision. Growing that set must be a
-   conscious act (a privacy-notice amendment), so the set is pinned here.
+2. Search traces are not exported (owner decision 2026-11-10): they stay
+   on the server for their 30 days and nowhere else.
+3. No dataset is exempt from the identifier scan: the per-IP cost ledger,
+   archived raw from 2026-08-24, is no longer collected (2026-11-10).
 
 Everything else (which datasets, which paths) is configuration the
 manifest documents; these three are the properties that must not regress.
@@ -27,7 +26,6 @@ if str(REPO) not in sys.path:
 from metric_tools import UNKNOWN_TOOL  # noqa: E402
 from scripts import collect_dev_data  # noqa: E402
 from scripts.collect_dev_data import (  # noqa: E402
-    IDENTIFIER_EXEMPT_DATASETS,
     Collector,
     _fold_unknown_tools,
     _scan,
@@ -64,12 +62,12 @@ def test_clean_records_produce_a_shard_and_a_card(tmp_path):
     assert "May leave the private repo:** no" in card
 
 
-def test_trace_export_refuses_without_the_amendment_marker(tmp_path):
-    """The 0c gate. Export becomes possible the day the amended notice is
-    live, by creating the marker — never by editing code."""
-    c = Collector(tmp_path)
-    with pytest.raises(SystemExit, match="traces export refused"):
-        c.collect_traces()
+def test_traces_have_no_export_path():
+    """Removed, not switched off: no method, no flag, no marker."""
+    assert not hasattr(Collector, "collect_traces")
+    source = Path(collect_dev_data.__file__).read_text(encoding="utf-8")
+    assert "--include-traces" not in source
+    assert "search_traces_" not in source.split('"""', 2)[2]
 
 
 def test_dry_run_writes_nothing(tmp_path):
@@ -78,33 +76,23 @@ def test_dry_run_writes_nothing(tmp_path):
     assert not list(tmp_path.rglob("*"))
 
 
-def test_exemption_set_is_exactly_the_ip_ledger():
-    """Adding a dataset here means amending /datenschutz/ first. Widening
-    this set without that step is the regression this test exists to stop."""
-    assert IDENTIFIER_EXEMPT_DATASETS == {"llm_cost_by_ip"}
-
-
-def test_ledger_dataset_may_carry_ip_and_still_writes(tmp_path):
-    c = Collector(tmp_path)
-    c._write_jsonl_gz(
-        "llm_cost_by_ip",
-        [{"ts": "2026-08-23T10:00:00+00:00", "ip": "203.0.113.7",
-          "feature": "attest", "source": "rest", "cost_usd": 0.004}],
-        "raw ledger archive")
-    shard = tmp_path / "datasets" / "llm_cost_by_ip" / f"{c.today}.jsonl.gz"
-    assert shard.exists()
-    with gzip.open(shard, "rt") as fh:
-        assert json.loads(fh.readline())["ip"] == "203.0.113.7"
-
-
-def test_exemption_does_not_leak_to_other_datasets(tmp_path):
-    """The same record that the ledger may carry still aborts anywhere else."""
-    c = Collector(tmp_path)
+def test_the_ip_ledger_is_not_collected_and_would_abort(tmp_path, monkeypatch):
+    """A ledger file on the server reaches no dataset; and were it ever
+    wired back in, its `ip` key aborts like anywhere else."""
+    repo = tmp_path / "repo"
+    (repo / "logs").mkdir(parents=True)
+    (repo / "logs" / "llm_cost_by_ip.jsonl").write_text(json.dumps(
+        {"ts": "2999-01-01T00:00:00+00:00", "ip_pseudonym": "p1",
+         "ip": "203.0.113.7", "feature": "attest", "cost_usd": 0.004}) + "\n")
+    monkeypatch.setattr(collect_dev_data, "REPO", repo)
+    dest = tmp_path / "dest"
+    Collector(dest).collect()
+    assert not (dest / "datasets" / "llm_cost_by_ip").exists()
+    assert "llm_cost_by_ip" not in Path(collect_dev_data.__file__).read_text(
+        encoding="utf-8").split('"""', 2)[2]
     with pytest.raises(SystemExit, match="PRIVACY ABORT"):
-        c._write_jsonl_gz(
-            "llm_usage",
-            [{"ts": "2026-08-23T10:00:00+00:00", "ip": "203.0.113.7"}],
-            "s")
+        Collector(tmp_path / "d2")._write_jsonl_gz(
+            "llm_cost_by_ip", [{"ip": "203.0.113.7"}], "s")
 
 
 # ── tools.email, 2026-11-01 ──────────────────────────────────────────

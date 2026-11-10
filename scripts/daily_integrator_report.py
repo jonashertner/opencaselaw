@@ -265,26 +265,43 @@ def generate_alert(report: dict) -> str | None:
     if not flags:
         return None
 
+    # No address in the alert, ever (2026-11-10): until then the top five
+    # flagged IPs went daily to the public ntfy.sh topic "opencaselaw",
+    # readable by anyone who knew the name. The alert says that something
+    # was flagged and how much; the addresses stay on the server, in the
+    # journal (--print) and the JSON report.
     lines = [f"🔍 {len(flags)} potential commercial integrator(s) detected:\n"]
-    for f in flags[:5]:
-        lines.append(f"  • {f['ip']} — {f['requests']} req, {f['client_type']}")
+    for n, f in enumerate(flags[:5], 1):
+        lines.append(f"  #{n} — {f['requests']} req, {f['client_type']}")
         for reason in f["flags"]:
             lines.append(f"    → {reason}")
+    lines.append("\nDetails on the server: journalctl -u opencaselaw-integrator-report")
     return "\n".join(lines)
 
 
-def notify(title: str, message: str, topic: str = "opencaselaw"):
-    """Send ntfy.sh notification."""
+def notify(title: str, message: str) -> bool:
+    """Send the ntfy alert to the operator topic. Returns whether it was sent.
+
+    The topic comes from the environment (NTFY_TOPIC, set by the ntfy.conf
+    drop-in from /opt/caselaw/ops.env), never from the code: an ntfy.sh
+    topic is open to anyone who knows its name. Unset, nothing is sent.
+    """
+    import os
     import urllib.request
+    topic = os.environ.get("NTFY_TOPIC", "")
+    if not topic:
+        return False
+    base = os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/")
     try:
         req = urllib.request.Request(
-            f"https://ntfy.sh/{topic}",
+            f"{base}/{topic}",
             data=message.encode(),
             headers={"Title": title, "Priority": "default"},
         )
         urllib.request.urlopen(req, timeout=5)
+        return True
     except Exception:
-        pass
+        return False
 
 
 def print_summary(report: dict) -> None:
@@ -366,8 +383,10 @@ def main(argv: list[str] | None = None):
         if alert and args.dry_run:
             print(f"\n[dry-run] alert that would be sent:\n{alert}")
         elif alert:
-            notify("OpenCaseLaw Integrator Alert", alert)
-            print("Alert sent via ntfy.sh")
+            if notify("OpenCaseLaw Integrator Alert", alert):
+                print("Alert sent via ntfy")
+            else:
+                print("Alert not sent (NTFY_TOPIC unset or send failed)")
 
 
 if __name__ == "__main__":
