@@ -63,3 +63,113 @@ def test_widget_stays_self_contained():
     explicit _meta.ui.csp entry."""
     import re
     assert not re.findall(r'(?:src|href)=["\']https?://', HTML)
+
+
+# ── MCP Apps lifecycle (2026-11-10) ─────────────────────────────────────────
+# Spec 2026-01-26: "The Host MUST NOT send any request or notification to the
+# View before it receives an `initialized` notification." Both widgets lacked
+# the handshake, so in Claude (or any spec host) they never got their tool
+# result and stayed on the loading line. The string checks pin the wire shape;
+# the node test drives the real runtime through the sequence a host runs.
+
+import json  # noqa: E402
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+
+import pytest  # noqa: E402
+
+import decision_widget  # noqa: E402
+from widget_runtime import runtime_js  # noqa: E402
+
+
+@pytest.mark.parametrize("html", [HTML, decision_widget.widget_html()],
+                         ids=["law", "decision"])
+def test_widget_opens_an_mcp_apps_session(html):
+    assert 'method:"ui/initialize"' in html
+    assert 'protocolVersion:"2026-01-26"' in html
+    assert 'method:"ui/notifications/initialized"' in html
+    assert 'method:"ui/notifications/size-changed"' in html
+
+
+_NODE_DRIVER = r"""
+const sent = [], listeners = {}, applied = [];
+let height = 480, resize = null;
+global.setTimeout = () => 0;          // skip the 8 s globals poll
+global.window = {
+  parent: { postMessage: (m) => sent.push(JSON.parse(JSON.stringify(m))) },
+  addEventListener: (t, f) => (listeners[t] = listeners[t] || []).push(f),
+};
+global.document = {
+  addEventListener: () => {},
+  documentElement: { clientWidth: 700, getBoundingClientRect: () => ({ height }) },
+};
+global.ResizeObserver = class { constructor(cb) { resize = cb; } observe() {} };
+const deliver = (d) => listeners.message.forEach((f) => f({ data: d }));
+const snap = (label) => ({ label, sent: sent.splice(0) });
+const steps = [];
+
+eval(process.argv[1]);
+mountWidget((p) => { if (p) applied.push(p); return !!p; });
+steps.push(snap("mount"));
+resize();
+steps.push(snap("resize before initialized"));
+const initId = steps[0].sent.find((m) => m.method === "ui/initialize").id;
+deliver({ jsonrpc: "2.0", id: initId + 99, result: {} });
+steps.push(snap("answer with a foreign id"));
+deliver({ jsonrpc: "2.0", id: initId, result: { protocolVersion: "2026-01-26" } });
+steps.push(snap("host answers ui/initialize"));
+deliver({ jsonrpc: "2.0", method: "ui/notifications/tool-result",
+          params: { structuredContent: { __PAYLOAD_KEY__: [1, 2] } } });
+height = 900; resize(); resize();
+steps.push(snap("tool result, then two resizes"));
+process.stdout.write(JSON.stringify({ steps, applied }));
+"""
+
+
+def _drive(payload_key: str, script: str = _NODE_DRIVER) -> dict:
+    proc = subprocess.run(
+        ["node", "-e", script.replace("__PAYLOAD_KEY__", payload_key), runtime_js(payload_key)],
+        capture_output=True, text=True, timeout=30, check=True)
+    return json.loads(proc.stdout)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+@pytest.mark.parametrize("payload_key", ["hits", "decisions"])
+def test_handshake_runs_in_spec_order(payload_key):
+    out = _drive(payload_key)
+    steps = {s["label"]: s["sent"] for s in out["steps"]}
+
+    init = [m for m in steps["mount"] if m.get("method") == "ui/initialize"]
+    assert len(init) == 1
+    assert init[0]["params"]["protocolVersion"] == "2026-01-26"
+    assert init[0]["params"]["appInfo"]["name"]
+    assert isinstance(init[0]["id"], int)
+    # nothing JSON-RPC but the request itself before the host has answered
+    assert [m.get("method") for m in steps["mount"] if m.get("jsonrpc")] == ["ui/initialize"]
+    assert steps["resize before initialized"] == []
+    assert steps["answer with a foreign id"] == []
+
+    after = steps["host answers ui/initialize"]
+    assert [m["method"] for m in after] == [
+        "ui/notifications/initialized", "ui/notifications/size-changed"]
+    assert after[1]["params"] == {"width": 700, "height": 480}
+
+    # the tool result renders; a resize reports once, a no-op resize not at all
+    assert out["applied"] and out["applied"][-1][payload_key] == [1, 2]
+    sizes = [m for m in steps["tool result, then two resizes"]
+             if m.get("method") == "ui/notifications/size-changed"]
+    assert [m["params"]["height"] for m in sizes] == [900]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_error_answer_leaves_no_session():
+    """A host that answers ui/initialize with an error has no MCP Apps
+    session: the widget must not claim one or start reporting sizes."""
+    script = _NODE_DRIVER.replace(
+        'result: { protocolVersion: "2026-01-26" } }',
+        'error: { code: -32601, message: "no" } }')
+    out = _drive("hits", script)
+    steps = {s["label"]: s["sent"] for s in out["steps"]}
+    assert steps["host answers ui/initialize"] == []
+    assert not [m for m in steps["tool result, then two resizes"]
+                if m.get("method") == "ui/notifications/size-changed"]

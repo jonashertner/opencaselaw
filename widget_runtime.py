@@ -15,6 +15,16 @@ HTML in a sandboxed iframe and captures what a host actually receives):
   inbound    window.openai.toolOutput      + the openai:set_globals event
              postMessage                   MCP-UI payload or a JSON-RPC
                                            ui/notifications/tool-result
+  lifecycle  ui/initialize → response →    official MCP Apps (spec 2026-01-26)
+             ui/notifications/initialized
+             ui/notifications/size-changed after initialized, on every resize
+
+The lifecycle row is not optional. The spec says "The Host MUST NOT send any
+request or notification to the View before it receives an `initialized`
+notification", so a widget that never sends ui/initialize gets no tool result
+from a spec host and sits on its loading line forever. That was the state of
+both widgets until 2026-11-10: the July harness host pushed data without a
+handshake, so it could not see the gap (its strict-host case now does).
 
 No external resources anywhere (sandbox / CSP safe).
 """
@@ -116,13 +126,54 @@ _RUNTIME_JS = r"""
 
   // Inbound data arrives as a global, the openai:set_globals event, or a
   // postMessage. `apply(payload)` returns truthy once it has rendered.
+  // MCP Apps lifecycle (spec 2026-01-26). A spec host sends nothing — no
+  // tool-input, no tool-result — until the view has sent ui/initialize, had
+  // it answered, and confirmed with ui/notifications/initialized. Height is
+  // reported only after that, since the host has no session to size before.
+  var __mcpInitId = null, __mcpReady = false, __lastSize = "";
+  function postToHost(msg) {
+    try { if (window.parent && window.parent !== window) window.parent.postMessage(msg, "*"); } catch (e) {}
+  }
+  function reportSize() {
+    if (!__mcpReady) return;
+    var el = document.documentElement;
+    var w = Math.ceil(el.clientWidth || 0);
+    var h = Math.ceil(el.getBoundingClientRect().height || 0);
+    var key = w + "x" + h;
+    if (key === __lastSize) return;
+    __lastSize = key;
+    postToHost({ jsonrpc:"2.0", method:"ui/notifications/size-changed", params:{ width:w, height:h } });
+  }
+  function startMcpApps() {
+    if (!(window.parent && window.parent !== window)) return;
+    __mcpInitId = ++__rpcId;
+    postToHost({ jsonrpc:"2.0", id:__mcpInitId, method:"ui/initialize", params:{
+      protocolVersion:"2026-01-26",
+      appInfo:{ name:"opencaselaw-widget", version:"1" },
+      appCapabilities:{} } });
+    try { new ResizeObserver(reportSize).observe(document.documentElement); } catch (e) {}
+  }
+  // True when `d` was the host's answer to our ui/initialize (and is consumed).
+  function handleMcpLifecycle(d) {
+    if (__mcpInitId === null || !d || d.jsonrpc !== "2.0" || d.id !== __mcpInitId) return false;
+    __mcpInitId = null;
+    if (d.result) {   // an error answer means no MCP Apps session: stay on the other dialects
+      postToHost({ jsonrpc:"2.0", method:"ui/notifications/initialized", params:{} });
+      __mcpReady = true;
+      reportSize();
+    }
+    return true;
+  }
+
   function mountWidget(apply) {
     function boot() { return apply(fromGlobals()); }
     window.addEventListener("message", function (e) {
       var d = e && e.data; if (d == null) return;
       if (typeof d === "string") { try { d = JSON.parse(d); } catch (x) { return; } }
+      if (handleMcpLifecycle(d)) return;
       apply(findPayload(d, 0));
     });
+    startMcpApps();
     window.addEventListener("openai:set_globals", boot);
     document.addEventListener("DOMContentLoaded", boot);
     // Some MCP-UI hosts only send the render data after the iframe announces

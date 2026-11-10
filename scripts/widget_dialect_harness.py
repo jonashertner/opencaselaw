@@ -17,6 +17,11 @@ Two host shapes are exercised per widget:
   - a host that injects window.openai (ChatGPT / Apps SDK)
   - a host that injects NOTHING (Claude, VS Code, M365 Copilot) — the case
     where the widget must fall back to the JSON-RPC tools/call dialect.
+Both push their data without waiting for the widget, which no spec host does.
+So each widget also runs once against a STRICT host (added 2026-11-10) that
+answers ui/initialize and sends nothing before ui/notifications/initialized,
+as specification 2026-01-26 requires. Before that case existed, both widgets
+passed here and stayed empty in every spec host.
 """
 import json
 import sys
@@ -131,8 +136,74 @@ def run(name, html, payload, click_re, host_provides_openai_api, delivery):
     return bool(tool_msgs) and bool(clicked) and "<mark>" not in txt
 
 
+STRICT_HOST = """<!doctype html><html><body>
+<script>
+// Spec-strict MCP Apps host (2026-01-26): it answers ui/initialize and sends
+// NOTHING to the view before ui/notifications/initialized, then the tool
+// result. Every other dialect is ignored, as a spec host ignores it.
+window.captured = []; window.sizes = [];
+const PAYLOAD = __PAYLOAD__;
+window.addEventListener('message', e => {
+  const app = document.getElementById('app');
+  if (e.source !== app.contentWindow) return;
+  const m = e.data; window.captured.push(m);
+  if (!m || m.jsonrpc !== '2.0') return;
+  if (m.method === 'ui/initialize') {
+    app.contentWindow.postMessage({jsonrpc:'2.0', id:m.id, result:{
+      protocolVersion:'2026-01-26', hostInfo:{name:'strict-harness', version:'0'},
+      hostCapabilities:{serverTools:{}}, hostContext:{displayMode:'inline'}}}, '*');
+  } else if (m.method === 'ui/notifications/initialized') {
+    app.contentWindow.postMessage({jsonrpc:'2.0', method:'ui/notifications/tool-result',
+      params:{content:[], structuredContent:PAYLOAD}}, '*');
+  } else if (m.method === 'ui/notifications/size-changed') {
+    window.sizes.push(m.params.height);
+  }
+});
+</script>
+<iframe id="app" sandbox="allow-scripts" srcdoc="__DOC__" style="width:900px;height:600px"></iframe>
+</body></html>"""
+
+
+def run_strict(name, html, payload, click_re):
+    """The case the July harness could not see: a host that waits for the
+    handshake. Without ui/initialize the widget never receives its data."""
+    host = (STRICT_HOST.replace("__PAYLOAD__", json.dumps(payload).replace("</", "<\\/"))
+            .replace("__DOC__", html.replace('"', "&quot;")))
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        pg = b.new_page()
+        pg.set_content(host, wait_until="load")
+        pg.wait_for_timeout(1200)
+        fr = pg.frames[-1]
+        txt = fr.evaluate("() => document.body.innerText.slice(0,120)")
+        clicked = fr.evaluate("""(re) => {
+            const els = [...document.querySelectorAll('button,a,[role=button],[data-act]')];
+            const t = els.find(e => new RegExp(re, 'i').test(e.textContent||''));
+            if (t) { t.click(); return t.textContent.trim().slice(0,40); }
+            return null;
+        }""", click_re)
+        pg.wait_for_timeout(500)
+        cap = pg.evaluate("() => window.captured || []")
+        sizes = pg.evaluate("() => window.sizes || []")
+        b.close()
+    methods = [m.get("method") for m in cap if isinstance(m, dict) and m.get("jsonrpc")]
+    handshake = "ui/initialize" in methods and "ui/notifications/initialized" in methods
+    calls = [m for m in cap if isinstance(m, dict) and m.get("method") == "tools/call"]
+    print(f"\n--- {name} | STRICT MCP Apps host (handshake required) ---")
+    print(f"  handshake: {'yes' if handshake else 'NO  <-- a spec host sends this widget nothing'}")
+    print(f"  rendered : {txt!r}")
+    print(f"  sizes    : {sizes[:4]}{' ...' if len(sizes) > 4 else ''}"
+          + ("" if sizes else "   <-- no size-changed: host keeps its default height"))
+    print(f"  clicked  : {clicked!r} -> {len(calls)} tools/call")
+    return handshake and bool(sizes) and bool(clicked) and bool(calls)
+
+
 def main():
     ok = True
+    ok &= run_strict("law-search", law_widget.widget_html(), LAW_PAYLOAD,
+                     "Volltext|anzeigen|Texte")
+    ok &= run_strict("decision-search", decision_widget.widget_html(),
+                     DECISION_PAYLOAD, "^Volltext$")
     for openai_host in (True, False):
         for delivery in DELIVERIES:
             ok &= run("law-search", law_widget.widget_html(), LAW_PAYLOAD,
