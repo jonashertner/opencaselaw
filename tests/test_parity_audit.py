@@ -150,6 +150,10 @@ def test_keys_cover_the_per_court_quirks():
     assert pa.keys("unknown") == [] and pa.keys("") == [] and pa.keys(None) == []
     # Different case numbers must stay different.
     assert not set(pa.keys("C-5183-2023")) & set(pa.keys("P-5183-2023"))
+    # SH_OG 2024-09-27: a trailing HTML entity in their docket ("63/2023/32
+    # &nbsp;") must not survive as a bogus "NBSP" token.
+    assert set(pa.keys("63/2023/32&nbsp;")) & set(pa.keys("63/2023/32"))
+    assert pa.tokens("63/2023/32&nbsp;") == ["63", "2023", "32"]
 
 
 def test_ge_case_number_and_url_stems():
@@ -317,6 +321,25 @@ def test_resolver_respects_the_fetch_budget(monkeypatch):
     cache, stats = {}, collections.defaultdict(collections.Counter)
     left, fetched = pa.resolve_docs(unmatched, pa.OurIndex([]), object(), cache, stats, 2)
     assert fetched == 2 and len(calls) == 2 and len(left) == 5 and len(cache) == 2
+
+
+def test_old_bger_docket_in_cantonal_yearbook_searches_ch():
+    # AG_OG_006 2003-09-01 (decwork.ag.ch): the AGVE yearbook prints the BGer
+    # ruling on appeal (2P.78/2003) right under the cantonal entry it
+    # reviews; entscheidsuche indexes it under AG_Gerichte with that federal
+    # docket. We hold the ruling itself under bger/canton CH.
+    listing = pa.build_listing({"AG_Gerichte_1.xml": sitemap(
+        "AG_OG_006_2P-78-2003_2003-09-01")})
+    idx = pa.OurIndex([{"court": "bger", "canton": "CH",
+                        "docket_number": "2P.78/2003", "decision_date": "2003-09-01"},
+                       {"court": "ag_gerichte", "canton": "AG",
+                        "docket_number": "AGVE 2003 33", "decision_date": "2003-09-01"}])
+    stats, unmatched = pa.match(listing, idx)
+    assert unmatched == [] and stats["AG_Gerichte"]["exact"] == 1
+    # An ordinary AG docket never pulls in CH.
+    assert pa.search_cantons("AG", ["AGVE 2003 33"]) == ("AG",)
+    assert pa.search_cantons("AG", ["2P-78-2003"]) == ("AG", "CH")
+    assert pa.is_og_bger_docket("1A.212/2005") and not pa.is_og_bger_docket("II 2020 62")
 
 
 def test_date_fallback_only_for_listed_spiders(env):

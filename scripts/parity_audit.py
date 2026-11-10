@@ -132,6 +132,31 @@ MAX_SITEMAP_FAILURE_SHARE = 0.2        # abort above this; a partial list is noi
 CANTON_OVERRIDE = {"TA": "CH"}
 CANTON_SEARCH = {"CH": ("CH", "CE")}
 
+# Pre-2007 OG-era Bundesgericht dockets ("2P.78/2003", "1A.212/2005") turn up
+# inside cantonal yearbook PDFs: AG_OG_006 2003-09-01 (decwork.ag.ch) prints
+# the BGer ruling on appeal right under the cantonal entry it reviews, in the
+# same chapter ("AGVE 2003 Nr. 33"), and entscheidsuche indexes it under the
+# cantonal spider with that federal docket as Num. We hold the ruling itself
+# under bger/canton CH, never under the canton, so these also search CH.
+_OG_LETTER_RX = re.compile(r"^\d[A-Z]{1,2}$")
+
+
+def is_og_bger_docket(docket: str | None) -> bool:
+    t = tokens(docket)
+    return (len(t) == 3 and bool(_OG_LETTER_RX.match(t[0])) and t[1].isdigit()
+            and t[2].isdigit() and len(t[2]) == 4 and t[2][:2] in ("19", "20"))
+
+
+def search_cantons(cant: str, dockets) -> tuple:
+    """Cantons to search for one entry: the usual group, plus CH when a
+    docket among its candidates is an old federal one held under canton CH
+    (see is_og_bger_docket)."""
+    cants = CANTON_SEARCH.get(cant, (cant,))
+    if cant != "CH" and any(is_og_bger_docket(d) for d in dockets):
+        cants = cants + ("CH",)
+    return cants
+
+
 # Spiders whose dockets cannot be compared with ours, so a same-date match is
 # the only evidence available: GE lists case numbers for rulings we key by
 # ruling number and whose PDF name carries no case number; VD FindInfo lists
@@ -169,7 +194,12 @@ PLACEHOLDER_DOCKETS = {"", "UNKNOWN", "NONE", "NULL"}
 
 
 def tokens(s: str | None) -> list[str]:
-    s = TAG_RX.sub(" ", s or "").upper().strip()
+    # Unescape HTML entities after stripping tags ("63/2023/32&nbsp;" from SH_OG
+    # 2024-09-27: the trailing &nbsp; survived as a bogus "NBSP" token and broke
+    # the exact-key match even though we hold the decision). An entity that
+    # unescapes to a non-ASCII character (e.g. &auml; -> "ä") is dropped the
+    # same way any other non [0-9A-Z] character already is.
+    s = html.unescape(TAG_RX.sub(" ", s or "")).upper().strip()
     t = [x for x in re.split(r"[^0-9A-Z]+", s) if x]
     # Slugs of HTML-polluted dockets (SH "-div-Nr--50-2020-2--").
     if any(x in HTML_MARK for x in t) or (len(t) >= 3 and t[0] == "P" and t[-1] == "P"):
@@ -740,7 +770,7 @@ def match(listing: dict[str, dict], idx: OurIndex) -> tuple[dict, list[dict]]:
     pending = []
     for e in listing.values():
         cant = es_canton(e["spider"], e.get("sig"))
-        cants = CANTON_SEARCH.get(cant, (cant,))
+        cants = search_cantons(cant, e["dockets"])
         s = stats[e["spider"]]
         s["theirs"] += 1
         hit = idx.exact(cants, e["dockets"])
@@ -789,7 +819,8 @@ def resolve_docs(unmatched: list[dict], idx: OurIndex, http: Http | None, cache:
                 continue
             cache[e["id"]] = info
         cant = es_canton(e["spider"], e.get("sig"))
-        if idx.resolve(CANTON_SEARCH.get(cant, (cant,)), info) is not None:
+        cants = search_cantons(cant, list(info.get("num") or []) + [e["docket"]])
+        if idx.resolve(cants, info) is not None:
             stats[e["spider"]]["doc"] += 1
         else:
             left.append(e)

@@ -53,7 +53,15 @@ HOST = "https://vgrzh.djiktzh.ch"
 SEARCH_URL = HOST + "/cgi-bin/nph-omniscgi.exe"
 
 TREFFER_PRO_SEITE = 100
-START_YEAR = 1996  # Publication policy start
+# cGeschaeftsjahr is the FILING year (the docket's own year segment), not the
+# decision year: SR.1995.00044 was decided 1996-03-27 — inside the "published
+# since ~1996" policy window — but filed in 1995, so a loop starting at 1996
+# never queries cGeschaeftsjahr=1995 and the case is unreachable regardless of
+# its decision date (parity audit 2026-11-09, one confirmed case). Earlier
+# filing years with a post-1996 decision are a possible but unconfirmed
+# further residual; reconfirm via the next parity_audit run before going
+# back further.
+START_YEAR = 1995
 
 # Base form data for POST requests (from NeueScraper)
 BASE_FORMDATA = {

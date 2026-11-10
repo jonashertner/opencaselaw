@@ -175,6 +175,26 @@
    "added": "2026-11-08",
    "reason": "ECtHR judgments published in the BGE collection (CH_BGE_012). We hold them as bge_egmr / hudoc_ch / ecthr_*, but export_parquet.EXCLUDED_COURTS keeps Strasbourg text out of the CC0 HF mirror (licensing), so the mirror cannot show them. Not auditable from the mirror; check against production by other means.",
    "id_pattern": "^CH_BGE_012_"
+  },
+  {
+   "spider": "TI_Gerichte",
+   "added": "2026-11-10",
+   "reason": "Not a decision: TI_TRAC_006 nF30_KEY=7714 is a test record on sentenze.ti.ch itself (\"creata da Mutti luca per prova\", confirmed by fetching the doc.urls PDF, 2026-11-10), court CEF, no docket, no ruling text. entscheidsuche's own crawler indexed the same record five times under different hashed ids because each crawl session gave it a different nX40_KEY/nTrefferzeile (session pointer, not a document id); we already hold one copy of it (ti_gerichte_, source entscheidsuche, legacy). Never ingest the other four either.",
+   "ids": [
+    "TI_TRAC_006_a1a3809a9d39c4b3f80e_2007-10-31",
+    "TI_TRAC_006_a3930a56ca82bbd59dd1_2007-10-31",
+    "TI_TRAC_006_d14a6e4392faab709d40_2007-10-31",
+    "TI_TRAC_006_d3f70af81728e308e65d_2007-10-31",
+    "TI_TRAC_006_fb0fad849258ab7bee4e_2007-10-31"
+   ]
+  },
+  {
+   "spider": "NW_Gerichte",
+   "added": "2026-11-10",
+   "reason": "Content-identical duplicate: nw.ch republished the same SV 26 3 (P 26 1) ruling of 27 April 2026 (Verwaltungsgericht Nidwalden, Sozialversicherungsabteilung) under a second publication id (43048; PDF title metadata reads \"EMPFANGSBESCHEINIGUNG\", a stale template property, but the body text is verbatim the SV 26 3 decision, confirmed 2026-11-10). We already hold the full text under publication id 42568 (nw_gerichte_SV 26 3). Not a URL_STEM_COURTS match since the two publication ids differ, but there is no second ruling to fetch.",
+   "ids": [
+    "NW_OG_001_43048_2026-10-07"
+   ]
   }
  ]
 }
