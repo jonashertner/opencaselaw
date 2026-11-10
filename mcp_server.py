@@ -39307,7 +39307,13 @@ setInterval(load, 30000);
 
         asgi_app = _BearerAuthMiddleware()
 
-    uvicorn.run(asgi_app, host=host, port=port, log_level="info")
+    # access_log=False (2026-11-10): uvicorn's access line carries the client
+    # address (taken from X-Forwarded-For) into the systemd journal for every
+    # request, a store the /datenschutz/ page does not describe and that has no
+    # retention of its own. nginx's Tier-1 log is the one place a request's
+    # address is kept, for 72 hours.
+    uvicorn.run(asgi_app, host=host, port=port, log_level="info",
+                access_log=False)
 
 
 if __name__ == "__main__":

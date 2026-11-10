@@ -1,7 +1,12 @@
 # /etc/logrotate.d/ocl-tier1
 #
 # Tier 1 (access log with IPs + UAs) — strictly 72-hour retention.
-# Rotated hourly, shredded after 72 rotations (= 3 days).
+# Rotated hourly, every rotated file shredded before its oldest entry is
+# 72 hours old.
+#
+# `hourly` only takes effect when logrotate itself runs hourly: the stock
+# logrotate.timer is daily, which until 2026-11-10 left entries on disk for
+# four to six days. systemd/ocl-tier1-rotate.timer runs this file hourly.
 #
 # This file exists only so we can respond to DDoS / abuse incidents; it is
 # never read for analytics. Rotating hourly keeps the hot file small and
@@ -10,6 +15,8 @@
 # Install:
 #   sudo cp ops/logrotate/ocl-tier1 /etc/logrotate.d/
 #   sudo logrotate -d /etc/logrotate.d/ocl-tier1   # dry run
+#   sudo cp systemd/ocl-tier1-rotate.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now ocl-tier1-rotate.timer
 #
 /var/log/nginx/tier1.log {
     hourly
@@ -30,10 +37,13 @@
         fi
     endscript
     lastaction
-        # Cryptographic shred on every rotated file older than 3 days.
+        # Cryptographic shred of every rotated file whose oldest entry would
+        # pass 72 hours before the next hourly run: a file's mtime is its
+        # rotation time and it holds the hour before that, so +4140 min (69 h)
+        # keeps every entry under 72 h even with an hour of timer jitter.
         # We don't trust plain deletion because journaling filesystems can
         # leave residual blocks accessible for recovery.
-        find /var/log/nginx -maxdepth 1 -name 'tier1.log-*' -mtime +3 -print0 \
+        find /var/log/nginx -maxdepth 1 -name 'tier1.log-*' -mmin +4140 -print0 \
             2>/dev/null | xargs -0 -r shred -u -n 1 2>/dev/null || true
     endscript
 }

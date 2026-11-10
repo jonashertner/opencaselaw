@@ -186,7 +186,8 @@ def test_main_dry_run_reads_tier1_only_writes_nothing_and_never_notifies(tmp_pat
     assert "[dry-run] report not written" in out
     assert "[dry-run] alert that would be sent" in out
     assert f"Total requests: {N_VALID}, Unique IPs: 6" in out  # access.log's 50 lines ignored
-    assert HTTPX_IP in out and SCANNER_IP in out
+    assert HTTPX_IP not in out and SCANNER_IP not in out  # journal gets ranks only
+    assert "#1 — " in out
     assert "programmatic client (python-bot)" in out
 
 
@@ -231,7 +232,8 @@ def test_print_summary_caps_the_flag_list(capsys):
     dir_mod.print_summary(report)
     out = capsys.readouterr().out
     assert f"Commercial integrator candidates (25, top {dir_mod.PRINT_FLAGS_MAX} by volume)" in out
-    assert "10.0.0.19" in out and "10.0.0.20" not in out
+    assert "#20 — " in out and "#21 — " not in out
+    assert "10.0.0." not in out  # ranks only: stdout is the journal
     assert "... and 5 more in the JSON report" in out
 
 
@@ -276,3 +278,8 @@ def test_no_public_topic_is_hardcoded():
     src = Path(dir_mod.__file__).read_text(encoding="utf-8")
     assert 'topic: str = "opencaselaw"' not in src
     assert "ntfy.sh/opencaselaw" not in src
+
+
+def test_mcp_server_keeps_client_addresses_out_of_the_journal():
+    src = (Path(dir_mod.__file__).resolve().parents[1] / "mcp_server.py").read_text(encoding="utf-8")
+    assert "access_log=False" in src

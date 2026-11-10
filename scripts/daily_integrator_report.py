@@ -319,9 +319,12 @@ def print_summary(report: dict) -> None:
 
     candidates = report.get("integrator_candidates", [])
     print(f"\nIntegrator candidates: {len(candidates)} (top 10 by volume)")
-    for c in candidates[:10]:
+    # Ranks, not addresses: stdout goes to the systemd journal, and the
+    # privacy page keeps IPs out of the journal (2026-11-10). The JSON
+    # report on disk is where the addresses are.
+    for n, c in enumerate(candidates[:10], 1):
         print(
-            f"  {c['ip']} — {c['requests']} req, {c['mcp_requests']} mcp, "
+            f"  #{n} — {c['requests']} req, {c['mcp_requests']} mcp, "
             f"{c['api_requests']} api, {c['duration_hours']}h ({c['client_type']})"
         )
 
@@ -330,8 +333,8 @@ def print_summary(report: dict) -> None:
         # A real day flags hundreds of IPs; the JSON keeps them all, the
         # journal gets the top of the list.
         print(f"\n⚠️  Commercial integrator candidates ({len(flags)}, top {PRINT_FLAGS_MAX} by volume):")
-        for f in flags[:PRINT_FLAGS_MAX]:
-            print(f"  {f['ip']} — {f['requests']} req ({f['client_type']})")
+        for n, f in enumerate(flags[:PRINT_FLAGS_MAX], 1):
+            print(f"  #{n} — {f['requests']} req ({f['client_type']})")
             for r in f["flags"]:
                 print(f"    → {r}")
         if len(flags) > PRINT_FLAGS_MAX:

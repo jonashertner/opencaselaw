@@ -1,0 +1,9 @@
+[Unit]
+Description=Rotate and shred the nginx Tier-1 log (IP addresses, 72-hour retention)
+Documentation=file:///opt/caselaw/repo/ops/logrotate/ocl-tier1
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/logrotate /etc/logrotate.d/ocl-tier1
+Nice=10
+IOSchedulingClass=idle

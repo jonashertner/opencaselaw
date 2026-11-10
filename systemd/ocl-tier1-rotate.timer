@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly rotation of the nginx Tier-1 log (the stock logrotate.timer is daily)
+
+[Timer]
+OnCalendar=hourly
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
