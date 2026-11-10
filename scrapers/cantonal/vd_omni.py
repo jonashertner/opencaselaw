@@ -355,6 +355,14 @@ class VDOmniScraper(BaseScraper):
     REQUEST_DELAY = 2.0
     TIMEOUT = 180  # a 1,000-row page takes ~1-2 min server-side
     MAX_ERRORS = 50
+    # A handful of old TA fiches (1990s) carry no markup body at all on the
+    # live portal and fall back to a résumé-only Decision (see
+    # fetch_decision); the rare ones with no résumé either still return None,
+    # cached as a gap so a nightly run never re-probes them, with headroom
+    # above the generic 200 default so a cluster of them early in a
+    # since=1800 backfill (fetched oldest-first) cannot abort the whole run.
+    CACHE_NONE_AS_GAP = True
+    MAX_NONE_RETURNS = 2000
     # Pauses before the 2nd and 3rd attempt at a listing page (seconds).
     RETRY_PAUSES = (10, 30)
 
@@ -762,14 +770,28 @@ class VDOmniScraper(BaseScraper):
                            f"(nF30_KEY {stub['nf30_key']}): {html[:40]!r}")
             return None
         doc = parse_document(html)
-        full_text = doc["full_text"]
-        if len(full_text) < 50:
-            logger.warning(f"VD Omni: text too short for {stub['docket_number']}: {len(full_text)} chars")
-            return None
         if doc["docket_number"] and doc["docket_number"] != stub["docket_number"]:
             logger.warning(f"VD Omni: nF30_KEY {stub['nf30_key']} lists {stub['docket_number']} "
                            f"but the document says {doc['docket_number']}; skipped")
             return None
+        full_text = doc["full_text"]
+        if len(full_text) < 50:
+            # Confirmed 2026-11-10 on ~200 old TA fiches (CR/PE/PS/RE dockets,
+            # 1991-92): getMarkupDocument serves the registry card only (no
+            # Section/WordSection div), and so does the print preview
+            # (Aufruf=getDocument&Template=.../printdocument.fiw) -- there is
+            # no markup body for these on the live portal at all, not a fetch
+            # error. The registry card's own résumé is real court text (never
+            # fabricated), so a ruling with one is still worth holding; only
+            # a ruling with neither a body nor a usable résumé is unrecoverable.
+            resume = _usable_resume(stub.get("resume") or doc["resume"])
+            if resume:
+                full_text = resume
+            else:
+                logger.warning(f"VD Omni: no markup body and no usable résumé for "
+                               f"{stub['docket_number']} (nF30_KEY {stub['nf30_key']}): "
+                               f"{len(full_text)} chars")
+                return None
         decision_date = stub["decision_date"] or doc["decision_date"]
         if doc["decision_date"] and stub["decision_date"] and doc["decision_date"] != stub["decision_date"]:
             logger.warning(f"VD Omni: {stub['docket_number']} listed {stub['decision_date']}, "
@@ -863,3 +885,16 @@ def resume_key(text: str | None) -> str:
 def _nf30_from_url(url: str | None) -> str:
     m = RE_NF30.search(url or "")
     return m.group(1) if m else ""
+
+
+# A fiche whose markup body is missing (fetch_decision) still carries real
+# text here unless the registry itself has nothing but the bare placeholder.
+PLACEHOLDER_RESUME = "Résumé"
+
+
+def _usable_resume(text: str | None) -> str | None:
+    """A non-empty, non-placeholder résumé, stripped; None when there is
+    truly nothing (the bare "Résumé" the registry prints for a case with no
+    headnote on file, or blank/whitespace)."""
+    t = (text or "").strip()
+    return t if t and t != PLACEHOLDER_RESUME else None

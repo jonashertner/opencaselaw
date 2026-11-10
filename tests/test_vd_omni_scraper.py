@@ -391,6 +391,71 @@ def test_fetch_of_an_error_page_or_a_mismatched_docket_returns_none(tmp_path, mo
     assert s.fetch_decision(stub) is None
 
 
+# A registry card with no markup body: the shape the live portal served for
+# ~200 old TA fiches (CR/PE/PS/RE dockets, 1991-92) confirmed 2026-11-10 --
+# neither getMarkupDocument nor the print preview (Aufruf=getDocument,
+# Template=.../printdocument.fiw) carries a Section/WordSection div for them,
+# only "N° affaire" / "Autorité:, Date décision" / ... / "Résumé contenant".
+def _card_only(docket: str, authority: str, ddate: str, resume: str) -> str:
+    return (
+        "<html><body><table><tr><td>N° affaire:</td><td>" + docket + "</td></tr>"
+        "<tr><td>Autorité:, Date décision:</td><td>" + authority + ", " + ddate + "</td></tr>"
+        "<tr><td>Juge:</td><td>PJ</td></tr><tr><td>Greffier:</td><td>NK</td></tr>"
+        "<tr><td>Publication (revue juridique):</td><td>&nbsp;</td></tr>"
+        "<tr><td>Ref. TF:</td><td>&nbsp;</td></tr>"
+        "<tr><td>Nom des parties contenant: </td><td>c/ SA</td></tr>"
+        "<tr><td>Résumé contenant:</td><td>" + resume + "</td></tr>"
+        "</table></body></html>" + " " * 500  # past the html-length-500 floor
+    )
+
+
+CARD_ONLY_WITH_RESUME = _card_only("CR.1990.0190", "TA", "13.01.1992", "RPC huit mois")
+CARD_ONLY_PLACEHOLDER = _card_only("RE.1991.0016", "TA", "10.01.1992", "Résumé")
+
+
+def test_a_card_only_fiche_with_a_real_resume_is_held_not_dropped(tmp_path, monkeypatch):
+    s = _scraper(tmp_path, monkeypatch)
+    monkeypatch.setattr(s, "get", lambda url, allow_redirects=True, **k: _Resp(CARD_ONLY_WITH_RESUME))
+    stub = {"decision_id": "vd_omni_CR.1990.0190", "docket_number": "CR.1990.0190",
+            "nf30_key": "33836", "authority": "TA", "decision_date": date(1992, 1, 13),
+            "publication_date": None, "parties": None, "resume": None,
+            "judge": None, "clerk": None, "url": V.doc_url("33836")}
+    d = s.fetch_decision(stub)
+    assert d is not None
+    assert d.full_text == "RPC huit mois"
+    assert d.regeste == "RPC huit mois"
+    assert d.docket_number == "CR.1990.0190" and d.decision_date == date(1992, 1, 13)
+
+
+def test_a_card_only_fiche_with_only_the_placeholder_resume_is_still_none(tmp_path, monkeypatch, caplog):
+    s = _scraper(tmp_path, monkeypatch)
+    monkeypatch.setattr(s, "get", lambda url, allow_redirects=True, **k: _Resp(CARD_ONLY_PLACEHOLDER))
+    stub = {"decision_id": "vd_omni_RE.1991.0016", "docket_number": "RE.1991.0016",
+            "nf30_key": "45592", "authority": "TA", "decision_date": date(1992, 1, 10),
+            "publication_date": None, "parties": None, "resume": None,
+            "judge": None, "clerk": None, "url": V.doc_url("45592")}
+    with caplog.at_level(logging.WARNING):
+        assert s.fetch_decision(stub) is None
+    assert "no markup body and no usable résumé" in caplog.text
+
+
+def test_usable_resume_rejects_blank_and_the_bare_placeholder():
+    assert V._usable_resume(None) is None
+    assert V._usable_resume("") is None
+    assert V._usable_resume("   ") is None
+    assert V._usable_resume("Résumé") is None
+    assert V._usable_resume("  Résumé  ") is None   # stripped before comparing
+    assert V._usable_resume("RPC huit mois") == "RPC huit mois"
+
+
+def test_the_scraper_caches_none_returns_as_gaps_with_headroom_above_the_default():
+    """So a cluster of card-only, résumé-less fiches early in a since=1800
+    backfill (fetched oldest first) cannot trip the generic 200-None breaker
+    and abort the whole run, and a nightly run never re-probes a confirmed one."""
+    assert V.VDOmniScraper.CACHE_NONE_AS_GAP is True
+    assert V.VDOmniScraper.MAX_NONE_RETURNS > 200
+
+
 def test_an_intermittent_portal_error_is_retried_without_a_health_error(tmp_path, monkeypatch, caplog):
     s = _scraper(tmp_path, monkeypatch)
     calls = {"n": 0}
