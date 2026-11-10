@@ -786,7 +786,10 @@ class VDOmniScraper(BaseScraper):
             # a ruling with neither a body nor a usable résumé is unrecoverable.
             resume = _usable_resume(stub.get("resume") or doc["resume"])
             if resume:
-                full_text = resume
+                # Say what this text is: the card, not the ruling. A reader or
+                # an agent quoting full_text must not take a three-word résumé
+                # for the judgment.
+                full_text = CARD_ONLY_LABEL + resume
             else:
                 logger.warning(f"VD Omni: no markup body and no usable résumé for "
                                f"{stub['docket_number']} (nF30_KEY {stub['nf30_key']}): "
@@ -890,6 +893,9 @@ def _nf30_from_url(url: str | None) -> str:
 # A fiche whose markup body is missing (fetch_decision) still carries real
 # text here unless the registry itself has nothing but the bare placeholder.
 PLACEHOLDER_RESUME = "Résumé"
+# Prefix of full_text for a fiche whose ruling text the portal does not publish.
+CARD_ONLY_LABEL = ("[Fiche du registre seulement : jurisprudence.vd.ch ne publie pas le texte "
+                   "de cette décision. Résumé de la fiche :]\n\n")
 
 
 def _usable_resume(text: str | None) -> str | None:

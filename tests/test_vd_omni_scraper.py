@@ -422,7 +422,8 @@ def test_a_card_only_fiche_with_a_real_resume_is_held_not_dropped(tmp_path, monk
             "judge": None, "clerk": None, "url": V.doc_url("33836")}
     d = s.fetch_decision(stub)
     assert d is not None
-    assert d.full_text == "RPC huit mois"
+    assert d.full_text == V.CARD_ONLY_LABEL + "RPC huit mois"
+    assert d.full_text.startswith("[Fiche du registre seulement")
     assert d.regeste == "RPC huit mois"
     assert d.docket_number == "CR.1990.0190" and d.decision_date == date(1992, 1, 13)
 
