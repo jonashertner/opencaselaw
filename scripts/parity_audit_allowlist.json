@@ -212,6 +212,12 @@
    "ids": [
     "VD_TC_031_MPU-2025-0046_2026-05-12"
    ]
+  },
+  {
+   "spider": "XX_Upload",
+   "added": "2026-11-10",
+   "reason": "Out of scope by policy (Jonas, 2026-11-10: \"we only want decisions that courts published\"). XX_Upload holds decisions people uploaded to entscheidsuche directly, not ones a court published. The 2026-11-08 trace (runbooks/parity_audit.md section 8) found no official public copy for any of the 83 open ones. If a court later publishes one, its own portal and our direct scraper bring it in; an upload is never a source.",
+   "id_pattern": "^[A-Z]{2}_UPL_[0-9]{3}_"
   }
  ]
 }

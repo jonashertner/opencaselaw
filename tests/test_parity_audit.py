@@ -462,3 +462,15 @@ def test_units_are_low_priority_and_outside_the_build_window():
     assert "Persistent=false" in timer
     dropin = (sd / "opencaselaw-parity-audit.service.d" / "ntfy.conf").read_text()
     assert "EnvironmentFile=-/opt/caselaw/ops.env" in dropin
+
+
+def test_uploads_are_out_of_scope_but_court_spiders_are_not():
+    """Only decisions a court published count (Jonas, 2026-11-10): every
+    XX_Upload entry is allow-listed by the shipped list; a court spider whose
+    id merely contains "UPL" is not."""
+    allow = pa.load_allowlist(Path(__file__).resolve().parent.parent
+                              / "scripts" / "parity_audit_allowlist.json")
+    upl = {"id": "ZG_UPL_001_A1-2018-11_2018-05-02", "spider": "XX_Upload"}
+    assert pa.allow_reason(upl, allow) and "courts published" in pa.allow_reason(upl, allow)
+    court = {"id": "ZG_VG_001_UPL-2018-11_2018-05-02", "spider": "ZG_Verwaltungsgericht"}
+    assert pa.allow_reason(court, allow) is None

@@ -222,6 +222,13 @@ no window will come up short for it.
 
 ## 8. XX_Upload: 83 decisions traced to their source, 2026-11-08
 
+**Scope decision, 2026-11-10 (Jonas): "we only want decisions that courts
+published."** An upload is not a court publication, so every `XX_Upload`
+entry is allow-listed by pattern (`^[A-Z]{2}_UPL_[0-9]{3}_`, spider
+`XX_Upload`) and never alerts. If a court later publishes one of them, its
+own portal and our direct scraper bring it in. The trace below stays as the
+record of why none of the 83 has an official copy today.
+
 Jonas's decision: "Find the sources". entscheidsuche's `XX_Upload` holds
 decisions that people uploaded to it directly, not ones it scraped from a
 court portal. Each was traced to its issuing body (the document's header) and
