@@ -1,6 +1,11 @@
 [Unit]
 Description=Rotate and shred the nginx Tier-1 log (IP addresses, 72-hour retention)
 Documentation=file:///opt/caselaw/repo/ops/logrotate/ocl-tier1
+# Both this hourly timer and the stock daily logrotate.timer fire at 00:00 and
+# share /var/lib/logrotate/status; the loser exits "state file is already
+# locked" (logrotate.service failed this way 2026-11-11). Ordering makes this
+# job wait for the daily one when both are queued together.
+After=logrotate.service
 
 [Service]
 Type=oneshot
