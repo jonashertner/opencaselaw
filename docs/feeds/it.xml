@@ -5,9 +5,39 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Tue, 10 Nov 2026 22:17:49 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 11 Nov 2026 12:40:46 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 1C_254/2026 vom 2026-10-16</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_254_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+1C_254/2026
+
+Sentenza del 16 ottobre 2026
+
+I Corte di diritto pubblico
+
+Composizione
+
+Giudici federali Müller, Presidente,
+
+Chaix, Merz,
+
+Cancelliere Gadoni.
+
+Partecipanti al proc…</description>
+      <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_254.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesgericht 2C_587/2026 vom 2026-10-20</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_2C_587_2026</link>
@@ -93,6 +123,60 @@ Cancelliera…</description>
       <pubDate>Tue, 10 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_691.2024</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>ti_gerichte 12.2026.76 vom 2026-09-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_12.2026.76</link>
+      <description>Incarto n. 12.2026.76
+
+Lugano
+
+14 settembre 2026
+
+In nome della Repubblica e Cantone Ticino
+
+La seconda Camera civile del Tribunale d'appello
+
+composta del giudice:
+
+Fiscalini, presidente
+
+cancelliera:
+
+Federspiel Peer
+
+sedente per statuire nella cau…</description>
+      <pubDate>Tue, 10 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_12.2026.76</guid>
+      <category>ti_gerichte</category>
+    </item>
+    <item>
+      <title>ti_gerichte 12.2026.23 vom 2026-09-03</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_12.2026.23</link>
+      <description>Incarto n. 12.2026.23
+
+Lugano
+
+3 settembre 2026
+
+In nome della Repubblica e Cantone Ticino
+
+La seconda Camera civile del Tribunale d'appello
+
+composta dei giudici:
+
+Fiscalini, presidente,
+
+Stefani e Grisanti
+
+cancelliera:
+
+Federspiel Peer
+
+sedente pe…</description>
+      <pubDate>Tue, 10 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_12.2026.23</guid>
+      <category>ti_gerichte</category>
     </item>
     <item>
       <title>ti_gerichte 11.2024.151 vom 2026-09-15</title>
@@ -969,52 +1053,6 @@ Giovan Maria Tattarletti, Andrea Pedroli (in so…</description>
       <pubDate>Fri, 30 Oct 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ti_gerichte_60.2025.374</guid>
       <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 32.2025.104 vom 2026-06-12</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_32.2025.104</link>
-      <description>Raccomandata
-
-Incarto n. 32.2025.104
-
-BS
-
-Lugano
-
-12 giugno 2026
-
-In nome della Repubblica e Cantone Ticino
-
-Il vicepresidente
-
-del Tribunale cantonale delle assicurazioni
-
-Giudice Raffaele Guffi
-
-con redattore:
-
-Marco Bischof, cancelliere
-
-segretari…</description>
-      <pubDate>Fri, 30 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_32.2025.104</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-9715/2025 vom 2026-04-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-9715_2025</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (paese terzo sicuro - art. 31a cpv. 1 lett. a LAsi)</description>
-      <pubDate>Fri, 30 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-9715.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-1897/2026 vom 2026-03-23</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-1897_2026</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (nessuna domanda asilo - art. 31a cpv. 3 LAsi)</description>
-      <pubDate>Fri, 30 Oct 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-1897.2026</guid>
-      <category>bvger</category>
     </item>
   </channel>
 </rss>

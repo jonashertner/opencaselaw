@@ -1,14 +1,14 @@
 {
  "schema": "source-status/v1",
- "generated_at": "2026-11-10T12:19:21+00:00",
- "as_of": "2026-11-10",
+ "generated_at": "2026-11-11T12:40:52+00:00",
+ "as_of": "2026-11-11",
  "inputs": {
-  "coverage_generated_at": "2026-11-10T12:19:16+00:00",
-  "stats_generated_at": "2026-11-10T12:09:12.158450+00:00",
+  "coverage_generated_at": "2026-11-11T12:40:48+00:00",
+  "stats_generated_at": "2026-11-11T12:33:11.986557+00:00",
   "health_runs": {
-   "cron": "2026-11-10T01:55:24.603584+00:00",
-   "federal": "2026-11-10T09:18:16.697393+00:00",
-   "manual": "2026-11-10T10:53:23.431621+00:00"
+   "cron": "2026-11-11T02:17:32.794015+00:00",
+   "federal": "2026-11-11T09:12:49.770926+00:00",
+   "manual": "2026-11-11T11:01:34.181921+00:00"
   }
  },
  "method": {
@@ -20,7 +20,7 @@
  },
  "summary": {
   "courts": 137,
-  "decisions": 1043306,
+  "decisions": 1053188,
   "by_status": {
    "failing": 0,
    "stale": 6,
@@ -122,9 +122,9 @@
    "last_year": "2020",
    "undated": 0,
    "newest_decision": "2020-06-30",
-   "days_since_newest": 2324,
+   "days_since_newest": 2325,
    "last_added": "2026-02-10",
-   "days_since_added": 273,
+   "days_since_added": 274,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 2.5,
@@ -156,7 +156,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -164,9 +164,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -191,9 +191,9 @@
    "last_year": "2008",
    "undated": 0,
    "newest_decision": "2008-07-08",
-   "days_since_newest": 6699,
+   "days_since_newest": 6700,
    "last_added": "2026-02-10",
-   "days_since_added": 273,
+   "days_since_added": 274,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.5,
@@ -225,7 +225,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -233,9 +233,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -260,9 +260,9 @@
    "last_year": "2021",
    "undated": 0,
    "newest_decision": "2021-08-20",
-   "days_since_newest": 1908,
+   "days_since_newest": 1909,
    "last_added": "2026-11-08",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 6.0,
@@ -294,7 +294,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -331,9 +331,9 @@
    "last_year": "2023",
    "undated": 0,
    "newest_decision": "2023-06-21",
-   "days_since_newest": 1238,
+   "days_since_newest": 1239,
    "last_added": "2026-02-10",
-   "days_since_added": 273,
+   "days_since_added": 274,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.0,
@@ -365,7 +365,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -373,9 +373,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -400,9 +400,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-14",
-   "days_since_newest": 88,
+   "days_since_newest": 89,
    "last_added": "2026-10-31",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 18.0,
     "per_year_last_active": 18.0,
@@ -434,7 +434,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -442,9 +442,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -469,9 +469,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-01-08",
-   "days_since_newest": 671,
+   "days_since_newest": 672,
    "last_added": "2026-02-10",
-   "days_since_added": 273,
+   "days_since_added": 274,
    "cadence": {
     "per_year": 5.0,
     "per_year_last_active": 5.0,
@@ -503,7 +503,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -511,9 +511,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -538,9 +538,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-10",
-   "days_since_newest": 123,
+   "days_since_newest": 124,
    "last_added": "2026-11-06",
-   "days_since_added": 4,
+   "days_since_added": 5,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 3.0,
@@ -572,7 +572,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -580,9 +580,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -607,9 +607,9 @@
    "last_year": "2025",
    "undated": 1,
    "newest_decision": "2025-12-12",
-   "days_since_newest": 333,
+   "days_since_newest": 334,
    "last_added": "2026-03-16",
-   "days_since_added": 239,
+   "days_since_added": 240,
    "cadence": {
     "per_year": 30.0,
     "per_year_last_active": 30.0,
@@ -663,9 +663,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-21",
-   "days_since_newest": 20,
+   "days_since_newest": 21,
    "last_added": "2026-10-31",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 54.0,
     "per_year_last_active": 54.0,
@@ -697,7 +697,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -705,9 +705,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -732,9 +732,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-11-06",
-   "days_since_newest": 369,
+   "days_since_newest": 370,
    "last_added": "2026-06-26",
-   "days_since_added": 137,
+   "days_since_added": 138,
    "cadence": {
     "per_year": 1.0,
     "per_year_last_active": 1.0,
@@ -766,7 +766,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -774,9 +774,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -801,9 +801,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-26",
-   "days_since_newest": 76,
+   "days_since_newest": 77,
    "last_added": "2026-11-06",
-   "days_since_added": 4,
+   "days_since_added": 5,
    "cadence": {
     "per_year": 23.0,
     "per_year_last_active": 23.0,
@@ -835,7 +835,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -843,9 +843,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -865,14 +865,14 @@
    "canton": "AG",
    "portal": "https://www.ag.ch/de/gerichte",
    "licence": "ch_official",
-   "count": 1235,
+   "count": 1238,
    "first_year": "1940",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-09-21",
+   "newest_decision": "2026-09-22",
    "days_since_newest": 50,
-   "last_added": "2026-11-06",
-   "days_since_added": 4,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 161.0,
     "per_year_last_active": 161.0,
@@ -882,7 +882,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "75 of 139 expected"
+    "reason": "78 of 139 expected"
    },
    "intake": {
     "live": true,
@@ -904,7 +904,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -912,9 +912,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -934,13 +934,13 @@
    "canton": "AG",
    "portal": "https://www.ag.ch/de/gerichte",
    "licence": "ch_official",
-   "count": 2224,
+   "count": 2227,
    "first_year": "1999",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-27",
-   "days_since_newest": 14,
-   "last_added": "2026-11-10",
+   "days_since_newest": 15,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 425.5,
@@ -973,7 +973,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -981,9 +981,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -1003,13 +1003,13 @@
    "canton": "AG",
    "portal": "https://www.ag.ch/de/gerichte",
    "licence": "ch_official",
-   "count": 2149,
+   "count": 2151,
    "first_year": "1995",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-09",
-   "days_since_newest": 32,
-   "last_added": "2026-11-10",
+   "days_since_newest": 33,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 463.0,
@@ -1042,7 +1042,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -1050,9 +1050,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -1077,9 +1077,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-12",
-   "days_since_newest": 29,
+   "days_since_newest": 30,
    "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 286.5,
     "per_year_last_active": 286.5,
@@ -1111,7 +1111,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -1119,9 +1119,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -1146,9 +1146,9 @@
    "last_year": "2020",
    "undated": 0,
    "newest_decision": "2020-09-16",
-   "days_since_newest": 2246,
+   "days_since_newest": 2247,
    "last_added": "2026-11-08",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 3.5,
@@ -1180,7 +1180,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -1210,13 +1210,13 @@
    "canton": "AG",
    "portal": "https://www.ag.ch/de/gerichte",
    "licence": "ch_official",
-   "count": 2013,
+   "count": 2019,
    "first_year": "1992",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-26",
-   "days_since_newest": 15,
-   "last_added": "2026-11-10",
+   "days_since_newest": 16,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 363.5,
@@ -1249,7 +1249,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 14,
@@ -1257,9 +1257,9 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11439,
-       "portal_count": 11436,
-       "gap": -3
+       "our_count": 11453,
+       "portal_count": 11448,
+       "gap": -5
       }
      }
     ]
@@ -1284,9 +1284,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-05-19",
-   "days_since_newest": 175,
+   "days_since_newest": 176,
    "last_added": "2026-11-08",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 23.0,
     "per_year_last_active": 23.0,
@@ -1318,7 +1318,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -1353,9 +1353,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-05-19",
-   "days_since_newest": 175,
+   "days_since_newest": 176,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 85.0,
     "per_year_last_active": 85.0,
@@ -1387,7 +1387,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -1422,9 +1422,9 @@
    "last_year": "2026",
    "undated": 2,
    "newest_decision": "2026-10-19",
-   "days_since_newest": 22,
+   "days_since_newest": 23,
    "last_added": "2026-10-20",
-   "days_since_added": 21,
+   "days_since_added": 22,
    "cadence": {
     "per_year": 17.0,
     "per_year_last_active": 17.0,
@@ -1466,7 +1466,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T09:18:16.697393+00:00",
+       "at": "2026-11-11T09:12:49.770926+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -1496,14 +1496,14 @@
    "canton": "BE",
    "portal": "https://www.aa-entscheide.apps.be.ch/tribunapublikation",
    "licence": "ch_official",
-   "count": 80,
+   "count": 81,
    "first_year": "2014",
    "last_year": "2026",
    "undated": 2,
-   "newest_decision": "2026-10-20",
-   "days_since_newest": 21,
-   "last_added": "2026-10-31",
-   "days_since_added": 10,
+   "newest_decision": "2026-10-30",
+   "days_since_newest": 12,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 7.0,
     "per_year_last_active": 7.0,
@@ -1513,7 +1513,7 @@
    },
    "rate_check": {
     "status": "SMALL",
-    "reason": "80 rows < 100"
+    "reason": "81 rows < 100"
    },
    "intake": {
     "live": true,
@@ -1535,16 +1535,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 70,
-       "portal_count": 69,
+       "our_count": 71,
+       "portal_count": 70,
        "gap": -1
       }
      }
@@ -1565,17 +1565,17 @@
    "canton": "BE",
    "portal": "https://www.bvd-entscheide.apps.be.ch/",
    "licence": "ch_official",
-   "count": 2242,
+   "count": 2247,
    "first_year": "2003",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-12",
-   "days_since_newest": 90,
-   "last_added": "2026-11-09",
-   "days_since_added": 1,
+   "days_since_newest": 91,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
-    "per_year": 177.0,
-    "per_year_last_active": 177.0,
+    "per_year": 178.5,
+    "per_year_last_active": 178.5,
     "every_days": 2,
     "lag_days": 0,
     "stale_after_days": 60
@@ -1604,16 +1604,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 5,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": "15 listed on portal but content not downloadable (empty page or missing PDF)",
-       "our_count": 2235,
-       "portal_count": 2254,
+       "our_count": 2240,
+       "portal_count": 2259,
        "gap": 19
       }
      }
@@ -1639,9 +1639,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-08-20",
-   "days_since_newest": 82,
+   "days_since_newest": 83,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 62.5,
     "per_year_last_active": 62.5,
@@ -1673,14 +1673,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 24,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": "9 listed on portal but content not downloadable (empty page or missing PDF)",
+       "note": null,
        "our_count": 659,
        "portal_count": 668,
        "gap": 9
@@ -1703,14 +1703,14 @@
    "canton": "BE",
    "portal": "https://www.strk-entscheide.apps.be.ch/tribunapublikation",
    "licence": "ch_official",
-   "count": 376,
+   "count": 377,
    "first_year": "2015",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-08-25",
-   "days_since_newest": 77,
-   "last_added": "2026-11-08",
-   "days_since_added": 2,
+   "newest_decision": "2026-09-30",
+   "days_since_newest": 42,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 56.5,
     "per_year_last_active": 56.5,
@@ -1720,7 +1720,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "23 of 49 expected"
+    "reason": "24 of 49 expected"
    },
    "intake": {
     "live": true,
@@ -1742,16 +1742,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 367,
-       "portal_count": 367,
+       "our_count": 368,
+       "portal_count": 368,
        "gap": 0
       }
      }
@@ -1777,9 +1777,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-10-27",
-   "days_since_newest": 14,
+   "days_since_newest": 15,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 792.5,
     "per_year_last_active": 792.5,
@@ -1811,10 +1811,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 3,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -1846,9 +1846,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-11-30",
-   "days_since_newest": 710,
+   "days_since_newest": 711,
    "last_added": "2026-02-13",
-   "days_since_added": 270,
+   "days_since_added": 271,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -1885,9 +1885,9 @@
    "last_year": "2026",
    "undated": 4,
    "newest_decision": "2026-09-29",
-   "days_since_newest": 42,
+   "days_since_newest": 43,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 511.5,
     "per_year_last_active": 511.5,
@@ -1919,10 +1919,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -1949,14 +1949,14 @@
    "canton": null,
    "portal": "https://www.bger.ch",
    "licence": "ch_official",
-   "count": 35709,
+   "count": 35862,
    "first_year": "1875",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-04",
-   "days_since_newest": 159,
-   "last_added": "2026-11-06",
-   "days_since_added": 4,
+   "days_since_newest": 160,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 226.5,
     "per_year_last_active": 226.5,
@@ -2008,7 +2008,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T09:18:16.697393+00:00",
+       "at": "2026-11-11T09:12:49.770926+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -2037,15 +2037,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 153,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": "8 listed on portal but content not downloadable (empty page or missing PDF)",
-       "our_count": 14805,
+       "note": null,
+       "our_count": 14958,
        "portal_count": null,
        "gap": null
       }
@@ -2072,9 +2072,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-05",
-   "days_since_newest": 5,
+   "days_since_newest": 6,
    "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 16.5,
     "per_year_last_active": 16.5,
@@ -2106,7 +2106,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2136,13 +2136,13 @@
    "canton": null,
    "portal": "https://www.bger.ch",
    "licence": "ch_official",
-   "count": 194472,
+   "count": 194506,
    "first_year": "1996",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-28",
-   "days_since_newest": 13,
-   "last_added": "2026-11-09",
+   "days_since_newest": 14,
+   "last_added": "2026-11-10",
    "days_since_added": 1,
    "cadence": {
     "per_year": 7289.0,
@@ -2197,7 +2197,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2205,7 +2205,7 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 100229,
+       "our_count": 100272,
        "portal_count": null,
        "gap": null
       }
@@ -2232,9 +2232,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-18",
-   "days_since_newest": 53,
+   "days_since_newest": 54,
    "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 494.0,
     "per_year_last_active": 494.0,
@@ -2244,7 +2244,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "126 of 425 expected"
+    "reason": "126 of 426 expected"
    },
    "intake": {
     "live": true,
@@ -2266,7 +2266,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2301,9 +2301,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-21",
-   "days_since_newest": 20,
+   "days_since_newest": 21,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 10.5,
     "per_year_last_active": 10.5,
@@ -2345,7 +2345,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T09:18:16.697393+00:00",
+       "at": "2026-11-11T09:12:49.770926+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -2375,14 +2375,14 @@
    "canton": "BS",
    "portal": "https://rechtsprechung.gerichte.bs.ch",
    "licence": "ch_official",
-   "count": 8855,
+   "count": 8857,
    "first_year": "1996",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-10-30",
-   "days_since_newest": 11,
-   "last_added": "2026-11-08",
-   "days_since_added": 2,
+   "newest_decision": "2026-11-06",
+   "days_since_newest": 5,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 623.0,
     "per_year_last_active": 623.0,
@@ -2392,7 +2392,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "273 of 536 expected"
+    "reason": "275 of 538 expected"
    },
    "intake": {
     "live": true,
@@ -2414,16 +2414,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 3,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11125,
-       "portal_count": 11124,
+       "our_count": 11128,
+       "portal_count": 11127,
        "gap": -1
       }
      }
@@ -2449,9 +2449,9 @@
    "last_year": "2017",
    "undated": 0,
    "newest_decision": "2017-12-04",
-   "days_since_newest": 3263,
+   "days_since_newest": 3264,
    "last_added": "2026-03-02",
-   "days_since_added": 253,
+   "days_since_added": 254,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.0,
@@ -2494,9 +2494,9 @@
    "last_year": "2014",
    "undated": 0,
    "newest_decision": "2014-09-22",
-   "days_since_newest": 4432,
+   "days_since_newest": 4433,
    "last_added": "2026-06-22",
-   "days_since_added": 141,
+   "days_since_added": 142,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 2.0,
@@ -2528,7 +2528,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2558,14 +2558,14 @@
    "canton": "BS",
    "portal": "https://rechtsprechung.gerichte.bs.ch",
    "licence": "ch_official",
-   "count": 2266,
+   "count": 2267,
    "first_year": "2013",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-07",
-   "days_since_newest": 64,
-   "last_added": "2026-11-06",
-   "days_since_added": 4,
+   "days_since_newest": 65,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 159.5,
     "per_year_last_active": 159.5,
@@ -2597,16 +2597,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 3,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11125,
-       "portal_count": 11124,
+       "our_count": 11128,
+       "portal_count": 11127,
        "gap": -1
       }
      }
@@ -2632,9 +2632,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-04-25",
-   "days_since_newest": 929,
+   "days_since_newest": 930,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 3.5,
     "per_year_last_active": 3.5,
@@ -2666,7 +2666,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2701,9 +2701,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-18",
-   "days_since_newest": 84,
+   "days_since_newest": 85,
    "last_added": "2026-10-04",
-   "days_since_added": 37,
+   "days_since_added": 38,
    "cadence": {
     "per_year": 1.0,
     "per_year_last_active": 1.0,
@@ -2735,16 +2735,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 3,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11125,
-       "portal_count": 11124,
+       "our_count": 11128,
+       "portal_count": 11127,
        "gap": -1
       }
      }
@@ -2765,13 +2765,13 @@
    "canton": null,
    "portal": "https://www.bstger.ch",
    "licence": "ch_official",
-   "count": 11916,
+   "count": 11921,
    "first_year": "2004",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-10-14",
-   "days_since_newest": 27,
-   "last_added": "2026-11-10",
+   "newest_decision": "2026-10-19",
+   "days_since_newest": 23,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 572.0,
@@ -2814,7 +2814,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T09:18:16.697393+00:00",
+       "at": "2026-11-11T09:12:49.770926+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -2822,7 +2822,7 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 11915,
+       "our_count": 11920,
        "portal_count": null,
        "gap": null
       }
@@ -2844,13 +2844,13 @@
    "canton": null,
    "portal": "https://www.bvger.ch",
    "licence": "ch_official",
-   "count": 95068,
+   "count": 95086,
    "first_year": "1951",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-30",
-   "days_since_newest": 11,
-   "last_added": "2026-11-10",
+   "days_since_newest": 12,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 4666.5,
@@ -2893,7 +2893,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T09:18:16.697393+00:00",
+       "at": "2026-11-11T09:12:49.770926+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -2901,7 +2901,7 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 95350,
+       "our_count": 95368,
        "portal_count": null,
        "gap": null
       }
@@ -2928,9 +2928,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-10-08",
-   "days_since_newest": 398,
+   "days_since_newest": 399,
    "last_added": "2026-06-19",
-   "days_since_added": 144,
+   "days_since_added": 145,
    "cadence": {
     "per_year": 5.0,
     "per_year_last_active": 5.0,
@@ -2962,7 +2962,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -2997,9 +2997,9 @@
    "last_year": "2016",
    "undated": 0,
    "newest_decision": "2016-12-29",
-   "days_since_newest": 3603,
+   "days_since_newest": 3604,
    "last_added": "2026-02-13",
-   "days_since_added": 270,
+   "days_since_added": 271,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 5.0,
@@ -3036,9 +3036,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-11",
-   "days_since_newest": 152,
+   "days_since_newest": 153,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 108.5,
     "per_year_last_active": 108.5,
@@ -3048,7 +3048,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "50 of 93 expected"
+    "reason": "50 of 94 expected"
    },
    "intake": {
     "live": true,
@@ -3070,7 +3070,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T22:30:33+00:00",
+       "at": "2026-11-10T22:30:03+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -3105,9 +3105,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-12-19",
-   "days_since_newest": 691,
+   "days_since_newest": 692,
    "last_added": "2026-03-02",
-   "days_since_added": 253,
+   "days_since_added": 254,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -3139,7 +3139,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3174,9 +3174,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-05",
-   "days_since_newest": 5,
+   "days_since_newest": 6,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 221.5,
     "per_year_last_active": 221.5,
@@ -3208,7 +3208,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T14:25:13+00:00",
+       "at": "2026-11-10T14:16:31+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -3237,14 +3237,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": "39 listed on portal but content not downloadable (empty page or missing PDF)",
+       "note": null,
        "our_count": 859,
        "portal_count": null,
        "gap": null
@@ -3272,9 +3272,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-25",
-   "days_since_newest": 77,
+   "days_since_newest": 78,
    "last_added": "2026-08-27",
-   "days_since_added": 75,
+   "days_since_added": 76,
    "cadence": {
     "per_year": 5.5,
     "per_year_last_active": 5.5,
@@ -3306,7 +3306,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T14:25:13+00:00",
+       "at": "2026-11-10T14:16:31+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -3335,14 +3335,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": "39 listed on portal but content not downloadable (empty page or missing PDF)",
+       "note": null,
        "our_count": 859,
        "portal_count": null,
        "gap": null
@@ -3370,9 +3370,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-04",
-   "days_since_newest": 6,
+   "days_since_newest": 7,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 97.5,
     "per_year_last_active": 97.5,
@@ -3404,10 +3404,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -3439,9 +3439,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-02",
-   "days_since_newest": 39,
+   "days_since_newest": 40,
    "last_added": "2026-10-20",
-   "days_since_added": 21,
+   "days_since_added": 22,
    "cadence": {
     "per_year": 13.5,
     "per_year_last_active": 13.5,
@@ -3483,7 +3483,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T09:18:16.697393+00:00",
+       "at": "2026-11-11T09:12:49.770926+00:00",
        "run": "federal",
        "ok": true,
        "new": 0,
@@ -3518,9 +3518,9 @@
    "last_year": "2006",
    "undated": 0,
    "newest_decision": "2006-11-03",
-   "days_since_newest": 7312,
+   "days_since_newest": 7313,
    "last_added": "2026-09-10",
-   "days_since_added": 61,
+   "days_since_added": 62,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 25.5,
@@ -3552,7 +3552,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3587,9 +3587,9 @@
    "last_year": "2026",
    "undated": 4,
    "newest_decision": "2026-06-10",
-   "days_since_newest": 153,
+   "days_since_newest": 154,
    "last_added": "2026-10-14",
-   "days_since_added": 27,
+   "days_since_added": 28,
    "cadence": {
     "per_year": 13.5,
     "per_year_last_active": 13.5,
@@ -3621,7 +3621,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3656,9 +3656,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-11",
-   "days_since_newest": 91,
+   "days_since_newest": 92,
    "last_added": "2026-10-08",
-   "days_since_added": 33,
+   "days_since_added": 34,
    "cadence": {
     "per_year": 1.5,
     "per_year_last_active": 1.5,
@@ -3690,7 +3690,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3725,9 +3725,9 @@
    "last_year": "2023",
    "undated": 0,
    "newest_decision": "2023-12-05",
-   "days_since_newest": 1071,
+   "days_since_newest": 1072,
    "last_added": "2026-06-20",
-   "days_since_added": 143,
+   "days_since_added": 144,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.5,
@@ -3764,9 +3764,9 @@
    "last_year": "2025",
    "undated": 1,
    "newest_decision": "2025-12-19",
-   "days_since_newest": 326,
+   "days_since_newest": 327,
    "last_added": "2026-04-22",
-   "days_since_added": 202,
+   "days_since_added": 203,
    "cadence": {
     "per_year": 44.0,
     "per_year_last_active": 44.0,
@@ -3798,7 +3798,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3833,9 +3833,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-10-21",
-   "days_since_newest": 750,
+   "days_since_newest": 751,
    "last_added": "2026-09-25",
-   "days_since_added": 46,
+   "days_since_added": 47,
    "cadence": {
     "per_year": 4.0,
     "per_year_last_active": 4.0,
@@ -3845,7 +3845,7 @@
    },
    "rate_check": {
     "status": "SMALL",
-    "reason": "expected 3.4 < 5"
+    "reason": "expected 3.5 < 5"
    },
    "intake": {
     "live": true,
@@ -3867,7 +3867,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3904,7 +3904,7 @@
    "newest_decision": null,
    "days_since_newest": null,
    "last_added": "2026-08-27",
-   "days_since_added": 75,
+   "days_since_added": 76,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 0.0,
@@ -3936,7 +3936,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -3971,9 +3971,9 @@
    "last_year": "2027",
    "undated": 3,
    "newest_decision": "2026-11-05",
-   "days_since_newest": 5,
+   "days_since_newest": 6,
    "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 1091.5,
     "per_year_last_active": 1091.5,
@@ -4005,7 +4005,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4035,24 +4035,24 @@
    "canton": "GE",
    "portal": "https://justice.ge.ch",
    "licence": "ch_official",
-   "count": 171448,
+   "count": 171523,
    "first_year": "1908",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-23",
-   "days_since_newest": 18,
-   "last_added": "2026-11-10",
+   "days_since_newest": 19,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
-    "per_year": 11421.0,
-    "per_year_last_active": 11421.0,
+    "per_year": 11425.0,
+    "per_year_last_active": 11425.0,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "4812 of 9825 expected"
+    "reason": "4879 of 9860 expected"
    },
    "intake": {
     "live": true,
@@ -4074,15 +4074,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 53,
+       "new": 75,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 95062,
+       "our_count": 95137,
        "portal_count": null,
        "gap": null
       }
@@ -4109,9 +4109,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-13",
-   "days_since_newest": 89,
+   "days_since_newest": 90,
    "last_added": "2026-10-29",
-   "days_since_added": 12,
+   "days_since_added": 13,
    "cadence": {
     "per_year": 92.5,
     "per_year_last_active": 92.5,
@@ -4143,7 +4143,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4178,9 +4178,9 @@
    "last_year": "2026",
    "undated": 92,
    "newest_decision": "2026-10-30",
-   "days_since_newest": 11,
+   "days_since_newest": 12,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 728.0,
     "per_year_last_active": 728.0,
@@ -4212,10 +4212,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -4247,9 +4247,9 @@
    "last_year": "2026",
    "undated": 252,
    "newest_decision": "2026-11-05",
-   "days_since_newest": 5,
+   "days_since_newest": 6,
    "last_added": "2026-11-06",
-   "days_since_added": 4,
+   "days_since_added": 5,
    "cadence": {
     "per_year": 15.5,
     "per_year_last_active": 15.5,
@@ -4281,14 +4281,14 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
-       "note": "39 listed on portal but content not downloadable (empty page or missing PDF)",
+       "note": null,
        "our_count": 859,
        "portal_count": null,
        "gap": null
@@ -4316,9 +4316,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-12-05",
-   "days_since_newest": 340,
+   "days_since_newest": 341,
    "last_added": "2026-11-09",
-   "days_since_added": 1,
+   "days_since_added": 2,
    "cadence": {
     "per_year": 3.0,
     "per_year_last_active": 3.0,
@@ -4350,7 +4350,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T21:37:22+00:00",
+       "at": "2026-11-10T21:33:53+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -4380,14 +4380,14 @@
    "canton": "JU",
    "portal": "https://jurisprudence.jura.ch",
    "licence": "ch_official",
-   "count": 1242,
+   "count": 1244,
    "first_year": "2011",
    "last_year": "2026",
    "undated": 6,
-   "newest_decision": "2026-10-22",
-   "days_since_newest": 19,
-   "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "newest_decision": "2026-11-03",
+   "days_since_newest": 8,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 91.5,
     "per_year_last_active": 91.5,
@@ -4429,7 +4429,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T10:53:23.431621+00:00",
+       "at": "2026-11-11T11:01:34.181921+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
@@ -4437,8 +4437,8 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 1206,
-       "portal_count": 1222,
+       "our_count": 1208,
+       "portal_count": 1224,
        "gap": 16
       }
      }
@@ -4464,9 +4464,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-06-08",
-   "days_since_newest": 155,
+   "days_since_newest": 156,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 37.0,
     "per_year_last_active": 37.0,
@@ -4498,10 +4498,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 1,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -4533,9 +4533,9 @@
    "last_year": "2026",
    "undated": 542,
    "newest_decision": "2026-06-25",
-   "days_since_newest": 138,
+   "days_since_newest": 139,
    "last_added": "2026-10-28",
-   "days_since_added": 13,
+   "days_since_added": 14,
    "cadence": {
     "per_year": 8.0,
     "per_year_last_active": 8.0,
@@ -4567,7 +4567,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4597,14 +4597,14 @@
    "canton": "NE",
    "portal": "https://jurisprudence.ne.ch",
    "licence": "ch_official",
-   "count": 7874,
+   "count": 7878,
    "first_year": "1941",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-29",
-   "days_since_newest": 12,
-   "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_newest": 13,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 331.0,
     "per_year_last_active": 331.0,
@@ -4646,7 +4646,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T10:53:23.431621+00:00",
+       "at": "2026-11-11T11:01:34.181921+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
@@ -4654,8 +4654,8 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 7831,
-       "portal_count": 7839,
+       "our_count": 7835,
+       "portal_count": 7843,
        "gap": 8
       }
      }
@@ -4681,9 +4681,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-02-05",
-   "days_since_newest": 278,
+   "days_since_newest": 279,
    "last_added": "2026-09-02",
-   "days_since_added": 69,
+   "days_since_added": 70,
    "cadence": {
     "per_year": 10.0,
     "per_year_last_active": 10.0,
@@ -4725,7 +4725,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T10:53:23.431621+00:00",
+       "at": "2026-11-11T11:01:34.181921+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
@@ -4760,9 +4760,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-07",
-   "days_since_newest": 34,
+   "days_since_newest": 35,
    "last_added": "2026-10-21",
-   "days_since_added": 20,
+   "days_since_added": 21,
    "cadence": {
     "per_year": 138.5,
     "per_year_last_active": 138.5,
@@ -4772,7 +4772,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "70 of 119 expected"
+    "reason": "70 of 120 expected"
    },
    "intake": {
     "live": true,
@@ -4794,7 +4794,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4829,9 +4829,9 @@
    "last_year": "2022",
    "undated": 0,
    "newest_decision": "2022-12-19",
-   "days_since_newest": 1422,
+   "days_since_newest": 1423,
    "last_added": "2026-02-16",
-   "days_since_added": 267,
+   "days_since_added": 268,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 4.0,
@@ -4863,7 +4863,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4898,9 +4898,9 @@
    "last_year": "2026",
    "undated": 4,
    "newest_decision": "2026-08-28",
-   "days_since_newest": 74,
+   "days_since_newest": 75,
    "last_added": "2026-10-13",
-   "days_since_added": 28,
+   "days_since_added": 29,
    "cadence": {
     "per_year": 18.5,
     "per_year_last_active": 18.5,
@@ -4932,7 +4932,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -4967,9 +4967,9 @@
    "last_year": "2026",
    "undated": 28,
    "newest_decision": "2026-08-03",
-   "days_since_newest": 99,
+   "days_since_newest": 100,
    "last_added": "2026-10-09",
-   "days_since_added": 32,
+   "days_since_added": 33,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -5001,7 +5001,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5036,9 +5036,9 @@
    "last_year": "2020",
    "undated": 0,
    "newest_decision": "2020-09-28",
-   "days_since_newest": 2234,
+   "days_since_newest": 2235,
    "last_added": "2026-06-22",
-   "days_since_added": 141,
+   "days_since_added": 142,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.5,
@@ -5070,7 +5070,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5107,7 +5107,7 @@
    "newest_decision": null,
    "days_since_newest": null,
    "last_added": "2026-04-06",
-   "days_since_added": 218,
+   "days_since_added": 219,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 0.0,
@@ -5144,9 +5144,9 @@
    "last_year": "2004",
    "undated": 32,
    "newest_decision": "2004-05-27",
-   "days_since_newest": 8202,
+   "days_since_newest": 8203,
    "last_added": "2026-04-06",
-   "days_since_added": 218,
+   "days_since_added": 219,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.0,
@@ -5183,9 +5183,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-01-14",
-   "days_since_newest": 300,
+   "days_since_newest": 301,
    "last_added": "2026-02-13",
-   "days_since_added": 270,
+   "days_since_added": 271,
    "cadence": {
     "per_year": 33.5,
     "per_year_last_active": 33.5,
@@ -5222,9 +5222,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-07-02",
-   "days_since_newest": 861,
+   "days_since_newest": 862,
    "last_added": "2026-02-15",
-   "days_since_added": 268,
+   "days_since_added": 269,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -5256,15 +5256,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 12871,
+       "our_count": 12872,
        "portal_count": null,
        "gap": null
       }
@@ -5291,9 +5291,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-27",
-   "days_since_newest": 106,
+   "days_since_newest": 107,
    "last_added": "2026-11-04",
-   "days_since_added": 6,
+   "days_since_added": 7,
    "cadence": {
     "per_year": 49.5,
     "per_year_last_active": 49.5,
@@ -5325,15 +5325,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 12871,
+       "our_count": 12872,
        "portal_count": null,
        "gap": null
       }
@@ -5360,9 +5360,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-08",
-   "days_since_newest": 63,
+   "days_since_newest": 64,
    "last_added": "2026-11-08",
-   "days_since_added": 2,
+   "days_since_added": 3,
    "cadence": {
     "per_year": 112.5,
     "per_year_last_active": 112.5,
@@ -5394,7 +5394,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5424,13 +5424,13 @@
    "canton": "SG",
    "portal": "https://publikationen.sg.ch",
    "licence": "ch_official",
-   "count": 7658,
+   "count": 7659,
    "first_year": "1979",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-09-29",
+   "newest_decision": "2026-09-30",
    "days_since_newest": 42,
-   "last_added": "2026-11-10",
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 293.5,
@@ -5463,15 +5463,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 12871,
+       "our_count": 12872,
        "portal_count": null,
        "gap": null
       }
@@ -5498,9 +5498,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-24",
-   "days_since_newest": 47,
+   "days_since_newest": 48,
    "last_added": "2026-11-04",
-   "days_since_added": 6,
+   "days_since_added": 7,
    "cadence": {
     "per_year": 135.5,
     "per_year_last_active": 135.5,
@@ -5532,15 +5532,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 12871,
+       "our_count": 12872,
        "portal_count": null,
        "gap": null
       }
@@ -5567,9 +5567,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-02",
-   "days_since_newest": 131,
+   "days_since_newest": 132,
    "last_added": "2026-10-29",
-   "days_since_added": 12,
+   "days_since_added": 13,
    "cadence": {
     "per_year": 22.0,
     "per_year_last_active": 22.0,
@@ -5601,15 +5601,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 12871,
+       "our_count": 12872,
        "portal_count": null,
        "gap": null
       }
@@ -5636,9 +5636,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-01",
-   "days_since_newest": 70,
+   "days_since_newest": 71,
    "last_added": "2026-10-21",
-   "days_since_added": 20,
+   "days_since_added": 21,
    "cadence": {
     "per_year": 29.0,
     "per_year_last_active": 29.0,
@@ -5670,7 +5670,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5705,9 +5705,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-12-16",
-   "days_since_newest": 329,
+   "days_since_newest": 330,
    "last_added": "2026-02-13",
-   "days_since_added": 270,
+   "days_since_added": 271,
    "cadence": {
     "per_year": 44.0,
     "per_year_last_active": 44.0,
@@ -5746,9 +5746,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-02-27",
-   "days_since_newest": 621,
+   "days_since_newest": 622,
    "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 5.0,
     "per_year_last_active": 5.0,
@@ -5780,7 +5780,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5810,17 +5810,17 @@
    "canton": "SO",
    "portal": "https://gerichtsentscheide.so.ch",
    "licence": "ch_official",
-   "count": 9542,
+   "count": 9551,
    "first_year": "1956",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-02",
-   "days_since_newest": 8,
-   "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_newest": 9,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
-    "per_year": 751.0,
-    "per_year_last_active": 751.0,
+    "per_year": 752.0,
+    "per_year_last_active": 752.0,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
@@ -5849,15 +5849,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 9,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 9459,
+       "our_count": 9468,
        "portal_count": null,
        "gap": null
       }
@@ -5884,9 +5884,9 @@
    "last_year": "2026",
    "undated": 3,
    "newest_decision": "2026-09-03",
-   "days_since_newest": 68,
+   "days_since_newest": 69,
    "last_added": "2026-10-31",
-   "days_since_added": 10,
+   "days_since_added": 11,
    "cadence": {
     "per_year": 337.0,
     "per_year_last_active": 337.0,
@@ -5918,7 +5918,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -5948,14 +5948,14 @@
    "canton": "SZ",
    "portal": "https://gerichte.sz.ch",
    "licence": "ch_official",
-   "count": 2257,
+   "count": 2258,
    "first_year": "2010",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-21",
-   "days_since_newest": 20,
-   "last_added": "2026-11-06",
-   "days_since_added": 4,
+   "days_since_newest": 21,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 203.0,
     "per_year_last_active": 203.0,
@@ -5987,16 +5987,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 2250,
-       "portal_count": 2255,
+       "our_count": 2251,
+       "portal_count": 2256,
        "gap": 5
       }
      }
@@ -6017,24 +6017,24 @@
    "canton": null,
    "portal": "https://www.sportstribunal.ch",
    "licence": "private_body",
-   "count": 92,
+   "count": 121,
    "first_year": "2016",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-25",
-   "days_since_newest": 46,
-   "last_added": "2026-10-27",
-   "days_since_added": 14,
+   "days_since_newest": 47,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
-    "per_year": 32.0,
-    "per_year_last_active": 32.0,
+    "per_year": 33.5,
+    "per_year_last_active": 33.5,
     "every_days": 11,
     "lag_days": 0,
     "stale_after_days": 60
    },
    "rate_check": {
-    "status": "SMALL",
-    "reason": "92 rows < 100"
+    "status": "OK",
+    "reason": null
    },
    "intake": {
     "live": true,
@@ -6056,15 +6056,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 29,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 92,
+       "our_count": 121,
        "portal_count": null,
        "gap": null
       }
@@ -6093,7 +6093,7 @@
    "newest_decision": null,
    "days_since_newest": null,
    "last_added": "2026-04-06",
-   "days_since_added": 218,
+   "days_since_added": 219,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 0.0,
@@ -6125,7 +6125,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6160,9 +6160,9 @@
    "last_year": "2026",
    "undated": 26,
    "newest_decision": "2026-05-27",
-   "days_since_newest": 167,
+   "days_since_newest": 168,
    "last_added": "2026-07-22",
-   "days_since_added": 111,
+   "days_since_added": 112,
    "cadence": {
     "per_year": 78.5,
     "per_year_last_active": 78.5,
@@ -6194,7 +6194,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6229,9 +6229,9 @@
    "last_year": "2020",
    "undated": 0,
    "newest_decision": "2020-01-01",
-   "days_since_newest": 2505,
+   "days_since_newest": 2506,
    "last_added": "2026-02-13",
-   "days_since_added": 270,
+   "days_since_added": 271,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 1.0,
@@ -6265,13 +6265,13 @@
    "canton": "TI",
    "portal": "https://www.sentenze.ti.ch",
    "licence": "ch_official",
-   "count": 60744,
+   "count": 60746,
    "first_year": "1922",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-16",
-   "days_since_newest": 55,
-   "last_added": "2026-11-10",
+   "days_since_newest": 56,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 1008.5,
@@ -6282,7 +6282,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "325 of 868 expected"
+    "reason": "327 of 870 expected"
    },
    "intake": {
     "live": true,
@@ -6314,7 +6314,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T10:53:23.431621+00:00",
+       "at": "2026-11-11T11:01:34.181921+00:00",
        "run": "manual",
        "ok": true,
        "new": 0,
@@ -6322,7 +6322,7 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 58398,
+       "our_count": 58400,
        "portal_count": null,
        "gap": null
       }
@@ -6349,9 +6349,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-18",
-   "days_since_newest": 53,
+   "days_since_newest": 54,
    "last_added": "2026-10-29",
-   "days_since_added": 12,
+   "days_since_added": 13,
    "cadence": {
     "per_year": 42.0,
     "per_year_last_active": 42.0,
@@ -6383,7 +6383,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6418,9 +6418,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-03",
-   "days_since_newest": 7,
+   "days_since_newest": 8,
    "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 18.5,
     "per_year_last_active": 18.5,
@@ -6452,7 +6452,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -6487,9 +6487,9 @@
    "last_year": "2026",
    "undated": 51,
    "newest_decision": "2026-04-24",
-   "days_since_newest": 200,
+   "days_since_newest": 201,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 60.5,
     "per_year_last_active": 60.5,
@@ -6521,7 +6521,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6556,9 +6556,9 @@
    "last_year": "2026",
    "undated": 68,
    "newest_decision": "2026-03-16",
-   "days_since_newest": 239,
+   "days_since_newest": 240,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 82.5,
     "per_year_last_active": 82.5,
@@ -6590,7 +6590,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6625,9 +6625,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-04-01",
-   "days_since_newest": 588,
+   "days_since_newest": 589,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 0.5,
     "per_year_last_active": 0.5,
@@ -6659,7 +6659,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6694,9 +6694,9 @@
    "last_year": "2025",
    "undated": 22,
    "newest_decision": "2025-08-05",
-   "days_since_newest": 462,
+   "days_since_newest": 463,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 4.0,
     "per_year_last_active": 4.0,
@@ -6706,7 +6706,7 @@
    },
    "rate_check": {
     "status": "SMALL",
-    "reason": "expected 3.4 < 5"
+    "reason": "expected 3.5 < 5"
    },
    "intake": {
     "live": true,
@@ -6728,7 +6728,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6763,9 +6763,9 @@
    "last_year": "2026",
    "undated": 7,
    "newest_decision": "2026-08-18",
-   "days_since_newest": 84,
+   "days_since_newest": 85,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 2.5,
     "per_year_last_active": 2.5,
@@ -6797,7 +6797,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6832,9 +6832,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-02-20",
-   "days_since_newest": 263,
+   "days_since_newest": 264,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 12.0,
     "per_year_last_active": 12.0,
@@ -6866,7 +6866,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6901,9 +6901,9 @@
    "last_year": "2026",
    "undated": 2,
    "newest_decision": "2026-09-25",
-   "days_since_newest": 46,
+   "days_since_newest": 47,
    "last_added": "2026-11-04",
-   "days_since_added": 6,
+   "days_since_added": 7,
    "cadence": {
     "per_year": 20.5,
     "per_year_last_active": 20.5,
@@ -6935,7 +6935,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -6970,9 +6970,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-03-26",
-   "days_since_newest": 229,
+   "days_since_newest": 230,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 8.0,
     "per_year_last_active": 8.0,
@@ -7004,7 +7004,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -7039,9 +7039,9 @@
    "last_year": "2026",
    "undated": 8,
    "newest_decision": "2026-04-01",
-   "days_since_newest": 223,
+   "days_since_newest": 224,
    "last_added": "2026-10-25",
-   "days_since_added": 16,
+   "days_since_added": 17,
    "cadence": {
     "per_year": 73.5,
     "per_year_last_active": 73.5,
@@ -7073,7 +7073,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-09T18:21:08+00:00",
+       "at": "2026-11-10T18:17:57+00:00",
        "run": "own_timer",
        "ok": true,
        "new": null,
@@ -7108,9 +7108,9 @@
    "last_year": "2026",
    "undated": 3,
    "newest_decision": "2026-09-30",
-   "days_since_newest": 41,
+   "days_since_newest": 42,
    "last_added": "2026-11-07",
-   "days_since_added": 3,
+   "days_since_added": 4,
    "cadence": {
     "per_year": 74.0,
     "per_year_last_active": 74.0,
@@ -7142,7 +7142,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7177,9 +7177,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-12-20",
-   "days_since_newest": 325,
+   "days_since_newest": 326,
    "last_added": "2026-02-13",
-   "days_since_added": 270,
+   "days_since_added": 271,
    "cadence": {
     "per_year": 3030.0,
     "per_year_last_active": 3030.0,
@@ -7189,7 +7189,7 @@
    },
    "rate_check": {
     "status": "STALE",
-    "reason": "0 of 2607 expected"
+    "reason": "0 of 2615 expected"
    },
    "intake": {
     "live": false,
@@ -7213,17 +7213,17 @@
    "canton": "VD",
    "portal": "https://prestations.vd.ch/pub/101623",
    "licence": "ch_official",
-   "count": 66445,
+   "count": 66529,
    "first_year": "1969",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-10-23",
-   "days_since_newest": 18,
-   "last_added": "2026-11-10",
+   "newest_decision": "2026-10-26",
+   "days_since_newest": 16,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
-    "per_year": 3705.0,
-    "per_year_last_active": 3705.0,
+    "per_year": 3722.5,
+    "per_year_last_active": 3722.5,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
@@ -7252,15 +7252,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 20,
+       "new": 85,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 67595,
+       "our_count": 67680,
        "portal_count": null,
        "gap": null
       }
@@ -7282,17 +7282,17 @@
    "canton": "VD",
    "portal": "https://jurisprudence.vd.ch",
    "licence": "ch_official",
-   "count": 28894,
+   "count": 38324,
    "first_year": "1984",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-11-03",
-   "days_since_newest": 7,
-   "last_added": "2026-11-09",
+   "days_since_newest": 8,
+   "last_added": "2026-11-10",
    "days_since_added": 1,
    "cadence": {
-    "per_year": 983.5,
-    "per_year_last_active": 983.5,
+    "per_year": 1005.0,
+    "per_year_last_active": 1005.0,
     "every_days": 1,
     "lag_days": 0,
     "stale_after_days": 60
@@ -7321,7 +7321,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7329,7 +7329,7 @@
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 861,
+       "our_count": 10293,
        "portal_count": null,
        "gap": null
       }
@@ -7351,13 +7351,13 @@
    "canton": "VS",
    "portal": "https://justsearche.vs.ch",
    "licence": "ch_official",
-   "count": 7044,
+   "count": 7050,
    "first_year": "1959",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-01",
-   "days_since_newest": 40,
-   "last_added": "2026-11-10",
+   "days_since_newest": 41,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 637.5,
@@ -7368,7 +7368,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "303 of 548 expected"
+    "reason": "309 of 550 expected"
    },
    "intake": {
     "live": true,
@@ -7390,16 +7390,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 19,
+       "new": 6,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 4645,
-       "portal_count": 4642,
+       "our_count": 4651,
+       "portal_count": 4648,
        "gap": -3
       }
      }
@@ -7425,9 +7425,9 @@
    "last_year": "2025",
    "undated": 6,
    "newest_decision": "2025-10-21",
-   "days_since_newest": 385,
+   "days_since_newest": 386,
    "last_added": "2026-09-08",
-   "days_since_added": 63,
+   "days_since_added": 64,
    "cadence": {
     "per_year": 27.0,
     "per_year_last_active": 27.0,
@@ -7437,7 +7437,7 @@
    },
    "rate_check": {
     "status": "WAIT",
-    "reason": "lag 300d leaves a 14d window (< 30d)"
+    "reason": "lag 300d leaves a 15d window (< 30d)"
    },
    "intake": {
     "live": true,
@@ -7459,7 +7459,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7494,9 +7494,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-12",
-   "days_since_newest": 90,
+   "days_since_newest": 91,
    "last_added": "2026-10-14",
-   "days_since_added": 27,
+   "days_since_added": 28,
    "cadence": {
     "per_year": 2.0,
     "per_year_last_active": 2.0,
@@ -7528,7 +7528,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7563,9 +7563,9 @@
    "last_year": "2016",
    "undated": 0,
    "newest_decision": "2016-12-31",
-   "days_since_newest": 3601,
+   "days_since_newest": 3602,
    "last_added": "2026-09-10",
-   "days_since_added": 61,
+   "days_since_added": 62,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 4.0,
@@ -7597,7 +7597,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7632,9 +7632,9 @@
    "last_year": "2024",
    "undated": 0,
    "newest_decision": "2024-12-18",
-   "days_since_newest": 692,
+   "days_since_newest": 693,
    "last_added": "2026-09-10",
-   "days_since_added": 61,
+   "days_since_added": 62,
    "cadence": {
     "per_year": 1.0,
     "per_year_last_active": 1.0,
@@ -7666,7 +7666,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7696,14 +7696,14 @@
    "canton": "ZG",
    "portal": "https://obergericht.zg.ch",
    "licence": "ch_official",
-   "count": 1746,
+   "count": 1747,
    "first_year": "1995",
    "last_year": "2026",
    "undated": 0,
-   "newest_decision": "2026-09-10",
-   "days_since_newest": 61,
-   "last_added": "2026-10-31",
-   "days_since_added": 10,
+   "newest_decision": "2026-09-29",
+   "days_since_newest": 43,
+   "last_added": "2026-11-11",
+   "days_since_added": 0,
    "cadence": {
     "per_year": 298.0,
     "per_year_last_active": 298.0,
@@ -7735,16 +7735,16 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 0,
+       "new": 1,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 2212,
-       "portal_count": 1380,
+       "our_count": 2213,
+       "portal_count": 1381,
        "gap": -832
       }
      },
@@ -7764,7 +7764,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7799,9 +7799,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-18",
-   "days_since_newest": 84,
+   "days_since_newest": 85,
    "last_added": "2026-10-02",
-   "days_since_added": 39,
+   "days_since_added": 40,
    "cadence": {
     "per_year": 6.0,
     "per_year_last_active": 6.0,
@@ -7833,7 +7833,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7868,9 +7868,9 @@
    "last_year": "2005",
    "undated": 0,
    "newest_decision": "2005-11-23",
-   "days_since_newest": 7657,
+   "days_since_newest": 7658,
    "last_added": "2026-09-10",
-   "days_since_added": 61,
+   "days_since_added": 62,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 3.0,
@@ -7902,7 +7902,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -7937,9 +7937,9 @@
    "last_year": "2026",
    "undated": 10,
    "newest_decision": "2026-09-21",
-   "days_since_newest": 50,
+   "days_since_newest": 51,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 241.5,
     "per_year_last_active": 241.5,
@@ -7971,10 +7971,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 1,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -8000,7 +8000,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8035,9 +8035,9 @@
    "last_year": "2026",
    "undated": 23,
    "newest_decision": "2026-06-23",
-   "days_since_newest": 140,
+   "days_since_newest": 141,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 18.0,
     "per_year_last_active": 18.0,
@@ -8069,7 +8069,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8098,7 +8098,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8133,9 +8133,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-26",
-   "days_since_newest": 137,
+   "days_since_newest": 138,
    "last_added": "2026-10-20",
-   "days_since_added": 21,
+   "days_since_added": 22,
    "cadence": {
     "per_year": 26.5,
     "per_year_last_active": 26.5,
@@ -8167,7 +8167,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8202,9 +8202,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-01-21",
-   "days_since_newest": 293,
+   "days_since_newest": 294,
    "last_added": "2026-10-02",
-   "days_since_added": 39,
+   "days_since_added": 40,
    "cadence": {
     "per_year": 4.0,
     "per_year_last_active": 4.0,
@@ -8236,7 +8236,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8271,9 +8271,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-09",
-   "days_since_newest": 154,
+   "days_since_newest": 155,
    "last_added": "2026-10-02",
-   "days_since_added": 39,
+   "days_since_added": 40,
    "cadence": {
     "per_year": 5.0,
     "per_year_last_active": 5.0,
@@ -8305,7 +8305,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8340,9 +8340,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-14",
-   "days_since_newest": 119,
+   "days_since_newest": 120,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 24.5,
     "per_year_last_active": 24.5,
@@ -8374,7 +8374,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8409,9 +8409,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-20",
-   "days_since_newest": 82,
+   "days_since_newest": 83,
    "last_added": "2026-10-29",
-   "days_since_added": 12,
+   "days_since_added": 13,
    "cadence": {
     "per_year": 26.0,
     "per_year_last_active": 26.0,
@@ -8443,7 +8443,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8478,9 +8478,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-05-12",
-   "days_since_newest": 182,
+   "days_since_newest": 183,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 25.5,
     "per_year_last_active": 25.5,
@@ -8512,7 +8512,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8547,9 +8547,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-07",
-   "days_since_newest": 126,
+   "days_since_newest": 127,
    "last_added": "2026-10-29",
-   "days_since_added": 12,
+   "days_since_added": 13,
    "cadence": {
     "per_year": 23.5,
     "per_year_last_active": 23.5,
@@ -8581,7 +8581,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8616,9 +8616,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-04-02",
-   "days_since_newest": 222,
+   "days_since_newest": 223,
    "last_added": "2026-10-29",
-   "days_since_added": 12,
+   "days_since_added": 13,
    "cadence": {
     "per_year": 19.5,
     "per_year_last_active": 19.5,
@@ -8650,7 +8650,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8685,9 +8685,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-27",
-   "days_since_newest": 75,
+   "days_since_newest": 76,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 14.5,
     "per_year_last_active": 14.5,
@@ -8719,7 +8719,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8754,9 +8754,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-03-16",
-   "days_since_newest": 239,
+   "days_since_newest": 240,
    "last_added": "2026-10-15",
-   "days_since_added": 26,
+   "days_since_added": 27,
    "cadence": {
     "per_year": 14.5,
     "per_year_last_active": 14.5,
@@ -8788,7 +8788,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8823,9 +8823,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-08-13",
-   "days_since_newest": 89,
+   "days_since_newest": 90,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 19.0,
     "per_year_last_active": 19.0,
@@ -8857,7 +8857,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8892,9 +8892,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-23",
-   "days_since_newest": 140,
+   "days_since_newest": 141,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 31.0,
     "per_year_last_active": 31.0,
@@ -8926,7 +8926,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -8961,9 +8961,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-07-29",
-   "days_since_newest": 104,
+   "days_since_newest": 105,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 97.0,
     "per_year_last_active": 97.0,
@@ -8973,7 +8973,7 @@
    },
    "rate_check": {
     "status": "LOW",
-    "reason": "41 of 83 expected"
+    "reason": "41 of 84 expected"
    },
    "intake": {
     "live": true,
@@ -8995,7 +8995,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9030,9 +9030,9 @@
    "last_year": "2025",
    "undated": 0,
    "newest_decision": "2025-05-05",
-   "days_since_newest": 554,
+   "days_since_newest": 555,
    "last_added": "2026-02-17",
-   "days_since_added": 266,
+   "days_since_added": 267,
    "cadence": {
     "per_year": 1.5,
     "per_year_last_active": 1.5,
@@ -9091,9 +9091,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-16",
-   "days_since_newest": 55,
+   "days_since_newest": 56,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 142.5,
     "per_year_last_active": 142.5,
@@ -9125,7 +9125,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9160,9 +9160,9 @@
    "last_year": "2012",
    "undated": 1,
    "newest_decision": "2012-06-25",
-   "days_since_newest": 5251,
+   "days_since_newest": 5252,
    "last_added": "2026-10-03",
-   "days_since_added": 38,
+   "days_since_added": 39,
    "cadence": {
     "per_year": 0.0,
     "per_year_last_active": 68.0,
@@ -9199,9 +9199,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-22",
-   "days_since_newest": 49,
+   "days_since_newest": 50,
    "last_added": "2026-10-02",
-   "days_since_added": 39,
+   "days_since_added": 40,
    "cadence": {
     "per_year": 16.5,
     "per_year_last_active": 16.5,
@@ -9233,7 +9233,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9268,9 +9268,9 @@
    "last_year": "2026",
    "undated": 1,
    "newest_decision": "2026-09-18",
-   "days_since_newest": 53,
+   "days_since_newest": 54,
    "last_added": "2026-11-05",
-   "days_since_added": 5,
+   "days_since_added": 6,
    "cadence": {
     "per_year": 2102.0,
     "per_year_last_active": 2102.0,
@@ -9302,7 +9302,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9337,9 +9337,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-09-24",
-   "days_since_newest": 47,
+   "days_since_newest": 48,
    "last_added": "2026-11-10",
-   "days_since_added": 0,
+   "days_since_added": 1,
    "cadence": {
     "per_year": 1081.0,
     "per_year_last_active": 1081.0,
@@ -9371,10 +9371,10 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 2,
+       "new": 0,
        "errors": 0,
        "timed_out": false,
        "error": null,
@@ -9406,9 +9406,9 @@
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-06-30",
-   "days_since_newest": 133,
+   "days_since_newest": 134,
    "last_added": "2026-09-26",
-   "days_since_added": 45,
+   "days_since_added": 46,
    "cadence": {
     "per_year": 20.5,
     "per_year_last_active": 20.5,
@@ -9440,7 +9440,7 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
        "new": 0,
@@ -9470,13 +9470,13 @@
    "canton": "ZH",
    "portal": "https://vgrzh.djiktzh.ch",
    "licence": "ch_official",
-   "count": 12779,
+   "count": 12783,
    "first_year": "1960",
    "last_year": "2026",
    "undated": 0,
    "newest_decision": "2026-10-22",
-   "days_since_newest": 19,
-   "last_added": "2026-11-10",
+   "days_since_newest": 20,
+   "last_added": "2026-11-11",
    "days_since_added": 0,
    "cadence": {
     "per_year": 628.0,
@@ -9509,15 +9509,15 @@
        }
       ],
       "last_run": {
-       "at": "2026-11-10T01:55:24.603584+00:00",
+       "at": "2026-11-11T02:17:32.794015+00:00",
        "run": "cron",
        "ok": true,
-       "new": 4,
+       "new": 3,
        "errors": 0,
        "timed_out": false,
        "error": null,
        "note": null,
-       "our_count": 12084,
+       "our_count": 12088,
        "portal_count": null,
        "gap": null
       }
@@ -9626,7 +9626,7 @@
    "portal": "https://www.fedlex.admin.ch",
    "licence": "ch_official",
    "sources_note": null,
-   "count": 32265,
+   "count": 33736,
    "first_year": 1850,
    "last_year": 2026,
    "runs": [
@@ -9639,7 +9639,7 @@
       }
      ],
      "result": "success",
-     "finished": "2026-11-10T04:37:19+00:00",
+     "finished": "2026-11-11T04:41:29+00:00",
      "active": "inactive"
     },
     {
@@ -9651,12 +9651,12 @@
       }
      ],
      "result": "success",
-     "finished": "2026-11-10T02:52:28+00:00",
+     "finished": "2026-11-11T02:58:39+00:00",
      "active": "inactive"
     }
    ],
-   "db_updated": "2026-11-10",
-   "last_success": "2026-11-10",
+   "db_updated": "2026-11-11",
+   "last_success": "2026-11-11",
    "status": "fresh"
   },
   {
@@ -9685,12 +9685,12 @@
       }
      ],
      "result": "success",
-     "finished": "2026-11-09T23:02:29+00:00",
+     "finished": "2026-11-10T22:50:48+00:00",
      "active": "inactive"
     }
    ],
    "db_updated": "2026-11-09",
-   "last_success": "2026-11-09",
+   "last_success": "2026-11-10",
    "status": "fresh"
   },
   {
