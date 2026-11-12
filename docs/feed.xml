@@ -5,9 +5,18 @@
     <link>https://opencaselaw.ch/feed.xml</link>
     <description>Latest published decisions across all Swiss courts indexed by OpenCaseLaw.</description>
     <language>de-CH</language>
-    <lastBuildDate>Thu, 12 Nov 2026 12:44:37 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 12 Nov 2026 22:46:42 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>EGMR (Kammer) 51121/17 vom 2026-11-12</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_51121_17_20261112</link>
+      <description>Remainder inadmissible (Art. 35) Admissibility criteria;(Art. 35-3-a) Manifestly ill-founded;Violation of Article 6 - Right to a fair trial (Article 6 - Administrative proceedings;Criminal proceedings;Article 6-1 - Fair hearing);Violation of Article 1 of Protocol No. 1 - Protection of property (Article 1 para. 1 of Protocol No. 1 - Peaceful enjoyment of possessions);Respondent State to take individual measures (Article 46-2 - Reopening of proceedings);Respondent State to take measures of a general character (Article 46-2 - General measures);Pecuniary damage - claim dismissed (Article 41 - Pecuniary damage;Just satisfaction); Violation: 6;6-1;P1-1;P1-1-1; [EGMR / CourEDH / CorteEDU; Art. 35, Art. 6, Art. 46, Art. 41 EMRK / CEDH / CEDU; Art. 1 ZP 1 EMRK / Prot. 1 CEDH / CEDU]</description>
+      <pubDate>Thu, 12 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ecthr_chamber_51121_17_20261112</guid>
+      <category>ecthr_chamber</category>
+      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
+    </item>
     <item>
       <title>Bundesgericht 5A_1103/2026 vom 2026-11-04</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_1103_2026</link>
@@ -1154,38 +1163,6 @@ A.________,
 Be…</description>
       <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_394.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 4D_121/2026 vom 2026-10-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_4D_121_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-4D_121/2026
-
-Urteil vom 27. Oktober 2026
-
-I. zivilrechtliche Abteilung
-
-Besetzung
-
-Bundesrichter Hurni, Präsident,
-
-Gerichtsschreiber Kistler.
-
-Verfahrensbeteiligte
-
-A.________,
-
-…</description>
-      <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:4D_121.2026</guid>
       <category>bger</category>
     </item>
   </channel>
