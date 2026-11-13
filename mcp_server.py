@@ -33316,30 +33316,28 @@ def _lookup_exact(qn: str, limit: int = 25) -> dict:
         variants = list(dict.fromkeys([key, key.replace("_", " "), key.replace("_", "."), qn]))
     else:
         variants = [qn]
+    # Only columns the served table has. This used to select `collection` and
+    # `bge_reference` as well, which live in json_data, not in columns: on the
+    # production schema every call raised "no such column" and dropped to a lean
+    # fallback that had no alias step, so a joined docket (8C_76/2022, stored
+    # under the lead 8C_50/2022) answered "not found" (found 2026-11-13). The
+    # citation builder reads none of the two.
+    cols = "decision_id, docket_number, court, canton, decision_date, title"
     rows = []
     try:
         if ids:
             rows += conn.execute(
-                f"SELECT decision_id, docket_number, court, canton, decision_date, title, collection, bge_reference "
-                f"FROM decisions WHERE decision_id IN ({','.join('?' * len(ids))})", ids).fetchall()
+                f"SELECT {cols} FROM decisions WHERE decision_id IN ({','.join('?' * len(ids))})",
+                ids).fetchall()
         rows += conn.execute(
-            f"SELECT decision_id, docket_number, court, canton, decision_date, title, collection, bge_reference "
-            f"FROM decisions WHERE docket_number IN ({','.join('?' * len(variants))}) LIMIT ?",
+            f"SELECT {cols} FROM decisions WHERE docket_number IN ({','.join('?' * len(variants))}) LIMIT ?",
             [*variants, int(limit)]).fetchall()
         for alias_id in _lookup_docket_alias(conn, qn):
             rows += conn.execute(
-                "SELECT decision_id, docket_number, court, canton, decision_date, title, collection, bge_reference "
-                "FROM decisions WHERE decision_id = ?", (alias_id,)).fetchall()
+                f"SELECT {cols} FROM decisions WHERE decision_id = ?", (alias_id,)).fetchall()
     except sqlite3.OperationalError as exc:
-        # A fixture or older DB without every column: fall back to the lean shape.
+        # A minimal fixture without the core columns: answer with what was read.
         logger.debug("exact lookup degraded: %s", exc)
-        try:
-            rows = conn.execute(
-                f"SELECT decision_id, docket_number, court, canton, decision_date, title FROM decisions "
-                f"WHERE decision_id IN ({','.join('?' * max(1, len(ids)))}) OR docket_number IN ({','.join('?' * len(variants))}) LIMIT ?",
-                [*(ids or [""]), *variants, int(limit)]).fetchall()
-        except sqlite3.OperationalError:
-            rows = []
     out, seen = [], set()
     for r in rows:
         r = dict(r) if not isinstance(r, dict) else r

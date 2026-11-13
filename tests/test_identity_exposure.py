@@ -39,11 +39,10 @@ PLAIN = "bger_5A_790_2021"
 def _decisions(path):
     c = sqlite3.connect(path)
     c.executescript(SCHEMA_SQL)
-    # The production table carries these two columns (the exact lookup selects
-    # them); the base schema fixture does not, and without them the lookup
-    # degrades to a lean path that skips joined-docket aliases.
-    c.execute("ALTER TABLE decisions ADD COLUMN collection TEXT")
-    c.execute("ALTER TABLE decisions ADD COLUMN bge_reference TEXT")
+    # The base schema as it is, with no added columns: the served table has no
+    # `collection` / `bge_reference` column. This fixture used to add both, which
+    # hid that the exact lookup selected them and so never reached the
+    # joined-docket alias step in production (2026-11-13).
     rows = [
         # a consolidated decision: lead 1B_242/2022, joined 1B_243 + 1B_244
         (LEAD, "bger", "CH", "1B 242/2022", "2022-05-30", "de", "Strafverfahren",
