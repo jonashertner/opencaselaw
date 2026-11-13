@@ -2,6 +2,45 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W46",
+   "from": "2026-11-06",
+   "to": "2026-11-12",
+   "added": 1132,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "nebelmeer",
+     "file": "2026-w46/de-nebelmeer.webp",
+     "caption": "Woche 46 in der Schweizer Rechtsprechung: 1’132 neue Entscheide. Animierte Karte: opencaselaw.ch/posters/2026-w46/map/"
+    },
+    {
+     "lang": "fr",
+     "design": "feuilles",
+     "file": "2026-w46/fr-feuilles.webp",
+     "caption": "Semaine 46 de la jurisprudence suisse : 1’132 nouvelles décisions. Carte animée : opencaselaw.ch/posters/2026-w46/map/"
+    },
+    {
+     "lang": "it",
+     "design": "cielo",
+     "file": "2026-w46/it-cielo.webp",
+     "caption": "Settimana 46 della giurisprudenza svizzera: 1’132 nuove decisioni. Mappa animata: opencaselaw.ch/posters/2026-w46/map/"
+    },
+    {
+     "lang": "rm",
+     "design": "vopnas",
+     "file": "2026-w46/rm-vopnas.webp",
+     "caption": "Emna 46: 1’132 novas decisiuns. opencaselaw.ch/posters/2026-w46/map/"
+    },
+    {
+     "lang": "en",
+     "design": "numbers",
+     "file": "2026-w46/en-numbers.webp",
+     "caption": "Week 46 in Swiss case law: 1,132 new decisions. Animated map: opencaselaw.ch/posters/2026-w46/map/"
+    }
+   ],
+   "map": "2026-w46/map/"
+  },
+  {
    "week": "2026-W45",
    "from": "2026-10-30",
    "to": "2026-11-05",

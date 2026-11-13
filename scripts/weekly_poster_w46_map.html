@@ -1,0 +1,156 @@
+<title>Nebelmeer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&display=swap">
+<style>
+/* The German poster set in motion: the same sheet, 1080 x 1350, scaled to fit the window. */
+:root{color-scheme:dark;--bg:#080b18;--ink:#f4f1ea;--mute:#93a0c4;--dim:#7480a6;--red:#ff5a36;--rock:#3a4b7a}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);overflow:hidden;font-family:'Inter Tight',system-ui,sans-serif}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1350px;transform-origin:0 0}
+#n{position:absolute;left:50px;top:8px;font:400 286px/1 'Instrument Serif',Georgia,serif;letter-spacing:-.035em;font-variant-numeric:tabular-nums;white-space:nowrap}
+#t{position:absolute;left:640px;top:92px;font:400 54px/1 'Instrument Serif',Georgia,serif}
+#t i{display:block;font:500 17px/1.4 'Inter Tight',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-top:14px}
+#again{all:unset;cursor:pointer;display:block;margin-top:18px;font:500 15px/1 'Inter Tight',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);padding:4px 0 6px;border-bottom:1px solid var(--ink);opacity:0;transition:opacity .5s}
+#again.on{opacity:1}
+#again:focus-visible{outline:2px solid var(--red);outline-offset:4px}
+#map{position:absolute;left:34px;top:318px;width:1012px;display:block;cursor:crosshair;touch-action:manipulation}
+svg{position:absolute;left:0;top:0;pointer-events:none}
+svg text{font:500 14px 'Inter Tight',sans-serif;fill:var(--mute);letter-spacing:.05em}
+svg text.w{fill:var(--ink);font-size:16px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+#k{position:absolute;left:62px;top:1222px;width:760px;font:400 31px/1.12 'Instrument Serif',Georgia,serif;opacity:0;transition:opacity .9s}
+#k.on{opacity:1}
+#c{position:absolute;left:62px;top:1312px;font:400 13px/1 'Inter Tight',sans-serif;letter-spacing:.05em;color:var(--dim)}
+#u{position:absolute;right:58px;top:1304px;font:600 20px/1 'Inter Tight',sans-serif}
+#tip{position:absolute;pointer-events:none;white-space:nowrap;font:500 15px/1.3 'Inter Tight',sans-serif;font-variant-numeric:tabular-nums;
+  color:var(--bg);background:var(--ink);padding:5px 9px 6px;border-radius:2px;opacity:0;transition:opacity .15s}
+#tip.dark{color:var(--ink);background:#1b2547}
+#tip b{font-weight:600}
+#tip.on{opacity:1}
+</style>
+<div id="stage">
+  <div id="n">0</div>
+  <div id="t">new decisions<i>Week 46 · 6–12 November 2026</i><button id="again" type="button">Raise the fog again</button></div>
+  <canvas id="map" role="img" aria-label="Relief map of Switzerland with a sea of fog up to 1,132 metres above sea level"></canvas>
+  <svg id="sec" width="1080" height="1350" viewBox="0 0 1080 1350" aria-hidden="true"></svg>
+  <div id="k"></div>
+  <div id="c">Height model DHM25 © swisstopo · Section Basel–Monte Rosa, heights drawn eight times too tall</div>
+  <div id="u">opencaselaw.ch</div>
+  <div id="tip"></div>
+</div>
+<script>
+const D=/*DATA*/null;
+const W=1080,H=1350,MAPW=1012,MAPH=MAPW*D.th/D.tw,MX=34,MY=318;
+const stage=document.getElementById('stage'),cv=document.getElementById('map'),nEl=document.getElementById('n'),
+  kEl=document.getElementById('k'),tip=document.getElementById('tip'),again=document.getElementById('again');
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+cv.style.height=MAPH+'px';
+kEl.textContent=`The fog's upper limit stands at ${fmt(D.total)} metres: one metre for each new decision. ${D.under} per cent of Switzerland lies below it.`;
+
+// ── the section Basel – Monte Rosa ───────────────────────────────────────
+const PX0=62,PX1=1018,PY0=1180,ZMAX=4634,PH=8*(PX1-PX0)/D.km*ZMAX/1000,py=z=>PY0-z/ZMAX*PH;
+const land='M'+PX0+','+PY0+'L'+D.prof.map((z,i)=>(PX0+i/(D.prof.length-1)*(PX1-PX0)).toFixed(1)+','+py(Math.max(z,0)).toFixed(1)).join('L')+'L'+PX1+','+PY0+'Z';
+const lx=f=>MX+f*MAPW,ly=f=>MY+f*MAPH;
+document.getElementById('sec').innerHTML=
+  `<line x1="${lx(D.line[0])}" y1="${ly(D.line[1])}" x2="${lx(D.line[2])}" y2="${ly(D.line[3])}" stroke="var(--red)" stroke-width="1.4"/>`+
+  `<circle cx="${lx(D.line[0])}" cy="${ly(D.line[1])}" r="3.2" fill="var(--red)"/><circle cx="${lx(D.line[2])}" cy="${ly(D.line[3])}" r="3.2" fill="var(--red)"/>`+
+  `<rect id="fogbar" x="${PX0}" y="${PY0}" width="${PX1-PX0}" height="0" fill="var(--ink)"/>`+
+  `<path d="${land}" fill="var(--rock)"/>`+
+  `<line x1="${PX0}" y1="${PY0}" x2="${PX1}" y2="${PY0}" stroke="var(--red)" stroke-width="1.4"/>`+
+  `<text id="lvl" x="${PX0}" y="${PY0}" class="w"></text>`+
+  `<text x="${PX0}" y="${PY0+22}">Basel</text><text x="${PX1}" y="${PY0+22}" text-anchor="end">Monte Rosa</text>`;
+const fogbar=document.getElementById('fogbar'),lvl=document.getElementById('lvl');
+
+// ── the map, on the GPU ──────────────────────────────────────────────────
+const gl=cv.getContext('webgl',{antialias:false,alpha:false,preserveDrawingBuffer:true});
+const VS=`attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;uv.y=1.-uv.y;gl_Position=vec4(p,0.,1.);}`;
+const FS=`precision highp float;
+uniform sampler2D T;uniform vec2 size;uniform float level;varying vec2 uv;
+const vec3 BG=vec3(8.,11.,24.)/255.,LO=vec3(14.,20.,44.)/255.,HI=vec3(150.,168.,205.)/255.,FOG=vec3(246.,243.,236.)/255.,SHADE=vec3(176.,188.,214.)/255.;
+vec3 tx(vec2 q){vec4 t=texture2D(T,(q+.5)/size);return vec3(floor(t.r*255.+.5)*256.+floor(t.g*255.+.5),t.b,0.);}
+// height (m), shading and how much of the point is Swiss ground, from the four nearest texels
+vec3 at(vec2 uvq){vec2 q=uvq*size-.5,f=fract(q),b=floor(q);float z=0.,s=0.,w=0.;
+  for(int j=0;j<2;j++)for(int i=0;i<2;i++){vec2 o=vec2(float(i),float(j));vec3 t=tx(b+o);
+    float k=(i==0?1.-f.x:f.x)*(j==0?1.-f.y:f.y);if(t.x>.5){z+=k*(t.x-1.);s+=k*t.y;w+=k;}}
+  return w>0.?vec3(z/w,s/w,w):vec3(0.);}
+void main(){
+  vec3 a=at(uv);
+  if(a.z<=0.){gl_FragColor=vec4(BG,1.);return;}
+  vec3 rock=mix(LO,HI,pow(a.y,1.25));
+  float depth=level-a.x,fog=1.-exp(-max(depth,0.)/55.);
+  // the shadow the mountains to the north-west throw on the fog
+  float lit=1.;
+  if(depth>0.){vec2 dq=vec2(-1.,-1.)*2.2/size;float rise=tan(radians(16.))*${(0.2*1743/1400*1000*2.2*Math.SQRT2).toFixed(1)};
+    for(int k=1;k<=22;k++){vec3 t=tx(floor((uv+dq*float(k))*size));
+      if(t.x>.5)lit=min(lit,clamp(1.-((t.x-1.)-float(k)*rise-level)/60.,0.,1.));}}
+  vec3 fogc=mix(FOG,SHADE,.85*(1.-lit));
+  vec3 col=mix(rock,fogc,fog);
+  gl_FragColor=vec4(mix(BG,col,smoothstep(.0,.9,a.z)),1.);}`;
+function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s}
+let prog,uLevel,ready=false,heights=null;
+function setup(img){
+  prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(prog);gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  const p=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(p);gl.vertexAttribPointer(p,2,gl.FLOAT,false,0,0);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);
+  gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,img);
+  for(const k of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.uniform2f(gl.getUniformLocation(prog,'size'),D.tw,D.th);uLevel=gl.getUniformLocation(prog,'level');
+  // the heights again as numbers, for the pointer
+  const c=document.createElement('canvas');c.width=D.tw;c.height=D.th;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0);
+  const px=x.getImageData(0,0,D.tw,D.th).data;heights=new Int16Array(D.tw*D.th);
+  for(let i=0;i<heights.length;i++)heights[i]=px[i*4]*256+px[i*4+1]-1;
+  ready=true;
+}
+
+// ── layout ───────────────────────────────────────────────────────────────
+let scale=1;
+function fit(){
+  const vw=innerWidth,vh=innerHeight;scale=Math.min(vw/W,vh/H);
+  stage.style.transform=`translate(${(vw-W*scale)/2}px,${(vh-H*scale)/2}px) scale(${scale})`;
+  const dpr=Math.min(devicePixelRatio||1,3),w=Math.min(Math.round(MAPW*scale*dpr),D.tw*2);
+  cv.width=w;cv.height=Math.round(w*D.th/D.tw);gl.viewport(0,0,cv.width,cv.height);dirty=true;
+}
+addEventListener('resize',fit);
+
+// ── the rise ─────────────────────────────────────────────────────────────
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const WAIT=1.1,RISE=11;                                  // seconds
+let t0=null,level=still?D.total:0,shown=-1,dirty=true,done=still;
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+function frame(now){
+  requestAnimationFrame(frame);
+  if(!ready)return;
+  if(t0===null)t0=now;
+  if(!done){const x=Math.min(1,Math.max(0,((now-t0)/1000-WAIT)/RISE));level=D.total*ease(x);dirty=true;
+    if(x>=1){done=true;level=D.total}}
+  if(done!==again.classList.contains('on')){again.classList.toggle('on',done);kEl.classList.toggle('on',done)}
+  if(!dirty)return;dirty=false;
+  gl.uniform1f(uLevel,level);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  const r=Math.round(level);
+  if(r!==shown){shown=r;nEl.textContent=fmt(r);
+    const y=py(level);fogbar.setAttribute('y',y);fogbar.setAttribute('height',PY0-y);
+    lvl.setAttribute('y',y-10);lvl.textContent=fmt(r)+' m'}
+  if(hover)say();
+}
+again.addEventListener('click',()=>{if(done){done=false;t0=null;level=0;hide()}});
+
+// ── under the pointer: the height of the ground, and where the fog stands to it ──
+let hover=null;
+function say(){
+  const [x,y]=hover,i=Math.floor(x/MAPW*D.tw),j=Math.floor(y/MAPH*D.th),z=(i>=0&&j>=0&&i<D.tw&&j<D.th)?heights[j*D.tw+i]:-1;
+  if(z<0)return hide(false);
+  const d=Math.round(level)-z,under=d>0;
+  tip.innerHTML=`<b>${fmt(z)} m</b> · ${d===0?'at the fog’s limit':fmt(Math.abs(d))+' m '+(under?'under the fog':'above the fog')}`;
+  tip.classList.toggle('dark',!under);tip.classList.add('on');
+  const w=tip.offsetWidth,lx=MX+x+16+w>W-20?MX+x-16-w:MX+x+16;
+  tip.style.left=lx+'px';tip.style.top=(MY+y-34)+'px';
+}
+function hide(clear=true){if(clear)hover=null;tip.classList.remove('on')}
+cv.addEventListener('pointermove',e=>{if(!ready)return;const r=cv.getBoundingClientRect();hover=[(e.clientX-r.left)/scale,(e.clientY-r.top)/scale];say()});
+cv.addEventListener('pointerleave',()=>hide());
+
+const img=new Image();img.onload=()=>{setup(img);fit();requestAnimationFrame(frame)};img.src='data:image/png;base64,'+D.tex;
+</script>
