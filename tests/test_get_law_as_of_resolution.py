@@ -379,9 +379,10 @@ def test_cache_keys_are_versioned_and_ttls_cover_the_new_prefixes(monkeypatch):
     # v1 -> v2 with the resolution fix, v2 -> v3 with the parser fix (the
     # as_of path imports the statutes parser, so its output changed again).
     # v4 (2026-09-05): repealed stubs carry an empty body + `empty_body`
-    assert {"hist_law:v4", "pending:v2", "fedlex_works:v1", "fedlex_snaps:v1", "fedlex_expr:v1"} <= prefixes
-    assert not any(k.startswith(("hist_law:v1", "hist_law:v2", "hist_law:v3", "pending:v1")) for k in keys)
-    assert m._ttl_for_key("hist_law:v4:235.1:1:de:2024-01-01") == 30 * 86400
+    # v5 (2026-11-14): PDF excerpts picked by font-verified header
+    assert {"hist_law:v5", "pending:v2", "fedlex_works:v1", "fedlex_snaps:v1", "fedlex_expr:v1"} <= prefixes
+    assert not any(k.startswith(("hist_law:v1", "hist_law:v2", "hist_law:v3", "hist_law:v4", "pending:v1")) for k in keys)
+    assert m._ttl_for_key("hist_law:v5:235.1:1:de:2024-01-01") == 30 * 86400
     assert m._ttl_for_key("pending:v2:235.1") == 86400
     assert m._ttl_for_key("fedlex_works:v1:235.1") == 7 * 86400
     assert m._ttl_for_key("fedlex_snaps:v1:x") == 86400

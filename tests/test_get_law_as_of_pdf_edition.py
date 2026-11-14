@@ -138,7 +138,7 @@ def test_edition_text_is_cached_by_snapshot_not_by_as_of(monkeypatch):
     m.get_law(sr_number="220", article="60", as_of="2019-06-01")
     m.get_law(sr_number="220", article="41", as_of="2019-10-01")
     edition_keys = [k for k in keys if k.startswith("hist_edition:")]
-    assert edition_keys == ["hist_edition:v1:220:2017-04-01:de:pdf-a"] * 2
+    assert edition_keys == ["hist_edition:v2:220:2017-04-01:de:pdf-a"] * 2
     assert m._ttl_for_key(edition_keys[0]) == 30 * 86400
 
 

@@ -26284,13 +26284,65 @@ def _fedlex_snapshot_url(snapshot_uri: str, language: str) -> str:
             .rstrip("/") + "/" + (language or "de"))
 
 
-def _extract_pdf_text(content: bytes) -> tuple[str, int]:
-    """Plain text of a PDF and its page count (pymupdf), pages joined by
-    newlines. Kept separate so tests can stand in a synthetic edition."""
+def _pdf_page_lines(page, headers: list, offset: int) -> list[str]:
+    """Lines of one page in reading order, article headers recorded.
+
+    Fedlex sets an article header in bold and its footnote mark as a small
+    raised figure. Plain text extraction flattens the two into one number:
+    Art. 2 with footnote 5 comes out as "Art. 25", which is also a real
+    article. Read with the fonts, the header is unambiguous: the bold span
+    opens the line, the raised digits are the footnote and are left out of
+    the line, and [offset, article] is appended to `headers`. Table-of-
+    contents entries and references in running text are not bold, so they
+    are never headers. All other lines are exactly what get_text() yields.
+    """
+    out = []
+    for block in page.get_text("dict")["blocks"]:
+        if block.get("type") != 0:
+            continue
+        for line in block["lines"]:
+            spans = line["spans"]
+            text = "".join(s["text"] for s in spans)
+            first = next((s for s in spans if s["text"].strip()), None)
+            if (first is not None and first["text"].lstrip().startswith("Art.")
+                    and (first["flags"] & 16 or "bold" in first["font"].lower())):
+                base = first["size"]
+                kept = "".join(
+                    s["text"] for s in spans
+                    if not (s["text"].strip().isdigit()
+                            and (s["flags"] & 1 or s["size"] < 0.85 * base)))
+                m = _PDF_CLEAN_ARTICLE_MARKER.match(kept)
+                if m:
+                    text = kept
+                    headers.append([offset, m.group(1)])
+            out.append(text)
+            offset += len(text) + 1
+    return out
+
+
+def _extract_pdf_text(content: bytes) -> tuple[str, int, list[list]]:
+    """Plain text of a PDF, its page count and its article headers
+    ([[offset, article], ...] in document order; see _pdf_page_lines), pages
+    joined by newlines. If the font walk fails the text is the plain
+    extraction and the header list is empty. Kept separate so tests can
+    stand in a synthetic edition (a stub may return text and pages only)."""
     import fitz  # pymupdf
     doc = fitz.open(stream=content, filetype="pdf")
     try:
-        return "\n".join(page.get_text() for page in doc), len(doc)
+        try:
+            parts, headers, offset = [], [], 0
+            for i, page in enumerate(doc):
+                if i:
+                    parts.append("\n")
+                    offset += 1
+                lines = _pdf_page_lines(page, headers, offset)
+                chunk = "".join(ln + "\n" for ln in lines)
+                parts.append(chunk)
+                offset += len(chunk)
+            return "".join(parts), len(doc), headers
+        except Exception as e:
+            logger.warning("PDF header walk failed, serving plain text: %s", e)
+            return "\n".join(page.get_text() for page in doc), len(doc), []
     finally:
         doc.close()
 
@@ -26303,13 +26355,17 @@ _EDITION_TEXT_CACHE_MAX_CHARS = 3_000_000
 def _fetch_fedlex_edition_text(sr_number: str, snapshot_date: str, language: str,
                                fmt: str, url: str) -> dict | None:
     """Whole-edition plain text of a dated consolidation Fedlex publishes
-    only as PDF: {"full_text", "chars", "pages", "fmt", "url"}.
+    only as PDF: {"full_text", "chars", "pages", "fmt", "url", "headers"}.
+    `headers` is the font-verified article header list, or [] when the PDF
+    gave none that can be trusted (see _pdf_headers_usable).
 
     Cached by edition (hist_edition:, 30 days), not by as_of, so every date
     that resolves to the same consolidation shares one download. Returns
     None when the download or the extraction fails.
     """
-    cache_key = f"hist_edition:v1:{sr_number}:{snapshot_date}:{language}:{fmt}"
+    # v2 (2026-11-14): the edition carries `headers`, and header lines no
+    # longer have the footnote mark glued to the article number.
+    cache_key = f"hist_edition:v2:{sr_number}:{snapshot_date}:{language}:{fmt}"
     cached = _lexfind_cache_get(cache_key)
     if cached is not None:
         return cached
@@ -26318,12 +26374,16 @@ def _fetch_fedlex_edition_text(sr_number: str, snapshot_date: str, language: str
     if resp.status_code != 200 or not resp.content.startswith(b"%PDF"):
         return None
     try:
-        text, pages = _extract_pdf_text(resp.content)
+        text, pages, *rest = _extract_pdf_text(resp.content)
     except Exception as e:
         logger.warning("Fedlex PDF parse failed for SR %s edition %s: %s", sr_number, snapshot_date, e)
         return None
-    text = text.replace("\u00a0", " ")
-    edition = {"full_text": text, "chars": len(text), "pages": pages, "fmt": fmt, "url": url}
+    text = text.replace("\u00a0", " ")  # same length, header offsets hold
+    headers = rest[0] if rest else []
+    if not _pdf_headers_usable(text, headers):
+        headers = []
+    edition = {"full_text": text, "chars": len(text), "pages": pages, "fmt": fmt, "url": url,
+               "headers": headers}
     if len(text) <= _EDITION_TEXT_CACHE_MAX_CHARS:
         _lexfind_cache_set(cache_key, edition)
     return edition
@@ -26466,6 +26526,51 @@ def _pdf_article_excerpt(full_text: str, article: str, max_chars: int = 8000) ->
         if rank > best_rank:
             best, best_rank = block, rank
     return best[:max_chars], len(starts)
+
+
+def _pdf_headers_usable(full_text: str, headers: list) -> bool:
+    """Whether the font-verified header list can stand for the edition's
+    articles. A PDF that does not set its headers in bold yields none, or
+    only a stray few; then the text-only reading (_pdf_article_excerpt) is
+    the better guess. Usable when the headers cover at least half of the
+    distinct article numbers that open a line anywhere in the text."""
+    if not headers:
+        return False
+    in_text = {m.group(1) for m in _PDF_CLEAN_ARTICLE_MARKER.finditer(full_text)}
+    return 2 * len({num for _, num in headers}) >= len(in_text)
+
+
+def _pdf_header_excerpt(full_text: str, article: str, headers: list,
+                        max_chars: int = 8000) -> dict | None:
+    """The article's block in an edition whose headers were read with the
+    fonts: from its header to the next header of any article.
+
+    An act's main body comes first and numbers its articles in ascending
+    order; final and transitional provisions and annexes follow and start
+    again at Art. 1. So the first header carrying the number is the main
+    body's, whatever its length and even when it is repealed and empty: a
+    longer "Art. 2" among the final provisions is a different provision and
+    must not be served in its place. Returns None when no header carries
+    the number, else {"text", "candidates", "main_body"}; `candidates` counts
+    every header with the number, and `main_body` is False when the
+    numbering had already restarted before the first of them (the main body
+    has no such article, the block is from a later part of the edition).
+    """
+    article = (article or "").strip().lower()
+    hits = [i for i, (_, num) in enumerate(headers) if num.lower() == article]
+    if not hits:
+        return None
+    i = hits[0]
+    start = headers[i][0]
+    if i + 1 < len(headers):
+        end = headers[i + 1][0]
+    else:
+        nxt = _PDF_ANY_ARTICLE_MARKER.search(full_text, start + 1)
+        end = nxt.start() if nxt else len(full_text)
+    key = _pdf_article_sort_key(article)
+    main_body = all(_pdf_article_sort_key(num.lower()) <= key for _, num in headers[:i])
+    return {"text": full_text[start:end].strip()[:max_chars],
+            "candidates": len(hits), "main_body": main_body}
 
 
 # Fedlex ships pre-2021 editions as PDF and, for about a fifth of them, also
@@ -26744,7 +26849,10 @@ def _fetch_historical_law_version(
     """
     # v4 (2026-09-05): repealed stubs carry an empty body + `empty_body`
     # instead of the note as body; cached v3 editions would keep serving it.
-    cache_key = f"hist_law:v4:{sr_number}:{article or 'all'}:{language}:{as_of}"
+    # v5 (2026-11-14): PDF excerpts are picked by font-verified header; a
+    # cached v4 excerpt could be another article's text ("Art. 2" + footnote
+    # 5 read as Art. 25) or a final provision served for the main body.
+    cache_key = f"hist_law:v5:{sr_number}:{article or 'all'}:{language}:{as_of}"
     cached = _lexfind_cache_get(cache_key)
     if cached is not None:
         return cached
@@ -26887,7 +26995,32 @@ def _fetch_historical_law_version(
                 "edition_pages": edition["pages"],
             })
             if article:
-                excerpt, candidates = _pdf_article_excerpt(edition["full_text"], article)
+                # With font-verified headers the article is looked up by its
+                # header; without them (a PDF that sets no bold headers, a
+                # cached or synthetic text-only edition) by the text alone.
+                headers = edition.get("headers") or []
+                picked = None
+                if headers:
+                    picked = _pdf_header_excerpt(edition["full_text"], article, headers)
+                    excerpt, candidates = ((picked["text"], picked["candidates"])
+                                           if picked else (None, 0))
+                else:
+                    excerpt, candidates = _pdf_article_excerpt(edition["full_text"], article)
+                if picked and not picked["main_body"]:
+                    result["excerpt_block"] = "later_block"
+                    result["excerpt_note"] = (
+                        f"This 'Art. {article}' comes after the article numbering restarts in "
+                        f"this edition, so it belongs to final or transitional provisions or "
+                        f"to an annex, not to the act's main body; the main body has no "
+                        f"'Art. {article}' header in this edition.")
+                elif picked:
+                    result["excerpt_block"] = "main_body"
+                    if candidates > 1:
+                        result["excerpt_note"] = (
+                            f"'Art. {article}' heads {candidates} provisions in this edition. "
+                            f"This is the first, in the act's main body; the others come "
+                            f"after the numbering restarts (final or transitional provisions, "
+                            f"or an annex) and are not shown.")
                 if excerpt:
                     # Honesty guard: a window that holds only the header and
                     # a marginal note (the TOC line, a repealed article) is
@@ -29090,6 +29223,8 @@ def _format_get_law_response(result: dict) -> str:
                 where = f", 1 of {cands} candidate positions" if cands > 1 else ""
                 text += (f"### Excerpt around \"Art. {art['article_num']}\" "
                          f"(unstructured PDF text{where})\n\n")
+                if result.get("excerpt_note"):
+                    text += f"_{result['excerpt_note']}_\n\n"
                 if art.get("text_status") in ("heading_only", "empty"):
                     text += (f"_UNRESOLVED (text_status: {art['text_status']}): the window "
                              f"holds no article text, only the header"
@@ -36596,6 +36731,15 @@ setInterval(load, 30000);
                                             "'heading_only' / 'empty' when the window around "
                                             "the article holds no article text — treat the "
                                             "article as not retrieved (HTTP stays 200)."},
+                "excerpt_block":           {"type": "string", "nullable": True, "description":
+                                            "PDF-only editions with ?article=: 'main_body', or "
+                                            "'later_block' when the number was found only after "
+                                            "the numbering restarts (final or transitional "
+                                            "provisions, an annex)."},
+                "excerpt_note":            {"type": "string", "nullable": True, "description":
+                                            "PDF-only editions: set when the article number heads "
+                                            "more than one provision in the edition, or when the "
+                                            "excerpt is not from the main body."},
                 "formats_available":       {"type": "array", "nullable": True, "items": {"type": "string"}},
                 "pending_changes": {
                     "type": "array", "nullable": True,
