@@ -2724,7 +2724,7 @@
     "2026-10": 1611,
     "2026-11": 72
   },
-  "generated_at": "2026-11-14T17:45:24.899938+00:00",
+  "generated_at": "2026-11-14T22:09:54.202487+00:00",
   "scraper_health": {
     "run_at": "2026-11-14T03:03:13.404205+00:00",
     "run_duration_s": 7332.3,
@@ -3288,7 +3288,7 @@
         "note": null,
         "state_count": 100382,
         "jsonl_size_mb": 1519.0,
-        "jsonl_mtime": "2026-11-14T01:15:59.356507+00:00"
+        "jsonl_mtime": "2026-11-14T20:57:41.887826+00:00"
       },
       "nw_gerichte": {
         "success": true,
@@ -4116,9 +4116,9 @@
       "total": 1053634
     },
     "graph_size": {
-      "decision_edges": 9224954,
+      "decision_edges": 9194133,
       "statute_edges": 12496754,
-      "total": 21721708
+      "total": 21690887
     },
     "echr_switzerland": {
       "total": 1539,
