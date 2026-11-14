@@ -1,0 +1,33 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_140_III_533",
+  "pinpoint": "4"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:57+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_140_III_533",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2014-10-16",
+  "citation_string": "BGE 140 III 533, E. 4",
+  "citation_string_de": "BGE 140 III 533, E. 4",
+  "citation_string_fr": "ATF 140 III 533, consid. 4",
+  "citation_string_it": "DTF 140 III 533, consid. 4",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_140_III_533#e-4",
+  "markdown_link": "[BGE 140 III 533, E. 4](https://mcp.opencaselaw.ch/entscheid/bge_BGE_140_III_533#e-4)",
+  "rule_statement": "Die Beschwerdeführerin rügt sodann, die Vorinstanz habe das Darlehen der Beschwerdegegnerin an die Finance BV im Umfang von 6,5 Mio. Fr. per 31. Dezember 2000 zu Unrecht als nicht marktübliches Darlehen qualifiziert. Entgegen der Auffassung der\nBGE 140 III 533 S. 541\nVorinstanz habe dieses Drittbedingungen entsprochen und damit das für Dividendenzahlungen verwendbare Kapital der Beschwerdegegnerin nicht gesperrt.",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "pinpoint": "4",
+  "pinpoint_status": "verified",
+  "pinpoint_valid": true,
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_140_III_533"
+  },
+  "canonical_decision_id": "bge_BGE_140_III_533",
+  "is_canonical": true
+ }
+}

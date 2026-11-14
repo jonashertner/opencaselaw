@@ -1,0 +1,33 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_133_III_81",
+  "pinpoint": "3"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:49+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_133_III_81",
+  "court": "bge",
+  "language": "fr",
+  "decision_date": "2006-12-19",
+  "citation_string": "BGE 133 III 81, E. 3",
+  "citation_string_de": "BGE 133 III 81, E. 3",
+  "citation_string_fr": "ATF 133 III 81, consid. 3",
+  "citation_string_it": "DTF 133 III 81, consid. 3",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_133_III_81#e-3",
+  "markdown_link": "[BGE 133 III 81, E. 3](https://mcp.opencaselaw.ch/entscheid/bge_BGE_133_III_81#e-3)",
+  "rule_statement": "A l'instar de la directive européenne 85/374/CE du 25 juillet 1985, qui l'a très largement inspirée, la LRFP institue une responsabilité sans faute, fondée sur le seul défaut du produit (FRANZ WERRO, La responsabilité civile, n. 705/706, p. 184/185; GILLES PETITPIERRE, Genèse d'une nouvelle réglementation, in Responsabilités objectives, Journée de la responsabilité civile 2002, p. 23/24). […]",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "pinpoint": "3",
+  "pinpoint_status": "verified",
+  "pinpoint_valid": true,
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_133_III_81"
+  },
+  "canonical_decision_id": "bge_BGE_133_III_81",
+  "is_canonical": true
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "OR",
+  "article": "675",
+  "as_of": "2020-03-26"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:46+00:00",
+ "result": {
+  "_markdown": "# OR — SR 220\n**Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2020-01-01, applicable on 2020-03-26\nAct in force: 1912-01-01 – (open)\nText source: Fedlex PDF edition — NO article structure recovered; verbatim quotation NOT guaranteed.\nWARNING: do not quote this text. Cite the edition (Quelle below) and paraphrase; marginal notes and page headers may be interleaved.\nQuelle: [Fedlex (Fassung vom 2020-01-01)](https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20200101/de)\n\n### Excerpt around \"Art. 675\" (unstructured PDF text, 1 of 2 candidate positions)\n\nArt. 675 \n1 Zinse dürfen für das Aktienkapital nicht bezahlt werden. \n2 Dividenden dürfen nur aus dem Bilanzgewinn und aus hierfür gebil-\ndeten Reserven ausgerichtet werden.385\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "MaschV",
+  "article": "2",
+  "as_of": "2022-09-15"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:53+00:00",
+ "result": {
+  "_markdown": "# MaschV — SR 819.14\n**Verordnung vom 2. April 2008 über die Sicherheit von Maschinen (Maschinenverordnung, MaschV)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2021-07-16, applicable on 2022-09-15\nAct in force: 2009-12-29 – (open)\nText source: Fedlex Akoma Ntoso XML — per-article, verbatim\nQuelle: [Fedlex (Fassung vom 2021-07-16)](https://www.fedlex.admin.ch/eli/cc/2008/263/20210716/de)\n\n### Art. 2 — Voraussetzungen für das Inverkehrbringen\n\n1 Maschinen dürfen nur in Verkehr gebracht werden, wenn: a. sie bei ordnungsgemässer Installation und Wartung und bei bestimmungsgemässer oder vernünftigerweise vorhersehbarer Verwendung die Sicherheit und die Gesundheit von Personen und gegebenenfalls von Haustieren und Sachen sowie, sofern für diese Maschinen in der EU-Maschinenrichtlinie spezifische Umweltvorschriften bestehen, die Umwelt nicht gefährden; b. die Anforderungen nach den folgenden Bestimmungen der EU-Maschinenrichtlinie erfüllt sind: Artikel 5 Absatz 1 Buchstaben a–e und Absätze 2 und 3 sowie Artikel 12 und 13; und c. ein Wirtschaftsakteur nach Artikel 4 Absatz 2 der EU-Marktüberwachungsverordnung die Pflichten nach Artikel 4a erfüllt.\n2 Dem Inverkehrbringen gleichgestellt ist die Inbetriebnahme von Maschinen, falls zuvor kein Inverkehrbringen stattgefunden hat.\n3 Für das Vorführen von Maschinen an Messen, Ausstellungen und dergleichen gilt Artikel 6 Absatz 3 der EU-Maschinenrichtlinie.\n\n> Footnote: Siehe Fussnote zu Art. 1 Abs. 1. Siehe Fussnote zu Art. 1 Abs. 2bis. Fassung gemäss Ziff. I der V vom 17. Febr. 2021, in Kraft seit 16. Juli 2021 (AS 2021 131).\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

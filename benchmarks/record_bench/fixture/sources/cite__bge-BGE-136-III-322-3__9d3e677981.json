@@ -1,0 +1,33 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_136_III_322",
+  "pinpoint": "3"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:47+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_136_III_322",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2010-03-16",
+  "citation_string": "BGE 136 III 322, E. 3",
+  "citation_string_de": "BGE 136 III 322, E. 3",
+  "citation_string_fr": "ATF 136 III 322, consid. 3",
+  "citation_string_it": "DTF 136 III 322, consid. 3",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_136_III_322#e-3",
+  "markdown_link": "[BGE 136 III 322, E. 3](https://mcp.opencaselaw.ch/entscheid/bge_BGE_136_III_322#e-3)",
+  "rule_statement": "Die Beschwerdeführerinnen brachten im kantonalen Verfahren vor, sie hätten den Schaden anhand der Überschuldungsdifferenz zwischen 31. Dezember 1993 und 30. September 1994 gestützt auf die Angaben der Revisionsstelle berechnet und eine Schadensberechnung zu Liquidationswerten sowie ein Sachverständigengutachten angeboten. Ohnehin könne der Schaden nur geschätzt werden.",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "pinpoint": "3",
+  "pinpoint_status": "verified",
+  "pinpoint_valid": true,
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_136_III_322"
+  },
+  "canonical_decision_id": "bge_BGE_136_III_322",
+  "is_canonical": true
+ }
+}

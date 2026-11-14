@@ -1,0 +1,195 @@
+{
+ "id": "rec_10_cobot_line_release",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "product.market_approval",
+  "text": "Release of the CoBot-Line collaborative handling cell as a complete machine for Switzerland and the EU/EEA from 1 October 2022, only with the integrated safety scanner."
+ },
+ "purpose": "Sell a safe collaborative cell to industrial customers in Switzerland and the EU/EEA.",
+ "decided_by": "Product Release Committee of Sernfeld Antriebstechnik AG",
+ "decided_at": "2022-09-15",
+ "minutes": "dms://products/cobot-line/release-decision-2022.md",
+ "owner": {
+  "person": "ra",
+  "name": "Dr. Nadia Rüegg",
+  "role": "Head of Regulatory Affairs and Quality"
+ },
+ "fallback_owner": {
+  "person": "ceo",
+  "name": "Lukas Oberholzer",
+  "role": "Chief Executive Officer"
+ },
+ "restrictions": [
+  "Sale only in Switzerland and the EU/EEA",
+  "Only with the integrated safety scanner; no sale of the arm without the cell"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Declaration of conformity under the machinery rules, standards EN ISO 10218-2 and ISO/TS 15066",
+    "source": "dms://products/cobot-line/declaration-of-conformity-2022.md",
+    "as_of": "2022-09-15"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "MaschV",
+    "sr_number": "819.14",
+    "act_title": "Verordnung vom 2. April 2008 über die Sicherheit von Maschinen (Maschinenverordnung, MaschV)",
+    "jurisdiction": "Bund (federal)",
+    "article": "2",
+    "article_label": "Art. 2 — Voraussetzungen für das Inverkehrbringen",
+    "paragraph": "1",
+    "as_of": "2022-09-15",
+    "edition": "2021-07-16",
+    "act_in_force": "2009-12-29 – (open)",
+    "text": "1 Maschinen dürfen nur in Verkehr gebracht werden, wenn: a. sie bei ordnungsgemässer Installation und Wartung und bei bestimmungsgemässer oder vernünftigerweise vorhersehbarer Verwendung die Sicherheit und die Gesundheit von Personen und gegebenenfalls von Haustieren und Sachen sowie, sofern für diese Maschinen in der EU-Maschinenrichtlinie spezifische Umweltvorschriften bestehen, die Umwelt nicht gefährden; b. die Anforderungen nach den folgenden Bestimmungen der EU-Maschinenrichtlinie erfüllt sind: Artikel 5 Absatz 1 Buchstaben a–e und Absätze 2 und 3 sowie Artikel 12 und 13; und c. ein Wirtschaftsakteur nach Artikel 4 Absatz 2 der EU-Marktüberwachungsverordnung die Pflichten nach Artikel 4a erfüllt.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2008/263/20210716/de",
+    "source_snapshot": "get_law__MaschV-2-2022-09-15__90f880bbd7",
+    "proposition": "Machinery may be placed on the market only if it meets the health and safety requirements when properly installed, maintained and used as intended or reasonably foreseeable.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:53+00:00",
+     "snapshot": "attest_response__Art--2-Abs--1-MaschV__b0261412ac",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:53+00:00",
+      "as_of": "2022-09-15",
+      "edition": "2021-07-16",
+      "snapshot": "get_law__MaschV-2-2022-09-15__90f880bbd7"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "PrHG",
+    "sr_number": "221.112.944",
+    "act_title": "Bundesgesetz vom 18. Juni 1993 über die Produktehaftpflicht (Produktehaftpflichtgesetz, PrHG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "4",
+    "article_label": "Art. 4 — Fehler",
+    "paragraph": "1",
+    "as_of": "2022-09-15",
+    "edition": "2010-07-01",
+    "act_in_force": "1994-01-01 – (open)",
+    "text": "1 Ein Produkt ist fehlerhaft, wenn es nicht die Sicherheit bietet, die man unter Berücksichtigung aller Umstände zu erwarten berechtigt ist; insbesondere sind zu berücksichtigen: a. die Art und Weise, in der es dem Publikum präsentiert wird; b. der Gebrauch, mit dem vernünftigerweise gerechnet werden kann; c. der Zeitpunkt, in dem es in Verkehr gebracht wurde.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/1993/3122_3122_3122/20100701/de",
+    "source_snapshot": "get_law__PrHG-4-2022-09-15__564ccaa16c",
+    "proposition": "A product is defective if it does not provide the safety a person is entitled to expect, taking all circumstances into account.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:54+00:00",
+     "snapshot": "attest_response__Art--4-Abs--1-PrHG__027a71ae41",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:54+00:00",
+      "as_of": "2022-09-15",
+      "edition": "2010-07-01",
+      "snapshot": "get_law__PrHG-4-2022-09-15__564ccaa16c"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_133_III_81",
+    "citation": "BGE 133 III 81, E. 3",
+    "decision_date": "2006-12-19",
+    "pinpoint": "3",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_133_III_81#e-3",
+    "source_snapshot": "cite__bge-BGE-133-III-81-3__6b7d8073db",
+    "proposition": "The injured party need not prove the cause of the defect; it suffices to show that the product did not meet legitimate safety expectations.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:49+00:00",
+     "snapshot": "attest_response__BGE-133-III-81--E--3__6347b8a797"
+    }
+   }
+  ],
+  "commitments": []
+ },
+ "objections": [],
+ "review": {
+  "date": "2024-09-30",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified",
+   "arm sold without the cell",
+   "sale outside the approved markets"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://products/cobot-line/declaration-of-conformity-2022.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Sale only in Switzerland and the EU/EEA",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "Only with the integrated safety scanner; no sale of the arm without the cell",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}
