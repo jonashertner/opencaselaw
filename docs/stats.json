@@ -2,13 +2,13 @@
   "total": 1053634,
   "source_representations": 1053634,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 923945,
-  "unique_decisions_lower_bound": 923893,
-  "duplicate_representations": 129689,
+  "unique_decisions": 923941,
+  "unique_decisions_lower_bound": 923889,
+  "duplicate_representations": 129693,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
     "ch_vb": 2315,
-    "edoeb": 551,
+    "edoeb": 555,
     "ge_gerichte": 76637,
     "nw_gerichte": 485,
     "sh_obergericht": 80,
@@ -2724,7 +2724,7 @@
     "2026-10": 1611,
     "2026-11": 72
   },
-  "generated_at": "2026-11-14T11:12:19.247687+00:00",
+  "generated_at": "2026-11-14T17:45:24.899938+00:00",
   "scraper_health": {
     "run_at": "2026-11-14T03:03:13.404205+00:00",
     "run_duration_s": 7332.3,
@@ -4084,19 +4084,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 9848509,
-    "statute_edges": 12493833
+    "citation_edges": 9850897,
+    "statute_edges": 12496754
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 108774,
+      "citation_count": 108874,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196399
+      "ref_count": 196435
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -4108,17 +4108,17 @@
       "de_pct": 45.6,
       "fr_pct": 46.4,
       "it_pct": 8.0,
-      "total": 1047248
+      "total": 1047420
     },
     "regeste_coverage": {
       "pct": 37.4,
-      "with_regeste": 393624,
-      "total": 1053461
+      "with_regeste": 393723,
+      "total": 1053634
     },
     "graph_size": {
-      "decision_edges": 9192038,
-      "statute_edges": 12493833,
-      "total": 21685871
+      "decision_edges": 9224954,
+      "statute_edges": 12496754,
+      "total": 21721708
     },
     "echr_switzerland": {
       "total": 1539,
@@ -4135,31 +4135,31 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 108774,
+        "citation_count": 108874,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 56950,
+        "citation_count": 56978,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39016,
+        "citation_count": 39068,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
       {
         "docket": "126 V 75",
-        "citation_count": 35337,
+        "citation_count": 35342,
         "regeste_excerpt": "Regeste\n Art. 28 Abs. 2 IVG: Kürzung von Tabellenlöhnen. - Für die Bestimmung des Invalideneinkommens ist primär von der beruflich-erwerblichen Situation auszug",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_126 V 75"
       },
       {
         "docket": "115 V 133",
-        "citation_count": 34253,
+        "citation_count": 34260,
         "regeste_excerpt": "Regeste\n Art. 67 und 76 KUVG, Art. 6 und 18 UVG. Präzisierung der in BGE 113 V 307 veröffentlichten Rechtsprechung zum adäquaten Kausalzusammenhang.\n\n \nRegeste\n",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_115 V 133"
       }
@@ -4168,45 +4168,45 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196399
+        "ref_count": 196435
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 120236
+        "ref_count": 120253
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 108601
+        "ref_count": 108603
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97309
+        "ref_count": 97321
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61177
+        "ref_count": 61165
       }
     ],
     "materialien_coverage": {
-      "total_documents": 36666,
-      "paragraphs": 4609801,
-      "article_links": 33185,
+      "total_documents": 38175,
+      "paragraphs": 4817371,
+      "article_links": 33330,
       "by_language": {
-        "de": 17800,
-        "fr": 11158,
-        "it": 7708
+        "de": 17801,
+        "fr": 12158,
+        "it": 8216
       },
       "by_doc_type": {
-        "bericht_bundesrat": 3264,
-        "bericht_kommission": 3902,
-        "botschaft": 21413,
+        "bericht_bundesrat": 3484,
+        "bericht_kommission": 3931,
+        "botschaft": 22670,
         "erlassentwurf": 1932,
         "stellungnahme_bundesrat": 1852,
-        "vernehmlassung_eroeffnung": 4303
+        "vernehmlassung_eroeffnung": 4306
       },
       "year_range": {
         "from": 1850,
@@ -4217,16 +4217,16 @@
       "by_doc_type": {
         "ergebnisbericht": 2013,
         "erlaeuternder_bericht": 2647,
-        "stellungnahmen": 1366,
+        "stellungnahmen": 1369,
         "synoptische_tabelle": 252,
         "vernehmlassung_diverses": 938,
         "vernehmlassungsvorlage": 3360
       },
-      "counted_at": "2026-11-12T22:49:34+00:00",
-      "documents": 10576,
-      "paragraphs": 11928358,
-      "procedures": 2697,
-      "procedures_fedlex": 2585,
+      "counted_at": "2026-11-13T22:49:44+00:00",
+      "documents": 10579,
+      "paragraphs": 11954890,
+      "procedures": 2699,
+      "procedures_fedlex": 2587,
       "year_range": {
         "from": 1993,
         "to": 2026
@@ -4385,9 +4385,9 @@
       {
         "court": "ge_gerichte",
         "earliest": "1908-11-08",
-        "latest": "2026-10-27",
+        "latest": "2026-10-29",
         "span_years": 118,
-        "decision_count": 171630
+        "decision_count": 171667
       },
       {
         "court": "mkg",
@@ -5029,7 +5029,10 @@
       "JU": 7,
       "NW": 7
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 2388,
+      "statute_edges": 2921
+    },
     "previous_generated_at": "2026-11-13T22:16:28.202947+00:00"
   }
 }
