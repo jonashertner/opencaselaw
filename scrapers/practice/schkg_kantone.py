@@ -224,6 +224,13 @@ REGISTRY: tuple[Entry, ...] = (
     Entry("NW", "https://www.nw.ch/_doc/22444", "de", "Obergericht", mode="pdf",
           title="Weisung des Obergerichts vom 26. August 2009 zum Notbedarf im Familienrecht und "
                 "bei der unentgeltlichen Rechtspflege", existenzminimum=r"(?!)"),
+    # Not published online. The Kantonsgericht confirmed on 2026-11-11 that it
+    # is still in force and sent the signed scan; text transcribed from that scan.
+    Entry("NW", "https://www.nw.ch/kantonsgericht/80", "de",
+          "Kantonsgericht (Einzelgericht SchK als untere Aufsichtsbehörde)", mode="static",
+          static_file="nw_weisung_2013_1.txt", date="2013-10-24", existenzminimum=r"(?!)",
+          title="Weisung Nr. 1/2013 vom 24. Oktober 2013 – Verwendung von eingescannten "
+                "Unterschriften"),
     Entry("BS", "https://www.bs.ch/gerichte-judikative/betreibungs-und-konkursamt/konkurse",
           "de", "Betreibungs- und Konkursamt", include=r"media\.bs\.ch/original_file/",
           text_include=r"Merkblatt"),

@@ -129,6 +129,15 @@ def test_bl_guideline_comes_from_the_static_copy():
     assert stub["revision"] == sk.sha256_hex(stub["body_text"])
 
 
+def test_nw_scanned_signature_weisung_comes_from_the_static_copy():
+    entry = next(e for e in sk.REGISTRY if e.static_file == "nw_weisung_2013_1.txt")
+    s = sk.SchkgKantoneScraper(registry=(entry,))
+    (stub,) = list(s.discover_documents())
+    assert stub["doc_type"] == "weisung" and stub["date"] == "2013-10-24"
+    assert not stub["doc_number"].endswith("Existenzminimum")
+    assert "Art. 6 VFRR" in stub["body_text"] and "Konkursandrohungen" in stub["body_text"]
+
+
 def test_kbks_press_release_mentioning_existenzminimum_is_not_the_guideline():
     stubs = _parse("schkg_kantone_kbks_news_de.html", "ueber-uns/news")
     assert len(stubs) == 2
