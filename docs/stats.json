@@ -2723,7 +2723,7 @@
     "2026-10": 1612,
     "2026-11": 72
   },
-  "generated_at": "2026-11-15T11:09:25.004586+00:00",
+  "generated_at": "2026-11-15T21:14:15.875577+00:00",
   "scraper_health": {
     "run_at": "2026-11-15T02:11:27.868043+00:00",
     "run_duration_s": 4226.9,
@@ -4040,29 +4040,29 @@
       "ZH": 944
     },
     "commentaries": 1797,
-    "scholarship_publications": 52491,
+    "scholarship_publications": 52727,
     "scholarship_by_source": {
       "zora_law": 14097,
-      "boris_law": 7627,
-      "unige_law": 6565,
+      "boris_law": 7636,
+      "unige_law": 6567,
       "alexandria_law": 5675,
+      "zhaw_digitalcollection": 3151,
       "e_periodica_polsci": 3098,
-      "zhaw_digitalcollection": 3089,
       "e_periodica_law": 3041,
-      "libra_unine": 2030,
-      "eth_research_collection": 1826,
+      "libra_unine": 2031,
+      "eth_research_collection": 1827,
       "e_periodica_pubadmin": 857,
       "unifr_law": 794,
-      "openlegalcommentary": 599,
-      "fhnw_irf": 514,
-      "edoc_unibas_law": 479,
+      "edoc_unibas_law": 638,
+      "openlegalcommentary": 600,
+      "fhnw_irf": 515,
       "onlinekommentar": 399,
       "sui_generis": 297,
       "medialex": 285,
-      "eizpublishing": 278,
+      "eizpublishing": 279,
       "leges": 210,
       "ex_ante": 186,
-      "thegoodboard": 140,
+      "thegoodboard": 139,
       "shk_kommentar": 109,
       "anci_ch": 100,
       "cognitio": 58,
@@ -4072,24 +4072,24 @@
       "usi_law": 8
     },
     "scholarship_by_type": {
-      "article": 35353,
-      "book": 12754,
-      "dissertation": 2260,
-      "commentary": 1126,
-      "report": 674,
+      "article": 35509,
+      "book": 12832,
+      "dissertation": 2261,
+      "commentary": 1127,
+      "report": 675,
       "working_paper": 199,
-      "guidance": 70,
+      "guidance": 69,
       "reference_article": 40,
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 9850897,
-    "statute_edges": 12496754
+    "citation_edges": 9851309,
+    "statute_edges": 12497068
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 108874,
+      "citation_count": 108886,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
@@ -4107,17 +4107,17 @@
       "de_pct": 45.6,
       "fr_pct": 46.4,
       "it_pct": 8.0,
-      "total": 1047420
+      "total": 1047447
     },
     "regeste_coverage": {
       "pct": 37.4,
-      "with_regeste": 393723,
-      "total": 1053634
+      "with_regeste": 393727,
+      "total": 1053661
     },
     "graph_size": {
-      "decision_edges": 9194133,
-      "statute_edges": 12496754,
-      "total": 21690887
+      "decision_edges": 9225326,
+      "statute_edges": 12497068,
+      "total": 21722394
     },
     "echr_switzerland": {
       "total": 1539,
@@ -4134,19 +4134,19 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 108874,
+        "citation_count": 108886,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 56978,
+        "citation_count": 56979,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39068,
+        "citation_count": 39074,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
@@ -4182,7 +4182,7 @@
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97321
+        "ref_count": 97344
       },
       {
         "law_code": "BGG",
@@ -4193,7 +4193,7 @@
     "materialien_coverage": {
       "total_documents": 39236,
       "paragraphs": 4961423,
-      "article_links": 33330,
+      "article_links": 33334,
       "by_language": {
         "de": 17801,
         "fr": 13158,
@@ -4998,7 +4998,10 @@
       "BS": 6,
       "EU": 2
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 412,
+      "statute_edges": 314
+    },
     "previous_generated_at": "2026-11-14T22:09:54.202487+00:00"
   }
 }
