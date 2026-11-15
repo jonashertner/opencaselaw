@@ -21,7 +21,7 @@ python-dotenv>=1.2.2
 # StreamableHTTP sessions); the server is stateless with no auth, WebSocket or
 # tasks. Raise the floor together with the VPS install. <2: mcp 2.x drops the
 # lowlevel decorator API mcp_server.py is built on.
-mcp>=1.27.0,<2
+mcp>=1.27.0,<3
 
 # BGer PoW encryption (optional)
 pycryptodome>=3.20
