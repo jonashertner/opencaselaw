@@ -142,3 +142,49 @@ def test_misdated_twins_are_not_folded(tmp_path):
     # the state the report found: the dedup key holds the date, so both survive
     c = _db(tmp_path, DIRECT_BZ, ES_BZ)
     assert build_fts5._cross_court_dedup(c) == 0
+
+
+# Report 2026-11-15: the Versicherungsgericht closes its Regeste with a sentence,
+# "(Entscheid ... vom 13. September 2016, EL 2015/11)", not with the comma list
+# the Kantonsgericht uses, so the restore never saw a date for these rows and
+# EL 2015/11 kept the 03-12 pass's 7 November 2003, the date of a will in the
+# Sachverhalt.
+EL_REGESTE = (
+    "Art. 11 Abs. 1 lit. c ELG.Behandlung eines mit einer Nacherbschaft belasteten Vermögens bzw. "
+    "Beantwortung der Frage, ob eine Vorerbschaft zum verzehrbaren Vermögen gezählt werden muss "
+    "(Entscheid des Versicherungsgerichts des Kantons St. Gallen vom 13. September 2016, EL 2015/11)."
+    "Entscheid vom 13. September 2016"
+)
+DIRECT_EL = {
+    "decision_id": "sg_publikationen_EL 2015_11", "court": "sg_versicherungsgericht", "canton": "SG",
+    "docket_number": "EL 2015/11", "decision_date": "2003-11-07", "publication_date": "2016-09-13",
+    "title": "Entscheid Versicherungsgericht, 13.09.2016", "regeste": EL_REGESTE, "language": "de",
+    "full_text": ("Besetzung\nVizepräsident Ralph Jöhl ...\nGeschäftsnr.\nEL 2015/11\n Sachverhalt: ... "
+                  "Laut der Eröffnung einer letztwilligen Verfügung vom 7. November 2003 "
+                  "(EL-act. 37–9 ff.) war ... ") * 20,
+    "source_url": "https://publikationen.sg.ch/rechtsprechung-gerichte-detail/2284/",
+    "date_extraction": {"method": "header_de", "raw_match": "Verfügung vom 7. November 2003",
+                        "metadata_date": "2016-09-13"},
+}
+
+
+def test_the_versicherungsgericht_sentence_trailer_names_the_date():
+    assert r.trailer_date(EL_REGESTE, "EL 2015/11") == "2016-09-13"
+    assert r.own_date(DIRECT_EL) == ("2016-09-13", "regeste_trailer")
+    assert r.decide(DIRECT_EL, include_unstamped=False) == ("own_date:regeste_trailer", "2016-09-13")
+    # a "vom <date>" sentence for another docket is not this ruling's date
+    assert r.trailer_date(EL_REGESTE, "EL 2015/12") is None
+    # a Sachverhalt date followed by a file reference, not a docket, is never taken
+    assert r.trailer_date(DIRECT_EL["full_text"], "EL 2015/11") is None
+    # the BGer reference "(Urteil 4A_553 ... vom 9. Februar 2009)" has no docket field
+    assert r.trailer_date(BZ_REGESTE, "4A_553") is None
+
+
+def test_sentence_trailer_restore_clears_the_planted_publication_date(tmp_path):
+    shard = tmp_path / "sg_publikationen.jsonl"
+    shard.write_text(json.dumps(DIRECT_EL, ensure_ascii=False) + "\n")
+    stats = r.run(shard, apply=True, examples=0)
+    assert stats["rows_changed"] == 1 and stats["publication_date_reset"] == 1
+    out = json.loads(shard.read_text())
+    assert out["decision_date"] == "2016-09-13" and out["publication_date"] is None
+    assert out["date_restore"]["from"] == "2003-11-07"

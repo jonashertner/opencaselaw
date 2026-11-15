@@ -68,9 +68,12 @@ if str(REPO) not in sys.path:
 from models import parse_date  # noqa: E402
 
 # "(<court>, <chamber>, 14. Februar 2005, VZ.2004.35)" — the date is the last
-# comma field before the docket(s).
+# comma field before the docket(s). The Versicherungsgericht writes it as a
+# sentence instead: "(Entscheid des Versicherungsgerichts des Kantons St. Gallen
+# vom 13. September 2016, EL 2015/11)" (report 2026-11-15: 594 sg_publikationen
+# rows had only this form, so the comma-only pattern left them misdated).
 _TRAILER_RE = re.compile(
-    r"\(([^()]{0,250}?),\s*(\d{1,2}\.\s*[A-Za-zÄÖÜäöüéû]+\s+\d{4})\s*,\s*([^(),]{2,80})\)"
+    r"\(([^()]{0,250}?)(?:,\s*|\bvom\s+)(\d{1,2}\.\s*[A-Za-zÄÖÜäöüéû]+\s+\d{4})\s*,\s*([^(),]{2,80})\)"
 )
 # Kopfzeile: first line ending in "<dd.mm.yyyy> <docket>".
 _KOPF_RE = re.compile(r"(\d{1,2}\.\d{1,2}\.\d{4})\s+(\S+)\s*$")
