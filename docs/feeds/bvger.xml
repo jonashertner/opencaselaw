@@ -5,9 +5,17 @@
     <link>https://opencaselaw.ch/feeds/bvger.xml</link>
     <description>Latest published Bundesverwaltungsgericht decisions.</description>
     <language>de-CH</language>
-    <lastBuildDate>Sat, 14 Nov 2026 22:18:44 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 15 Nov 2026 11:16:56 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/bvger.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht E-1129/2026 vom 2026-09-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-1129_2026</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Sat, 14 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:E-1129.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesverwaltungsgericht E-4151/2024 vom 2026-11-05</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bvger_E-4151_2024</link>
@@ -398,14 +406,6 @@
       <description>Marktüberwachung</description>
       <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-6696.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht A-8677/2025 vom 2026-11-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_A-8677_2025</link>
-      <description>Bundespersonal</description>
-      <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:A-8677.2025</guid>
       <category>bvger</category>
     </item>
   </channel>
