@@ -1,9 +1,9 @@
 {
  "schema": "coverage/v1",
- "generated_at": "2026-11-15T11:16:58+00:00",
+ "generated_at": "2026-11-16T13:05:21+00:00",
  "methodology": "total/by_year = decisions in the served corpus by decision year. portal_total = the source portal's own result count where the daily scrape can observe one (not every portal exposes totals). gap = portal_total - our_count at check time; a gap is NOT necessarily missing data — see the per-court note. Publication practice varies enormously between courts: absence of a decision here usually means the court never published it.",
  "totals": {
-  "decisions": 1053661,
+  "decisions": 1053108,
   "courts": 137,
   "courts_with_portal_total": 22,
   "courts_with_note": 15
@@ -98,7 +98,7 @@
    "portal_total": 255,
    "our_count_at_check": 249,
    "gap": 6,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -244,10 +244,10 @@
     "2024": 40,
     "2025": 20
    },
-   "portal_total": 11475,
-   "our_count_at_check": 11479,
+   "portal_total": 11479,
+   "our_count_at_check": 11483,
    "gap": -4,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -424,7 +424,7 @@
   },
   {
    "court": "ag_versicherungsgericht",
-   "total": 2157,
+   "total": 2161,
    "first_year": "1995",
    "last_year": "2026",
    "undated": 0,
@@ -452,7 +452,7 @@
     "2023": 437,
     "2024": 462,
     "2025": 464,
-    "2026": 311
+    "2026": 315
    },
    "portal_total": null,
    "our_count_at_check": null,
@@ -533,7 +533,7 @@
    "portal_total": 10,
    "our_count_at_check": 10,
    "gap": 0,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -621,7 +621,7 @@
    "portal_total": null,
    "our_count_at_check": 172,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -725,7 +725,7 @@
    "portal_total": null,
    "our_count_at_check": 1665,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -752,7 +752,7 @@
    "portal_total": null,
    "our_count_at_check": 122,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -779,7 +779,7 @@
    "portal_total": 70,
    "our_count_at_check": 71,
    "gap": -1,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -817,7 +817,7 @@
    "portal_total": 2259,
    "our_count_at_check": 2240,
    "gap": 19,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -856,7 +856,7 @@
    "portal_total": 668,
    "our_count_at_check": 659,
    "gap": 9,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -882,7 +882,7 @@
    "portal_total": 368,
    "our_count_at_check": 368,
    "gap": 0,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "The portal was never down: from Feb 2026 the scraper sent the court filter STRK where the portal expects StRK (case-sensitive), and every query answered zero rows. Fixed 2026-11-08; the portal lists 367 decisions (2015-2026)."
   },
   {
@@ -916,7 +916,7 @@
    "portal_total": 11795,
    "our_count_at_check": 11793,
    "gap": 2,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "Direct scrape at parity since the docket-anchored parser fix of 2026-08-27: on 2026-09-15 the portal's 11,633 listing rows resolved to 11,600 distinct dockets, all held (11,618 held in total). The remaining listing difference is duplicate or under-filled rows of the date-windowed listing."
   },
   {
@@ -988,7 +988,7 @@
    "portal_total": 6064,
    "our_count_at_check": 6062,
    "gap": 2,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1154,7 +1154,7 @@
    "portal_total": null,
    "our_count_at_check": 21397,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "Official collection complete (verified 0 missing vs external benchmark). Volume citations before 1954 partially carry publication-year dating semantics."
   },
   {
@@ -1211,7 +1211,7 @@
    "portal_total": null,
    "our_count_at_check": 488,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1256,7 +1256,7 @@
    "portal_total": null,
    "our_count_at_check": 100365,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "Complete for published decisions from 2000 (verified against citation-gap oracles). Pre-2000 ordinary judgments were never put online by the court. Pre-2007 EVG social-insurance decisions (~15,215) are recoverable and queued."
   },
   {
@@ -1302,7 +1302,7 @@
    "portal_total": null,
    "our_count_at_check": 9521,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "The Kantonsgericht published ~4,997 decisions on a portal that went offline; 903 recovered via the Internet Archive (2026-04). Outreach to the court pending since 2026-04-17; remainder is a known upstream-availability gap, not a scrape failure."
   },
   {
@@ -1332,7 +1332,7 @@
    "portal_total": null,
    "our_count_at_check": 179,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1389,7 +1389,7 @@
    "portal_total": 11148,
    "our_count_at_check": 11149,
    "gap": -1,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1506,7 +1506,7 @@
    "portal_total": null,
    "our_count_at_check": 11923,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1555,7 +1555,7 @@
    "portal_total": null,
    "our_count_at_check": 95429,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1577,7 +1577,7 @@
    "portal_total": 19,
    "our_count_at_check": 19,
    "gap": 0,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1778,7 +1778,7 @@
    "portal_total": null,
    "our_count_at_check": 64,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1946,7 +1946,7 @@
    "portal_total": null,
    "our_count_at_check": 673,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -1979,7 +1979,7 @@
    "portal_total": null,
    "our_count_at_check": 436,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2012,7 +2012,7 @@
    "portal_total": null,
    "our_count_at_check": 433,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2031,7 +2031,7 @@
    "portal_total": null,
    "our_count_at_check": 67,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2081,7 +2081,7 @@
    "portal_total": null,
    "our_count_at_check": 419,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2124,7 +2124,7 @@
    "portal_total": null,
    "our_count_at_check": 455,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2169,7 +2169,7 @@
    "portal_total": null,
    "our_count_at_check": 2585,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2182,7 +2182,7 @@
    "portal_total": null,
    "our_count_at_check": 3,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "Registered source; the authority has published zero decisions to date (0 by design, not a failure)."
   },
   {
@@ -2215,7 +2215,7 @@
    "portal_total": 14861,
    "our_count_at_check": 14861,
    "gap": 0,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2298,7 +2298,7 @@
    "portal_total": null,
    "our_count_at_check": 95281,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "7,051 decisions (ATAS/ACJC 2006-2013) had unreadable CID-font PDF text; recovered via OCR on 2026-07-01 and fully searchable since 2026-07-02. Docket field carries bare cause numbers for some older rows."
   },
   {
@@ -2333,7 +2333,7 @@
    "portal_total": 728,
    "our_count_at_check": 728,
    "gap": 0,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2382,7 +2382,7 @@
    "portal_total": 14802,
    "our_count_at_check": 14993,
    "gap": -191,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2442,7 +2442,7 @@
    "portal_total": null,
    "our_count_at_check": 860,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2559,7 +2559,7 @@
    "portal_total": 1232,
    "our_count_at_check": 1216,
    "gap": 16,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2610,7 +2610,7 @@
    "portal_total": null,
    "our_count_at_check": 4058,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2724,7 +2724,7 @@
    "portal_total": null,
    "our_count_at_check": 1247,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "Complete archival corpus of the Militärkassationsgericht, volumes 1-16 (1915-2025); the court publishes no new volumes."
   },
   {
@@ -2774,7 +2774,7 @@
    "portal_total": 7843,
    "our_count_at_check": 7835,
    "gap": 8,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2808,7 +2808,7 @@
    "portal_total": 1648,
    "our_count_at_check": 1648,
    "gap": 0,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2834,7 +2834,7 @@
    "portal_total": null,
    "our_count_at_check": 568,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2907,7 +2907,7 @@
    "portal_total": null,
    "our_count_at_check": 2205,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "The portal is online but frozen: it lists the same 2,205 decisions every night, newest upload 2022-12-19. A successor portal appeared in 2026 and is re-probed weekly; intake resumes if it yields decisions."
   },
   {
@@ -2937,7 +2937,7 @@
    "portal_total": null,
    "our_count_at_check": 336,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2953,7 +2953,7 @@
    "portal_total": null,
    "our_count_at_check": 30,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -2971,7 +2971,7 @@
    "portal_total": null,
    "our_count_at_check": 5,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3004,7 +3004,7 @@
   },
   {
    "court": "sg_gerichte",
-   "total": 1988,
+   "total": 1454,
    "first_year": "1969",
    "last_year": "2026",
    "undated": 0,
@@ -3023,23 +3023,23 @@
     "2001": 3,
     "2002": 3,
     "2003": 2,
-    "2004": 30,
+    "2004": 27,
     "2005": 62,
     "2006": 61,
-    "2007": 130,
+    "2007": 125,
     "2008": 44,
-    "2009": 49,
-    "2010": 60,
-    "2011": 145,
-    "2012": 159,
-    "2013": 41,
-    "2014": 35,
-    "2015": 172,
-    "2016": 193,
-    "2017": 176,
-    "2018": 198,
-    "2019": 79,
-    "2020": 88,
+    "2009": 47,
+    "2010": 55,
+    "2011": 75,
+    "2012": 60,
+    "2013": 39,
+    "2014": 28,
+    "2015": 88,
+    "2016": 72,
+    "2017": 113,
+    "2018": 127,
+    "2019": 78,
+    "2020": 87,
     "2021": 76,
     "2022": 52,
     "2023": 48,
@@ -3090,19 +3090,17 @@
     "1989": 1,
     "1995": 2,
     "2000": 1,
-    "2001": 1,
-    "2002": 1,
     "2003": 1,
-    "2004": 29,
+    "2004": 30,
     "2005": 33,
     "2006": 27,
-    "2007": 77,
+    "2007": 78,
     "2008": 54,
     "2009": 52,
-    "2010": 49,
-    "2011": 61,
-    "2012": 38,
-    "2013": 39,
+    "2010": 48,
+    "2011": 62,
+    "2012": 37,
+    "2013": 40,
     "2014": 60,
     "2015": 47,
     "2016": 38,
@@ -3157,52 +3155,37 @@
    "portal_total": null,
    "our_count_at_check": 12876,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "Publication practice example: St. Gallen published 5 of 272 employment rulings 2002-2017. Low counts here reflect court publication policy, not capture failure."
   },
   {
    "court": "sg_versicherungsgericht",
-   "total": 7663,
-   "first_year": "1979",
+   "total": 7640,
+   "first_year": "1990",
    "last_year": "2026",
    "undated": 0,
    "by_year": {
-    "1979": 1,
-    "1983": 1,
-    "1984": 1,
-    "1985": 1,
-    "1986": 1,
-    "1987": 1,
-    "1989": 2,
     "1990": 1,
-    "1991": 3,
-    "1992": 1,
-    "1993": 5,
-    "1994": 3,
-    "1995": 4,
-    "1996": 4,
-    "1997": 3,
-    "1998": 4,
-    "1999": 8,
-    "2000": 8,
-    "2001": 8,
-    "2002": 13,
-    "2003": 24,
-    "2004": 19,
-    "2005": 27,
-    "2006": 28,
-    "2007": 421,
-    "2008": 498,
-    "2009": 582,
-    "2010": 574,
-    "2011": 428,
-    "2012": 389,
-    "2013": 427,
-    "2014": 318,
-    "2015": 256,
-    "2016": 224,
-    "2017": 336,
-    "2018": 332,
+    "1995": 1,
+    "1998": 1,
+    "2001": 1,
+    "2002": 1,
+    "2003": 4,
+    "2004": 6,
+    "2005": 8,
+    "2006": 11,
+    "2007": 400,
+    "2008": 459,
+    "2009": 527,
+    "2010": 485,
+    "2011": 425,
+    "2012": 457,
+    "2013": 393,
+    "2014": 292,
+    "2015": 323,
+    "2016": 342,
+    "2017": 394,
+    "2018": 402,
     "2019": 398,
     "2020": 468,
     "2021": 450,
@@ -3290,24 +3273,24 @@
     "1965": 1,
     "1993": 1,
     "1995": 2,
-    "2003": 4,
-    "2004": 27,
+    "2003": 3,
+    "2004": 28,
     "2005": 17,
     "2006": 21,
-    "2007": 28,
+    "2007": 27,
     "2008": 7,
     "2009": 17,
-    "2010": 94,
-    "2011": 137,
+    "2010": 93,
+    "2011": 133,
     "2012": 95,
     "2013": 75,
     "2014": 70,
-    "2015": 64,
-    "2016": 75,
-    "2017": 61,
-    "2018": 63,
+    "2015": 65,
+    "2016": 77,
+    "2017": 62,
+    "2018": 64,
     "2019": 73,
-    "2020": 64,
+    "2020": 65,
     "2021": 80,
     "2022": 32,
     "2023": 11,
@@ -3347,7 +3330,7 @@
    "portal_total": null,
    "our_count_at_check": 723,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3411,7 +3394,7 @@
    "portal_total": null,
    "our_count_at_check": 64,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3487,7 +3470,7 @@
    "portal_total": null,
    "our_count_at_check": 9475,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3520,7 +3503,7 @@
    "portal_total": 3499,
    "our_count_at_check": 3447,
    "gap": 52,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3551,7 +3534,7 @@
    "portal_total": 2257,
    "our_count_at_check": 2252,
    "gap": 5,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3576,7 +3559,7 @@
    "portal_total": null,
    "our_count_at_check": 121,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3589,7 +3572,7 @@
    "portal_total": null,
    "our_count_at_check": 5,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3636,7 +3619,7 @@
    "portal_total": null,
    "our_count_at_check": 2279,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3709,7 +3692,7 @@
    "portal_total": null,
    "our_count_at_check": 58415,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "~549 rows carry no machine-readable date (PDFs truncated upstream). Text completeness restored 2026-06-29 (control-character stripping). Since 2026-09-15 new rows take their decision date from the result table; older undated rows await a backfill."
   },
   {
@@ -3752,7 +3735,7 @@
    "portal_total": null,
    "our_count_at_check": 683,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -3796,7 +3779,7 @@
    "portal_total": null,
    "our_count_at_check": 788,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -4167,7 +4150,7 @@
    "portal_total": null,
    "our_count_at_check": 440,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -4251,7 +4234,7 @@
    "portal_total": null,
    "our_count_at_check": 67730,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -4306,7 +4289,7 @@
    "portal_total": null,
    "our_count_at_check": 10299,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -4350,7 +4333,7 @@
    "portal_total": 4648,
    "our_count_at_check": 4651,
    "gap": -3,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": "The portal counts documents: ZWR/RVJ journal reprints and same-day re-uploads share a case number with the decision, which the corpus holds once; since 2026-09-15 the gap metric counts distinct case numbers. About 4-5 second rulings filed under an already-held case number (district court and Kantonsgericht) are not in the corpus yet (identity decision pending)."
   },
   {
@@ -4387,7 +4370,7 @@
    "portal_total": null,
    "our_count_at_check": 321,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -4532,7 +4515,7 @@
    "portal_total": 1381,
    "our_count_at_check": 2213,
    "gap": -832,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -4645,7 +4628,7 @@
    "portal_total": 1469,
    "our_count_at_check": 2745,
    "gap": -1276,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -4737,7 +4720,7 @@
    "portal_total": null,
    "our_count_at_check": 1162,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -5038,7 +5021,7 @@
    "portal_total": null,
    "our_count_at_check": 36709,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -5234,7 +5217,7 @@
    "portal_total": null,
    "our_count_at_check": 34858,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -5281,7 +5264,7 @@
    "portal_total": null,
    "our_count_at_check": 887,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   },
   {
@@ -5344,7 +5327,7 @@
    "portal_total": null,
    "our_count_at_check": 12093,
    "gap": null,
-   "portal_checked_at": "2026-11-15T02:11:27.868043+00:00",
+   "portal_checked_at": "2026-11-16T02:13:24.219327+00:00",
    "note": null
   }
  ]
