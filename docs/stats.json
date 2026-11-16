@@ -1,9 +1,9 @@
 {
-  "total": 1053108,
-  "source_representations": 1053108,
+  "total": 1053181,
+  "source_representations": 1053181,
   "representation_method_version": "2026-07-23.1",
-  "unique_decisions": 923415,
-  "unique_decisions_lower_bound": 923363,
+  "unique_decisions": 923488,
+  "unique_decisions_lower_bound": 923436,
   "duplicate_representations": 129693,
   "unique_decisions_status": "current",
   "duplicates_by_court": {
@@ -19,10 +19,10 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194523,
+      "count": 194596,
       "earliest": "1996-01-19",
-      "latest": "2026-11-04",
-      "last_scraped": "2026-11-13T11:02:23.725634+00:00",
+      "latest": "2026-11-05",
+      "last_scraped": "2026-11-16T11:02:45.004074+00:00",
       "languages": [
         "de",
         "fr",
@@ -1798,8 +1798,8 @@
   ],
   "federal_seats": {
     "bger": {
-      "LU": 36886,
-      "VD": 157637
+      "LU": 36900,
+      "VD": 157696
     },
     "bge": {
       "LU": 3300,
@@ -2153,9 +2153,9 @@
     }
   ],
   "by_language": {
-    "fr": 486042,
-    "de": 477250,
-    "it": 83602,
+    "fr": 486067,
+    "de": 477284,
+    "it": 83616,
     "en": 6214
   },
   "by_year": {
@@ -2308,26 +2308,26 @@
     "2021": 50073,
     "2022": 49327,
     "2023": 48887,
-    "2024": 49234,
-    "2025": 48702,
-    "2026": 31293,
+    "2024": 49242,
+    "2025": 48728,
+    "2026": 31332,
     "2027": 1
   },
   "recent_daily": {
-    "2026-10-19": 60,
+    "2026-10-19": 61,
     "2026-10-20": 61,
-    "2026-10-21": 62,
-    "2026-10-22": 54,
-    "2026-10-23": 42,
-    "2026-10-26": 86,
-    "2026-10-27": 50,
-    "2026-10-28": 33,
-    "2026-10-29": 38,
+    "2026-10-21": 63,
+    "2026-10-22": 57,
+    "2026-10-23": 44,
+    "2026-10-26": 90,
+    "2026-10-27": 53,
+    "2026-10-28": 35,
+    "2026-10-29": 40,
     "2026-10-30": 20,
     "2026-11-02": 20,
     "2026-11-03": 15,
     "2026-11-04": 13,
-    "2026-11-05": 10,
+    "2026-11-05": 11,
     "2026-11-06": 3,
     "2026-11-09": 1,
     "2026-11-10": 1,
@@ -2343,7 +2343,7 @@
     {
       "court": "bger",
       "canton": "CH",
-      "count": 194523
+      "count": 194596
     },
     {
       "court": "ge_gerichte",
@@ -2541,12 +2541,12 @@
     "2022": -1.5,
     "2023": -0.9,
     "2024": 0.7,
-    "2025": -1.1,
+    "2025": -1.0,
     "2026": -35.7,
     "2027": -100.0
   },
   "federal_vs_cantonal": {
-    "federal": 372421,
+    "federal": 372494,
     "cantonal": 680687
   },
   "language_by_year": {
@@ -2665,22 +2665,22 @@
       "it": 2207
     },
     "2024": {
-      "de": 20873,
+      "de": 20875,
       "en": 367,
-      "fr": 25955,
-      "it": 2039
+      "fr": 25958,
+      "it": 2042
     },
     "2025": {
-      "de": 22100,
+      "de": 22110,
       "en": 378,
-      "fr": 24434,
-      "it": 1790
+      "fr": 24440,
+      "it": 1800
     },
     "2026": {
-      "de": 15865,
+      "de": 15887,
       "en": 249,
-      "fr": 14080,
-      "it": 1099
+      "fr": 14096,
+      "it": 1100
     }
   },
   "by_month": {
@@ -2694,35 +2694,35 @@
     "2024-06": 4530,
     "2024-07": 3833,
     "2024-08": 3740,
-    "2024-09": 3993,
-    "2024-10": 4252,
+    "2024-09": 3994,
+    "2024-10": 4257,
     "2024-11": 4350,
-    "2024-12": 4079,
-    "2025-01": 3997,
+    "2024-12": 4081,
+    "2025-01": 4001,
     "2025-02": 3936,
-    "2025-03": 4254,
-    "2025-04": 3931,
-    "2025-05": 4121,
-    "2025-06": 4554,
+    "2025-03": 4256,
+    "2025-04": 3936,
+    "2025-05": 4124,
+    "2025-06": 4555,
     "2025-07": 3717,
     "2025-08": 3740,
-    "2025-09": 4380,
-    "2025-10": 4311,
-    "2025-11": 4014,
-    "2025-12": 3747,
-    "2026-01": 3131,
-    "2026-02": 3383,
+    "2025-09": 4381,
+    "2025-10": 4314,
+    "2025-11": 4015,
+    "2025-12": 3753,
+    "2026-01": 3138,
+    "2026-02": 3384,
     "2026-03": 4066,
     "2026-04": 3349,
     "2026-05": 3170,
     "2026-06": 3697,
     "2026-07": 2945,
     "2026-08": 2935,
-    "2026-09": 2933,
-    "2026-10": 1612,
-    "2026-11": 72
+    "2026-09": 2936,
+    "2026-10": 1639,
+    "2026-11": 73
   },
-  "generated_at": "2026-11-16T12:59:01.518521+00:00",
+  "generated_at": "2026-11-16T20:27:33.206880+00:00",
   "scraper_health": {
     "run_at": "2026-11-16T02:13:24.219327+00:00",
     "run_duration_s": 4343.0,
@@ -3286,7 +3286,7 @@
         "note": null,
         "state_count": 100413,
         "jsonl_size_mb": 1519.6,
-        "jsonl_mtime": "2026-11-16T12:01:00.254300+00:00"
+        "jsonl_mtime": "2026-11-16T13:01:15.042454+00:00"
       },
       "nw_gerichte": {
         "success": true,
@@ -4038,7 +4038,7 @@
       "ZG": 610,
       "ZH": 944
     },
-    "commentaries": 1797,
+    "commentaries": 1796,
     "scholarship_publications": 52727,
     "scholarship_by_source": {
       "zora_law": 14097,
@@ -4082,19 +4082,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 9851309,
-    "statute_edges": 12497068
+    "citation_edges": 9852501,
+    "statute_edges": 12496981
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 108886,
+      "citation_count": 108881,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196435
+      "ref_count": 196441
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -4106,17 +4106,17 @@
       "de_pct": 45.6,
       "fr_pct": 46.4,
       "it_pct": 8.0,
-      "total": 1047447
+      "total": 1046967
     },
     "regeste_coverage": {
-      "pct": 37.4,
-      "with_regeste": 393727,
-      "total": 1053661
+      "pct": 37.3,
+      "with_regeste": 393170,
+      "total": 1053181
     },
     "graph_size": {
-      "decision_edges": 9225326,
-      "statute_edges": 12497068,
-      "total": 21722394
+      "decision_edges": 9226590,
+      "statute_edges": 12496981,
+      "total": 21723571
     },
     "echr_switzerland": {
       "total": 1539,
@@ -4133,31 +4133,31 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 108886,
+        "citation_count": 108881,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 56979,
+        "citation_count": 56978,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39074,
+        "citation_count": 39076,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
       {
         "docket": "126 V 75",
-        "citation_count": 35342,
+        "citation_count": 35343,
         "regeste_excerpt": "Regeste\n Art. 28 Abs. 2 IVG: Kürzung von Tabellenlöhnen. - Für die Bestimmung des Invalideneinkommens ist primär von der beruflich-erwerblichen Situation auszug",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_126 V 75"
       },
       {
         "docket": "115 V 133",
-        "citation_count": 34260,
+        "citation_count": 34259,
         "regeste_excerpt": "Regeste\n Art. 67 und 76 KUVG, Art. 6 und 18 UVG. Präzisierung der in BGE 113 V 307 veröffentlichten Rechtsprechung zum adäquaten Kausalzusammenhang.\n\n \nRegeste\n",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_115 V 133"
       }
@@ -4166,42 +4166,42 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196435
+        "ref_count": 196441
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 120253
+        "ref_count": 120254
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 108603
+        "ref_count": 108616
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97344
+        "ref_count": 97371
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61165
+        "ref_count": 61196
       }
     ],
     "materialien_coverage": {
-      "total_documents": 39236,
-      "paragraphs": 4961423,
-      "article_links": 33334,
+      "total_documents": 40236,
+      "paragraphs": 5105164,
+      "article_links": 33350,
       "by_language": {
         "de": 17801,
-        "fr": 13158,
+        "fr": 14158,
         "it": 8277
       },
       "by_doc_type": {
-        "bericht_bundesrat": 3831,
-        "bericht_kommission": 3953,
-        "botschaft": 23362,
+        "bericht_bundesrat": 4142,
+        "bericht_kommission": 3978,
+        "botschaft": 24026,
         "erlassentwurf": 1932,
         "stellungnahme_bundesrat": 1852,
         "vernehmlassung_eroeffnung": 4306
@@ -4684,6 +4684,14 @@
   "recent": {
     "bge": [
       {
+        "decision_id": "bger_9C_572_2026",
+        "docket": "9C_572/2026",
+        "date": "2026-11-05",
+        "court": "bger",
+        "language": "fr",
+        "summary": "Impôts cantonaux et communaux du canton du Valais et impôt fédéral direct, périodes fiscales 2014 et 2016,"
+      },
+      {
         "decision_id": "bger_5A_1103_2026",
         "docket": "5A_1103/2026",
         "date": "2026-11-04",
@@ -4754,14 +4762,6 @@
         "court": "bger",
         "language": "de",
         "summary": "Baubewilligung,"
-      },
-      {
-        "decision_id": "bger_9F_16_2026",
-        "docket": "9F_16/2026",
-        "date": "2026-10-29",
-        "court": "bger",
-        "language": "fr",
-        "summary": "Prévoyance professionnelle,"
       }
     ],
     "cantonal": [
@@ -4980,14 +4980,19 @@
     }
   ],
   "delta": {
-    "total": -553,
+    "total": -480,
     "by_court": {
+      "bger": 73,
       "ag_versicherungsgericht": 4
     },
     "by_canton": {
       "AG": 4
     },
-    "corpus": {},
+    "corpus": {
+      "commentaries": -1,
+      "citation_edges": 1192,
+      "statute_edges": -87
+    },
     "previous_generated_at": "2026-11-15T21:14:15.875577+00:00"
   }
 }
