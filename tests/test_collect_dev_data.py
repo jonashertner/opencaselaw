@@ -205,3 +205,84 @@ def test_a_failed_run_alerts():
     """The 2026-11-01 abort failed the unit and nobody heard about it."""
     unit = (REPO / "systemd" / "opencaselaw-devdata.service").read_text()
     assert "OnFailure=ntfy-alert@%n.service" in unit
+
+
+# --- oversized files and a refused push (2026-11-15) -------------------------
+# The weekly coverage snapshot reached 101.5 MiB gzipped; GitHub refused the
+# push and the commit stayed behind on the VPS, so every later push would have
+# carried it again.
+
+import hashlib  # noqa: E402
+import subprocess  # noqa: E402
+
+
+def _git(cwd, *args):
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+                           "-c", "init.defaultBranch=main", *args],
+                          cwd=cwd, check=True, capture_output=True, text=True).stdout
+
+
+def _data_repo(tmp_path):
+    remote = tmp_path / "remote.git"
+    _git(tmp_path, "init", "--bare", "-b", "main", str(remote))
+    clone = tmp_path / "data-private"
+    _git(tmp_path, "clone", "-q", str(remote), str(clone))
+    (clone / "MANIFEST.jsonl").write_text("{}\n")
+    _git(clone, "add", "-A"); _git(clone, "commit", "-qm", "init"); _git(clone, "push", "-q", "-u", "origin", "main")
+    return remote, clone
+
+
+def _remote_files(remote):
+    return set(_git(remote, "ls-tree", "-r", "--name-only", "main").split())
+
+
+@pytest.fixture()
+def small_limits(monkeypatch):
+    monkeypatch.setattr(collect_dev_data, "SPLIT_OVER", 1000)
+    monkeypatch.setattr(collect_dev_data, "PART_BYTES", 400)
+
+
+def test_a_new_file_over_the_limit_is_pushed_in_parts_that_restore_it(tmp_path, small_limits):
+    remote, clone = _data_repo(tmp_path)
+    d = clone / "datasets" / "scraper_coverage"
+    d.mkdir(parents=True)
+    payload = bytes(range(256)) * 9                      # 2,304 bytes
+    (d / "2026-11-22-coverage.db.gz").write_bytes(payload)
+    (d / "CARD.md").write_text("card")
+    collect_dev_data._git_commit_push(clone, "2026-11-22", dry=False)
+    files = _remote_files(remote)
+    base = "datasets/scraper_coverage/2026-11-22-coverage.db.gz"
+    assert base not in files
+    parts = sorted(f for f in files if f.startswith(base + ".part"))
+    assert parts == [f"{base}.part{i:03d}" for i in range(6)]      # 2,304 bytes in 400-byte parts
+    assert base + ".sha256" in files and "datasets/scraper_coverage/CARD.md" in files
+    joined = b"".join((clone / p).read_bytes() for p in parts)
+    assert joined == payload
+    assert (clone / (base + ".sha256")).read_text().split()[0] == hashlib.sha256(payload).hexdigest()
+
+
+def test_an_unpushed_commit_with_an_oversized_file_is_folded_and_pushed(tmp_path, small_limits):
+    remote, clone = _data_repo(tmp_path)
+    d = clone / "datasets" / "scraper_coverage"
+    d.mkdir(parents=True)
+    (d / "2026-11-15-coverage.db.gz").write_bytes(b"\x01" * 2500)
+    _git(clone, "add", "-A"); _git(clone, "commit", "-qm", "collect 2026-11-15")   # the refused push's commit
+    (clone / "datasets" / "daily.jsonl.gz").write_bytes(b"next day")
+    collect_dev_data._git_commit_push(clone, "2026-11-16", dry=False)
+    files = _remote_files(remote)
+    assert "datasets/scraper_coverage/2026-11-15-coverage.db.gz" not in files
+    assert "datasets/scraper_coverage/2026-11-15-coverage.db.gz.part000" in files
+    assert "datasets/daily.jsonl.gz" in files
+    assert _git(clone, "rev-list", "--count", "@{u}..HEAD").strip() == "0"
+    assert _git(remote, "log", "--format=%s", "main").split("\n")[0] == "collect 2026-11-16"
+
+
+def test_files_already_pushed_are_not_split_again(tmp_path, small_limits):
+    remote, clone = _data_repo(tmp_path)
+    (clone / "old.db.gz").write_bytes(b"\x02" * 1500)
+    _git(clone, "add", "-A"); _git(clone, "commit", "-qm", "old"); _git(clone, "push", "-q")
+    (clone / "new.jsonl.gz").write_bytes(b"small")
+    collect_dev_data._git_commit_push(clone, "2026-11-16", dry=False)
+    files = _remote_files(remote)
+    assert "old.db.gz" in files and not any(f.startswith("old.db.gz.part") for f in files)
+    assert "new.jsonl.gz" in files

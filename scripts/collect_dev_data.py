@@ -51,6 +51,16 @@ FORBIDDEN_KEYS = {"ip", "client_ip", "remote_addr", "user_id", "session_id",
                   "sid", "ua", "user_agent", "cohort", "install_cohort",
                   "email", "stripe_customer"}
 
+# GitHub refuses any push that contains a blob over 100 MiB. The weekly
+# coverage snapshot crossed that line on 2026-11-15 (101.5 MiB gzipped,
+# +1 MiB a week), the push was refused, and the daily commit stayed behind
+# on the VPS. A new file over SPLIT_OVER bytes is now committed as
+# <name>.part000, .part001, … of PART_BYTES each, with <name>.sha256 for
+# the whole file:
+#     cat <name>.part* > <name> && sha256sum -c <name>.sha256
+SPLIT_OVER = 95 * 2**20
+PART_BYTES = 90 * 2**20
+
 
 def _scan(obj, path="$"):
     """Abort-on-identifier scan, recursive. Returns list of violations."""
@@ -339,7 +349,11 @@ class Collector:
                             "WEEKLY gzipped SQLite snapshot of "
                             "state/coverage.db: per-run discovery + fetch "
                             "events, gap queue, portal snapshots. "
-                            "Upstream-portal provenance; no user data.",
+                            "Upstream-portal provenance; no user data. "
+                            "From 2026-11-15 a snapshot over 95 MiB is "
+                            "stored as <name>.part000, .part001, …: "
+                            "`cat <name>.part* > <name> && sha256sum -c "
+                            "<name>.sha256` restores it.",
                             compress=True)
 
         # Demand queue: corpus-derived (unresolved citations), no user
@@ -393,6 +407,50 @@ class Collector:
         log.info("[%s] built", dataset)
 
 
+def _split_file(path: Path) -> list[Path]:
+    """Write <path>.part000… and <path>.sha256, then remove <path>."""
+    import hashlib
+    digest = hashlib.sha256()
+    parts: list[Path] = []
+    with open(path, "rb") as fh:
+        while True:
+            chunk = fh.read(PART_BYTES)
+            if not chunk:
+                break
+            digest.update(chunk)
+            part = path.with_name(f"{path.name}.part{len(parts):03d}")
+            part.write_bytes(chunk)
+            parts.append(part)
+    path.with_name(path.name + ".sha256").write_text(
+        f"{digest.hexdigest()}  {path.name}\n", encoding="utf-8")
+    path.unlink()
+    return parts
+
+
+def _split_large_new_files(dest: Path, g) -> None:
+    """Split every new or changed file over SPLIT_OVER so the push fits
+    GitHub's limit. Files already committed stay as they are: their history
+    is pushed, and rewriting them would only add another copy."""
+    out = g("status", "--porcelain", "-z", "--untracked-files=all").stdout
+    entries = out.split("\0")
+    i = 0
+    while i < len(entries):
+        entry = entries[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        status, rel = entry[:2], entry[3:]
+        if "R" in status or "C" in status:
+            i += 1  # the rename's source path follows; the target is `rel`
+        if "D" in status:
+            continue
+        path = dest / rel
+        if path.is_file() and path.stat().st_size > SPLIT_OVER:
+            parts = _split_file(path)
+            log.info("split %s (%.1f MiB) into %d parts for GitHub's 100 MiB limit",
+                     rel, sum(p.stat().st_size for p in parts) / 2**20, len(parts))
+
+
 def _git_commit_push(dest: Path, today: str, dry: bool) -> None:
     if dry:
         log.info("dry-run: skipping git commit/push")
@@ -408,6 +466,17 @@ def _git_commit_push(dest: Path, today: str, dry: bool) -> None:
                  "GIT_COMMITTER_NAME": "ocl-collector",
                  "GIT_COMMITTER_EMAIL": "collector@opencaselaw.ch"},
             capture_output=True, text=True, timeout=300)
+    # A refused push leaves its commit behind, and every later push carries
+    # it again. If the clone is strictly ahead of its upstream, fold the
+    # unpushed commits into today's: the files stay in the working tree, so
+    # nothing is lost, and the oversized file is split before the commit.
+    ahead = g("rev-list", "--count", "@{u}..HEAD")
+    behind = g("rev-list", "--count", "HEAD..@{u}")
+    if (ahead.returncode == 0 and behind.returncode == 0
+            and int(ahead.stdout.strip() or 0) > 0 and int(behind.stdout.strip() or 0) == 0):
+        log.info("folding %s unpushed commit(s) into today's", ahead.stdout.strip())
+        g("reset", "--soft", "@{u}")
+    _split_large_new_files(dest, g)
     g("add", "-A")
     r = g("commit", "-m", f"collect {today}")
     if "nothing to commit" in (r.stdout + r.stderr):
