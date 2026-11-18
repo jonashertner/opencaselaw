@@ -46,6 +46,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Iterator
 
 from base_scraper import BaseScraper
+from scrapers._date_identity import DateAwareIdentityMixin
 from models import (
     Decision,
     detect_language,
@@ -304,7 +305,7 @@ def tpf_entry(text: str, reference: str, dossiers: list[str] | None = None) -> d
     return {"text": section, "decision_date": iso, "docket": docket, "heading_found": True}
 
 
-class BStGerScraper(BaseScraper):
+class BStGerScraper(DateAwareIdentityMixin, BaseScraper):
     """
     Scraper for Bundesstrafgericht decisions.
 
@@ -419,10 +420,9 @@ class BStGerScraper(BaseScraper):
 
             for doc in documents:
                 stub = self._parse_document(doc, user_id)
+                stub = self._stub_filter(stub) if stub else None
                 if stub:
-                    decision_id = make_decision_id("bstger", stub["docket_number"])
-                    if not self.state.is_known(decision_id):
-                        yield stub
+                    yield stub
 
             # Handle pagination within window
             offset = len(documents)
@@ -432,10 +432,9 @@ class BStGerScraper(BaseScraper):
                 )
                 for doc in documents:
                     stub = self._parse_document(doc, user_id)
+                    stub = self._stub_filter(stub) if stub else None
                     if stub:
-                        decision_id = make_decision_id("bstger", stub["docket_number"])
-                        if not self.state.is_known(decision_id):
-                            yield stub
+                        yield stub
                 offset += len(documents)
 
             # Move to next window
@@ -443,6 +442,9 @@ class BStGerScraper(BaseScraper):
 
     def discover_new(self, since_date=None) -> Iterator[dict]:
         """Date-windowed decisions, then the official collection (TPF)."""
+        # Date-aware identity (scrapers/_date_identity.py) for the windowed
+        # rulings; TPF entries keep their own collection ids.
+        self._load_known_dates()
         if os.environ.get(TPF_ONLY_ENV, "") not in ("1", "true", "yes"):
             yield from self._discover_windowed(since_date)
         if since_date:
@@ -662,7 +664,8 @@ class BStGerScraper(BaseScraper):
             lang = detect_language(full_text) if full_text else "de"
 
             decision = Decision(
-                decision_id=make_decision_id("bstger", docket),
+                decision_id=(stub.get("decision_id")
+                             or make_decision_id("bstger", docket)),
                 court="bstger",
                 canton="CH",
                 docket_number=docket,
@@ -678,6 +681,8 @@ class BStGerScraper(BaseScraper):
                 cited_decisions=extract_citations(full_text) if full_text else [],
                 scraped_at=datetime.now(timezone.utc),
             )
+            # Date-aware identity bookkeeping (no-op in legacy mode).
+            self._mark_decision_date(decision)
             return decision
 
         except Exception as e:

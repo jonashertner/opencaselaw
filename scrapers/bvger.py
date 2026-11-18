@@ -39,6 +39,7 @@ from typing import Iterator
 from bs4 import BeautifulSoup
 
 from base_scraper import BaseScraper
+from scrapers._date_identity import DateAwareIdentityMixin
 from models import (
     Decision,
     detect_language,
@@ -167,7 +168,7 @@ def _strip_html(html_str: str) -> str:
     return soup.get_text(separator="\n", strip=True)
 
 
-class BVGerScraper(BaseScraper):
+class BVGerScraper(DateAwareIdentityMixin, BaseScraper):
     REQUEST_DELAY = 3.0
     TIMEOUT = 60
 
@@ -177,6 +178,10 @@ class BVGerScraper(BaseScraper):
 
     # ── Main entry ────────────────────────────────────────────
     def discover_new(self, since_date=None) -> Iterator[dict]:
+        # Date-aware identity (scrapers/_date_identity.py): a held docket
+        # listed under another ruling date is a second ruling, not a
+        # duplicate. Legacy docket-keyed mode until the sidecar is seeded.
+        self._load_known_dates()
         try:
             yield from self._discover_weblaw_published()
         except Exception as e:  # noqa: BLE001 — the ruling-date scan still runs
@@ -239,8 +244,9 @@ class BVGerScraper(BaseScraper):
                 elif doc_id:
                     pdf_url = f"{JP_PDF_URL}{doc_id}"
 
-            return Decision(
-                decision_id=make_decision_id("bvger", docket),
+            decision = Decision(
+                decision_id=(stub.get("decision_id")
+                             or make_decision_id("bvger", docket)),
                 court="bvger",
                 canton="CH",
                 chamber=chamber,
@@ -261,6 +267,11 @@ class BVGerScraper(BaseScraper):
                 cited_decisions=extract_citations(full_text) if full_text else [],
                 scraped_at=datetime.now(timezone.utc),
             )
+            # Date-aware identity bookkeeping (no-op in legacy mode). Pairs
+            # are validated against state at load, so marking before the
+            # durable write is safe: a crash in between re-yields the ruling.
+            self._mark_decision_date(decision)
+            return decision
         except Exception as e:
             logger.error(
                 f"BVGer fetch error {stub.get('docket_number', '?')}: {e}",
@@ -320,9 +331,8 @@ class BVGerScraper(BaseScraper):
             new_in_window = 0
             for doc in docs:
                 stub = self._wl_parse(doc)
-                if stub and not self.state.is_known(
-                    make_decision_id("bvger", stub["docket_number"])
-                ):
+                stub = self._stub_filter(stub) if stub else None
+                if stub:
                     yield stub
                     total_found += 1
                     new_in_window += 1
@@ -333,9 +343,8 @@ class BVGerScraper(BaseScraper):
                 docs, _, more = self._wl_search(cur_start, cur_end, offset)
                 for doc in docs:
                     stub = self._wl_parse(doc)
-                    if stub and not self.state.is_known(
-                        make_decision_id("bvger", stub["docket_number"])
-                    ):
+                    stub = self._stub_filter(stub) if stub else None
+                    if stub:
                         yield stub
                         total_found += 1
                         new_in_window += 1
@@ -381,8 +390,10 @@ class BVGerScraper(BaseScraper):
             for lang in langs:
                 for stub in self._yield_window(cur_start, cur_end, 0, 0,
                                                language=lang, date_field=field):
-                    if stub["docket_number"] not in yielded:
-                        yielded.add(stub["docket_number"])
+                    # Keyed on decision_id (possibly -D suffixed), not the
+                    # docket: two rulings of one docket are two stubs.
+                    if stub["decision_id"] not in yielded:
+                        yielded.add(stub["decision_id"])
                         yield stub
             cur_end = cur_start - timedelta(days=1)
         logger.info(f"BVGer Weblaw published since {floor}: {len(yielded)} new stubs")
@@ -406,9 +417,8 @@ class BVGerScraper(BaseScraper):
 
         for doc in docs:
             stub = self._wl_parse(doc)
-            if stub and not self.state.is_known(
-                make_decision_id("bvger", stub["docket_number"])
-            ):
+            stub = self._stub_filter(stub) if stub else None
+            if stub:
                 yield stub
 
         offset = len(docs)
@@ -417,9 +427,8 @@ class BVGerScraper(BaseScraper):
                                             date_field=date_field)
             for doc in docs:
                 stub = self._wl_parse(doc)
-                if stub and not self.state.is_known(
-                    make_decision_id("bvger", stub["docket_number"])
-                ):
+                stub = self._stub_filter(stub) if stub else None
+                if stub:
                     yield stub
             offset += len(docs)
 
@@ -593,8 +602,10 @@ class BVGerScraper(BaseScraper):
             for s in self._ice_parse(html):
                 s["year"] = year
                 s["_source"] = "icefaces"
-                did = make_decision_id("bvger", s["docket_number"])
-                if not self.state.is_known(did):
+                # Year-only listing: undated, so a held docket is skipped
+                # exactly as before (_stub_filter cannot classify it).
+                s = self._stub_filter(s)
+                if s:
                     yield s
 
             if pages > 1:
