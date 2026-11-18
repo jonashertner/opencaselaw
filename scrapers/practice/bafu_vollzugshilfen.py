@@ -44,6 +44,12 @@ class BafuVollzugshilfenScraper(PracticeScraper):
     ISSUING_AUTHORITY = "BAFU"
     DEFAULT_DOC_TYPE = "vollzugshilfe"
     REQUEST_DELAY = 1.5
+    # "Altlasten: erfassen, bewerten, sanieren" is a 44-page Kodak scan with
+    # no text layer; it came back "empty body" on 16 weekly runs to
+    # 2026-11-14. OCR it, and index the title with a marker if OCR finds
+    # nothing, like the other practice sources that carry old scans.
+    OCR_SCANS = True
+    NO_TEXT_LAYER_BODY = "[Textlayer fehlt: gescanntes PDF]"
 
     def discover_documents(self) -> Iterator[dict]:
         try:

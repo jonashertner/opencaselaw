@@ -735,3 +735,30 @@ def test_swiss_court_levels_are_unchanged():
     assert m.COURT_LEVELS.get("bger") == "federal_supreme"
     assert m.COURT_LEVELS.get("bvger") == "federal_appellate"
     assert m.COURT_LEVELS.get("zh_obergericht") is None  # cantonal default
+
+
+def test_the_largest_year_shard_is_one_request(tmp_path, monkeypatch):
+    """2009 (538 rows) and 2010 (545) straddled a 500-row page boundary
+    inside a run of same-date judgments; HUDOC orders those ties differently
+    per request, and the 2009 shard came back one row short 200 times
+    (2026-08-28..11-17). A year must fit one page so no boundary exists."""
+    scraper = HUDOCFullScraper(state_dir=tmp_path)
+    all_rows = [_listing_row(itemid=f"001-{i:06d}", ecli=f"ECLI:{i}", appno=f"{i}/09")
+                for i in range(545)]
+    lengths = []
+
+    def fake_get(url, params=None, timeout=None, **kw):
+        if params is None:
+            return FakeResponse(text="ok")
+        lengths.append(params["length"])
+        s, n = params["start"], params["length"]
+        return FakeResponse({"resultcount": len(all_rows),
+                             "results": [{"columns": r} for r in all_rows[s:s + n]]})
+
+    monkeypatch.setattr(scraper, "_rate_limit", lambda: None)
+    monkeypatch.setattr(scraper.session, "get", fake_get)
+
+    rows = scraper._discover_year(2010)
+    assert len(rows) == 545
+    assert len(lengths) == 1, f"a 545-row year took {len(lengths)} requests"
+    assert scraper.shard_failures == 0

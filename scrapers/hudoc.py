@@ -313,7 +313,9 @@ class HUDOCScraper(BaseScraper):
 #    between pages: a 3,531-row query returned 2,411 distinct itemids,
 #    silently losing 32%. `sort=kpdate Ascending` returns 3,530 of 3,531.
 #    Every paged query here is sorted, and each shard verifies that it
-#    collected `resultcount` distinct itemids before it is trusted.
+#    collected `resultcount` distinct itemids before it is trusted. Sorting
+#    does not order ties, so a year shard is fetched as one page (see
+#    _PAGE_SIZE): a boundary inside a same-date run still drops a row.
 #
 # 3. A 10,000-RESULT PAGING CAP. The full scope is 10,585 rows, just over
 #    the ceiling, so discovery is sharded by year. Both language versions
@@ -401,7 +403,15 @@ _FULL_QUERY = (
 # First judgment in the corpus is Lawless v. Ireland (1960); start a year
 # early so a re-dated entry can't fall off the front of the shard range.
 _CORPUS_START_YEAR = 1959
-_PAGE_SIZE = 500
+# One page per year shard. The largest years are 2009 (538 rows) and 2010
+# (545); at 500 a page boundary fell inside a run of same-date judgments in
+# both, and HUDOC orders kpdate ties differently from one request to the
+# next, so the 2009 shard came back one row short on 200 attempts between
+# 2026-08-28 and 2026-11-17 and failed ecthr-meta 8 times (both attempts
+# short). A 1,000-row page is accepted and is 0.3 MB with _SELECT_FIELDS;
+# with no page boundary there is no tie to straddle. Paging stays for a
+# shard that ever grows past this.
+_PAGE_SIZE = 1000
 # HUDOC refuses to page past this offset; shards must stay under it.
 _HUDOC_PAGING_CAP = 10000
 
