@@ -38,6 +38,22 @@ from models import make_decision_id
 
 logger = logging.getLogger(__name__)
 
+# The earlier BVGer recovery (scripts/recover_bvger_docket_collisions.py) and
+# build_fts5's insert-collision re-id hold second rulings under
+# ``<base_id>_d<YYYYMMDD>``. Those rows are in the corpus but never in
+# state/<court>.jsonl, so the seed must take them as held pairs and the loader
+# must accept them without the state check (the scrapers never write such ids,
+# so a sidecar line naming one can only come from the corpus seed).
+_CORPUS_SUFFIX_RE = re.compile(r"_d(\d{4})(\d{2})(\d{2})$")
+
+
+def corpus_suffix_date(decision_id: str, base_id: str) -> str | None:
+    """ISO date of a ``<base_id>_dYYYYMMDD`` id, else None."""
+    if not decision_id.startswith(base_id):
+        return None
+    m = _CORPUS_SUFFIX_RE.fullmatch(decision_id, len(base_id))
+    return f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else None
+
 
 class DateAwareIdentityMixin:
     _known_dates: set | None = None
@@ -103,9 +119,11 @@ class DateAwareIdentityMixin:
                 continue
             base_id, d_iso, did = parts
             # A pair counts only when its id is in state (marked after the
-            # durable corpus write).
+            # durable corpus write) — or is a corpus `_dYYYYMMDD` id, which
+            # only the seed can have written.
             if (not base_id or not did or not self._date_iso(d_iso)
-                    or not self.state.is_known(did)):
+                    or not (self.state.is_known(did)
+                            or corpus_suffix_date(did, base_id))):
                 dropped += 1
                 continue
             known.add(f"{base_id}|{d_iso}")

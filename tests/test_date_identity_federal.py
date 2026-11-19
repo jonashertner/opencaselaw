@@ -259,3 +259,77 @@ def test_audit_dates_default_excludes_disagreements(tmp_path):
                    "date_disagreement\tb\tB-2/2010\t2011-01-01\t2010-12-31\ty\n")
     assert bf.audit_dates("bvger", tsv, False) == [date(2010, 6, 23)]
     assert bf.audit_dates("bvger", tsv, True) == [date(2010, 6, 23), date(2011, 1, 1)]
+
+
+# ── `_dYYYYMMDD` rows of the earlier BVGer recovery (2026-11-18 trap) ────
+# bvger.jsonl holds 461 second rulings under `bvger_<docket>_dYYYYMMDD`
+# (scripts/recover_bvger_docket_collisions.py). They are not in state, and the
+# first seed skipped them as another id scheme, so 26 of them would have been
+# fetched again as -D duplicates.
+
+def test_corpus_suffix_date():
+    from scrapers._date_identity import corpus_suffix_date
+    b = "bvger_B-5028_2009"
+    assert corpus_suffix_date(f"{b}_d20210423", b) == "2021-04-23"
+    assert corpus_suffix_date(b, b) is None
+    assert corpus_suffix_date(f"{b}-D20210423", b) is None
+    assert corpus_suffix_date(f"{b}_d2021042", b) is None
+    assert corpus_suffix_date(f"{b}_d20210423x", b) is None
+    assert corpus_suffix_date("bvger_B-5029_2009_d20210423", b) is None
+    assert corpus_suffix_date(f"{b}_x_d20210423", b) is None
+
+
+def test_seed_pairs_takes_suffix_d_rows(tmp_path):
+    b = base("bvger")
+    rows = [
+        {"decision_id": b, "court": "bvger",
+         "docket_number": DOCKETS["bvger"], "decision_date": FIRST},
+        {"decision_id": f"{b}_d20210423", "court": "bvger",
+         "docket_number": DOCKETS["bvger"], "decision_date": SECOND},
+        {"decision_id": f"{b}_d20220101", "court": "bvger",       # date from id
+         "docket_number": DOCKETS["bvger"], "decision_date": None},
+        {"decision_id": "bvger_C-1_2020_d20200101", "court": "bvger",  # other docket
+         "docket_number": DOCKETS["bvger"], "decision_date": "2020-01-01"},
+    ]
+    shard = tmp_path / "bvger.jsonl"
+    shard.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    pairs, undated, foreign = bf.seed_pairs("bvger", [shard])
+    assert pairs == [f"{b}\t{FIRST}\t{b}",
+                     f"{b}\t{SECOND}\t{b}_d20210423",
+                     f"{b}\t2022-01-01\t{b}_d20220101"]
+    assert (undated, foreign) == (0, 1)
+
+
+def test_loader_accepts_suffix_d_pair_without_state(tmp_path):
+    b = base("bvger")
+    sc = scraper_with("bvger", tmp_path, {b},
+                      [pair("bvger", FIRST), pair("bvger", SECOND, f"{b}_d20210423")])
+    assert f"{b}|{SECOND}" in sc._known_dates
+    assert sc._stub_filter(stub("bvger", SECOND)) is None          # held, no -D
+    s = sc._stub_filter(stub("bvger", "2022-03-03"))
+    assert s["decision_id"] == make_decision_id("bvger", f"{DOCKETS['bvger']}-D20220303")
+
+
+def test_loader_still_drops_unknown_dash_d_pair(tmp_path):
+    b = base("bvger")
+    did2 = make_decision_id("bvger", f"{DOCKETS['bvger']}-D20210423")
+    sc = scraper_with("bvger", tmp_path, {b},
+                      [pair("bvger", FIRST), pair("bvger", SECOND, did2)])
+    assert f"{b}|{SECOND}" not in sc._known_dates                 # crash guard kept
+
+
+def test_seed_then_fetch_skips_recovered_ruling(tmp_path):
+    """The trap end to end: seed from a shard holding a `_d` row, then the
+    listing of that ruling must not come back as a -D candidate."""
+    b = base("bvger")
+    shard = tmp_path / "bvger.jsonl"
+    shard.write_text("\n".join(json.dumps(r) for r in [
+        {"decision_id": b, "court": "bvger",
+         "docket_number": DOCKETS["bvger"], "decision_date": FIRST},
+        {"decision_id": f"{b}_d20210423", "court": "bvger",
+         "docket_number": DOCKETS["bvger"], "decision_date": SECOND},
+    ]) + "\n")
+    pairs, _, _ = bf.seed_pairs("bvger", [shard])
+    sc = scraper_with("bvger", tmp_path, {b}, pairs)
+    assert sc._stub_filter(stub("bvger", SECOND)) is None
+    assert sc._stub_filter(stub("bvger", FIRST)) is None

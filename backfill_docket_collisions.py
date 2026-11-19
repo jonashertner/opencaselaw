@@ -11,8 +11,9 @@ and same guards as backfill_bger_docket_collisions.py (BGer, 2026-09-03).
 
 This script
   1. seeds the sidecar from the corpus shards' (docket_number, decision_date)
-     pairs (only rows whose id is the docket id or its -D variant: TPF
-     collection entries and other id schemes are left out), then
+     pairs (only rows whose id is the docket id, its -D variant or the
+     `_dYYYYMMDD` id of the earlier BVGer recovery: TPF collection entries
+     and other id schemes are left out), then
   2. finds the suppressed rulings on the COURT PORTALS and appends them:
      - bvger, bstger: a one-day ruling-date window on each date listed in the
        audit TSV (the TSV only says where to look; the rulings come from the
@@ -28,7 +29,8 @@ court's corpus shards; fetch mode appends to the JSONL the build reads):
   python3 backfill_docket_collisions.py --court bvger --dry-run
   python3 backfill_docket_collisions.py --court bvger            # fetch + append
 
-Idempotent: an existing non-empty sidecar is kept (--reseed rebuilds it);
+Idempotent: an existing non-empty sidecar is kept (--reseed rebuilds it; a
+sidecar seeded before the `_dYYYYMMDD` rows were taken must be reseeded);
 fetched rulings enter the sidecar and state and are skipped next time.
 """
 from __future__ import annotations
@@ -44,6 +46,7 @@ REPO = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO))
 
 from models import make_decision_id  # noqa: E402
+from scrapers._date_identity import corpus_suffix_date  # noqa: E402
 
 COURTS = ("bvger", "bstger", "bpatger")
 AUDIT_DIR = REPO / "docs" / "claude" / "same-docket-gap-2026-11-16"
@@ -86,9 +89,14 @@ def seed_pairs(court: str, shards: list[Path]) -> tuple[list[str], int, int]:
                 if not did or not docket or (row_court and row_court != court):
                     continue
                 base = make_decision_id(court, docket)
-                if did != base and not did.startswith(base + "-D"):
+                suffix_date = corpus_suffix_date(did, base)
+                if (did != base and not did.startswith(base + "-D")
+                        and not suffix_date):
                     foreign += 1          # e.g. bstger TPF collection entries
                     continue
+                # `_dYYYYMMDD` rows (earlier BVGer recovery) are held second
+                # rulings: without them the fetch would re-add each as -D.
+                d_iso = d_iso or suffix_date
                 if not d_iso:
                     undated += 1
                     continue
@@ -117,9 +125,12 @@ def seed_sidecar(scraper, court: str, shards: list[Path], reseed: bool) -> int:
     tmp = side.with_suffix(".tmp")
     tmp.write_text("\n".join(pairs) + "\n")
     tmp.replace(side)      # atomic — a crash mid-seed leaves no half file
+    n_suffix = sum(1 for p in pairs
+                   if corpus_suffix_date(p.split("\t")[2], p.split("\t")[0]))
     print(f"[{court}] sidecar seeded with {len(pairs)} pairs from "
-          f"{len(shards)} shard(s) ({undated} undated rows, {foreign} rows "
-          "of another id scheme skipped)")
+          f"{len(shards)} shard(s), {n_suffix} of them `_dYYYYMMDD` rows "
+          f"({undated} undated rows, {foreign} rows of another id scheme "
+          "skipped)")
     return len(pairs)
 
 
