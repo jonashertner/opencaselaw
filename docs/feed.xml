@@ -5,9 +5,27 @@
     <link>https://opencaselaw.ch/feed.xml</link>
     <description>Latest published decisions across all Swiss courts indexed by OpenCaseLaw.</description>
     <language>de-CH</language>
-    <lastBuildDate>Thu, 19 Nov 2026 13:23:17 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 19 Nov 2026 23:16:24 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>EGMR (Kammer) 18292/23_18580/23_41723/23 vom 2026-11-19</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_18292_23_18580_23_41723_23_20261119</link>
+      <description>Partiellement irrecevable (Art. 35) Conditions de recevabilité;(Art. 35-1) Épuisement des voies de recours internes;(Art. 35-1) Recours interne effectif;Non-violation de l'article 8 - Droit au respect de la vie privée et familiale (Article 8-1 - Respect de la vie privée);Non-violation de l'article 14+8 - Interdiction de la discrimination (Article 14 - Discrimination) (Article 8 - Droit au respect de la vie privée et familiale;Article 8-1 - Respect de la vie privée); No violation: 8;8-1;14;14+8; [EGMR / CourEDH / CorteEDU; Art. 35, Art. 8, Art. 14 EMRK / CEDH / CEDU]</description>
+      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ecthr_chamber_18292_23_18580_23_41723_23_20261119</guid>
+      <category>ecthr_chamber</category>
+      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
+    </item>
+    <item>
+      <title>EGMR (Kammer) 30130/24 vom 2026-11-19</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_30130_24_20261119</link>
+      <description>Violation of Article 10 - Freedom of expression - {general} (Article 10-1 - Freedom to impart information;Freedom to receive information); Violation: 10;10-1; [EGMR / CourEDH / CorteEDU; Art. 10 EMRK / CEDH / CEDU]</description>
+      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ecthr_chamber_30130_24_20261119</guid>
+      <category>ecthr_chamber</category>
+      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
+    </item>
     <item>
       <title>Bundesgericht 7B_1403/2026 vom 2026-11-10</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1403_2026</link>
@@ -1331,64 +1349,6 @@ Gerichtsschreiber Grünvogel.
 Verfahrensbeteiligt…</description>
       <pubDate>Wed, 18 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_742.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 9C_559/2026 vom 2026-11-05</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_9C_559_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-9C_559/2026
-
-Arrêt du 5 novembre 2026
-
-IIIe Cour de droit public
-
-Composition
-
-M. le Juge fédéral
-
-Beusch, en qualité de juge unique.
-
-Greffier : M. Cretton.
-
-Participants à la pr…</description>
-      <pubDate>Wed, 18 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:9C_559.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 9C_661/2026 vom 2026-11-05</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_9C_661_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-9C_661/2026
-
-Urteil vom 5. November 2026
-
-III. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichter Beusch, als Einzelrichter,
-
-Gerichtsschreiberin Fleischanderl.
-
-Verfahrens…</description>
-      <pubDate>Wed, 18 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:9C_661.2026</guid>
       <category>bger</category>
     </item>
   </channel>

@@ -5,9 +5,18 @@
     <link>https://opencaselaw.ch/feeds/fr.xml</link>
     <description>Latest published Swiss court decisions in Français.</description>
     <language>de-CH</language>
-    <lastBuildDate>Thu, 19 Nov 2026 13:23:19 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 19 Nov 2026 23:16:25 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/fr.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>EGMR (Kammer) 18292/23_18580/23_41723/23 vom 2026-11-19</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ecthr_chamber_18292_23_18580_23_41723_23_20261119</link>
+      <description>Partiellement irrecevable (Art. 35) Conditions de recevabilité;(Art. 35-1) Épuisement des voies de recours internes;(Art. 35-1) Recours interne effectif;Non-violation de l'article 8 - Droit au respect de la vie privée et familiale (Article 8-1 - Respect de la vie privée);Non-violation de l'article 14+8 - Interdiction de la discrimination (Article 14 - Discrimination) (Article 8 - Droit au respect de la vie privée et familiale;Article 8-1 - Respect de la vie privée); No violation: 8;8-1;14;14+8; [EGMR / CourEDH / CorteEDU; Art. 35, Art. 8, Art. 14 EMRK / CEDH / CEDU]</description>
+      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ecthr_chamber_18292_23_18580_23_41723_23_20261119</guid>
+      <category>ecthr_chamber</category>
+      <category>EMRK / CEDH / CEDU — Menschenrechte</category>
+    </item>
     <item>
       <title>Bundesgericht 8C_596/2026 vom 2026-11-04</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_596_2026</link>
@@ -1038,14 +1047,6 @@ B._…</description>
       <guid isPermaLink="false">ecthr_chamber_70589_17_20261117</guid>
       <category>ecthr_chamber</category>
       <category>EMRK / CEDH / CEDU — Menschenrechte</category>
-    </item>
-    <item>
-      <title>vd_omni PE.2026.0187 vom 2026-11-16</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/vd_omni_PE.2026.0187</link>
-      <description>Irrecevabilité du recours pour défaut de paiement de l'avance de frais.</description>
-      <pubDate>Tue, 17 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">vd_omni_PE.2026.0187</guid>
-      <category>vd_omni</category>
     </item>
   </channel>
 </rss>

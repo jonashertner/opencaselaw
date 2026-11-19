@@ -2725,7 +2725,7 @@
     "2026-10": 1844,
     "2026-11": 172
   },
-  "generated_at": "2026-11-19T20:53:12.526251+00:00",
+  "generated_at": "2026-11-19T23:07:55.603122+00:00",
   "scraper_health": {
     "run_at": "2026-11-19T04:01:56.577460+00:00",
     "run_duration_s": 10855.6,
@@ -4117,9 +4117,9 @@
       "total": 1053926
     },
     "graph_size": {
-      "decision_edges": 9242761,
+      "decision_edges": 9211848,
       "statute_edges": 12509158,
-      "total": 21751919
+      "total": 21721006
     },
     "echr_switzerland": {
       "total": 1540,
@@ -4216,16 +4216,16 @@
     },
     "consultation_coverage": {
       "by_doc_type": {
-        "ergebnisbericht": 2017,
-        "erlaeuternder_bericht": 2647,
-        "stellungnahmen": 1370,
-        "synoptische_tabelle": 252,
+        "ergebnisbericht": 2018,
+        "erlaeuternder_bericht": 2650,
+        "stellungnahmen": 1371,
+        "synoptische_tabelle": 254,
         "vernehmlassung_diverses": 938,
-        "vernehmlassungsvorlage": 3360
+        "vernehmlassungsvorlage": 3363
       },
-      "counted_at": "2026-11-18T22:51:31+00:00",
-      "documents": 10584,
-      "paragraphs": 12016612,
+      "counted_at": "2026-11-19T22:49:58+00:00",
+      "documents": 10594,
+      "paragraphs": 12020375,
       "procedures": 2699,
       "procedures_fedlex": 2587,
       "year_range": {
