@@ -274,11 +274,12 @@ def _column_plan(lines: list[dict], margin: list[int], size: float, is_mark,
         return None
     # Rz on a page mostly follow on from each other; the page numbers of a
     # journal's table of contents rise in jumps (AHI-Praxis: 153, 154, 155,
-    # 159, 161, 162, 165, 168). Inserted Rz may skip a little where the
-    # integer ones are glyph images (FINMA-RS 2015/2 it: 224.1*, 226.1*);
-    # page numbers have no ".1".
+    # 159, 161, 162, 165, 168). Inserted Rz may skip a little into a new
+    # ".1" series where the integer ones are glyph images (FINMA-RS 2015/2
+    # it: 224.1*, 226.1*); figure tables (BSV Beitragstabellen: 45.20,
+    # 45.60) and section numbers listing Rz ranges (2.1, 2.9, 3.6) do not.
     def follows(a: tuple, b: tuple) -> bool:
-        return _next_rz(a, b) or ((len(a) > 1 or len(b) > 1) and b[0] - a[0] <= 2)
+        return _next_rz(a, b) or (len(b) == 2 and b[1] == 1 and 0 < b[0] - a[0] <= 2)
     if len(keys) >= 3 and 2 * sum(follows(a, b) for a, b in zip(keys, keys[1:])) < len(keys) - 1:
         return None
     # amendment marks belong to the nearest Rz above them in the same column
@@ -407,8 +408,26 @@ def _rising_chain(plans: list[tuple[int, dict]]) -> dict[int, dict]:
     for a in anchors:
         if not any(a["w"] == r["w"] and _same_column(a, r) for r in reps):
             reps.append(a)
-    _, chosen = max((_chain_in_column(plans, a) for a in reps), key=lambda t: t[0])
+    total, chosen = max((_chain_in_column(plans, a) for a in reps), key=lambda t: t[0])
+    if chosen and total < _SHORT_CHAIN and not _starts_numbering(chosen):
+        return {}
     return dict(chosen)
+
+
+# A document's Rz begin at Rz 1, at a BSV chapter's first Rz (1001, 2001),
+# or, where the integer Rz are glyph images, at an inserted "8.1*" series.
+# A short run of numbers starting anywhere else, within one integer, is
+# something else: worked examples "2.1"-"2.9" one per page (BSV WML),
+# fund numbers in a list (WKB: 28, 32, 33), a table's footnotes.
+_SHORT_CHAIN = 40
+
+
+def _starts_numbering(chosen: list[tuple[int, dict]]) -> bool:
+    first = chosen[0][1]["first"]
+    if first == (1,) or (len(first) == 1 and first[0] % 1000 == 1 and first[0] > 1000):
+        return True
+    integers = {p["first"][0] for _, p in chosen} | {p["last"][0] for _, p in chosen}
+    return len(first) == 2 and first[1] == 1 and len(integers) > 1
 
 
 # ── FINMA: margin numbers as glyph images ─────────────────────────────

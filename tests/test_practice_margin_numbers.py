@@ -105,13 +105,13 @@ def test_toc_number_column_with_language_label_is_not_rz(label):
 def test_asterisk_marked_rz_placed_and_kept():
     """FINMA marks amended Rz "16*": such pages were refused whole, and on
     mixed pages the starred number stayed a bare line between paragraphs."""
-    pdf = _bsv_pdf([(0, "15"), (3, "16*"), (6, "17"), (8, "17.1*")])
+    pdf = _bsv_pdf([(0, "1"), (3, "2*"), (6, "3"), (8, "3.1*")])
     text, n = extract_with_margin_numbers(pdf)
     assert n == 4
     lines = text.splitlines()
-    assert lines[lines.index("Rz 16*") + 1].endswith("Absatz 3.")
-    assert lines[lines.index("Rz 17.1*") + 1].endswith("Absatz 8.")
-    assert "16*" not in [ln.strip() for ln in lines]
+    assert lines[lines.index("Rz 2*") + 1].endswith("Absatz 3.")
+    assert lines[lines.index("Rz 3.1*") + 1].endswith("Absatz 8.")
+    assert "2*" not in [ln.strip() for ln in lines]
 
 
 def _pages(specs) -> bytes:
@@ -180,11 +180,11 @@ def test_section_numbers_beside_the_rz_column():
         y = 120 + 25 * k
         page.insert_text((85, y), f"3.{k}" if k else "3.", fontsize=10)
         page.insert_text((133, y), f"Eventualverpflichtungen gegenüber Dritten, Position {k}", fontsize=10)
-        page.insert_text((520, y), str(118 + k), fontsize=10)
+        page.insert_text((520, y), str(1 + k), fontsize=10)
     text, n = extract_with_margin_numbers(doc.tobytes())
     lines = text.splitlines()
     assert n == 5
-    assert lines[lines.index("Rz 119") + 1].strip() == "3.1"    # the row's first line
+    assert lines[lines.index("Rz 2") + 1].strip() == "3.1"    # the row's first line
     assert "3.2" in [ln.strip() for ln in lines]                 # section numbers stay text
 
 
@@ -205,7 +205,7 @@ def test_wide_footnotes_do_not_hide_the_rz_column():
     page = doc.new_page(width=595, height=842)
     for k in range(10):
         page.insert_text((90, 100 + 16 * k), f"{BODY} {k}.", fontsize=10)
-    for k, t in [(0, "112.1*"), (4, "112.2*"), (8, "112.3*")]:
+    for k, t in [(0, "1"), (4, "1.1*"), (8, "2")]:
         page.insert_text((505, 100 + 16 * k), t, fontsize=10)
     for k in range(4):
         page.insert_text((90, 700 + 10 * k), f"{k + 1} Bei systemisch bedeutsamen Finanzmarktinfrastrukturen "
@@ -223,12 +223,12 @@ def test_formula_subscript_beside_rz_is_no_footnote():
         # the formula row's body line sits 4 pt below its Rz
         page.insert_text((142, 100 + 16 * k + (4 if k == 4 else 0)), f"{BODY} Absatz {k}.",
                          fontsize=11)
-    for k, t in [(0, "85"), (2, "86"), (4, "87"), (7, "88")]:
+    for k, t in [(0, "1"), (2, "2"), (4, "3"), (7, "4")]:
         page.insert_text((85, 100 + 16 * k), t, fontsize=11)
     page.insert_text((300, 100 + 16 * 4 - 1), "1/2", fontsize=6)
     text, n = extract_with_margin_numbers(doc.tobytes())
     lines = text.splitlines()
-    assert n == 4 and lines[lines.index("Rz 87") + 1].endswith("Absatz 4.")
+    assert n == 4 and lines[lines.index("Rz 3") + 1].endswith("Absatz 4.")
 
 
 def test_last_rz_with_nothing_beside_it_ends_the_page():
@@ -255,15 +255,32 @@ def test_journal_toc_page_numbers_are_not_rz():
 def test_asterisk_after_a_space():
     """FINMA-RS 2008/19 prints amended Rz as "319 *"; the plain ones beside
     them (320, 322) skipped every other number and failed."""
-    pdf = _bsv_pdf([(0, "319 *"), (2, "320"), (4, "321 *"), (7, "322")])
+    pdf = _bsv_pdf([(0, "1 *"), (2, "2"), (4, "3 *"), (7, "4")])
     text, n = extract_with_margin_numbers(pdf)
-    assert n == 4 and {"Rz 319*", "Rz 321*"} <= set(text.splitlines())
+    assert n == 4 and {"Rz 1*", "Rz 3*"} <= set(text.splitlines())
+
+
+def test_figure_table_is_not_rz():
+    """BSV Beitragstabellen (6139): income brackets 45.20, 45.60, 46.10 down
+    the margin rose like Rz and were placed, up to 547 in one version."""
+    pdf = _bsv_pdf([(k, f"{45 + k // 2}.{(k % 2) * 40 + 20}") for k in range(8)])
+    assert extract_with_margin_numbers(pdf) is None
+
+
+def test_short_run_not_where_numbering_starts_is_not_rz():
+    """BSV WML: worked examples "2.1" ... "2.9", one per page, and a list of
+    fund numbers (28, 32, 33, 34) chained like Rz. A document's Rz begin
+    at 1, at a chapter's 1001, or at an inserted ".1" series."""
+    examples = [(595, 842, None, [(2, f"2.{k}")], 60, 142) for k in range(1, 10)]
+    assert extract_with_margin_numbers(_pages(examples)) is None
+    funds = _bsv_pdf([(0, "28"), (2, "32"), (4, "33"), (6, "34")])
+    assert extract_with_margin_numbers(funds) is None
 
 
 def test_split_range_is_one_marker():
-    pdf = _bsv_pdf([(0, "2022"), (4, "2023.1-"), (5, "2023.4"), (7, "2024")])
+    pdf = _bsv_pdf([(0, "2001"), (4, "2002.1-"), (5, "2002.4"), (7, "2003")])
     text, n = extract_with_margin_numbers(pdf)
-    assert "Rz 2023.1–2023.4" in text.splitlines() and n == 3
+    assert "Rz 2002.1–2002.4" in text.splitlines() and n == 3
 
 
 # ── FINMA layout: Rz as soft-masked glyph images in the right margin ──
