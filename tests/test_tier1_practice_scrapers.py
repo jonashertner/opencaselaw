@@ -163,6 +163,40 @@ def test_bsv_run_keeps_every_version_as_its_own_record(tmp_path):
     assert r2["new"] == 0 and r2["skipped"] == 37
 
 
+
+def test_bsv_journals_get_no_margin_numbers(tmp_path, monkeypatch):
+    """Re-run 2026-11-20: ZAK and AHI-Praxis issues carry their page numbers
+    one per page, and these chained like Rz ("Rz 344" before "1927"). The
+    Rz pass is off for every journal document, on for the rest."""
+    stubs = [{"bsv_filetype": "PDF", "doc_type": t, "title": t}
+             for t in ("rechtsprechung", "kreisschreiben", "rechtsprechung", "wegleitung")]
+    monkeypatch.setattr(bsv, "parse_folder", lambda html, folder, lang: stubs)
+
+    class _Resp:
+        text = ""
+
+        def raise_for_status(self):
+            pass
+
+    class _Bsv(bsv.BsvWeisungenScraper):
+        REQUEST_DELAY = 0
+        LANGUAGES = ("de",)
+
+        def __init__(self):
+            self.OUTPUT_DIR = tmp_path
+            super().__init__()
+
+        def folders(self):
+            return [{"id": "1", "label": "x"}]
+
+        def get(self, url, **kw):
+            return _Resp()
+
+    sc = _Bsv()
+    seen = [(s["doc_type"], sc.margin_numbers_off) for s in sc.discover_documents()]
+    assert seen == [("rechtsprechung", True), ("kreisschreiben", False),
+                    ("rechtsprechung", True), ("wegleitung", False)]
+
 # ───────────────────────────────────────────── SECO AVIG-Praxis
 
 @pytest.mark.parametrize("lang", ["de", "fr", "it"])

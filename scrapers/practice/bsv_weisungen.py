@@ -301,4 +301,9 @@ class BsvWeisungenScraper(MarginNumbersMixin, PracticeScraper):
                                 self.SOURCE_KEY, folder["id"], lang, len(skipped))
                 for s in stubs:
                     if s["bsv_filetype"] == "PDF":
+                        # Journals (ZAK, AHI-Praxis, EVG lists, registers) have
+                        # no Rz; their page numbers, one per page, rise like
+                        # Rz and were placed as such (re-run 2026-11-20). The
+                        # runner fetches each stub before asking for the next.
+                        self.margin_numbers_off = s["doc_type"] == "rechtsprechung"
                         yield s

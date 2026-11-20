@@ -329,3 +329,6 @@ def test_mixin_keeps_plain_text_when_nothing_to_place():
     assert S()._extract(pdf) == extract_pdf_text(pdf)
     pdf2 = _bsv_pdf([(0, "1001"), (4, "1002"), (7, "1003")])
     assert "Rz 1002" in S()._extract(pdf2)
+    off = S()
+    off.margin_numbers_off = True                  # a journal: plain text
+    assert off._extract(pdf2) == extract_pdf_text(pdf2)

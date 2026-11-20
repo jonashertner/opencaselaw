@@ -564,10 +564,14 @@ class MarginNumbersMixin:
     PDFs this module cannot place keep the plain extraction."""
 
     MARGIN_NUMBER_IMAGES = False      # FINMA: Rz drawn as glyph images
+    # Set by the scraper for a document that has no Rz (a journal issue,
+    # whose page numbers would chain like Rz): plain extraction.
+    margin_numbers_off = False
 
     def _extract(self, pdf_bytes: bytes) -> str:
         text = super()._extract(pdf_bytes)
-        if getattr(self, "_last_ocr", False) or not text.strip():
+        if (self.margin_numbers_off or getattr(self, "_last_ocr", False)
+                or not text.strip()):
             return text
         try:
             res = extract_with_margin_numbers(pdf_bytes, images=self.MARGIN_NUMBER_IMAGES)
