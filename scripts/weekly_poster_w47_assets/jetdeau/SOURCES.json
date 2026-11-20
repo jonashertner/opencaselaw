@@ -1,0 +1,29 @@
+{
+  "title": "Genève. Le jet d'eau vers le Kursaal",
+  "series": "Photoglob-Wehrli photochrom/view-card negative no. 17286",
+  "author": "Unknown photographer (Photoglob-Wehrli AG, Kilchberg-Zürich)",
+  "date": "circa 1910",
+  "holding_institution": "Swiss National Library (Bibliothèque nationale suisse), Graphische Sammlung / Prints and Drawings Department of the Federal Archives of Historic Monuments",
+  "accession_id": "EAD-WEHR-17286-B",
+  "commons_url": "https://commons.wikimedia.org/wiki/File:CH-NB_Photoglob-Wehrli_EAD-WEHR-17286-B.tif",
+  "institution_record_url": "https://www.helveticarchives.ch/detail.aspx?id=1755181",
+  "source_file_downloaded": "https://upload.wikimedia.org/wikipedia/commons/6/6a/CH-NB_Photoglob-Wehrli_EAD-WEHR-17286-B.tif",
+  "original_dimensions_px": [5640, 7483],
+  "licence": {
+    "short_name": "Public domain",
+    "usage_terms": "Public domain",
+    "pd_mark": "CC Public Domain Mark 1.0 (as tagged by Wikimedia Commons / Swiss National Library)",
+    "restrictions": "none listed in extmetadata",
+    "basis": "Photograph by an unknown/unattributed photographer for the Photoglob-Wehrli publishing house, dated circa 1910 (Wehrli AG traded under that name 1904-1924). Verified via the Commons API (action=query, prop=imageinfo, iiprop=url|extmetadata) on this file: LicenseShortName='Public domain', UsageTerms='Public domain', Restrictions='' (empty). Public domain under the Swiss rule (author's death + 70 years) given the work's age and unattributed authorship, and separately tagged PD by the holding institution.",
+    "verified_via": "https://commons.wikimedia.org/w/api.php?action=query&titles=File:CH-NB%20Photoglob-Wehrli%20EAD-WEHR-17286-B.tif&prop=imageinfo&iiprop=url|extmetadata&format=json"
+  },
+  "candidates_considered": [
+    "File:CH-NB Photoglob-Wehrli EAD-WEHR-4550-B.tif (same collection; Jet d'eau small, at left edge of a wide Pont du Mont-Blanc cityscape -- not usable as a tall, dominant plume)",
+    "File:CH-NB Photoglob-Wehrli EAD-WEHR-17281-B.tif (harbour view, Jet d'eau in background, landscape orientation)",
+    "File:CH-NB Photoglob-Wehrli EAD-WEHR-17282-B.tif (portrait, two sailing boats partly cross the plume)",
+    "File:CH-NB Photoglob-Wehrli EAD-WEHR-17283-B.tif (portrait, swans in foreground, plume smaller in frame)",
+    "File:CH-NB Photoglob-Wehrli EAD-WEHR-17285-B.tif (landscape orientation)",
+    "17286 chosen: portrait orientation (5640x7483, matches the poster's own tall 4:5 aspect), the plume stands alone, tall, centred and unobstructed against open sky, with the Kursaal/quai skyline grounding it at the foot -- the clearest, largest, most legible rendering of the plume among the candidates."
+  ],
+  "how_used": "Downloaded the full-resolution TIFF, cropped tall to a 3792x4740 px window (x 1077-4869, y 360-5100 of the original 5640x7483 scan) centred on the plume with sky headroom above the tip and lake foreground below the splash, resized to 2160x2700 and saved as jetdeau_source.jpg (levels/contrast adjusted only -- same crop, same tones, no retouching of content). In the poster this photograph is the full-bleed background, duotoned (night indigo to warm floodlit cream) via weekly_poster_w47_jetdeau.py. The photograph's own misty plume is dimmed to a faint ghost within its own measured silhouette so it reads as atmosphere; the plume is then rebuilt as exactly 974 generated droplets (one per decision in week['added']), each droplet's brightness and colour sampled at render time from this same photograph at its position, so their tone, grain and light come from the photograph, not an invented palette. The envelope (centreline sway and width-with-height, including the real plume's waist/bulge/splash) is fit from 20+ brightness-profile measurements taken directly off this photograph (see PLUME_PROFILE in the module)."
+}

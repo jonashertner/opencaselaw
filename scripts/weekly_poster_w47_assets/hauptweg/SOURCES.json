@@ -1,0 +1,31 @@
+{
+ "_note": "The brief for this poster expected a Wikimedia Commons file of this painting credited to Rheinisches Bildarchiv Koeln. A search of Commons (full-text search, the painting's own Wikidata item Q1589802, and its 'Highway and Byways by Paul Klee' category) found no such file: no Commons file of this specific painting carries an rba Koeln credit, and a search for 'Rheinisches Bildarchiv' + Klee + Nebenwege/Highway/Byways returned zero Commons hits. What Commons does hold (6 files, all in Category:Highway and Byways by Paul Klee) is: a low-res (500x622) institutional reproduction credited to Museum Ludwig, Koeln itself (not rba); a 816x1022 PD-tagged upload; two further photographs explicitly licensed CC BY-SA 4.0 (excluded by the brief's licence rules); and a pair of own-work photographs by Wikimedia Commons admin Raimond Spekking (taken at Museum Ludwig, 2025-03-16) -- an uncropped 4069x4772 version tagged CC BY-SA 4.0 (the photograph as taken, including non-painting elements of the shot), and a 3009x3734 crop of the same photograph, tight to the painted surface, separately tagged {{PD-Art|PD-old-auto-expired|deathyear=1940}} with Commons extmetadata independently confirming LicenseShortName/UsageTerms 'Public domain', AttributionRequired false and Copyrighted false. This cropped file is also the image Wikidata Q1589802 itself points to as the painting's canonical depiction (P18). It is both the highest-resolution faithful reproduction of the 2D painted surface on Commons and the one Commons' own licensing machinery marks public domain (the brief's own rule -- 'a faithful photograph of a 2D public-domain work is fine' -- applies regardless of who photographed it, since Klee died in 1940, more than 70 years before 2025). That file, not an rba-credited one, is what this poster uses.",
+ "painting": {
+  "title_de": "Hauptweg und Nebenwege",
+  "title_en": "Highway and Byways",
+  "artist": "Paul Klee (1879-1940), died more than 70 years ago -> public domain in Switzerland since 2011",
+  "date": "January 1929",
+  "medium": "Oil on canvas",
+  "dimensions_cm": "83.7 x 67.5 cm",
+  "holding_institution": "Museum Ludwig, Koeln (acquired 1976)",
+  "accession_number": "ML 76/3253",
+  "wikidata": "https://www.wikidata.org/wiki/Q1589802"
+ },
+ "file_used": {
+  "title": "File:Hauptweg und Nebenwege - Paul Klee - Museum Ludwig-7026 (cropped).jpg",
+  "commons_page": "https://commons.wikimedia.org/wiki/File:Hauptweg_und_Nebenwege_-_Paul_Klee_-_Museum_Ludwig-7026_(cropped).jpg",
+  "file_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Hauptweg_und_Nebenwege_-_Paul_Klee_-_Museum_Ludwig-7026_%28cropped%29.jpg",
+  "resolution": "3009 x 3734 px (the file downloaded into dl/klee_cropped_full.jpg)",
+  "photographer": "Raimond Spekking (own photograph, Museum Ludwig, Koeln, 2025-03-16), cropped from File:Hauptweg und Nebenwege - Paul Klee - Museum Ludwig-7026.jpg to the painted surface only",
+  "licence": "Public domain. Commons extmetadata (verified 2026-11-20 via https://commons.wikimedia.org/w/api.php?action=query&titles=File:Hauptweg%20und%20Nebenwege%20-%20Paul%20Klee%20-%20Museum%20Ludwig-7026%20(cropped).jpg&prop=imageinfo&iiprop=url|size|extmetadata&format=json): LicenseShortName 'Public domain', UsageTerms 'Public domain', AttributionRequired false, Copyrighted false. Page wikitext carries {{PD-Art|PD-old-auto-expired|deathyear=1940}} -- a faithful photographic reproduction of a 2D public-domain work, not independently copyrightable regardless of who took the photograph, per Commons' standard PD-Art doctrine.",
+  "rejected_alternatives": [
+   "File:Hauptweg und Nebenwege - Paul Klee - Museum Ludwig-7026.jpg (4069x4772, the uncropped source photo) -- tagged CC BY-SA 4.0 (Copyrighted true), because the uncropped frame includes more than the flat 2D painted surface; excluded by the brief's 'NO CC BY-SA' rule.",
+   "File:Paul Klee - Hauptweg und Nebenwege.JPG -- self-tagged CC BY-SA 4.0; excluded.",
+   "File:Highway and Byways by Paul Klee, Museum Ludwig.jpg -- self-tagged CC BY-SA 4.0; excluded.",
+   "File:Paul Klee, Hauptweg und Nebenwege, 1929, Oel auf Leinwand, 83,7 x 67,5 cm, Museum Ludwig 1976.jpg -- PD-Art, credited to Museum Ludwig Koeln, but only 500x622 px: far too low-resolution for a 2160x2700 collage master.",
+   "File:Highway-byways.png -- PD-Art, 816x1022 px; also too low-resolution."
+  ]
+ },
+ "used_in_poster": "scripts/weekly_poster_w47_hauptweg.py. The painting is recut, not redrawn: three roads (the real main path up the centre, and the two real side paths that branch off it) are each rebuilt from their own real pixels, cut into small fixed-height chunks (so no chunk is ever stretched), shuffled, and re-sliced at this week's court-count boundaries, then re-pasted into the same roads in the same painting -- every visible pixel is an untouched, repositioned crop from this file. A thin wavering ink line, colour-sampled from the painting's own darkest (contour-line) pixels (median RGB 64,61,54 over the darkest 2% of the image), is drawn along each recut road edge and at every court boundary. The untouched horizon band at the top, left exactly as painted, carries the week's figure. Credited on the poster as 'Paul Klee, Hauptweg und Nebenwege, 1929, Museum Ludwig Koeln'.",
+ "repo_copy": "klee_2160x2700.jpg: the Commons file (3009x3734) resampled to 2160x2700 with LANCZOS and saved as JPEG q95 to keep the repository small; the module resamples to exactly this size anyway."
+}

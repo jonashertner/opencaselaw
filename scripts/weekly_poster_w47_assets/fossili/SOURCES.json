@@ -1,0 +1,84 @@
+{
+  "_note": "Reframed on review (2026-11-20): this poster no longer makes any claim about Monte San Giorgio. Louis Agassiz's Recherches sur les poissons fossiles was itself drawn, lithographed and printed in Neuchatel -- it is a Swiss natural-history source in its own right, not a stand-in for one, and the poster now credits it as such. Fish are cut from Agassiz's atlas; the ground is a separate real photograph of bituminous shale. Neither claims to depict Monte San Giorgio, Besano or any specific Swiss locality.",
+  "fish_plates": {
+    "work": "Louis Agassiz, Recherches sur les poissons fossiles, Atlas, Tome II (Ganoides) -- drawn chiefly by Joseph Dinkel, lithographed by C. Weber, Hellmuth, Bourkhardt and others, printed by the Lithographie de H. Nicolet, Neuchatel, Switzerland, 1833-1845.",
+    "author_death": "Louis Agassiz (b. Môtier, Vaud, 1807; d. 1873) -- well over 70 years, and the work was published before 1930. Public domain.",
+    "digitised_copy": "Missouri Botanical Garden copy, scanned by the Biodiversity Heritage Library / Internet Archive, identifier mobot31753003650964 (\"v. 2 (atlas)\"), 158 plate images.",
+    "source_url": "https://archive.org/details/mobot31753003650964",
+    "pdf_used": "https://archive.org/download/mobot31753003650964/mobot31753003650964.pdf",
+    "licence": "Public domain (pre-1930 publication, author and all named lithographers long deceased). BHL/Internet Archive serves this scan with no added rights.",
+    "plates_used": [
+      {
+        "file": "f1_pholidophorus_latus.png",
+        "plate": "Tab. 41",
+        "caption": "Pholidophorus latus Agass. (per the atlas's own plate index, \"Ordre des planches\"); locality printed on the plate: Solenhofen"
+      },
+      {
+        "file": "f2_lepidotus_notopterus.png",
+        "plate": "Tab. 35",
+        "caption": "LEPIDOTUS NOTOPTERUS Agass. (caption legible on the plate itself)"
+      },
+      {
+        "file": "f3_tab39_fig1.png",
+        "plate": "Tab. 39, fig. 1",
+        "caption": "genus not legible in this scan"
+      },
+      {
+        "file": "f4_tab39_fig3.png",
+        "plate": "Tab. 39, fig. 3",
+        "caption": "genus not legible in this scan (same plate as f3, second specimen)"
+      },
+      {
+        "file": "f5_pholidophorus_micronyx.png",
+        "plate": "Tab. 42, fig. 1",
+        "caption": "Pholidophorus micronyx Agass. (caption row legible: \"Fig.1 Pholidophorus micronyx Agass. -- Fig.2 Ph. gracilis -- Fig.3 Ph. intermedius -- Fig.4 Ph. tenuiserratus\")"
+      },
+      {
+        "file": "f6_pholidophorus_tenuiserratus.png",
+        "plate": "Tab. 42, fig. 4",
+        "caption": "Pholidophorus tenuiserratus v. Munster (same plate as f5, fourth specimen)"
+      },
+      {
+        "file": "f7_tetragonolepis.png",
+        "plate": "Tab. 23 (a-e series)",
+        "caption": "Tetragonolepis sp. Agass.; locality printed on the plate: Lyme Regis"
+      },
+      {
+        "file": "f0_giant_pholidophorus_latus.png",
+        "plate": "Tab. 41 (same plate as f1)",
+        "caption": "Pholidophorus latus Agass., re-cut from a ~3.75x higher-resolution crop of the same page scan (2340x1124px source vs. the ~800px working size used for the other 7) so the scale rows and fin rays hold up when the single most recent decision is rendered 600-900px long. Same cleaning pipeline (threshold + connected-component + relief), nothing else differs. A separate flat patch inside the tail fin outline (plate paper/matrix with no scale impression, caught by the connected-component cut because it was ink-contiguous with the real fin rays) was identified by its brightness and removed in a second pass, leaving the tail as an open fork between the two ray bundles rather than a filled wedge."
+      }
+    ],
+    "dropped": [
+      {
+        "plate": "Tab. 30a (Lepidotus Fittoni, etc.)",
+        "reason": "the plate's lithographed rock matrix is shaded with real linework that is ink-contiguous with the fish's own body at every threshold tried -- a connected-component cut keeps the whole rock fragment, not just the fish. Dropped rather than shipped as a visible rectangle."
+      },
+      {
+        "plate": "Tab. 33 (Lepidotus undatus)",
+        "reason": "same problem: matrix and fish ink form a single connected region. Dropped."
+      }
+    ],
+    "how_used": "Each plate was downloaded at 400dpi page resolution and cropped by hand to one fossil. Cut-out is a two-stage process: (1) an Otsu threshold on a darkness+saturation score, tuned per plate; (2) a connected-component pass (implemented from scratch in numpy, no scipy available) that keeps only the single largest connected blob of ink -- this is what actually removes the plate's rock matrix, its ruled frame and any guide lines, rather than a vignette alone. Enclosed holes are filled, the edge eroded by 1px and feathered. 7 of 9 candidate plates survive this cleanly; 2 were dropped (see 'dropped' above); the 8th file (f0) is a higher-resolution re-cut of f1's own plate, for the one giant fish. After cutting, every sprite is converted to a single pale grey-ochre impression colour: the original print colour is discarded, but the lithograph's own internal light/dark pattern (scale rows, fin rays, head bones) is kept -- a soft-blurred copy of its luminance gives the overall shading, the difference between that and the sharp original is boosted back in as local contrast, and a hard directional emboss (one low, raking light from the side, the same direction for every sprite and for a matching page-wide gradient over the whole poster) is built from that same high-frequency layer, so the scale relief reads clearly rather than as a flat tint. The 8 resulting sprites are placed -- with random rotation (mostly along three preferred 'current' directions, not tumbled freely), left/right flip and scale, never stretched off their own aspect ratio -- to reach exactly 974 instances, one per decision: 973 on an even grid at a steep size-by-recency curve (oldest ~16-20px, growing toward the newest), plus the single most recent decision as one monumental fish (600-900px) on its own diagonal placement, running off the canvas edge. This repetition and the extreme scale curve are disclosed here and in the module's own docstring. No fish was drawn or invented, and no sprite keeps its original brown/ochre print colour in the final poster."
+  },
+  "shale_ground": {
+    "title": "Bituminous shale (GeoDIL number - 480)",
+    "photographer": "Nessa Eull",
+    "date": "2001-05-21",
+    "description_verbatim": "This shale is dark colored because it contains lots of organic matter. The principle mineral component is fine grained clay (too fine grained to be easily seen with the naked eye or with a microscope). This specimen is 9 cm across.",
+    "collection_source": "GeoDIL -- Geology Digital Image Library (https://geodil.dperkins.org/h/480.html), via Wikimedia Commons",
+    "commons_url": "https://commons.wikimedia.org/wiki/File:Bituminous_shale_(GeoDIL_number_-_480).jpg",
+    "file_url_direct": "https://upload.wikimedia.org/wikipedia/commons/5/58/Bituminous_shale_%28GeoDIL_number_-_480%29.jpg",
+    "original_dimensions": "2224 x 1600 px, JPEG",
+    "licence": "CC0 (Creative Commons Zero / Public Domain Dedication), confirmed via the Commons API's imageinfo/extmetadata (LicenseShortName: CC0; UsageTerms: Creative Commons Zero, Public Domain Dedication; LicenseUrl: creativecommons.org/publicdomain/zero/1.0)",
+    "how_used": "Revised on review: the first pass mirror-tiled a small 500x300px patch into a 2x2 block and repeated it, which read as blotchy, kaleidoscopic noise once darkened. This version instead crops one large clean region of the same photograph (1680x800px, including one real diagonal fracture, no labels) and scales it up as a single piece -- no mirroring, no repeat -- to cover the full 2160x2700 canvas (a ~3.4x gentle enlargement). It is darkened toward near-black via a flat multiply curve, with the photograph's own row-to-row brightness variation (real data, lightly amplified) kept as the only 'lamination', plus a soft vignette. The ground is a single processed real photograph throughout -- no procedural rock texture, and no tiling artefact."
+  },
+  "considered_and_rejected": [
+    "Monte San Giorgio / Besano Formation specimens or slab photographs: no usable public-domain source found for either the fish or the ground (see the earlier search record below). The poster no longer references Monte San Giorgio at all, so this is retained only as a record of what was tried.",
+    "Bassani, F. (1886), 'Sui fossili e sull'eta degli scisti bituminosi triasici di Besano in Lombardia', Atti della Societa Italiana di Scienze Naturali 29, 15-72: confirmed via a direct text extraction of archive.org's scan of the volume it was extracted into (Stoppani 1857, identifier studiigeologici00stopgoog) that Bellotti's companion paper carries NO plates -- no 'Tav.' citation anywhere in its text.",
+    "Curioni 1863 and Deecke 1889 (Palaeontographica 35): no digitised copy could be located on archive.org, BHL, or via web search in the time available.",
+    "Wikimedia Commons Besano/Grenzbitumenzone fossil-slab photographs (e.g. Tanystropheus longobardicus specimen photos): CC BY-SA or CC BY, excluded on licence grounds.",
+    "Several other Commons oil-shale photographs (Oil Shale Student Sample.JPG, Oil shale.jpg, Jordan Oil Shale.JPG, Colorado Oil Shale.jpg): CC BY-SA/CC BY, rejected in favour of the CC0 GeoDIL specimen."
+  ],
+  "numeral_technique": "The \"974\" is not text printed over the image: the glyphs are filled (via CSS background-clip:text) with the same ground photograph used for the full-bleed background, aligned pixel-for-pixel, then darkened/flattened slightly -- so it reads as bare shale exposed where the fish layer has been cut away, including where the giant fish crosses it. The incised bevel is two more copies of the same text, stroke-only and offset a couple of px to upper-left (dark) and lower-right (pale), stacked under the cut-text layer so only their edges peek through. No separate asset; pure CSS over the same ground.jpg already documented above."
+}

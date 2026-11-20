@@ -2,6 +2,44 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W47",
+   "from": "2026-11-13",
+   "to": "2026-11-19",
+   "added": 974,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "hauptweg",
+     "file": "2026-w47/de-hauptweg.webp",
+     "caption": "Woche 47 in der Schweizer Rechtsprechung: 974 neue Entscheide."
+    },
+    {
+     "lang": "fr",
+     "design": "jetdeau",
+     "file": "2026-w47/fr-jetdeau.webp",
+     "caption": "Semaine 47 de la jurisprudence suisse : 974 nouvelles décisions."
+    },
+    {
+     "lang": "it",
+     "design": "fossili",
+     "file": "2026-w47/it-fossili.webp",
+     "caption": "Settimana 47 della giurisprudenza svizzera: 974 nuove decisioni."
+    },
+    {
+     "lang": "rm",
+     "design": "naiv",
+     "file": "2026-w47/rm-naiv.webp",
+     "caption": "Emna 47: 974 novas decisiuns."
+    },
+    {
+     "lang": "en",
+     "design": "print",
+     "file": "2026-w47/en-print.webp",
+     "caption": "Week 47 in Swiss case law: 974 new decisions."
+    }
+   ]
+  },
+  {
    "week": "2026-W46",
    "from": "2026-11-06",
    "to": "2026-11-12",
