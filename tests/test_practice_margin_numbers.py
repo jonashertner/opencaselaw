@@ -82,6 +82,38 @@ def test_table_of_contents_left_alone():
     assert extract_with_margin_numbers(pdf) is None
 
 
+@pytest.mark.parametrize("label", ["Cm", "nm.", "Rz"])
+def test_toc_number_column_with_language_label_is_not_rz(label):
+    """FINMA-RS 2019/1 fr/it (live run 2026-11-20): the TOC prints its Rz
+    column beside "Cm" / "nm." labels in the margin; its numbers were placed
+    as Rz 1, 19, 20, 70, 102-105 before the "Cm" lines."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for k, (head, nums) in enumerate([("Objet", "1"), ("Champ", "19"), ("Contreparties", "20"),
+                                       ("Positions", "70"), ("Réserves", "102"),
+                                       ("Disposition transitoire", "105")]):
+        y = 120 + 19 * k
+        page.insert_text((118, y), f"{head} de la circulaire et autres dispositions", fontsize=10)
+        page.insert_text((395, y), label, fontsize=10)
+        page.insert_text((445, y), nums, fontsize=10)
+    body = doc.new_page(width=595, height=842)
+    for k in range(10):
+        body.insert_text((85, 100 + 16 * k), f"{BODY} Absatz {k}.", fontsize=10)
+    assert extract_with_margin_numbers(doc.tobytes(), images=True) is None
+
+
+def test_asterisk_marked_rz_placed_and_kept():
+    """FINMA marks amended Rz "16*": such pages were refused whole, and on
+    mixed pages the starred number stayed a bare line between paragraphs."""
+    pdf = _bsv_pdf([(0, "15"), (3, "16*"), (6, "17"), (8, "17.1*")])
+    text, n = extract_with_margin_numbers(pdf)
+    assert n == 4
+    lines = text.splitlines()
+    assert lines[lines.index("Rz 16*") + 1].endswith("Absatz 3.")
+    assert lines[lines.index("Rz 17.1*") + 1].endswith("Absatz 8.")
+    assert "16*" not in [ln.strip() for ln in lines]
+
+
 def test_split_range_is_one_marker():
     pdf = _bsv_pdf([(0, "2022"), (4, "2023.1-"), (5, "2023.4"), (7, "2024")])
     text, n = extract_with_margin_numbers(pdf)

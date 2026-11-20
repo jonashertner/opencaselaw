@@ -37,9 +37,10 @@ import statistics
 
 logger = logging.getLogger(__name__)
 
-_RZ_TEXT = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?$")
+# FINMA marks an amended Rz with an asterisk ("16*"); it stays in the marker.
+_RZ_TEXT = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?\*?$")
 _AMEND_MARK = re.compile(r"^\d{1,2}/\d{2}$")
-_RZ_OPEN = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?\s*[-–]$")   # "2023.1-": a range's first line
+_RZ_OPEN = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?\*?\s*[-–]$")   # "2023.1-": a range's first line
 _LEADERS = re.compile(r"\.{4,}|…{2,}")
 
 
@@ -121,14 +122,23 @@ def _annex_label(lines: list[dict]) -> str | None:
 
 def _rz_key(t: str) -> tuple:
     """Sort key of a margin number: "2009.1" -> (2009, 1), "12a" -> (12, 0, 1)."""
-    m = re.fullmatch(r"([\d.]+?)([a-z]?)", t)
+    m = re.fullmatch(r"([\d.]+?)([a-z]?)", t.strip().rstrip("*"))
     nums = tuple(int(x) for x in m.group(1).split(".") if x)
     return nums + ((0, ord(m.group(2)) - 96) if m.group(2) else ())
 
 
+# The label a TOC prints over or beside its margin-number column: Rz (de),
+# Cm (fr, "chiffre marginal"), nm. (it), N / Rn, margin no. (en).
+_RZ_LABEL = re.compile(r"(?:Rz|Rn|Cm|Nm|N|Cifra|Cifre|marg|margin nos?)\.?", re.IGNORECASE)
+
+
+def _is_rz_label(t: str) -> bool:
+    return bool(_RZ_LABEL.fullmatch(t.strip()))
+
+
 def _is_toc_page(lines: list[dict]) -> bool:
     return (sum(1 for ln in lines if _LEADERS.search(ln["text"])) >= 3
-            or sum(1 for ln in lines if ln["text"].strip() == "Rz") >= 3
+            or sum(1 for ln in lines if _is_rz_label(ln["text"])) >= 3
             or any(_TOC_HEAD.match(ln["text"].strip()) for ln in lines))
 
 
@@ -303,7 +313,7 @@ def _toc_max_rz(doc, first_rz_page: int) -> int | None:
     for pno in range(min(first_rz_page, 6)):
         for ln in _page_lines(doc[pno]):
             t = ln["text"].strip()
-            if t == "Rz" or t.startswith("Rz "):
+            if _is_rz_label(t) or _is_rz_label(t.split(" ", 1)[0]):
                 seen_rz = True
             m = re.fullmatch(r"(\d{1,4})(?:\s*[-–]\s*(\d{1,4}))?", t)
             if m:
