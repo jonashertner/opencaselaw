@@ -1,0 +1,364 @@
+<title>974 crystals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Archivo:wght@500;600&display=swap">
+<style>
+/* Week 47 as a film: 1080 x 1350, scaled to fit the window. */
+:root{color-scheme:dark;--bg:#020306;--ink:#f6f8ff;--mute:rgba(226,234,255,.74)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);overflow:hidden;font-family:'Archivo',system-ui,sans-serif;cursor:default}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1350px;transform-origin:0 0;overflow:hidden;background:var(--bg)}
+canvas{position:absolute;left:0;top:0;width:1080px;height:1350px}
+#n{position:absolute;left:0;top:118px;width:1080px;text-align:center;font:500 330px/1 'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 120;font-variant-numeric:lining-nums tabular-nums;letter-spacing:-.03em;
+  text-shadow:0 0 2px rgba(255,255,255,.75),0 0 26px rgba(150,190,255,.45),0 0 60px rgba(0,0,0,.55);opacity:0}
+#t{position:absolute;left:0;top:468px;width:1080px;text-align:center;font:400 54px/1 'Fraunces',Georgia,serif;
+  font-variation-settings:'opsz' 48;letter-spacing:.005em;text-shadow:0 0 18px rgba(0,0,0,.8),0 0 2px rgba(255,255,255,.5);opacity:0}
+#w{position:absolute;left:0;top:536px;width:1080px;text-align:center;font:500 27px/1 'Archivo',sans-serif;letter-spacing:.05em;
+  color:rgba(240,244,255,.93);text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 14px rgba(0,0,0,.85);opacity:0}
+#u{position:absolute;left:0;bottom:70px;width:1080px;text-align:center;font:600 26px/1 'Archivo',sans-serif;letter-spacing:.05em;
+  text-shadow:0 1px 10px rgba(0,0,0,.95);opacity:0}
+#c{position:absolute;left:40px;bottom:30px;width:1000px;text-align:center;font:500 19px/1.3 'Archivo',sans-serif;letter-spacing:.02em;
+  color:rgba(236,241,255,.9);text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 12px rgba(0,0,0,.9);opacity:0}
+#hint{position:absolute;right:28px;top:26px;font:500 13px/1 'Archivo',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);opacity:0;transition:opacity .8s}
+#hint.on{opacity:.8}
+</style>
+</head><body>
+<div id="stage">
+  <canvas id="gl"></canvas>
+  <div id="n">1</div>
+  <div id="t">new decisions</div>
+  <div id="w"></div>
+  <div id="u">opencaselaw.ch</div>
+  <div id="c">Snow crystals photographed by Wilson A. Bentley · Bernina from Muottas Muragl: swisstopo swissALTI3D</div>
+  <div id="hint">Move to focus · tap to replay</div>
+</div>
+<script>
+const D = /*DATA*/null;
+const C = D.cam, K = D.keys, NK = K.length, N1 = D.c.length / NK;
+const $ = id => document.getElementById(id);
+$('w').textContent = D.week.line;
+
+/* ---------- the lens and the camera: the same formulas as the builder ---------- */
+const ease = u => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
+const pullEase = u => { u = Math.pow(Math.min(1, Math.max(0, u)), .8); return u * u * u * (u * (u * 6 - 15) + 10); };
+const camDist = t => C.D0 * Math.pow(C.D1 / C.D0, pullEase((t - C.THOLD) / (C.TPULL - C.THOLD)));
+const camZ = t => C.ZM - camDist(t);
+const camY = t => C.MY - camDist(t) * C.RY;   // backing away along the line of sight to the first crystal
+function invFocus(t) {
+  if (t <= C.TPULL) return 1 / camDist(t);
+  if (t <= C.TRACK) return 1 / (C.D1 * Math.pow(C.FEND / C.D1, ease((t - C.TPULL) / (C.TRACK - C.TPULL))));
+  return (1 / C.FEND) * (1 - ease((t - C.TRACK) / (C.TINF - C.TRACK)));
+}
+const aperture = t => C.A0 + (C.A1 - C.A0) * ease((t - C.THOLD) / (C.TRACK - C.THOLD));
+
+/* ---------- crystals ---------- */
+const cr = [];
+for (let i = 0; i < N1; i++) { const o = {}; for (let k = 0; k < NK; k++) o[K[k]] = D.c[i * NK + k]; cr.push(o); }
+const tcs = cr.map(c => c.tc).sort((a, b) => a - b);
+function countAt(t) { let lo = 0, hi = tcs.length; while (lo < hi) { const m = (lo + hi) >> 1; if (tcs[m] <= t) lo = m + 1; else hi = m; } return 1 + lo; }
+
+/* ---------- GL ---------- */
+const cv = $('gl');
+const gl = cv.getContext('webgl2', {antialias: false, alpha: false, premultipliedAlpha: false, preserveDrawingBuffer: true});
+let DPR = 1;
+function size() {
+  const s = Math.min(innerWidth / C.W, innerHeight / C.H);
+  const st = $('stage');
+  st.style.transform = `translate(${(innerWidth - C.W * s) / 2}px,${(innerHeight - C.H * s) / 2}px) scale(${s})`;
+  DPR = Math.min(2.5, Math.max(1, (window.devicePixelRatio || 1) * s));
+  cv.width = Math.round(C.W * DPR); cv.height = Math.round(C.H * DPR);
+}
+size(); addEventListener('resize', size);
+
+function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+function prog(vs, fs) { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p; }
+function tex(b64, mime, mip) {
+  return new Promise(res => { const im = new Image(); im.onload = () => {
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    if (mip) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); }
+    else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    res(t); }; im.src = `data:${mime};base64,${b64}`; });
+}
+
+const FULL_VS = `#version 300 es
+in vec2 p; out vec2 uv; void main(){ uv = p * .5 + .5; uv.y = 1. - uv.y; gl_Position = vec4(p, 0, 1); }`;
+const BG_FS = `#version 300 es
+precision highp float; in vec2 uv; out vec4 o;
+uniform sampler2D t0, t1, t2, t3; uniform float sig, expo; uniform vec4 lv;
+void main(){
+  float a = texture(t0, uv).r, b = texture(t1, uv).r, c = texture(t2, uv).r, d = texture(t3, uv).r;
+  float v = sig <= lv.y ? mix(a, b, sig / lv.y) : sig <= lv.z ? mix(b, c, (sig - lv.y) / (lv.z - lv.y))
+          : sig <= lv.w ? mix(c, d, (sig - lv.z) / (lv.w - lv.z)) : d * lv.w / sig * .6 + d * .4;
+  vec3 col = vec3(.010, .013, .026) + pow(v, 1.55) * vec3(.80, .88, 1.0) * 1.12;
+  float vig = 1. - .28 * pow(length((uv - .5) * vec2(1., .9)) * 1.25, 2.4);
+  o = vec4(col * expo * vig, 1);
+}`;
+const CR_VS = `#version 300 es
+in vec2 p;                                   // quad corner, -1..1
+in vec4 a0;                                  // centre (px), axis 1 (px)
+in vec4 a1;                                  // axis 2 (px), level 0..3, light
+in float a2;                                 // sprite index
+uniform vec2 res; uniform vec3 at;           // cols, rows, fit
+out vec2 uv, lp; out float lvl, lit;
+void main(){
+  vec2 q = a0.xy + p.x * a0.zw + p.y * a1.xy;
+  gl_Position = vec4(q / res * 2. - 1., 0, 1); gl_Position.y = -gl_Position.y;
+  float col = mod(a2, at.x), row = floor(a2 / at.x);
+  uv = (vec2(col, row) + (p * .5 + .5)) / at.xy;
+  lvl = a1.z; lit = a1.w; lp = p;
+}`;
+const CR_FS = `#version 300 es
+precision highp float; in vec2 uv, lp; in float lvl, lit; out vec4 o;
+uniform sampler2D atl, far;
+void main(){
+  float win = smoothstep(1.0, .80, length(lp));
+  vec3 s = texture(atl, uv).rgb; float f = texture(far, uv).r;
+  float v = lvl < 1. ? mix(s.r, s.g, lvl) : lvl < 2. ? mix(s.g, s.b, lvl - 1.) : mix(s.b, f, min(1., lvl - 2.));
+  // ice sends light and also holds some back: the crystal dims what lies behind it a little
+  o = vec4(v * win * lit * vec3(.86, .92, 1.0), v * win * .42 * min(1., lit));
+}`;
+const MC_VS = `#version 300 es
+in vec2 p; uniform vec2 res; uniform vec4 m0; uniform vec2 m1; out vec2 uv;
+void main(){ vec2 q = m0.xy + p.x * m0.zw + p.y * m1; uv = p * .5 + .5; uv.y = 1. - uv.y;
+  gl_Position = vec4(q / res * 2. - 1., 0, 1); gl_Position.y = -gl_Position.y; }`;
+const MC_FS = `#version 300 es
+precision highp float; in vec2 uv; out vec4 o; uniform sampler2D mt; uniform float lod, lit, sheen, sheenPos;
+void main(){
+  float v = textureLod(mt, uv, lod).r;
+  float band = exp(-pow((dot(uv - .5, normalize(vec2(.8, .6))) - sheenPos) / .13, 2.));
+  float win = smoothstep(.5, .46, length(uv - .5));
+  o = vec4(v * win * lit * (1. + sheen * band) * vec3(.88, .93, 1.0), 1);
+}`;
+const CP_FS = `#version 300 es
+precision highp float; in vec2 uv; out vec4 o; uniform sampler2D src; uniform float seed;
+float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + seed) * 43758.5453); }
+vec3 knee(vec3 x){ const float k = .62; return mix(x, k + (1. - k) * (1. - exp(-(x - k) / (1. - k))), step(k, x)); }
+void main(){ vec3 c = texture(src, vec2(uv.x, 1. - uv.y)).rgb;
+  o = vec4(knee(c) + (h(gl_FragCoord.xy) - .5) / 255., 1); }`;
+const GL_FS = `#version 300 es
+precision highp float; in vec2 uv; in float lvl, lit; out vec4 o;
+void main(){ vec2 d = uv; float r = length(d), rr = r * 3.;
+  float core = exp(-rr * rr * 3.) * 1.1 + exp(-rr * 1.6) * .16;
+  float spikes = (exp(-abs(d.y) * 40.) * (1. - abs(d.x)) + exp(-abs(d.x) * 40.) * (1. - abs(d.y))) * .5;
+  o = vec4(lit * (core + spikes) * smoothstep(1., .7, r) * vec3(.86, .92, 1.0), 0); }`;
+const GLW_VS = `#version 300 es
+in vec2 p; in vec4 a0; in vec4 a1; in float a2; uniform vec2 res; out vec2 uv; out float lvl, lit;
+void main(){ vec2 q = a0.xy + p * a1.x; gl_Position = vec4(q / res * 2. - 1., 0, 1); gl_Position.y = -gl_Position.y;
+  uv = p; lvl = 0.; lit = a1.y; }`;
+
+const pCP = prog(FULL_VS, CP_FS), pBG = prog(FULL_VS, BG_FS), pCR = prog(CR_VS, CR_FS), pMC = prog(MC_VS, MC_FS), pGL = prog(GLW_VS, GL_FS);
+const quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+const STRIDE = 9;                          // floats per crystal instance
+const inst = new Float32Array(N1 * STRIDE), glow = new Float32Array(N1 * STRIDE);
+const ib = gl.createBuffer(), gb = gl.createBuffer();
+
+function vao(p, buf) {
+  const v = gl.createVertexArray(); gl.bindVertexArray(v);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad); let l = gl.getAttribLocation(p, 'p'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
+  if (buf) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    [['a0', 4, 0], ['a1', 4, 4], ['a2', 1, 8]].forEach(([n, s, o]) => { const L = gl.getAttribLocation(p, n); if (L < 0) return;
+      gl.enableVertexAttribArray(L); gl.vertexAttribPointer(L, s, gl.FLOAT, false, STRIDE * 4, o * 4); gl.vertexAttribDivisor(L, 1); });
+  }
+  gl.bindVertexArray(null); return v;
+}
+const vCP = vao(pCP, null), vBG = vao(pBG, null), vCR = vao(pCR, ib), vMC = vao(pMC, null), vGL = vao(pGL, gb);
+
+/* ---------- a float buffer: light adds up, the highlights roll off at the end ---------- */
+gl.getExtension('EXT_color_buffer_float');
+let fbo = null, fbt = null, fbw = 0, fbh = 0;
+function target() {
+  if (fbo && fbw === cv.width && fbh === cv.height) return;
+  fbw = cv.width; fbh = cv.height;
+  if (fbt) gl.deleteTexture(fbt); if (fbo) gl.deleteFramebuffer(fbo);
+  fbt = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, fbt);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, fbw, fbh, 0, gl.RGBA, gl.HALF_FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbt, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) console.warn('float target incomplete');
+}
+
+/* ---------- one frame ---------- */
+const MOON = (() => { const l = [-.42, .58, -.70], m = Math.hypot(...l); return l.map(x => x / m); })();   // towards the moon
+// The snow falls at one steady pace from the first frame to the last. Once the camera is at rest, a
+// crystal that has fallen out below the frame comes back in above it, out of sight, so the frame
+// stays full; a crystal cannot leave the frame before it is counted, so the count is untouched.
+function motionTime(t) { return t; }
+function glide(t) { return [0, 0, 0]; }
+function flyK(t) { return 0; }
+const FIT = D.atlas.fit;
+let focusOverride = null, px = 0, py = 0;
+
+function frame(t) {
+  const W = cv.width, H = cv.height, s = DPR;
+  target(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.viewport(0, 0, W, H);
+  const tm = motionTime(t), [gx, gy, gz] = glide(t);
+  const cx0 = gx + px, cy0 = camY(t) + gy, cz = camZ(t) + gz;
+  const typeK = Math.min(1, Math.max(0, (t - C.TRACK - .3) / 1.0)), numK = Math.min(1, Math.max(0, (t - .5) / .7));
+  let invF = invFocus(t), ap = aperture(t);
+  { const k = flyK(t); invF = invF + (1 / 420 - invF) * k; ap = ap + (.24 - ap) * k; }   // after the count: focus 42 cm ahead, iris opens a little
+  if (focusOverride !== null) { invF = focusOverride; ap = C.A1 * 1.6; }
+  const cocK = C.f * ap;                                  // css px of blur per (1/mm) of defocus
+
+  // the mountains, at infinity
+  gl.disable(gl.BLEND);
+  gl.useProgram(pBG); gl.bindVertexArray(vBG);
+  ['t0', 't1', 't2', 't3'].forEach((n, i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, T[n]); gl.uniform1i(gl.getUniformLocation(pBG, n), i); });
+  const sigInf = cocK * invF / 2.4;
+  gl.uniform1f(gl.getUniformLocation(pBG, 'sig'), sigInf);
+  gl.uniform4f(gl.getUniformLocation(pBG, 'lv'), 0, D.tsig[1], D.tsig[2], D.tsig[3]);
+  gl.uniform1f(gl.getUniformLocation(pBG, 'expo'), .30 + .70 * ease((t - C.THOLD) / (C.TPULL - C.THOLD)));
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // the crystals, additive light
+  gl.enable(gl.BLEND);
+  let ng = 0;
+  for (let i = 0; i < N1; i++) {
+    const c = cr[i];
+    const x = c.x + c.sa * Math.sin(c.sw * tm + c.sp) - cx0;
+    let y = c.y - c.v * tm - cy0;
+    const d = c.z - cz;
+    if (t > C.TPULL) {                                     // camera at rest: below the frame -> above it
+      const m = .06 * d + 3 * c.s, bot = -d * (C.H - C.cy) / C.f - m, span = d * C.H / C.f + 2 * m;
+      if (y < bot) y += span * Math.ceil((bot - y) / span);
+    }
+    const o = i * STRIDE;
+    if (d < 1.5) { inst[o + 7] = 0; inst[o + 2] = inst[o + 3] = inst[o + 4] = inst[o + 5] = 0; continue; }
+    const sx = C.cx + C.f * x / d, sy = C.cy - C.f * y / d;
+    const sizePx = C.f * c.s / d;                         // crystal diameter in css px
+    // plate orientation: in-plane spin, two slow tilts
+    const r = c.r0 + c.rw * tm, ta = c.ta * Math.sin(c.tw * tm + c.tp), ua = c.ua * Math.sin(c.uw * tm + c.up);
+    const cr_ = Math.cos(r), sr = Math.sin(r), ct = Math.cos(ta), st = Math.sin(ta), cu = Math.cos(ua), su = Math.sin(ua);
+    // e1, e2 = in-plane axes after spin, tilt about x (ta), tilt about y (ua)
+    let e1 = [cr_, sr, 0], e2 = [-sr, cr_, 0];
+    const rx = v => [v[0], v[1] * ct - v[2] * st, v[1] * st + v[2] * ct];
+    const ry = v => [v[0] * cu + v[2] * su, v[1], -v[0] * su + v[2] * cu];
+    e1 = ry(rx(e1)); e2 = ry(rx(e2));
+    const nx = e1[1] * e2[2] - e1[2] * e2[1], ny = e1[2] * e2[0] - e1[0] * e2[2], nz = e1[0] * e2[1] - e1[1] * e2[0];
+    // a glint: the plate mirrors the moon into the lens (half vector between moon and the way to the camera)
+    const vl = Math.hypot(x, y, d), hx = MOON[0] - x / vl, hy = MOON[1] - y / vl, hz = MOON[2] - d / vl, hl_ = Math.hypot(hx, hy, hz);
+    const g = Math.pow(Math.abs((nx * hx + ny * hy + nz * hz) / hl_), 300);
+    // depth of field
+    const coc = cocK * Math.abs(1 / d - invF);            // blur circle, css px
+    // sigma relative to the crystal; the screen's own resampling already softens by about 0.8 px
+    const sg = coc / 2.4, rel = Math.sqrt(Math.max(0, sg * sg - .64)) / Math.max(sizePx, .5);
+    const L1 = 3 / 168, L2 = 8 / 168, L3 = 18 / 168;
+    let lvl, grow = 1;
+    if (rel <= L1) lvl = rel / L1; else if (rel <= L2) lvl = 1 + (rel - L1) / (L2 - L1); else if (rel <= L3) lvl = 2 + (rel - L2) / (L3 - L2);
+    else { lvl = 3; grow = 1 + (rel - L3) / L3 * .9; }
+    const haze = (lvl > 2 ? 1 - .35 * Math.min(1, lvl - 2) : 1) * (grow > 1.8 ? Math.pow(1.8 / grow, 1.5) : 1);   // big soft discs: dimmer still, so they never fog the frame
+    // tiny far crystals: keep a minimum footprint, conserve light
+    let half = sizePx / FIT / 2 * grow, light = haze / (grow * grow);
+    const minHalf = 1.6 / s;
+    if (half < minHalf) { light *= (half / minHalf) ** 2; half = minHalf; }
+    // the moment the focus reaches it: a flare
+    const fl = Math.exp(-Math.pow((t - c.tc) / .16, 2));
+    light *= .74 * (1 + .2 * Math.min(1, Math.max(0, 1.5 - lvl))) * (1 + 1.5 * fl + .9 * g);
+    // keep the type clear: crystals behind the lines fade as the lines appear, behind the figure a little
+    { const qx = Math.max(0, 250 - sx, sx - 830), qy = Math.max(0, 445 - sy, sy - 570), q = Math.min(1, Math.hypot(qx, qy) / 42);
+      const nxq = Math.max(0, 170 - sx, sx - 910), nyq = Math.max(0, 140 - sy, sy - 440), nq = Math.min(1, Math.hypot(nxq, nyq) / 42);
+      light *= (1 - .88 * typeK * (1 - q)) * (1 - .45 * numK * (1 - nq)); }
+    // fade out where the crystal leaves the near plane
+    { const f = Math.min(1, Math.max(0, (d - 4) / (C.DVIS - 4))); light *= f * f; }
+    inst[o] = sx * s; inst[o + 1] = sy * s;
+    inst[o + 2] = e1[0] * half * s; inst[o + 3] = -e1[1] * half * s;
+    inst[o + 4] = e2[0] * half * s; inst[o + 5] = -e2[1] * half * s;
+    inst[o + 6] = lvl; inst[o + 7] = light; inst[o + 8] = c.k;
+    // a glint or the focus flare: a small hard sparkle on the crystal, the crystal itself stays sharp
+    const hl = (1.6 * Math.max(0, g - .2) + .7 * fl) * Math.min(1, sizePx / 14 + .35) * (light > 0 ? Math.min(1, light * 2) : 0);
+    if (hl > .02 && lvl < 1.6) { const q = ng * STRIDE; glow[q] = sx * s; glow[q + 1] = sy * s; glow[q + 4] = Math.max(sizePx * .5, 16) * s; glow[q + 5] = hl * .55; ng++; }
+  }
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.useProgram(pCR); gl.bindVertexArray(vCR);
+  gl.bindBuffer(gl.ARRAY_BUFFER, ib); gl.bufferData(gl.ARRAY_BUFFER, inst, gl.DYNAMIC_DRAW);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T.atlas); gl.uniform1i(gl.getUniformLocation(pCR, 'atl'), 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, T.far); gl.uniform1i(gl.getUniformLocation(pCR, 'far'), 1);
+  gl.uniform2f(gl.getUniformLocation(pCR, 'res'), W, H);
+  gl.uniform3f(gl.getUniformLocation(pCR, 'at'), D.atlas.cols, D.atlas.rows, FIT);
+  gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, N1);
+
+  // the first crystal
+  {
+    const dm = C.ZM - cz;
+    if (dm > 1.5) {
+    const sizePx = C.f * C.MS / dm;
+    const sx = C.cx + C.f * (0 - cx0) / dm, sy = C.cy - C.f * (C.MY - cy0) / dm;
+    const r = .35 + .045 * tm, tilt = .12 * Math.sin(.5 * tm);
+    const half = sizePx / 2 / .91;                         // the macro texture's crystal fills ~91% of it
+    const coc = cocK * Math.abs(1 / dm - invF);
+    const texPx = 2048 / (half * 2 * s);                   // texels per screen px
+    const sigTex = coc * s / 2.4 * texPx;                  // the lens blur, in texels
+    const lod = Math.max(0, Math.log2(Math.max(1e-3, Math.hypot(texPx, 2.5 * sigTex))));
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.useProgram(pMC); gl.bindVertexArray(vMC);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T.macro); gl.uniform1i(gl.getUniformLocation(pMC, 'mt'), 0);
+    gl.uniform2f(gl.getUniformLocation(pMC, 'res'), W, H);
+    const cr_ = Math.cos(r), sr = Math.sin(r);
+    gl.uniform4f(gl.getUniformLocation(pMC, 'm0'), sx * s, sy * s, cr_ * half * s, sr * half * s * Math.cos(tilt));
+    gl.uniform2f(gl.getUniformLocation(pMC, 'm1'), -sr * half * s, cr_ * half * s * Math.cos(tilt));
+    gl.uniform1f(gl.getUniformLocation(pMC, 'lod'), lod);
+    gl.uniform1f(gl.getUniformLocation(pMC, 'lit'), 1.08 * Math.min(1, t / .5 + .25));
+    gl.uniform1f(gl.getUniformLocation(pMC, 'sheen'), .75 * Math.exp(-Math.pow((t - 1.1) / .9, 2)));
+    gl.uniform1f(gl.getUniformLocation(pMC, 'sheenPos'), -.7 + t * .7);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  } }
+
+  // halos
+  gl.useProgram(pGL); gl.bindVertexArray(vGL);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gb); gl.bufferData(gl.ARRAY_BUFFER, glow.subarray(0, ng * STRIDE), gl.DYNAMIC_DRAW);
+  gl.uniform2f(gl.getUniformLocation(pGL, 'res'), W, H);
+  if (ng) gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, ng);
+
+  // to the screen
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.disable(gl.BLEND);
+  gl.useProgram(pCP); gl.bindVertexArray(vCP);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fbt); gl.uniform1i(gl.getUniformLocation(pCP, 'src'), 0);
+  gl.uniform1f(gl.getUniformLocation(pCP, 'seed'), (t * 37.1) % 100);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // type
+  const n = countAt(t);
+  $('n').textContent = n.toLocaleString('en-US');
+  $('n').style.opacity = Math.min(1, Math.max(0, (t - .5) / .7));
+  const k = Math.min(1, Math.max(0, (t - C.TRACK - .3) / 1.0));
+  $('t').style.opacity = k; $('w').style.opacity = Math.min(1, Math.max(0, (t - C.TRACK - .7) / 1.0));
+  $('u').style.opacity = Math.min(1, Math.max(0, (t - C.TRACK - 1.1) / 1.0)); $('c').style.opacity = $('u').style.opacity * .9;
+}
+
+/* ---------- the clock ---------- */
+const T = {};
+let start = null, wrap = false;   // wrap: the film has run, the page is live
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function loop(now) {
+  if (start === null) start = now;
+  const t = reduce ? C.TEND : (now - start) / 1000;
+  wrap = t > C.TEND;
+  if (t > C.TEND + .5) $('hint').classList.add('on');
+  frame(t);
+  if (!reduce) requestAnimationFrame(loop);
+}
+Promise.all([['atlas', 'image/png', 0], ['far', 'image/png', 0], ['macro', 'image/jpeg', 1],
+             ['t0', 'image/jpeg', 0], ['t1', 'image/jpeg', 0], ['t2', 'image/jpeg', 0], ['t3', 'image/jpeg', 0]]
+  .map(([k, m, mip]) => tex(D.img[k], m, mip).then(x => T[k] = x)))
+  .then(() => document.fonts.ready).then(() => { window.__ready = true; requestAnimationFrame(loop); });
+
+/* ---------- live: the pointer pulls focus once the film has run ---------- */
+$('stage').addEventListener('pointermove', e => {
+  if (!wrap) return;
+  const r = $('stage').getBoundingClientRect(), v = (e.clientY - r.top) / r.height, h = (e.clientX - r.left) / r.width - .5;
+  focusOverride = Math.pow(1 - Math.min(1, Math.max(0, v)), 2.2) / 40;      // top: near (40 mm), bottom: infinity
+  px = 0;
+});
+$('stage').addEventListener('pointerleave', () => { focusOverride = null; px = 0; });
+$('stage').addEventListener('click', () => { if (wrap) { start = null; focusOverride = null; px = 0; $('hint').classList.remove('on'); } });
+</script>
+</body>

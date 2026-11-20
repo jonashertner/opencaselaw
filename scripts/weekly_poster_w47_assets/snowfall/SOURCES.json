@@ -1,0 +1,207 @@
+{
+ "film": "W47 (13-19 November 2026): 974 snow crystals over the Bernina, one for each new decision. Built by scripts/weekly_poster_w47_snowfall.py (+ .html template), recorded by weekly_poster_w47_snowfall_record.py.",
+ "data_mapping": {
+  "rule": "974 crystals = week['added']. The first crystal is counted at once; every other crystal is counted at the moment the camera's plane of focus reaches it (it lies no farther than the focus distance, at least 22 mm from the lens, and inside the frame). The builder simulates the film's clock at 1/120 s and asserts that all 973 are counted between 1.6 s and 13.4 s, so the counter ends on 974 when the rack has passed the last one.",
+  "groups": "120 crystals in a slab just in front of the first crystal (counted as the camera backs away and they come into view); 853 beyond it (counted as the rack passes them). The counter in the page reads the builder's own count times."
+ },
+ "crystals": {
+  "author": "Wilson A. Bentley (1865-1931): public domain everywhere, including Switzerland (70 years post mortem).",
+  "macro": {
+   "file": "File:-Snow Crystal- MET DP351917.jpg",
+   "holder": "Metropolitan Museum of Art",
+   "licence": "CC0 (Met Open Access); Commons extmetadata 'Public domain'",
+   "scan": "4000 x 2526",
+   "use": "cut whole from the print's dark disc (card and colour chart removed, disc made black), 2048 x 2048 greyscale (macro.jpg)"
+  },
+  "atlas_sprites": [
+   {
+    "source": "-Snow_Crystal-_MET_DP351882.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351883.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351889.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351890.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351892.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351899.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351904.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351907.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351908.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351909.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351910.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351911.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351913.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351914.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351917.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351918.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351919.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351920.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351922.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351923.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351927.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351928.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351930.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351931.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "Bentley_Snowflake11.jpg",
+    "via": "naiv/crystals/crystal_047.png"
+   },
+   {
+    "source": "Bentley_Snowflake13.jpg",
+    "via": "naiv/crystals/crystal_049.png"
+   },
+   {
+    "source": "Bentley_Snowflake14.jpg",
+    "via": "naiv/crystals/crystal_050.png"
+   },
+   {
+    "source": "Bentley_Snowflake20.jpg",
+    "via": "naiv/crystals/crystal_057.png"
+   },
+   {
+    "source": "Bentley_Snowflake5.jpg",
+    "via": "naiv/crystals/crystal_061.png"
+   },
+   {
+    "source": "Snowflake_Study_5243239409_.jpg",
+    "via": "naiv/crystals/crystal_082.png"
+   },
+   {
+    "source": "Snowflake_Study_5243830948_.jpg",
+    "via": "naiv/crystals/crystal_086.png"
+   },
+   {
+    "source": "Snowflake_Study_5243837232_.jpg",
+    "via": "naiv/crystals/crystal_090.png"
+   },
+   {
+    "source": "Bentley_Snowflake_814.jpg",
+    "via": "naiv/crystals/crystal_094.png"
+   },
+   {
+    "source": "Bentley_Snowflake_815.jpg",
+    "via": "naiv/crystals/crystal_095.png"
+   },
+   {
+    "source": "Bentley_Snowflake_872.jpg",
+    "via": "naiv/crystals/crystal_097.png"
+   },
+   {
+    "source": "Bentley_Snowflake_890.jpg",
+    "via": "naiv/crystals/crystal_098.png"
+   },
+   {
+    "source": "Snow-crystal_photo-micrograph_made_by_W._A._Bentley_Nashville_Jericho_Vermont_c._1890s_-_Fairbanks_Museum_and_Planetariu.jpg",
+    "via": "naiv/crystals/crystal_100.png"
+   }
+  ],
+  "licence_evidence": "Met prints: Commons extmetadata 'Public domain' (Met Open Access CC0), checked per file in naiv/SOURCES.json and again on 2026-11-20 for DP351892. Commons files from the Smithsonian (Snowflake Study ...): 'No known copyright restrictions' (Flickr Commons), checked 2026-11-20. The others: see naiv/SOURCES.json per_file (Public domain / No restrictions only, never CC BY-SA).",
+  "use": "24 Met prints re-cut whole from the scans and 13 cut-outs from the Romansh poster (naiv/crystals), 37 distinct crystals on one atlas: sharp plus three blurred copies for the lens's depth of field. Each of the 974 marks is one of these photographs, spun and tilted as it falls."
+ },
+ "mountains": {
+  "source": "swissALTI3D, swisstopo (Federal Office of Topography), 2 m tiles via the STAC API data.geo.admin.ch; free geodata of the Confederation, use with source attribution ('swisstopo').",
+  "viewpoint": "Muottas Muragl, terrace by the funicular's top station, LV95 2'789'000 / 1'155'240, ground 2,451 m (swisstopo height service), eye 3 m; azimuth 179 degrees, horizontal field 26 degrees, eye level at 74% of the frame height (a shifted lens, verticals stay vertical).",
+  "render": "scripts/weekly_poster_w47_snowfall_terrain.py: heights averaged to 4 m; the light each 4 m cell sends back is the mean of its four 2 m cells (snow on slopes under ~38 degrees, rock above ~52, lit by a low moon from azimuth 88 / altitude 17), so the rock and snow texture of the faces comes from the 2 m ground; cast shadows on a 12 m grid; hollows and gullies see less sky (openness at 24 m and 120 m); ray-cast per column with earth curvature and refraction (k=0.13). Drawn, not measured: the light, the snow line, the haze, the sky. Italy lies outside swissALTI3D and is left out.",
+  "meta": {
+   "k": 2,
+   "W": 2160,
+   "H": 2700,
+   "f_px": 4677.993944226888,
+   "cy": 1998.0,
+   "ridge_top_px": 1521.501953125,
+   "view_lv95": [
+    2789000.0,
+    1155240.0
+   ],
+   "ground_m": 2451.3,
+   "eye_m": 3.0,
+   "az0": 179.0,
+   "hfov": 26.0,
+   "horizon_frac": 0.74,
+   "cell_m": 4.0,
+   "moon": [
+    88.0,
+    17.0
+   ]
+  }
+ },
+ "drawn": "The motion of the fall (slow motion), the tumbling and glints of the plates, the lens (depth of field, iris), the focus flare when a crystal is counted.",
+ "atlas_note": "Crystals brighter than the rest (solid plates) are dimmed to the same mean light (textures.json 'dimmed'), so no plate outshines a dendrite.",
+ "versions": {
+  "v1": "output/posters/w47/snowfall-v1.mp4 (first cut, 20 Nov)",
+  "v2": "output/posters/w47/snowfall-v2.mp4: 2 m terrain texture and openness, crystal transmission, iris 0.14 mm, plates dimmed, smaller halos (Fable 5.2 preferred it to v1 blind)",
+  "v3": "output/posters/w47/snowfall-v3.mp4 (+ .html): Fable's five fixes, time stops after the count and the camera glides 9 mm sideways / 12 mm forward.",
+  "v4": "output/posters/w47/snowfall-v4.mp4 (+ .html), 20 s: after the count time stops (the fall slows to nothing within a second), holds, then runs backwards: the crystals rise again along the paths they already took, spinning back, while the camera drifts 45 mm closer; focus 42 cm ahead. A forward flight through the frozen snow was tried and dropped: beyond the dense band the far snow is too sparse, the frame empties.",
+  "v5": "output/posters/w47/snowfall-v5.mp4 (+ .html), 20 s: one camera move only. The camera backs away along its line of sight to the first crystal (the ray through the centre of the frame), so that crystal stays fixed at the frame's centre throughout; after the pull-back the camera does not move. Time still stops after the count and runs backwards (the snow rises).",
+  "v6": "output/posters/w47/snowfall-v6.mp4 (+ .html), 20 s: the snow falls at one steady pace throughout (no stopping, slowing or reversing); one camera move (the pull-back along the line of sight to the first crystal), then the camera rests and the focus racks out to Bernina. Once the camera rests, a crystal that has fallen out below the frame re-enters above it, out of sight.",
+  "v7": "output/posters/w47/snowfall.mp4: as v6, the pull-back eases out on a quintic curve (on u^0.8) and ends at 8.0 s instead of 7.0, so the camera settles over ~1.5 s instead of braking."
+ }
+}

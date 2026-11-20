@@ -1,0 +1,194 @@
+{
+ "macro": {
+  "src_px": 2175,
+  "file": "macro_src.jpg"
+ },
+ "atlas": {
+  "n": 37,
+  "cols": 8,
+  "rows": 5,
+  "cell": 256,
+  "fit": 168,
+  "sprites": [
+   {
+    "source": "-Snow_Crystal-_MET_DP351882.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.665
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351883.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.612
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351889.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.975
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351890.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.839
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351892.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.673
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351899.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.802
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351904.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351907.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.653
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351908.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.699
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351909.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351910.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.897
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351911.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.737
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351913.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.678
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351914.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.603
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351917.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 1.0
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351918.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.731
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351919.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.798
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351920.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.748
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351922.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351923.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.695
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351927.jpg",
+    "via": "re-cut from the Met scan"
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351928.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.579
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351930.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.98
+   },
+   {
+    "source": "-Snow_Crystal-_MET_DP351931.jpg",
+    "via": "re-cut from the Met scan",
+    "dimmed": 0.79
+   },
+   {
+    "source": "Bentley_Snowflake11.jpg",
+    "via": "naiv/crystals/crystal_047.png"
+   },
+   {
+    "source": "Bentley_Snowflake13.jpg",
+    "via": "naiv/crystals/crystal_049.png"
+   },
+   {
+    "source": "Bentley_Snowflake14.jpg",
+    "via": "naiv/crystals/crystal_050.png",
+    "dimmed": 0.994
+   },
+   {
+    "source": "Bentley_Snowflake20.jpg",
+    "via": "naiv/crystals/crystal_057.png"
+   },
+   {
+    "source": "Bentley_Snowflake5.jpg",
+    "via": "naiv/crystals/crystal_061.png"
+   },
+   {
+    "source": "Snowflake_Study_5243239409_.jpg",
+    "via": "naiv/crystals/crystal_082.png"
+   },
+   {
+    "source": "Snowflake_Study_5243830948_.jpg",
+    "via": "naiv/crystals/crystal_086.png",
+    "dimmed": 0.903
+   },
+   {
+    "source": "Snowflake_Study_5243837232_.jpg",
+    "via": "naiv/crystals/crystal_090.png"
+   },
+   {
+    "source": "Bentley_Snowflake_814.jpg",
+    "via": "naiv/crystals/crystal_094.png",
+    "dimmed": 0.87
+   },
+   {
+    "source": "Bentley_Snowflake_815.jpg",
+    "via": "naiv/crystals/crystal_095.png"
+   },
+   {
+    "source": "Bentley_Snowflake_872.jpg",
+    "via": "naiv/crystals/crystal_097.png"
+   },
+   {
+    "source": "Bentley_Snowflake_890.jpg",
+    "via": "naiv/crystals/crystal_098.png"
+   },
+   {
+    "source": "Snow-crystal_photo-micrograph_made_by_W._A._Bentley_Nashville_Jericho_Vermont_c._1890s_-_Fairbanks_Museum_and_Planetariu.jpg",
+    "via": "naiv/crystals/crystal_100.png"
+   }
+  ]
+ },
+ "terrain": {
+  "levels_sigma_css": [
+   0,
+   3.0,
+   12.0,
+   40.0
+  ]
+ }
+}
