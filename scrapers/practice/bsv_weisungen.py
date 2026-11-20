@@ -45,6 +45,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+from .margin_numbers import MarginNumbersMixin
 from .base import PracticeScraper, slugify
 
 logger = logging.getLogger(__name__)
@@ -258,7 +259,7 @@ def _stub(folder, section, lang, doc_num, abbrev, title, *, version, date, doknr
     }
 
 
-class BsvWeisungenScraper(PracticeScraper):
+class BsvWeisungenScraper(MarginNumbersMixin, PracticeScraper):
     SOURCE_KEY = "bsv_weisungen"
     ISSUING_AUTHORITY = "BSV"
     DEFAULT_DOC_TYPE = "weisung"

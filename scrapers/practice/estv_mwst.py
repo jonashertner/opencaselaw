@@ -89,13 +89,79 @@ def _parse_publication_ciphers(html: str) -> list[str]:
     return out
 
 
+def _parse_publication_headings(html: str) -> dict[str, str]:
+    """componentId -> its TOC label ("2.1.4 Von der Steuer ausgenommene
+    Dienstleistungen"). The cipher pages carry no heading of their own, so
+    this is where a section's number and title come from."""
+    soup = BeautifulSoup(html, "html.parser")
+    out: dict[str, str] = {}
+    for a in soup.select('a[href*="cipherDisplay.xhtml"]'):
+        m = re.search(r"componentId=(\d+)", a.get("href", ""))
+        if m and m.group(1) not in out:
+            out[m.group(1)] = re.sub(r"\s+", " ", a.get_text(" ", strip=True))
+    return out
+
+
+_BLOCK_TAGS = {"p", "div", "li", "ul", "ol", "table", "tbody", "thead", "h1", "h2",
+               "h3", "h4", "h5", "h6", "blockquote", "dl", "dt", "dd", "section"}
+
+
+def _block_text(node) -> str:
+    """HTML -> text with one line per paragraph, list item and table row.
+
+    get_text(" ") ran every paragraph of a publication together (MWST-
+    Branchen-Info 14: 148,798 characters on a handful of lines; user report
+    2026-11-20). Inline elements keep the source's own whitespace, as a
+    browser renders them; a table row becomes one line ("a. Die Gewährung
+    …"), its cells separated by a space."""
+    from bs4 import Comment, NavigableString
+
+    lines: list[str] = []
+    cur: list[str] = []
+
+    def flush():
+        line = re.sub(r"\s+", " ", "".join(cur)).strip()
+        cur.clear()
+        if line:
+            lines.append(line)
+
+    def walk(el):
+        for ch in el.children:
+            if isinstance(ch, Comment):
+                continue
+            if isinstance(ch, NavigableString):
+                cur.append(str(ch))
+            elif ch.name in ("script", "style"):
+                continue
+            elif ch.name == "br":
+                flush()
+            elif ch.name == "tr":
+                flush()
+                cells = [re.sub(r"\s+", " ", c.get_text(" ")).strip()
+                         for c in ch.find_all(["td", "th"], recursive=False)]
+                row = " ".join(c for c in cells if c)
+                if row:
+                    lines.append(row)
+            elif ch.name in _BLOCK_TAGS:
+                flush()
+                walk(ch)
+                flush()
+            else:
+                walk(ch)
+
+    walk(node)
+    flush()
+    return "\n".join(lines)
+
+
 def _parse_cipher(html: str) -> tuple[str, str]:
     """One cipher leaf → (body_text, date_iso). body_text is the verbatim prose
-    in #formular:cipherText (empty for heading-only container nodes); date_iso
-    is the 'Publiziert am DD.MM.YYYY' as ISO, or '' if absent."""
+    in #formular:cipherText, one line per paragraph / list item / table row
+    (empty for heading-only container nodes); date_iso is the 'Publiziert am
+    DD.MM.YYYY' as ISO, or '' if absent."""
     soup = BeautifulSoup(html, "html.parser")
     node = soup.find(id="formular:cipherText")
-    body = node.get_text(" ", strip=True) if node else ""
+    body = _block_text(node) if node else ""
     date_iso = ""
     m = _PUBLICATION_DATE_RE.search(html)
     if m:
@@ -179,6 +245,7 @@ class EstvMwstScraper(PracticeScraper):
             return "", ""
 
         comp_ids = _parse_publication_ciphers(r.text)
+        headings = _parse_publication_headings(r.text)
         parts: list[str] = []
         date_iso = ""
         for comp in comp_ids:
@@ -190,7 +257,14 @@ class EstvMwstScraper(PracticeScraper):
                 logger.debug("[estv_mwst] cipher %s/%s failed: %s", pub, comp, e)
                 continue
             body, d = _parse_cipher(cr.text)
-            if body:
+            # The section's number and title go in as its own line, also for
+            # heading-only container nodes, so the text keeps the outline.
+            head = headings.get(comp, "")
+            if head and body:
+                parts.append(f"{head}\n{body}")
+            elif head:
+                parts.append(head)
+            elif body:
                 parts.append(body)
             if d and not date_iso:
                 date_iso = d

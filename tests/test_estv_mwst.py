@@ -135,3 +135,63 @@ def test_discover_documents_yields_publication_stubs(monkeypatch, tmp_path):
     assert first["doc_type"] == "mwst_info"
     assert first["doc_number"] == "MWST-Info 05"
     assert first["title"] == "MWST-Info 05 Subventionen und Spenden"
+
+
+# ── structure (user report 2026-11-20: MWST-Branchen-Info 14, 148,798
+#    characters without any outline) ──
+
+_TOC_WITH_HEADINGS = """
+<span class="ui-treenode-label"><a href="cipherDisplay.xhtml?publicationId=1042831&amp;componentId=1059693">2 Allgemeine Grundsätze</a></span>
+<span class="ui-treenode-label"><a href="cipherDisplay.xhtml?publicationId=1042831&amp;componentId=1059986">2.1.4 Von der Steuer
+  ausgenommene Dienstleistungen</a></span>
+"""
+
+_CIPHER_WITH_LIST = """<html><body><span id="formular:cipherText">
+<p><span>Die – <strong>ohne Anspruch auf Vorsteuerabzug</strong> (<a href="#">Art. 29 Abs. 1 MWSTG</a>) – sind wie folgt aufgezählt:</span></p>
+<p><span> </span></p>
+<table><tbody>
+<tr><td><p><span>a.</span></p></td><td><p><span>Die Gewährung von Krediten.</span></p><p><span></span></p></td></tr>
+<tr><td><p><span>b.</span></p></td><td><p><span>Die Vermittlung von Bürgschaften.</span></p></td></tr>
+</tbody></table>
+<p>Zweiter Absatz.<br/>Neue Zeile.</p>
+</span><div>Publiziert am 21.11.2024</div></body></html>"""
+
+
+def test_cipher_keeps_paragraphs_and_list_rows():
+    body, date = _parse_cipher(_CIPHER_WITH_LIST)
+    assert date == "2024-11-21"
+    assert body.splitlines() == [
+        "Die – ohne Anspruch auf Vorsteuerabzug (Art. 29 Abs. 1 MWSTG) – sind wie folgt aufgezählt:",
+        "a. Die Gewährung von Krediten.",
+        "b. Die Vermittlung von Bürgschaften.",
+        "Zweiter Absatz.",
+        "Neue Zeile.",
+    ]
+
+
+def test_publication_headings_from_toc():
+    from scrapers.practice.estv_mwst import _parse_publication_headings
+    assert _parse_publication_headings(_TOC_WITH_HEADINGS) == {
+        "1059693": "2 Allgemeine Grundsätze",
+        "1059986": "2.1.4 Von der Steuer ausgenommene Dienstleistungen",
+    }
+
+
+def test_fetch_publication_puts_heading_before_each_section(monkeypatch):
+    s = EstvMwstScraper.__new__(EstvMwstScraper)
+    s.SOURCE_KEY = "estv_mwst"
+    heading_only = '<html><body><span id="formular:cipherText"></span></body></html>'
+
+    def fake_get(url, **kw):
+        if "tableOfContent" in url:
+            return _FakeResp(_TOC_WITH_HEADINGS)
+        return _FakeResp(heading_only if "1059693" in url else _CIPHER_WITH_LIST)
+
+    monkeypatch.setattr(s, "get", fake_get)
+    body, date = s._fetch_publication(
+        {"language": "de", "path": "sectorInfos", "publication_id": "1042831"})
+    assert body.split("\n\n")[0] == "2 Allgemeine Grundsätze"
+    second = body.split("\n\n")[1].splitlines()
+    assert second[0] == "2.1.4 Von der Steuer ausgenommene Dienstleistungen"
+    assert second[2] == "a. Die Gewährung von Krediten."
+    assert date == "2024-11-21"

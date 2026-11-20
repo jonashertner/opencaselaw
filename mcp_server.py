@@ -30406,6 +30406,117 @@ def _open_practice_db() -> sqlite3.Connection | None:
         return None
 
 
+# Repealed / archived practice documents, as the publishing authority marks
+# them. Status topics are set by the scrapers (finma_rundschreiben's
+# _STATUS_SUPERSEDED, shared by finma_aufsicht, rab_rs, uek_rs, weko, oak_bv;
+# BSV's archive sections; bj_schkg's "obsolet"). BSV's archived AHI-Praxis
+# and ZAK issues are case-law digests, not rules that lapse, so they stay.
+_PRACTICE_REPEALED_TOPICS = frozenset({
+    "aufgehoben oder ersetzt", "abrogé ou remplacé", "abrogata o sostituita",
+    "repealed or replaced", "Kreisschreiben (Archiv)", "Rundschreiben (Archiv)",
+    "obsolet",
+})
+# Title markers. Only the forms that say the document ITSELF lapsed: a
+# trailing "hinfällig" sentence or a parenthesised status note. "(ersetzt die
+# Ausgabe …)" is the NEW edition and "Abrogation de l'assujettissement" an
+# article heading, so bare words are not enough.
+_PRACTICE_REPEALED_TITLE = re.compile(
+    r"\bhinfällig\b"
+    r"|\bobsolet[oa]? con l"
+    r"|\[has been superseded\b"
+    r"|\((?:[^()]*\s)?(?:überholt|obsolet[ao]?|aufgehoben|hinfällig|archiv|caduc|caduque"
+    r"|abrogée?s?|abrogat[ao]|superseded|repealed)\)"
+    r"|\(durch [^()]+ ersetzt\)"
+    r"|\(inhalt ins [^()]+ aufgenommen\)",
+    re.IGNORECASE,
+)
+
+
+def _practice_is_repealed(title: str | None, topics_json: str | None) -> int:
+    if title and _PRACTICE_REPEALED_TITLE.search(title):
+        return 1
+    if topics_json and ("aufgehoben" in topics_json or "(Archiv)" in topics_json
+                        or "obsolet" in topics_json):
+        try:
+            topics = json.loads(topics_json)
+        except ValueError:
+            return 0
+        if any(t in _PRACTICE_REPEALED_TOPICS for t in topics if isinstance(t, str)):
+            return 1
+    return 0
+
+
+# The same status topics, found through the FTS index: practice.db stores
+# topics_json AFTER the multi-MB body_text, so reading it per matching row
+# would read every matched document's body. (source or None, FTS phrase.)
+_PRACTICE_STATUS_PHRASES = (
+    (None, '"aufgehoben oder ersetzt"'),
+    ("bsv_weisungen", '"Kreisschreiben Archiv"'),
+    ("bsv_weisungen", '"Rundschreiben Archiv"'),
+    ("bj_schkg", "obsolet"),
+)
+_PRACTICE_EXCLUDED_CACHE: dict = {}
+
+
+def _practice_identity(source: str, doc_number: str | None, url: str | None,
+                       doc_id: str) -> str:
+    # Mirrors the SQL _identity in _search_practice.
+    if source == "bsv_weisungen":
+        return url or doc_id
+    if source == "un_uhri":
+        return doc_id
+    return doc_number or doc_id
+
+
+def _practice_excluded_rowids(conn: sqlite3.Connection) -> frozenset:
+    """Rowids the default search leaves out: rows marked repealed (status
+    topic or title) of documents with NO row in force in any language.
+
+    Per document, not per row: FINMA's archive holds the English editions of
+    circulars whose in-force edition the corpus has only in German; those
+    stay, and the collapse shows their newest edition as before. Computed
+    once per database file (the DB is immutable; a rebuild is a new inode)
+    from the FTS index and the columns ahead of body_text."""
+    key = None
+    try:
+        path = next((r[2] for r in conn.execute("PRAGMA database_list") if r[1] == "main"), "")
+        if path:
+            st = os.stat(path)
+            key = (path, st.st_ino, st.st_mtime_ns, st.st_size)
+    except (sqlite3.Error, OSError, StopIteration):
+        key = None
+    if key is not None and key in _PRACTICE_EXCLUDED_CACHE:
+        return _PRACTICE_EXCLUDED_CACHE[key]
+    status: set[int] = set()
+    for src, phrase in _PRACTICE_STATUS_PHRASES:
+        try:
+            # FTS5 MATCH takes the table's own name, not an alias.
+            sql = ("SELECT practice_fts.rowid FROM practice_fts "
+                   "JOIN practice p ON p.rowid = practice_fts.rowid "
+                   "WHERE practice_fts MATCH ?")
+            args: list = [f"topics_json : {phrase}"]
+            if src:
+                sql += " AND p.source = ?"
+                args.append(src)
+            status.update(r[0] for r in conn.execute(sql, args))
+        except sqlite3.Error:
+            continue          # an index without topics_json: titles only
+    repealed: dict[int, tuple] = {}
+    in_force: set[tuple] = set()
+    for rowid, source, doc_number, url, doc_id, title in conn.execute(
+            "SELECT rowid, source, doc_number, url, doc_id, title FROM practice"):
+        ident = (source, _practice_identity(source, doc_number, url, doc_id))
+        if rowid in status or (title and _PRACTICE_REPEALED_TITLE.search(title)):
+            repealed[rowid] = ident
+        else:
+            in_force.add(ident)
+    excluded = frozenset(r for r, ident in repealed.items() if ident not in in_force)
+    if key is not None:
+        _PRACTICE_EXCLUDED_CACHE.clear()      # one live DB per worker
+        _PRACTICE_EXCLUDED_CACHE[key] = excluded
+    return excluded
+
+
 def _search_practice(
     *,
     query: str,
@@ -30416,6 +30527,7 @@ def _search_practice(
     language: str | None = None,
     limit: int = 10,
     include_superseded: bool = False,
+    offset: int = 0,
 ) -> dict:
     """FTS5 search over federal Verwaltungspraxis documents.
 
@@ -30424,6 +30536,12 @@ def _search_practice(
     set, results are collapsed to the newest-dated row per (source,
     doc_number, language, doc_type) — a replay of the FINMA corpus showed a
     single circular's 20 editions filling every result slot otherwise.
+
+    Repealed documents (the source's own status: FINMA-style "aufgehoben
+    oder ersetzt", BSV's "(Archiv)" Kreisschreiben/Rundschreiben, titles
+    saying "hinfällig" / "(überholt)" / "(obsolet)") are left out unless
+    `include_superseded` is set; their number comes back as `repealed_hidden`.
+    `offset` pages through the ranked documents (limit stays capped at 50).
     """
     conn = _open_practice_db()
     if conn is None:
@@ -30433,6 +30551,10 @@ def _search_practice(
                             "search_stack/build_practice_db.py.")}
 
     limit = max(1, min(int(limit), 50))
+    try:
+        offset = max(0, int(offset or 0))
+    except (TypeError, ValueError):
+        offset = 0
     # Sanitize FTS5 input (invariant #3) — every sibling FTS handler does this.
     # Without it a query with an apostrophe / hyphen / `Art.` / unbalanced quote
     # raises sqlite3.OperationalError and returns an error instead of results.
@@ -30472,6 +30594,21 @@ def _search_practice(
         where.append("p.doc_type = ?"); params.append(doc_type.lower())
     if language:
         where.append("p.language = ?"); params.append(language.lower())
+    # Repealed documents: counted separately, excluded from the default view.
+    # A per-connection function over a cached rowid set, so practice.db needs
+    # no status column and no body is read to decide.
+    repealed_where = list(where)
+    if collapse:
+        try:
+            excluded = _practice_excluded_rowids(conn)
+        except sqlite3.Error as e:
+            logger.warning("practice repealed set unavailable: %s", e)
+            excluded = frozenset()
+        conn.create_function("ocl_practice_excluded", 1,
+                             lambda rowid: 1 if rowid in excluded else 0,
+                             deterministic=True)
+        repealed_where.append("ocl_practice_excluded(p.rowid)")
+        where.append("NOT ocl_practice_excluded(p.rowid)")
 
     inner = f"""
         SELECT p.doc_id, p.source, p.issuing_authority, p.doc_type,
@@ -30515,11 +30652,11 @@ def _search_practice(
                 FROM ({inner})
             )
             WHERE rn = 1
-            ORDER BY group_rank, rank
-            LIMIT ?
+            ORDER BY group_rank, rank, doc_id
+            LIMIT ? OFFSET ?
         """
     else:
-        sql = f"{inner} ORDER BY rank LIMIT ?"
+        sql = f"{inner} ORDER BY rank, p.doc_id LIMIT ? OFFSET ?"
     count_sql = f"""
         SELECT COUNT(*)
         FROM practice_fts
@@ -30535,24 +30672,39 @@ def _search_practice(
             WHERE {' AND '.join(where)}
         )
     """
+    # Documents left out as repealed (no row in force in any language).
+    repealed_sql = f"""
+        SELECT COUNT(*) FROM (
+            SELECT DISTINCT p.source, p.language, p.doc_type,
+                   {_identity.format(p="p.")}
+            FROM practice_fts
+            JOIN practice p ON p.rowid = practice_fts.rowid
+            WHERE {' AND '.join(repealed_where)}
+        )
+    """
+    repealed_hidden = 0
     try:
         try:
-            rows = conn.execute(sql, [*params, limit]).fetchall()
+            rows = conn.execute(sql, [*params, limit, offset]).fetchall()
             # `total` must be the number of MATCHING documents, not the page
             # size. It was len(rows), i.e. capped by `limit` — so a client
             # asking how much guidance exists on a topic was told "10" no
             # matter how much there was.
             total = conn.execute(count_sql, params).fetchone()[0]
             distinct = conn.execute(distinct_sql, params).fetchone()[0] if collapse else total
+            if collapse:
+                repealed_hidden = conn.execute(repealed_sql, params).fetchone()[0]
         except sqlite3.OperationalError:
             # Raw operator query rejected by FTS5 (e.g. the NEAR(a b, 5) comma,
             # #78). Retry sanitized rather than leaking the engine error.
             if not explicit or fts_query == safe_query or not safe_query:
                 raise
             params[0] = safe_query
-            rows = conn.execute(sql, [*params, limit]).fetchall()
+            rows = conn.execute(sql, [*params, limit, offset]).fetchall()
             total = conn.execute(count_sql, params).fetchone()[0]
             distinct = conn.execute(distinct_sql, params).fetchone()[0] if collapse else total
+            if collapse:
+                repealed_hidden = conn.execute(repealed_sql, params).fetchone()[0]
     except sqlite3.OperationalError as e:
         return {"error": "fts5_query_error", "message": str(e), "query": query}
     finally:
@@ -30569,7 +30721,12 @@ def _search_practice(
         "total": total,
         "distinct_documents": distinct,
         "returned": len(results),
+        "offset": offset,
+        "next_offset": (offset + len(results)
+                        if offset + len(results) < (distinct if collapse else total)
+                        else None),
         "collapsed_versions": total - distinct,
+        "repealed_hidden": repealed_hidden,
         "results": results,
     }
 
@@ -30646,28 +30803,43 @@ def _get_practice(*, doc_id: str, offset: int = 0,
 def _format_search_practice_response(result: dict) -> str:
     if "error" in result:
         return f"Error: {result.get('message', result['error'])}"
+    repealed = result.get("repealed_hidden") or 0
+    offset = result.get("offset") or 0
     if not result["results"]:
-        return f"No practice documents matched: {result['query']}"
+        msg = f"No practice documents matched: {result['query']}"
+        if offset:
+            msg = f"No further practice documents for '{result['query']}' at offset {offset}"
+        if repealed:
+            msg += (f" ({repealed} repealed or archived document(s) left out — pass "
+                    f"include_superseded=true to see them)")
+        return msg
     total, shown = result["total"], result.get("returned", len(result["results"]))
     collapsed = result.get("collapsed_versions") or 0
     if collapsed:
         distinct = result.get("distinct_documents", total - collapsed)
         head = (f"Found {distinct} practice document(s) ({total} matching version(s)) "
                 f"for '{result['query']}'")
-        if distinct > shown:
-            head += f" — showing the {shown} best-ranked"
+        avail = distinct
     else:
         head = f"Found {total} practice document(s) for '{result['query']}'"
-        if total > shown:
-            head += f" — showing the {shown} best-ranked"
+        avail = total
+    if offset:
+        head += f" — showing results {offset + 1}–{offset + shown}"
+    elif avail > shown:
+        head += f" — showing the {shown} best-ranked"
     lines = [head]
     if collapsed:
         lines.append(f"  ({collapsed} superseded version(s) collapsed to the "
                      f"newest per document — pass include_superseded=true for point-in-time questions)")
+    if repealed:
+        lines.append(f"  ({repealed} repealed or archived document(s) left out — pass "
+                     f"include_superseded=true to include them)")
+    if result.get("next_offset") is not None:
+        lines.append(f"  (more results: call again with offset={result['next_offset']})")
     for f, v in result.get("filters", {}).items():
         lines.append(f"  filter: {f} = {v}")
     lines.append("")
-    for i, r in enumerate(result["results"], 1):
+    for i, r in enumerate(result["results"], offset + 1):
         date = f" ({r['date']})" if r.get("date") else ""
         lines.append(f"{i}. [{r['issuing_authority']}] {r['doc_number']} — {r['title']}{date}")
         lines.append(f"   doc_id: {r['doc_id']}")
@@ -33157,7 +33329,9 @@ def _list_tools() -> list[Tool]:
                         "default": False,
                         "description": (
                             "Return every retained version of a document (FINMA, BSV) instead of "
-                            "collapsing to the newest. Set for point-in-time questions."
+                            "collapsing to the newest, and include repealed or archived documents "
+                            "(aufgehoben, hinfällig, BSV Archiv), which are left out by default. "
+                            "Set for point-in-time questions."
                         ),
                     },
                     "language": {
@@ -33173,6 +33347,12 @@ def _list_tools() -> list[Tool]:
                         "type": "integer",
                         "description": "Maximum results (1-50, default 10).",
                         "default": 10,
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "Skip this many ranked results, for the next page (use next_offset from the previous call).",
+                        "default": 0,
+                        "minimum": 0,
                     },
                 },
                 "required": ["query"],
@@ -35221,6 +35401,7 @@ async def _handle_call_tool_inner(name: str, arguments: dict) -> list[TextConten
                 language=arguments.get("language"),
                 limit=arguments.get("limit", 10),
                 include_superseded=bool(arguments.get("include_superseded", False)),
+                offset=arguments.get("offset", 0),
             )
             return _text_and_payload(result, _format_search_practice_response(result))
 

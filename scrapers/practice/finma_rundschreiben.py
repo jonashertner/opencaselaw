@@ -55,6 +55,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
+from .margin_numbers import MarginNumbersMixin
 from .base import _MONTHS_ALL, PracticeScraper, sha256_hex, slugify
 
 logger = logging.getLogger(__name__)
@@ -148,8 +149,10 @@ def _short_number(doc_number: str) -> str:
     return f"FINMA-RS {m.group(1)[2:]}/{int(m.group(2))}"
 
 
-class FinmaRundschreibenScraper(PracticeScraper):
+class FinmaRundschreibenScraper(MarginNumbersMixin, PracticeScraper):
     SOURCE_KEY = "finma_rs"
+    # Since 2019 the Rz are glyph images, not text (margin_numbers.py).
+    MARGIN_NUMBER_IMAGES = True
     ISSUING_AUTHORITY = "FINMA"
     DEFAULT_DOC_TYPE = "rundschreiben"
     # In-force circulars are re-published in place when amended, at a new
