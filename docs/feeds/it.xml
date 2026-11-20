@@ -5,9 +5,69 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 20 Nov 2026 12:56:12 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 20 Nov 2026 22:37:00 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 5A_1111/2026 vom 2026-11-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_5A_1111_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+5A_1111/2026
+
+Sentenza dell'11 novembre 2026
+
+II Corte di diritto civile
+
+Composizione
+
+Giudici federali Bovey, Presidente,
+
+De Rossa, Brunner,
+
+Cancelliera Antonini.
+
+Partecipant…</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_1111.2026</guid>
+      <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesgericht 4A_540/2026 vom 2026-11-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_540_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+4A_540/2026
+
+Sentenza del 4 novembre 2026
+
+I Corte di diritto civile
+
+Composizione
+
+Giudice federale Hurni, Presidente,
+
+Cancelliere G. Piatti.
+
+Partecipanti al procedimento
+
+A.__…</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_540.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>Bundesgericht 4A_479/2026 vom 2026-11-09</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_4A_479_2026</link>
@@ -1163,44 +1223,6 @@ Prima Camera di diritto delle assicur…</description>
       <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">gr_gerichte_SV1 2026 40</guid>
       <category>gr_gerichte</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht F-7853/2026 vom 2026-11-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-7853_2026</link>
-      <description>Asilo (non entrata nel merito) ed allontanamento (procedura Dublino - art. 31a cpv. 1 lett. b LAsi)</description>
-      <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-7853.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 1C_254/2026 vom 2026-10-16</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_1C_254_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-1C_254/2026
-
-Sentenza del 16 ottobre 2026
-
-I Corte di diritto pubblico
-
-Composizione
-
-Giudici federali Müller, Presidente,
-
-Chaix, Merz,
-
-Cancelliere Gadoni.
-
-Partecipanti al proc…</description>
-      <pubDate>Wed, 11 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:1C_254.2026</guid>
-      <category>bger</category>
     </item>
   </channel>
 </rss>
