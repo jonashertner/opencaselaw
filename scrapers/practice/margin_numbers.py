@@ -38,9 +38,9 @@ import statistics
 logger = logging.getLogger(__name__)
 
 # FINMA marks an amended Rz with an asterisk ("16*"); it stays in the marker.
-_RZ_TEXT = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?\*?$")
+_RZ_TEXT = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?(?: ?\*)?$")   # also "319 *" (2008/19)
 _AMEND_MARK = re.compile(r"^\d{1,2}/\d{2}$")
-_RZ_OPEN = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?\*?\s*[-–]$")   # "2023.1-": a range's first line
+_RZ_OPEN = re.compile(r"^\d{1,5}(?:\.\d{1,3})*[a-z]?(?: ?\*)?\s*[-–]$")   # "2023.1-": a range's first line
 _LEADERS = re.compile(r"\.{4,}|…{2,}")
 
 
@@ -61,12 +61,17 @@ def _page_lines(page) -> list[dict]:
     return out
 
 
-def _body_extent(lines: list[dict]) -> tuple[float, float, float] | None:
+def _body_extent(lines: list[dict], doc_size: float = 0.0) -> tuple[float, float, float] | None:
     """(left edge, right edge, font size) of the body column, from lines long
-    enough to be running text."""
+    enough to be running text, in body type: footnotes may run wider than
+    the body, into the margin column (FINMA-RS 2013/3)."""
     long_ = [ln for ln in lines if len(ln["text"].strip()) >= 25]
     if len(long_) < 3:
         return None
+    ref = doc_size or statistics.median(ln["size"] for ln in long_)
+    body = [ln for ln in long_ if ln["size"] >= 0.9 * ref]
+    if len(body) >= 3:
+        long_ = body
     left = statistics.mode(round(ln["x0"]) for ln in long_)
     rights = sorted(ln["x1"] for ln in long_)
     right = rights[int(0.95 * (len(rights) - 1))]
@@ -76,17 +81,20 @@ def _body_extent(lines: list[dict]) -> tuple[float, float, float] | None:
 
 def _target(lines: list[dict], body_idx: list[int], y0: float, y1: float) -> int | None:
     """Index of the body line a margin number at (y0, y1) stands next to:
-    the line whose vertical middle is closest, within half a line height;
-    else the first body line starting just below it."""
+    the line whose vertical middle is closest, within half a line height
+    (of several lines on that row, the one rendered first: a section
+    number "3.1" before its heading); else the first body line starting
+    just below it."""
     mid = (y0 + y1) / 2
-    best, best_d = None, None
+    near = []
     for i in body_idx:
         ln = lines[i]
         d = abs((ln["y0"] + ln["y1"]) / 2 - mid)
-        if d <= max(3.0, 0.6 * (ln["y1"] - ln["y0"])) and (best_d is None or d < best_d):
-            best, best_d = i, d
-    if best is not None:
-        return best
+        if d <= max(3.0, 0.6 * (ln["y1"] - ln["y0"])):
+            near.append((d, i))
+    if near:
+        best_d = min(d for d, _ in near)
+        return min(i for d, i in near if d <= best_d + 1.5)
     below = [i for i in body_idx if lines[i]["y0"] >= y0 - 3 and lines[i]["y0"] - y0 <= 20]
     return min(below, key=lambda i: lines[i]["y0"]) if below else None
 
@@ -98,11 +106,21 @@ def _render(lines: list[dict], skip: set[int], before: dict[int, list[str]]) -> 
             out.append(marker + "\n")
         if i not in skip:
             out.append(ln["text"] + "\n")
+    for marker in before.get(len(lines), ()):
+        out.append(marker + "\n")
     return "".join(out)
 
 
-_TOC_HEAD = re.compile(r"^(?:Inhaltsverzeichnis|Inhalt|Table des matières|Sommaire|Indice"
-                       r"|Contents|Table of contents)\b", re.IGNORECASE)
+# A table of contents' heading. "Inhalt", "Indice", "Sommaire" and
+# "Contents" are ordinary words too ("Indice, il faut ..." in fr body text,
+# an "Inhalt" column head over a table of Rz): they count only as a line
+# of their own.
+_TOC_HEAD = re.compile(r"(?:Inhaltsverzeichnis|Table des matières|Table of contents)\b.*"
+                       r"|(?:Inhalt|Indice|Sommaire|Contents)\s*:?", re.IGNORECASE)
+
+
+def _toc_heading(lines: list[dict]) -> bool:
+    return any(_TOC_HEAD.fullmatch(ln["text"].strip()) for ln in lines)
 
 
 _ANNEX_HEAD = re.compile(r"^(Anhang|Annexe|Allegato|Annex|Appendice|Appendix)\s*(\d{1,2}|[IVX]{1,5})?\b",
@@ -120,9 +138,14 @@ def _annex_label(lines: list[dict]) -> str | None:
     return None
 
 
+def _rz_text(t: str) -> str:
+    """A margin number as the marker prints it: "319 *" -> "319*"."""
+    return re.sub(r"\s+\*", "*", t.strip())
+
+
 def _rz_key(t: str) -> tuple:
     """Sort key of a margin number: "2009.1" -> (2009, 1), "12a" -> (12, 0, 1)."""
-    m = re.fullmatch(r"([\d.]+?)([a-z]?)", t.strip().rstrip("*"))
+    m = re.fullmatch(r"([\d.]+?)([a-z]?)", t.strip().rstrip("*").strip())
     nums = tuple(int(x) for x in m.group(1).split(".") if x)
     return nums + ((0, ord(m.group(2)) - 96) if m.group(2) else ())
 
@@ -138,30 +161,56 @@ def _is_rz_label(t: str) -> bool:
 
 def _is_toc_page(lines: list[dict]) -> bool:
     return (sum(1 for ln in lines if _LEADERS.search(ln["text"])) >= 3
-            or sum(1 for ln in lines if _is_rz_label(ln["text"])) >= 3
-            or any(_TOC_HEAD.match(ln["text"].strip()) for ln in lines))
+            or sum(1 for ln in lines if _is_rz_label(ln["text"])) >= 3)
 
 
-def _text_margin_plan(lines: list[dict], doc_size: float = 0.0,
-                      page_count: int = 0, page_height: float = 0.0) -> dict | None:
-    """Where a page's text margin numbers (BSV layout, left or right) go.
-    None when the page has none, is a table of contents, or its numbers do
-    not rise strictly down the page (a column of figures, not Rz).
+def _aligned(a: dict, b: dict) -> bool:
+    """Two margin lines in one column: they overlap horizontally or share
+    a left or right edge."""
+    return (min(a["x1"], b["x1"]) - max(a["x0"], b["x0"]) > -2
+            or abs(a["x0"] - b["x0"]) <= 8 or abs(a["x1"] - b["x1"]) <= 8)
+
+
+def _columns(lines: list[dict], idx: list[int], right: float) -> list[list[int]]:
+    """Margin lines grouped into columns. FINMA balance-sheet pages print
+    section numbers ("3.1") in the left margin and the Rz in the right one;
+    read as one column they never rise, and the whole page was refused."""
+    cols: list[tuple[bool, list[int]]] = []
+    for i in sorted(idx, key=lambda k: lines[k]["x0"]):
+        side = lines[i]["x0"] >= right + 4
+        for s, members in cols:
+            if s == side and any(_aligned(lines[i], lines[j]) for j in members):
+                members.append(i)
+                break
+        else:
+            cols.append((side, [i]))
+    return [members for _, members in cols]
+
+
+def _text_margin_plans(lines: list[dict], doc_size: float = 0.0,
+                       page_count: int = 0, page_height: float = 0.0,
+                       page_width: float = 0.0) -> list[dict]:
+    """Where a page's text margin numbers (BSV layout, left or right) go:
+    one plan per margin column whose numbers can be Rz. Empty when the page
+    has none or is a table of contents; a column whose numbers do not rise
+    strictly down the page (a column of figures, not Rz) has no plan.
 
     `doc_size` is the document's running-text font size: footnote numbers
     sit in the same margin column, but in footnote type and next to
     footnote-size text, so both must be near body size. `page_count` keeps
     a "18/88" page number from passing as an amendment mark."""
-    ext = _body_extent(lines)
+    ext = _body_extent(lines, doc_size)
     if ext is None or _is_toc_page(lines):
-        return None
-    left, right, size = ext
-    size = max(size, doc_size)
+        return []
+    left, right, page_size = ext
+    # The document's body size: a page of "Abrogato" lines under long
+    # headings measures its headings (FINMA-RS 2010/2 it).
+    size = doc_size or page_size
 
     def is_mark(t: str) -> bool:
         return bool(_AMEND_MARK.match(t)) and int(t.split("/")[1]) != page_count
 
-    margin, body_idx = [], []
+    margin = []
     for i, ln in enumerate(lines):
         t = ln["text"].strip()
         in_margin = ln["x1"] <= left - 4 or ln["x0"] >= right + 4
@@ -172,8 +221,32 @@ def _text_margin_plan(lines: list[dict], doc_size: float = 0.0,
                 and (_RZ_TEXT.match(t) or is_mark(t) or _RZ_OPEN.match(t))
                 and ln["size"] >= 0.6 * size):
             margin.append(i)
-        elif t:
-            body_idx.append(i)
+    toc_head = _toc_heading(lines)
+    plans = []
+    for col in _columns(lines, margin, right):
+        plan = _column_plan(lines, col, size, is_mark, page_height)
+        if plan is None:
+            continue
+        # A table of contents under its heading lists section starts, with
+        # gaps; a page of Rz under an "Inhalt" column head has none.
+        if toc_head and not plan["consecutive"]:
+            continue
+        side = "right" if lines[col[0]]["x0"] >= right + 4 else "left"
+        plan.update({"annex": _annex_label(lines), "w": round(page_width), "side": side,
+                     "gap": plan["x"] - right if side == "right" else left - plan["x"]})
+        plans.append(plan)
+    return plans
+
+
+def _column_plan(lines: list[dict], margin: list[int], size: float, is_mark,
+                 page_height: float) -> dict | None:
+    """Plan for one margin column; the page's other lines are body text."""
+    in_col = set(margin)
+    # No target: a 72 pt "aufgehoben" stamp laid over repealed paragraphs
+    # (FINMA) shares their rows but is drawn first, at the page's top.
+    body_idx = [i for i, ln in enumerate(lines) if i not in in_col and ln["text"].strip()
+                and ln["size"] <= 2.5 * size]
+    big_idx = [i for i in body_idx if lines[i]["size"] >= 0.85 * size]
     # A range printed over two lines ("2023.1-" above "2023.4"): one label.
     label_of: dict[int, str] = {}
     joined: set[int] = set()
@@ -186,7 +259,7 @@ def _text_margin_plan(lines: list[dict], doc_size: float = 0.0,
             if not nxt:
                 return None
             j = min(nxt, key=lambda k: lines[k]["y0"])
-            label_of[i] = f"{t.rstrip('-–').strip()}–{lines[j]['text'].strip()}"
+            label_of[i] = f"{_rz_text(t.rstrip('-–'))}–{_rz_text(lines[j]['text'])}"
             joined.add(j)
     rz = sorted((i for i in margin if i not in joined and (
                     _RZ_TEXT.match(lines[i]["text"].strip()) or i in label_of)),
@@ -194,10 +267,19 @@ def _text_margin_plan(lines: list[dict], doc_size: float = 0.0,
     if not rz:
         return None
     for i in rz:
-        label_of.setdefault(i, lines[i]["text"].strip())
+        label_of.setdefault(i, _rz_text(lines[i]["text"]))
     keys = [_rz_key(label_of[i].split("–")[0]) for i in rz]
     last_key = _rz_key(label_of[rz[-1]].split("–")[-1])
     if any(b <= a for a, b in zip(keys, keys[1:])):
+        return None
+    # Rz on a page mostly follow on from each other; the page numbers of a
+    # journal's table of contents rise in jumps (AHI-Praxis: 153, 154, 155,
+    # 159, 161, 162, 165, 168). Inserted Rz may skip a little where the
+    # integer ones are glyph images (FINMA-RS 2015/2 it: 224.1*, 226.1*);
+    # page numbers have no ".1".
+    def follows(a: tuple, b: tuple) -> bool:
+        return _next_rz(a, b) or ((len(a) > 1 or len(b) > 1) and b[0] - a[0] <= 2)
+    if len(keys) >= 3 and 2 * sum(follows(a, b) for a, b in zip(keys, keys[1:])) < len(keys) - 1:
         return None
     # amendment marks belong to the nearest Rz above them in the same column
     marks: dict[int, list[int]] = {}
@@ -211,11 +293,20 @@ def _text_margin_plan(lines: list[dict], doc_size: float = 0.0,
     before: dict[int, list[str]] = {}
     skip: set[int] = set()
     for i in rz:
-        tgt = _target(lines, body_idx, lines[i]["y0"], lines[i]["y1"])
+        y0, y1 = lines[i]["y0"], lines[i]["y1"]
+        # Body-size text first: a formula's subscript beside an Rz is no
+        # footnote (FINMA-RS 2017/7, Rz 87 next to "1/2").
+        tgt = _target(lines, big_idx, y0, y1)
         if tgt is None:
-            return None                   # a number we cannot place: page as it was
-        if lines[tgt]["size"] < 0.85 * size:
-            return None                   # footnote-size text: footnote numbers
+            if _target(lines, body_idx, y0, y1) is not None:
+                return None               # only footnote-size text beside it: footnote numbers
+            if i != rz[-1] or any(lines[k]["y0"] > y0 and not (
+                    page_height and lines[k]["y0"] > 0.93 * page_height) for k in body_idx):
+                return None               # a number we cannot place: page as it was
+            # The page's last Rz with nothing below it: its paragraph starts
+            # on the next page (FINMA-RS 2020/1, Rz 89).
+            above = [k for k in body_idx if lines[k]["y0"] < y0]
+            tgt = max(above) + 1 if above else len(lines)
         ms = marks.get(i, [])
         label = ", ".join(lines[j]["text"].strip() for j in ms)
         before.setdefault(tgt, []).append(
@@ -224,33 +315,100 @@ def _text_margin_plan(lines: list[dict], doc_size: float = 0.0,
         skip.update(ms)
     skip.update(joined)
     return {"before": before, "skip": skip, "first": keys[0], "last": last_key,
-            "count": len(rz), "annex": _annex_label(lines)}
+            "count": len(rz), "x": statistics.median(lines[i]["x1"] for i in rz),
+            "consecutive": all(_next_rz(a, b) for a, b in zip(keys, keys[1:]))}
 
 
-def _rising_chain(plans: list[tuple[int, dict]]) -> set[int]:
-    """Pages whose numbers continue each other: the largest set (by number
-    of Rz) in which every page starts above the previous page's last Rz, or
-    starts again at Rz 1 under an annex heading (FINMA annexes number
-    their own Rz)."""
+def _next_rz(a: tuple, b: tuple) -> bool:
+    """b is the Rz right after a: 12 -> 13, 12 -> 12a / 12.1, 12.1 -> 12.2,
+    12.3 -> 13, 1002.1 -> 1003."""
+    if len(b) > len(a) and b[:len(a)] == a:
+        return True
+    return any(b == a[:k - 1] + (a[k - 1] + 1,) for k in range(1, len(a) + 1))
+
+
+def _dense(plan: dict) -> bool:
+    """Running Rz leave few gaps on a page; table row numbers jump."""
+    span = plan["last"][0] - plan["first"][0] + 1
+    return plan["count"] >= 0.5 * span
+
+
+def _same_column(a: dict, b: dict) -> bool:
+    """Same margin column: same side of the body text, and within 30 pt on
+    pages of the same width. Landscape pages move the column (FINMA-RS
+    2018/2: x 547 portrait, 722 landscape) but keep its distance from the
+    body text, give or take the body's ragged edge (2018/2: 49 pt portrait,
+    18-24 pt landscape); a landscape table's cells stand far off it
+    (FINMA-RS 2016/1 Anhang 1: 184 pt)."""
+    if a["side"] != b["side"]:
+        return False
+    if a["w"] == b["w"]:
+        return abs(a["x"] - b["x"]) <= 30
+    return abs(a["gap"] - b["gap"]) <= 60
+
+
+def _chain_in_column(plans: list[tuple[int, dict]], anchor: dict) -> tuple[int, list[tuple[int, dict]]]:
+    """The largest run (by number of Rz) of pages in the anchor's column in
+    which every page starts above the previous page's last Rz, or starts
+    again at Rz 1 under an annex heading (FINMA annexes number their own
+    Rz). One column per page."""
+    plans = [(pno, p) for pno, p in plans if _same_column(p, anchor)]
     n = len(plans)
+    if not n:
+        return 0, []
     best = [p["count"] for _, p in plans]
     prev = [-1] * n
+    # The annex whose numbering the chain ending at each page is in.
+    cur = [p["annex"] if p["first"] == (1,) else None for _, p in plans]
     for j in range(n):
+        pj = plans[j][1]
         for i in range(j):
-            fits = (plans[i][1]["last"] < plans[j][1]["first"]
-                    # an annex starts its own Rz 1
-                    or (plans[j][1]["first"] == (1,) and plans[j][1]["annex"]))
-            if fits and best[i] + plans[j][1]["count"] > best[j]:
-                best[j] = best[i] + plans[j][1]["count"]
+            pi = plans[i][1]
+            # Rz stand in one margin column; a table's row numbers at the
+            # table's own edge are another column.
+            fits = plans[i][0] < plans[j][0] and _same_column(pi, pj) and (
+                pi["last"] < pj["first"]
+                # An annex starts its own Rz 1, once: FINMA disclosure
+                # templates repeat "Anhang 2" as a running head over
+                # tables whose row numbers (1, 2, 19, 20) are no Rz.
+                or (pj["first"] == (1,) and pj["annex"] and pj["annex"] != cur[i]
+                    and _dense(pj)))
+            if fits and best[i] + pj["count"] > best[j]:
+                best[j] = best[i] + pj["count"]
                 prev[j] = i
-    if not n:
-        return set()
+                cur[j] = pj["annex"] if pi["last"] >= pj["first"] else cur[i]
     j = max(range(n), key=lambda k: best[k])
-    chosen = set()
+    total, chosen = best[j], []
     while j != -1:
-        chosen.add(plans[j][0])
+        chosen.append(plans[j])
         j = prev[j]
-    return chosen
+    return total, chosen[::-1]
+
+
+def _rising_chain(plans: list[tuple[int, dict]]) -> dict[int, dict]:
+    """The plan placed on each page: the margin column whose numbers
+    continue each other across the most Rz."""
+    # The Rz column is where the main text's numbering starts, its Rz 1: an
+    # annex table's row numbers stand at the table's own edge and may
+    # outnumber the Rz (FINMA-RS 2016/1), so they must not win. Of several
+    # columns starting at 1 on that page (section numbers "1." beside the
+    # Rz), the one whose numbers run on across pages. Without an Rz 1 (BSV
+    # numbers from 1001), any column; an early register table (old BSV
+    # booklets, page 2) runs on nowhere.
+    if not plans:
+        return {}
+    ones = [(pno, p) for pno, p in plans if p["first"] == (1,)]
+    if ones:
+        first = min(pno for pno, _ in ones)
+        anchors = [p for pno, p in ones if pno == first]
+    else:
+        anchors = [p for _, p in plans]
+    reps: list[dict] = []
+    for a in anchors:
+        if not any(a["w"] == r["w"] and _same_column(a, r) for r in reps):
+            reps.append(a)
+    _, chosen = max((_chain_in_column(plans, a) for a in reps), key=lambda t: t[0])
+    return dict(chosen)
 
 
 # ── FINMA: margin numbers as glyph images ─────────────────────────────
@@ -377,14 +535,13 @@ def extract_with_margin_numbers(pdf_bytes: bytes, *, images: bool = False) -> tu
                if len(ln["text"].strip()) >= 25]
     doc_size = statistics.median(running) if running else 0.0
     plans = [(pno, plan) for pno, lines in enumerate(all_lines)
-             if (plan := _text_margin_plan(lines, doc_size, len(all_lines),
-                                           doc[pno].rect.height)) is not None]
-    chosen = _rising_chain(plans)
-    plan_of = dict(plans)
+             for plan in _text_margin_plans(lines, doc_size, len(all_lines),
+                                            doc[pno].rect.height, doc[pno].rect.width)]
+    plan_of = _rising_chain(plans)
     pages, placed = [], 0
     annex, last = None, None
     for pno, lines in enumerate(all_lines):
-        plan = plan_of.get(pno) if pno in chosen else None
+        plan = plan_of.get(pno)
         if plan is None:
             pages.append(_render(lines, set(), {}))
             continue

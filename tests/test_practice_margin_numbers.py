@@ -114,6 +114,152 @@ def test_asterisk_marked_rz_placed_and_kept():
     assert "16*" not in [ln.strip() for ln in lines]
 
 
+def _pages(specs) -> bytes:
+    """specs: [(width, height, heading, [(line, number)], number_x[, body_x])]
+    with the body at body_x (default 85, or 142 beside a left column) and
+    the numbers in a column at number_x."""
+    doc = fitz.open()
+    for w, h, heading, nums, nx, *bx in specs:
+        page = doc.new_page(width=w, height=h)
+        y0 = 100
+        bx = bx[0] if bx else (85 if nx > 300 else 142)
+        if heading:
+            page.insert_text((bx, 80), heading, fontsize=11)
+        for k in range(8):
+            page.insert_text((bx, y0 + 30 * k), f"{BODY} Absatz {k}.", fontsize=10)
+        for k, t in nums:
+            page.insert_text((nx, y0 + 30 * k), t, fontsize=10)
+    return doc.tobytes()
+
+
+def test_annex_template_rows_are_not_rz():
+    """FINMA-RS 2016/1 (live run 2026-11-20): the disclosure templates in
+    "Anhang 2" print row numbers at the table's left edge on page after
+    page; they were labelled "Anhang 2, Rz 1", "Anhang 2, Rz 2", ..."""
+    main = [(595, 842, None, [(0, "1"), (3, "2"), (6, "3")], 530),
+            (595, 842, None, [(1, "4"), (4, "5")], 530)]
+    tables = [(595, 842, "Anhang 2", [(0, "1"), (2, "2"), (4, "3"), (6, "4")], 100)] * 3
+    text, n = extract_with_margin_numbers(_pages(main + tables))
+    assert n == 5 and "Anhang 2, Rz" not in text
+
+
+def test_annex_restarts_numbering_once():
+    main = [(595, 842, None, [(0, "1"), (3, "2"), (6, "3")], 530)]
+    annex = [(595, 842, "Anhang 1", [(0, "1"), (3, "2"), (6, "3")], 530)]
+    text, n = extract_with_margin_numbers(_pages(main + annex + annex))
+    assert n == 6
+    assert text.count("Anhang 1, Rz 1") == 1
+
+
+def test_landscape_pages_continue_the_main_sequence():
+    """FINMA-RS 2018/2: the Rz column moves from x 547 (portrait) to 722
+    (landscape); the landscape pages' Rz 35-80 continue the main text's."""
+    pdf = _pages([(595, 842, None, [(0, "1"), (3, "2"), (6, "3")], 530),
+                  (842, 595, None, [(0, "4"), (3, "5"), (6, "6")], 766, 321)])
+    text, n = extract_with_margin_numbers(pdf)
+    assert n == 6 and "Rz 5" in text.splitlines()
+
+
+def test_landscape_table_cells_are_not_rz():
+    """FINMA-RS 2016/1 Anhang 1: a landscape overview table; its cells
+    "1", "2" stand far right of the body text, not in the Rz column."""
+    main = [(595, 842, None, [(0, "1"), (3, "2"), (6, "3")], 530),
+            (595, 842, None, [(1, "4"), (4, "5")], 530)]
+    table = [(842, 595, "Anhang 1", [(0, "1"), (2, "2"), (4, "3")], 760)]
+    text, n = extract_with_margin_numbers(_pages(main + table))
+    assert n == 5 and "Anhang 1, Rz" not in text
+
+
+def test_section_numbers_beside_the_rz_column():
+    """FINMA-RS 2015/1 balance-sheet pages: section numbers ("3.1") stand in
+    the left margin, the Rz (118-121) in the right one. Read as one column
+    they never rose and the page kept bare numbers."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for k in range(5):
+        y = 120 + 25 * k
+        page.insert_text((85, y), f"3.{k}" if k else "3.", fontsize=10)
+        page.insert_text((133, y), f"Eventualverpflichtungen gegenüber Dritten, Position {k}", fontsize=10)
+        page.insert_text((520, y), str(118 + k), fontsize=10)
+    text, n = extract_with_margin_numbers(doc.tobytes())
+    lines = text.splitlines()
+    assert n == 5
+    assert lines[lines.index("Rz 119") + 1].strip() == "3.1"    # the row's first line
+    assert "3.2" in [ln.strip() for ln in lines]                 # section numbers stay text
+
+
+def test_toc_word_in_body_text_is_no_toc():
+    """"Indice, il faut ..." (FINMA-RS 2008/18 fr) opens a body line; the
+    page was taken for a table of contents and kept bare numbers."""
+    def indice(page):
+        page.insert_text((142, 320), "Indice, il faut s’assurer qu’il existe une large concordance",
+                         fontsize=11)
+    pdf = _bsv_pdf([(0, "1001"), (4, "1002"), (7, "1003")], extra=indice)
+    assert extract_with_margin_numbers(pdf)[1] == 3
+
+
+def test_wide_footnotes_do_not_hide_the_rz_column():
+    """FINMA-RS 2013/3: the footnotes run wider than the body, into the Rz
+    column, which then no longer counted as margin."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for k in range(10):
+        page.insert_text((90, 100 + 16 * k), f"{BODY} {k}.", fontsize=10)
+    for k, t in [(0, "112.1*"), (4, "112.2*"), (8, "112.3*")]:
+        page.insert_text((505, 100 + 16 * k), t, fontsize=10)
+    for k in range(4):
+        page.insert_text((90, 700 + 10 * k), f"{k + 1} Bei systemisch bedeutsamen Finanzmarktinfrastrukturen "
+                         "kann die SNB ebenfalls solche Hinweise geben, die zu berücksichtigen sind.",
+                         fontsize=8)
+    assert extract_with_margin_numbers(doc.tobytes())[1] == 3
+
+
+def test_formula_subscript_beside_rz_is_no_footnote():
+    """FINMA-RS 2017/7 Rz 87 stands beside a formula whose subscript "1/2"
+    is nearer than the body-size line; the page was refused as footnotes."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for k in range(10):
+        # the formula row's body line sits 4 pt below its Rz
+        page.insert_text((142, 100 + 16 * k + (4 if k == 4 else 0)), f"{BODY} Absatz {k}.",
+                         fontsize=11)
+    for k, t in [(0, "85"), (2, "86"), (4, "87"), (7, "88")]:
+        page.insert_text((85, 100 + 16 * k), t, fontsize=11)
+    page.insert_text((300, 100 + 16 * 4 - 1), "1/2", fontsize=6)
+    text, n = extract_with_margin_numbers(doc.tobytes())
+    lines = text.splitlines()
+    assert n == 4 and lines[lines.index("Rz 87") + 1].endswith("Absatz 4.")
+
+
+def test_last_rz_with_nothing_beside_it_ends_the_page():
+    """FINMA-RS 2020/1 Rz 89 stands at the foot of the page; its paragraph
+    starts on the next. The page was refused."""
+    pdf = _bsv_pdf([(0, "1001"), (4, "1002"), (13, "1003")])
+    text, n = extract_with_margin_numbers(pdf)
+    assert n == 3 and text.splitlines()[-1] == "Rz 1003"
+
+
+def test_journal_toc_page_numbers_are_not_rz():
+    """AHI-Praxis issues open with their table of contents: entry titles
+    with page numbers in the right margin (153, 154, 155, 159, ...)."""
+    doc = fitz.open()
+    page = doc.new_page(width=419, height=595)
+    for k, num in enumerate(("153", "154", "155", "159", "161", "162", "165", "168")):
+        y = 70 + 30 * k
+        page.insert_text((84, y), f"AHV: Beiträge der Nichterwerbstätigen, Fall {k}", fontsize=9)
+        page.insert_text((84, y + 10), "Urteil des EVG vom 29. Oktober 2003 i. Sa. R. D.", fontsize=9)
+        page.insert_text((364, y + 10), num, fontsize=9)
+    assert extract_with_margin_numbers(doc.tobytes()) is None
+
+
+def test_asterisk_after_a_space():
+    """FINMA-RS 2008/19 prints amended Rz as "319 *"; the plain ones beside
+    them (320, 322) skipped every other number and failed."""
+    pdf = _bsv_pdf([(0, "319 *"), (2, "320"), (4, "321 *"), (7, "322")])
+    text, n = extract_with_margin_numbers(pdf)
+    assert n == 4 and {"Rz 319*", "Rz 321*"} <= set(text.splitlines())
+
+
 def test_split_range_is_one_marker():
     pdf = _bsv_pdf([(0, "2022"), (4, "2023.1-"), (5, "2023.4"), (7, "2024")])
     text, n = extract_with_margin_numbers(pdf)
