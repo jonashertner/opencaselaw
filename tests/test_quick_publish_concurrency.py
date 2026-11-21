@@ -48,6 +48,10 @@ def wired(tmp_path, monkeypatch):
     monkeypatch.setattr(qp, "TMP_PATH", Path(str(db) + ".quick"))
     monkeypatch.setattr(qp, "QUICK_PUBLISH_LOCK_PATH", str(tmp_path / "quick.lock"))
     monkeypatch.setattr(qp, "PUBLISH_LOCK_PATH", str(tmp_path / "publish.lock"))
+    # A full build that saw no shards: every shard here is read whole.
+    checkpoint = tmp_path / ".fts5_checkpoint.json"
+    checkpoint.write_text('{"files": {}, "last_full_build": "2026-10-18T00:00:00+00:00"}')
+    monkeypatch.setattr(qp, "FULL_BUILD_CHECKPOINT_PATH", checkpoint)
     return tmp_path, db, jsonl
 
 
