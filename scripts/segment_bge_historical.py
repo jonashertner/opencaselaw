@@ -29,9 +29,9 @@ What it does per row (bge_historical_segment.segment, see there for the rules):
     Every changed date gets a `date_restore` stamp (the previous one is kept
     under "prev").
   * --apply also writes the replaced full_text of every cut row to
-    <shard>.presegment-<UTC date>.undo beside the shard (undo file, JSON lines).
-    Neither it nor the temp file (.<shard>.XXXX.tmp) ends in .jsonl: the build
-    ingests every *.jsonl in the shard directory.
+    <shard>.undo-presegment-<UTC date>.jsonl.bak beside the shard (undo file).
+    Neither it nor the temp file (.<shard>.XXXX.tmp) is named *.jsonl, which the
+    build would ingest as a shard.
 
 Streaming, temp file + atomic replace, court 'bge_historical' rows only, DRY RUN
 by default, idempotent (a second run changes nothing). Run after publish.py
@@ -146,7 +146,7 @@ def run(path: Path, apply: bool, examples: int) -> Counter:
     tmp_path = None
     now = datetime.now(timezone.utc)
     stamp = now.isoformat(timespec="seconds")
-    undo_path = path.with_name(f"{path.name}.presegment-{now.date().isoformat()}.undo")
+    undo_path = path.with_name(f"{path.name}.undo-presegment-{now.date().isoformat()}.jsonl.bak")
     if apply:
         fd, tmp_path = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
         fout = os.fdopen(fd, "w", encoding="utf-8")
