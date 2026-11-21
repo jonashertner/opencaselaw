@@ -1,0 +1,33 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_130_III_213",
+  "pinpoint": "2.1"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:07:01+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_130_III_213",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2004-01-09",
+  "citation_string": "BGE 130 III 213, E. 2.1",
+  "citation_string_de": "BGE 130 III 213, E. 2.1",
+  "citation_string_fr": "ATF 130 III 213, consid. 2.1",
+  "citation_string_it": "DTF 130 III 213, consid. 2.1",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_130_III_213#e-2-1",
+  "markdown_link": "[BGE 130 III 213, E. 2.1](https://mcp.opencaselaw.ch/entscheid/bge_BGE_130_III_213#e-2-1)",
+  "rule_statement": "Der Beklagte stand zur Klägerin in einem Arbeitsverhältnis. Er war gleichzeitig ihr Organ. Es fragt sich damit zunächst nach welchen Normen sich die Treuepflicht des Beklagten gegenüber der Klägerin richtet.\nDas schweizerische Arbeitsvertragsrecht unterscheidet nicht nach verschiedenen Arbeitnehmerkategorien (vgl. dazu ALEXANDRE BERENSTEIN/PASCAL MAHON, Labour Law in Switzerland, Bern 2001, Rz. 148 ff. und 153). […]",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "pinpoint": "2.1",
+  "pinpoint_status": "verified",
+  "pinpoint_valid": true,
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_130_III_213"
+  },
+  "canonical_decision_id": "bge_BGE_130_III_213",
+  "is_canonical": true
+ }
+}

@@ -1,0 +1,225 @@
+{
+ "id": "rec_03_sx_ex_release",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "product.market_approval",
+  "text": "Release of the SX-Ex explosion-protected pump drive (II 2G Ex db IIB T4) for sale in Switzerland and the EU/EEA from 1 November 2020."
+ },
+ "purpose": "Sell the SX-Ex to chemical and process-industry customers in Switzerland and the EU/EEA with valid conformity for explosive atmospheres.",
+ "decided_by": "Product Release Committee of Sernfeld Antriebstechnik AG",
+ "decided_at": "2020-10-22",
+ "minutes": "dms://products/sx-ex/release-decision-2020.md",
+ "owner": {
+  "person": "ra",
+  "name": "Dr. Nadia Rüegg",
+  "role": "Head of Regulatory Affairs and Quality"
+ },
+ "fallback_owner": {
+  "person": "ceo",
+  "name": "Lukas Oberholzer",
+  "role": "Chief Executive Officer"
+ },
+ "restrictions": [
+  "Sale only in Switzerland, the EU and the EEA (Norway, Iceland, Liechtenstein)",
+  "Not for zone 0 / category 1G applications"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "EU-type examination certificate ExC 20 ATEX 4471 X, surveillance audit every two years",
+    "source": "dms://products/sx-ex/ex-certificate-2020.md",
+    "as_of": "2020-10-02"
+   },
+   {
+    "id": "f2",
+    "text": "Declaration of conformity signed 22 October 2020",
+    "source": "dms://products/sx-ex/declaration-of-conformity-2020.md",
+    "as_of": "2020-10-22"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "VGSEB",
+    "sr_number": "734.6",
+    "act_title": "Verordnung vom 25. November 2015 über Geräte und Schutzsysteme zur Verwendung in explosionsgefährdeten Bereichen (VGSEB)",
+    "jurisdiction": "Bund (federal)",
+    "article": "3",
+    "article_label": "Art. 3 — Sicherheit",
+    "paragraph": null,
+    "as_of": "2020-10-22",
+    "edition": "2017-02-14",
+    "act_in_force": "2016-04-20 – (open)",
+    "text": "Produkte dürfen bei ordnungsgemässer Installation und Wartung sowie bei bestimmungsgemässer Verwendung weder Personen noch Sachen gefährden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2016/19/20170214/de",
+    "source_snapshot": "get_law__VGSEB-3-2020-10-22__65c3150f65",
+    "proposition": "Equipment for explosive atmospheres may be placed on the market only if it endangers neither persons nor property when properly installed, maintained and used.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:48+00:00",
+     "snapshot": "attest_response__Art--3-VGSEB__5480ea4751",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:48+00:00",
+      "as_of": "2020-10-22",
+      "edition": "2017-02-14",
+      "snapshot": "get_law__VGSEB-3-2020-10-22__65c3150f65"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "PrSG",
+    "sr_number": "930.11",
+    "act_title": "Bundesgesetz vom 12. Juni 2009 über die Produktesicherheit (PrSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "3",
+    "article_label": "Art. 3 — Grundsätze",
+    "paragraph": "1",
+    "as_of": "2020-10-22",
+    "edition": "2010-07-01",
+    "act_in_force": "2010-07-01 – (open)",
+    "text": "1 Produkte dürfen in Verkehr gebracht werden, wenn sie bei normaler oder bei vernünftigerweise vorhersehbarer Verwendung die Sicherheit und die Gesundheit der Verwenderinnen und Verwender und Dritter nicht oder nur geringfügig gefährden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2010/347/20100701/de",
+    "source_snapshot": "get_law__PrSG-3-2020-10-22__a0d8fc374b",
+    "proposition": "Products may be placed on the market only if they endanger the safety and health of users and third parties not at all or only slightly in normal or foreseeable use.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:49+00:00",
+     "snapshot": "attest_response__Art--3-Abs--1-PrSG__66c2cd9618",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:49+00:00",
+      "as_of": "2020-10-22",
+      "edition": "2010-07-01",
+      "snapshot": "get_law__PrSG-3-2020-10-22__a0d8fc374b"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_133_III_81",
+    "citation": "BGE 133 III 81, E. 3",
+    "decision_date": "2006-12-19",
+    "pinpoint": "3",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_133_III_81#e-3",
+    "source_snapshot": "cite__bge-BGE-133-III-81-3__6b7d8073db",
+    "proposition": "A product is defective if it does not offer the safety a person is entitled to expect; the injured party need not prove the cause of the defect.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:49+00:00",
+     "snapshot": "attest_response__BGE-133-III-81--E--3__6347b8a797"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Certificate surveillance audit by the notified body every two years",
+    "source": "dms://products/sx-ex/ex-certificate-2020.md",
+    "test_date": "2022-10-02"
+   }
+  ]
+ },
+ "objections": [],
+ "review": {
+  "date": "2022-10-31",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified",
+   "f1 certificate withdrawn or not renewed",
+   "sale outside the approved markets"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://products/sx-ex/ex-certificate-2020.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://products/sx-ex/declaration-of-conformity-2020.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://products/sx-ex/ex-certificate-2020.md",
+   "test_date": "2022-10-02",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Sale only in Switzerland, the EU and the EEA (Norway, Iceland, Liechtenstein)",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "Not for zone 0 / category 1G applications",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

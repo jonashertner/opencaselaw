@@ -1,0 +1,252 @@
+{
+ "id": "rec_23_dividend_fy2025",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.dividend",
+  "text": "Proposal to the AGM of an ordinary dividend of CHF 4.20 per share (CHF 8.4m) for financial year 2025, payable after the auditor's confirmation."
+ },
+ "purpose": "Distribute free reserves while keeping liquidity for the 2027 refinancing.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2026-03-12",
+ "minutes": "dms://board/2026-03-12_minutes.md#4",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "acc",
+  "name": "Prof. Dr. Thomas Bärtschi",
+  "role": "Chair of the Audit Committee"
+ },
+ "restrictions": [
+  "Payment only after the auditor's confirmation of the proposal"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Free reserves of CHF 310m per audited 2025 accounts",
+    "source": "dms://finance/2025/audited-accounts-extract.md",
+    "as_of": "2025-12-31"
+   },
+   {
+    "id": "f2",
+    "text": "Pending Hollis product-liability claim, provision CHF 40m; trial set for 9 November 2026",
+    "source": "dms://legal/claims/2022-031-hollis.md",
+    "as_of": "2026-03-01"
+   },
+   {
+    "id": "f3",
+    "text": "Leverage 2.10x at 31 December 2025; pro-forma 2.21x after the dividend",
+    "source": "dms://treasury/compliance-certificate-2025-12-31.md",
+    "as_of": "2025-12-31"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "675",
+    "article_label": "Art. 675",
+    "paragraph": "2",
+    "as_of": "2026-03-12",
+    "edition": "2026-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Dividenden dürfen nur aus dem Bilanzgewinn und aus hierfür gebildeten Reserven ausgerichtet werden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20260101/de",
+    "source_snapshot": "get_law__OR-675-2026-03-12__fdf4863880",
+    "proposition": "Dividends may be paid only out of the balance-sheet profit and out of reserves created for this purpose.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:46+00:00",
+     "snapshot": "attest_response__Art--675-Abs--2-OR__0c9ebe1408",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:02+00:00",
+      "as_of": "2026-03-12",
+      "edition": "2026-01-01",
+      "snapshot": "get_law__OR-675-2026-03-12__fdf4863880"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "675",
+    "article_label": "Art. 675",
+    "paragraph": "3",
+    "as_of": "2026-03-12",
+    "edition": "2026-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "3 Dividenden dürfen erst festgesetzt werden, nachdem die Zuweisungen an die gesetzliche Gewinnreserve und an die freiwilligen Gewinnreserven erfolgt sind.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20260101/de",
+    "source_snapshot": "get_law__OR-675-2026-03-12__fdf4863880",
+    "proposition": "Dividends may be set only after the allocations to the statutory and voluntary retained earnings.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:55+00:00",
+     "snapshot": "attest_response__Art--675-Abs--3-OR__0634e0e496",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:02+00:00",
+      "as_of": "2026-03-12",
+      "edition": "2026-01-01",
+      "snapshot": "get_law__OR-675-2026-03-12__fdf4863880"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "decision",
+    "decision_id": "bge_BGE_140_III_533",
+    "citation": "BGE 140 III 533, E. 3",
+    "decision_date": "2014-10-16",
+    "pinpoint": "3",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_140_III_533#e-3",
+    "source_snapshot": "cite__bge-BGE-140-III-533-3__314e4efe94",
+    "proposition": "Shareholders who receive an unjustified distribution can be required to return it, in addition to the directors' liability.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:47+00:00",
+     "snapshot": "attest_response__BGE-140-III-533--E--3__17aab6d544"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Net-debt covenant of 3.0x EBITDA in the 2024 facility (clause 22.1)",
+    "source": "dms://treasury/facility-agreement-2024.md#22.1",
+    "test_date": "2026-06-30"
+   },
+   {
+    "id": "c2",
+    "text": "Distributions only if pro-forma leverage does not exceed 2.50x (clause 23.4)",
+    "source": "dms://treasury/facility-agreement-2024.md#23.4",
+    "test_date": "2026-05-07"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Annika Zwahlen (CFO)",
+   "text": "Claim f2 could exceed the provision.",
+   "answer": "Provision reviewed by external counsel; reassess if the claim is amended."
+  }
+ ],
+ "review": {
+  "date": "2026-09-30",
+  "reopen_if": [
+   "l1 or l2 amended",
+   "l3 qualified or overruled",
+   "f2 amended or provision raised",
+   "c1 test failed",
+   "c2 test failed"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/2025/audited-accounts-extract.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://legal/claims/2022-031-hollis.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f3",
+   "kind": "fact",
+   "source": "dms://treasury/compliance-certificate-2025-12-31.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://treasury/facility-agreement-2024.md#22.1",
+   "test_date": "2026-06-30",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "c2",
+   "kind": "commitment",
+   "source": "dms://treasury/facility-agreement-2024.md#23.4",
+   "test_date": "2026-05-07",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Payment only after the auditor's confirmation of the proposal",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

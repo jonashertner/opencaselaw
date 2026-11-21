@@ -1,0 +1,312 @@
+{
+ "id": "rec_14_imhof_holding_loan",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.conflict_transaction",
+  "text": "Loan of CHF 12.0m for three years at 3.25% to Imhof Beteiligungen AG, the 52% shareholder chaired by the board chair, secured by a pledge of 600,000 company shares; the amount treated as blocked free equity."
+ },
+ "purpose": "Earn an arm's-length return on surplus cash without making a hidden distribution to the controlling shareholder.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG (members without conflict)",
+ "decided_at": "2023-09-14",
+ "minutes": "dms://board/2023-09-14_minutes.md#2",
+ "owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "fallback_owner": {
+  "person": "acc",
+  "name": "Prof. Dr. Thomas Bärtschi",
+  "role": "Chair of the Audit Committee"
+ },
+ "restrictions": [
+  "Immediate termination right if the borrower's credit deteriorates",
+  "Annual review of the interest rate against the ESTV safe-harbour rate",
+  "Loan amount treated as blocked free equity"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Borrower assets about CHF 274m, debt CHF 9m; loan-to-value of the share pledge 40%",
+    "source": "dms://related-party/imhof-holding-credit-memo-2023.md",
+    "as_of": "2023-08-31"
+   },
+   {
+    "id": "f2",
+    "text": "Free equity CHF 183.2m at 31 December 2022",
+    "source": "dms://finance/2022/audited-accounts-extract.md",
+    "as_of": "2022-12-31"
+   },
+   {
+    "id": "f3",
+    "text": "Loan terms: CHF 12.0m, 3.25%, repayment 30 September 2026, termination if security below 150%",
+    "source": "dms://related-party/imhof-holding-loan-agreement-2023.md",
+    "as_of": "2023-09-20"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "680",
+    "article_label": "Art. 680",
+    "paragraph": "2",
+    "as_of": "2023-09-14",
+    "edition": "2023-09-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Ein Recht, den eingezahlten Betrag zurückzufordern, steht dem Aktionär nicht zu.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20230901/de",
+    "source_snapshot": "get_law__OR-680-2023-09-14__25a83ce298",
+    "proposition": "Shareholders have no right to the return of their capital contributions.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:56+00:00",
+     "snapshot": "attest_response__Art--680-Abs--2-OR__793a2bd9c8",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:56+00:00",
+      "as_of": "2023-09-14",
+      "edition": "2023-09-01",
+      "snapshot": "get_law__OR-680-2023-09-14__25a83ce298"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717a",
+    "article_label": "Art. 717a",
+    "paragraph": "1",
+    "as_of": "2023-09-14",
+    "edition": "2023-09-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Die Mitglieder des Verwaltungsrats und der Geschäftsleitung informieren den Verwaltungsrat unverzüglich und vollständig über sie betreffende Interessenkonflikte.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20230901/de",
+    "source_snapshot": "get_law__OR-717a-2023-09-14__109a1e81c3",
+    "proposition": "Directors and managers must inform the board without delay of conflicts of interest affecting them.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:57+00:00",
+     "snapshot": "attest_response__Art--717a-Abs--1-OR__efe0618ad7",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:57+00:00",
+      "as_of": "2023-09-14",
+      "edition": "2023-09-01",
+      "snapshot": "get_law__OR-717a-2023-09-14__109a1e81c3"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "717a",
+    "article_label": "Art. 717a",
+    "paragraph": "2",
+    "as_of": "2023-09-14",
+    "edition": "2023-09-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Der Verwaltungsrat ergreift die Massnahmen, die zur Wahrung der Interessen der Gesellschaft nötig sind.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20230901/de",
+    "source_snapshot": "get_law__OR-717a-2023-09-14__109a1e81c3",
+    "proposition": "The board must take the measures needed to safeguard the company's interests in case of a conflict of interest.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:57+00:00",
+     "snapshot": "attest_response__Art--717a-Abs--2-OR__4c1c08865b",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:57+00:00",
+      "as_of": "2023-09-14",
+      "edition": "2023-09-01",
+      "snapshot": "get_law__OR-717a-2023-09-14__109a1e81c3"
+     }
+    }
+   },
+   {
+    "id": "l4",
+    "kind": "decision",
+    "decision_id": "bge_BGE_140_III_533",
+    "citation": "BGE 140 III 533, E. 4",
+    "decision_date": "2014-10-16",
+    "pinpoint": "4",
+    "pinpoint_status": "verified",
+    "url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_140_III_533#e-4",
+    "source_snapshot": "cite__bge-BGE-140-III-533-4__b9bd195f49",
+    "proposition": "Intra-group and shareholder loans not at arm's length can breach the prohibition of returning capital contributions and reduce free equity.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:58+00:00",
+     "snapshot": "attest_response__BGE-140-III-533--E--4__6ca4f969a3"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Loans to non-group persons not to exceed CHF 15m in aggregate (clause 23.6)",
+    "source": "dms://treasury/facility-agreement-2019.md#23.6",
+    "test_date": "2023-12-31"
+   },
+   {
+    "id": "c2",
+    "text": "Repayment of the loan on 30 September 2026",
+    "source": "dms://related-party/imhof-holding-loan-agreement-2023.md",
+    "test_date": "2026-09-30"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Sophie Marchand (board member)",
+   "text": "The loan must be terminable immediately if the borrower's credit deteriorates.",
+   "answer": "Accepted; termination right added."
+  }
+ ],
+ "review": {
+  "date": "2024-09-30",
+  "reopen_if": [
+   "l1, l2 or l3 amended",
+   "l4 qualified or overruled",
+   "f1 borrower's credit deteriorates",
+   "c1 loans-out basket exceeded",
+   "c2 repayment missed"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l4",
+   "kind": "decision",
+   "triggers": [
+    "T3",
+    "T4",
+    "T5"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://related-party/imhof-holding-credit-memo-2023.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://finance/2022/audited-accounts-extract.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f3",
+   "kind": "fact",
+   "source": "dms://related-party/imhof-holding-loan-agreement-2023.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://treasury/facility-agreement-2019.md#23.6",
+   "test_date": "2023-12-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "c2",
+   "kind": "commitment",
+   "source": "dms://related-party/imhof-holding-loan-agreement-2023.md",
+   "test_date": "2026-09-30",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Immediate termination right if the borrower's credit deteriorates",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "Annual review of the interest rate against the ESTV safe-harbour rate",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r3",
+   "kind": "restriction",
+   "text": "Loan amount treated as blocked free equity",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

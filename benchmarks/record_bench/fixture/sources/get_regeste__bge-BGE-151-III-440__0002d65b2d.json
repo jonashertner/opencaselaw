@@ -1,0 +1,22 @@
+{
+ "tool": "get_regeste",
+ "args": {
+  "decision_id": "bge_BGE_151_III_440"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:09:36+00:00",
+ "result": {
+  "decision_id": "bge_BGE_151_III_440",
+  "court": "bge",
+  "decision_date": "2025-03-31",
+  "language": "de",
+  "regeste": "Regeste\n Art. 219 Abs. 4, Art. 250 SchKG; Art. 18 Abs. 1, Art. 312 OR; Art. 2 Abs. 2 ZGB; Kollokation einer Darlehensforderung im Konkurs; Rangrücktritt. Über den Rangrücktritt ist bei der Kollokation der Forderung und nicht erst bei der Verteilung des Erlöses zu entscheiden (E. 5 und 5.1). Liegt im Zeitpunkt, in dem ein Aktionär oder eine der Gesellschaft nahestehende Person der Gesellschaft ein Darlehen gewährt, keine Überschuldung vor, sind die Darlehensgewährung und die Geltendmachung der Forderung im Konkurs nicht offenbar rechtsmissbräuchlich und die Forderung ist ohne Rangrücktritt zu kollozieren (E. 5.2-5.10).",
+  "citation_string_de": "BGE 151 III 440",
+  "citation_string_fr": "ATF 151 III 440",
+  "citation_string_it": "DTF 151 III 440",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_151_III_440",
+  "markdown_link": "[BGE 151 III 440](https://mcp.opencaselaw.ch/entscheid/bge_BGE_151_III_440)",
+  "rule_statement": "Regeste\n Art. 219 Abs. 4, Art. 250 SchKG; Art. 18 Abs. 1, Art. 312 OR; Art. 2 Abs. 2 ZGB; Kollokation einer Darlehensforderung im Konkurs; Rangrücktritt. Über den Rangrücktritt ist bei der Kollokation der Forderung und nicht erst bei der Verteilung des Erlöses zu entscheiden (E. 5 und 5.1). […]",
+  "_note": "The Regeste is the official court-formulated summary of the legal rule. References like '(E. 5.2.1)' inside the Regeste point to specific Erwägungen — use get_erwaegung(decision_id, e_number) to retrieve their verbatim text. The returned `regeste` has every inner Swiss-case reference pre-wrapped as a Markdown link — quote it verbatim to the user."
+ }
+}

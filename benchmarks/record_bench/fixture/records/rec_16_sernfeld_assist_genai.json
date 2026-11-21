@@ -1,0 +1,281 @@
+{
+ "id": "rec_16_sernfeld_assist_genai",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.ai_deployment",
+  "text": "Introduction from 15 January 2024 of the generative AI assistant 'Sernfeld Assist' for 1,200 office workplaces, with no input of personnel, health or customer data and no use for decisions about employees."
+ },
+ "purpose": "Increase productivity in drafting, translation and summarising while keeping personal and customer data out of the system.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2023-11-23",
+ "minutes": "dms://board/2023-11-23_minutes.md#5",
+ "owner": {
+  "person": "cdo",
+  "name": "Samuel Okafor",
+  "role": "Chief Digital Officer"
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "No input of personnel data, health data or customer data",
+  "No use for decisions about employees",
+  "Usage logged; training before access"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "DPIA: high risk only if personnel or health data are entered; residual risk acceptable with measures",
+    "source": "dms://ai/assist-dpia-2023.md",
+    "as_of": "2023-11-02"
+   },
+   {
+    "id": "f2",
+    "text": "Processor Nimbus AI Services Ltd; US sub-processor for abuse monitoring with 30-day retention",
+    "source": "dms://ai/assist-dpa-2023.md",
+    "as_of": "2023-11-08"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "7",
+    "article_label": "Art. 7 — Datenschutz durch Technik und datenschutzfreundliche Voreinstellungen",
+    "paragraph": "1",
+    "as_of": "2023-11-23",
+    "edition": "2023-09-01",
+    "act_in_force": "2023-09-01 – (open)",
+    "text": "1 Der Verantwortliche ist verpflichtet, die Datenbearbeitung technisch und organisatorisch so auszugestalten, dass die Datenschutzvorschriften eingehalten werden, insbesondere die Grundsätze nach Artikel 6. Er berücksichtigt dies ab der Planung.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2022/491/20230901/de",
+    "source_snapshot": "get_law__DSG-7-2023-11-23__eb524bc4c4",
+    "proposition": "The controller must design processing technically and organisationally so that data protection rules are complied with (privacy by design).",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:58+00:00",
+     "snapshot": "attest_response__Art--7-Abs--1-DSG__c666ef1317",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:58+00:00",
+      "as_of": "2023-11-23",
+      "edition": "2023-09-01",
+      "snapshot": "get_law__DSG-7-2023-11-23__eb524bc4c4"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "9",
+    "article_label": "Art. 9 — Bearbeitung durch Auftragsbearbeiter",
+    "paragraph": "1",
+    "as_of": "2023-11-23",
+    "edition": "2023-09-01",
+    "act_in_force": "2023-09-01 – (open)",
+    "text": "1 Die Bearbeitung von Personendaten kann vertraglich oder durch die Gesetzgebung einem Auftragsbearbeiter übertragen werden, wenn: a. die Daten so bearbeitet werden, wie der Verantwortliche selbst es tun dürfte; und b. keine gesetzliche oder vertragliche Geheimhaltungspflicht die Übertragung verbietet.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2022/491/20230901/de",
+    "source_snapshot": "get_law__DSG-9-2023-11-23__75f4e7f12c",
+    "proposition": "Processing may be entrusted to a processor by contract if the processor processes the data only as the controller itself may.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:59+00:00",
+     "snapshot": "attest_response__Art--9-Abs--1-DSG__8bcb28cd4d",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:59+00:00",
+      "as_of": "2023-11-23",
+      "edition": "2023-09-01",
+      "snapshot": "get_law__DSG-9-2023-11-23__75f4e7f12c"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "16",
+    "article_label": "Art. 16 — Grundsätze",
+    "paragraph": "1",
+    "as_of": "2023-11-23",
+    "edition": "2023-09-01",
+    "act_in_force": "2023-09-01 – (open)",
+    "text": "1 Personendaten dürfen ins Ausland bekanntgegeben werden, wenn der Bundesrat festgestellt hat, dass die Gesetzgebung des betreffenden Staates oder das internationale Organ einen angemessenen Schutz gewährleistet.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2022/491/20230901/de",
+    "source_snapshot": "get_law__DSG-16-2023-11-23__7d2e4aaea2",
+    "proposition": "Personal data may be disclosed abroad if the Federal Council has found that the recipient state ensures adequate protection.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:59+00:00",
+     "snapshot": "attest_response__Art--16-Abs--1-DSG__b2bce131a4",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:59+00:00",
+      "as_of": "2023-11-23",
+      "edition": "2023-09-01",
+      "snapshot": "get_law__DSG-16-2023-11-23__7d2e4aaea2"
+     }
+    }
+   },
+   {
+    "id": "l4",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 25. September 2020 über den Datenschutz (Datenschutzgesetz, DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "22",
+    "article_label": "Art. 22 — Datenschutz-Folgenabschätzung",
+    "paragraph": "1",
+    "as_of": "2023-11-23",
+    "edition": "2023-09-01",
+    "act_in_force": "2023-09-01 – (open)",
+    "text": "1 Der Verantwortliche erstellt vorgängig eine Datenschutz-Folgenabschätzung, wenn eine Bearbeitung ein hohes Risiko für die Persönlichkeit oder die Grundrechte der betroffenen Person mit sich bringen kann. Sind mehrere ähnliche Bearbeitungsvorgänge geplant, so kann eine gemeinsame Abschätzung erstellt werden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2022/491/20230901/de",
+    "source_snapshot": "get_law__DSG-22-2023-11-23__c41e6ac2e0",
+    "proposition": "A data protection impact assessment is required where processing may entail a high risk to the personality or fundamental rights of data subjects.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:00+00:00",
+     "snapshot": "attest_response__Art--22-Abs--1-DSG__91d16a74c5",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:00+00:00",
+      "as_of": "2023-11-23",
+      "edition": "2023-09-01",
+      "snapshot": "get_law__DSG-22-2023-11-23__c41e6ac2e0"
+     }
+    }
+   }
+  ],
+  "commitments": []
+ },
+ "objections": [
+  {
+   "by": "Dr. Andreas Wyss (board member)",
+   "text": "May customer data be entered?",
+   "answer": "No; excluded technically and by instruction."
+  }
+ ],
+ "review": {
+  "date": "2024-12-31",
+  "reopen_if": [
+   "l1 to l4 amended",
+   "f2 sub-processors or retention changed",
+   "personnel, health or customer data entered",
+   "use for decisions about employees"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l4",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://ai/assist-dpia-2023.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://ai/assist-dpa-2023.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "No input of personnel data, health data or customer data",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "No use for decisions about employees",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r3",
+   "kind": "restriction",
+   "text": "Usage logged; training before access",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

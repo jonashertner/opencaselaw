@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "MepV",
+  "article": "46",
+  "as_of": "2025-06-26"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:07:26+00:00",
+ "result": {
+  "_markdown": "# MepV — SR 812.213\n**Medizinprodukteverordnung vom 1. Juli 2020 (MepV)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2023-11-01, applicable on 2025-06-26\nAct in force: 2021-05-26 – (open)\nText source: Fedlex Akoma Ntoso XML — per-article, verbatim\nQuelle: [Fedlex (Fassung vom 2023-11-01)](https://www.fedlex.admin.ch/eli/cc/2020/552/20231101/de)\n\n### Art. 46 — Anbringen des Konformitätskennzeichens und klinische Bewertung\n\n1 Die Hersteller gewährleisten beim Inverkehrbringen oder bei der Inbetriebnahme ihrer Produkte, dass diese gemäss den Anforderungen dieser Verordnung konzipiert und hergestellt wurden.\n2 Sie versehen ihre Produkte mit dem Konformitätskennzeichen.\n3 Sie führen eine klinische Bewertung durch nach Artikel 61 EU-MDR , unter Berücksichtigung der Änderungen dieses Artikels, die von der Europäischen Kommission mittels delegierter Rechtsakte vorgenommen werden, sowie nach Anhang XIV EU-MDR. Sie aktualisieren die klinische Bewertung aufgrund der Ergebnisse der klinischen Nachbeobachtung nach dem Inverkehrbringen.\n\n> Footnote: Siehe Fussnote zu Art. 4 Abs. 1 Bst. f. Siehe Anhang 4.\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}
