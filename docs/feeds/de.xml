@@ -5,9 +5,25 @@
     <link>https://opencaselaw.ch/feeds/de.xml</link>
     <description>Latest published Swiss court decisions in Deutsch.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 20 Nov 2026 22:37:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 21 Nov 2026 11:34:45 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/de.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesverwaltungsgericht C-5808/2026 vom 2026-11-12</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-5808_2026</link>
+      <description>Zuständigkeit SUVA</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-5808.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht C-6853/2026 vom 2026-11-12</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_C-6853_2026</link>
+      <description>Rentenanspruch</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-6853.2026</guid>
+      <category>bvger</category>
+    </item>
     <item>
       <title>Bundesgericht 8C_710/2026 vom 2026-11-11</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_710_2026</link>
@@ -35,6 +51,38 @@ Verfahrensbeteilig…</description>
       <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_710.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-6007/2024 vom 2026-11-11</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6007_2024</link>
+      <description>Asyl (ohne Wegweisungsvollzug)</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6007.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-1452/2024 vom 2026-11-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-1452_2024</link>
+      <description>Asyl (ohne Wegweisungsvollzug) (beschleunigtes Verfahren)</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-1452.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-4254/2024 vom 2026-11-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4254_2024</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4254.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-7788/2026 vom 2026-11-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-7788_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (Dublin-Verfahren - Art. 31a Abs. 1 Bst. b AsylG)</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-7788.2026</guid>
+      <category>bvger</category>
     </item>
     <item>
       <title>Bundesgericht 8C_336/2026 vom 2026-11-09</title>
@@ -209,6 +257,30 @@ Suche aktivieren
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht D-6151/2024 vom 2026-11-05</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6151_2024</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6151.2024</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht D-6519/2020 vom 2026-11-05</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6519_2020</link>
+      <description>Asyl und Wegweisung</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6519.2020</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-8029/2026 vom 2026-11-05</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-8029_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (Dublin-Verfahren - Art. 31a Abs. 1 Bst. b AsylG)</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-8029.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesgericht 7B_1376/2026 vom 2026-11-04</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1376_2026</link>
       <description>Bundesgericht
@@ -273,6 +345,14 @@ Suche aktivieren
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht F-5949/2026 vom 2026-11-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-5949_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (sicherer Drittstaat - Art. 31a Abs. 1 Bst. a AsylG)</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5949.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesgericht 4D_161/2026 vom 2026-11-03</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_4D_161_2026</link>
       <description>Bundesgericht
@@ -335,6 +415,14 @@ G…</description>
       <category>bger</category>
     </item>
     <item>
+      <title>Bundesverwaltungsgericht D-5819/2025 vom 2026-10-30</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5819_2025</link>
+      <description>Verweigerung vorübergehender Schutz</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5819.2025</guid>
+      <category>bvger</category>
+    </item>
+    <item>
       <title>Bundesgericht 8F_17/2026 vom 2026-10-29</title>
       <link>https://mcp.opencaselaw.ch/entscheid/bger_8F_17_2026</link>
       <description>Bundesgericht
@@ -389,6 +477,15 @@ Gerichtsschreib…</description>
       <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_203.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>sg_versicherungsgericht UV 2026/10 vom 2026-10-22</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/sg_publikationen_UV%202026_10</link>
+      <description>Art. 6 Abs. 1 UVG i.V.m. Art. 4 ATSG: Ein überwiegend wahrscheinlicher Beweis für die Kausalität des unbeobachteten Sturzes für den Tod des Versicherten wurde nicht erbracht. Tauglichkeitsuntersuchungen vor oder während eines Anstellungsverhältnisses sind stark schematisch und nicht äquivalent mit spezifischen Arztuntersuchungen. Bestandene Tauglichkeitsuntersuchungen begründen keine überwiegende Wahrscheinlichkeit, dass keine Erkrankungen bestanden bzw. dass ein todesursächliches Unfallereignis vorgelegen hat (Entscheid des Versicherungsgerichts des Kantons St. Gallen vom 22. Oktober 2026, UV 2026/10).</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">sg_publikationen_UV 2026_10</guid>
+      <category>sg_versicherungsgericht</category>
+      <category>UV - Unfallversicherung</category>
     </item>
     <item>
       <title>Bundesgericht 7B_989/2026 vom 2026-10-14</title>
@@ -511,6 +608,107 @@ Suche aktivieren
       <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:4A_126.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-6232/2026 vom 2026-09-23</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-6232_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (Dublin-Verfahren - Art. 31a Abs. 1 Bst. b AsylG)</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-6232.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>Bundesverwaltungsgericht F-5935/2026 vom 2026-09-02</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bvger_F-5935_2026</link>
+      <description>Nichteintreten auf Asylgesuch und Wegweisung (Dublin-Verfahren - Art. 31a Abs. 1 Bst. b AsylG)</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BVGer:2026:F-5935.2026</guid>
+      <category>bvger</category>
+    </item>
+    <item>
+      <title>bs_appellationsgericht BEZ.2026.43 vom 2026-07-28</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bs_appellationsgericht_AG.2026.689</link>
+      <description>Appellationsgericht
+
+des Kantons Basel-Stadt
+
+Einzelgericht
+
+BEZ.2026.43
+
+ENTSCHEID
+
+vom 28.
+Juli 2026
+
+Mitwirkende
+
+lic. iur. André Equey
+
+und
+Gerichtsschreiber MLaw Martin Manyoki
+
+Parteien
+
+A____ GmbH in Liquidation Beschwerdeführerin
+
+[...]</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">bs_appellationsgericht_AG.2026.689</guid>
+      <category>bs_appellationsgericht</category>
+    </item>
+    <item>
+      <title>sg_verwaltungsgericht B 2026/66 vom 2026-05-04</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/sg_publikationen_B%202026_66</link>
+      <description>Vollstreckungsverfügung, Rechtsweggarantie, unrichtige Rechtsmittelbelehrung, Art. 29a BV, Art. 52 Abs. 2 ZPO, Art. 30 Abs. 1, Art. 44 Abs. 3 und Art. 47 Abs. 3 VRP. Vollstreckungsverfügungen können trotz der Rechtskraft der zugrundeliegenden Sachverfügung eine Streitigkeit über Rechte und Pflichten im Sinne von Art. 29a BV begründen, wenn sie in individuelle, schützenswerte Rechtspositionen eingreifen und die betroffene Person dadurch über die rechtskräftig angeordnete Sachanordnung hinausgehend belasten. Eine Streitigkeit über Rechte und Pflichten liegt insbesondere vor, wenn umstritten ist, ob die Vollstreckungsanordnung den Rahmen der zugrundeliegenden Sachverfügung einhält. Der bundesrechtlich vorgeschriebene kantonal letztinstanzliche Rechtsschutz in Verwaltungssachen kann im Kanton St. Gallen nur durch das Verwaltungsgericht gewährleistet werden. Es ist vor diesem Hintergrund kaum ein Anwendungsfall ersichtlich, in dem der gesetzlich in Art. 44 Abs. 3 VRP vorgesehene Ausschluss der Beschwerde an das Verwaltungsgericht für Vollstreckungssachen vor Bundesrecht standhalten würde. Im vorliegenden Fall steht dem Beschwerdeführer gegen den angefochtenen Entscheid somit die Beschwerde an das Verwaltungsgericht offen. Der Verweis von Art. 30 Abs. 1 VRP auf die Fristenbestimmungen der ZPO umfasst nach dessen Wortlaut sowie aufgrund systematischer und teleologischer Auslegung auch Art. 52 Abs. 2 ZPO. Danach sind unrichtige Rechtsmittelbelehrungen gegenüber allen Gerichten insoweit wirksam, als sie zum Vorteil der Partei lauten, die sich darauf beruft. Der Beschwerdeführer ist im Vertrauen seines Rechtsvertreters in die unrichtige Rechtsmittelbelehrung des AVSV in der Verfügung vom 19. Februar 2026 zu schützen. Die Vorinstanz ist zu Unrecht wegen Verspätung nicht auf den Rekurs eingetreten. Gutheissung der Beschwerde (Verwaltungsgericht B 2026/66).</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">sg_publikationen_B 2026_66</guid>
+      <category>sg_verwaltungsgericht</category>
+      <category>Verwaltungsgericht</category>
+    </item>
+    <item>
+      <title>bs_appellationsgericht ZB.2025.48 vom 2026-04-21</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bs_appellationsgericht_AG.2026.469</link>
+      <description>Appellationsgericht
+
+des Kantons Basel-Stadt
+
+Dreiergericht
+
+ZB.2025.48
+
+ENTSCHEID
+
+vom 20.
+Juli 2026
+
+Mitwirkende
+
+Dr. Stephan Wullschleger, Prof. Dr.
+Ramon Mabillard, Dr. Nicole Kuster
+
+und Gerichtsschreiber
+MLaw Martin Manyoki
+
+Parteien
+
+A____ …</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">bs_appellationsgericht_AG.2026.469</guid>
+      <category>bs_appellationsgericht</category>
+    </item>
+    <item>
+      <title>ai_gerichte V 10-2025 vom 2025-11-18</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ai_gerichte_V_10-2025</link>
+      <description>BVG-Klage / Barauszahlung der Austrittsleistung bei Aufnahme selbständiger Erwerbstätigkeit
+Der Antrag um Barauszahlung erst sieben Jahre nach Aufnahme einer selbständigen Erwerbstätigkeit erscheint als zu lange, um noch von einer Aufnahme der Erwerbstätigkeit im Sinne
+von Art. 5 Abs. 1 lit. b FZG zu sprechen.
+Die Regelung der Säule 3a in Art. 3 Abs. 2 lit. c BVV 3, wonach nicht nur die Aufnahme, sondern auch der Wechsel in eine andersartige selbständige Erwerbstätigkeit, die Möglichkeit des
+vorzeitigen Bezugs der Altersleistungen gewährt, findet sich in der 2. Säule nicht und es wäre
+am Gesetzgeber, dies entsprechend zu regeln.</description>
+      <pubDate>Fri, 20 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ai_gerichte_V_10-2025</guid>
+      <category>ai_gerichte</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht C-6641/2024 vom 2026-11-11</title>
@@ -854,312 +1052,6 @@ Verfahrensbeteiligt…</description>
       <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BVGer:2026:C-2623.2024</guid>
       <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-6668/2026 vom 2026-11-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6668_2026</link>
-      <description>Asyl und Wegweisung</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6668.2026</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht B-5848/2024 vom 2026-11-03</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_B-5848_2024</link>
-      <description>Arbeitslosenversicherung</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:B-5848.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-4187/2025 vom 2026-11-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-4187_2025</link>
-      <description>Asyl und Wegweisung</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-4187.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-6113/2024 vom 2026-11-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-6113_2024</link>
-      <description>Asyl (ohne Wegweisungsvollzug)</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-6113.2024</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-7066/2023 vom 2026-11-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-7066_2023</link>
-      <description>Asyl (ohne Wegweisungsvollzug) (Wiedererwägung)</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-7066.2023</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_306/2026 vom 2026-10-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_306_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_306/2026
-
-Urteil vom 30. Oktober 2026
-
-IV. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Viscione, Präsidentin,
-
-Bundesrichterinnen Heine, Thurnherr Keller,
-
-Geri…</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_306.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_641/2025 vom 2026-10-30</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_641_2025</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_641/2025
-
-Urteil vom 30. Oktober 2026
-
-IV. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Viscione, Präsidentin,
-
-Bundesrichter Maillard, Bundesrichterin Heine,
-
-G…</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_641.2025</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 2C_404/2026 vom 2026-10-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_2C_404_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-2C_404/2026
-
-Urteil vom 27. Oktober 2026
-
-II. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin J. Hänni, präsidierendes Mitglied,
-
-Bundesrichterin Ryter, Bundesrichter …</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:2C_404.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_376/2026 vom 2026-10-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_376_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_376/2026
-
-Urteil vom 27. Oktober 2026
-
-IV. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Viscione, Präsidentin,
-
-Bundesrichterinnen Heine, Thurnherr Keller,
-
-Geri…</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_376.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>sg_versicherungsgericht BV 2025/5 vom 2026-10-27</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/sg_publikationen_BV%202025_5</link>
-      <description>Art. 23 BVG. Unterbruch des zeitlichen Konnexes während des Versicherungsschutzes bei der Beklagten 1. Gutheissung der Klage gegen die Beklagte 1, Abweisung der Klage gegen die Beklagte 2 (Entscheid des Versicherungsgerichts des Kantons St. Gallen vom 27. Oktober 2026, BV 2025/5).</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">sg_publikationen_BV 2025_5</guid>
-      <category>sg_versicherungsgericht</category>
-      <category>BV - berufliche Vorsorge</category>
-    </item>
-    <item>
-      <title>Bundesgericht 8C_347/2026 vom 2026-10-26</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_8C_347_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-8C_347/2026
-
-Urteil vom 26. Oktober 2026
-
-IV. öffentlich-rechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Viscione, Präsidentin,
-
-Bundesrichterin Heine, Bundesrichter Métral,
-
-Ger…</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:8C_347.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>sg_versicherungsgericht IV 2026/31 vom 2026-10-22</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/sg_publikationen_IV%202026_31</link>
-      <description>Invalidenrente. Beweiswert des polydisziplinären Gutachtens bejaht; die davon abweichende Einschätzung des behandelnden Hausarztes vermag keine konkreten Zweifel an der gutachterlich attestierten vollen Arbeitsfähigkeit in einer leidensangepassten Tätigkeit zu begründen, da sie keine neuen objektiven Befunde oder funktionellen Einschränkungen aufzeigt, die im Gutachten unberücksichtigt geblieben wären. Unzureichende Abklärung der Validen- und Invalidenkarriere. Rückweisung zu weiteren Abklärungen (Entscheid des Versicherungsgerichts des Kantons St. Gallen vom 22. Oktober 2026, IV 2026/31).</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">sg_publikationen_IV 2026_31</guid>
-      <category>sg_versicherungsgericht</category>
-      <category>IV - Invalidenversicherung</category>
-    </item>
-    <item>
-      <title>Bundesverwaltungsgericht D-5718/2025 vom 2026-10-15</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bvger_D-5718_2025</link>
-      <description>Verweigerung vorübergehender Schutz</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BVGer:2026:D-5718.2025</guid>
-      <category>bvger</category>
-    </item>
-    <item>
-      <title>Bundesstrafgericht BB.2026.93 vom 2026-10-13</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bstger_BB.2026.93</link>
-      <description>Nichtanhandnahmeverfügung (Art. 310 i.V.m. Art. 322 Abs. 2 StPO); Rechtsverweigerung (Art. 393 Abs. 2 lit. a StPO)</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BStGer:2026:BB.2026.93</guid>
-      <category>bstger</category>
-    </item>
-    <item>
-      <title>Bundesstrafgericht SK.2026.26 vom 2026-10-13</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bstger_SK.2026.26</link>
-      <description>Beschimpfung (Art. 177 StGB i.V.m. Art. 59 PBG)</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BStGer:2026:SK.2026.26</guid>
-      <category>bstger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_1112/2026 vom 2026-10-02</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1112_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_1112/2026
-
-Urteil vom 2. Oktober 2026
-
-II. strafrechtliche Abteilung
-
-Besetzung
-
-Bundesrichterin Koch, als Einzelrichterin,
-
-Gerichtsschreiber Clément.
-
-Verfahrensbeteiligte
-
-A…</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1112.2026</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_1328/2024 vom 2026-09-24</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_1328_2024</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_1328/2024
-
-Urteil vom 24. September 2026
-
-II. strafrechtliche Abteilung
-
-Besetzung
-
-Bundesrichter Abrecht, Präsident,
-
-Bundesrichterin Koch, Bundesrichter Kölz,
-
-Gerichtsschrei…</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_1328.2024</guid>
-      <category>bger</category>
-    </item>
-    <item>
-      <title>Bundesgericht 7B_949/2026 vom 2026-09-23</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/bger_7B_949_2026</link>
-      <description>Bundesgericht
-
-Tribunal fédéral
-
-Tribunale federale
-
-Tribunal federal
-
-7B_949/2026
-
-Urteil vom 23. September 2026
-
-II. strafrechtliche Abteilung
-
-Besetzung
-
-Bundesrichter Abrecht, Präsident,
-
-Bundesrichterin Koch, Bundesrichter Hurni,
-
-Gerichtsschrei…</description>
-      <pubDate>Thu, 19 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ECLI:CH:BGer:2026:7B_949.2026</guid>
-      <category>bger</category>
     </item>
   </channel>
 </rss>
