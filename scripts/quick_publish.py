@@ -33,6 +33,7 @@ import os
 import shutil
 import signal
 import sqlite3
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -140,6 +141,47 @@ def _signal_handler(signum, frame):  # noqa: ARG001
 def _resolve_real_path(p: Path) -> Path:
     """Resolve symlinks to get the actual file path (for atomic replace on same fs)."""
     return p.resolve()
+
+
+ROLLING_RESTART_SCRIPT = REPO_DIR / "scripts" / "rolling_restart_workers.sh"
+RECYCLE_TIMEOUT_S = 600
+
+
+def _recycle_workers_after_swap() -> None:
+    """Roll-restart the mcp-server@ workers so they let go of the old
+    decisions.db inode, as publish.py's post-swap recycle does after Step 2.
+
+    Pooled worker connections keep the swapped-out file (~73 GB) allocated
+    until the process restarts; on 2026-07-08 pinned inodes filled the data
+    volume. Until Step B a quick_publish swap was rare (the daily full build
+    held the lock all day); with the incremental build ingesting every weekday
+    night, a pinned copy would leave too little room for the structure rebuild
+    that follows it (1.2 x the sidecar).
+
+    The script restarts one worker at a time, each gated on /health, so
+    serving never drops. Non-fatal: a recycle problem is logged and the swap
+    stands. OCL_QUICK_PUBLISH_RECYCLE=0 turns it off.
+    """
+    if os.environ.get("OCL_QUICK_PUBLISH_RECYCLE", "1").strip().lower() in {
+            "0", "false", "off", "no"}:
+        logger.info("Worker recycle after swap disabled (OCL_QUICK_PUBLISH_RECYCLE=0)")
+        return
+    if not ROLLING_RESTART_SCRIPT.exists():
+        logger.warning("Worker recycle skipped: %s not found", ROLLING_RESTART_SCRIPT)
+        return
+    logger.info("Rolling restart of the workers to free the old decisions.db inode")
+    try:
+        r = subprocess.run(
+            ["bash", str(ROLLING_RESTART_SCRIPT)],
+            capture_output=True, text=True, timeout=RECYCLE_TIMEOUT_S,
+        )
+    except (OSError, subprocess.SubprocessError) as e:
+        logger.warning("Worker recycle failed (%s); the swap stands", e)
+        return
+    for line in (r.stdout or "").splitlines():
+        logger.info("  %s", line)
+    for line in (r.stderr or "").splitlines():
+        logger.warning("  %s", line)
 
 
 def _get_existing_ids(conn: sqlite3.Connection) -> set[str]:
@@ -281,6 +323,8 @@ def _quick_publish_locked(courts: list[str] | None = None, dry_run: bool = False
         swap_done = True
         _active_tmp = None
         logger.info("Atomic swap complete — new decisions are live")
+
+        _recycle_workers_after_swap()
 
         return inserted
     finally:

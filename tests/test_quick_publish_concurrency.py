@@ -48,6 +48,8 @@ def wired(tmp_path, monkeypatch):
     monkeypatch.setattr(qp, "TMP_PATH", Path(str(db) + ".quick"))
     monkeypatch.setattr(qp, "QUICK_PUBLISH_LOCK_PATH", str(tmp_path / "quick.lock"))
     monkeypatch.setattr(qp, "PUBLISH_LOCK_PATH", str(tmp_path / "publish.lock"))
+    # A swap restarts the workers (tests/test_quick_publish_recycle.py); never here.
+    monkeypatch.setattr(qp, "_recycle_workers_after_swap", lambda: None)
     return tmp_path, db, jsonl
 
 
