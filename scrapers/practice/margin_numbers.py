@@ -114,13 +114,21 @@ def _render(lines: list[dict], skip: set[int], before: dict[int, list[str]]) -> 
 # A table of contents' heading. "Inhalt", "Indice", "Sommaire" and
 # "Contents" are ordinary words too ("Indice, il faut ..." in fr body text,
 # an "Inhalt" column head over a table of Rz): they count only as a line
-# of their own.
-_TOC_HEAD = re.compile(r"(?:Inhaltsverzeichnis|Table des matières|Table of contents)\b.*"
-                       r"|(?:Inhalt|Indice|Sommaire|Contents)\s*:?", re.IGNORECASE)
+# of their own, and only where the page's numbers have gaps.
+_TOC_HEAD = re.compile(r"(?:Inhaltsverzeichnis|Table des matières|Table of contents|Sommario)\b.*",
+                       re.IGNORECASE)
+_TOC_WORD = re.compile(r"(?:Inhalt|Indice|Sommaire|Contents)\s*:?", re.IGNORECASE)
 
 
-def _toc_heading(lines: list[dict]) -> bool:
-    return any(_TOC_HEAD.fullmatch(ln["text"].strip()) for ln in lines)
+def _toc_heading(lines: list[dict]) -> str | None:
+    """"head" for an unambiguous TOC heading, "word" for a TOC word on a
+    line of its own, else None."""
+    texts = [ln["text"].strip() for ln in lines]
+    if any(_TOC_HEAD.fullmatch(t) for t in texts):
+        return "head"
+    if any(_TOC_WORD.fullmatch(t) for t in texts):
+        return "word"
+    return None
 
 
 _ANNEX_HEAD = re.compile(r"^(Anhang|Annexe|Allegato|Annex|Appendice|Appendix)\s*(\d{1,2}|[IVX]{1,5})?\b",
@@ -227,9 +235,10 @@ def _text_margin_plans(lines: list[dict], doc_size: float = 0.0,
         plan = _column_plan(lines, col, size, is_mark, page_height)
         if plan is None:
             continue
-        # A table of contents under its heading lists section starts, with
-        # gaps; a page of Rz under an "Inhalt" column head has none.
-        if toc_head and not plan["consecutive"]:
+        # A table of contents lists section starts under its heading (BSV
+        # Rententabellen: chapters 1-13, consecutive); a page of Rz under an
+        # "Inhalt" column head (FINMA-RS 2008/11) has no gaps either.
+        if toc_head == "head" or (toc_head == "word" and not plan["consecutive"]):
             continue
         side = "right" if lines[col[0]]["x0"] >= right + 4 else "left"
         plan.update({"annex": _annex_label(lines), "w": round(page_width), "side": side,
@@ -293,6 +302,7 @@ def _column_plan(lines: list[dict], margin: list[int], size: float, is_mark,
                 marks.setdefault(max(above, key=lambda j: lines[j]["y0"]), []).append(i)
     before: dict[int, list[str]] = {}
     skip: set[int] = set()
+    figure_rows = mid_sentence = 0
     for i in rz:
         y0, y1 = lines[i]["y0"], lines[i]["y1"]
         # Body-size text first: a formula's subscript beside an Rz is no
@@ -308,6 +318,10 @@ def _column_plan(lines: list[dict], margin: list[int], size: float, is_mark,
             # on the next page (FINMA-RS 2020/1, Rz 89).
             above = [k for k in body_idx if lines[k]["y0"] < y0]
             tgt = max(above) + 1 if above else len(lines)
+        elif _figures_only(lines, body_idx, tgt):
+            figure_rows += 1
+        elif _continues_line_above(lines, body_idx, tgt):
+            mid_sentence += 1
         ms = marks.get(i, [])
         label = ", ".join(lines[j]["text"].strip() for j in ms)
         before.setdefault(tgt, []).append(
@@ -315,9 +329,18 @@ def _column_plan(lines: list[dict], margin: list[int], size: float, is_mark,
         skip.add(i)
         skip.update(ms)
     skip.update(joined)
+    # An Rz stands beside text; a table's row numbers beside rows of figures
+    # only (BSV IV-Taggeldtabellen: 1 -> "365", 2 -> "730"; Rententabellen).
+    if 2 * figure_rows >= len(rz):
+        return None
+    # An Rz opens a paragraph or an item; line numbers (BSV Rententabellen:
+    # 1, 2, 3 on every line of a passage) fall mid-sentence.
+    if len(rz) >= 4 and 2 * mid_sentence >= len(rz):
+        return None
     return {"before": before, "skip": skip, "first": keys[0], "last": last_key,
             "count": len(rz), "x": statistics.median(lines[i]["x1"] for i in rz),
-            "consecutive": all(_next_rz(a, b) for a, b in zip(keys, keys[1:]))}
+            "consecutive": all(_next_rz(a, b) for a, b in zip(keys, keys[1:])),
+            "keys": keys}
 
 
 def _next_rz(a: tuple, b: tuple) -> bool:
@@ -326,6 +349,39 @@ def _next_rz(a: tuple, b: tuple) -> bool:
     if len(b) > len(a) and b[:len(a)] == a:
         return True
     return any(b == a[:k - 1] + (a[k - 1] + 1,) for k in range(1, len(a) + 1))
+
+
+_LETTER = re.compile(r"[^\W\d_]")
+_LIST_ITEM = re.compile(r"^(?:[a-z]{1,4}[.)]|[•▪◦\-–—])\s")
+_ENDS_ITEM = re.compile(r"[.:;!?)]\W*\d*\s*$")
+
+
+def _continues_line_above(lines: list[dict], body_idx: list[int], tgt: int) -> bool:
+    """Line `tgt` carries on the sentence of the line right above it: it
+    starts in lowercase (no list item "a. ...", no lone "aufgehoben"), and
+    the line above, with no paragraph gap between, ends no sentence or
+    item ("...; " ends an item in an it/fr list)."""
+    ln = lines[tgt]
+    t = ln["text"].strip()
+    if not t[:1].islower() or _LIST_ITEM.match(t) or len(t.split()) < 3:
+        return False
+    above = [k for k in body_idx if lines[k]["y1"] <= ln["y0"] + 2 and k != tgt
+             and min(lines[k]["x1"], ln["x1"]) - max(lines[k]["x0"], ln["x0"]) > 0]
+    if not above:
+        return False
+    prev = lines[max(above, key=lambda k: lines[k]["y0"])]
+    height = ln["y1"] - ln["y0"]
+    if ln["y0"] - prev["y1"] > 0.8 * height:
+        return False
+    return not _ENDS_ITEM.search(prev["text"])
+
+
+def _figures_only(lines: list[dict], body_idx: list[int], tgt: int) -> bool:
+    """The row of line `tgt` (every body line level with it) has no letter."""
+    mid = (lines[tgt]["y0"] + lines[tgt]["y1"]) / 2
+    row = [lines[k]["text"] for k in body_idx
+           if abs((lines[k]["y0"] + lines[k]["y1"]) / 2 - mid) <= 3]
+    return not any(_LETTER.search(t) for t in row)
 
 
 def _dense(plan: dict) -> bool:
@@ -423,6 +479,11 @@ _SHORT_CHAIN = 40
 
 
 def _starts_numbering(chosen: list[tuple[int, dict]]) -> bool:
+    # ... and mostly follows on, across pages too (BSV Rententabellen tabs
+    # 1, 2, 4, 8, 9, 11, one per page)
+    keys = [k for _, p in chosen for k in p["keys"]]
+    if 2 * sum(_next_rz(a, b) for a, b in zip(keys, keys[1:])) < len(keys) - 1:
+        return False
     first = chosen[0][1]["first"]
     if first == (1,) or (len(first) == 1 and first[0] % 1000 == 1 and first[0] > 1000):
         return True

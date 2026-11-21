@@ -277,6 +277,58 @@ def test_short_run_not_where_numbering_starts_is_not_rz():
     assert extract_with_margin_numbers(funds) is None
 
 
+def test_row_numbers_beside_figures_are_not_rz():
+    """BSV IV-Taggeldtabellen (6880): rows 1-407 beside day counts 365,
+    730, 1 095. They follow on and start at 1, but stand beside figures."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for k in range(4):
+        page.insert_text((142, 80 + 14 * k), f"{BODY} Absatz {k}.", fontsize=11)
+    for k in range(1, 9):
+        y = 160 + 16 * k
+        page.insert_text((85, y), str(k), fontsize=11)
+        page.insert_text((142, y), f"{365 * k:,}".replace(",", " "), fontsize=11)
+        page.insert_text((260, y), f"{12.5 * k:.2f}", fontsize=11)
+    assert extract_with_margin_numbers(doc.tobytes()) is None
+
+
+def test_line_numbers_are_not_rz():
+    """BSV Rententabellen (6850) number every line of a passage; the
+    numbers fall mid-sentence."""
+    words = ("ihres Jahrganges ab, so entspricht die Teilrente einem nach Artikel 52",
+             "vorgegebenen Bruchteil der Vollrente. Bevor die zutreffende Rentenskala",
+             "entnommen werden kann, muss die Beitragsdauer des Jahrganges aufgrund",
+             "der Jahrgangstabellen bestimmt werden. Die folgenden Beispiele zeigen,")
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for k in range(8):
+        page.insert_text((142, 100 + 14 * k), words[k % 4], fontsize=11)
+        page.insert_text((85, 100 + 14 * k), str(k + 1), fontsize=11)
+    assert extract_with_margin_numbers(doc.tobytes()) is None
+
+
+def test_repealed_rz_with_lowercase_stub_kept():
+    """"aufgehoben" / "abrogés" beside a repealed Rz starts in lowercase
+    but is no line-numbered passage."""
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    for k in range(8):
+        text = "aufgehoben" if k % 2 else f"{BODY} Absatz {k}."
+        page.insert_text((142, 100 + 16 * k), text, fontsize=11)
+        page.insert_text((85, 100 + 16 * k), str(1001 + k), fontsize=11)
+    assert extract_with_margin_numbers(doc.tobytes())[1] == 8
+
+
+def test_toc_with_consecutive_chapter_numbers():
+    """BSV Rententabellen: "Inhaltsverzeichnis" over chapters 1-13 that run
+    on without gaps; the "consecutive" exemption is for an "Inhalt"
+    column head only."""
+    def toc(page):
+        page.insert_text((142, 70), "Inhaltsverzeichnis", fontsize=11)
+    pdf = _bsv_pdf([(0, "1"), (2, "2"), (4, "3"), (6, "4")], extra=toc)
+    assert extract_with_margin_numbers(pdf) is None
+
+
 def test_split_range_is_one_marker():
     pdf = _bsv_pdf([(0, "2001"), (4, "2002.1-"), (5, "2002.4"), (7, "2003")])
     text, n = extract_with_margin_numbers(pdf)
