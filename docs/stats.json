@@ -2723,7 +2723,7 @@
     "2026-10": 2026,
     "2026-11": 264
   },
-  "generated_at": "2026-11-21T11:27:37.203887+00:00",
+  "generated_at": "2026-11-21T17:58:33.687237+00:00",
   "scraper_health": {
     "run_at": "2026-11-21T03:20:21.944078+00:00",
     "run_duration_s": 8343.9,
@@ -4083,19 +4083,19 @@
       "chapter": 11,
       "bachelor_thesis": 4
     },
-    "citation_edges": 9865469,
-    "statute_edges": 12510784
+    "citation_edges": 9868756,
+    "statute_edges": 12513874
   },
   "interesting_stats": {
     "most_cited_decision": {
       "docket": "125 V 351",
-      "citation_count": 108923,
+      "citation_count": 108977,
       "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
     },
     "most_cited_statute": {
       "law_code": "LTF",
       "article": "100",
-      "ref_count": 196557
+      "ref_count": 196598
     },
     "oldest_decision": {
       "docket": "1_I_3",
@@ -4107,17 +4107,17 @@
       "de_pct": 45.6,
       "fr_pct": 46.4,
       "it_pct": 8.0,
-      "total": 1047812
+      "total": 1048001
     },
     "regeste_coverage": {
       "pct": 37.3,
-      "with_regeste": 393261,
-      "total": 1054032
+      "with_regeste": 393298,
+      "total": 1054223
     },
     "graph_size": {
-      "decision_edges": 9213078,
-      "statute_edges": 12510784,
-      "total": 21723862
+      "decision_edges": 9246600,
+      "statute_edges": 12513874,
+      "total": 21760474
     },
     "echr_switzerland": {
       "total": 1540,
@@ -4134,31 +4134,31 @@
     "top_5_decisions": [
       {
         "docket": "125 V 351",
-        "citation_count": 108923,
+        "citation_count": 108977,
         "regeste_excerpt": "Regeste\n Art. 4 BV; Art. 108 Abs. 1 lit. b UVG; Art. 40 BZP in Verbindung mit Art. 19 VwVG; Art. 95 Abs. 2 in Verbindung mit Art. 113 und 132 OG: Beweiswürdigun",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_125 V 351"
       },
       {
         "docket": "122 V 157",
-        "citation_count": 56994,
+        "citation_count": 57029,
         "regeste_excerpt": "Regeste\n Art. 4 BV, Art. 6 Ziff. 1 EMRK. - Art. 4 BV und Art. 6 Ziff. 1 EMRK umfassen keinen formellen Anspruch auf Beizug versicherungsexterner medizinischer G",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_122 V 157"
       },
       {
         "docket": "134 V 231",
-        "citation_count": 39101,
+        "citation_count": 39127,
         "regeste_excerpt": "Regeste\n Art. 6 Abs. 1 UVG; Beweiswert diagnostischer Methoden; funktionelle Magnetresonanztomographie; Schleudertrauma. Eine medizinisch-diagnostische Methode ",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_134 V 231"
       },
       {
         "docket": "126 V 75",
-        "citation_count": 35349,
+        "citation_count": 35354,
         "regeste_excerpt": "Regeste\n Art. 28 Abs. 2 IVG: Kürzung von Tabellenlöhnen. - Für die Bestimmung des Invalideneinkommens ist primär von der beruflich-erwerblichen Situation auszug",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_126 V 75"
       },
       {
         "docket": "115 V 133",
-        "citation_count": 34266,
+        "citation_count": 34272,
         "regeste_excerpt": "Regeste\n Art. 67 und 76 KUVG, Art. 6 und 18 UVG. Präzisierung der in BGE 113 V 307 veröffentlichten Rechtsprechung zum adäquaten Kausalzusammenhang.\n\n \nRegeste\n",
         "url": "https://mcp.opencaselaw.ch/entscheid/bge_115 V 133"
       }
@@ -4167,27 +4167,27 @@
       {
         "law_code": "LTF",
         "article": "100",
-        "ref_count": 196557
+        "ref_count": 196598
       },
       {
         "law_code": "LTF",
         "article": "113",
-        "ref_count": 120300
+        "ref_count": 120323
       },
       {
         "law_code": "LTF",
         "article": "42",
-        "ref_count": 108693
+        "ref_count": 108790
       },
       {
         "law_code": "BGG",
         "article": "42",
-        "ref_count": 97615
+        "ref_count": 97604
       },
       {
         "law_code": "BGG",
         "article": "66",
-        "ref_count": 61260
+        "ref_count": 61248
       }
     ],
     "materialien_coverage": {
@@ -4356,9 +4356,9 @@
       {
         "court": "bge",
         "earliest": "1875-01-01",
-        "latest": "2026-06-04",
+        "latest": "2026-07-23",
         "span_years": 151,
-        "decision_count": 35870
+        "decision_count": 35876
       },
       {
         "court": "ch_vb",
@@ -4370,9 +4370,9 @@
       {
         "court": "ur_gerichte",
         "earliest": "1901-01-01",
-        "latest": "2026-09-30",
+        "latest": "2026-11-16",
         "span_years": 125,
-        "decision_count": 1251
+        "decision_count": 1257
       },
       {
         "court": "ar_gerichte",
@@ -4384,9 +4384,9 @@
       {
         "court": "ge_gerichte",
         "earliest": "1908-11-08",
-        "latest": "2026-11-03",
+        "latest": "2026-11-05",
         "span_years": 118,
-        "decision_count": 171762
+        "decision_count": 171920
       },
       {
         "court": "mkg",
@@ -5027,7 +5027,10 @@
       "JU": 2,
       "AI": 1
     },
-    "corpus": {},
+    "corpus": {
+      "citation_edges": 3287,
+      "statute_edges": 3090
+    },
     "previous_generated_at": "2026-11-20T22:31:21.128108+00:00"
   }
 }
