@@ -340,7 +340,7 @@ def _column_plan(lines: list[dict], margin: list[int], size: float, is_mark,
     return {"before": before, "skip": skip, "first": keys[0], "last": last_key,
             "count": len(rz), "x": statistics.median(lines[i]["x1"] for i in rz),
             "consecutive": all(_next_rz(a, b) for a, b in zip(keys, keys[1:])),
-            "keys": keys}
+            "keys": keys, "padded": label_of[rz[0]].startswith("0")}
 
 
 def _next_rz(a: tuple, b: tuple) -> bool:
@@ -429,7 +429,10 @@ def _chain_in_column(plans: list[tuple[int, dict]], anchor: dict) -> tuple[int, 
                 # templates repeat "Anhang 2" as a running head over
                 # tables whose row numbers (1, 2, 19, 20) are no Rz.
                 or (pj["first"] == (1,) and pj["annex"] and pj["annex"] != cur[i]
-                    and _dense(pj)))
+                    and _dense(pj)
+                    # a record layout's field numbers "01", "02" (BSV RWL
+                    # Anhang IV); an annex's own Rz start at "1"
+                    and not pj["padded"]))
             if fits and best[i] + pj["count"] > best[j]:
                 best[j] = best[i] + pj["count"]
                 prev[j] = i

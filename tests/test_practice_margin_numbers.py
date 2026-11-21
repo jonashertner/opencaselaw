@@ -151,6 +151,22 @@ def test_annex_restarts_numbering_once():
     assert text.count("Anhang 1, Rz 1") == 1
 
 
+def test_annex_field_numbers_01_02_are_not_rz():
+    """BSV RWL (6857 v1/v2) Anhang IV: a record layout numbers its fields
+    "01", "02", ... under the annex heading; they restarted the Rz."""
+    main = [(595, 842, None, [(0, "1001"), (3, "1002"), (6, "1003")], 530),
+            (595, 842, None, [(1, "1004"), (4, "1005")], 530)]
+    layout = [(595, 842, "Anhang IV", [(0, "01"), (2, "02"), (4, "03"), (6, "04")], 530)]
+    text, n = extract_with_margin_numbers(_pages(main + layout))
+    assert n == 5 and "Anhang IV, Rz" not in text
+
+
+def test_zero_padded_main_rz_kept():
+    """BSV KSRA (6427) prints its own Rz as "01" ... "09"."""
+    text, n = extract_with_margin_numbers(_bsv_pdf([(0, "01"), (3, "02"), (6, "03")]))
+    assert n == 3 and "Rz 02" in text.splitlines()
+
+
 def test_landscape_pages_continue_the_main_sequence():
     """FINMA-RS 2018/2: the Rz column moves from x 547 (portrait) to 722
     (landscape); the landscape pages' Rz 35-80 continue the main text's."""
