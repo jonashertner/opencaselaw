@@ -277,7 +277,7 @@ jobs:
       # compile time (Inno's SignTool directive) if a certificate is ever local.
       - name: Sign the installer with SignPath (disabled)
         if: vars.SIGNPATH_ENABLED == 'true'
-        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2.3
+        uses: signpath/github-action-submit-signing-request@4a84eb4ad763290f059275786f2deed97c2c672b # v3.1
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: "00000000-0000-0000-0000-000000000000"
