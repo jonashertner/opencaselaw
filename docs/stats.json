@@ -2722,7 +2722,7 @@
     "2026-10": 2026,
     "2026-11": 264
   },
-  "generated_at": "2026-11-22T11:05:05.824958+00:00",
+  "generated_at": "2026-11-22T21:13:06.822993+00:00",
   "scraper_health": {
     "run_at": "2026-11-22T02:14:33.288570+00:00",
     "run_duration_s": 4395.3,
@@ -4039,29 +4039,29 @@
       "ZH": 944
     },
     "commentaries": 1796,
-    "scholarship_publications": 52727,
+    "scholarship_publications": 52847,
     "scholarship_by_source": {
-      "zora_law": 14097,
-      "boris_law": 7636,
-      "unige_law": 6567,
-      "alexandria_law": 5675,
-      "zhaw_digitalcollection": 3151,
+      "zora_law": 14151,
+      "boris_law": 7648,
+      "unige_law": 6568,
+      "alexandria_law": 5695,
+      "zhaw_digitalcollection": 3152,
       "e_periodica_polsci": 3098,
       "e_periodica_law": 3041,
       "libra_unine": 2031,
-      "eth_research_collection": 1827,
+      "eth_research_collection": 1830,
       "e_periodica_pubadmin": 857,
       "unifr_law": 794,
-      "edoc_unibas_law": 638,
-      "openlegalcommentary": 600,
-      "fhnw_irf": 515,
+      "edoc_unibas_law": 650,
+      "openlegalcommentary": 599,
+      "fhnw_irf": 532,
       "onlinekommentar": 399,
       "sui_generis": 297,
       "medialex": 285,
       "eizpublishing": 279,
       "leges": 210,
       "ex_ante": 186,
-      "thegoodboard": 139,
+      "thegoodboard": 140,
       "shk_kommentar": 109,
       "anci_ch": 100,
       "cognitio": 58,
@@ -4071,13 +4071,13 @@
       "usi_law": 8
     },
     "scholarship_by_type": {
-      "article": 35509,
-      "book": 12832,
-      "dissertation": 2261,
-      "commentary": 1127,
+      "article": 35594,
+      "book": 12859,
+      "dissertation": 2268,
+      "commentary": 1126,
       "report": 675,
-      "working_paper": 199,
-      "guidance": 69,
+      "working_paper": 200,
+      "guidance": 70,
       "reference_article": 40,
       "chapter": 11,
       "bachelor_thesis": 4
@@ -4114,9 +4114,9 @@
       "total": 1054223
     },
     "graph_size": {
-      "decision_edges": 9215671,
+      "decision_edges": 9246600,
       "statute_edges": 12513874,
-      "total": 21729545
+      "total": 21760474
     },
     "echr_switzerland": {
       "total": 1540,
