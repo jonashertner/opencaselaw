@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from datetime import date as _date
 
 # Abteilung/Jahr/Nummer, optional letter suffix (60/2008/20A).
 OGE_RE = re.compile(r"\bOGE\s+(\d{1,3}/\d{4}/\d{1,4}[A-Z]?)(?![\d/])")
@@ -56,9 +57,10 @@ def cited_date(after: str) -> str | None:
         if not m or not mo:
             return UNREADABLE
         d, y = int(m.group(1)), int(m.group(3))
-    if not (1 <= d <= 31 and 1 <= mo <= 12):
+    try:
+        return _date(y, mo, d).isoformat()  # refuses 31 April, 29 February 2021
+    except ValueError:
         return UNREADABLE
-    return f"{y:04d}-{mo:02d}-{d:02d}"
 
 
 def pick(candidates: Iterable[tuple[str, str | None, str]],

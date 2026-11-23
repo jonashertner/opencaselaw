@@ -74,3 +74,14 @@ def test_body_rechtsmittelbelehrung_cannot_poison():
          "gegen das Urteil des Obergerichts des Kantons Bern vom "
          "2. Februar 2020 (ZK 20 99). Erwägungen ...")
     assert extract_appealed(t) is None
+
+
+def test_a_day_the_calendar_lacks_is_no_date():
+    # issue #171: the rubrum's 31 April is a typo, not a date to store
+    t = ("... gegen das Urteil des Obergerichts des Kantons Zürich "
+         "vom 31. April 2021 (LB200041). Sachverhalt: A. ...")
+    r = extract_appealed(t)
+    assert r["appealed_date"] is None
+    assert r["appealed_docket"] == "LB200041"
+    leap = extract_appealed(t.replace("31. April 2021", "29. Februar 2024"))
+    assert leap["appealed_date"] == "2024-02-29"

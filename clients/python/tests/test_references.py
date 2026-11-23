@@ -133,3 +133,17 @@ def test_court_scope_filters_candidates_but_keeps_unknown_courts():
     geneva = parse_reference("arrêt de la Cour de justice de Genève ACJC/1234/2024")
     assert geneva.in_scope({"court": "ge_gerichte"}) and geneva.in_scope({"canton": "GE"}) and not geneva.in_scope({"court": "bger", "canton": "CH"})
     assert parse_reference("4A_191/2019").in_scope({"court": "ge_gerichte"})
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("Urteil vom 30. Februar 2020", None),
+    ("Urteil vom 29. Februar 2021", None),  # 2021 is not a leap year
+    ("arrêt du 31 avril 2020", None),
+    ("sentenza del 31 novembre 2020", None),
+    ("OGer ZH, LA210005, 31.6.2021", None),
+    ("Urteil vom 29. Februar 2024", "2024-02-29"),
+    ("Urteil vom 29. Februar 2000", "2000-02-29"),
+    ("arrêt du 31 décembre 2020", "2020-12-31"),
+])
+def test_a_date_the_calendar_lacks_is_no_date(text, expected):
+    assert parse_reference(text).date == expected

@@ -22,6 +22,7 @@ self-contained so export/tests can reuse it.
 from __future__ import annotations
 
 import re
+from datetime import date as _date
 
 _MONTHS = {
     "januar": 1, "février": 2, "februar": 2, "fevrier": 2, "märz": 3,
@@ -67,9 +68,9 @@ def _iso(day: str, month_word: str, year: str):
         return None
     try:
         d, y = int(day), int(year)
-        if not (1 <= d <= 31 and 1875 <= y <= 2035):
+        if not 1875 <= y <= 2035:
             return None
-        return f"{y:04d}-{m:02d}-{d:02d}"
+        return _date(y, m, d).isoformat()  # refuses 31 April, 29 February 2021
     except ValueError:
         return None
 

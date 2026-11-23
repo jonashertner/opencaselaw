@@ -159,6 +159,9 @@ def test_oge_pattern_edges(built):
     (", AB 2006, S. 94", None),
     (" E. 2", None),
     (" vom gestern", oge_citation.UNREADABLE),
+    (" vom 31. April 2020", oge_citation.UNREADABLE),  # issue #171: no such day
+    (" vom 29.2.2021", oge_citation.UNREADABLE),
+    (" vom 29. Februar 2024", "2024-02-29"),
 ])
 def test_cited_date(after, want):
     assert oge_citation.cited_date(after) == want

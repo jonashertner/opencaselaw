@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import date as _date
 
 _MONTHS = {
     "januar": 1, "jänner": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5, "juni": 6,
@@ -188,9 +189,10 @@ def _iso_date(match) -> str | None:
         day, year = int(match.group("d")), int(match.group("y"))
         month = match.group("m")
         month = int(month) if month.isdigit() else _MONTHS.get(month.casefold().rstrip("."))
-        if not month or not 1 <= day <= 31 or not 1 <= month <= 12:
+        if not month:
             return None
-        return f"{year:04d}-{month:02d}-{day:02d}"
+        # date() refuses days the month lacks (30 February, 29 February 2021)
+        return _date(year, month, day).isoformat()
     except (TypeError, ValueError):
         return None
 

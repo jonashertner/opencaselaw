@@ -17,6 +17,7 @@ import argparse
 import logging
 import re
 import sqlite3
+from datetime import date as _date
 
 logger = logging.getLogger("backfill_dates")
 
@@ -47,6 +48,15 @@ _ISO_RE = re.compile(r"\b((?:19|20)\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\
 _DMY_RE = re.compile(r"\b(\d{1,2})\.(0[1-9]|1[0-2])\.(\d{4})\b")
 
 
+def _real(year: int, month: int, day: int) -> bool:
+    """A day the calendar has: no 31 April, no 29 February 2021."""
+    try:
+        _date(year, month, day)
+    except ValueError:
+        return False
+    return True
+
+
 def _extract_date(text: str) -> str | None:
     snippet = text[:2000]
 
@@ -55,18 +65,18 @@ def _extract_date(text: str) -> str | None:
         month_name = m.group(2).lower()
         year = int(m.group(3))
         month = _ALL_MONTHS.get(month_name)
-        if month and 1 <= day <= 31 and 1900 <= year <= 2030:
+        if month and 1900 <= year <= 2030 and _real(year, month, day):
             return f"{year:04d}-{month:02d}-{day:02d}"
 
     for m in _DMY_RE.finditer(snippet):
         day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        if 1 <= day <= 31 and 1900 <= year <= 2030:
+        if 1900 <= year <= 2030 and _real(year, month, day):
             return f"{year:04d}-{month:02d}-{day:02d}"
 
     m = _ISO_RE.search(snippet)
     if m:
         year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        if 1 <= day <= 31 and 1900 <= year <= 2030:
+        if 1900 <= year <= 2030 and _real(year, month, day):
             return f"{year:04d}-{month:02d}-{day:02d}"
 
     return None
