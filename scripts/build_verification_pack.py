@@ -119,8 +119,13 @@ CHUNKS_PER_WORKER = 16
 BATCH_ROWS = 2000
 
 
+def _can_fork() -> bool:
+    """The readers are forked; Windows has no fork, so it reads in one process."""
+    return "fork" in multiprocessing.get_all_start_methods()
+
+
 def _default_workers() -> int:
-    return max(1, min(8, os.cpu_count() or 1))
+    return max(1, min(8, os.cpu_count() or 1)) if _can_fork() else 1
 
 
 def _rowid_ranges(con: sqlite3.Connection, table: str, parts: int) -> list[tuple[int, int]] | None:
@@ -239,7 +244,7 @@ def _source_batches(db: Path, table: str, sql: str, batches, *, workers: int, li
         return con
 
     spans = None
-    if workers > 1 and not limit:
+    if workers > 1 and not limit and _can_fork():
         probe = connect()
         spans = _rowid_ranges(probe, table, workers * CHUNKS_PER_WORKER)
         probe.close()
@@ -286,7 +291,7 @@ def build(decisions_db: Path, structure_db: Path, output: Path, *, repo_dir: Pat
         except sqlite3.Error as exc:
             _log(f"representation manifest skipped: {exc}")
     query = "SELECT " + ", ".join(selected) + (f", {_has_text_expr()} AS has_full_text" if has_text else ", 0 AS has_full_text") + " FROM decisions"
-    _log(f"reading with {workers} process(es)" if workers > 1 and not limit else "reading in one process")
+    _log(f"reading with {workers} process(es)" if workers > 1 and not limit and _can_fork() else "reading in one process")
     rows_out = 0
     next_log = 100000
     # closing(): a failed insert stops the readers now, not when the traceback is freed.

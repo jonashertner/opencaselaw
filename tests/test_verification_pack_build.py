@@ -165,3 +165,12 @@ def test_rowid_ranges_cover_the_table_and_skip_tables_without_rowid(builder):
     assert builder._rowid_ranges(con, "w", 4) is None
     with pytest.raises(sqlite3.OperationalError):
         builder._rowid_ranges(con, "missing", 4)
+
+
+def test_without_fork_the_build_reads_in_one_process(tmp_path, builder, monkeypatch):
+    # Windows has no fork; the CLI default and an explicit --workers 8 must both still build.
+    monkeypatch.setattr(builder.multiprocessing, "get_all_start_methods", lambda: ["spawn"])
+    assert builder._default_workers() == 1
+    dec, st = _dbs(tmp_path, PARAGRAPHS)
+    meta = builder.build(dec, st, tmp_path / "pack.sqlite", repo_dir=tmp_path / "no-repo", workers=8)
+    assert meta["paragraphs"] == "4" and meta["decisions"] == "3"
