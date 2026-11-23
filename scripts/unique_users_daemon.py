@@ -69,6 +69,11 @@ VERDICTS = ("mensch", "maschine", "unklar")
 # per-address behaviour records held in RAM; beyond the cap new addresses
 # are still counted in the sketches but not behaviourally judged
 FEATURE_CAP = int(os.environ.get("OCL_UNIQ_FEATURE_CAP", "500000"))
+# drip rule (see verdict): active over >= 6 h at <= 3 requests per active
+# UTC hour; below 8 requests the verdict is 'unklar' rather than 'maschine'
+DRIP_SPAN_S = 6 * 3600
+DRIP_PER_HOUR = 3
+DRIP_MIN_N = 8
 
 
 def verdict(f: dict) -> str:
@@ -88,6 +93,17 @@ def verdict(f: dict) -> str:
       volume  a practitioner reads tens of decisions a day, not hundreds
       mix     traffic that never touches a document page and only calls
               the API at volume is programmatic by definition
+      drip    a few requests every hour, spread over most of the day: a
+              crawler pacing itself under the rules above. Readers come in
+              sessions: several pages close together, then nothing.
+
+    Why drip exists (measured 2026-11-21..23): from 2026-11-03 "mensch" rose
+    from 200-430 a day to 3,000-10,000. 88-95% of those addresses were
+    active for 6 h or more, a median ~13 min between requests, with a flat
+    24-hour volume. 1,497 of them were the same Tencent Cloud addresses on
+    all three days. Replayed on those days, the drip rule removed every
+    Tencent address and left 190-240 a day. On a weekday 82% of those were
+    first seen during office hours.
 
     The user-agent is consulted for one thing only: a client that declares
     itself a crawler is believed. Without that rule a backtest over one
@@ -114,6 +130,12 @@ def verdict(f: dict) -> str:
         return "maschine"                # volume beyond human reading
     if f["docs"] == 0 and f["apis"] + f["mcps"] >= 10:
         return "maschine"                # API-only consumer
+    last = f.get("last") or 0.0
+    span = last - (f.get("first") or last)
+    hours = bin(f.get("hrs", 0)).count("1")
+    if span >= DRIP_SPAN_S and hours and n / hours <= DRIP_PER_HOUR:
+        # spread thin across the day; with little evidence, don't guess
+        return "maschine" if n >= DRIP_MIN_N else "unklar"
     if f["assets"] > 0 or f["docs"] > 0:
         return "mensch"
     return "unklar"
@@ -278,9 +300,14 @@ class Windows:
             f = self.feat[hd] = {"n": 0, "assets": 0, "docs": 0, "apis": 0,
                                  "mcps": 0, "gaps": 0, "dt_sum": 0.0,
                                  "dt2_sum": 0.0, "prev": None, "hm": hm,
-                                 "ua_cls": cls}
+                                 "ua_cls": cls, "first": None, "last": 0.0,
+                                 "hrs": 0}
         t = self.now()
         f["n"] += 1
+        if f["first"] is None:
+            f["first"] = t
+        f["last"] = t
+        f["hrs"] |= 1 << (int(t // 3600) % 24)   # active UTC hours, bitmask
         if req_cls == "asset":
             f["assets"] += 1
         elif req_cls == "doc":

@@ -194,3 +194,46 @@ def test_declared_crawler_is_never_human():
     assert uq.verdict(f) == "maschine"
     f["ua_cls"] = "browser"
     assert uq.verdict(f) == "mensch"
+
+
+# ── drip rule 2026-11-23: a crawler pacing itself across the whole day ──
+
+def _drip(n, hours, span_h, **kw):
+    mask = 0
+    for h in hours:
+        mask |= 1 << h
+    gaps = n - 1
+    dt = span_h * 3600 / max(gaps, 1)
+    return _f(n=n, docs=n, gaps=gaps, dt_sum=dt * gaps, dt2_sum=(dt ** 2) * gaps * 1.6,
+              first=1_000_000.0, last=1_000_000.0 + span_h * 3600, hrs=mask, **kw)
+
+
+def test_all_day_drip_is_machine():
+    # the 11-21 fleet: ~30 pages, one every ~25 min, 13 h, ~2 per active hour
+    assert uq.verdict(_drip(30, range(6, 20), 13)) == "maschine"
+
+
+def test_thin_drip_with_little_evidence_is_unknown_not_machine():
+    # 4 pages in 4 different hours over 12 h: not human-shaped, but too
+    # little to call a machine
+    assert uq.verdict(_drip(4, (5, 9, 13, 17), 12)) == "unklar"
+
+
+def test_morning_and_afternoon_sessions_stay_human():
+    # a lawyer: 10 pages 09-10h, 12 pages 15-16h; 7 h span, 11 per active hour
+    assert uq.verdict(_drip(22, (9, 15), 7)) == "mensch"
+
+
+def test_short_session_stays_human():
+    assert uq.verdict(_drip(12, (10, 11), 1.5)) == "mensch"
+
+
+def test_observe_records_span_and_active_hours(state):
+    clock = [86400 * 20000 + 9 * 3600.0]           # 09:00 UTC
+    win = uq.Windows(now=lambda: clock[0])
+    win.observe("192.0.2.1", "Mozilla/5.0", "doc")
+    clock[0] += 5 * 3600 + 120                     # 14:02 UTC
+    win.observe("192.0.2.1", "Mozilla/5.0", "doc")
+    (f,) = win.feat.values()
+    assert f["last"] - f["first"] == 5 * 3600 + 120
+    assert f["hrs"] == (1 << 9) | (1 << 14)
