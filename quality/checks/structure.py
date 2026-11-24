@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from datetime import date
 from pathlib import Path
 
 from quality.types import CheckResult, Severity
@@ -130,6 +131,17 @@ def check_e_number_sortable(conn: sqlite3.Connection, **_) -> CheckResult:
     )
 
 
+def _years_ago(n: int, today: date | None = None) -> str:
+    """ISO date n years before today (29 Feb falls back to 28 Feb). The
+    cutoff used to be the literal '2021-01-01', which stopped meaning
+    "older than five years" once 2026 began."""
+    today = today or date.today()
+    try:
+        return today.replace(year=today.year - n).isoformat()
+    except ValueError:
+        return today.replace(year=today.year - n, day=28).isoformat()
+
+
 def check_federal_have_erwaegungen(conn: sqlite3.Connection, **_) -> CheckResult:
     """Every BGer decision >5 years old has at least one Erwägung in
     the sidecar (newer ones may still be in extraction queue)."""
@@ -147,8 +159,9 @@ def check_federal_have_erwaegungen(conn: sqlite3.Connection, **_) -> CheckResult
         # Sample 1k random old BGer decisions and check sidecar coverage
         bger_ids = [r[0] for r in conn.execute(
             "SELECT decision_id FROM decisions "
-            "WHERE court='bger' AND decision_date < '2021-01-01' "
-            "ORDER BY random() LIMIT 1000"
+            "WHERE court='bger' AND decision_date < ? "
+            "ORDER BY random() LIMIT 1000",
+            (_years_ago(5),),
         ).fetchall()]
         if not bger_ids:
             return CheckResult(

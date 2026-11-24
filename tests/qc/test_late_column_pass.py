@@ -179,6 +179,29 @@ def test_a_scheme_with_no_rows_stays_absent(tmp_path):
     assert r.metric_value == 0
 
 
+def test_http_only_hosts_are_reported_but_not_counted(tmp_path):
+    db = tmp_path / "d.db"
+    conn = sqlite3.connect(db)
+    conn.executescript(SCHEMA_SQL)
+    urls_ = ["http://relevancy.bger.ch/cgi-bin/JumpCGI?id=1",
+             "HTTP://relevancy.bger.ch/cgi-bin/JumpCGI?id=2",
+             "http://www.jurisprudence.vd.ch/scripts/nph-omniscgi.exe?x=3",
+             "http://www.sentenze.ti.ch/cgi-bin/nph-omniscgi?x=4",
+             # a lookalike host is not exempt
+             "http://relevancy.bger.ch.example.org/5",
+             "https://www.bger.ch/6"]
+    conn.executemany(
+        "INSERT INTO decisions (decision_id, court, canton, docket_number, "
+        "language, source_url) VALUES (?, 'bger', 'CH', ?, 'de', ?)",
+        [(f"d{i}", f"x{i}", u) for i, u in enumerate(urls_)])
+    conn.commit()
+    conn.close()
+    r = urls.check_http_when_https_available(_ro(db), db_path=str(db))
+    assert r.extra == {"http": 5, "https": 1, "http_only_host": 3}
+    assert r.metric_value == 2
+    assert r.passed is True
+
+
 def test_duplicate_groups_match_the_old_queries(tmp_path):
     db = _corpus(tmp_path)
     conn = _ro(db)

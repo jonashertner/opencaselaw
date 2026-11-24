@@ -50,25 +50,34 @@ def check_no_relative_source_urls(conn: sqlite3.Connection,
 def check_http_when_https_available(conn: sqlite3.Connection,
                                     db_path: str | None = None,
                                     **_) -> CheckResult:
-    """Same-host http://... rows when https://... exists for the same
-    host means http→https upgrade missed a row. Tolerance: ≤ 50 rows
+    """http:// source_urls that could be https://. Tolerance: ≤ 50 rows
     total across the corpus.
+
+    Rows on a host in `_late_columns.HTTP_ONLY_HOSTS` (sites with no
+    working https) are reported in `extra` but not counted against the
+    threshold: before 2026-11-25 they were, so the check failed on every
+    run with ~210k rows, most of them correct links.
 
     Counted in the shared late-column pass (see _late_columns). As before,
     every non-empty source_url that does not start with http:// is counted
-    as 'https', and a scheme with no rows is absent from `extra`."""
+    as 'https', and a key with no rows is absent from `extra`."""
     c = census(conn, db_path)
     by_scheme = {k: v for k, v in (("http", c.n_http),
-                                   ("https", c.n_url - c.n_http)) if v}
+                                   ("https", c.n_url - c.n_http),
+                                   ("http_only_host", c.n_http_only_host))
+                 if v}
     n_http = by_scheme.get("http", 0)
+    n_only = by_scheme.get("http_only_host", 0)
+    n_upgradable = n_http - n_only
     return CheckResult(
         name="urls.http_count",
         severity=Severity.WARNING,
-        passed=(n_http <= 50),
-        metric_value=n_http,
+        passed=(n_upgradable <= 50),
+        metric_value=n_upgradable,
         threshold=50,
-        message=f"{n_http:,} rows still use http:// "
-                f"(http {n_http:,} / https {by_scheme.get('https', 0):,})",
+        message=f"{n_upgradable:,} rows use http:// on hosts not known to "
+                f"be http-only (http {n_http:,}, of which {n_only:,} on "
+                f"http-only hosts / https {by_scheme.get('https', 0):,})",
         extra=by_scheme,
         fix_advice="upgrade scraper to write https://, then run a "
                    "REPLACE(source_url, 'http://', 'https://') backfill",

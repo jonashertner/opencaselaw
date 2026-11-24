@@ -54,12 +54,25 @@ _URL_PRESENT = "source_url IS NOT NULL AND source_url != ''"
 _URL_RELATIVE = f"{_URL_PRESENT} AND source_url NOT LIKE 'http%'"
 _URL_HTTP = f"{_URL_PRESENT} AND source_url LIKE 'http://%'"
 
+# Hosts whose http:// links are correct because the site has no working
+# https (checked 2026-11-25): relevancy.bger.ch answers https by redirecting
+# back to http://, www.jurisprudence.vd.ch has no TLS listener. Rows on
+# these hosts are counted apart, so urls.http_count measures only links
+# that could be upgraded. Re-check a host before adding or removing it.
+HTTP_ONLY_HOSTS = ("relevancy.bger.ch", "www.jurisprudence.vd.ch")
+_URL_HTTP_ONLY_HOST = (
+    f"{_URL_HTTP} AND ("
+    + " OR ".join(f"source_url LIKE 'http://{h}/%'" for h in HTTP_ONLY_HOSTS)
+    + ")"
+)
+
 PASS_SQL = f"""
     SELECT court, docket_number, content_hash,
            COUNT(*) AS n,
            SUM({_URL_PRESENT}) AS n_url,
            SUM({_URL_RELATIVE}) AS n_relative,
            SUM({_URL_HTTP}) AS n_http,
+           SUM({_URL_HTTP_ONLY_HOST}) AS n_http_only_host,
            MIN(CASE WHEN {_URL_RELATIVE} THEN rowid END) AS relative_rowid
     FROM decisions NOT INDEXED
     GROUP BY court, docket_number, content_hash
@@ -72,6 +85,7 @@ class LateColumnCensus:
     n_url: int = 0                 # rows with a non-empty source_url
     n_relative: int = 0            # ... that do not start with http (any case)
     n_http: int = 0                # ... that start with http://
+    n_http_only_host: int = 0      # ... of which on an HTTP_ONLY_HOSTS host
     relative_rowids: list[int] = field(default_factory=list)
     dup_groups: int = 0            # (court, docket, content_hash) groups > 1 row
     dup_sample: list[dict] = field(default_factory=list)
@@ -89,11 +103,12 @@ def _scan(conn: sqlite3.Connection) -> LateColumnCensus:
     dups: list[tuple[int, int, tuple]] = []
     cur = conn.cursor()
     cur.row_factory = None          # plain tuples: ~1M groups on production
-    for i, (court, docket, chash, n, n_url, n_rel, n_http, rel_rowid) in \
-            enumerate(cur.execute(PASS_SQL)):
+    for i, (court, docket, chash, n, n_url, n_rel, n_http, n_http_only,
+            rel_rowid) in enumerate(cur.execute(PASS_SQL)):
         out.n_url += n_url
         out.n_relative += n_rel
         out.n_http += n_http
+        out.n_http_only_host += n_http_only
         if rel_rowid is not None:
             relative.append(rel_rowid)
         if n > 1 and docket and chash:

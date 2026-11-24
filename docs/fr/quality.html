@@ -21,15 +21,6 @@
 <script>document.documentElement.classList.add('js');</script>
 <link rel="stylesheet" href="/static/css/site.css?v=3">
 <style>
-  /* ── Active-improvement banner ── */
-  .banner{display:flex;align-items:flex-start;gap:12px;margin:36px 0 0;padding:16px 18px;
-    background:color-mix(in srgb,var(--red) 6%,transparent);
-    border:1px solid color-mix(in srgb,var(--red) 22%,transparent);border-radius:10px;
-    font-size:14px;line-height:1.55;color:var(--t1);max-width:var(--maxw-prose)}
-  .banner-ic{color:var(--red);font-size:17px;flex:0 0 auto;line-height:1.2}
-  .banner strong{color:var(--t1);display:block;margin-bottom:3px}
-  .banner a{color:var(--red);text-decoration:underline;text-underline-offset:2px}
-
   /* ── Gate badge (three-state) ── */
   .gate{display:flex;flex-direction:column;gap:6px;margin:32px 0 0;max-width:var(--maxw-prose)}
   .gate-row{display:inline-flex;align-items:center;gap:10px;font-size:15px;font-weight:500;color:var(--t1)}
@@ -106,20 +97,11 @@
       <p class="page-kicker"><b data-t="kicker">Opérationnel · en direct</b></p>
       <h1 class="page-h1" data-t="h1">Qualité des données</h1>
       <p class="page-lead" id="lede">
-        Every nightly publish runs <span id="check-count">…</span>
+        <span data-t="lede_pre">Chaque publication nocturne exécute</span> <span id="check-count">…</span>
         <span data-t="lede_body">contrôles d’intégrité, de schéma et de contenu sur l’ensemble du corpus avant que les utilisateurs ne voient de nouvelles données. Une régression critique bloque la publication ; les utilisateurs conservent le dernier corpus valide jusqu’à investigation. Le badge ci-dessous distingue publication sûre (les données du jour sont en ligne), publication bloquée (le contrôle a déclenché aujourd’hui et refusé la mise en ligne), et rapport qualité périmé (le contrôle n’a pas tourné récemment — le corpus est correct mais vieillit).</span>
         <a href="https://github.com/jonashertner/opencaselaw/blob/main/quality/checks" data-t="methodology">Méthodologie</a>.
       </p>
 
-      <div class="banner" role="status">
-        <span class="banner-ic" aria-hidden="true">⚙</span>
-        <div>
-          <strong data-t="banner_h">Base de données activement améliorée pour gérer un nombre croissant de requêtes.</strong>
-          <span data-t="banner_body">Les workers MCP sur</span>
-          <a href="https://mcp.opencaselaw.ch">mcp.opencaselaw.ch</a>
-          <span data-t="banner_body2">continuent de fonctionner — recherche, graphe de citations, consultation des lois et fiches d’arrêt servent tous le dernier build réussi pendant que nous rattrapons.</span>
-        </div>
-      </div>
 
       <div id="gate" class="gate">
         <div class="gate-row">
@@ -178,10 +160,9 @@ OCL.init({
     de:{
       skip:'Zum Inhalt springen',
       kicker:'Operativ · live', h1:'Datenqualität',
-      lede_body:'Integritäts-, Schema- und Inhaltsprüfungen gegen den vollständigen Korpus, bevor Nutzer neue Daten sehen. Eine kritische Regression blockiert den Publish; Nutzer behalten den letzten erfolgreichen Korpus bis zur Abklärung. Das Abzeichen unten unterscheidet Publish sicher (heutige Daten sind live), Publish blockiert (Gate hat heute ausgelöst, Push verweigert) und Qualitätsbericht veraltet (Gate ist kürzlich nicht gelaufen — Korpus ist korrekt, aber alternd).',
+      lede_pre:'Jeder nächtliche Publish prüft den vollständigen Korpus mit',
+      lede_body:'Integritäts-, Schema- und Inhaltsprüfungen, bevor Nutzer neue Daten sehen. Eine kritische Regression blockiert den Publish; Nutzer behalten den letzten erfolgreichen Korpus bis zur Abklärung. Das Abzeichen unten unterscheidet Publish sicher (heutige Daten sind live), Publish blockiert (Gate hat heute ausgelöst, Push verweigert) und Qualitätsbericht veraltet (Gate ist kürzlich nicht gelaufen — Korpus ist korrekt, aber alternd).',
       methodology:'Methodik',
-      banner_h:'Datenbank wird aktiv verbessert, um eine wachsende Zahl von Anfragen zu bewältigen.',
-      banner_body:'Die MCP-Worker auf', banner_body2:'funktionieren weiter — Suche, Zitationsgraph, Gesetzessuche und Fallbriefe liefern alle den letzten erfolgreichen Build, während wir aufholen.',
       loading:'Wird geladen…',
       s_total:'Prüfungen gesamt', s_passed:'Bestanden', s_crit:'Kritisch (blockiert Publish)', s_warn:'Warnungen (Alarm)',
       f_all:'Alle', f_fail:'Fehler', f_crit:'Kritisch', f_warn:'Warnungen', f_pass:'Bestanden',
@@ -189,24 +170,23 @@ OCL.init({
       remediation:'Behebung. ', show_detail:'Detail zeigen ↓', hide_detail:'Detail verbergen ↑',
       no_match:'(keine Ergebnisse für diesen Filter)',
       meta_run:'Letzter Lauf', meta_took:'Dauer', meta_db:'Quell-DB', meta_json:'JSON:', meta_source:'Quelle:',
-      gate_stale_h:'Datenbank wird aktiv verbessert, um eine wachsende Zahl von Anfragen zu bewältigen',
-      gate_stale_sub:'Die Datenbank wird aktiv überarbeitet, um die Performance für eine wachsende Zahl von Anfragen zu verbessern. Die MCP-Worker auf mcp.opencaselaw.ch funktionieren weiter — Suche, Zitationsgraph, Gesetzessuche und Fallbriefe liefern alle den letzten erfolgreichen Build, während wir aufholen.',
-      gate_ok_h:'Publish sicher — alle {n} kritischen und Warn-Prüfungen bestanden',
+      gate_stale_h:'Qualitätsbericht veraltet',
+      gate_stale_sub:'Letzter Gate-Lauf {age}. Die MCP-Worker auf mcp.opencaselaw.ch liefern weiter den letzten erfolgreichen Build.',
+      gate_ok_h:'Publish sicher — alle {n} kritischen Prüfungen bestanden',
       gate_ok_sub:'Letzter Gate-Lauf {age}. Die heutigen Daten wurden auf opencaselaw.ch und den MCP-Server publiziert.',
       gate_blocked_h:'Publish blockiert — {n} kritische Regression(en) erkannt',
       gate_blocked_sub:'Letzter Gate-Lauf {age}. Der nächtliche Publish hat den Git-Push verweigert; Nutzer behalten den vorherigen erfolgreichen Korpus auf mcp.opencaselaw.ch.',
       gate_unavail_h:'Qualitätsbericht nicht verfügbar',
       gate_unavail_sub:'quality.json konnte nicht geladen werden. Das CDN verteilt möglicherweise noch den jüngsten Publish, oder die Berichtsdatei wurde nicht erzeugt.',
-      load_fail:'quality.json konnte nicht geladen werden: ', load_fail2:'Das Dashboard aktualisiert sich nach jedem nächtlichen Publish (etwa 04–07 UTC).',
-      age_min:'vor {n} Min.', age_h:'vor {n} Std.', age_d:'vor {n} T.', age_unknown:'unbekannt'
+      load_fail:'quality.json konnte nicht geladen werden: ', load_fail2:'Das Dashboard aktualisiert sich nach jedem Lauf der Qualitätsprüfung.',
+      age_min:'vor {n} Min', age_h:'vor {n} Std', age_d:'vor {n} Tg', age_unknown:'unbekannt'
     },
     fr:{
       skip:'Aller au contenu',
       kicker:'Opérationnel · en direct', h1:'Qualité des données',
+      lede_pre:'Chaque publication nocturne exécute',
       lede_body:'contrôles d’intégrité, de schéma et de contenu sur l’ensemble du corpus avant que les utilisateurs ne voient de nouvelles données. Une régression critique bloque la publication ; les utilisateurs conservent le dernier corpus valide jusqu’à investigation. Le badge ci-dessous distingue publication sûre (les données du jour sont en ligne), publication bloquée (le contrôle a déclenché aujourd’hui et refusé la mise en ligne), et rapport qualité périmé (le contrôle n’a pas tourné récemment — le corpus est correct mais vieillit).',
       methodology:'Méthodologie',
-      banner_h:'Base de données activement améliorée pour gérer un nombre croissant de requêtes.',
-      banner_body:'Les workers MCP sur', banner_body2:'continuent de fonctionner — recherche, graphe de citations, consultation des lois et fiches d’arrêt servent tous le dernier build réussi pendant que nous rattrapons.',
       loading:'Chargement…',
       s_total:'Contrôles au total', s_passed:'Réussis', s_crit:'Critiques (bloquent la publication)', s_warn:'Avertissements (alerte)',
       f_all:'Tous', f_fail:'Échecs', f_crit:'Critiques', f_warn:'Avertissements', f_pass:'Réussis',
@@ -214,24 +194,23 @@ OCL.init({
       remediation:'Remédiation. ', show_detail:'voir le détail ↓', hide_detail:'masquer le détail ↑',
       no_match:'(aucun résultat pour ce filtre)',
       meta_run:'Dernier lancement', meta_took:'durée', meta_db:'Base source', meta_json:'JSON :', meta_source:'Source :',
-      gate_stale_h:'Base de données activement améliorée pour gérer un nombre croissant de requêtes',
-      gate_stale_sub:'La base de données est activement retravaillée pour améliorer les performances face à un nombre croissant de requêtes. Les workers MCP sur mcp.opencaselaw.ch continuent de fonctionner — recherche, graphe de citations, consultation des lois et fiches d’arrêt servent tous le dernier build réussi pendant que nous rattrapons.',
-      gate_ok_h:'Publication sûre — les {n} contrôles critiques et d’avertissement ont réussi',
+      gate_stale_h:'Rapport qualité périmé',
+      gate_stale_sub:'Dernier contrôle {age}. Les workers MCP sur mcp.opencaselaw.ch continuent de servir le dernier build réussi.',
+      gate_ok_h:'Publication sûre — les {n} contrôles critiques ont réussi',
       gate_ok_sub:'Dernier contrôle {age}. Les données du jour ont été publiées sur opencaselaw.ch et le serveur MCP.',
       gate_blocked_h:'Publication bloquée — {n} régression(s) critique(s) détectée(s)',
       gate_blocked_sub:'Dernier contrôle {age}. La publication nocturne a refusé le git push ; les utilisateurs conservent le corpus valide précédent sur mcp.opencaselaw.ch.',
       gate_unavail_h:'Rapport qualité indisponible',
       gate_unavail_sub:'Impossible de charger quality.json. Le CDN propage peut-être encore la dernière publication, ou le fichier de rapport n’a pas été généré.',
-      load_fail:'Échec du chargement de quality.json : ', load_fail2:'Le tableau de bord se rafraîchit après chaque publication nocturne (vers 04–07 UTC).',
+      load_fail:'Échec du chargement de quality.json : ', load_fail2:'Le tableau de bord se rafraîchit après chaque passage du contrôle qualité.',
       age_min:'il y a {n} min', age_h:'il y a {n} h', age_d:'il y a {n} j', age_unknown:'inconnu'
     },
     it:{
       skip:'Vai al contenuto',
       kicker:'Operativo · live', h1:'Qualità dei dati',
+      lede_pre:'Ogni pubblicazione notturna esegue',
       lede_body:'controlli di integrità, schema e contenuto sull’intero corpus prima che gli utenti vedano nuovi dati. Una regressione critica blocca la pubblicazione; gli utenti mantengono l’ultimo corpus valido fino all’indagine. Il badge qui sotto distingue pubblicazione sicura (i dati di oggi sono live), pubblicazione bloccata (il controllo è scattato oggi e ha rifiutato il push) e rapporto qualità obsoleto (il controllo non è stato eseguito di recente — il corpus è corretto ma sta invecchiando).',
       methodology:'Metodologia',
-      banner_h:'Database attivamente migliorato per gestire un numero crescente di richieste.',
-      banner_body:'I worker MCP su', banner_body2:'continuano a funzionare — ricerca, grafo delle citazioni, consultazione delle leggi e schede di sentenza servono tutti l’ultimo build riuscito mentre recuperiamo.',
       loading:'Caricamento…',
       s_total:'Controlli totali', s_passed:'Superati', s_crit:'Critici (bloccano la pubblicazione)', s_warn:'Avvisi (allerta)',
       f_all:'Tutti', f_fail:'Errori', f_crit:'Critici', f_warn:'Avvisi', f_pass:'Superati',
@@ -239,24 +218,23 @@ OCL.init({
       remediation:'Rimedio. ', show_detail:'mostra dettaglio ↓', hide_detail:'nascondi dettaglio ↑',
       no_match:'(nessun risultato per questo filtro)',
       meta_run:'Ultima esecuzione', meta_took:'durata', meta_db:'DB sorgente', meta_json:'JSON:', meta_source:'Fonte:',
-      gate_stale_h:'Database attivamente migliorato per gestire un numero crescente di richieste',
-      gate_stale_sub:'Il database è attivamente in fase di rielaborazione per migliorare le prestazioni di fronte a un numero crescente di richieste. I worker MCP su mcp.opencaselaw.ch continuano a funzionare — ricerca, grafo delle citazioni, consultazione delle leggi e schede di sentenza servono tutti l’ultimo build riuscito mentre recuperiamo.',
-      gate_ok_h:'Pubblicazione sicura — superati tutti i {n} controlli critici e di avviso',
+      gate_stale_h:'Rapporto qualità obsoleto',
+      gate_stale_sub:'Ultimo controllo {age}. I worker MCP su mcp.opencaselaw.ch continuano a servire l’ultimo build riuscito.',
+      gate_ok_h:'Pubblicazione sicura — superati tutti i {n} controlli critici',
       gate_ok_sub:'Ultimo controllo {age}. I dati di oggi sono stati pubblicati su opencaselaw.ch e sul server MCP.',
       gate_blocked_h:'Pubblicazione bloccata — rilevate {n} regressione/i critica/he',
       gate_blocked_sub:'Ultimo controllo {age}. La pubblicazione notturna ha rifiutato il git push; gli utenti mantengono il corpus valido precedente su mcp.opencaselaw.ch.',
       gate_unavail_h:'Rapporto qualità non disponibile',
       gate_unavail_sub:'Impossibile caricare quality.json. Il CDN potrebbe ancora propagare l’ultima pubblicazione, oppure il file di rapporto non è stato generato.',
-      load_fail:'Caricamento di quality.json non riuscito: ', load_fail2:'Il cruscotto si aggiorna dopo ogni pubblicazione notturna (verso le 04–07 UTC).',
+      load_fail:'Caricamento di quality.json non riuscito: ', load_fail2:'Il cruscotto si aggiorna dopo ogni esecuzione del controllo qualità.',
       age_min:'{n} min fa', age_h:'{n} h fa', age_d:'{n} g fa', age_unknown:'sconosciuto'
     },
     rm:{
       skip:'Ir al cuntegn',
       kicker:'Operativ · live', h1:'Qualitad da las datas',
+      lede_pre:'Mintga publicaziun da notg exequescha',
       lede_body:'controllas d’integritad, da schema e da cuntegn sin l’entir corpus avant ch’ils utilisaders vesan novas datas. Ina regressiun critica blocchescha la publicaziun; ils utilisaders mantegnan l’ultim corpus reussì enfin l’indagaziun. Il distinctiv sutvart distingua publicaziun segira (las datas dad oz èn live), publicaziun bloccada (la controlla è scrudada oz ed ha refusà il push) e rapport da qualitad antiquà (la controlla n’è betg ì là dacurt — il corpus è correct, ma vegn vegl).',
       methodology:'Metodologia',
-      banner_h:'La banca da datas vegn meglierada activamain per gestir in dumber creschent da dumondas.',
-      banner_body:'Ils workers MCP sin', banner_body2:'funcziuneschan vinavant — tschertga, graf da citaziuns, consultaziun da leschas e fegls da cas furneschan tuts l’ultim build reussì entant che nus rattrapain.',
       loading:'Chargiar…',
       s_total:'Controllas en total', s_passed:'Surpassadas', s_crit:'Criticas (bloccheschan la publicaziun)', s_warn:'Avis (alarm)',
       f_all:'Tuts', f_fail:'Errurs', f_crit:'Criticas', f_warn:'Avis', f_pass:'Surpassadas',
@@ -264,24 +242,23 @@ OCL.init({
       remediation:'Reparaziun. ', show_detail:'mussar il detagl ↓', hide_detail:'zuppentar il detagl ↑',
       no_match:'(nagins resultats per quest filter)',
       meta_run:'Ultima execuziun', meta_took:'durada', meta_db:'DB da funtauna', meta_json:'JSON:', meta_source:'Funtauna:',
-      gate_stale_h:'La banca da datas vegn meglierada activamain per gestir in dumber creschent da dumondas',
-      gate_stale_sub:'La banca da datas vegn retschertgada activamain per meglierar la prestaziun envers in dumber creschent da dumondas. Ils workers MCP sin mcp.opencaselaw.ch funcziuneschan vinavant — tschertga, graf da citaziuns, consultaziun da leschas e fegls da cas furneschan tuts l’ultim build reussì entant che nus rattrapain.',
-      gate_ok_h:'Publicaziun segira — tut las {n} controllas criticas ed avis èn surpassadas',
+      gate_stale_h:'Rapport da qualitad antiquà',
+      gate_stale_sub:'Ultima controlla {age}. Ils workers MCP sin mcp.opencaselaw.ch furneschan vinavant l’ultim build reussì.',
+      gate_ok_h:'Publicaziun segira — tut las {n} controllas criticas èn surpassadas',
       gate_ok_sub:'Ultima controlla {age}. Las datas dad oz èn vegnidas publitgadas sin opencaselaw.ch ed il server MCP.',
       gate_blocked_h:'Publicaziun bloccada — {n} regressiun(s) critica(s) constatada(s)',
       gate_blocked_sub:'Ultima controlla {age}. La publicaziun da notg ha refusà il git push; ils utilisaders mantegnan l’ultim corpus reussì sin mcp.opencaselaw.ch.',
       gate_unavail_h:'Rapport da qualitad betg disponibel',
       gate_unavail_sub:'quality.json n’ha betg pudì vegnir chargià. Il CDN distribuescha forsa anc l’ultima publicaziun, u il file da rapport n’è betg vegnì generà.',
-      load_fail:'Chargiar quality.json n’è betg reussì: ', load_fail2:'Il dashboard s’actualisescha suenter mintga publicaziun da notg (enturn 04–07 UTC).',
+      load_fail:'Chargiar quality.json n’è betg reussì: ', load_fail2:'Il dashboard s’actualisescha suenter mintga execuziun da la controlla da qualitad.',
       age_min:'avant {n} min', age_h:'avant {n} h', age_d:'avant {n} d', age_unknown:'nunenconuschent'
     },
     en:{
       skip:'Skip to content',
       kicker:'Operational · live', h1:'Data quality',
+      lede_pre:'Every nightly publish runs',
       lede_body:'integrity, schema and content checks against the full corpus before users see new data. A critical regression blocks the publish; users keep the previous successful corpus until investigation. The badge below distinguishes publish safe (today’s data is live), publish blocked (gate fired today, refused to push), and quality report stale (gate has not run recently — corpus is correct but ageing).',
       methodology:'Methodology',
-      banner_h:'Database actively being improved to handle a growing number of requests.',
-      banner_body:'The MCP workers at', banner_body2:'continue to function — search, citation graph, statute lookup and case briefs all serve the last successful build while we catch up.',
       loading:'Loading…',
       s_total:'Total checks', s_passed:'Passed', s_crit:'Critical (blocks publish)', s_warn:'Warnings (alert)',
       f_all:'All', f_fail:'Failures', f_crit:'Critical', f_warn:'Warnings', f_pass:'Passed',
@@ -289,15 +266,15 @@ OCL.init({
       remediation:'Remediation. ', show_detail:'show detail ↓', hide_detail:'hide detail ↑',
       no_match:'(no results match this filter)',
       meta_run:'Last run', meta_took:'took', meta_db:'Source DB', meta_json:'JSON:', meta_source:'Source:',
-      gate_stale_h:'Database actively being improved to handle a growing number of requests',
-      gate_stale_sub:'The database is actively being worked on to improve performance for a growing number of requests. The MCP workers at mcp.opencaselaw.ch continue to function — search, citation graph, statute lookup and case briefs all serve the last successful build while we catch up.',
-      gate_ok_h:'Publish safe — all {n} critical and warning checks passed',
+      gate_stale_h:'Quality report stale',
+      gate_stale_sub:'Last gate run {age}. The MCP workers at mcp.opencaselaw.ch keep serving the last successful build.',
+      gate_ok_h:'Publish safe — all {n} critical checks passed',
       gate_ok_sub:'Last gate run {age}. Today’s data was published to opencaselaw.ch and the MCP server.',
       gate_blocked_h:'Publish blocked — {n} critical regression(s) detected',
       gate_blocked_sub:'Last gate run {age}. The nightly publish refused to advance to git push; users keep the previous successful corpus on mcp.opencaselaw.ch.',
       gate_unavail_h:'Quality report unavailable',
       gate_unavail_sub:'quality.json could not be loaded. The CDN may still be propagating the most recent publish, or the report file was not generated.',
-      load_fail:'Failed to load quality.json: ', load_fail2:'The dashboard refreshes after each nightly publish (around 04–07 UTC).',
+      load_fail:'Failed to load quality.json: ', load_fail2:'The dashboard refreshes after each run of the quality gate.',
       age_min:'{n} min ago', age_h:'{n} h ago', age_d:'{n} d ago', age_unknown:'unknown'
     }
   },
@@ -473,10 +450,11 @@ OCL.init({
       if (ageH != null && ageH > STALE_HOURS_THRESHOLD) {
         gate.className = 'gate stale';
         gateText.textContent = O.t('gate_stale_h');
-        gateSub.textContent  = O.t('gate_stale_sub');
+        gateSub.textContent  = T('gate_stale_sub', { age: age });
       } else if (DATA.summary.publish_safe) {
         gate.className = 'gate ok';
-        gateText.textContent = T('gate_ok_h', { n: O.fmt(DATA.summary.total) });
+        var nCrit = (DATA.results || []).filter(function(r){ return r.severity === 'critical'; }).length;
+        gateText.textContent = T('gate_ok_h', { n: O.fmt(nCrit) });
         gateSub.textContent  = T('gate_ok_sub', { age: age });
       } else {
         gate.className = 'gate blocked';
