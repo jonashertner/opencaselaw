@@ -486,6 +486,30 @@ def _find(text: str, patterns: dict, lang: str) -> tuple[int | None, int | None,
     return None, None, None
 
 
+# Openers that also occur in running text: "3.1 Das Obergericht hat erwogen,
+# gemäss ..." quotes the lower court, and "in Erwägung, dass" is a common
+# phrase. They outrank the bare "Erwägungen:" heading so the old printed
+# volumes, which have no such heading, are read correctly. When the text does
+# carry a heading line before such a match, the heading opens the reasoning.
+# Report 2026-11-23, BGer 5A_297/2012: "hat erwogen" in E. 3.1 won over the
+# "Erwägungen:" line, so E. 1.1 to 3.1 were cut off and cite called E. 2.3
+# nonexistent.
+_PROSE_PRONE_OPENERS = {"ranked_de_erwaegung_gezogen", "ranked_de_in_erwaegung"}
+
+
+def _find_erwaegungen(text: str, lang: str) -> tuple[int | None, int | None, str | None]:
+    start, end, label = _find(text, ERWAEGUNGEN_PATTERNS, lang)
+    if label not in _PROSE_PRONE_OPENERS:
+        return start, end, label
+    for pat, head_label in ERWAEGUNGEN_PATTERNS.get(lang, []):
+        if not pat.startswith("^"):
+            continue
+        m = re.search(pat, text[:start], flags=re.MULTILINE | re.IGNORECASE)
+        if m:
+            return m.start(), m.end(), head_label
+    return start, end, label
+
+
 def _split_dispositiv_orders(disp_text: str) -> list[str]:
     items = []
     matches = list(re.finditer(r"(?:^|\n)\s*(\d+)\.\s+", disp_text))
@@ -622,7 +646,7 @@ def extract(full_text: str, language: str = "de", decision_id: str = "") -> Deci
             out.dispositiv_method = "fallback_enum_near_end"
             out.dispositiv_orders = _split_dispositiv_orders(out.dispositiv)
 
-    erw_start, erw_end, erw_method = _find(text, ERWAEGUNGEN_PATTERNS, lang)
+    erw_start, erw_end, erw_method = _find_erwaegungen(text, lang)
     if erw_start is not None:
         end_idx = disp_start if disp_start is not None and disp_start > erw_end else len(text)
         # Strip a trailing MKG-style "(NNN, <date>, <parties>)" trailer if it

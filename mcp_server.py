@@ -17682,6 +17682,7 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
                 # `composed_of` and `parts` carry the structure instead.
                 "text": "\n\n".join(k["text"] for k in kids if k.get("text")),
             }
+    heading_outside_index = False
     if not target:
         # The index has other numbers but not this one: the decision may be
         # stored as coarser blocks. Look for the heading in the served text.
@@ -17690,20 +17691,29 @@ def _handle_get_erwaegung(*, decision_id: str, e_number: str) -> dict:
                                         (main_for_text or {}).get("regeste"))
         if fallback and _text_heading_fits_structure(e_clean, paragraphs):
             target, text_fallback = fallback, True
+        heading_outside_index = bool(fallback) and not text_fallback
     if not target:
         # State 2: structure rows exist, the pinpoint is neither one of them
-        # nor a parent prefix of one, and the served text has no such heading
-        # either, so this IS an absence finding. Same verdict the cite /
-        # attest surfaces read.
+        # nor a parent prefix of one. Without a heading in the served text
+        # this IS an absence finding. With one outside the indexed numbering
+        # it is not (report 2026-11-23, BGer 5A_297/2012: the hint denied a
+        # heading that was in the text). Same verdict cite / attest read.
         verdict = _verify_pinpoint(e_clean, paragraphs=paragraphs)
+        if heading_outside_index:
+            verdict = {**verdict, "status": PINPOINT_UNVERIFIED}
+            hint = (f"The structure index has no E. {e_clean}. The decision text has a line headed "
+                    f"{e_clean}, but outside the indexed numbering, so it is not served as verified. "
+                    "Fetch the decision with get_decision and read the passage there.")
+        else:
+            hint = (f"Neither the structure index nor a heading in the decision text names E. {e_clean}. "
+                    "The passage may sit inside a larger numbered block; fetch the decision and read it.")
         return {
             "error": f"E. {e_clean!r} not found in {decision_id!r}.",
             "error_code": "pinpoint_not_found",
             "pinpoint_status": verdict["status"],
             "available_e_numbers": verdict["valid_pinpoints"],
             "text_source": "none",
-            "hint": (f"Neither the structure index nor a heading in the decision text names E. {e_clean}. "
-                     "The passage may sit inside a larger numbered block; fetch the decision and read it."),
+            "hint": hint,
         }
     if text_fallback:
         siblings = sorted(para_map.keys(), key=_e_number_sort_key)
@@ -20176,6 +20186,15 @@ def _handle_cite(
                 "found as a heading in the decision text. get_erwaegung serves "
                 "that block as a text fallback (text_source full_text_heading)."
             )
+        elif pin_verdict.get("method") == "full_text_heading_outside_index":
+            result["valid_pinpoints"] = pin_verdict["valid_pinpoints"][:20]
+            result["pinpoint_note"] = (
+                f"E. {pin_clean} could not be verified: the structure index "
+                "does not cover it, though the decision text has a line "
+                f"headed {pin_clean} outside the indexed numbering. This is "
+                "not a finding that the pinpoint is wrong. Confirm it against "
+                "get_decision before quoting."
+            )
         elif pin_verdict["status"] == PINPOINT_UNVERIFIED:
             result["pinpoint_note"] = (
                 f"E. {pin_clean} could not be verified: this decision has "
@@ -20820,6 +20839,15 @@ def _verify_pinpoint(pinpoint: str | None, *, paragraphs: list[dict],
         if block and _text_heading_fits_structure(pin, paragraphs):
             return {"status": PINPOINT_VERIFIED, "method": "full_text_heading",
                     "valid_pinpoints": valid, "text": block["text"]}
+        if block:
+            # The text carries a heading for the number, but outside the
+            # index's own numbering, so the range rule above will not serve
+            # it. That is no proof of absence: report 2026-11-23, BGer
+            # 5A_297/2012, whose index began at E. 3.2 while the text has
+            # E. 1.1 to 3.1 as headings, and cite called E. 2.3 nonexistent.
+            # Neither verified nor invalid.
+            return {"status": PINPOINT_UNVERIFIED, "method": "full_text_heading_outside_index",
+                    "valid_pinpoints": valid}
         return {"status": PINPOINT_INVALID, "method": "structure",
                 "valid_pinpoints": valid}
     if _pinpoint_in_text(full_text or "", pin):
@@ -22701,12 +22729,15 @@ def _handle_attest_response(*, draft_text: str,
                         "guessed_decision_id": guess,
                         "problem": "pinpoint_unverified",
                         "suggestion": (
-                            f"E. {pinpoint} could not be verified: this "
-                            "decision has no structured Erwägungen and its "
-                            "body carries no matching heading. The citation "
-                            "is real; check the pinpoint against the full "
-                            "text (get_decision) before relying on it."
-                        ),
+                            (f"E. {pinpoint} could not be verified: the "
+                             "structure index does not cover it, though the "
+                             "body has a line headed with that number. ")
+                            if verdict.get("method") == "full_text_heading_outside_index" else
+                            (f"E. {pinpoint} could not be verified: this "
+                             "decision has no structured Erwägungen and its "
+                             "body carries no matching heading. ")
+                        ) + ("The citation is real; check the pinpoint against "
+                             "the full text (get_decision) before relying on it."),
                     })
         else:
             ok_count += 1

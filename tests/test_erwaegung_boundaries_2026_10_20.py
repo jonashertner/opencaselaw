@@ -123,9 +123,14 @@ def test_cite_verifies_a_heading_the_index_lacks():
 
 
 def test_a_text_heading_outside_the_index_numbering_is_not_taken():
-    # an excerpt that starts at E. 5 has no E. 4.3.1, whatever the text says
+    # A text heading below the index's numbering is not served as verified.
+    # Since the 2026-11-23 report (BGer 5A_297/2012, whose index had lost
+    # E. 1.1 to 3.1) it is not called invalid either: the text has the
+    # heading, so absence is not shown. Unverified, a warning.
     late = [p for p in PARAS if p["e_number"] != "4"]
-    assert m._verify_pinpoint("4.3.1", paragraphs=late, full_text=TEXT)["status"] == m.PINPOINT_INVALID
+    verdict = m._verify_pinpoint("4.3.1", paragraphs=late, full_text=TEXT)
+    assert verdict["status"] == m.PINPOINT_UNVERIFIED
+    assert verdict["method"] == "full_text_heading_outside_index"
     assert m._text_heading_fits_structure("4.3.1", PARAS)
     assert m._text_heading_fits_structure("7", PARAS)
     assert not m._text_heading_fits_structure("8", PARAS)
