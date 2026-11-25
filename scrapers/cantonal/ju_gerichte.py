@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from scrapers.cantonal.sz_gerichte import SZGerichteScraper
+from scrapers.cantonal.sz_gerichte import SZGerichteScraper, header_date
 
 
 class JUGerichteScraper(SZGerichteScraper):
@@ -71,6 +71,11 @@ class JUGerichteScraper(SZGerichteScraper):
     # Verified doc_id -> decision_id map (2026-09-26 classification, see
     # SZGerichteScraper "Document-aware identity"); seeds state/ju_gerichte.docids.txt.
     DOCID_SEED = Path(__file__).resolve().parent / "seeds" / "ju_gerichte.docids.tsv"
+
+    @staticmethod
+    def stated_date(text: str):
+        """JU rulings head in French ("ARRÊT DU 8 JANVIER 2026")."""
+        return header_date(text)
 
     # Path decrypt templates
     DECRYPT_START = (

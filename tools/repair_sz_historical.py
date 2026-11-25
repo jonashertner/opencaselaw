@@ -96,6 +96,7 @@ def main() -> int:
     state_dir = Path(args.state_dir)
     state_dir.mkdir(parents=True, exist_ok=True)
     scraper = SZGerichteScraper(state_dir=state_dir)
+    scraper.DOCID_SEED = None   # isolated empty state: docket-keyed legacy walk
 
     repaired = 0
     seen = 0

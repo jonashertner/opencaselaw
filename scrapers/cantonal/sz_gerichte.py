@@ -94,6 +94,37 @@ def header_date(text: str, head_chars: int = 3000) -> date | None:
     return best[1] if best else None
 
 
+# German headings (SZ Kantonsgericht, SZ Verwaltungsgericht). Survey of every
+# held SZ text, 2026-11-25: the first line names the ruling — "Beschluss vom
+# 23. Dezember 2025", "III 2025 82Entscheid vom 26. September 2025" (HTML text
+# runs the docket into the heading, hence no word boundary before the keyword
+# and the optional space after "vom"). Only ruling words count, capitalised and
+# not preceded by a letter, so "Einspracheentscheid vom …" or "Gemeindeversammlung
+# vom …" (the contested act, quoted further down) never supply the date.
+_DE_MONTHS = {m: i for i, m in enumerate(
+    "januar februar marz april mai juni juli august september oktober "
+    "november dezember".split(), 1)}
+_RE_HEAD_DE = re.compile(
+    r"(?<![A-Za-zÄÖÜäöüß])"
+    r"(?:Urteil|Teilurteil|Beschluss|Verfügung|Entscheid|Teilentscheid|"
+    r"Zwischenentscheid|Zwischenbescheid|Berichtigung)"
+    r"\s+vom\s*(\d{1,2})\.\s*([A-Za-zÄÖÜäöü]+)\s+((?:19|20)\d{2})(?!\d)")
+
+
+def header_date_de(text: str, head_chars: int = 1500) -> date | None:
+    """Decision date a German ruling states in its first heading, or None."""
+    m = _RE_HEAD_DE.search((text or "")[:head_chars])
+    if not m:
+        return None
+    month = _DE_MONTHS.get(_fold(m.group(2)))
+    if not month:
+        return None
+    try:
+        return date(int(m.group(3)), month, int(m.group(1)))
+    except ValueError:
+        return None
+
+
 class SZGerichteScraper(BaseScraper):
     """Scraper for Schwyz Kantonsgericht (KG) via Tribuna GWT-RPC."""
 
@@ -209,13 +240,18 @@ class SZGerichteScraper(BaseScraper):
     # walk has covered every row — so an interrupted walk resumes next run.
     # Only set it for a court whose portal was classified document by
     # document; an unverified seed would refetch the corpus.
-    DOCID_SEED: Path | None = None
+    DOCID_SEED: Path | None = Path(__file__).resolve().parent / "seeds" / "sz_gerichte.docids.tsv"
     # A doc_id scheme change on the portal would make every held document look
     # new. Cap what one run may treat as hidden documents.
     MAX_NEW_COLLISIONS = 60
 
     _docids: set | None = None
     _full_walk = False
+
+    @staticmethod
+    def stated_date(text: str) -> date | None:
+        """Date the document states in its own heading (German for SZ)."""
+        return header_date_de(text)
 
     @property
     def CACHE_NONE_AS_GAP(self) -> bool:  # noqa: N802 — base_scraper reads it
@@ -233,6 +269,7 @@ class SZGerichteScraper(BaseScraper):
         self._docids = None
         self._full_walk = False
         self._claimed_ids: set = set()
+        self._docid_targets: set = set()
         self._collisions = 0
         if getattr(self, "state", None) is None:
             return
@@ -253,7 +290,7 @@ class SZGerichteScraper(BaseScraper):
         except (OSError, UnicodeDecodeError) as e:
             logger.error(f"[{self.court_code}] unreadable doc-id sidecar ({e}) — legacy")
             return
-        known, dropped = set(), 0
+        known, targets, dropped = set(), set(), 0
         for line in text.splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
@@ -263,6 +300,7 @@ class SZGerichteScraper(BaseScraper):
                 dropped += 1                         # crash-window pair: retried
                 continue
             known.add(doc)
+            targets.add(did)
         state_n = len(getattr(self.state, "_seen", []) or [])
         if state_n > 100 and len(known) < state_n // 2:
             logger.error(f"[{self.court_code}] doc-id sidecar holds {len(known)} documents vs "
@@ -271,12 +309,14 @@ class SZGerichteScraper(BaseScraper):
         if dropped:
             logger.info(f"[{self.court_code}] {dropped} doc-id pairs not in state — retried")
         self._docids = known
+        self._docid_targets = targets
         self._full_walk = self._fullwalk_marker().exists()
 
     def _mark_docid(self, doc_id: str, decision_id: str) -> None:
         if self._docids is None or not doc_id or doc_id in self._docids:
             return                                   # legacy never writes
         self._docids.add(doc_id)
+        self._docid_targets.add(decision_id)
         with open(self._docid_sidecar(), "a", encoding="utf-8") as f:
             f.write(f"{doc_id}\t{decision_id}\n")
 
@@ -293,6 +333,13 @@ class SZGerichteScraper(BaseScraper):
             claimed.add(base)
             return base
         if doc in self._docids:
+            return None
+        if base not in self._docid_targets and self.state.is_known(base):
+            # A held docket the sidecar knows no document of (held before
+            # the seed was cut, between seed and deploy): legacy identity —
+            # its first listed document is the held one. Adopt it rather
+            # than refetch the held ruling as a further document.
+            self._mark_docid(doc, base)
             return None
         alt = make_decision_id(self.court_code, f"{stub['docket_number']}-T{doc[:8]}")
         if self.state.is_known(alt) or alt in claimed:
@@ -502,7 +549,7 @@ class SZGerichteScraper(BaseScraper):
 
         dd = parse_date(stub.get("decision_date", ""))
         if self._docids is not None:
-            own = header_date(full_text)
+            own = self.stated_date(full_text)
             base = make_decision_id(self.court_code, docket)
             if stub["decision_id"] != base:
                 # A further document of a held docket: the listing date is the

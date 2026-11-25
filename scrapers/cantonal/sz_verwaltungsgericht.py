@@ -12,6 +12,8 @@ Source: https://gerichte.sz.ch/vg/
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from scrapers.cantonal.sz_gerichte import SZGerichteScraper
 
 
@@ -19,6 +21,8 @@ class SZVerwaltungsgerichtScraper(SZGerichteScraper):
     """Scraper for Schwyz Verwaltungsgericht (VG) via Tribuna GWT-RPC."""
 
     COURT_CODE_STR = "sz_verwaltungsgericht"
+    # Verified doc_id -> decision_id map (2026-11-25 classification).
+    DOCID_SEED = Path(__file__).resolve().parent / "seeds" / "sz_verwaltungsgericht.docids.tsv"
     TRIBUNA_URL = "https://gerichte.sz.ch/vg/tribunavtplus/loadTable"
     GWT_PERMUTATION = "6AC682AB32A2550405E5C0C850B33E15"
     GWT_MODULE_BASE = "https://gerichte.sz.ch/vg/tribunavtplus/"
