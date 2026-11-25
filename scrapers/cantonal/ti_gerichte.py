@@ -48,6 +48,16 @@ logger = logging.getLogger(__name__)
 HOST = "http://www.sentenze.ti.ch"
 CGI_PATH = "/cgi-bin/nph-omniscgi"
 CGI_URL = HOST + CGI_PATH
+# Fetching stays on http (through the tunnel, as before); the link we store
+# is https, which serves the same document (deep links tested 2026-11-25).
+PUBLIC_HOST = "https://www.sentenze.ti.ch"
+
+
+def _public_url(url: str) -> str:
+    """The https form of a document URL fetched over http."""
+    if url and url.startswith(HOST + "/"):
+        return PUBLIC_HOST + url[len(HOST):]
+    return url
 
 RESULTS_PER_PAGE = 500
 
@@ -444,6 +454,6 @@ class TIGerichteScraper(BaseScraper):
             title=title,
             regeste="; ".join(keywords) if keywords else None,
             full_text=full_text,
-            source_url=url,
+            source_url=_public_url(url),
             cited_decisions=extract_citations(full_text) if len(full_text) > 200 else [],
         )

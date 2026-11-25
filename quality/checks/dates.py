@@ -14,6 +14,7 @@ import re
 import sqlite3
 from datetime import date, timedelta
 
+from quality.checks._late_columns import census
 from quality.types import CheckResult, Severity
 
 
@@ -103,6 +104,42 @@ def check_future_dates_window(conn: sqlite3.Connection, **_) -> CheckResult:
                 f"{n} future-dated rows (within tolerance)",
         sample_rows=sample,
         fix_advice="if >50, expect a scraper date-parsing regression",
+    )
+
+
+def check_decision_after_scrape(conn: sqlite3.Connection,
+                                db_path: str | None = None,
+                                **_) -> CheckResult:
+    """A decision dated after the day we scraped it carries a typo from the
+    source. dates.future_window tolerates dates up to 30 days ahead and
+    only fails above 50 rows, so a typo such as fr_gerichte 605 2025 140
+    (printed 2027-07-27, scraped 2026-09-15) stayed for months.
+
+    Counted in the shared late-column pass (see _late_columns): scraped_at
+    sits after full_text."""
+    c = census(conn, db_path)
+    n = c.n_after_scrape
+    sample = [
+        dict(r) for r in conn.execute(
+            "SELECT decision_id, court, decision_date, scraped_at "
+            "FROM decisions "
+            f"WHERE rowid IN ({','.join('?' * len(c.after_scrape_rowids))}) "
+            "ORDER BY rowid",
+            c.after_scrape_rowids,
+        ).fetchall()
+    ] if n and c.after_scrape_rowids else []
+    return CheckResult(
+        name="dates.decision_after_scrape",
+        severity=Severity.WARNING,
+        passed=(n == 0),
+        metric_value=n,
+        threshold=0,
+        message=f"{n} rows dated after the day they were scraped" if n else
+                "no decision is dated after its scrape",
+        sample_rows=sample,
+        fix_advice="read the date off the ruling (filing date, scrape date "
+                   "and docket year bound it), repair the shard row with a "
+                   "date_restore stamp and a backup",
     )
 
 

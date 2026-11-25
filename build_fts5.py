@@ -2050,9 +2050,44 @@ def _source_url_normalize_inline(court, source_url):
         return source_url
     s = str(source_url)
     if s.startswith("http"):
-        return s
+        return _url_rewrite_inline(s)
     host = _HOST_BY_COURT_INLINE.get(court)
     return host + s if host else s
+
+
+# A proxy the entscheidsuche archive put in front of baselland.ch links
+# (es_bl_gerichte, 7,579 rows at 2026-11-25). The host no longer answers,
+# and whoever registers it next would receive our users' clicks, so the
+# link keeps the court's own address that follows the prefix.
+_DEAD_PROXY_PREFIXES = (
+    "http://v2202109132150164038.luckysrv.de:8181/",
+)
+
+# Hosts whose http:// links work unchanged on https:// (deep links tested
+# 2026-11-25). The scraper may keep fetching over http; the stored link is
+# the https one.
+_HTTPS_UPGRADE_HOSTS = (
+    "www.sentenze.ti.ch",
+)
+
+
+def _url_rewrite_inline(url):
+    """Strip a dead proxy prefix and upgrade known hosts to https.
+
+    Applied to source_url and pdf_url of every row at import, whatever the
+    court, so a re-ingest from the archive or an old scraper heals."""
+    if not url:
+        return url
+    s = str(url)
+    for prefix in _DEAD_PROXY_PREFIXES:
+        if s.startswith(prefix) and s[len(prefix):].startswith("http"):
+            s = s[len(prefix):]
+            break
+    for host in _HTTPS_UPGRADE_HOSTS:
+        if s.startswith(f"http://{host}/"):
+            s = "https://" + s[len("http://"):]
+            break
+    return s
 
 
 def _date_normalize_inline(date_str):
@@ -2431,6 +2466,9 @@ def insert_decision(conn: sqlite3.Connection, row: dict) -> bool:
         row["source_url"] = _source_url_normalize_inline(
             court, row.get("source_url"),
         )
+        # dead proxy prefix + https upgrade (source_url above, pdf_url here)
+        if row.get("pdf_url"):
+            row["pdf_url"] = _url_rewrite_inline(row["pdf_url"])
 
         # year-0000 / far-future date sanitisation
         row["decision_date"] = _date_normalize_inline(row.get("decision_date"))

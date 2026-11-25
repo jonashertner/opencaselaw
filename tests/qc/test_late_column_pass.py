@@ -31,10 +31,10 @@ if str(REPO) not in sys.path:
 
 from db_schema import SCHEMA_SQL  # noqa: E402
 from quality import runner  # noqa: E402
-from quality.checks import _late_columns, duplicates, urls  # noqa: E402
+from quality.checks import _late_columns, dates, duplicates, urls  # noqa: E402
 
 LATE_CHECKS = ["urls.no_relative_source_urls", "urls.http_when_https_available",
-               "duplicates.court_docket_collisions"]
+               "duplicates.court_docket_collisions", "dates.decision_after_scrape"]
 
 # ------------------------------------------------- the old queries, verbatim
 
@@ -202,6 +202,35 @@ def test_http_only_hosts_are_reported_but_not_counted(tmp_path):
     assert r.passed is True
 
 
+def test_decisions_dated_after_their_scrape(tmp_path):
+    """fr_gerichte 605 2025 140: printed 2027-07-27, scraped 2026-09-15."""
+    db = tmp_path / "d.db"
+    conn = sqlite3.connect(db)
+    conn.executescript(SCHEMA_SQL)
+    rows = [  # (decision_date, scraped_at)
+        ("2027-07-27", "2026-09-15T04:12:00"),   # after: counted
+        ("2026-09-16", "2026-09-15"),            # a day after: counted
+        ("2026-09-15", "2026-09-15T23:59:59"),   # same day: fine
+        ("2020-01-01", "2026-09-15T04:12:00"),   # fine
+        ("2027-07-27", None),                    # no scrape date: not judged
+        ("2027-07-27", ""),
+        ("2027-07-27", "15.09.2026"),            # not ISO: not judged
+        (None, "2026-09-15"),
+    ]
+    conn.executemany(
+        "INSERT INTO decisions (decision_id, court, canton, docket_number, "
+        "language, full_text, decision_date, scraped_at) "
+        "VALUES (?, 'fr_gerichte', 'FR', ?, 'fr', ?, ?, ?)",
+        [(f"d{i}", f"605 2025 {i}", "considérant " * 800, d, s_)
+         for i, (d, s_) in enumerate(rows)])
+    conn.commit()
+    conn.close()
+    r = dates.check_decision_after_scrape(_ro(db), db_path=str(db))
+    assert r.metric_value == 2 and r.passed is False
+    assert [x["decision_id"] for x in r.sample_rows] == ["d0", "d1"]
+    assert r.sample_rows[0]["decision_date"] == "2027-07-27"
+
+
 def test_duplicate_groups_match_the_old_queries(tmp_path):
     db = _corpus(tmp_path)
     conn = _ro(db)
@@ -241,7 +270,8 @@ def test_clean_corpus_passes_everything(tmp_path):
     ro = _ro(db)
     for fn in (urls.check_no_relative_source_urls,
                urls.check_http_when_https_available,
-               duplicates.check_court_docket_collisions):
+               duplicates.check_court_docket_collisions,
+               dates.check_decision_after_scrape):
         r = fn(ro, db_path=str(db))
         assert r.passed and r.metric_value == 0 and not r.sample_rows, r.name
 
@@ -288,7 +318,7 @@ def test_the_three_checks_make_one_pass_between_them(tmp_path, monkeypatch):
     report = runner.run(db, only=LATE_CHECKS, record_history=False, parallel=True)
     assert {r.name for r in report.results} == {
         "urls.no_relative_source_urls", "urls.http_count",
-        "duplicates.court_docket_collisions"}
+        "duplicates.court_docket_collisions", "dates.decision_after_scrape"}
     # Every statement that reads source_url or content_hash for more than a
     # handful of rowids is a full pass. There must be exactly one.
     full = [s for s in seen

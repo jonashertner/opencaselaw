@@ -13,6 +13,8 @@ own pass:
   urls.no_relative_source_urls    COUNT(*) WHERE source_url NOT LIKE 'http%',
                                   then the same scan again for a 5-row sample
   urls.http_when_https_available  GROUP BY scheme over source_url
+  dates.decision_after_scrape     decision_date later than scraped_at
+                                  (added 2026-11-25 to the shared pass)
   duplicates.court_docket_collisions
                                   GROUP BY court, docket_number, content_hash,
                                   then the same scan again, ORDER BY n DESC,
@@ -66,6 +68,17 @@ _URL_HTTP_ONLY_HOST = (
     + ")"
 )
 
+# A decision cannot be dated after the day we scraped it: such a date is a
+# typo in the source (fr_gerichte 605 2025 140, printed 2027-07-27, scraped
+# 2026-09-15). The window check in dates.py lets typos up to a year ahead
+# through; this one has no tolerance. Only ISO-shaped scraped_at values are
+# compared, so another format can never pass for a later date.
+_DATE_AFTER_SCRAPE = (
+    "decision_date IS NOT NULL AND scraped_at GLOB "
+    "'[12][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]*' "
+    "AND decision_date > substr(scraped_at, 1, 10)"
+)
+
 PASS_SQL = f"""
     SELECT court, docket_number, content_hash,
            COUNT(*) AS n,
@@ -73,7 +86,9 @@ PASS_SQL = f"""
            SUM({_URL_RELATIVE}) AS n_relative,
            SUM({_URL_HTTP}) AS n_http,
            SUM({_URL_HTTP_ONLY_HOST}) AS n_http_only_host,
-           MIN(CASE WHEN {_URL_RELATIVE} THEN rowid END) AS relative_rowid
+           MIN(CASE WHEN {_URL_RELATIVE} THEN rowid END) AS relative_rowid,
+           SUM({_DATE_AFTER_SCRAPE}) AS n_after_scrape,
+           MIN(CASE WHEN {_DATE_AFTER_SCRAPE} THEN rowid END) AS after_rowid
     FROM decisions NOT INDEXED
     GROUP BY court, docket_number, content_hash
 """
@@ -87,6 +102,8 @@ class LateColumnCensus:
     n_http: int = 0                # ... that start with http://
     n_http_only_host: int = 0      # ... of which on an HTTP_ONLY_HOSTS host
     relative_rowids: list[int] = field(default_factory=list)
+    n_after_scrape: int = 0        # decision_date later than scraped_at's day
+    after_scrape_rowids: list[int] = field(default_factory=list)
     dup_groups: int = 0            # (court, docket, content_hash) groups > 1 row
     dup_sample: list[dict] = field(default_factory=list)
     elapsed_s: float = 0.0
@@ -100,17 +117,21 @@ def _scan(conn: sqlite3.Connection) -> LateColumnCensus:
     started = time.monotonic()
     out = LateColumnCensus()
     relative: list[int] = []
+    after: list[int] = []
     dups: list[tuple[int, int, tuple]] = []
     cur = conn.cursor()
     cur.row_factory = None          # plain tuples: ~1M groups on production
     for i, (court, docket, chash, n, n_url, n_rel, n_http, n_http_only,
-            rel_rowid) in enumerate(cur.execute(PASS_SQL)):
+            rel_rowid, n_after, after_rowid) in enumerate(cur.execute(PASS_SQL)):
         out.n_url += n_url
         out.n_relative += n_rel
         out.n_http += n_http
         out.n_http_only_host += n_http_only
         if rel_rowid is not None:
             relative.append(rel_rowid)
+        out.n_after_scrape += n_after or 0
+        if after_rowid is not None:
+            after.append(after_rowid)
         if n > 1 and docket and chash:
             out.dup_groups += 1
             item = (n, -i, (court, docket, chash))
@@ -119,6 +140,7 @@ def _scan(conn: sqlite3.Connection) -> LateColumnCensus:
             else:
                 heapq.heappushpop(dups, item)
     out.relative_rowids = heapq.nsmallest(SAMPLE_LIMIT, relative)
+    out.after_scrape_rowids = heapq.nsmallest(SAMPLE_LIMIT, after)
     out.dup_sample = [
         {"court": c, "docket_number": d, "content_hash": h, "n": n}
         for n, _, (c, d, h) in sorted(dups, reverse=True)
