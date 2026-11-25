@@ -5,9 +5,37 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Wed, 25 Nov 2026 13:05:57 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 25 Nov 2026 23:15:39 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bundesgericht 6B_448/2026 vom 2026-11-10</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/bger_6B_448_2026</link>
+      <description>Bundesgericht
+
+Tribunal fédéral
+
+Tribunale federale
+
+Tribunal federal
+
+6B_448/2026
+
+Sentenza del 10 novembre 2026
+
+I Corte di diritto penale
+
+Composizione
+
+Giudici federali Muschietti, Presidente,
+
+Wohlhauser, Lötscher, Giudice supplente,
+
+Cancellier…</description>
+      <pubDate>Wed, 25 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ECLI:CH:BGer:2026:6B_448.2026</guid>
+      <category>bger</category>
+    </item>
     <item>
       <title>ti_gerichte 16.2025.54 vom 2025-10-22</title>
       <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_16.2025.54</link>
@@ -1180,36 +1208,6 @@ Ferrari
 composta…</description>
       <pubDate>Fri, 13 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ti_gerichte_14.2025.270</guid>
-      <category>ti_gerichte</category>
-    </item>
-    <item>
-      <title>ti_gerichte 14.2026.4 vom 2026-09-04</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_14.2026.4</link>
-      <description>Incarti n. 14.2026.4
-
-14.2026.5
-
-Lugano
-
-4 settembre 2026
-
-In nome della Repubblica e Cantone Ticino
-
-La Camera di esecuzione e fallimenti
-
-del Tribunale dappello
-
-composta dei giudici:
-
-Bellotti, presidente
-
-Jaques e Grisanti
-
-cancelliere:
-
-Ferrari…</description>
-      <pubDate>Fri, 13 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_14.2026.4</guid>
       <category>ti_gerichte</category>
     </item>
   </channel>
