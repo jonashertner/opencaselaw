@@ -76,22 +76,98 @@ def _fetched_id(rec: dict) -> str | None:
     return None
 
 
-def load(capture_dir: Path) -> list[dict]:
-    rows = []
-    for f in sorted(glob.glob(str(capture_dir / "capture_*.jsonl"))):
-        with open(f, encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    rows.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
-    return rows
+def compact(rec: dict) -> dict | None:
+    """The part of a capture record the join reads, or None if it cannot
+    take part in a join.
+
+    The whole capture history used to be parsed into memory at once. On
+    2026-11-25, at 100 days and 7.4 GB of JSONL, that reached 42 GB RSS
+    and the kernel's OOM killer stopped the nightly dev-data run. Only a
+    session's impressions and its fetch/use calls can join, and of those
+    only a few fields are read, so everything else is dropped as each
+    line is read.
+    """
+    sid = rec.get("sid")
+    if not sid:
+        return None
+    if rec.get("src") == "impression":
+        return {"src": "impression", "sid": sid, "ts": rec.get("ts", ""),
+                "result_set_id": rec.get("result_set_id"),
+                "query_len": rec.get("query_len"),
+                "ranked": [{"id": c["id"], "rank": c.get("rank")}
+                           for c in (rec.get("ranked") or [])
+                           if isinstance(c, dict) and c.get("id")]}
+    tool = rec.get("tool", "")
+    if tool in _FETCH_TOOLS or tool in _USE_TOOLS:
+        did = _fetched_id(rec)
+        if did:
+            return {"sid": sid, "ts": rec.get("ts", ""), "tool": tool,
+                    "args": {"decision_id": did}}
+    return None
 
 
-def build(rows: list[dict], keep_session: bool = False) -> list[dict]:
+def _census_add(counter, rec: dict) -> None:
+    if rec.get("src") in (None, "mcp", "rest"):
+        counter[rec.get("traffic", "?")] += 1
+
+
+def load_day(path: str, counter=None) -> tuple[list[dict], int]:
+    """One capture file → its joinable records (compacted) and the number
+    of records read. Adds every record to the traffic census `counter`."""
+    rows, n = [], 0
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            n += 1
+            if counter is not None:
+                _census_add(counter, rec)
+            c = compact(rec)
+            if c is not None:
+                rows.append(c)
+    return rows, n
+
+
+def build_all(capture_dir: Path, keep_session: bool = False):
+    """Join the whole capture history, one day at a time.
+
+    Each day's impressions are joined against that day and the next, so
+    a session running past midnight keeps its fetches and its later
+    searches. Peak memory is two days of compacted records, not the whole
+    history. Only a session spanning three calendar days could lose a
+    join this way. Returns (dataset, records_read, traffic_census).
+    """
+    from collections import Counter
+    files = sorted(glob.glob(str(capture_dir / "capture_*.jsonl")))
+    counter: Counter = Counter()
+    out: list[dict] = []
+    total = 0
+    nxt, n = (load_day(files[0], counter) if files else ([], 0))
+    total += n
+    for i in range(len(files)):
+        cur = nxt
+        if i + 1 < len(files):
+            nxt, n = load_day(files[i + 1], counter)
+            total += n
+        else:
+            nxt = []
+        # The next day's impressions still end an earlier impression's
+        # claim on a decision; they are emitted in their own window.
+        out.extend(build(cur + nxt, keep_session=keep_session,
+                         skip={id(r) for r in nxt
+                               if r.get("src") == "impression"}))
+    return out, total, dict(counter)
+
+
+def build(rows: list[dict], keep_session: bool = False,
+          skip: set[int] | None = None) -> list[dict]:
     # Bucket every record by session, in time order. Records with no
     # session (stateless REST) cannot be joined and are skipped here —
     # they still count in the traffic census, just not in the pair set.
@@ -109,6 +185,8 @@ def build(rows: list[dict], keep_session: bool = False) -> list[dict]:
         # Impressions in this session, and the engagement events after each.
         impressions = [r for r in recs if r.get("src") == "impression"]
         for imp in impressions:
+            if skip and id(imp) in skip:
+                continue
             t0 = _iso_to_epoch(imp.get("ts", ""))
             ranked = imp.get("ranked") or []
             ids = {c["id"]: c["rank"] for c in ranked if c.get("id")}
@@ -160,8 +238,9 @@ def build(rows: list[dict], keep_session: bool = False) -> list[dict]:
 
 def census(rows: list[dict]) -> dict:
     from collections import Counter
-    c = Counter(r.get("traffic", "?") for r in rows if r.get("src") in
-                (None, "mcp", "rest"))
+    c: Counter = Counter()
+    for r in rows:
+        _census_add(c, r)
     return dict(c)
 
 
@@ -176,10 +255,8 @@ def main() -> int:
     args = ap.parse_args()
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(message)s")
-    rows = load(args.captures)
-    log.info("loaded %d capture records; traffic mix: %s",
-             len(rows), census(rows))
-    dataset = build(rows, keep_session=args.keep_session)
+    dataset, n, mix = build_all(args.captures, keep_session=args.keep_session)
+    log.info("read %d capture records; traffic mix: %s", n, mix)
     args.out.mkdir(parents=True, exist_ok=True)
     day = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
     path = args.out / f"{day}.jsonl"

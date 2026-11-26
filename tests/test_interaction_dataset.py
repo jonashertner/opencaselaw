@@ -116,3 +116,79 @@ def test_traffic_census_counts_the_segments():
     ]
     c = census(rows)
     assert c.get("crawler") == 2 and c.get("agent") == 1
+
+
+# --- whole-history build, one day at a time (2026-11-26) -------------------
+# The nightly run parsed every capture file into memory at once and was
+# OOM-killed at 42 GB on 2026-11-25. build_all() streams the files, keeps
+# only joinable records, and joins each day against the next.
+
+import json  # noqa: E402
+
+from scripts.build_interaction_dataset import build_all, compact  # noqa: E402
+
+
+def _write_days(tmp_path, days: dict[str, list[dict]]):
+    for day, recs in days.items():
+        with open(tmp_path / f"capture_{day}.jsonl", "w") as fh:
+            for r in recs:
+                fh.write(json.dumps(r) + "\n")
+    return tmp_path
+
+
+def _key(rows):
+    return sorted(json.dumps(r, sort_keys=True) for r in rows)
+
+
+def test_build_all_matches_the_in_memory_join(tmp_path):
+    days = {
+        "2026-11-24": [
+            _imp("s1", "2026-11-24T10:00:00Z", "rs_1", ["a", "b"]),
+            _call("s1", "2026-11-24T10:00:09Z", "get_decision", "b"),
+            {"src": "rest", "traffic": "crawler", "tool": "search"},
+        ],
+        "2026-11-25": [
+            _imp("s2", "2026-11-25T08:00:00Z", "rs_2", ["c"]),
+            _call("s2", "2026-11-25T08:01:00Z", "cite", "c"),
+        ],
+        "2026-11-26": [],
+    }
+    _write_days(tmp_path, days)
+    flat = [r for recs in days.values() for r in recs]
+    out, n, mix = build_all(tmp_path)
+    assert _key(out) == _key(build(flat))
+    assert n == 5 and mix == census(flat)
+
+
+def test_a_session_across_midnight_keeps_its_fetch(tmp_path):
+    _write_days(tmp_path, {
+        "2026-11-24": [_imp("s1", "2026-11-24T23:59:50Z", "rs_1", ["a"])],
+        "2026-11-25": [_call("s1", "2026-11-25T00:00:10Z", "get_decision", "a")],
+    })
+    [row] = build_all(tmp_path)[0]
+    assert row["result_set_id"] == "rs_1"
+    assert row["candidates"][0]["fetched"] and row["candidates"][0]["gap_s"] == 20.0
+
+
+def test_a_next_day_search_still_takes_the_credit_and_is_emitted_once(tmp_path):
+    _write_days(tmp_path, {
+        "2026-11-24": [_imp("s1", "2026-11-24T23:59:00Z", "rs_1", ["x", "y"])],
+        "2026-11-25": [
+            _imp("s1", "2026-11-25T00:01:00Z", "rs_2", ["x"]),
+            _call("s1", "2026-11-25T00:01:30Z", "get_decision", "x"),
+        ],
+    })
+    out = build_all(tmp_path)[0]
+    assert [r["result_set_id"] for r in out] == ["rs_2"]
+
+
+def test_compact_keeps_only_what_the_join_reads():
+    imp = _imp("s1", "t", "rs_1", ["a"])
+    imp["ranked"][0]["title"] = "long text " * 100
+    imp["ranked"].append({"rank": 9})          # no id: never joinable
+    imp["query"] = "private query text"
+    c = compact(imp)
+    assert c["ranked"] == [{"id": "a", "rank": 0}] and "query" not in c
+    assert compact(_call(None, "t", "get_decision", "a")) is None   # no session
+    assert compact(_call("s1", "t", "search_decisions", "a")) is None
+    assert compact({"sid": "s1", "tool": "get_decision", "args": {}}) is None
