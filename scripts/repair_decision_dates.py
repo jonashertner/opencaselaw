@@ -121,10 +121,18 @@ COURTS_PUBLICATION_DATE_AS_DECISION = {
 # publication date and gave 1,554 direct and 391 es rows the date of the
 # decision under appeal (11092: 14.01.2025 became 2024-02-22;
 # restore_lu_dates.py, found 2026-11-08).
+# ge_gerichte / es_ge_gerichte: decision_date is the official listing's date,
+# which the ruling's header repeats; the 03-12 run took it for a publication
+# date and put the first date of the text in, which in Geneva is procedural:
+# the notification line above the header (ACJC/1085/2024: decided 3 September,
+# served as 11 September 2024), the filing of the appeal (DAS, DCSO) or the
+# decision under appeal (ACPR, DAAJ). About 36,600 rows (restore_ge_dates.py,
+# reports 2026-11-09 and 2026-11-25).
 NEVER_REPAIR_SHARDS = frozenset({
     "bge", "es_bge", "bge_historical", "sg_publikationen", "es_sg_gerichte",
     "bger", "ai_gerichte", "ow_gerichte", "es_ow_gerichte",
     "lu_gerichte", "es_lu_gerichte",
+    "ge_gerichte", "es_ge_gerichte",
 })
 
 
