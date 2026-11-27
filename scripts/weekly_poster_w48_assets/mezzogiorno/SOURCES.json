@@ -1,0 +1,31 @@
+{
+  "painting": {
+    "title": "High Noon in the Alps (Mezzogiorno sulle Alpi)",
+    "artist": "Giovanni Segantini (1858-1899)",
+    "date": "1892",
+    "holder": "Ohara Museum of Art, Kurashiki, Japan",
+    "commons_file": "File:Giovanni Segantini - High Noon in the Alps - Google Art Project.jpg",
+    "commons_url": "https://commons.wikimedia.org/wiki/File:Giovanni_Segantini_-_High_Noon_in_the_Alps_-_Google_Art_Project.jpg",
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Giovanni_Segantini_-_High_Noon_in_the_Alps_-_Google_Art_Project.jpg",
+    "original_size": "4373x4692",
+    "licence": "Public domain (LicenseShortName via Commons extmetadata: 'Public domain'; AttributionRequired: false; PD-old-100-expired)",
+    "extmetadata_excerpt": {
+      "ObjectName": "High Noon in the Alps",
+      "Artist": "Giovanni Segantini",
+      "DateTimeOriginal": "1892",
+      "Credit": "HQHEpNi7MJnQsQ at Google Cultural Institute maximum zoom level",
+      "LicenseShortName": "Public domain",
+      "UsageTerms": "Public domain",
+      "Categories_excerpt": "Google Art Project works in Ohara Museum of Art; Paintings by Giovanni Segantini in the Ohara Museum of Art; PD-old-100-expired"
+    },
+    "holder_check": "Two autograph versions exist: 1891 (Segantini Museum, St. Moritz) and 1892 (Ohara Museum of Art, Kurashiki). This Commons file's own categories place it as the 1892 version held by the Ohara Museum of Art -- confirmed via the file's Categories (\"Paintings by Giovanni Segantini in the Ohara Museum of Art\", \"Google Art Project works in Ohara Museum of Art\") before crediting it.",
+    "processing": "Downloaded at full original resolution (4373x4692) via the Wikimedia Commons API (one request, User-Agent set). Cropped the sides only to a 1080:1350 (0.8:1) full-bleed portrait -- x=[309,4063] of the 4373-wide original, full height kept -- preserving the shepherdess, the birch and the sheep (brief: keep those three; the crop loses only the outermost ~310px of birch-leaf tips on the right and a small distant background figure on the far left). Resized to 2160x2700 (2x the 1080x1350 design space) and saved as the committed JPEG asset, quality 90, no other retouching baked into the committed file -- all relighting (sky deepening + the 861 lit strokes) is computed fresh at render time by weekly_poster_w48_mezzogiorno.py from this same asset, the way weekly_poster_w48_bern.py computes its window lighting fresh from bern_source.jpg."
+  },
+  "font": {
+    "name": "Archivo Black",
+    "file": "ArchivoBlack-Regular.ttf",
+    "source": "Google Fonts (https://fonts.google.com/specimen/Archivo+Black)",
+    "licence": "SIL Open Font License 1.1",
+    "use": "Rasterised once at render time (PIL ImageFont) purely to build the '861' glyph MASK used to select which of Segantini's own sky-stroke components fall inside the numeral; no synthetic glyph outline is drawn onto the poster itself -- the numeral is legible only from the 861 real strokes placed inside it. Switched from v1's Anton (SIL OFL) after review: Anton's numeral counters were too narrow for an '8' built from sparse real strokes to read; Archivo Black's are wide and open, and its natural width/height proportions need only modest extra tracking (applied in code) to reach the brief's width target."
+  }
+}

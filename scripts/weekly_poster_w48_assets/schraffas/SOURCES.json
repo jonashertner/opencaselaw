@@ -1,0 +1,35 @@
+{
+  "title": "Blatt XV. Davos, Martinsbruck der Topographischen Karte der Schweiz, LT TK 015 1853",
+  "short_title": "Dufour Map, Sheet XV \"Davos - Martinsbruck\"",
+  "commons_url": "https://commons.wikimedia.org/wiki/File:Swisstopo_Dufourkarte_BLATT_XV_DAVOS_MARTINSBRUCK_LT_TK_015_1853.tiff",
+  "source_file_downloaded": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Swisstopo_Dufourkarte_BLATT_XV_DAVOS_MARTINSBRUCK_LT_TK_015_1853.tiff",
+  "original_dimensions_px": [11786, 8600],
+  "original_size_bytes": 101385556,
+  "author": "Guillaume-Henri Dufour; Heinrich Müllhaupt; Rinaldo Bressanini; Eidgenössisches Topographisches Bureau (per Commons extmetadata Artist field)",
+  "date": "1853",
+  "holder": "Federal Office of Topography swisstopo",
+  "licence": {
+    "short_name": "Attribution-Swisstopo",
+    "usage_terms": "Attribution-Swisstopo",
+    "attribution_required": true,
+    "verified_via": "https://commons.wikimedia.org/w/api.php?action=query&titles=File:Swisstopo%20Dufourkarte%20BLATT%20XV%20DAVOS%20MARTINSBRUCK%20LT%20TK%20015%201853.tiff&prop=imageinfo&iiprop=url|size|extmetadata&format=json",
+    "required_source_reference_one_of": [
+      "Federal Office of Topography swisstopo",
+      "Bundesamt für Landestopografie swisstopo",
+      "Office fédéral de topographie swisstopo",
+      "Ufficio federale di topografia swisstopo",
+      "Uffizi federal da topografia swisstopo",
+      "©swisstopo"
+    ],
+    "credit_used_on_poster": "Dufour, Blatt XV, 1853 · ©swisstopo (uses the exact accepted form \"©swisstopo\")"
+  },
+  "how_used_v1": "First pass (kept as weekly_poster_w48_schraffas_v1.py / output/posters/w48/rm-schraffas-v1.png for the record; superseded, not the shipped file). Cropped a 1800x2250 (4:5) window, box (8500,3700,10300,5950), around the Piz S. Jon radiating fan, upsampled only 1.2x to the 2160x2700 canvas. Art direction on review: too timid -- at that scale the hachures stayed map-sized and the 861 chosen strokes read as a faint pink wash over a few percent of the frame.",
+  "how_used_v2": "Second pass (kept as weekly_poster_w48_schraffas_v2.py / output/posters/w48/rm-schraffas-v2.png; superseded, not the shipped file). Same crop as v3 (box 9650,3625-10250,4375), enlarged 3.6x, each stroke a visible brush-like mark -- the real fix that stuck. But the 861 were chosen as the nearest to a single apex point, which read as a red disc with a ragged fringe, unrelated to the landform; and the figure sat on top of both the red strokes and the 'Piz Lischana' label, merging into them. Both fixed in v3 below.",
+  "fix_in_place": "v3 as first shipped let a handful of letter/digit fragments (part of 'Piz Ayrutz', '2787', 'Piz Lischana') pass the elongation filter and turn carmine near the ridge. Fixed without a new version file: LABEL_BOXES in weekly_poster_w48_schraffas_build.py hand-boxes every label and elevation number in the crop (dilated 6px); any candidate touching one is dropped before selection, and the 861 are refilled from what remains by the same ridge-distance rule. RIDGE_POLYLINE's top end was also pulled down (255,115) -> (266,150) so the crest stays clear of 'Piz Ayrutz'. Re-verified: both flagged label areas are fully clean at full-res crops and at 540px.",
+  "how_used": "v3 (shipped). Downloaded the full-resolution TIFF (101 MB, single-channel/grayscale scan) to local scratch, never committed. Cropped a 600x750 (4:5) window at full scan resolution, box (left=9650, upper=3625, right=10250, lower=4375) of the 11786x8600 sheet -- the dark hachured spur/arete falling from the ridge between Piz Ayrutz and Piz Lischana down into the Vadret Lischanna glacier, above Schuls (Scuol)/Tarasp on the Inn and close to Piz S. Jon, S-charl and Piz Pisoc -- then enlarged 3.6x to the 2160x2700 canvas, so each engraved stroke reads as a visible brush-like mark (see 'candidates_considered' for the other tight crops tried and rejected, and weekly_poster_w48_schraffas_build.py's docstring for the full pipeline and the v2->v3 changes). Of the ~3,350 real engraved hachure strokes found in this crop by threshold + direction-gated connected-component analysis (numpy only, no scipy/cv2), exactly 861 (this week's count of new decisions) are recoloured as a second, opaque ink plate -- a saturated carmine (#C8102E), with a gamma-boosted colour floor so thin/faint strokes still print solid rather than pale -- chosen as the 861 nearest a hand-traced ridge-crest polyline (RIDGE_POLYLINE, following the engraving's own jagged rock-edge line), ties broken by the longer stroke: a contiguous band running along the crest and falling away down both flanks, the way the last sun catches a ridge, not a disc. Every other stroke on the sheet is recoloured too, but into a warm graphite (44,39,35) rather than neutral black, so the carmine flank reads as the image's own dominant colour. No stroke is redrawn or invented: both recolourings are the scan's own engraved pixels, re-inked along their own existing antialiasing. The upsampled grey channel gets one mild unsharp-mask pass (no blur anywhere) to keep the 3.6x enlargement crisp rather than soft. The figure ('861', Cinzel, carmine -- tried in the graphite ink too and kept carmine, it read more cohesively at 540px) and the three footer lines were both moved to genuinely clean glacier paper, clear of the recoloured strokes and of every one of the map's own labels; neither needs a scrim or knockout. Final JPEG quality 92, ~2.5-4 MB. strokes_manifest.json (version 3) records the exact parameters (threshold, alignment gate, iteration count, area/elongation filters, the ridge polyline, selection rule, candidate and chosen counts, the three working colours, the carmine gamma) so the 861 is reproducible, not just asserted.",
+  "candidates_considered": [
+    "The Vorarlberg/Austria white void in the sheet's north-east corner, as a flat background: rejected -- not hachure relief at all, the opposite of the brief.",
+    "The Tarasp/Schuls valley floor and village: too little hachure density, mostly open valley and lettering.",
+    "v2 tight-crop candidates (all 600x750, 3.6x), compared by eye at full zoom: (A) the ridge/road saddle between Piz Pisoc and Piz S. Jon (box 8950,4075-9550,4825) -- a river/road double-line bisects the frame, and the hachuring reads as generic ridge texture rather than one dramatic fan; (B) the Trilgia/P. Madlein/Scarl saddle (box 9400,4325-10000,5075) -- good texture but the village of S-charl and several labels sit in the densest part; (C) the Piz Ayrutz/Piz Lischana ridge into the Vadret Lischanna glacier (box 9650,3625-10250,4375) -- chosen: the densest, most dramatic single spur at this zoom, almost no lettering crosses the hachured mass itself, and the glacier below gives a genuinely calm, paper-pale area for the figure, no scrim needed; (D) the Piz Pisoc/P. Zuort massif (box 8450,3975-9050,4725) -- a strong fan at the top but several peak labels and elevation figures cut across the middle and lower thirds."
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "title": "ISS055-E-84623 - View of Switzerland (cropped)",
+  "work": "ISS Expedition 55 Crew Earth Observations, frame ISS055-E-84623, Nikon D5, night pass",
+  "photographed": "2018-05-26 23:59:46 UTC (ISS Expedition 55)",
+  "artist": "Earth Science and Remote Sensing Unit, NASA Johnson Space Center",
+  "holding_institution": "NASA Johnson Space Center, JSC Gateway to Astronaut Photography of Earth",
+  "eol_gateway_url": "https://eol.jsc.nasa.gov/SearchPhotos/photo.pl?mission=ISS055&roll=E&frame=84623",
+  "commons_url": "https://commons.wikimedia.org/wiki/File:ISS055-E-84623_-_View_of_Switzerland.jpg",
+  "source_file_downloaded": "https://upload.wikimedia.org/wikipedia/commons/f/f4/ISS055-E-84623_-_View_of_Switzerland.jpg",
+  "original_dimensions_px": [5568, 3712],
+  "gps_nadir_at_exposure": {"lat": 47.4, "lon": 8.7, "note": "ISS ground track point at time of exposure, from the file's own GPSLatitude/GPSLongitude — close to Zürich/Winterthur. The oblique, wide-angle framing at night (astronauts shoot hand-held, not straight down) means the visible ground swath extends well beyond this point; without a geo-referencing tool we could not positively identify individual cities in the frame, so the poster does not name any (see how_used)."},
+  "licence": {
+    "short_name": "Public domain",
+    "usage_terms": "Public domain",
+    "attribution_required": false,
+    "restrictions": "none listed in extmetadata",
+    "basis": "NASA astronaut photography is public domain work of a US government agency. Verified via the Commons API (action=query, prop=imageinfo, iiprop=url|extmetadata) on this exact file: LicenseShortName='Public domain', UsageTerms='Public domain', AttributionRequired='false', Restrictions='' (empty), Artist='Earth Science and Remote Sensing Unit, NASA Johnson Space Center', Credit links to the JSC Gateway to Astronaut Photography of Earth.",
+    "verified_via": "https://commons.wikimedia.org/w/api.php?action=query&titles=File:ISS055-E-84623%20-%20View%20of%20Switzerland.jpg&prop=imageinfo&iiprop=url%7Cextmetadata&format=json"
+  },
+  "candidates_considered": [
+    "File:ISS-46 The Alps at night.jpg (4928x3280, PD, NASA/Tim Kopra, 2016-01-25) -- verified PD via the same API call; Commons' own categories ('Satellite pictures of Italy at night') and its description ('Beautiful night pass over Italy, Alps and Mediterranean') say the frame is centred on northern Italy with the Alps and Switzerland only at the edge, lower resolution than the series used, and would have forced the same cautious 'no country named' wording for a weaker image -- not used.",
+    "The ISS055-E-846xx/847xx 'View of Switzerland' sequence on Commons (a single fast night pass, 2018-05-26/27, Category:Night in Switzerland, ~65 consecutive frames at 5568x3712, Nikon D5): checked GPS nadir points across the sequence (lat 47.4 down to 46.4N, lon 8.6 to 10.3E, i.e. the pass runs from near Zürich south-east across the central Alps and Graubünden) and inspected ~15 full-resolution frames spread through it (84623, 84630, 84635, 84640, 84645, 84650, 84655, 84659, 84665, 84701, 84710, 84720, 84659, 84704). Because the burst was shot in quick succession with the camera held steady, composition and content are near-identical across the sequence (same curved limb, same airglow band, same light pattern, ISS solar array in the top-left corner of most frames). 84623 was picked as the first, best-exposed frame of the run: it is the only one of the fifteen inspected where the solar array sits fully clear of the 4:5 portrait crop used below.",
+    "The ISS053-E-692x 'View of Switzerland' glacier-identification set (Aletsch/Bernese Alps) and the ISS007-E-16321 frame were also returned by the Commons search but are daytime photographs -- not relevant to a night image."
+  ],
+  "how_used": "v2 (current): downloaded the full-resolution JPEG (5568x3712) and cropped a portrait window (1450,0)-(3610,2700), exactly 2160x2700 -- the poster's own 4:5 at its native 2x, so no resampling at all sits between this file and the render. Chosen (after the v1 crop below read as a thin, patchy black strip across the top-left, which an art-direction pass flagged) to put the curved limb about an eighth of the way down as one clean, continuous arc with a generous, uniform span of real black space and visible stars above it, a thin natural airglow band just under the black, and a wide scatter of real ground lights -- from a bright networked cluster to the sparser, more rural reaches -- filling the rest of the frame; this crop also fully excludes both the ISS solar array (visible in the original frame's top-left corner) and a lake near the original frame's bottom-left corner that v1 included (its colour read as an artefact in review; it is a real lake, but cropping it out was simpler and cleaner than explaining it). v1's crop, kept for the record: (1392,0)-(4360,3712), 2968x3712, resized 2x down to 2160x2700. Everything else -- the 861 lights (their real connected-component shapes, not placed), the light dimming/cooling/deepening of the rest of the frame, and the brightening of each kept shape from its own pixels -- is computed at render time by weekly_poster_w48_orbit.py from this one source file.",
+  "fonts": {
+    "note": "Bundled as local .ttf files (weekly_poster_w48_assets/orbit/fonts/) and loaded via embedded base64 @font-face, not the Google Fonts CDN, so the render has no network dependency and is reproducible offline. v1 used Space Grotesk + IBM Plex Mono via the shared page() helper's Google Fonts link; the Space Grotesk choice itself was also replaced in v2 (read as a stock display face at this size).",
+    "Spectral-SemiBold.ttf": {
+      "source": "https://github.com/google/fonts/blob/main/ofl/spectral/Spectral-SemiBold.ttf",
+      "licence": "SIL Open Font License 1.1 (OFL.txt copied alongside as Spectral-OFL.txt)",
+      "designer": "Spectral by Production Type, commissioned for Google Fonts",
+      "used_for": "the '861' figure"
+    },
+    "IBMPlexMono-Regular.ttf / IBMPlexMono-SemiBold.ttf": {
+      "source": "https://github.com/google/fonts/tree/main/ofl/ibmplexmono",
+      "licence": "SIL Open Font License 1.1 (OFL.txt copied alongside as IBMPlexMono-OFL.txt)",
+      "designer": "IBM Plex by IBM / Bold Monday",
+      "used_for": "the tag, date, credit and url lines"
+    }
+  },
+  "geography_claim": "The poster does not claim the 861 lights are Swiss, or name any city or country -- unchanged from v1. The frame's own GPS nadir and Commons categorisation place the pass over Switzerland and the central Alps, and Switzerland is almost certainly present somewhere in such a wide, oblique night frame taken from this ground track -- but we have no geo-referencing tool in this environment to match specific light clusters in the photograph to specific places, and over-claiming a precise location we can't verify would be worse than an honest, unlabelled night. v2 drops the on-image caption naming the lights at all ('861 lights of the Alpine night. One light, one decision.', cut in the art-direction pass as a slogan that duplicated what the figure and tag already say); the geography position itself has not changed, and the dataset's own headline, '861 new Swiss court decisions', is sourced from week['added'] as required, not from the photograph."
+}

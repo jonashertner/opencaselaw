@@ -1,0 +1,23 @@
+{
+  "title": "Bern die Hauptstatt in Nüchtland ... (cropped)",
+  "work": "Matthäus Merian / Martin Zeiller, Topographia Helvetiae, Rhaetiae et Valesiae (part of the Topographia Germaniae), Frankfurt, 1642",
+  "artist": "Joseph Plepp (figuravit — drawn from life) / Matthäus Merian (sculpsit — engraved), per the plate's own imprint \"Ioseph Plep figur. M. Merian sculp.\"",
+  "date": "after 1638 (plate first published in the 1642 Topographia Helvetiae)",
+  "holding_institution": "Zentralbibliothek Zürich, Graphische Sammlung und Fotoarchiv",
+  "commons_url": "https://commons.wikimedia.org/wiki/File:Zentralbibliothek_Z%C3%BCrich_-_Bern_die_Hauptstatt_in_N%C3%BCchtland_..._-_991080724569705501_(cropped).jpg",
+  "source_file_downloaded": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Zentralbibliothek_Z%C3%BCrich_-_Bern_die_Hauptstatt_in_N%C3%BCchtland_..._-_991080724569705501_%28cropped%29.jpg",
+  "original_dimensions_px": [5608, 3703],
+  "licence": {
+    "short_name": "Public domain",
+    "usage_terms": "Public domain",
+    "restrictions": "none listed in extmetadata",
+    "basis": "Copperplate engraving first published 1642; artist and engraver both died well over 70 years ago. Verified via the Commons API (action=query, prop=imageinfo, iiprop=url|extmetadata) on this exact file: LicenseShortName='Public domain', UsageTerms='Public domain', Restrictions='' (empty), Credit='Zentralbibliothek Zürich, Graphische Sammlung und Fotoarchiv'.",
+    "verified_via": "https://commons.wikimedia.org/w/api.php?action=query&titles=File:Zentralbibliothek%20Z%C3%BCrich%20-%20Bern%20die%20Hauptstatt%20in%20N%C3%BCchtland%20...%20-%20991080724569705501%20(cropped).jpg&prop=imageinfo&iiprop=url%7Cextmetadata&format=json"
+  },
+  "candidates_considered": [
+    "File:Zentralbibliothek Zürich - Bern die Hauptstatt in Nüchtland ... - 991080724569705501.jpg -- the SAME plate, uncropped scan (5793x4943, also PD, same institution/credit). Checked and rejected as the base: the uncropped file's extra height is a studio photograph of the physical sheet (deckle edges, foxing, a pencil shelf-mark \"Platte 91 b\", and a Tiffen colour-calibration card taped below the plate for the digitisation), not more of the engraving itself -- so the plate's own content fills a SMALLER fraction of its pixel grid than in the cropped file, i.e. the cropped file is the higher effective resolution of the actual artwork and was used instead.",
+    "Bibliothèque nationale de France copy (btv1b532387863, Gallica, a different Merian Bern plate state in 2 joined sheets) -- not pulled; the Zürich copy already gives a single clean high-resolution file of the same design and is explicitly named in the brief.",
+    "e-rara.ch / e-manuscripta.ch were checked by search for a larger or unjoined scan of this Topographia Helvetiae plate; no separate higher-resolution digitisation of this specific view surfaced distinct from the two Zürich Commons files above, so no further source was substituted."
+  ],
+  "how_used": "Downloaded the full-resolution JPEG (5608x3703). Cropped to a portrait window (880,0)-(3624,3430), 2744x3430 px, ratio 0.8 (the poster's own 4:5): this keeps the Aare's far loop and the plate's own title cartouche (winged genii, the Bern bear shield, 'BE[RN]') as the night sky across the top, the full dense old town band (the walled Altstadt in the river's crook, roofs and facades edge to edge) through the middle, and the Aare's near loop ('Aar flu:', with its own little boats) as a dark foreground river at the base, where the week's figure now sits. Resized to 2160x2700 (exactly 2x the poster's 1080x1350) and saved as bern_source.jpg (q88 JPEG; resampling only, no retouching of content). Everything else -- the night re-toning (illumination-flattened, duotoned so engraved lines glow and the paper goes to deep night), the 861 lit windows (detected from this same image: band-pass blob detection for small, locally dark, roughly-square marks against open bands of pale wall, restricted to five hand-traced rectangles bounding the engraving's own built-up blocks, excluding the river, the bastion's lawns and the surrounding fields) and their warm additive glow, is computed at render time by weekly_poster_w48_bern.py from this one source file."
+}

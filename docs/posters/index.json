@@ -2,6 +2,44 @@
  "schema": "opencaselaw.posters.v1",
  "weeks": [
   {
+   "week": "2026-W48",
+   "from": "2026-11-20",
+   "to": "2026-11-26",
+   "added": 861,
+   "posters": [
+    {
+     "lang": "de",
+     "design": "bern",
+     "file": "2026-w48/de-bern.webp",
+     "caption": "Woche 48 in der Schweizer Rechtsprechung: 861 neue Entscheide."
+    },
+    {
+     "lang": "fr",
+     "design": "jungfrau",
+     "file": "2026-w48/fr-jungfrau.webp",
+     "caption": "Semaine 48 de la jurisprudence suisse : 861 nouvelles décisions."
+    },
+    {
+     "lang": "it",
+     "design": "mezzogiorno",
+     "file": "2026-w48/it-mezzogiorno.webp",
+     "caption": "Settimana 48 della giurisprudenza svizzera: 861 nuove decisioni."
+    },
+    {
+     "lang": "rm",
+     "design": "schraffas",
+     "file": "2026-w48/rm-schraffas.webp",
+     "caption": "Emna 48: 861 novas decisiuns."
+    },
+    {
+     "lang": "en",
+     "design": "orbit",
+     "file": "2026-w48/en-orbit.webp",
+     "caption": "Week 48 in Swiss case law: 861 new decisions."
+    }
+   ]
+  },
+  {
    "week": "2026-W47",
    "from": "2026-11-13",
    "to": "2026-11-19",

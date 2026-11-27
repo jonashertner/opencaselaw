@@ -1,0 +1,24 @@
+{
+  "title": "La Jungfrau. - estampe - Félix Vallotton - btv1b6951651x.jpg",
+  "commons_page": "https://commons.wikimedia.org/wiki/File:La_Jungfrau._-_estampe_-_F%C3%A9lix_Vallotton_-_btv1b6951651x.jpg",
+  "artist": "Félix Vallotton (1865-1925), graveur",
+  "date": "1892",
+  "medium": "gravure sur bois (woodcut)",
+  "holder": "Bibliothèque nationale de France (BnF)",
+  "bnf_ark": "btv1b6951651x",
+  "original_size": "7842x5229",
+  "license_short_name": "Public domain",
+  "attribution_required": false,
+  "retrieved_via": "Commons API action=query, prop=imageinfo, iiprop=url|size|extmetadata|mime, one request",
+  "full_size_download": "upload.wikimedia.org original JPEG, one request, 7842x5229, 6003601 bytes",
+  "processing": "Cropped to the printed plate only (paper margin trimmed off all 4 sides, ~65px at full resolution, since the hand-drawn border is not perfectly straight and a sliver of margin paper otherwise bleeds in at a few points), then cropped narrower still on the right (v2, per Jonas's review of v1: the plate was too small in the poster) to enlarge the massif and the left slope -- this drops the moon and the 'F.V.' label box out of frame; the left slope (most of the gold cuts) and 'LA JUNGFRAU.' stay intact. Resampled to 3840x3119 (the resolution mark-detection is run at). Recoloured in the poster render (not in this committed file) toward a deep near-black ink and a warm cream paper, with a gold second-block overprint on 861 of Vallotton's own white knife cuts (stars + grass flecks), found by connected-component analysis of the thresholded plate -- never drawn.",
+  "committed_asset": "weekly_poster_w48_assets/jungfrau/jungfrau_source.jpg (3840x3119 JPEG q90, ~3.6MB)",
+  "numeral_font": {
+    "file": "Anton-Regular.ttf",
+    "title": "Anton",
+    "author": "The Anton Project Authors (Vernon Adams)",
+    "url": "https://github.com/google/fonts/tree/main/ofl/anton",
+    "licence": "SIL Open Font License 1.1",
+    "use": "base shapes of the gouged 861 numeral, rasterised in code (replaces macOS Helvetica Neue Condensed Bold, not redistributable)"
+  }
+}
