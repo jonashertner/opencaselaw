@@ -88,6 +88,7 @@ def test_without_revision_field_behaviour_is_unchanged(tmp_path):
 def test_shipped_scrapers_keep_default(tmp_path):
     from scrapers.practice.estv_kreisschreiben import EstvKreisschreibenScraper
     from scrapers.practice.bafu_vollzugshilfen import BafuVollzugshilfenScraper
-    from scrapers.practice.sem_weisungen import SemWeisungenScraper
-    for cls in (EstvKreisschreibenScraper, BafuVollzugshilfenScraper, SemWeisungenScraper):
+    # SEM opted in 2026-11-27 (revised Weisungen keep their file name);
+    # tests/test_sem_weisungen_relaunch.py covers it.
+    for cls in (EstvKreisschreibenScraper, BafuVollzugshilfenScraper):
         assert getattr(cls, "REVISION_FIELD", None) is None, cls.__name__

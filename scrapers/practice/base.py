@@ -288,6 +288,13 @@ class PracticeScraper(ABC):
     # byte-identical for every existing scraper.
     REVISION_FIELD: str | None = None
 
+    # Opt-in: skip a NEW document whose text is identical to one already
+    # held under another doc_id (the same PDF published under two file
+    # names). Held documents are always refreshed; only an id the output
+    # file does not yet contain is checked. Default False = previous
+    # behaviour for every existing scraper.
+    DEDUP_CONTENT: bool = False
+
     # fetch_pdf_text caches every PDF forever under tempfile.gettempdir()
     # (no eviction). That is fine for a few hundred small circulars and
     # wrong for BSV (~2,600 documents × versions × languages, ~30 GB) or for
@@ -427,6 +434,8 @@ class PracticeScraper(ABC):
         # Scans indexed under a title placeholder before OCR was enabled:
         # re-fetched once so they get their text.
         self._placeholder_ids: set[str] = set()
+        # content_hash -> doc_id, for DEDUP_CONTENT (last line wins).
+        self._hash_owner: dict[str, str] = {}
         ocr_ready = self.OCR_SCANS and bool(tesseract_langs(self.OCR_LANGS))
         if not self.output_path.exists():
             return set()
@@ -444,6 +453,8 @@ class PracticeScraper(ABC):
                     if not did:
                         continue
                     ids.add(did)
+                    if self.DEDUP_CONTENT and rec.get("content_hash"):
+                        self._hash_owner[rec["content_hash"]] = did
                     if ocr_ready and self.NO_TEXT_LAYER_BODY:
                         if (rec.get("body_text") or "").endswith(self.NO_TEXT_LAYER_BODY):
                             self._placeholder_ids.add(did)
@@ -537,7 +548,16 @@ class PracticeScraper(ABC):
                 continue
 
             doc = self._normalize(stub, body)
+            if self.DEDUP_CONTENT and doc_id not in self._seen_ids:
+                owner = self._hash_owner.get(doc["content_hash"])
+                if owner and owner != doc_id:
+                    logger.info("[%s] %s has the text of %s; not stored twice",
+                                self.SOURCE_KEY, doc_id, owner)
+                    skipped_count += 1
+                    continue
             self._append(doc)
+            if self.DEDUP_CONTENT and doc["content_hash"]:
+                self._hash_owner[doc["content_hash"]] = doc_id
             self._placeholder_ids.discard(doc_id)
             if self.REVISION_FIELD:
                 self._seen_revisions[doc_id] = str(
