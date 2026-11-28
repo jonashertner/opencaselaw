@@ -157,6 +157,14 @@ def rule(rec: dict, ctx: Context) -> tuple[str | None, str, str]:
             return None, "gr_yearbook_no_trailer", FILL
         # The head agrees with the portal date on 71 of 72 rows scraped after
         # the Tribuna fix (one by a day): it may correct pre-fix rows only.
+        # The letterhead / "Entscheid vom" head first: head_vom_date alone
+        # reads "gegen die Verfügung des Kreispräsidenten Chur vom …", the
+        # decision under appeal, in the older Kantonsgericht layout, and so
+        # confirmed ~1,700 rows the 2026-03-12 pass had given that date
+        # (report 2026-11-27, PZ 2006 225).
+        own = sd.gr_head_date(text, 2500, today)
+        if own:
+            return own, "gr_own_head", CORRECT
         return sd.head_vom_date(text, 2500, today), "gr_head", CORRECT
 
     if court == "ti_gerichte":
@@ -235,11 +243,14 @@ def _decide_own(rec: dict, ctx: Context) -> tuple[str | None, str]:
     # A letterhead without the matching signature line never corrects: it can
     # carry a wrong year (BK 22 322 heads "18. Januar 2022", stored 2023-01-18).
     may_correct = mode == CORRECT or (_damaged(rec) and name != "be_letterhead")
-    if ctx.court in ("be_zivilstraf", "gr_gerichte") and name in ("be_letterhead_and_signature", "gr_head"):
+    if ctx.court in ("be_zivilstraf", "gr_gerichte") and name in (
+            "be_letterhead_and_signature", "gr_head", "gr_own_head"):
         # The scraper reads each row's own record since the Tribuna fix:
         # never second-guess a post-fix row (65/66 agree with the letterhead,
         # the 66th by a day: the portal is the court's own field).
         may_correct = str(rec.get("scraped_at") or "") < TRIBUNA_FIX
+        if name == "gr_own_head" and _damaged(rec):
+            may_correct = True  # the stored date is the 03-12 pass's guess
     if may_correct and not ctx.fill_only:
         return new, f"{name}:corrected"
     return None, f"{name}:differs_left_alone"

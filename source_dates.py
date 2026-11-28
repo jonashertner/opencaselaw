@@ -220,6 +220,56 @@ def gr_yearbook_pdf_key(url: str | None) -> str | None:
     return m.group(1) if m else None
 
 
+# ---------------------------------------------------- GR rulings: the head
+
+# A GR ruling states its own date in its head, in one of two layouts:
+#   Kantonsgericht until ~2019: the letterhead "Ref.: Chur, 16. April 2007 /
+#     Schriftlich mitgeteilt am: / PZ 06 225 / Verfügung / ..."
+#   Kantonsgericht since, Verwaltungsgericht: "Entscheid vom 02. Mai 2022",
+#     "URTEIL vom 19. Juni 2018", "SENTENZA del 31 ottobre 2022".
+# What follows the head is somebody else's date: the decision under appeal
+# ("Im Rekurs ... gegen die Verfügung des Kreispräsidenten Chur vom 14. November
+# 2006", "Anfechtungsobj. ... vom 17.02.2022"), the notification ("Mitteilung
+# 03. Mai 2022") or a Federal Court ruling noted under the docket ("(Mit Urteil
+# 6B_725/2018 vom 31. August 2018 ist das Bundesgericht ...)").
+# Report 2026-11-27, GR PZ 2006 225: served as 14 November 2006, the date of
+# the decision under appeal, which head_vom_date read as "Verfügung des
+# Kreispräsidenten Chur vom".
+_GR_HEAD_END = re.compile(
+    r"Anfechtungsobj|Mitteilung\b|Comunicazione\b|Communicaziun\b|Im\s+Rekurs|In\s+Sachen|"
+    r"\bin\s+der\s+[a-zäöü]+\s+(?:Streitsache|Beschwerde|Berufung)|In\s+der\s+[a-zäöü]+\s+"
+    r"(?:Streitsache|Beschwerde|Berufung)|nella\s+(?:causa|vertenza)|nel\s+ricorso|"
+    r"Sachverhalt|betreffend|concernente|gegen\s+(?:die|das|den)\b|contro\s+(?:la|il)\b|"
+    r"\((?:Mit|Eine|Die|Der|Il|La|Cun)\s|"
+    # the bench, parties and subject blocks of the newer layouts, and the
+    # notification line ("Decisione dell'8 aprile 2026 comunicata il 10 aprile")
+    r"\b(?:Besetzung|Composizione|Cumposiziun|Parteien|Parti|Partidas|Gegenstand|Oggetto|"
+    r"Object|Instanz|Istanza|Referenz|N\.\s*d'incarto)\b|mitgeteilt\s+am|comunicat[ao]\b")
+_GR_LETTERHEAD = re.compile(
+    rf"(?<![A-Za-zÄÖÜäöü])(?:Chur|Cuira|Coira)\s*,\s*(?:(?:il|ils|den|le)\s+)?"
+    rf"(?:{DATE_WORDS}|{DATE_NUM})", re.IGNORECASE)
+_GR_KIND_DATE = re.compile(
+    rf"(?<![A-Za-zÄÖÜäöü])(?:Entscheid|Urteil|Beschluss|Verfügung|Sentenza|Decisione|Decreto|"
+    rf"Ordinanza|Sentenzia|Decisiun|Disposiziun)\s+(?:(?:vom|del|dals|dal|da)\s+|dell['’]\s*)"
+    rf"(?:{DATE_WORDS}|{DATE_NUM})", re.IGNORECASE)
+
+
+def gr_head_date(text: str | None, limit: int = 2500, today: date | None = None) -> str | None:
+    """The date a GR ruling states in its head: the letterhead "Chur, <date>"
+    if there is one, else "Entscheid/Urteil/Sentenza vom/del <date>"; only in
+    the part before the parties, the decision under appeal, the notification
+    or a noted Federal Court ruling. None when the head states no date."""
+    head = flat((text or "")[:limit])
+    end = _GR_HEAD_END.search(head, 20)
+    if end:
+        head = head[:end.start()]
+    for rx in (_GR_LETTERHEAD, _GR_KIND_DATE):
+        m = rx.search(head)
+        if m:
+            return date_from_match(m, None, today)
+    return None
+
+
 # --------------------------------------------------------------- AR GVP
 
 _AR_FILE = re.compile(r"/(?:OG|KG|Verwaltung|VG|RR)-(?P<y>(?:19|20)\d{2})(?P<m>\d{2})(?P<d>\d{2})-[^/]*\.pdf$",

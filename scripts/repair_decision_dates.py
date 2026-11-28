@@ -128,11 +128,18 @@ COURTS_PUBLICATION_DATE_AS_DECISION = {
 # served as 11 September 2024), the filing of the appeal (DAS, DCSO) or the
 # decision under appeal (ACPR, DAAJ). About 36,600 rows (restore_ge_dates.py,
 # reports 2026-11-09 and 2026-11-25).
+# gr_gerichte / es_gr_gerichte: a GR ruling's own date is its letterhead
+# ("Chur, 16. April 2007") or "Entscheid vom <date>" head; the first "vom" date
+# of the text is the decision under appeal ("gegen die Verfügung des
+# Kreispräsidenten Chur vom 14. November 2006") or a Federal Court ruling noted
+# under the docket. The 03-12 run gave ~2,200 rows that date
+# (repair_source_dates.py rule gr_own_head, report 2026-11-27).
 NEVER_REPAIR_SHARDS = frozenset({
     "bge", "es_bge", "bge_historical", "sg_publikationen", "es_sg_gerichte",
     "bger", "ai_gerichte", "ow_gerichte", "es_ow_gerichte",
     "lu_gerichte", "es_lu_gerichte",
     "ge_gerichte", "es_ge_gerichte",
+    "gr_gerichte", "es_gr_gerichte",
 })
 
 

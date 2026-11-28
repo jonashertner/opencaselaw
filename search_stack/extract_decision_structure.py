@@ -388,6 +388,110 @@ def _validate_erw_sequence(markers: list[tuple[int, int, str]]) -> list[tuple[in
     return best
 
 
+# A top-level number whose punctuation the OCR of an old printed volume
+# mangled: "4 .. -", "2, -", "3: -", "4.. Die", "6 . .-: Auf". ERW_PARA_RE takes
+# one dot and one dash; these fail it, so the Erwägung ran on inside the
+# previous one (report 2026-11-27, BGE 55 II 235: E. 4 served under E. 3;
+# 119 BGE rulings, volumes 20-95). At least two punctuation marks, then the
+# line ends or a sentence starts. Admitted only where the sequence already
+# found expects it (see _admit_ocr_tops).
+_OCR_TOP_RE = re.compile(
+    r"(?m)^[ \t]*(\d{1,2})[ \t]*([.,:;'`´\-–—_·•][ \t.,:;'`´\-–—_·•]*?)"
+    r"[ \t]*(?:$|[ \t](?=[A-ZÄÖÜÉÈÀ«\"(]))")
+
+
+# What may stand before a heading: the end of a sentence or of a block. Not a
+# number ("vom 2\n5. Juli", "Fr. 4 '17\n4.-.") or an abbreviation that a
+# citation or amount continues after ("consid.\n4.; STF", "fr.\n50.--.").
+_SENTENCE_END = re.compile(r"[.:!?)\]»\"“”'][ \t]*$")
+_ABBREV_BEFORE = re.compile(
+    r"(?:^|[\s(])(?:consid|Erw|E|Fr|fr|CHF|S|p|pag|Art|art|al|cpv|n|N|Nr|no|lit|let|Abs|Ziff|"
+    r"vgl|cf|cfr|ATF|BGE|DTF|act|Urk|doc|ch|cif|cifra|Bd|vol)\.[ \t]*$")
+# The line after a standalone marker opens a sentence; the scan may put a
+# speck or a quote before it ("·Die Vorinstanz", "'Wenn man").
+_NEXT_LINE_OPENS = re.compile(r"[ \t]*\n\s*[·•'`´‘’]?[ \t]*[A-ZÄÖÜÉÈÀÂÎÔ«\"(]")
+_DOTS_ONLY = re.compile(r"[\s.·•:,]+")
+# What follows the omission mark of the last Erwägungen: the dispositive or
+# the volume's next section ("Demnach erkennt", "Il Tribunale federale
+# pronuncia", "IV. ORGANISATION DER BUNDESRECHTSPFLEGE").
+_AFTER_OMISSION = re.compile(
+    r"[ \t]*\n\s*(?:Demnach|Par ces motifs|Per (?:questi|i quali) motivi|Il Tribunale federale|"
+    r"Le Tribunal f[ée]d[ée]ral|Das Bundesgericht|Dispositiv|[IVX]+\.\s)")
+
+
+def _ocr_top_context_ok(text: str, m: re.Match, valid_starts: set, lenient: bool) -> bool:
+    """``lenient`` (historical BGE volumes): a running head or page number of
+    the scan may stand right above the heading, and a line may open with a
+    date ("1. Januar 1912"), so neither the line before nor a list above is
+    judged there."""
+    if text.startswith(".--", m.start(2)):          # "50.--": an amount
+        return False
+    n = int(m.group(1))
+    rest = text[m.end(2):m.end(2) + 3].lstrip(" \t")
+    standalone = not rest or rest.startswith("\n")
+    # "5 ..........." on its own line above the dispositive or the next
+    # section is the printed mark of an omitted Erwägung.
+    if standalone and _DOTS_ONLY.fullmatch(m.group(2)):
+        if _AFTER_OMISSION.match(text, m.end(2)):
+            return False
+        # Nor when only a running head or the printer's line follows before
+        # the next heading ("2 ..\nSchuldbetreibungs- und Konkursrecht. N° 28.
+        # 105\n3. -", "5 ....\nIMPRIMERIES REUNIES S. A., LAUSANNE").
+        nxt = min([s for s in valid_starts if s > m.end(2)] or [len(text)])
+        if len(re.sub(r"\s", "", text[m.end(2):nxt])) < 200:
+            return False
+    if not lenient:
+        # A list the text quotes ("1 - Aufschiebende Wirkung …", "2.- Nel
+        # caso …") numbers its items like headings: an item N-1 just above
+        # that is not itself a heading of the sequence makes this item N.
+        window_from = max(0, m.start() - 800)
+        for li in re.finditer(rf"(?m)^[ \t]*[\"«„“]?[ \t]*{n - 1}[ \t]*[.,:;\-–—)]",
+                              text[window_from:m.start()]):
+            if window_from + li.start() not in valid_starts:
+                return False
+        prev = text[:m.start()].rstrip("\n")
+        line = prev[prev.rfind("\n") + 1:]
+        if line.strip() and (not _SENTENCE_END.search(line) or _ABBREV_BEFORE.search(line)):
+            return False
+    if standalone:                                    # a sentence must follow
+        return bool(_NEXT_LINE_OPENS.match(text, m.end(2)))
+    return True
+
+
+def _admit_ocr_tops(text: str, valid: list[tuple[int, int, str]],
+                    bounds: list[int], lenient: bool = False) -> list[tuple[int, int, str]]:
+    """Add OCR-damaged top-level markers to a validated sequence: number N is
+    taken only where the last marker before it belongs to E. N-1 and the next
+    marker (if any) to a higher top number, no E. N exists yet, and the
+    context reads as a heading (_ocr_top_context_ok)."""
+    if not valid:
+        return valid
+    tops = {n.split(".")[0] for _, _, n in valid}
+    out = list(valid)
+    for m in _OCR_TOP_RE.finditer(text):
+        n, junk = m.group(1), m.group(2)
+        if n in tops or len(re.sub(r"\s", "", junk)) < 2 or n == "0":
+            continue
+        if not _ocr_top_context_ok(text, m, {v[0] for v in out}, lenient):
+            continue
+        if any(text.rfind("\n", 0, b) + 1 == m.start() for b in bounds):
+            continue
+        before = [v for v in out if v[0] < m.start()]
+        after = [v for v in out if v[0] > m.start()]
+        if not before or not before[-1][2].split(".")[0].isdigit():
+            continue
+        if int(before[-1][2].split(".")[0]) != int(n) - 1:
+            continue
+        nxt = after[0][2].split(".")[0] if after else None
+        if nxt is not None and (not nxt.isdigit() or int(nxt) <= int(n)):
+            continue
+        end = m.end(2)
+        out.append((m.start(), end, n))
+        out.sort()
+        tops.add(n)
+    return out
+
+
 def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False,
                                  plain_spaces: bool = False) -> list[dict]:
     """Parse Erwägungen into list of {e_number, depth, parent, text}.
@@ -409,7 +513,7 @@ def parse_erwaegungen_paragraphs(erw_text: str, ruling_bounds: bool = False,
                 return erw_text.rfind("\n", 0, pos) + 1
             heads = {_line_start(b) for b in bounds}
             candidates = [c for c in candidates if _line_start(c[0]) not in heads]
-    valid = _validate_erw_sequence(candidates)
+    valid = _admit_ocr_tops(erw_text, _validate_erw_sequence(candidates), bounds, lenient=ruling_bounds)
     if not valid:
         # Fallback: whole text as single anonymous paragraph
         body = erw_text[:bounds[0]] if bounds else erw_text
