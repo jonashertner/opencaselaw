@@ -42,7 +42,7 @@
  "generated": "2026-09-09",
  "license": "CC0-1.0",
  "counts": {
-  "aliases": 211,
+  "aliases": 212,
   "sr_numbers": 37,
   "verified_against_law_codes": 142,
   "verified_against_fedlex_sparql": 69
@@ -1024,6 +1024,18 @@
    }
   },
   "Tit. fin. CC": {
+   "sr_number": "210",
+   "kind": "section",
+   "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
+   "verified": "production statutes.db via GET /api/laws/ZGB?language=de|fr|it on 2026-09-09: block disp_u1, 104 articles, headed 'Schlusstitel: Anwendungs- und Einführungsbestimmungen' / 'Titre final: De l’entrée en vigueur et de l’application du code civil' / 'Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile'; SR 210 per docs/data/law_codes.json (production statutes.db, 2026-08-18)",
+   "section": "disp_u1",
+   "section_heading": {
+    "de": "Schlusstitel: Anwendungs- und Einführungsbestimmungen",
+    "fr": "Titre final: De l’entrée en vigueur et de l’application du code civil",
+    "it": "Titolo finale: Dell’entrata in vigore e dell’applicazione del Codice civile"
+   }
+  },
+  "Titolo finale CC": {
    "sr_number": "210",
    "kind": "section",
    "title_de": "Schweizerisches Zivilgesetzbuch vom 10. Dezember 1907",
