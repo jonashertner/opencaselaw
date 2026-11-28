@@ -448,7 +448,7 @@ def test_shard_repair_cuts_dates_stamps_and_is_idempotent(tmp_path):
     assert fyg["cited_decisions"] == []                  # recomputed from the own text
     assert out[1] == rows[1] and out[2] == rows[2] and out[3] == rows[3]
 
-    undo = list(tmp_path.glob("bge_historical.jsonl.presegment-*.undo"))
+    undo = list(tmp_path.glob("bge_historical.jsonl.undo-presegment-*.jsonl.bak"))
     assert len(undo) == 1
     # the build ingests every *.jsonl beside the shard: the undo file and the
     # temp file must not be one
@@ -473,7 +473,7 @@ def test_shard_repair_keeps_the_shard_mode_and_leaves_no_temp_file_on_error(tmp_
     monkeypatch.setattr(script, "decide", lambda obj: (_ for _ in ()).throw(RuntimeError("boom")))
     with pytest.raises(RuntimeError):
         script.run(shard, apply=True, examples=0)
-    assert sorted(p.name for p in tmp_path.iterdir() if not p.name.endswith(".undo")) == ["bge_historical.jsonl"]
+    assert sorted(p.name for p in tmp_path.iterdir() if ".undo-" not in p.name) == ["bge_historical.jsonl"]
 
 
 def test_shard_repair_drops_an_unverified_text_date_to_the_placeholder(tmp_path):
