@@ -5,7 +5,7 @@
     <link>https://opencaselaw.ch/feeds/it.xml</link>
     <description>Latest published Swiss court decisions in Italiano.</description>
     <language>de-CH</language>
-    <lastBuildDate>Fri, 27 Nov 2026 22:39:04 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 28 Nov 2026 12:07:46 +0000</lastBuildDate>
     <generator>OpenCaseLaw publish.py</generator>
     <atom:link href="https://opencaselaw.ch/feeds/it.xml" rel="self" type="application/rss+xml" />
     <item>
@@ -65,6 +65,34 @@ Parte…</description>
       <pubDate>Fri, 27 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:5A_973.2026</guid>
       <category>bger</category>
+    </item>
+    <item>
+      <title>ti_gerichte 11.2022.57 vom 2024-11-14</title>
+      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_11.2022.57</link>
+      <description>Incarto n. 11.2022.57
+
+Lugano,
+
+14 novembre 2024
+
+In nome della Repubblica e Cantone Ticino
+
+La prima Camera civile del Tribunale d'appello
+
+composta dei giudici:
+
+G. A. Bernasconi, presidente,
+
+Giani e Giamboni
+
+cancelliera:
+
+F. Bernasconi
+
+sedente …</description>
+      <pubDate>Fri, 27 Nov 2026 00:00:00 +0000</pubDate>
+      <guid isPermaLink="false">ti_gerichte_11.2022.57</guid>
+      <category>ti_gerichte</category>
     </item>
     <item>
       <title>Bundesverwaltungsgericht D-1763/2026 vom 2026-11-16</title>
@@ -1081,34 +1109,6 @@ Par…</description>
       <pubDate>Tue, 17 Nov 2026 00:00:00 +0000</pubDate>
       <guid isPermaLink="false">ECLI:CH:BGer:2026:9C_702.2025</guid>
       <category>bger</category>
-    </item>
-    <item>
-      <title>ti_gerichte 11.2022.167 vom 2024-11-19</title>
-      <link>https://mcp.opencaselaw.ch/entscheid/ti_gerichte_11.2022.167</link>
-      <description>Incarto n. 11.2022.167
-
-Lugano
-
-19 novembre 2024
-
-In nome della Repubblica e Cantone Ticino
-
-La prima Camera civile del Tribunale d'appello
-
-composta dei giudici:
-
-G. A. Bernasconi, presidente,
-
-Giani e Giamboni
-
-cancelliere:
-
-Sciuchetti
-
-sedente per…</description>
-      <pubDate>Tue, 17 Nov 2026 00:00:00 +0000</pubDate>
-      <guid isPermaLink="false">ti_gerichte_11.2022.167</guid>
-      <category>ti_gerichte</category>
     </item>
   </channel>
 </rss>
