@@ -1,0 +1,27 @@
+{
+  "harness_version": "0.1.0",
+  "driver": "claude-code",
+  "client_version": "2.1.296 (Claude Code)",
+  "model": "sonnet",
+  "effort": null,
+  "judge_model": "sonnet",
+  "k": 5,
+  "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+  "grounding": false,
+  "system_prompt": "You are a legal research assistant. Answer the user's question about Swiss law. Use the OpenCaseLaw tools to find and verify the authorities, follow the server's instructions, and cite every authority you rely on. Answer in the language of the question.",
+  "questions_file": "benchmarks/agent_bench/questions_v0.jsonl",
+  "questions_sha256": "7a13180aea6248a989490a6cebb029c2a3549bad39a36178206824c52dc3ed11",
+  "question_ids": [
+    "pa-001",
+    "pa-003",
+    "tv-001",
+    "tv-002",
+    "cl-001",
+    "cl-005",
+    "pp-001",
+    "pp-003",
+    "rb-019",
+    "rb-024"
+  ],
+  "started": "2026-10-14T18:16:05+00:00"
+}
