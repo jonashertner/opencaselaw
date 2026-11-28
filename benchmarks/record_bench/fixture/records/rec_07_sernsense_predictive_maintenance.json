@@ -1,0 +1,236 @@
+{
+ "id": "rec_07_sernsense_predictive_maintenance",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.ai_deployment",
+  "text": "Deployment from 1 January 2022 of SernSense, a machine-learning failure prediction on customer drive telemetry processed on a US provider's cloud platform, in Switzerland and the EU."
+ },
+ "purpose": "Offer predictive maintenance to customers and reduce unplanned downtime, without processing operators' personal data beyond what is needed.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2021-09-23",
+ "minutes": "dms://board/2021-09-23_minutes.md#6",
+ "owner": {
+  "person": "cdo",
+  "name": "Samuel Okafor",
+  "role": "Chief Digital Officer"
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "Operator IDs pseudonymised before transfer",
+  "No use of the data to assess operators' performance",
+  "Only customers in Switzerland and the EU"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "About 9% of installations transmit operator IDs that can identify persons",
+    "source": "dms://ai/sernsense-dpia-2021.md",
+    "as_of": "2021-09-10"
+   },
+   {
+    "id": "f2",
+    "text": "Processor agreement with CloudWorks Analytics Inc.; transfer to the USA on standard contractual clauses",
+    "source": "dms://ai/sernsense-dpa-2021.md",
+    "as_of": "2021-09-15"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "4",
+    "article_label": "Art. 4 — Grundsätze",
+    "paragraph": "3",
+    "as_of": "2021-09-23",
+    "edition": "2019-03-01",
+    "act_in_force": "1993-07-01 – 2023-09-01 (repealed)",
+    "text": "3 Personendaten dürfen nur zu dem Zweck bearbeitet werden, der bei der Beschaffung angegeben wurde, aus den Umständen ersichtlich oder gesetzlich vorgesehen ist.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/1993/1945_1945_1945/20190301/de",
+    "source_snapshot": "get_law__DSG-4-2021-09-23__564ffa0cb2",
+    "proposition": "Personal data may be processed only for the purpose indicated when it was collected, evident from the circumstances or provided by law.",
+    "verification": {
+     "tool": "get_law",
+     "ok": true,
+     "at": "2026-10-14T22:58:21+00:00",
+     "as_of": "2021-09-23",
+     "edition": "2019-03-01",
+     "snapshot": "get_law__DSG-4-2021-09-23__564ffa0cb2"
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "6",
+    "article_label": "Art. 6 — Grenzüberschreitende Bekanntgabe",
+    "paragraph": "2",
+    "as_of": "2021-09-23",
+    "edition": "2019-03-01",
+    "act_in_force": "1993-07-01 – 2023-09-01 (repealed)",
+    "text": "2 Fehlt eine Gesetzgebung, die einen angemessenen Schutz gewährleistet, so können Personendaten ins Ausland nur bekannt gegeben werden, wenn: a. hinreichende Garantien, insbesondere durch Vertrag, einen angemessenen Schutz im Ausland gewährleisten; b. die betroffene Person im Einzelfall eingewilligt hat; c. die Bearbeitung in unmittelbarem Zusammenhang mit dem Abschluss oder der Abwicklung eines Vertrags steht und es sich um Personendaten des Vertragspartners handelt; d. die Bekanntgabe im Einzelfall entweder für die Wahrung eines überwiegenden öffentlichen Interesses oder für die Feststellung, Ausübung oder Durchsetzung von Rechtsansprüchen vor Gericht unerlässlich ist; e. die Bekanntgabe im Einzelfall erforderlich ist, um das Leben oder die körperliche Integrität der betroffenen Person zu schützen; f. die betroffene Person die Daten allgemein zugänglich gemacht und eine Bearbeitung nicht ausdrücklich untersagt hat; g. die Bekanntgabe innerhalb derselben juristischen Person oder Gesellschaft oder zwischen juristischen Personen oder Gesellschaften, die einer einheitlichen Leitung unterstehen, stattfindet, sofern die Beteiligten Datenschutzregeln unterstehen, welche einen angemessenen Schutz gewährleisten.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/1993/1945_1945_1945/20190301/de",
+    "source_snapshot": "get_law__DSG-6-2021-09-23__9d98829866",
+    "proposition": "Without adequate foreign legislation, personal data may be disclosed abroad only with sufficient safeguards, in particular contractual ones.",
+    "verification": {
+     "tool": "get_law",
+     "ok": true,
+     "at": "2026-10-14T22:50:49+00:00",
+     "as_of": "2021-09-23",
+     "edition": "2019-03-01",
+     "snapshot": "get_law__DSG-6-2021-09-23__9d98829866"
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "DSG",
+    "sr_number": "235.1",
+    "act_title": "Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)",
+    "jurisdiction": "Bund (federal)",
+    "article": "10a",
+    "article_label": "Art. 10a — Datenbearbeitung durch Dritte",
+    "paragraph": "1",
+    "as_of": "2021-09-23",
+    "edition": "2019-03-01",
+    "act_in_force": "1993-07-01 – 2023-09-01 (repealed)",
+    "text": "1 Das Bearbeiten von Personendaten kann durch Vereinbarung oder Gesetz Dritten übertragen werden, wenn: a. die Daten nur so bearbeitet werden, wie der Auftraggeber selbst es tun dürfte; und b. keine gesetzliche oder vertragliche Geheimhaltungspflicht es verbietet.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/1993/1945_1945_1945/20190301/de",
+    "source_snapshot": "get_law__DSG-10a-2021-09-23__736c770520",
+    "proposition": "Processing may be delegated to a third party by contract if the third party processes the data only as the controller itself may.",
+    "verification": {
+     "tool": "get_law",
+     "ok": true,
+     "at": "2026-10-14T22:58:21+00:00",
+     "as_of": "2021-09-23",
+     "edition": "2019-03-01",
+     "snapshot": "get_law__DSG-10a-2021-09-23__736c770520"
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Processor agreement runs to 31 December 2024 with automatic renewal",
+    "source": "dms://ai/sernsense-dpa-2021.md",
+    "test_date": "2024-12-31"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Sophie Marchand (board member)",
+   "text": "Liability risk if predictions are wrong.",
+   "answer": "Predictions are non-binding recommendations; service contracts exclude warranties."
+  }
+ ],
+ "review": {
+  "date": "2022-09-30",
+  "reopen_if": [
+   "l1, l2 or l3 amended or repealed",
+   "f2 provider or transfer basis changed",
+   "use outside Switzerland and the EU"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://ai/sernsense-dpia-2021.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://ai/sernsense-dpa-2021.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://ai/sernsense-dpa-2021.md",
+   "test_date": "2024-12-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Operator IDs pseudonymised before transfer",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "No use of the data to assess operators' performance",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r3",
+   "kind": "restriction",
+   "text": "Only customers in Switzerland and the EU",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

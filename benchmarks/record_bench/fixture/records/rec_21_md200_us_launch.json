@@ -1,0 +1,147 @@
+{
+ "id": "rec_21_md200_us_launch",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "product.market_approval",
+  "text": "Sale of the MD-200 in the United States by Sernfeld Drives Inc. from 1 August 2025 as a class I device exempt from premarket notification."
+ },
+ "purpose": "Enter the US patient-lift market through the US subsidiary under general controls only.",
+ "decided_by": "Product Release Committee of Sernfeld Antriebstechnik AG and Board of Sernfeld Drives Inc.",
+ "decided_at": "2025-06-26",
+ "minutes": "dms://products/md-200/us-launch-decision-2025.md",
+ "owner": {
+  "person": "us_counsel",
+  "name": "Jordan Pryce",
+  "role": "Associate General Counsel, Sernfeld Drives Inc."
+ },
+ "fallback_owner": {
+  "person": "gc",
+  "name": "Matteo Bianchi",
+  "role": "General Counsel"
+ },
+ "restrictions": [
+  "Sale in the United States only, by Sernfeld Drives Inc.; not in Canada or Mexico",
+  "No claims of use in ambulance stretchers"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "US counsel memo: class I, exempt from premarket notification, subject to general controls",
+    "source": "dms://products/md-200/us-regulatory-memo-2025.md",
+    "as_of": "2025-06-02"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "foreign",
+    "jurisdiction": "US",
+    "description": "US federal device classification and premarket-notification exemption for powered patient-lift components, per US counsel memo",
+    "source": "dms://products/md-200/us-regulatory-memo-2025.md",
+    "proposition": "The MD-200 is a class I device exempt from premarket notification in the United States.",
+    "watched": false,
+    "verification": {
+     "tool": null,
+     "ok": null,
+     "note": "Foreign law is outside the OpenCaseLaw corpus. No citation is stored; the entry points to the company's own advice and is watched only by the review date (T14)."
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "MepV",
+    "sr_number": "812.213",
+    "act_title": "Medizinprodukteverordnung vom 1. Juli 2020 (MepV)",
+    "jurisdiction": "Bund (federal)",
+    "article": "46",
+    "article_label": "Art. 46 — Anbringen des Konformitätskennzeichens und klinische Bewertung",
+    "paragraph": "1",
+    "as_of": "2025-06-26",
+    "edition": "2023-11-01",
+    "act_in_force": "2021-05-26 – (open)",
+    "text": "1 Die Hersteller gewährleisten beim Inverkehrbringen oder bei der Inbetriebnahme ihrer Produkte, dass diese gemäss den Anforderungen dieser Verordnung konzipiert und hergestellt wurden.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2020/552/20231101/de",
+    "source_snapshot": "get_law__MepV-46-2025-06-26__ac405bdc9e",
+    "proposition": "The Swiss manufacturer remains responsible under the Swiss rules for the design and manufacture of the device it also sells in the United States.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:26+00:00",
+     "snapshot": "attest_response__Art--46-Abs--1-MepV__4b1a01b72b",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:26+00:00",
+      "as_of": "2025-06-26",
+      "edition": "2023-11-01",
+      "snapshot": "get_law__MepV-46-2025-06-26__ac405bdc9e"
+     }
+    }
+   }
+  ],
+  "commitments": []
+ },
+ "objections": [],
+ "review": {
+  "date": "2026-06-30",
+  "reopen_if": [
+   "l1 classification or exemption changes",
+   "l2 amended",
+   "sale in Canada or Mexico",
+   "claims of use in ambulance stretchers"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "foreign",
+   "triggers": [
+    "T14"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://products/md-200/us-regulatory-memo-2025.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Sale in the United States only, by Sernfeld Drives Inc.; not in Canada or Mexico",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "r2",
+   "kind": "restriction",
+   "text": "No claims of use in ambulance stretchers",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

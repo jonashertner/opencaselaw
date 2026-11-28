@@ -1,0 +1,29 @@
+{
+ "tool": "cite",
+ "args": {
+  "reference": "bge_BGE_151_III_440"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:16:06+00:00",
+ "result": {
+  "exists": true,
+  "decision_id": "bge_BGE_151_III_440",
+  "court": "bge",
+  "language": "de",
+  "decision_date": "2025-03-31",
+  "citation_string": "BGE 151 III 440",
+  "citation_string_de": "BGE 151 III 440",
+  "citation_string_fr": "ATF 151 III 440",
+  "citation_string_it": "DTF 151 III 440",
+  "canonical_url": "https://mcp.opencaselaw.ch/entscheid/bge_BGE_151_III_440",
+  "markdown_link": "[BGE 151 III 440](https://mcp.opencaselaw.ch/entscheid/bge_BGE_151_III_440)",
+  "rule_statement": "Regeste\n Art. 219 Abs. 4, Art. 250 SchKG; Art. 18 Abs. 1, Art. 312 OR; Art. 2 Abs. 2 ZGB; Kollokation einer Darlehensforderung im Konkurs; Rangrücktritt. Über den Rangrücktritt ist bei der Kollokation der Forderung und nicht erst bei der Verteilung des Erlöses zu entscheiden (E. 5 und 5.1). […]",
+  "_note": "Copy citation_string verbatim into your response. Do NOT reconstruct or translate the citation format yourself. When your client renders Markdown, embed markdown_link instead of the bare canonical_url — some surfaces (Microsoft Copilot) strip bare URLs. For a pinpoint E./consid., pass the e_number in the `pinpoint` argument. Use rule_statement as a ready-to-quote summary (it is a verbatim excerpt — do not paraphrase inside quotation marks).",
+  "identity": {
+   "method": "exact_canonical_id",
+   "label": "bge_BGE_151_III_440"
+  },
+  "canonical_decision_id": "bge_BGE_151_III_440",
+  "is_canonical": true
+ }
+}

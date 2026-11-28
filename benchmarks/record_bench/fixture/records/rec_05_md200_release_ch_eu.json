@@ -1,0 +1,182 @@
+{
+ "id": "rec_05_md200_release_ch_eu",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "product.market_approval",
+  "text": "Release of the MD-200 drive unit as a class I medical device for Switzerland and the EU/EEA from 1 June 2021, with an EU authorised representative."
+ },
+ "purpose": "Enter the patient-lift market in Switzerland and the EU/EEA in compliance with the medical-device rules that change on 26 May 2021.",
+ "decided_by": "Product Release Committee of Sernfeld Antriebstechnik AG",
+ "decided_at": "2021-05-20",
+ "minutes": "dms://products/md-200/release-decision-2021.md",
+ "owner": {
+  "person": "ra",
+  "name": "Dr. Nadia Rüegg",
+  "role": "Head of Regulatory Affairs and Quality"
+ },
+ "fallback_owner": {
+  "person": "ceo",
+  "name": "Lukas Oberholzer",
+  "role": "Chief Executive Officer"
+ },
+ "restrictions": [
+  "Sale only in Switzerland and the EU/EEA; not in the USA, the UK or Brazil without a new release"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Class I classification (rule 13) and declaration of conformity of 20 May 2021",
+    "source": "dms://products/md-200/declaration-of-conformity-2021.md",
+    "as_of": "2021-05-20"
+   },
+   {
+    "id": "f2",
+    "text": "EU authorised representative MedRep Europe B.V. appointed",
+    "source": "dms://products/md-200/release-decision-2021.md",
+    "as_of": "2021-05-20"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "MepV",
+    "sr_number": "812.213",
+    "act_title": "Medizinprodukteverordnung vom 17. Oktober 2001 (MepV)",
+    "jurisdiction": "Bund (federal)",
+    "article": "6",
+    "article_label": "Art. 6 — Meldepflicht für das Inverkehrbringen von Medizinprodukten",
+    "paragraph": "1",
+    "as_of": "2021-05-20",
+    "edition": "2020-08-01",
+    "act_in_force": "2002-01-01 – 2021-05-26 (repealed)",
+    "text": "1 Wer folgende Medizinprodukte in der Schweiz oder in einem Vertragsstaat erstmals in Verkehr bringt und Sitz in der Schweiz hat, muss dem Institut den Namen, die Adresse sowie eine Beschreibung der betreffenden Produkte bis spätestens zum Zeitpunkt des Inverkehrbringens angeben: a. klassische Medizinprodukte der Klasse I; b. Sonderanfertigungen klassischer oder aktiver implantierbarer Medizinprodukte; c. Systeme und Behandlungseinheiten.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2001/520/20200801/de",
+    "source_snapshot": "get_law__MepV-6-2021-05-20__9eb33fa4e7",
+    "proposition": "A Swiss manufacturer placing a class I device on the market must notify Swissmedic of the device at the latest when placing it on the market.",
+    "verification": {
+     "tool": "get_law",
+     "ok": true,
+     "at": "2026-10-14T22:50:50+00:00",
+     "as_of": "2021-05-20",
+     "edition": "2020-08-01",
+     "snapshot": "get_law__MepV-6-2021-05-20__9eb33fa4e7"
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "MepV",
+    "sr_number": "812.213",
+    "act_title": "Medizinprodukteverordnung vom 1. Juli 2020 (MepV)",
+    "jurisdiction": "Bund (federal)",
+    "article": "6",
+    "article_label": "Art. 6 — Grundlegende Sicherheits- und Leistungsanforderungen",
+    "paragraph": "2",
+    "as_of": "2021-05-26",
+    "edition": "2021-05-26",
+    "act_in_force": "2021-05-26 – (open)",
+    "text": "2 Produkte müssen unter Berücksichtigung ihrer Zweckbestimmung den grundlegenden Sicherheits- und Leistungsanforderungen nach Anhang I EU-MDR genügen.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/2020/552/20210526/de",
+    "source_snapshot": "get_law__MepV-6-2021-05-26__260bb0b82f",
+    "proposition": "From 26 May 2021 devices must meet the general safety and performance requirements of Annex I EU-MDR.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:49+00:00",
+     "snapshot": "attest_response__Art--6-Abs--2-MepV__ccf5e3766d",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:49+00:00",
+      "as_of": "2021-05-26",
+      "edition": "2021-05-26",
+      "snapshot": "get_law__MepV-6-2021-05-26__260bb0b82f"
+     }
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Mandate of the EU authorised representative to be kept in force",
+    "source": "dms://products/md-200/release-decision-2021.md",
+    "test_date": "2022-05-31"
+   }
+  ]
+ },
+ "objections": [],
+ "review": {
+  "date": "2022-05-31",
+  "reopen_if": [
+   "l1 or l2 amended or repealed",
+   "f1 classification changed",
+   "sale outside the approved markets"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://products/md-200/declaration-of-conformity-2021.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://products/md-200/release-decision-2021.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://products/md-200/release-decision-2021.md",
+   "test_date": "2022-05-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "Sale only in Switzerland and the EU/EEA; not in the USA, the UK or Brazil without a new release",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}

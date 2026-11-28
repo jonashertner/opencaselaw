@@ -1,0 +1,50 @@
+{
+  "fixture_version": "0.1",
+  "notice": "Fictional company for testing Ruth Record. Every company, person, court case, bank, auditor and notified body named in this fixture is invented; any resemblance to a real one is unintended. Legal authorities are real and were copied from OpenCaseLaw tool output (see fixture/sources/).",
+  "company": {
+    "name": "Sernfeld Antriebstechnik AG",
+    "legal_form": "Aktiengesellschaft (Art. 620 ff. OR)",
+    "seat": "Winterthur, Canton of Zurich",
+    "listed": false,
+    "share_capital_chf": 20000000,
+    "shares": "2,000,000 registered shares of CHF 10",
+    "shareholders": [
+      {"name": "Imhof Beteiligungen AG", "stake": 0.52, "note": "holding company of the Imhof family; controlled by the board chair's family"},
+      {"name": "Alpenrhein Capital Partners III L.P.", "stake": 0.38, "note": "private-equity fund; represented on the board by Sophie Marchand"},
+      {"name": "management and employees", "stake": 0.10}
+    ],
+    "business": "Electric drives, pump drives and motion-control units for industrial customers; a medical drive line (patient-lift and bed drives) since 2021; predictive-maintenance services for the installed base.",
+    "revenue_chf_2025": 486000000,
+    "employees_2025": 1840,
+    "financial_year": "calendar year",
+    "auditor": {"name": "Revisia Treuhand AG", "type": "ordentliche Revision", "lead": "Martin Gisler"},
+    "lenders": {"agent": "Bank Vorderland AG", "facility": "docs/treasury/facility-agreement-2024.md"}
+  },
+  "subsidiaries": [
+    {"name": "Sernfeld Drives Inc.", "jurisdiction": "Delaware, USA", "site": "Charlotte, North Carolina", "owned": 1.0,
+     "business": "assembly and sale of drives and the MD-200 medical drive in North America"},
+    {"name": "Sernfeld Service GmbH", "jurisdiction": "Chur, Canton of Graubünden", "owned": 1.0, "nominal_capital_chf": 2000000,
+     "business": "field service and spare parts in Switzerland"}
+  ],
+  "people": [
+    {"id": "chair", "name": "Dr. Regula Imhof", "role": "Chair of the Board of Directors", "email": "regula.imhof@sernfeld.example"},
+    {"id": "acc", "name": "Prof. Dr. Thomas Bärtschi", "role": "Board member, Chair of the Audit Committee", "email": "thomas.baertschi@sernfeld.example"},
+    {"id": "dir_kaelin", "name": "Peter Kälin", "role": "Board member; owner and chair of Kälin Giesserei AG (supplier)", "email": "peter.kaelin@sernfeld.example"},
+    {"id": "dir_marchand", "name": "Sophie Marchand", "role": "Board member; partner at Alpenrhein Capital", "email": "sophie.marchand@sernfeld.example"},
+    {"id": "dir_wyss", "name": "Dr. Andreas Wyss", "role": "Board member; founder of Wyss Advisory GmbH", "email": "andreas.wyss@sernfeld.example"},
+    {"id": "ceo", "name": "Lukas Oberholzer", "role": "Chief Executive Officer", "email": "lukas.oberholzer@sernfeld.example"},
+    {"id": "cfo", "name": "Annika Zwahlen", "role": "Chief Financial Officer", "email": "annika.zwahlen@sernfeld.example"},
+    {"id": "gc", "name": "Matteo Bianchi", "role": "General Counsel and Secretary to the Board", "email": "matteo.bianchi@sernfeld.example"},
+    {"id": "ra", "name": "Dr. Nadia Rüegg", "role": "Head of Regulatory Affairs and Quality", "email": "nadia.rueegg@sernfeld.example"},
+    {"id": "cdo", "name": "Samuel Okafor", "role": "Chief Digital Officer", "email": "samuel.okafor@sernfeld.example"},
+    {"id": "dpo", "name": "Corinne Steiner", "role": "Data Protection Officer and Head of HR Services", "email": "corinne.steiner@sernfeld.example"},
+    {"id": "treasurer", "name": "Beat Hug", "role": "Group Treasurer", "email": "beat.hug@sernfeld.example"},
+    {"id": "service_md", "name": "Gian Caflisch", "role": "Managing Director, Sernfeld Service GmbH", "email": "gian.caflisch@sernfeld.example"},
+    {"id": "us_president", "name": "Dana Whitfield", "role": "President, Sernfeld Drives Inc.", "email": "dana.whitfield@sernfeld-drives.example"},
+    {"id": "us_counsel", "name": "Jordan Pryce", "role": "Associate General Counsel, Sernfeld Drives Inc.", "email": "jordan.pryce@sernfeld-drives.example"}
+  ],
+  "board_history": [
+    {"from": "2018-05-01", "members": ["chair", "acc", "dir_kaelin", "dir_marchand"]},
+    {"from": "2022-05-12", "members": ["chair", "acc", "dir_kaelin", "dir_marchand", "dir_wyss"], "note": "Dr. Andreas Wyss elected at the 2022 AGM"}
+  ]
+}

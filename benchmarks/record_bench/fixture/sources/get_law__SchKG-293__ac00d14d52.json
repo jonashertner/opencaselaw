@@ -1,0 +1,12 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "SchKG",
+  "article": "293"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T22:48:04+00:00",
+ "result": {
+  "_markdown": "# SchKG — SR 281.1\n**Bundesgesetz vom 11. April 1889 über Schuldbetreibung und Konkurs (SchKG)**\nJurisdiction: Bund (federal)\nConsolidation date: 2026-01-01\nQuelle: [Fedlex](https://www.fedlex.admin.ch/eli/cc/11/529_488_529/de#art_293)\n\n### Art. 293\n\nDas Nachlassverfahren wird eingeleitet durch: a. ein Gesuch des Schuldners mit folgenden Beilagen: eine aktuelle Bilanz, eine Erfolgsrechnung und eine Liquiditätsplanung oder entsprechende Unterlagen, aus denen die derzeitige und künftige Vermögens-, Ertrags- oder Einkommenslage des Schuldners ersichtlich ist, sowie ein provisorischer Sanierungsplan; b. ein Gesuch eines Gläubigers, der berechtigt wäre, ein Konkursbegehren zu stellen; c. die Überweisung der Akten nach Artikel 173a Absatz 2.\n\n> Footnote: Fassung gemäss Ziff. I des BG vom 21. Juni 2013, in Kraft seit 1. Jan. 2014 (AS 2013 4111; BBl 2010 6455).\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

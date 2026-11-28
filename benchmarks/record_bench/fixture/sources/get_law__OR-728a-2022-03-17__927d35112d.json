@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "OR",
+  "article": "728a",
+  "as_of": "2022-03-17"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:51+00:00",
+ "result": {
+  "_markdown": "# OR — SR 220\n**Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2022-01-01, applicable on 2022-03-17\nAct in force: 1912-01-01 – (open)\nText source: Fedlex Akoma Ntoso XML — per-article, verbatim\nQuelle: [Fedlex (Fassung vom 2022-01-01)](https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20220101/de)\n\n### Art. 728a\n\n1 Die Revisionsstelle prüft, ob: 1. die Jahresrechnung und gegebenenfalls die Konzernrechnung den gesetzlichen Vorschriften, den Statuten und dem gewählten Regelwerk entsprechen; 2. der Antrag des Verwaltungsrats an die Generalversammlung über die Verwendung des Bilanzgewinnes den gesetzlichen Vorschriften und den Statuten entspricht; 3. ein internes Kontrollsystem existiert.\n2 Die Revisionsstelle berücksichtigt bei der Durchführung und bei der Festlegung des Umfangs der Prüfung das interne Kontrollsystem.\n3 Die Geschäftsführung des Verwaltungsrats ist nicht Gegenstand der Prüfung durch die Revisionsstelle.\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

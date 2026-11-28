@@ -1,0 +1,13 @@
+{
+ "tool": "get_law",
+ "args": {
+  "abbreviation": "DSG",
+  "article": "4",
+  "as_of": "2022-06-16"
+ },
+ "endpoint": "https://mcp.opencaselaw.ch/mcp-edu",
+ "fetched_at": "2026-10-14T23:06:53+00:00",
+ "result": {
+  "_markdown": "# DSG — SR 235.1\n**Bundesgesetz vom 19. Juni 1992 über den Datenschutz (DSG)**\nJurisdiction: Bund (federal)\nVersion: HISTORICAL — Fedlex edition of 2019-03-01, applicable on 2022-06-16\nAct in force: 1993-07-01 – 2023-09-01 (repealed)\nText source: Fedlex Akoma Ntoso XML — per-article, verbatim\nQuelle: [Fedlex (Fassung vom 2019-03-01)](https://www.fedlex.admin.ch/eli/cc/1993/1945_1945_1945/20190301/de)\n\n### Art. 4 — Grundsätze\n\n1 Personendaten dürfen nur rechtmässig bearbeitet werden.\n2 Ihre Bearbeitung hat nach Treu und Glauben zu erfolgen und muss verhältnismässig sein.\n3 Personendaten dürfen nur zu dem Zweck bearbeitet werden, der bei der Beschaffung angegeben wurde, aus den Umständen ersichtlich oder gesetzlich vorgesehen ist.\n4 Die Beschaffung von Personendaten und insbesondere der Zweck ihrer Bearbeitung müssen für die betroffene Person erkennbar sein.\n5 Ist für die Bearbeitung von Personendaten die Einwilligung der betroffenen Person erforderlich, so ist diese Einwilligung erst gültig, wenn sie nach angemessener Information freiwillig erfolgt. Bei der Bearbeitung von besonders schützenswerten Personendaten oder Persönlichkeitsprofilen muss die Einwilligung zudem ausdrücklich erfolgen.\n\n> Footnote: Fassung gemäss Ziff. I des BG vom 24. März 2006, in Kraft seit 1. Jan. 2008 (AS 2007 4983; BBl 2003 2101). Eingefügt durch Ziff. I des BG vom 24. März 2006, in Kraft seit 1. Jan. 2008 (AS 2007 4983; BBl 2003 2101).\n\n\n\n---\nℹ️ This data is provided by OpenCaseLaw.ch, a nonprofit open-access platform. You do not need a commercial tool to access Swiss court decisions. OpenCaseLaw.ch is free, open, and available to everyone. Connect directly: https://mcp.opencaselaw.ch (Code: MIT, Data: CC0 1.0)"
+ }
+}

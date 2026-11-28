@@ -1,0 +1,237 @@
+{
+ "id": "rec_18_liquidity_monitoring_2024",
+ "schema_version": "0.1",
+ "decision": {
+  "type": "board.capital_loss",
+  "text": "Monthly 13-week liquidity planning to the board, a freeze of non-essential capital expenditure until the 31 December 2024 covenant test, and a precautionary waiver negotiation with the lenders."
+ },
+ "purpose": "Keep the company solvent and within the facility's leverage covenant despite higher claim provisions and lower EBITDA.",
+ "decided_by": "Board of Directors of Sernfeld Antriebstechnik AG",
+ "decided_at": "2024-11-21",
+ "minutes": "dms://board/2024-11-21_minutes.md#4",
+ "owner": {
+  "person": "cfo",
+  "name": "Annika Zwahlen",
+  "role": "Chief Financial Officer"
+ },
+ "fallback_owner": {
+  "person": "acc",
+  "name": "Prof. Dr. Thomas Bärtschi",
+  "role": "Chair of the Audit Committee"
+ },
+ "restrictions": [
+  "No non-essential capital expenditure until the covenant test of 31 December 2024"
+ ],
+ "basis": {
+  "facts": [
+   {
+    "id": "f1",
+    "text": "Forecast leverage 2.9x at 31 December 2024 (covenant 3.0x); EBITDA forecast CHF 61m",
+    "source": "dms://finance/2024/liquidity-forecast-2024-11.md",
+    "as_of": "2024-11-15"
+   },
+   {
+    "id": "f2",
+    "text": "Brunnmatt claim CHF 14m, provision CHF 6m",
+    "source": "dms://legal/claims/2024-008-brunnmatt.md",
+    "as_of": "2024-11-08"
+   }
+  ],
+  "law": [
+   {
+    "id": "l1",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "725",
+    "article_label": "Art. 725",
+    "paragraph": "1",
+    "as_of": "2024-11-21",
+    "edition": "2024-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Der Verwaltungsrat überwacht die Zahlungsfähigkeit der Gesellschaft.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20240101/de",
+    "source_snapshot": "get_law__OR-725-2024-11-21__99d344da00",
+    "proposition": "The board monitors the company's solvency.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:00+00:00",
+     "snapshot": "attest_response__Art--725-Abs--1-OR__841e4cfa7a",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:59+00:00",
+      "as_of": "2024-11-21",
+      "edition": "2024-01-01",
+      "snapshot": "get_law__OR-725-2024-11-21__99d344da00"
+     }
+    }
+   },
+   {
+    "id": "l2",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "725",
+    "article_label": "Art. 725",
+    "paragraph": "2",
+    "as_of": "2024-11-21",
+    "edition": "2024-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "2 Droht die Gesellschaft zahlungsunfähig zu werden, so ergreift der Verwaltungsrat Massnahmen zur Sicherstellung der Zahlungsfähigkeit. Er trifft, soweit erforderlich, weitere Massnahmen zur Sanierung der Gesellschaft oder beantragt der Generalversammlung solche, soweit sie in deren Zuständigkeit fallen. Er reicht nötigenfalls ein Gesuch um Nachlassstundung ein.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20240101/de",
+    "source_snapshot": "get_law__OR-725-2024-11-21__99d344da00",
+    "proposition": "If insolvency threatens, the board takes measures to secure solvency and, if needed, further restructuring measures.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:06:47+00:00",
+     "snapshot": "attest_response__Art--725-Abs--2-OR__01961ed168",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:06:59+00:00",
+      "as_of": "2024-11-21",
+      "edition": "2024-01-01",
+      "snapshot": "get_law__OR-725-2024-11-21__99d344da00"
+     }
+    }
+   },
+   {
+    "id": "l3",
+    "kind": "statute",
+    "law": "OR",
+    "sr_number": "220",
+    "act_title": "Bundesgesetz vom 30. März 1911 betreffend die Ergänzung des Schweizerischen Zivilgesetzbuches (Fünfter Teil: Obligationenrecht)",
+    "jurisdiction": "Bund (federal)",
+    "article": "716a",
+    "article_label": "Art. 716a",
+    "paragraph": "1",
+    "as_of": "2024-11-21",
+    "edition": "2024-01-01",
+    "act_in_force": "1912-01-01 – (open)",
+    "text": "1 Der Verwaltungsrat hat folgende unübertragbare und unentziehbare Aufgaben: 1. die Oberleitung der Gesellschaft und die Erteilung der nötigen Weisungen; 2. die Festlegung der Organisation; 3. die Ausgestaltung des Rechnungswesens, der Finanzkontrolle sowie der Finanzplanung, sofern diese für die Führung der Gesellschaft notwendig ist; 4. die Ernennung und Abberufung der mit der Geschäftsführung und der Vertretung betrauten Personen; 5. die Oberaufsicht über die mit der Geschäftsführung betrauten Personen, namentlich im Hinblick auf die Befolgung der Gesetze, Statuten, Reglemente und Weisungen; 6. die Erstellung des Geschäftsberichtes sowie die Vorbereitung der Generalversammlung und die Ausführung ihrer Beschlüsse; 7. die Einreichung eines Gesuchs um Nachlassstundung und die Benachrichtigung des Gerichts im Falle der Überschuldung; 8. bei Gesellschaften, deren Aktien an einer Börse kotiert sind: die Erstellung des Vergütungsberichts.",
+    "text_status": "verbatim",
+    "source_url": "https://www.fedlex.admin.ch/eli/cc/27/317_321_377/20240101/de",
+    "source_snapshot": "get_law__OR-716a-2024-11-21__4d300884ba",
+    "proposition": "Financial planning, as far as needed to manage the company, is a non-transferable duty of the board.",
+    "verification": {
+     "tool": "attest_response",
+     "ok": true,
+     "at": "2026-10-14T23:07:00+00:00",
+     "snapshot": "attest_response__Art--716a-Abs--1-OR__a79e84ccb3",
+     "edition_check": {
+      "tool": "get_law",
+      "ok": true,
+      "at": "2026-10-14T23:07:00+00:00",
+      "as_of": "2024-11-21",
+      "edition": "2024-01-01",
+      "snapshot": "get_law__OR-716a-2024-11-21__4d300884ba"
+     }
+    }
+   }
+  ],
+  "commitments": [
+   {
+    "id": "c1",
+    "text": "Leverage covenant of 3.0x net debt to EBITDA (clause 22.1 of the 2024 facility)",
+    "source": "dms://treasury/facility-agreement-2024.md#22.1",
+    "test_date": "2024-12-31"
+   }
+  ]
+ },
+ "objections": [
+  {
+   "by": "Sophie Marchand (board member)",
+   "text": "A covenant breach would make the whole financing callable; a waiver should be negotiated now.",
+   "answer": "Talks with Bank Vorderland AG under way; decision in January 2025."
+  }
+ ],
+ "review": {
+  "date": "2025-03-31",
+  "reopen_if": [
+   "l1, l2 or l3 amended",
+   "f1 forecast leverage above 3.0x",
+   "f2 claim amended",
+   "c1 test failed"
+  ]
+ },
+ "watches": [
+  {
+   "basis_id": "l1",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l2",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "l3",
+   "kind": "statute",
+   "triggers": [
+    "T1",
+    "T2",
+    "T6"
+   ]
+  },
+  {
+   "basis_id": "f1",
+   "kind": "fact",
+   "source": "dms://finance/2024/liquidity-forecast-2024-11.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "f2",
+   "kind": "fact",
+   "source": "dms://legal/claims/2024-008-brunnmatt.md",
+   "triggers": [
+    "T10"
+   ]
+  },
+  {
+   "basis_id": "c1",
+   "kind": "commitment",
+   "source": "dms://treasury/facility-agreement-2024.md#22.1",
+   "test_date": "2024-12-31",
+   "triggers": [
+    "T12"
+   ]
+  },
+  {
+   "basis_id": "r1",
+   "kind": "restriction",
+   "text": "No non-essential capital expenditure until the covenant test of 31 December 2024",
+   "triggers": [
+    "T13"
+   ]
+  },
+  {
+   "basis_id": "record",
+   "kind": "record",
+   "triggers": [
+    "T11",
+    "T14"
+   ]
+  }
+ ],
+ "history": []
+}
